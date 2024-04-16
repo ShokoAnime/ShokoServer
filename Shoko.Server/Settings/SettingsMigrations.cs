@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
 
 namespace Shoko.Server.Settings;
 
@@ -91,23 +92,18 @@ public static class SettingsMigrations
 
     private static string MigrateAniDBServerAddresses(string settings)
     {
-        ushort serverPort = 9001;
+        var currentSettings = JObject.Parse(settings);
 
-        var serverPortRegex = new Regex(@"(?<=""AniDb""\s*:\s*\{.*)""ServerPort""\s*:\s*(?<value>\d+)", RegexOptions.Compiled | RegexOptions.Singleline);
-        var serverAddressRegex = new Regex(@"(?<=""AniDb""\s*:\s*\{.*)""ServerAddress""\s*:\s*""(?<value>\S+)""", RegexOptions.Compiled | RegexOptions.Singleline);
+        if (currentSettings["AniDb"] is null)
+            return settings;
+        
+        var serverAddress = currentSettings["AniDb"]["ServerAddress"]?.Value<string>() ?? "api.anidb.net";
+        var serverPort = currentSettings["AniDb"]["ServerPort"]?.Value<ushort>() ?? 9001;
+        
+        currentSettings["AniDb"]["HTTPServerUrl"] = $"http://{serverAddress}:{serverPort + 1}";
+        currentSettings["AniDb"]["UDPServerAddress"] = serverAddress;
+        currentSettings["AniDb"]["UDPServerPort"] = serverPort;
 
-        var newSettings = serverPortRegex.Replace(settings, match =>
-        {
-            serverPort = ushort.Parse(match.Groups["value"].Value);
-            return $"\"UDPServerPort\": {serverPort}";
-        });
-
-        return serverAddressRegex.Replace(newSettings, match =>
-        {
-            var serverAddress = match.Groups["value"].Value;
-            // This is basically what MigrateAniDBToNet migration did in DatabaseFixes.cs, which is now made blank to remove ServerAddress from settings
-            serverAddress = serverAddress.Replace("api.anidb.info", "api.anidb.net");
-            return $"\"HTTPServerUrl\": \"http://{serverAddress}:{serverPort + 1}\",\"UDPServerAddress\": \"{serverAddress}\"";
-        });
+        return currentSettings.ToString();
     }
 }
