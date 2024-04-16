@@ -17,18 +17,16 @@ public static class ModelClients
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
-    private static readonly Regex _urlRegex = new Regex(@"(?<=https?://)(?<address>.*):(?<port>\d+)", RegexOptions.Compiled);
-
     public static CL_ServerSettings ToContract(this IServerSettings settings)
     {
-        var serverAddressGroups = _urlRegex.Match(settings.AniDb.HTTPServerUrl).Groups;
+        var httpServerUri = new Uri(settings.AniDb.HTTPServerUrl);
 
         return new CL_ServerSettings
         {
             AniDB_Username = settings.AniDb.Username,
             AniDB_Password = settings.AniDb.Password,
-            AniDB_ServerAddress = serverAddressGroups["address"].Value,
-            AniDB_ServerPort = serverAddressGroups["port"].Value,
+            AniDB_ServerAddress = httpServerUri.Host,
+            AniDB_ServerPort = httpServerUri.Port.ToString(),
             AniDB_ClientPort = settings.AniDb.ClientPort.ToString(),
             AniDB_AVDumpClientPort = settings.AniDb.AVDumpClientPort.ToString(),
             AniDB_AVDumpKey = settings.AniDb.AVDumpKey,

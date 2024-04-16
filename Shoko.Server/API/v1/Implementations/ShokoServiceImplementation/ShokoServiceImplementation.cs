@@ -50,9 +50,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
-
-    private readonly Regex _urlRegex = new Regex(@"(?<=https?://)(?<address>.*):(?<port>\d+)", RegexOptions.Compiled);
-
+    
     public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ILogger<ShokoServiceImplementation> logger, ActionService actionService, AnimeGroupCreator groupCreator, JobFactory jobFactory)
     {
         _tvdbHelper = tvdbHelper;
@@ -481,12 +479,14 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 }
             }
 
-            var serverAddressGroups = _urlRegex.Match(settings.AniDb.HTTPServerUrl).Groups;
-            var oldAniDB_ServerAddress = serverAddressGroups["address"].Value;
-            var oldAniDB_ServerPort = serverAddressGroups["port"].Value;
-            var newAniDB_HTTPServerUrl = $"{contractIn.AniDB_ServerAddress}:{contractIn.AniDB_ServerPort}";
+            var oldHttpServerUrl = new Uri(settings.AniDb.HTTPServerUrl);
+            var newHttpServerUrl = new UriBuilder(oldHttpServerUrl)
+            {
+                Host = contractIn.AniDB_ServerAddress,
+                Port = int.Parse(contractIn.AniDB_ServerPort)
+            }.Uri;
 
-            if (contractIn.AniDB_ServerAddress != oldAniDB_ServerAddress || contractIn.AniDB_ServerPort != oldAniDB_ServerPort)
+            if (oldHttpServerUrl != newHttpServerUrl)
             {
                 anidbSettingsChanged = true;
 
@@ -495,16 +495,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                     contract.ErrorMessage += "AniDB Server Address must have a value" + Environment.NewLine;
                 }
 
-                if (!(ushort.TryParse(contractIn.AniDB_ServerPort, out var newAniDB_ServerPort) && newAniDB_ServerPort > 0))
+                if (!(ushort.TryParse(contractIn.AniDB_ServerPort, out var newAniDBServerPort) && newAniDBServerPort > 0))
                 {
                     contract.ErrorMessage += "AniDB Server Port must be numeric and greater than 0" +
                                              Environment.NewLine;
-                }
-
-                // This can be a single condition with StartsWith("http"), but there's an edge case of someone having "http.example.org"
-                if (!newAniDB_HTTPServerUrl.StartsWith("http://") && !newAniDB_HTTPServerUrl.StartsWith("https://"))
-                {
-                    newAniDB_HTTPServerUrl = $"http://{newAniDB_HTTPServerUrl}";
                 }
             }
 
@@ -521,7 +515,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             settings.AniDb.ClientPort = newAniDB_ClientPort;
             settings.AniDb.Password = contractIn.AniDB_Password;
-            settings.AniDb.HTTPServerUrl = newAniDB_HTTPServerUrl;
+            settings.AniDb.HTTPServerUrl = newHttpServerUrl.ToString();
             settings.AniDb.Username = contractIn.AniDB_Username;
             settings.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
             settings.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
