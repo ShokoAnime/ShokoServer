@@ -73,6 +73,12 @@ public class DiscoverFileJob : BaseJob
 
             if (vlocal.HasAnyEmptyHashes())
                 shouldSave |= FillHashesAgainstVideoLocalRepo(vlocal);
+
+            if (vlocal.EpisodeCrossRefs.Any() && !vlocal.DateTimeImported.HasValue)
+            {
+                vlocal.DateTimeImported = DateTime.Now;
+                shouldSave = true;
+            }
         }
 
         // on a new file, this will always be true
@@ -85,7 +91,7 @@ public class DiscoverFileJob : BaseJob
         if (!shouldHash && !shouldSave)
         {
             // if !shouldHash, then we definitely have a hash
-            var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash).Where(a =>
+            var xrefs = vlocal.EpisodeCrossRefs.Where(a =>
                 RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
             if (xrefs.Count != 0)
             {
@@ -124,7 +130,7 @@ public class DiscoverFileJob : BaseJob
 
         }
 
-        var hasXrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash).Any(a =>
+        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a =>
             RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
         if (!hasXrefs)
         {
