@@ -268,7 +268,9 @@ public class AnimeCreator
             anime.AllTags = string.Empty;
             anime.AllTitles = string.Empty;
             anime.ImageEnabled = 1;
+#pragma warning disable CS0618
             anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
+#pragma warning restore CS0618
         }
 
         return isUpdated;
