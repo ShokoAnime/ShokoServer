@@ -47,7 +47,7 @@ jobs:
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0\\publish .\\Shoko.CLI_Framework_any-x64.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\publish .\\Shoko.CLI_Framework_any-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
@@ -108,7 +108,7 @@ jobs:
 
       - name: Archive Release (${{ matrix.rid }})
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0\\${{ matrix.rid }}\\publish .\\Shoko.CLI_Standalone_${{ matrix.rid }}.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\${{ matrix.rid }}\\publish .\\Shoko.CLI_Standalone_${{ matrix.rid }}.zip
 
       - name: Upload Release (${{ matrix.rid }})
         uses: svenstaro/upload-release-action@v2
@@ -164,11 +164,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win10-x64 --no-self-contained Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Framework_win10-x64.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0-windows\\win-x64\\publish .\\Shoko.TrayService_Framework_win-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
@@ -214,11 +214,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --self-contained true -f net8.0-windows Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Standalone_win10-x64.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0-windows\\win-x64\\publish .\\Shoko.TrayService_Standalone_win-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2

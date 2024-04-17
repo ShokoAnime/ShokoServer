@@ -96,7 +96,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}.zip
-          path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
+          path: Shoko.Server/bin/Release/net8.0/${{matrix.rid}}/publish/
 
   tray-service-daily:
     runs-on: windows-latest
@@ -109,13 +109,13 @@ jobs:
         dotnet: [ '8.x' ]
         build_type: ['Standalone', 'Framework']
         include:
-          - build_props: '-r win10-x64 --self-contained true -f net6.0-windows'
+          - build_props: '-r win-x64 --self-contained true -f net8.0-windows'
             build_type: 'Standalone'
-          - build_dir: '/net6.0-windows/win10-x64'
+          - build_dir: '/net8.0-windows/win-x64'
             build_type: 'Standalone'
           - build_props: ''
             build_type: 'Framework'
-          - build_dir: '/net6.0-windows'
+          - build_dir: '/net8.0-windows'
             build_type: 'Framework'
 
     name: Build Tray Service ${{ matrix.build_type }} (Daily)
@@ -143,7 +143,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Shoko.TrayService_${{ matrix.build_type }}_win10-x64.zip
+          name: Shoko.TrayService_${{ matrix.build_type }}_win-x64.zip
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
 
       - name: Upload to shokoanime.com
@@ -153,7 +153,7 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        run : Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
+        run : Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0-windows\\win-x64\\publish .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   docker-daily-build:
     runs-on: ubuntu-latest
