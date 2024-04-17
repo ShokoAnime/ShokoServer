@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         rid: ['linux-x64', 'linux-arm64']
-        dotnet: [ '6.x' ]
+        dotnet: [ '8.x' ]
         build_type: ['Standalone']
         include:
           - build_props: ''
@@ -106,7 +106,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '6.x' ]
+        dotnet: [ '8.x' ]
         build_type: ['Standalone', 'Framework']
         include:
           - build_props: '-r win10-x64 --self-contained true -f net6.0-windows'

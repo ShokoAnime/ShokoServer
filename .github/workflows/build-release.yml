@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '6.x' ]
+        dotnet: [ '8.x' ]
 
     name: Build CLI — Framework dependent (Stable)
 
@@ -63,7 +63,7 @@ jobs:
     strategy:
       matrix:
         rid: ['win-x64', 'linux-x64', 'linux-arm64']
-        dotnet: [ '6.x' ]
+        dotnet: [ '8.x' ]
 
     name: Build CLI — Standalone ${{ matrix.rid }} (Stable)
 
@@ -133,7 +133,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '6.x' ]
+        dotnet: [ '8.x' ]
 
     name: Build Tray Service — Framework dependent (Stable)
 
@@ -183,7 +183,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '6.x' ]
+        dotnet: [ '8.x' ]
 
     name: Build Tray Service — Standalone (Stable)
 

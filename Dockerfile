@@ -14,7 +14,7 @@ WORKDIR /usr/src/app/source
 
 RUN dotnet build -c=Release -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date}\""
 
-FROM mcr.microsoft.com/dotnet/aspnet:6.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 ENV PUID=1000 \
     PGID=100 \
     LANG=C.UTF-8 \
