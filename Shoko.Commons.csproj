@@ -10,7 +10,7 @@
     <Deterministic>false</Deterministic>
     <LangVersion>latest</LangVersion>
     <Configurations>Debug;Release</Configurations>
-    <TargetFrameworks>net6.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>net8.0;netstandard2.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
     <RuntimeIdentifiers Condition="'$(TargetFramework)' == 'net6.0'">win10-x64;win-x64;win-x86;linux-x64</RuntimeIdentifiers>
@@ -88,7 +88,7 @@
     <ProjectReference Include="Shoko.Models\Shoko.Models.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="F23.StringSimilarity" Version="5.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="F23.StringSimilarity" Version="6.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>
