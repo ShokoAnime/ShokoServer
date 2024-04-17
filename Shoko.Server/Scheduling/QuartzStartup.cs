@@ -67,7 +67,7 @@ public static class QuartzStartup
     internal static void AddQuartz(this IServiceCollection services)
     {
         // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
-        ShokoEventHandler.Instance.Starting += (_, _) => ScheduleRecurringJobs(false).GetAwaiter().GetResult();
+        ShokoEventHandler.Instance.Starting += async (_, _) => await ScheduleRecurringJobs(false).ConfigureAwait(false);
         // JobFactory is stateless, but no reason to recreate it multiple times
         services.AddSingleton<JobFactory>();
         // Allow specifically injecting the singleton instance of ThreadPooledJobStore
