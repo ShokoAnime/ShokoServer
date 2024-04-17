@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -90,24 +89,6 @@ public class ThreadPooledJobStore : JobStoreTX
     ~ThreadPooledJobStore()
     {
         foreach (var filter in _acquisitionFilters) filter.StateChanged -= FilterOnStateChanged;
-    }
-
-    [ThreadStatic]
-    private static Stopwatch s_connectionTimer;
-    protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection(bool doTransaction = true)
-    {
-        s_connectionTimer ??= new();
-        s_connectionTimer.Reset();
-        s_connectionTimer.Start();
-        return base.GetNonManagedTXConnection(doTransaction);
-    }
-
-    protected override void CleanupConnection(ConnectionAndTransactionHolder conn)
-    {
-        if (conn == null) return;
-        base.CleanupConnection(conn);
-        s_connectionTimer.Stop();
-        _logger.LogError("Database operation completed in {Time:0.####}ms", s_connectionTimer.ElapsedTicks / 10000D);
     }
 
     private void FilterOnStateChanged(object sender, EventArgs e)
