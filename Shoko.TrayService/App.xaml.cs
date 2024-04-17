@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
-using Quartz;
 using Shoko.Server;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -120,7 +119,7 @@ public partial class App
 
     private async Task ShutdownQuartz()
     {
-        var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
+        var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a.GetType().Name == "QuartzHostedService");
         if (quartz == null)
         {
             _logger.LogError("Could not get QuartzHostedService");

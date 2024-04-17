@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Quartz.Serialization.Newtonsoft</name>
+    </assembly>
+    <members>
+        <member name="T:Quartz.CalendarSerializer`1">
+            <summary>
+            Convenience base class to strongly type a calendar serializer. 
+            </summary>
+            <typeparam name="TCalendar"></typeparam>
+        </member>
+        <member name="T:Quartz.Converters.NameValueCollectionConverter">
+            <summary>
+            Custom converter for (de)serializing <see cref="T:System.Collections.Specialized.NameValueCollection" />.
+            </summary>
+        </member>
+        <member name="M:Quartz.JsonConfigurationExtensions.UseNewtonsoftJsonSerializer(Quartz.SchedulerBuilder.PersistentStoreOptions,System.Action{Quartz.NewtonsoftJsonSerializerOptions})">
+            <summary>
+            Use Newtonfsoft JSON as data serialization strategy.
+            </summary>
+        </member>
+        <member name="T:Quartz.Simpl.JsonObjectSerializer">
+            <summary>
+            Default object serialization strategy that uses <see cref="T:Newtonsoft.Json.JsonSerializer" />
+            under the hood.
+            </summary>
+            <author>Marko Lahma</author>
+        </member>
+        <member name="M:Quartz.Simpl.JsonObjectSerializer.Serialize``1(``0)">
+            <summary>
+            Serializes given object as bytes
+            that can be stored to permanent stores.
+            </summary>
+            <param name="obj">Object to serialize.</param>
+        </member>
+        <member name="M:Quartz.Simpl.JsonObjectSerializer.DeSerialize``1(System.Byte[])">
+            <summary>
+            Deserializes object from byte array presentation.
+            </summary>
+            <param name="obj">Data to deserialize object from.</param>
+        </member>
+        <member name="T:System.Runtime.CompilerServices2.InlineArrayAttribute">
+            <summary>
+            Indicates that the instance's storage is sequentially replicated "length" times.
+            </summary>
+            <remarks>
+            <para>
+            This attribute can be used to annotate a <see langword="struct"/> type with a single field.
+            The runtime will replicate that field in the actual type layout as many times as is specified.
+            </para>
+            <para>
+            Here's an example of how an inline array type with 8 <see cref="T:System.Single"/> values can be declared:
+            <code lang="csharp">
+            [InlineArray(8)]
+            struct Float8InlineArray
+            {
+                private float _value;
+            }
+            </code>
+            </para>
+            </remarks>
+        </member>
+        <member name="M:System.Runtime.CompilerServices2.InlineArrayAttribute.#ctor(System.Int32)">
+            <summary>Creates a new <see cref="T:System.Runtime.CompilerServices2.InlineArrayAttribute"/> instance with the specified length.</summary>
+            <param name="length">The number of sequential fields to replicate in the inline array type.</param>
+        </member>
+        <member name="P:System.Runtime.CompilerServices2.InlineArrayAttribute.Length">
+            <summary>Gets the number of sequential fields to replicate in the inline array type.</summary>
+        </member>
+    </members>
+</doc>

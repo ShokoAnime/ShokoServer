@@ -42,7 +42,7 @@ public class QueueStateEventHandler
             {
                 new()
                 {
-                    Key = jobDetail.Key.ToString(), JobType = job?.TypeName ?? jobDetail.JobType.Name, Title = job?.Title, Details = job?.Details
+                    Key = jobDetail.Key.ToString(), JobType = job?.TypeName ?? jobDetail.JobType.Type.Name, Title = job?.Title, Details = job?.Details
                 }
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,
@@ -65,7 +65,7 @@ public class QueueStateEventHandler
                 new()
                 {
                     Key = jobDetail.Key.ToString(),
-                    JobType = job?.TypeName ?? jobDetail.JobType.Name,
+                    JobType = job?.TypeName ?? jobDetail.JobType.Type.Name,
                     Title = job?.Title,
                     Details = job?.Details,
                     Running = true
@@ -90,7 +90,7 @@ public class QueueStateEventHandler
             {
                 new()
                 {
-                    Key = jobDetail.Key.ToString(), JobType = job?.TypeName ?? jobDetail.JobType.Name, Title = job?.Title, Details = job?.Details
+                    Key = jobDetail.Key.ToString(), JobType = job?.TypeName ?? jobDetail.JobType.Type.Name, Title = job?.Title, Details = job?.Details
                 }
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,

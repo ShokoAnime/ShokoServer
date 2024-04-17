@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using Microsoft.Data.SqlClient;
 using NHibernate;
 using NHibernate.AdoNet;
 using Shoko.Commons.Extensions;

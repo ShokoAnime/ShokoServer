@@ -12,7 +12,7 @@ namespace Shoko.Server.Scheduling.Jobs;
 [UsedImplicitly(ImplicitUseTargetFlags.WithInheritors)]
 public abstract class BaseJob : IJob
 {
-    public async Task Execute(IJobExecutionContext context)
+    public async ValueTask Execute(IJobExecutionContext context)
     {
         try
         {
@@ -21,7 +21,7 @@ public abstract class BaseJob : IJob
         catch (Exception ex)
         {
             // _logger.LogError(ex, "Job threw an error on Execution: {Job} | Error -> {Ex}", context.JobDetail.Key, ex);
-            throw new JobExecutionException(msg: ex.Message, cause: ex);
+            throw new JobExecutionException(ex.Message, ex);
         }
     }
 

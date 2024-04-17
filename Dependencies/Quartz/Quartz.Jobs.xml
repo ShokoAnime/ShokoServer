@@ -1,0 +1,421 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Quartz.Jobs</name>
+    </assembly>
+    <members>
+        <member name="T:Quartz.Job.DirectoryScanJob">
+            <summary>
+             Inspects a directory and compares whether any files' "last modified dates"
+             have changed since the last time it was inspected.  If one or more files
+             have been updated (or created), the job invokes a "call-back" method on an
+             identified <see cref="T:Quartz.Job.IDirectoryScanListener"/> that can be found in the
+             <see cref="T:Quartz.SchedulerContext"/>.
+             </summary>
+             <author>pl47ypus</author>
+             <author>James House</author>
+             <author>Marko Lahma (.NET)</author>
+             <author>Chris Knight (.NET)</author>
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.DirectoryName">
+            <see cref="T:Quartz.JobDataMap"/> key with which to specify the directory to be
+             monitored - an absolute path is recommended.
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.DirectoryNames">
+            <see cref="T:Quartz.JobDataMap"/> key with which to specify the directories to be
+             monitored. Directory paths should be separated by a semi-colon (;) - absolute paths are recommended.
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.DirectoryProviderName">
+            <see cref="T:Quartz.JobDataMap"/> key with which to specify the
+            <see cref="T:Quartz.Spi.IDirectoryProvider"/> to be used to provide
+            the directory paths to be monitored - absolute paths are recommended.
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.DirectoryScanListenerName">
+            <see cref="T:Quartz.JobDataMap"/> key with which to specify the
+            <see cref="T:Quartz.Job.IDirectoryScanListener"/> to be
+            notified when the directory contents change.
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.MinimumUpdateAge">
+            <see cref="T:Quartz.JobDataMap"/> key with which to specify a <see cref="T:System.Int64"/>
+            value that represents the minimum number of milliseconds that must have
+            passed since the file's last modified time in order to consider the file
+            new/altered.  This is necessary because another process may still be
+            in the middle of writing to the file when the scan occurs, and the
+             file may therefore not yet be ready for processing.
+            <para>If this parameter is not specified, a default value of 5000 (five seconds) will be used.</para>
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.SearchPattern">
+            <summary>
+            The search string to match against the names of files.
+            Can contain combination of valid literal path and wildcard (* and ?) characters
+            </summary>
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.IncludeSubDirectories">
+            <see cref="T:Quartz.JobDataMap"/> Key to specify whether to scan sub directories for file changes.
+        </member>
+        <member name="F:Quartz.Job.DirectoryScanJob.CurrentFileList">
+            <see cref="T:Quartz.JobDataMap"/> key to store the current file list of the scanned directories.
+            This is required to find out deleted files during next iteration.
+        </member>
+        <member name="M:Quartz.Job.DirectoryScanJob.Execute(Quartz.IJobExecutionContext)">
+            <summary>
+            This is the main entry point for job execution. The scheduler will call this method on the
+            job once it is triggered.
+            </summary>
+            <param name="context">The <see cref="T:Quartz.IJobExecutionContext"/> that
+            the job will use during execution.</param>
+        </member>
+        <member name="T:Quartz.Job.DirectoryScanJobModel">
+            <summary>
+            Internal model to hold settings used by <see cref="T:Quartz.Job.DirectoryScanJob"/>
+            </summary>
+        </member>
+        <member name="M:Quartz.Job.DirectoryScanJobModel.#ctor">
+            <summary>
+            We only want this type of object to be instantiated by inspecting the data 
+            of a IJobExecutionContext <see cref="T:Quartz.IJobExecutionContext"/>. Use the 
+            GetInstance() <see cref="M:Quartz.Job.DirectoryScanJobModel.GetInstance(Quartz.IJobExecutionContext)"/> method to create an instance of this
+            object type
+            </summary>
+        </member>
+        <member name="M:Quartz.Job.DirectoryScanJobModel.GetInstance(Quartz.IJobExecutionContext)">
+            <summary>
+            Creates an instance of DirectoryScanJobModel by inspecting the provided IJobExecutionContext <see cref="T:Quartz.IJobExecutionContext"/>
+            </summary>
+            <param name="context">Content of the job execution <see cref="T:Quartz.IJobExecutionContext"/></param>
+            <returns>Instance of DirectoryScanJobModel based on the IJobExecutionContext <see cref="T:Quartz.IJobExecutionContext"/> passed in</returns>
+        </member>
+        <member name="M:Quartz.Job.DirectoryScanJobModel.UpdateLastModifiedDate(System.DateTime)">
+            <summary>
+            Updates the last modified date to the date provided, unless the currently set one is later
+            </summary>
+            <param name="lastWriteTimeFromFiles">Latest LastWriteTime of the files scanned</param>
+        </member>
+        <member name="M:Quartz.Job.DirectoryScanJobModel.UpdateFileList(System.Collections.Generic.List{System.IO.FileInfo})">
+            <summary>
+            Updates the file list for comparison in next iteration
+            </summary>
+            <param name="fileList"></param>
+        </member>
+        <member name="T:Quartz.Job.FileScanJob">
+            <summary>
+            Inspects a file and compares whether its "last modified date" has changed
+            since the last time it was inspected.  If the file has been updated, the
+            job invokes a "call-back" method on an identified
+            <see cref="T:Quartz.Job.IFileScanListener" /> that can be found in the
+            <see cref="T:Quartz.SchedulerContext" />.
+            </summary>
+            <author>James House</author>
+            <author>Marko Lahma (.NET)</author>
+            <seealso cref="T:Quartz.Job.IFileScanListener" />
+        </member>
+        <member name="F:Quartz.Job.FileScanJob.FileName">
+            <summary>
+            JobDataMap key with which to specify the name of the file to monitor.
+            </summary>
+        </member>
+        <member name="F:Quartz.Job.FileScanJob.FileScanListenerName">
+            <summary>
+            JobDataMap key with which to specify the <see cref="T:Quartz.Job.IFileScanListener" />
+            to be notified when the file contents change.
+            </summary>
+        </member>
+        <member name="F:Quartz.Job.FileScanJob.MinimumUpdateAge">
+             <summary>
+             <see cref="T:Quartz.JobDataMap" /> key with which to specify a long
+             value that represents the minimum number of milliseconds that must have
+             past since the file's last modified time in order to consider the file
+             new/altered.  This is necessary because another process may still be
+             in the middle of writing to the file when the scan occurs, and the
+             file may therefore not yet be ready for processing.
+            
+             <para>If this parameter is not specified, a default value of
+             5000 (five seconds) will be used.</para>
+             </summary>
+        </member>
+        <member name="P:Quartz.Job.FileScanJob.logger">
+            <summary>
+            Gets the log.
+            </summary>
+            <value>The log.</value>
+        </member>
+        <member name="M:Quartz.Job.FileScanJob.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Quartz.Job.FileScanJob"/> class.
+            </summary>
+        </member>
+        <member name="M:Quartz.Job.FileScanJob.Execute(Quartz.IJobExecutionContext)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> when a <see cref="T:Quartz.ITrigger" />
+            fires that is associated with the <see cref="T:Quartz.IJob" />.
+            <para>
+            The implementation may wish to set a  result object on the
+            JobExecutionContext before this method exits.  The result itself
+            is meaningless to Quartz, but may be informative to
+            <see cref="T:Quartz.IJobListener" />s or
+            <see cref="T:Quartz.ITriggerListener" />s that are watching the job's
+            execution.
+            </para>
+            </summary>
+            <param name="context">The execution context.</param>
+            <seealso cref="T:Quartz.IJob">
+            </seealso>
+        </member>
+        <member name="M:Quartz.Job.FileScanJob.GetLastModifiedDate(System.String)">
+            <summary>
+            Gets the last modified date.
+            </summary>
+            <param name="fileName">Name of the file.</param>
+            <returns></returns>
+        </member>
+        <member name="T:Quartz.Job.IDirectoryScanListener">
+            <summary>
+             Interface for objects wishing to receive a 'call-back' from a <see cref="T:Quartz.Job.DirectoryScanJob"/>
+             </summary>
+             <remarks>
+             <para>Instances should be stored in the <see cref="T:Quartz.SchedulerContext"/> such that the
+             <see cref="T:Quartz.Job.DirectoryScanJob"/> can find it.</para>
+             </remarks>
+             <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="M:Quartz.Job.IDirectoryScanListener.FilesUpdatedOrAdded(System.Collections.Generic.IReadOnlyCollection{System.IO.FileInfo})">
+            <param name="updatedFiles">
+            An array of <see cref="T:System.IO.FileInfo"/> objects that were updated/added since the last scan of the directory
+            </param>
+        </member>
+        <member name="M:Quartz.Job.IDirectoryScanListener.FilesDeleted(System.Collections.Generic.IReadOnlyCollection{System.IO.FileInfo})">
+            <param name="deletedFiles">
+            An array of <see cref="T:System.IO.FileInfo"/> objects that were deleted since the last scan of the directory
+            </param>
+        </member>
+        <member name="T:Quartz.Job.IFileScanListener">
+            <summary>
+            Interface for objects wishing to receive a 'call-back' from a
+            <see cref="T:Quartz.Job.FileScanJob" />.
+            </summary>
+            <author>James House</author>
+            <author>Marko Lahma (.NET)</author>
+            <seealso cref="T:Quartz.Job.FileScanJob" />
+        </member>
+        <member name="M:Quartz.Job.IFileScanListener.FileUpdated(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Informs that certain file has been updated.
+            </summary>
+        </member>
+        <member name="T:Quartz.Job.NativeJob">
+            <summary>
+            Built in job for executing native executables in a separate process.
+            </summary>
+            <remarks>
+            <example>
+                JobDetail job = new JobDetail("dumbJob", null, typeof(Quartz.Jobs.NativeJob));
+                job.JobDataMap.Put(Quartz.Jobs.NativeJob.PropertyCommand, "echo \"hi\" >> foobar.txt");
+                Trigger trigger = TriggerUtils.MakeSecondlyTrigger(5);
+                trigger.Name = "dumbTrigger";
+                sched.ScheduleJob(job, trigger);
+            </example>
+            If PropertyWaitForProcess is true, then the integer exit value of the process
+            will be saved as the job execution result in the JobExecutionContext.
+            </remarks>
+            <author>Matthew Payne</author>
+            <author>James House</author>
+            <author>Steinar Overbeck Cook</author>
+            <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="F:Quartz.Job.NativeJob.PropertyCommand">
+            <summary>
+            Required parameter that specifies the name of the command (executable)
+            to be ran.
+            </summary>
+        </member>
+        <member name="F:Quartz.Job.NativeJob.PropertyParameters">
+            <summary>
+            Optional parameter that specifies the parameters to be passed to the
+            executed command.
+            </summary>
+        </member>
+        <member name="F:Quartz.Job.NativeJob.PropertyWaitForProcess">
+             <summary>
+             Optional parameter (value should be 'true' or 'false') that specifies
+             whether the job should wait for the execution of the native process to
+             complete before it completes.
+            
+             <para>Defaults to <see langword="true" />.</para>
+             </summary>
+        </member>
+        <member name="F:Quartz.Job.NativeJob.PropertyConsumeStreams">
+             <summary>
+             Optional parameter (value should be 'true' or 'false') that specifies
+             whether the spawned process's stdout and stderr streams should be
+             consumed.  If the process creates output, it is possible that it might
+             'hang' if the streams are not consumed.
+            
+             <para>Defaults to <see langword="false" />.</para>
+             </summary>
+        </member>
+        <member name="F:Quartz.Job.NativeJob.PropertyWorkingDirectory">
+            <summary>
+            Optional parameter that specifies the working directory to be used by
+            the executed command.
+            </summary>
+        </member>
+        <member name="P:Quartz.Job.NativeJob.logger">
+            <summary>
+            Gets the log.
+            </summary>
+            <value>The log.</value>
+        </member>
+        <member name="M:Quartz.Job.NativeJob.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Quartz.Job.NativeJob"/> class.
+            </summary>
+        </member>
+        <member name="M:Quartz.Job.NativeJob.Execute(Quartz.IJobExecutionContext)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> when a <see cref="T:Quartz.ITrigger" />
+            fires that is associated with the <see cref="T:Quartz.IJob" />.
+            <para>
+            The implementation may wish to set a  result object on the
+            JobExecutionContext before this method exits.  The result itself
+            is meaningless to Quartz, but may be informative to
+            <see cref="T:Quartz.IJobListener" />s or
+            <see cref="T:Quartz.ITriggerListener" />s that are watching the job's
+            execution.
+            </para>
+            </summary>
+            <param name="context"></param>
+        </member>
+        <member name="T:Quartz.Job.NativeJob.StreamConsumer">
+            <summary>
+            Consumes data from the given input stream until EOF and prints the data to stdout
+            </summary>
+            <author>cooste</author>
+            <author>James House</author>
+        </member>
+        <member name="M:Quartz.Job.NativeJob.StreamConsumer.#ctor(Quartz.Job.NativeJob,System.IO.Stream,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Quartz.Job.NativeJob.StreamConsumer"/> class.
+            </summary>
+            <param name="enclosingInstance">The enclosing instance.</param>
+            <param name="inputStream">The input stream.</param>
+            <param name="type">The type.</param>
+        </member>
+        <member name="M:Quartz.Job.NativeJob.StreamConsumer.Run">
+            <summary>
+            Runs this object as a separate thread, printing the contents of the input stream
+            supplied during instantiation, to either Console. or stderr
+            </summary>
+        </member>
+        <member name="T:Quartz.Job.NoOpJob">
+            <summary>
+            An implementation of Job, that does absolutely nothing - useful for system
+            which only wish to use <see cref="T:Quartz.ITriggerListener" />s
+            and <see cref="T:Quartz.IJobListener" />s, rather than writing
+            Jobs that perform work.
+            </summary>
+            <author>James House</author>
+            <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="M:Quartz.Job.NoOpJob.Execute(Quartz.IJobExecutionContext)">
+            <summary>
+            Do nothing.
+            </summary>
+        </member>
+        <member name="T:Quartz.Job.SendMailJob">
+            <summary>
+            A Job which sends an e-mail with the configured content to the configured
+            recipient.
+            </summary>
+            <author>James House</author>
+            <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertySmtpHost">
+            <summary> The host name of the smtp server. REQUIRED.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertySmtpPort">
+            <summary> The port of the smtp server. Optional.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertyUsername">
+            <summary> Username for authenticated session. Password must also be set if username is used. Optional.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertyPassword">
+            <summary> Password for authenticated session. Optional.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertyRecipient">
+            <summary> The e-mail address to send the mail to. REQUIRED.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertyCcRecipient">
+            <summary> The e-mail address to cc the mail to. Optional.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertySender">
+            <summary> The e-mail address to claim the mail is from. REQUIRED.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertyReplyTo">
+            <summary> The e-mail address the message should say to reply to. Optional.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertySubject">
+            <summary> The subject to place on the e-mail. REQUIRED.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertyMessage">
+            <summary> The e-mail message body. REQUIRED.</summary>
+        </member>
+        <member name="F:Quartz.Job.SendMailJob.PropertyEncoding">
+            <summary> The message subject and body content type. Optional.</summary>
+        </member>
+        <member name="M:Quartz.Job.SendMailJob.Execute(Quartz.IJobExecutionContext)">
+            <summary>
+            Executes the job.
+            </summary>
+            <param name="context">The job execution context.</param>
+        </member>
+        <member name="T:Quartz.Simpl.DefaultDirectoryProvider">
+            <summary>
+            Default directory provider that inspects and parses the merged JobDataMap <see cref="T:Quartz.JobDataMap"/>
+            for the entries <see cref="F:Quartz.Job.DirectoryScanJob.DirectoryName"/> and <see cref="F:Quartz.Job.DirectoryScanJob.DirectoryNames"/>
+            to supply the directory paths
+            </summary>
+        </member>
+        <member name="T:Quartz.Spi.IDirectoryProvider">
+            <summary>Interface for objects that wish to provide a list of directory paths to be
+             monitored to <see cref="T:Quartz.Job.DirectoryScanJob"/></summary>
+            <remarks><para>Instances should be stored in the <see cref="T:Quartz.SchedulerContext"/> such that the
+            <see cref="T:Quartz.Job.DirectoryScanJob"/> can find it.</para></remarks>
+            <author>Chris Knight (.NET)</author>
+        </member>
+        <member name="M:Quartz.Spi.IDirectoryProvider.GetDirectoriesToScan(Quartz.JobDataMap)">
+            <summary>
+            Called by <see cref="T:Quartz.Job.DirectoryScanJob"/> to provide a list of directory paths
+            to monitor - absolute paths are recommended.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:System.Runtime.CompilerServices2.InlineArrayAttribute">
+            <summary>
+            Indicates that the instance's storage is sequentially replicated "length" times.
+            </summary>
+            <remarks>
+            <para>
+            This attribute can be used to annotate a <see langword="struct"/> type with a single field.
+            The runtime will replicate that field in the actual type layout as many times as is specified.
+            </para>
+            <para>
+            Here's an example of how an inline array type with 8 <see cref="T:System.Single"/> values can be declared:
+            <code lang="csharp">
+            [InlineArray(8)]
+            struct Float8InlineArray
+            {
+                private float _value;
+            }
+            </code>
+            </para>
+            </remarks>
+        </member>
+        <member name="M:System.Runtime.CompilerServices2.InlineArrayAttribute.#ctor(System.Int32)">
+            <summary>Creates a new <see cref="T:System.Runtime.CompilerServices2.InlineArrayAttribute"/> instance with the specified length.</summary>
+            <param name="length">The number of sequential fields to replicate in the inline array type.</param>
+        </member>
+        <member name="P:System.Runtime.CompilerServices2.InlineArrayAttribute.Length">
+            <summary>Gets the number of sequential fields to replicate in the inline array type.</summary>
+        </member>
+    </members>
+</doc>

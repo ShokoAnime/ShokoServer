@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,9 +13,7 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
-using Quartz.Util;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Scheduling.DatabaseLocks;
 
 namespace Shoko.Server.Scheduling.Delegates;
 
@@ -22,10 +22,8 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
     private string _schedulerName;
     private const string Blocked = "Blocked";
     private const string SubQuery = "{SubQuery}";
-    private readonly SQLiteSemaphore _semaphore = new();
-    public ISemaphore LockHandler => _semaphore;
 
-    private IEnumerable<string> GetJobClasses(IEnumerable<Type> types) => types.Select(GetStorableJobTypeName).ToArray();
+    private IEnumerable<string> GetJobClasses(IEnumerable<Type> types) => types.Select(a => new JobType(a).FullName).ToArray();
 
     private const string GetSelectPartNoExclusions = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
@@ -85,13 +83,20 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
               ORDER BY {Blocked} ASC, t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
               LIMIT @limit OFFSET @offset";
 
-    public override void Initialize(DelegateInitializationArgs args)
+    public override void Initialize(IJobStore jobStore, DelegateInitializationArgs args)
     {
-        base.Initialize(args);
+        base.Initialize(jobStore, args);
         _schedulerName = args.InstanceName;
     }
 
-    public override async Task<IReadOnlyCollection<TriggerAcquireResult>> SelectTriggerToAcquire(
+    public async ValueTask OnConnected(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    {
+        await using var command = conn.Connection.CreateCommand();
+        command.CommandText = "PRAGMA journal_mode=WAL;";
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public override async ValueTask<IReadOnlyCollection<TriggerAcquireResult>> SelectTriggerToAcquire(
         ConnectionAndTransactionHolder conn,
         DateTimeOffset noLaterThan,
         DateTimeOffset noEarlierThan,
@@ -101,7 +106,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return await SelectTriggerToAcquire(conn, noLaterThan, noEarlierThan, maxCount, new JobTypes(), cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<TriggerAcquireResult>> SelectTriggerToAcquire(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
+    public async ValueTask<IReadOnlyCollection<TriggerAcquireResult>> SelectTriggerToAcquire(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
         DateTimeOffset noEarlierThan, int maxCount, JobTypes jobTypes, CancellationToken cancellationToken = default)
     {
         if (maxCount < 1) maxCount = 1; // we want at least one trigger back.
@@ -141,7 +146,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         foreach (var kv in jobTypes.TypesToLimit)
         {
             AddCommandParameter(cmd, $"limitBlocked{index}", 0);
-            AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
+            AddCommandParameter(cmd, $"limit{index}Type", new JobType(kv.Key).FullName);
             AddCommandParameter(cmd, $"limit{index}", kv.Value);
             AddCommandParameter(cmd, $"offset{index}", 0);
             index++;
@@ -186,7 +191,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return nextTriggers;
     }
 
-    public virtual async Task<int> SelectWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
+    public virtual async ValueTask<int> SelectWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
         JobTypes jobTypes, CancellationToken cancellationToken = new())
     {
         var hasExcludeTypes = jobTypes.TypesToExclude.Any() || jobTypes.TypesToLimit.Any() || jobTypes.AvailableConcurrencyGroups.Any(a => a.Any());
@@ -223,7 +228,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         foreach (var kv in jobTypes.TypesToLimit)
         {
             AddCommandParameter(cmd, $"limitBlocked{index}", 0);
-            AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
+            AddCommandParameter(cmd, $"limit{index}Type", new JobType(kv.Key).FullName);
             AddCommandParameter(cmd, $"limit{index}", kv.Value);
             AddCommandParameter(cmd, $"offset{index}", 0);
             index++;
@@ -244,7 +249,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return result;
     }
 
-    public virtual async Task<int> SelectBlockedTriggerCount(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, DateTimeOffset noLaterThan,
+    public virtual async ValueTask<int> SelectBlockedTriggerCount(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, DateTimeOffset noLaterThan,
         DateTimeOffset noEarlierThan, JobTypes jobTypes, CancellationToken cancellationToken = new())
     {
         await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SelectBlockedTypeCountsSql));
@@ -258,8 +263,8 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
-            results[jobType] = rs.GetInt32("Count")!;
+            var jobType = loadHelper.LoadType(GetString(rs, ColumnJobClass)!)!;
+            results[jobType] = GetInt32(rs, "Count")!;
         }
 
         // We need to get the number of jobs that are queued, then subtract the allowed number, ensuring that blocked count doesn't go negative
@@ -273,7 +278,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return blocked + limited + groups;
     }
 
-    public virtual async Task<int> SelectTotalWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
+    public virtual async ValueTask<int> SelectTotalWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
         CancellationToken cancellationToken = new())
     {
         await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(GetCountNoExclusions));
@@ -284,7 +289,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
     }
 
-    public virtual async Task<Dictionary<Type, int>> SelectJobTypeCounts(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper,
+    public virtual async ValueTask<Dictionary<Type, int>> SelectJobTypeCounts(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper,
         DateTimeOffset noLaterThan, CancellationToken cancellationToken = new())
     {
         await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SelectJobClassesAndCountSql));
@@ -296,14 +301,14 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
-            result[jobType] = rs.GetInt32("Count")!;
+            var jobType = loadHelper.LoadType(GetString(rs, ColumnJobClass)!)!;
+            result[jobType] = GetInt32(rs, "Count")!;
         }
 
         return result;
     }
 
-    public virtual async Task<List<(IJobDetail, bool)>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset,
+    public virtual async ValueTask<List<(IJobDetail, bool)>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset,
         DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, JobTypes jobTypes, bool excludeBlocked, CancellationToken cancellationToken = default)
     {
         var hasExcludeTypes = jobTypes.TypesToExclude.Any() || jobTypes.TypesToLimit.Any() || jobTypes.AvailableConcurrencyGroups.Any(a => a.Any());
@@ -377,7 +382,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         foreach (var kv in jobTypes.TypesToLimit)
         {
             AddCommandParameter(cmd, $"limitBlocked{index}", 0);
-            AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
+            AddCommandParameter(cmd, $"limit{index}Type", new JobType(kv.Key).FullName);
             AddCommandParameter(cmd, $"limit{index}", kv.Value);
             AddCommandParameter(cmd, $"offset{index}", 0);
             index++;
@@ -389,7 +394,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
             foreach (var kv in jobTypes.TypesToLimit)
             {
                 AddCommandParameter(cmd, $"limitBlocked{index}", 1);
-                AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
+                AddCommandParameter(cmd, $"limit{index}Type", new JobType(kv.Key).FullName);
                 AddCommandParameter(cmd, $"limit{index}", -1);
                 AddCommandParameter(cmd, $"offset{index}", kv.Value);
                 index++;
@@ -434,19 +439,23 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             // Due to CommandBehavior.SequentialAccess, columns must be read in order.
-            var jobName = rs.GetString(ColumnJobName)!;
-            var jobGroup = rs.GetString(ColumnJobGroup);
-            var description = rs.GetString(ColumnDescription);
-            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
-            var isDurable = GetBooleanFromDbValue(rs[ColumnIsDurable]);
+            var jobName = GetString(rs, ColumnJobName)!;
+            var jobGroup = GetString(rs, ColumnJobGroup);
+            var description = GetString(rs, ColumnDescription);
+            var jobType = loadHelper.LoadType(GetString(rs, ColumnJobClass)!)!;
             var requestsRecovery = GetBooleanFromDbValue(rs[ColumnRequestsRecovery]);
             var map = await ReadMapFromReader(rs, 6);
             var jobDataMap = map != null ? new JobDataMap(map) : null;
             var blocked = GetBooleanFromDbValue(rs[Blocked]);
 
-            var job = new JobDetailImpl(jobName, jobGroup!, jobType, isDurable, requestsRecovery)
+            var job = new JobDetail
             {
-                Description = description, JobDataMap = jobDataMap!
+                Name = jobName,
+                Group = jobGroup!,
+                JobType = new JobType(jobType),
+                Description = description,
+                RequestsRecovery = requestsRecovery,
+                JobDataMap = jobDataMap!
             };
             results.Add((job, blocked));
         }
@@ -520,5 +529,24 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         if (properties == null) return null;
         var map = ConvertFromProperty(properties);
         return map;
+    }
+    
+    private static string GetString(IDataReader reader, string columnName)
+    {
+        var columnValue = reader[columnName];
+        if (columnValue == DBNull.Value)
+        {
+            return null;
+        }
+        return (string) columnValue;
+    }
+
+    /// <summary>
+    /// Returns int from given column name.
+    /// </summary>
+    private static int GetInt32(IDataReader reader, string columnName)
+    {
+        var columnValue = reader[columnName];
+        return Convert.ToInt32(columnValue, CultureInfo.InvariantCulture);
     }
 }

@@ -2,9 +2,9 @@
   <PropertyGroup>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <OutputType>Library</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <RuntimeIdentifiers>win10-x64;linux-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
     <Platforms>x64;AnyCPU</Platforms>
     <Deterministic>false</Deterministic>
     <GenerateErrorForMissingTargetingPacks>false</GenerateErrorForMissingTargetingPacks>
@@ -60,66 +60,76 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.4" />
-    <PackageReference Include="F23.StringSimilarity" Version="5.0.0" />
-    <PackageReference Include="FluentNHibernate" Version="3.1.0" />
+    <PackageReference Include="F23.StringSimilarity" Version="6.0.0" />
+    <PackageReference Include="FluentNHibernate" Version="3.3.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="Libuv" Version="1.10.0" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="12.1.0" />
-    <PackageReference Include="MessagePack" Version="2.4.35" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.4.35">
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.6.0" />
+    <PackageReference Include="MessagePack" Version="2.5.140" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.21.0" />
-    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Analyzers" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.ResponseCaching" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="6.0.20" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="8.0.3" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.9" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-    <PackageReference Include="MimeMapping" Version="1.0.1.37" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+    <PackageReference Include="MimeMapping" Version="3.0.1" />
     <PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1-preview" />
     <PackageReference Include="MySqlBackup.NET.MySqlConnector" Version="2.3.8" />
-    <PackageReference Include="MySqlConnector" Version="2.2.6" />
+    <PackageReference Include="MySqlConnector" Version="2.3.6" />
     <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="NHibernate" Version="5.3.13" />
-    <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.4" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NHibernate" Version="5.5.1" />
+    <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.5" />
     <PackageReference Include="NLog" Version="5.2.8" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.3.8" />
-    <PackageReference Include="Polly" Version="8.2.1" />
-    <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
-    <PackageReference Include="Quartz.Serialization.Json" Version="3.8.0" />
+    <PackageReference Include="Polly" Version="8.3.1" />
     <PackageReference Include="Sentry" Version="4.2.1" />
     <PackageReference Include="Sentry.AspNetCore" Version="4.2.1" />
     <PackageReference Include="Sentry.Extensions.Logging" Version="4.2.1" />
     <PackageReference Include="Sentry.NLog" Version="4.2.1" />
-    <PackageReference Include="SharpCompress" Version="0.32.2" />
-    <PackageReference Include="SharpZipLib" Version="1.4.0" />
+    <PackageReference Include="SharpCompress" Version="0.36.0" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.5.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
     <!-- This needs to be explicit because of dep BS -->
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.1" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="6.0.0" />
-    <PackageReference Include="System.Drawing.Common" Version="8.0.1" />
+    <!--<PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />-->
+    <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.3" />
     <!-- This needs to be explicit because of https://github.com/MySqlBackupNET/MySqlBackup.Net/issues/61 -->
     <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
     <PackageReference Include="TMDbLib" Version="1.6.0" />
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
     <PackageReference Include="TvDbSharper" Version="3.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Quartz">
+      <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
+    </Reference>
+    <Reference Include="Quartz.Jobs">
+      <HintPath>..\Dependencies\Quartz\Quartz.Jobs.dll</HintPath>
+    </Reference>
+    <Reference Include="Quartz.Plugins">
+      <HintPath>..\Dependencies\Quartz\Quartz.Plugins.dll</HintPath>
+    </Reference>
+    <Reference Include="Quartz.Serialization.Newtonsoft">
+      <HintPath>..\Dependencies\Quartz\Quartz.Serialization.Newtonsoft.dll</HintPath>
+    </Reference>
+    <Reference Include="Quartz.Server">
+      <HintPath>..\Dependencies\Quartz\Quartz.Server.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

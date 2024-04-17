@@ -129,19 +129,19 @@ public class QueueHandler
         lock (_waitingJobs) return _waitingJobs.ToArray();
     }
 
-    public Task<int> GetTotalWaitingJobCount()
+    public ValueTask<int> GetTotalWaitingJobCount()
     {
         return _jobStore.GetTotalWaitingTriggersCount();
     }
 
-    public async Task<Dictionary<string, int>> GetJobCounts()
+    public async ValueTask<Dictionary<string, int>> GetJobCounts()
     {
         var jobs = await _jobStore.GetJobCounts();
         return jobs.Where(a => typeof(BaseJob).IsAssignableFrom(a.Key))
-            .ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(Guid.NewGuid().ToString(), a.Key))?.TypeName, a => a.Value);
+            .ToDictionary(a => _jobFactory.CreateJob(new JobDetail{ Name = Guid.NewGuid().ToString(), JobType = new JobType(a.Key)})?.TypeName, a => a.Value);
     }
 
-    public Task<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
+    public ValueTask<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
     {
         return _jobStore.GetJobs(maxCount, offset, excludeBlocked);
     }

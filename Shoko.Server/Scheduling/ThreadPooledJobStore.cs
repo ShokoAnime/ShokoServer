@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -11,14 +12,13 @@ using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Scheduling.DatabaseLocks;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling;
 
-public partial class ThreadPooledJobStore : JobStoreTX
+public class ThreadPooledJobStore : JobStoreTX
 {
     private readonly ILogger<ThreadPooledJobStore> _logger;
     private readonly ISettingsProvider _settingsProvider;
@@ -43,12 +43,10 @@ public partial class ThreadPooledJobStore : JobStoreTX
         InitConcurrencyCache();
     }
 
-    public override async Task Initialize(ITypeLoadHelper loadHelper, ISchedulerSignaler signaler, CancellationToken cancellationToken = default)
+    public override async ValueTask Initialize(ITypeLoadHelper loadHelper, ISchedulerSignaler signaler, CancellationToken cancellationToken = default)
     {
         _typeLoadHelper = loadHelper;
         await base.Initialize(loadHelper, signaler, cancellationToken);
-        if (Delegate.LockHandler != null) LockHandler = Delegate.LockHandler;
-        TxIsolationLevelSerializable = false;
     }
 
     private void InitConcurrencyCache()
@@ -94,18 +92,22 @@ public partial class ThreadPooledJobStore : JobStoreTX
         foreach (var filter in _acquisitionFilters) filter.StateChanged -= FilterOnStateChanged;
     }
 
-    // These two should be called in equal amounts, so no worry of deadlock
-    protected override ConnectionAndTransactionHolder GetNonManagedTXConnection()
+    [ThreadStatic]
+    private static Stopwatch s_connectionTimer;
+    protected override ValueTask<ConnectionAndTransactionHolder> GetNonManagedTXConnection(bool doTransaction = true)
     {
-        if (LockHandler is SQLiteSemaphore) LockHandler.ObtainLock(Guid.Empty, null, LockTriggerAccess).GetAwaiter().GetResult();
-        return base.GetNonManagedTXConnection();
+        s_connectionTimer ??= new();
+        s_connectionTimer.Reset();
+        s_connectionTimer.Start();
+        return base.GetNonManagedTXConnection(doTransaction);
     }
-    
+
     protected override void CleanupConnection(ConnectionAndTransactionHolder conn)
     {
         if (conn == null) return;
-        if (LockHandler is SQLiteSemaphore) LockHandler.ReleaseLock(Guid.Empty, LockTriggerAccess).GetAwaiter().GetResult();
-        CloseConnection(conn);
+        base.CleanupConnection(conn);
+        s_connectionTimer.Stop();
+        _logger.LogError("Database operation completed in {Time:0.####}ms", s_connectionTimer.ElapsedTicks / 10000D);
     }
 
     private void FilterOnStateChanged(object sender, EventArgs e)
@@ -113,7 +115,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
         SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
     }
 
-    protected override async Task StoreTrigger(ConnectionAndTransactionHolder conn, IOperableTrigger newTrigger, IJobDetail job, bool replaceExisting, string state, bool forceState,
+    protected override async ValueTask StoreTrigger(ConnectionAndTransactionHolder conn, IOperableTrigger newTrigger, IJobDetail job, bool replaceExisting, string state, bool forceState,
         bool recovering, CancellationToken cancellationToken = new CancellationToken())
     {
         // most of this is pulled from the base. Some fat is trimmed out, as we handle blocking ourselves
@@ -160,7 +162,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
         }
     }
 
-    protected override async Task<IReadOnlyCollection<IOperableTrigger>> AcquireNextTrigger(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
+    protected override async ValueTask<IReadOnlyCollection<IOperableTrigger>> AcquireNextTrigger(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
             int maxCount, TimeSpan timeWindow, CancellationToken cancellationToken = default)
     {
         if (timeWindow < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeWindow));
@@ -218,7 +220,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
                     // able to be clean up by Quartz since we are not returning it to be processed.
                     if (nextFireTimeUtc == null)
                     {
-                        _logger.LogWarning("Trigger {NextTriggerKey} returned null on nextFireTime and yet still exists in DB!", nextTrigger.Key);
+                        _logger.LogWarning("Trigger {TriggerKey} returned null on nextFireTime and yet still exists in DB!", nextTrigger.Key);
                         continue;
                     }
 
@@ -234,7 +236,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
 
                     if (acquiredTriggers.Count == 0)
                     {
-                        var now = SystemTime.UtcNow();
+                        var now = TimeProvider.System.GetUtcNow();
                         var nextFireTime = nextFireTimeUtc.Value;
                         var max = now > nextFireTime ? now : nextFireTime;
 
@@ -270,7 +272,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
 
         IEnumerable<(Type Type, int Count)> executingTypes;
         lock (_executingJobs)
-            executingTypes = _executingJobs.Values.Select(a => a.Job.JobType).GroupBy(a => a).Select(a => (Type: a.Key, Count: a.Count())).ToList();
+            executingTypes = _executingJobs.Values.Select(a => a.Job.JobType.Type).GroupBy(a => a).Select(a => (Type: a.Key, Count: a.Count())).ToList();
 
         foreach (var kv in _typeConcurrencyCache)
         {
@@ -311,57 +313,8 @@ public partial class ThreadPooledJobStore : JobStoreTX
         return _acquisitionFilters.SelectMany(a => a.GetTypesToExclude().Select(b => (FilterType: a.GetType().Name, b.Name))).GroupBy(a => a.FilterType)
             .ToDictionary(a => a.Key, a => a.Select(b => b.Name).ToArray());
     }
-    
-    public override async Task<IReadOnlyCollection<TriggerFiredResult>> TriggersFired(IReadOnlyCollection<IOperableTrigger> triggers, CancellationToken cancellationToken = default)
-    {
-        return await ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await TriggersFiredCallback(conn, triggers, cancellationToken),
-            async (conn, result) => await TriggersFiredValidator(conn, result, cancellationToken), cancellationToken);
-    }
 
-    private async Task<IReadOnlyCollection<TriggerFiredResult>> TriggersFiredCallback(ConnectionAndTransactionHolder conn, IReadOnlyCollection<IOperableTrigger> triggers, CancellationToken cancellationToken)
-    {
-        List<TriggerFiredResult> results = new(triggers.Count);
-
-        foreach (var trigger in triggers)
-        {
-            TriggerFiredResult result;
-            try
-            {
-                var bundle = await TriggerFired(conn, trigger, cancellationToken).ConfigureAwait(false);
-                result = new TriggerFiredResult(bundle);
-            }
-            catch (JobPersistenceException jpe)
-            {
-                _logger.LogError(jpe, "Caught job persistence exception: {Ex}", jpe.Message);
-                result = new TriggerFiredResult(jpe);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Caught exception: {Ex}", ex.Message);
-                result = new TriggerFiredResult(ex);
-            }
-
-            results.Add(result);
-        }
-
-        return results;
-    }
-
-    private async Task<bool> TriggersFiredValidator(ConnectionAndTransactionHolder conn, IEnumerable<TriggerFiredResult> result, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var acquired = await Delegate.SelectInstancesFiredTriggerRecords(conn, InstanceId, cancellationToken).ConfigureAwait(false);
-            var executingTriggers = acquired.Where(ft => StateExecuting.Equals(ft.FireInstanceState)).Select(a => a.FireInstanceId).ToHashSet();
-            return result.Any(tr => tr.TriggerFiredBundle != null && executingTriggers.Contains(tr.TriggerFiredBundle.Trigger.FireInstanceId));
-        }
-        catch (Exception e)
-        {
-            throw new JobPersistenceException("error validating trigger acquisition", e);
-        }
-    }
-
-    protected override async Task<TriggerFiredBundle> TriggerFired(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, CancellationToken cancellationToken = default)
+    protected override async ValueTask<TriggerFiredBundle> TriggerFired(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, CancellationToken cancellationToken = default)
     {
         IJobDetail job;
         ICalendar cal = null;
@@ -437,7 +390,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
             trigger,
             cal,
             trigger.Key.Group.Equals(SchedulerConstants.DefaultRecoveryGroup),
-            SystemTime.UtcNow(),
+            TimeProvider.System.GetUtcNow(),
             trigger.GetPreviousFireTimeUtc(),
             prevFireTime,
             trigger.GetNextFireTimeUtc());
@@ -446,50 +399,50 @@ public partial class ThreadPooledJobStore : JobStoreTX
     private static DateTimeOffset NoLaterThan => DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(30));
     private DateTimeOffset NoEarlierThan => MisfireTime;
 
-    public Task<int> GetWaitingTriggersCount()
+    public ValueTask<int> GetWaitingTriggersCount()
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetWaitingTriggersCount(conn, GetTypes()), new CancellationToken());
+        return ExecuteInReadLock(LockTriggerAccess, conn => GetWaitingTriggersCount(conn, GetTypes()));
     }
 
-    private Task<int> GetWaitingTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
+    private ValueTask<int> GetWaitingTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
     {
         return Delegate.SelectWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, types, cancellationToken);
     }
 
-    public Task<int> GetBlockedTriggersCount()
+    public ValueTask<int> GetBlockedTriggersCount()
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetBlockedTriggersCount(conn, GetTypes()), new CancellationToken());
+        return ExecuteInReadLock(LockTriggerAccess, conn => GetBlockedTriggersCount(conn, GetTypes()));
     }
 
-    private Task<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
+    private ValueTask<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
     {
         return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, NoLaterThan, NoEarlierThan, types,
             cancellationToken);
     }
 
-    public Task<int> GetTotalWaitingTriggersCount()
+    public ValueTask<int> GetTotalWaitingTriggersCount()
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetTotalWaitingTriggersCount(conn), new CancellationToken());
+        return ExecuteInReadLock(LockTriggerAccess, async conn => await GetTotalWaitingTriggersCount(conn));
     }
 
-    private Task<int> GetTotalWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    private ValueTask<int> GetTotalWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
         return Delegate.SelectTotalWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, cancellationToken);
     }
 
-    public Task<Dictionary<Type, int>> GetJobCounts()
+    public ValueTask<Dictionary<Type, int>> GetJobCounts()
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetJobCounts(conn), new CancellationToken());
+        return ExecuteInReadLock(LockTriggerAccess, async conn => await GetJobCounts(conn));
     }
 
-    private Task<Dictionary<Type, int>> GetJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    private ValueTask<Dictionary<Type, int>> GetJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
         return Delegate.SelectJobTypeCounts(conn, _typeLoadHelper, NoLaterThan, cancellationToken);
     }
 
-    public Task<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
+    public ValueTask<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetJobs(conn, maxCount, offset, excludeBlocked), new CancellationToken());
+        return ExecuteInReadLock(LockTriggerAccess, async conn => await GetJobs(conn, maxCount, offset, excludeBlocked));
     }
 
     private async Task<List<QueueItem>> GetJobs(ConnectionAndTransactionHolder conn, int maxCount, int offset, bool excludeBlocked, CancellationToken cancellationToken = new CancellationToken())
@@ -539,7 +492,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
         return result;
     }
 
-    protected override async Task TriggeredJobComplete(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, IJobDetail jobDetail, SchedulerInstruction triggerInstCode,
+    protected override async ValueTask TriggeredJobComplete(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, IJobDetail jobDetail, SchedulerInstruction triggerInstCode,
         CancellationToken cancellationToken = new CancellationToken())
     {
         await base.TriggeredJobComplete(conn, trigger, jobDetail, triggerInstCode, cancellationToken);
@@ -572,7 +525,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
                 return new QueueItem
                 {
                     Key = detail.Key.ToString(),
-                    JobType = job?.TypeName ?? detail.JobType.Name,
+                    JobType = job?.TypeName ?? detail.JobType.Type.Name,
                     Title = job?.Title ?? job?.TypeName,
                     Details = job?.Details ?? new(),
                     Running = true,
@@ -585,13 +538,12 @@ public partial class ThreadPooledJobStore : JobStoreTX
     private static Func<IJobDetail, CancellationToken,Task> Throttle(Func<IJobDetail, CancellationToken, Task> func, TimeSpan throttle)
     {   
         var throttling = false;
-        return (t, c) =>
+        return async (t, c) =>
         {
-            if(throttling) return Task.CompletedTask;
-            var result = func(t, c);
+            if(throttling) return;
+            await func(t, c);
             throttling = true;
-            Task.Delay(throttle, c).ContinueWith(_ => throttling = false, c);
-            return result;
+            await Task.Delay(throttle, c).ContinueWith(_ => throttling = false, c);
         };
     }
 
@@ -602,7 +554,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
 
     private async Task OnJobStoring(IJobDetail job, CancellationToken cancellationToken)
     {
-        await ExecuteInNonManagedTXLock(LockTriggerAccess, async conn =>
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
         {
             var types = GetTypes();
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
@@ -634,7 +586,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
                 CurrentlyExecuting = executing,
                 Waiting = waiting
             });
-        }, cancellationToken);
+        }, cancellationToken: cancellationToken);
     }
 
     private void JobFiringQueueEvents(IOperableTrigger trigger, IJobDetail jobDetail,
@@ -646,7 +598,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
 
     private async Task OnJobExecuting(IJobDetail jobDetail, CancellationToken cancellationToken)
     {
-        await ExecuteInNonManagedTXLock(LockTriggerAccess, async conn =>
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
         {
             var types = GetTypes();
             var executing = GetExecutingQueueItems();
@@ -678,7 +630,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
                 CurrentlyExecuting = executing,
                 Waiting = waiting
             });
-        }, cancellationToken);
+        }, cancellationToken: cancellationToken);
     }
 
     private void JobCompletedQueueEvents(IJobDetail jobDetail, CancellationToken cancellationToken)
@@ -689,7 +641,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
 
     private async Task OnJobCompleted(IJobDetail jobDetail, CancellationToken cancellationToken)
     {
-        await ExecuteInNonManagedTXLock(LockTriggerAccess, async conn =>
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
         {
             // this runs before the states have been updated, so things that were blocked for concurrency are still blocked at this point
             var types = GetTypes();
@@ -725,7 +677,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
 
             // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
             if (waitingTriggerCount > 0 || blockedTriggerCount > 0) SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
-        }, cancellationToken);
+        }, cancellationToken: cancellationToken);
     }
 
     private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;

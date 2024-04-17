@@ -18,130 +18,130 @@ public class SchedulerListener : ISchedulerListener
     }
 
     /// <inheritdoc cref="ISchedulerListener.SchedulerError"/>
-    public Task SchedulerError(string msg, SchedulerException cause, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask SchedulerError(string msg, SchedulerException cause, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.SchedulerInStandbyMode"/>
-    public Task SchedulerInStandbyMode(CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask SchedulerInStandbyMode(CancellationToken cancellationToken = new CancellationToken())
     {
         _eventHandler.InvokeQueuePaused();
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.SchedulerStarted"/>
-    public Task SchedulerStarted(CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask SchedulerStarted(CancellationToken cancellationToken = new CancellationToken())
     {
         _eventHandler.InvokeQueueStarted();
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.SchedulerStarting"/>
-    public Task SchedulerStarting(CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask SchedulerStarting(CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.SchedulerShutdown"/>
-    public Task SchedulerShutdown(CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask SchedulerShutdown(CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.SchedulerShuttingdown"/>
-    public Task SchedulerShuttingdown(CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask SchedulerShuttingdown(CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobScheduled"/>
-    public Task SchedulingDataCleared(CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask SchedulingDataCleared(CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobScheduled"/>
-    public Task JobScheduled(ITrigger trigger, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobScheduled(ITrigger trigger, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobUnscheduled"/>
-    public Task JobUnscheduled(TriggerKey triggerKey, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobUnscheduled(TriggerKey triggerKey, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.TriggerFinalized"/>
-    public Task TriggerFinalized(ITrigger trigger, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask TriggerFinalized(ITrigger trigger, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.TriggerPaused"/>
-    public Task TriggerPaused(TriggerKey triggerKey, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask TriggerPaused(TriggerKey triggerKey, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.TriggersPaused"/>
-    public Task TriggersPaused(string triggerGroup, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask TriggersPaused(string triggerGroup, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.TriggerResumed"/>
-    public Task TriggerResumed(TriggerKey triggerKey, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask TriggerResumed(TriggerKey triggerKey, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.TriggersResumed"/>
-    public Task TriggersResumed(string triggerGroup, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask TriggersResumed(string triggerGroup, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobAdded"/>
-    public Task JobAdded(IJobDetail jobDetail, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobAdded(IJobDetail jobDetail, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobDeleted"/>
-    public Task JobDeleted(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobDeleted(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobPaused"/>
-    public Task JobPaused(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobPaused(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobInterrupted"/>
-    public Task JobInterrupted(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobInterrupted(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobsPaused"/>
-    public Task JobsPaused(string jobGroup, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobsPaused(string jobGroup, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobResumed"/>
-    public Task JobResumed(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobResumed(JobKey jobKey, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 
     /// <inheritdoc cref="ISchedulerListener.JobsResumed"/>
-    public Task JobsResumed(string jobGroup, CancellationToken cancellationToken = new CancellationToken())
+    public ValueTask JobsResumed(string jobGroup, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Task.CompletedTask;
+        return new ValueTask();
     }
 }

@@ -8,8 +8,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
-using Quartz.AspNetCore;
 using Quartz.Spi;
+using Quartz.Util;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Delegates;
@@ -42,7 +42,9 @@ public static class QuartzStartup
         triggerConfig ??= t => t;
         var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
         var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).UsingJobData(jobConfig).Build();
-        if (!await scheduler.CheckExists(jobKey) && !(await scheduler.GetTriggersOfJob(jobKey)).Any())
+        var exists = await scheduler.CheckExists(jobKey);
+        var existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
+        if (!exists && !existingTriggers.Any())
         {
             await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
                 triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
@@ -58,7 +60,7 @@ public static class QuartzStartup
 
             // also nukes triggers
             await scheduler.DeleteJob(jobKey);
-            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(), trigger.Build());
+            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithIdentity(jobKey).Build(), trigger.Build());
         }
     }
     
@@ -93,11 +95,7 @@ public static class QuartzStartup
             q.AddSchedulerListener<SchedulerListener>();
         });
 
-        services.AddQuartzServer(options =>
-        {
-            // when shutting down we want jobs to complete gracefully
-            options.WaitForJobsToComplete = true;
-        });
+        services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
     }
 
     private static void AddJobs(this IServiceCollection services)
@@ -120,20 +118,31 @@ public static class QuartzStartup
             var settings = Utils.SettingsProvider.GetSettings();
             if (string.IsNullOrEmpty(settings.Quartz?.ConnectionString))
                 throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
+
+            const string DefaultSource = SchedulerBuilder.AdoProviderOptions.DefaultDataSourceName;
             if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
             {
                 EnsureQuartzDatabaseExists_SQLServer(settings.Quartz.ConnectionString);
-                options.UseGenericDatabase<SqlServerDelegate>("SqlServer", c => c.ConnectionString = settings.Quartz.ConnectionString);
+                options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SqlServerDelegate).AssemblyQualifiedNameWithoutVersion());
+                options.SetProperty("quartz.jobStore.dataSource", DefaultSource);
+                options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "SqlServer");
+                options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
             else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
             {
                 EnsureQuartzDatabaseExists_MySQL(settings.Quartz.ConnectionString);
-                options.UseGenericDatabase<MySQLDelegate>("MySqlConnector", c => c.ConnectionString = settings.Quartz.ConnectionString);
+                options.SetProperty("quartz.jobStore.driverDelegateType", typeof(MySQLDelegate).AssemblyQualifiedNameWithoutVersion());
+                options.SetProperty("quartz.jobStore.dataSource", DefaultSource);
+                options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "MySqlConnector");
+                options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
             else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
             {
                 EnsureQuartzDatabaseExists_SQLite(settings.Quartz.ConnectionString);
-                options.UseGenericDatabase<SQLiteDelegate>("SQLite-Microsoft", c => c.ConnectionString = settings.Quartz.ConnectionString);
+                options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SQLiteDelegate).AssemblyQualifiedNameWithoutVersion());
+                options.SetProperty("quartz.jobStore.dataSource", DefaultSource);
+                options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "SQLite-Microsoft");
+                options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
             options.UseNewtonsoftJsonSerializer();
         });

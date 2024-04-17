@@ -15,7 +15,7 @@ public class QuartzSettings
     /// <summary>
     /// The connection string for the database
     /// </summary>
-    public string ConnectionString { get; set; } = $"Data Source={Path.Combine(Utils.ApplicationPath, "SQLite", "Quartz.db3")};Mode=ReadWriteCreate;";
+    public string ConnectionString { get; set; } = $"Data Source={Path.Combine(Utils.ApplicationPath, "SQLite", "Quartz.db3")};Mode=ReadWriteCreate;Pooling=True";
 
     /// <summary>
     /// Set this value to override the default size of the queue thread pool

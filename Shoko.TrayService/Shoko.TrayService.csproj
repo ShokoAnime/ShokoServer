@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net6.0-windows</TargetFramework>
+        <TargetFramework>net8.0-windows</TargetFramework>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-        <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+        <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
         <Platforms>x64;AnyCPU</Platforms>
         <Deterministic>false</Deterministic>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

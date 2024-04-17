@@ -1,0 +1,775 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Quartz.Plugins</name>
+    </assembly>
+    <members>
+        <member name="M:Quartz.PluginConfigurationExtensions.UseJobAutoInterrupt``1(``0,System.Action{Quartz.JobAutoInterruptOptions})">
+            <summary>
+            Configures <see cref="T:Quartz.Plugin.Interrupt.JobInterruptMonitorPlugin"/> into use.
+            </summary>
+        </member>
+        <member name="P:Quartz.JobAutoInterruptOptions.DefaultMaxRunTime">
+            <summary>
+            The amount of time the job is allowed to run before job interruption is signaled.
+            Defaults to 5 minutes.
+            </summary>
+            <remarks>
+            Per-job value can be configured via JobDataMap via key <see cref="F:Quartz.Plugin.Interrupt.JobInterruptMonitorPlugin.JobDataMapKeyMaxRunTime"/>.
+            </remarks>
+        </member>
+        <member name="T:Quartz.Plugin.History.LoggingJobHistoryPlugin">
+            <summary>
+            Logs a history of all job executions (and execution vetoes).
+            </summary>
+            <remarks>
+            	<para>
+            The logged message is customizable by setting one of the following message
+            properties to a string that conforms to the syntax of <see cref="M:System.String.Format(System.String,System.Object)"/>.
+            </para>
+            	<para>
+            JobToBeFiredMessage - available message data are: <table>
+            			<tr>
+            				<th>Element</th>
+            				<th>Data Type</th>
+            				<th>Description</th>
+            			</tr>
+            			<tr>
+            				<td>0</td>
+            				<td>String</td>
+            				<td>The Job's Name.</td>
+            			</tr>
+            			<tr>
+            				<td>1</td>
+            				<td>String</td>
+            				<td>The Job's Group.</td>
+            			</tr>
+            			<tr>
+            				<td>2</td>
+            				<td>Date</td>
+            				<td>The current time.</td>
+            			</tr>
+            			<tr>
+            				<td>3</td>
+            				<td>String</td>
+            				<td>The Trigger's name.</td>
+            			</tr>
+            			<tr>
+            				<td>4</td>
+            				<td>String</td>
+            				<td>The Trigger's group.</td>
+            			</tr>
+            			<tr>
+            				<td>5</td>
+            				<td>Date</td>
+            				<td>The scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>6</td>
+            				<td>Date</td>
+            				<td>The next scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>7</td>
+            				<td>Integer</td>
+            				<td>The re-fire count from the JobExecutionContext.</td>
+            			</tr>
+            		</table>
+            The default message text is <i>"Job {1}.{0} fired (by trigger {4}.{3}) at: {2:HH:mm:ss MM/dd/yyyy}"</i>
+            	</para>
+            	<para>
+            JobSuccessMessage - available message data are: <table>
+            			<tr>
+            				<th>Element</th>
+            				<th>Data Type</th>
+            				<th>Description</th>
+            			</tr>
+            			<tr>
+            				<td>0</td>
+            				<td>String</td>
+            				<td>The Job's Name.</td>
+            			</tr>
+            			<tr>
+            				<td>1</td>
+            				<td>String</td>
+            				<td>The Job's Group.</td>
+            			</tr>
+            			<tr>
+            				<td>2</td>
+            				<td>Date</td>
+            				<td>The current time.</td>
+            			</tr>
+            			<tr>
+            				<td>3</td>
+            				<td>String</td>
+            				<td>The Trigger's name.</td>
+            			</tr>
+            			<tr>
+            				<td>4</td>
+            				<td>String</td>
+            				<td>The Trigger's group.</td>
+            			</tr>
+            			<tr>
+            				<td>5</td>
+            				<td>Date</td>
+            				<td>The scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>6</td>
+            				<td>Date</td>
+            				<td>The next scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>7</td>
+            				<td>Integer</td>
+            				<td>The re-fire count from the JobExecutionContext.</td>
+            			</tr>
+            			<tr>
+            				<td>8</td>
+            				<td>Object</td>
+            				<td>The string value (toString() having been called) of the result (if any)
+            that the Job set on the JobExecutionContext, with on it.  "NULL" if no
+            result was set.</td>
+            			</tr>
+            		</table>
+            The default message text is <i>"Job {1}.{0} execution complete at {2:HH:mm:ss MM/dd/yyyy} and reports: {8}"</i>
+            	</para>
+            	<para>
+            JobFailedMessage - available message data are: <table>
+            			<tr>
+            				<th>Element</th>
+            				<th>Data Type</th>
+            				<th>Description</th>
+            			</tr>
+            			<tr>
+            				<td>0</td>
+            				<td>String</td>
+            				<td>The Job's Name.</td>
+            			</tr>
+            			<tr>
+            				<td>1</td>
+            				<td>String</td>
+            				<td>The Job's Group.</td>
+            			</tr>
+            			<tr>
+            				<td>2</td>
+            				<td>Date</td>
+            				<td>The current time.</td>
+            			</tr>
+            			<tr>
+            				<td>3</td>
+            				<td>String</td>
+            				<td>The Trigger's name.</td>
+            			</tr>
+            			<tr>
+            				<td>4</td>
+            				<td>String</td>
+            				<td>The Trigger's group.</td>
+            			</tr>
+            			<tr>
+            				<td>5</td>
+            				<td>Date</td>
+            				<td>The scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>6</td>
+            				<td>Date</td>
+            				<td>The next scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>7</td>
+            				<td>Integer</td>
+            				<td>The re-fire count from the JobExecutionContext.</td>
+            			</tr>
+            			<tr>
+            				<td>8</td>
+            				<td>String</td>
+            				<td>The message from the thrown JobExecution Exception.
+            </td>
+            			</tr>
+            		</table>
+            The default message text is <i>"Job {1}.{0} execution failed at {2:HH:mm:ss MM/dd/yyyy} and reports: {8}"</i>
+            	</para>
+            	<para>
+            JobWasVetoedMessage - available message data are: <table>
+            			<tr>
+            				<th>Element</th>
+            				<th>Data Type</th>
+            				<th>Description</th>
+            			</tr>
+            			<tr>
+            				<td>0</td>
+            				<td>String</td>
+            				<td>The Job's Name.</td>
+            			</tr>
+            			<tr>
+            				<td>1</td>
+            				<td>String</td>
+            				<td>The Job's Group.</td>
+            			</tr>
+            			<tr>
+            				<td>2</td>
+            				<td>Date</td>
+            				<td>The current time.</td>
+            			</tr>
+            			<tr>
+            				<td>3</td>
+            				<td>String</td>
+            				<td>The Trigger's name.</td>
+            			</tr>
+            			<tr>
+            				<td>4</td>
+            				<td>String</td>
+            				<td>The Trigger's group.</td>
+            			</tr>
+            			<tr>
+            				<td>5</td>
+            				<td>Date</td>
+            				<td>The scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>6</td>
+            				<td>Date</td>
+            				<td>The next scheduled fire time.</td>
+            			</tr>
+            			<tr>
+            				<td>7</td>
+            				<td>Integer</td>
+            				<td>The re-fire count from the JobExecutionContext.</td>
+            			</tr>
+            		</table>
+            The default message text is <i>"Job {1}.{0} was vetoed.  It was to be fired
+            (by trigger {4}.{3}) at: {2:HH:mm:ss MM/dd/yyyy}"</i>
+            	</para>
+            </remarks>
+            <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobSuccessMessage">
+            <summary>
+            Get or sets the message that is logged when a Job successfully completes its
+            execution.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobFailedMessage">
+            <summary>
+            Get or sets the message that is logged when a Job fails its
+            execution.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobToBeFiredMessage">
+            <summary>
+            Gets or sets the message that is logged when a Job is about to Execute.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobWasVetoedMessage">
+            <summary>
+            Gets or sets the message that is logged when a Job execution is vetoed by a
+            trigger listener.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingJobHistoryPlugin.Name">
+            <summary>
+            Get the name of the <see cref="T:Quartz.IJobListener" />.
+            </summary>
+            <value></value>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.Initialize(System.String,Quartz.IScheduler,System.Threading.CancellationToken)">
+            <summary>
+            Called during creation of the <see cref="T:Quartz.IScheduler" /> in order to give
+            the <see cref="T:Quartz.Spi.ISchedulerPlugin" /> a chance to Initialize.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.Start(System.Threading.CancellationToken)">
+            <summary>
+            Called when the associated <see cref="T:Quartz.IScheduler" /> is started, in order
+            to let the plug-in know it can now make calls into the scheduler if it
+            needs to.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.Shutdown(System.Threading.CancellationToken)">
+            <summary>
+            Called in order to inform the <see cref="T:Quartz.Spi.ISchedulerPlugin" /> that it
+            should free up all of it's resources because the scheduler is shutting
+            down.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobToBeExecuted(Quartz.IJobExecutionContext,System.Threading.CancellationToken)">
+            <summary>
+                Called by the <see cref="T:Quartz.IScheduler"/> when a <see cref="T:Quartz.IJobDetail"/> is
+                about to be executed (an associated <see cref="T:Quartz.ITrigger"/> has occurred).
+                <para>
+                    This method will not be invoked if the execution of the Job was vetoed by a
+                    <see cref="T:Quartz.ITriggerListener"/>.
+                </para>
+            </summary>
+            <seealso cref="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobExecutionVetoed(Quartz.IJobExecutionContext,System.Threading.CancellationToken)"/>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobWasExecuted(Quartz.IJobExecutionContext,Quartz.JobExecutionException,System.Threading.CancellationToken)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> after a <see cref="T:Quartz.IJobDetail" />
+            has been executed, and be for the associated <see cref="T:Quartz.ITrigger" />'s
+            <see cref="M:Quartz.Spi.IOperableTrigger.Triggered(Quartz.ICalendar)" /> method has been called.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobExecutionVetoed(Quartz.IJobExecutionContext,System.Threading.CancellationToken)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> when a <see cref="T:Quartz.IJobDetail" />
+            was about to be executed (an associated <see cref="T:Quartz.ITrigger" />
+            has occurred), but a <see cref="T:Quartz.ITriggerListener" /> vetoed it's
+            execution.
+            </summary>
+            <seealso cref="M:Quartz.Plugin.History.LoggingJobHistoryPlugin.JobToBeExecuted(Quartz.IJobExecutionContext,System.Threading.CancellationToken)"/>
+        </member>
+        <member name="T:Quartz.Plugin.History.LoggingTriggerHistoryPlugin">
+             <summary>
+             Logs a history of all trigger firings.
+             </summary>
+             <remarks>
+             <para>
+             The logged message is customizable by setting one of the following message
+             properties to a string that conforms to the syntax of <see cref="M:System.String.Format(System.String,System.Object[])" />.
+             </para>
+            
+             <para>
+             TriggerFiredMessage - available message data are: <table>
+             <tr>
+             <th>Element</th>
+             <th>Data Type</th>
+             <th>Description</th>
+             </tr>
+             <tr>
+             <td>0</td>
+             <td>String</td>
+             <td>The Trigger's Name.</td>
+             </tr>
+             <tr>
+             <td>1</td>
+             <td>String</td>
+             <td>The Trigger's Group.</td>
+             </tr>
+             <tr>
+             <td>2</td>
+             <td>Date</td>
+             <td>The scheduled fire time.</td>
+             </tr>
+             <tr>
+             <td>3</td>
+             <td>Date</td>
+             <td>The next scheduled fire time.</td>
+             </tr>
+             <tr>
+             <td>4</td>
+             <td>Date</td>
+             <td>The actual fire time.</td>
+             </tr>
+             <tr>
+             <td>5</td>
+             <td>String</td>
+             <td>The Job's name.</td>
+             </tr>
+             <tr>
+             <td>6</td>
+             <td>String</td>
+             <td>The Job's group.</td>
+             </tr>
+             <tr>
+             <td>7</td>
+             <td>Integer</td>
+             <td>The re-fire count from the JobExecutionContext.</td>
+             </tr>
+             </table>
+            
+             The default message text is <i>"Trigger {1}.{0} fired job {6}.{5} at: {4,
+             date, HH:mm:ss MM/dd/yyyy}"</i>
+             </para>
+            
+             <para>
+             TriggerMisfiredMessage - available message data are: <table>
+             <tr>
+             <th>Element</th>
+             <th>Data Type</th>
+             <th>Description</th>
+             </tr>
+             <tr>
+             <td>0</td>
+             <td>String</td>
+             <td>The Trigger's Name.</td>
+             </tr>
+             <tr>
+             <td>1</td>
+             <td>String</td>
+             <td>The Trigger's Group.</td>
+             </tr>
+             <tr>
+             <td>2</td>
+             <td>Date</td>
+             <td>The scheduled fire time.</td>
+             </tr>
+             <tr>
+             <td>3</td>
+             <td>Date</td>
+             <td>The next scheduled fire time.</td>
+             </tr>
+             <tr>
+             <td>4</td>
+             <td>Date</td>
+             <td>The actual fire time. (the time the misfire was detected/handled)</td>
+             </tr>
+             <tr>
+             <td>5</td>
+             <td>String</td>
+             <td>The Job's name.</td>
+             </tr>
+             <tr>
+             <td>6</td>
+             <td>String</td>
+             <td>The Job's group.</td>
+             </tr>
+             </table>
+            
+             The default message text is <i>"Trigger {1}.{0} misfired job {6}.{5} at:
+             {4, date, HH:mm:ss MM/dd/yyyy}. Should have fired at: {3, date, HH:mm:ss
+             MM/dd/yyyy}"</i>
+             </para>
+            
+             <para>
+             TriggerCompleteMessage - available message data are: <table>
+             <tr>
+             <th>Element</th>
+             <th>Data Type</th>
+             <th>Description</th>
+             </tr>
+             <tr>
+             <td>0</td>
+             <td>String</td>
+             <td>The Trigger's Name.</td>
+             </tr>
+             <tr>
+             <td>1</td>
+             <td>String</td>
+             <td>The Trigger's Group.</td>
+             </tr>
+             <tr>
+             <td>2</td>
+             <td>Date</td>
+             <td>The scheduled fire time.</td>
+             </tr>
+             <tr>
+             <td>3</td>
+             <td>Date</td>
+             <td>The next scheduled fire time.</td>
+             </tr>
+             <tr>
+             <td>4</td>
+             <td>Date</td>
+             <td>The job completion time.</td>
+             </tr>
+             <tr>
+             <td>5</td>
+             <td>String</td>
+             <td>The Job's name.</td>
+             </tr>
+             <tr>
+             <td>6</td>
+             <td>String</td>
+             <td>The Job's group.</td>
+             </tr>
+             <tr>
+             <td>7</td>
+             <td>Integer</td>
+             <td>The re-fire count from the JobExecutionContext.</td>
+             </tr>
+             <tr>
+             <td>8</td>
+             <td>Integer</td>
+             <td>The trigger's resulting instruction code.</td>
+             </tr>
+             <tr>
+             <td>9</td>
+             <td>String</td>
+             <td>A human-readable translation of the trigger's resulting instruction
+             code.</td>
+             </tr>
+             </table>
+            
+             The default message text is <i>"Trigger {1}.{0} completed firing job
+             {6}.{5} at {4, date, HH:mm:ss MM/dd/yyyy} with resulting trigger instruction
+             code: {9}"</i>
+             </para>
+             </remarks>
+             <author>James House</author>
+             <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Quartz.Plugin.History.LoggingTriggerHistoryPlugin"/> class.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.#ctor(Microsoft.Extensions.Logging.ILogger{Quartz.Plugin.History.LoggingTriggerHistoryPlugin},System.TimeProvider)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Quartz.Plugin.History.LoggingTriggerHistoryPlugin"/> class.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.TriggerCompleteMessage">
+            <summary>
+            Get or set the message that is printed upon the completion of a trigger's
+            firing.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.TriggerFiredMessage">
+            <summary>
+            Get or set the message that is printed upon a trigger's firing.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.TriggerMisfiredMessage">
+            <summary>
+            Get or set the message that is printed upon a trigger's mis-firing.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.Name">
+            <summary>
+            Get the name of the <see cref="T:Quartz.ITriggerListener" />.
+            </summary>
+            <value></value>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.Initialize(System.String,Quartz.IScheduler,System.Threading.CancellationToken)">
+            <summary>
+            Called during creation of the <see cref="T:Quartz.IScheduler" /> in order to give
+            the <see cref="T:Quartz.Spi.ISchedulerPlugin" /> a chance to Initialize.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.Start(System.Threading.CancellationToken)">
+            <summary>
+            Called when the associated <see cref="T:Quartz.IScheduler" /> is started, in order
+            to let the plug-in know it can now make calls into the scheduler if it
+            needs to.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.Shutdown(System.Threading.CancellationToken)">
+            <summary>
+            Called in order to inform the <see cref="T:Quartz.Spi.ISchedulerPlugin" /> that it
+            should free up all of it's resources because the scheduler is shutting
+            down.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.TriggerFired(Quartz.ITrigger,Quartz.IJobExecutionContext,System.Threading.CancellationToken)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> when a <see cref="T:Quartz.ITrigger" />
+            has fired, and it's associated <see cref="T:Quartz.IJobDetail" />
+            is about to be executed.
+            <para>
+            It is called before the <see cref="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.VetoJobExecution(Quartz.ITrigger,Quartz.IJobExecutionContext,System.Threading.CancellationToken)" /> method of this
+            interface.
+            </para>
+            </summary>
+            <param name="trigger">The <see cref="T:Quartz.ITrigger" /> that has fired.</param>
+            <param name="context">The <see cref="T:Quartz.IJobExecutionContext" /> that will be passed to the <see cref="T:Quartz.IJob" />'s <see cref="M:Quartz.IJob.Execute(Quartz.IJobExecutionContext)" /> method.</param>
+            <param name="cancellationToken">The cancellation instruction.</param>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.TriggerMisfired(Quartz.ITrigger,System.Threading.CancellationToken)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> when a <see cref="T:Quartz.ITrigger" />
+            has misfired.
+            <para>
+            Consideration should be given to how much time is spent in this method,
+            as it will affect all triggers that are misfiring.  If you have lots
+            of triggers misfiring at once, it could be an issue it this method
+            does a lot.
+            </para>
+            </summary>
+            <param name="trigger">The <see cref="T:Quartz.ITrigger" /> that has misfired.</param>
+            <param name="cancellationToken">The cancellation instruction.</param>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.TriggerComplete(Quartz.ITrigger,Quartz.IJobExecutionContext,Quartz.SchedulerInstruction,System.Threading.CancellationToken)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> when a <see cref="T:Quartz.ITrigger" />
+            has fired, it's associated <see cref="T:Quartz.IJobDetail" />
+            has been executed, and it's <see cref="M:Quartz.Spi.IOperableTrigger.Triggered(Quartz.ICalendar)" /> method has been
+            called.
+            </summary>
+            <param name="trigger">The <see cref="T:Quartz.ITrigger" /> that was fired.</param>
+            <param name="context">The <see cref="T:Quartz.IJobExecutionContext" /> that was passed to the
+            <see cref="T:Quartz.IJob" />'s <see cref="M:Quartz.IJob.Execute(Quartz.IJobExecutionContext)" /> method.</param>
+            <param name="triggerInstructionCode">The result of the call on the <see cref="T:Quartz.Spi.IOperableTrigger" />'s <see cref="M:Quartz.Spi.IOperableTrigger.Triggered(Quartz.ICalendar)" />  method.</param>
+            <param name="cancellationToken">The cancellation instruction.</param>
+        </member>
+        <member name="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.VetoJobExecution(Quartz.ITrigger,Quartz.IJobExecutionContext,System.Threading.CancellationToken)">
+            <summary>
+            Called by the <see cref="T:Quartz.IScheduler" /> when a <see cref="T:Quartz.ITrigger" />
+            has fired, and it's associated <see cref="T:Quartz.IJobDetail" />
+            is about to be executed.
+            <para>
+            It is called after the <see cref="M:Quartz.Plugin.History.LoggingTriggerHistoryPlugin.TriggerFired(Quartz.ITrigger,Quartz.IJobExecutionContext,System.Threading.CancellationToken)" /> method of this
+            interface.
+            </para>
+            </summary>
+            <param name="trigger">The <see cref="T:Quartz.ITrigger" /> that has fired.</param>
+            <param name="context">The <see cref="T:Quartz.IJobExecutionContext" /> that will be passed to
+            the <see cref="T:Quartz.IJob" />'s <see cref="M:Quartz.IJob.Execute(Quartz.IJobExecutionContext)" /> method.</param>
+            <param name="cancellationToken">The cancellation instruction.</param>
+        </member>
+        <member name="T:Quartz.Plugin.Interrupt.JobInterruptMonitorPlugin">
+            <summary>
+            This plugin catches the event of job running for a long time (more than the
+            configured max time) and tells the scheduler to "try" interrupting it if enabled.
+            </summary>
+            <seealso cref="M:Quartz.IScheduler.Interrupt(Quartz.JobKey,System.Threading.CancellationToken)"/>
+            <author>Rama Chavali</author>
+            <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="P:Quartz.Plugin.Interrupt.JobInterruptMonitorPlugin.DefaultMaxRunTime">
+            <summary>
+            The amount of time the job is allowed to run before job interruption is signaled.
+            Defaults to 5 minutes.
+            </summary>
+        </member>
+        <member name="T:Quartz.Plugin.Management.ShutdownHookPlugin">
+            <summary>
+            This plugin catches the event of the VM terminating (such as upon a CRTL-C)
+            and tells the scheduler to Shutdown.
+            </summary>
+            <seealso cref="M:Quartz.IScheduler.Shutdown(System.Boolean,System.Threading.CancellationToken)" />
+            <author>James House</author>
+            <author>Marko Lahma (.NET)</author>
+        </member>
+        <member name="P:Quartz.Plugin.Management.ShutdownHookPlugin.CleanShutdown">
+            <summary>
+            Determine whether or not the plug-in is configured to cause a clean
+            Shutdown of the scheduler.
+            <para>
+            The default value is <see langword="true" />.
+            </para>
+            </summary>
+            <seealso cref="M:Quartz.IScheduler.Shutdown(System.Boolean,System.Threading.CancellationToken)" />
+        </member>
+        <member name="M:Quartz.Plugin.Management.ShutdownHookPlugin.Initialize(System.String,Quartz.IScheduler,System.Threading.CancellationToken)">
+            <summary>
+            Called during creation of the <see cref="T:Quartz.IScheduler" /> in order to give
+            the <see cref="T:Quartz.Spi.ISchedulerPlugin" /> a chance to Initialize.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.Management.ShutdownHookPlugin.Start(System.Threading.CancellationToken)">
+            <summary>
+            Called when the associated <see cref="T:Quartz.IScheduler" /> is started, in order
+            to let the plug-in know it can now make calls into the scheduler if it
+            needs to.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.Management.ShutdownHookPlugin.Shutdown(System.Threading.CancellationToken)">
+            <summary>
+            Called in order to inform the <see cref="T:Quartz.Spi.ISchedulerPlugin" /> that it
+            should free up all of it's resources because the scheduler is shutting
+            down.
+            </summary>
+        </member>
+        <member name="T:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin">
+             <summary>
+             This plugin loads XML file(s) to add jobs and schedule them with triggers
+             as the scheduler is initialized, and can optionally periodically scan the
+             file for changes.
+            </summary>
+             <remarks>
+             The periodically scanning of files for changes is not currently supported in a
+             clustered environment.
+             </remarks>
+             <author>James House</author>
+             <author>Pierre Awaragi</author>
+        </member>
+        <member name="M:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin"/> class.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.#ctor(Microsoft.Extensions.Logging.ILogger{Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin},Quartz.Spi.ITypeLoadHelper,System.TimeProvider)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin"/> class.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.FileNames">
+            <summary>
+            Comma separated list of file names (with paths) to the XML files that should be read.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.ScanInterval">
+            <summary>
+            The interval at which to scan for changes to the file.
+            If the file has been changed, it is re-loaded and parsed.   The default
+            value for the interval is 0, which disables scanning.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.FailOnFileNotFound">
+            <summary>
+            Whether or not initialization of the plugin should fail (throw an
+            exception) if the file cannot be found. Default is <see langword="true" />.
+            </summary>
+        </member>
+        <member name="P:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.FailOnSchedulingError">
+            <summary>
+            Whether or not starting of the plugin should fail (throw an
+            exception) if the file cannot be handled. Default is <see langword="false" />.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.Initialize(System.String,Quartz.IScheduler,System.Threading.CancellationToken)">
+            <summary>
+            Called during creation of the <see cref="T:Quartz.IScheduler"/> in order to give
+            the <see cref="T:Quartz.Spi.ISchedulerPlugin"/> a chance to initialize.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.Start(System.Threading.CancellationToken)">
+            <summary>
+            Called when the associated <see cref="T:Quartz.IScheduler"/> is started, in order
+            to let the plug-in know it can now make calls into the scheduler if it
+            needs to.
+            </summary>
+        </member>
+        <member name="M:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.BuildJobTriggerName(System.String)">
+            <summary>
+            Helper method for generating unique job/trigger name for the
+            file scanning jobs (one per FileJob).  The unique names are saved
+            in jobTriggerNameSet.
+            </summary>
+            <param name="fileBasename"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.Shutdown(System.Threading.CancellationToken)">
+            <summary>
+            Called in order to inform the <see cref="T:Quartz.Spi.ISchedulerPlugin" /> that it
+            should free up all of it's resources because the scheduler is shutting
+            down.
+            </summary>
+        </member>
+        <member name="T:Quartz.Plugin.Xml.XMLSchedulingDataProcessorPlugin.JobFile">
+            <summary>
+            Information about a file that should be processed by <see cref="T:Quartz.Xml.XMLSchedulingDataProcessor" />.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices2.InlineArrayAttribute">
+            <summary>
+            Indicates that the instance's storage is sequentially replicated "length" times.
+            </summary>
+            <remarks>
+            <para>
+            This attribute can be used to annotate a <see langword="struct"/> type with a single field.
+            The runtime will replicate that field in the actual type layout as many times as is specified.
+            </para>
+            <para>
+            Here's an example of how an inline array type with 8 <see cref="T:System.Single"/> values can be declared:
+            <code lang="csharp">
+            [InlineArray(8)]
+            struct Float8InlineArray
+            {
+                private float _value;
+            }
+            </code>
+            </para>
+            </remarks>
+        </member>
+        <member name="M:System.Runtime.CompilerServices2.InlineArrayAttribute.#ctor(System.Int32)">
+            <summary>Creates a new <see cref="T:System.Runtime.CompilerServices2.InlineArrayAttribute"/> instance with the specified length.</summary>
+            <param name="length">The number of sequential fields to replicate in the inline array type.</param>
+        </member>
+        <member name="P:System.Runtime.CompilerServices2.InlineArrayAttribute.Length">
+            <summary>Gets the number of sequential fields to replicate in the inline array type.</summary>
+        </member>
+    </members>
+</doc>

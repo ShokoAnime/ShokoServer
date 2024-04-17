@@ -10,10 +10,7 @@ public class JobBuilder<T> : IJobConfiguratorWithDataAndIdentity<T>, IJobConfigu
 {
     private JobKey? _key;
     private string? _description;
-    private bool _durability;
     private bool _shouldRecover;
-    private bool? _concurrentExecutionDisallowed;
-    private bool? _persistJobDataAfterExecution;
 
     private JobDataMap _jobDataMap = new JobDataMap();
 
@@ -51,40 +48,17 @@ public class JobBuilder<T> : IJobConfiguratorWithDataAndIdentity<T>, IJobConfigu
     /// <returns>the defined JobDetail.</returns>
     public IJobDetail Build()
     {
-        var concurrentExecutionDisallowed = _concurrentExecutionDisallowed;
-        var persistJobDataAfterExecution = _persistJobDataAfterExecution;
-
-        // When the user specified a job type, we can deduce the values for
-        // ConcurrentExecutionDisallowed and PersistJobDataAfterExecution if
-        // no explicit values were specified
-        var type = typeof(JobBuilder).Assembly.GetType("Quartz.Impl.JobTypeInformation");
-        var method = type.GetMethod("GetOrCreate", BindingFlags.Public | BindingFlags.Static);
-        var jobTypeConcurrentProp = type.GetProperty("ConcurrentExecutionDisallowed");
-        var jobTypePersistProp = type.GetProperty("ConcurrentExecutionDisallowed");
-        if (!_concurrentExecutionDisallowed.HasValue)
-        {
-            concurrentExecutionDisallowed =
-                (bool?)jobTypeConcurrentProp?.GetValue(method?.Invoke(null, new object[] { typeof(T) }));
-        }
-
-        if (!persistJobDataAfterExecution.HasValue)
-        {
-            persistJobDataAfterExecution =
-                (bool?)jobTypePersistProp?.GetValue(method?.Invoke(null, new object[] { typeof(T) }));
-        }
-
         var key = Key ?? new JobKey(Guid.NewGuid().ToString());
 
-        var job = new JobDetailImpl(key.Name, key.Group, typeof(T), _durability, _shouldRecover)
+        var job = new JobDetail
         {
+            Name = key.Name,
+            Group = key.Group,
             Description = _description,
+            JobType = new JobType(typeof(T)),
+            RequestsRecovery = _shouldRecover,
             JobDataMap = _jobDataMap
         };
-
-        var disallowProp = TypeFieldCache.Get(typeof(JobDetailImpl), "disallowConcurrentExecution");
-        disallowProp?.SetValue(job, concurrentExecutionDisallowed);
-        var persistProp = TypeFieldCache.Get(typeof(JobDetailImpl), "persistJobDataAfterExecution");
-        persistProp?.SetValue(job, persistJobDataAfterExecution);
 
         return job;
     }
@@ -129,7 +103,6 @@ public class JobBuilder<T> : IJobConfiguratorWithDataAndIdentity<T>, IJobConfigu
     /// <seealso cref="IJobDetail.Durable" />
     public IJobConfigurator<T> StoreDurably(bool durability = true)
     {
-        _durability = durability;
         return this;
     }
 
@@ -147,7 +120,6 @@ public class JobBuilder<T> : IJobConfiguratorWithDataAndIdentity<T>, IJobConfigu
     /// <seealso cref="DisallowConcurrentExecutionAttribute"/>
     public IJobConfigurator<T> DisallowConcurrentExecution(bool concurrentExecutionDisallowed = true)
     {
-        _concurrentExecutionDisallowed = concurrentExecutionDisallowed;
         return this;
     }
 
@@ -165,7 +137,6 @@ public class JobBuilder<T> : IJobConfiguratorWithDataAndIdentity<T>, IJobConfigu
     /// <seealso cref="PersistJobDataAfterExecutionAttribute"/>
     public IJobConfigurator<T> PersistJobDataAfterExecution(bool persistJobDataAfterExecution = true)
     {
-        _persistJobDataAfterExecution = persistJobDataAfterExecution;
         return this;
     }
 
