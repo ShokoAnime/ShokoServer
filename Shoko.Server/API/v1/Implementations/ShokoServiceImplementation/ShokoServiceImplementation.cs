@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -478,30 +478,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                     contract.ErrorMessage += "AniDB Password must have a value" + Environment.NewLine;
                 }
             }
-
-            var oldHttpServerUrl = new Uri(settings.AniDb.HTTPServerUrl);
-            var newHttpServerUrl = new UriBuilder(oldHttpServerUrl)
-            {
-                Host = contractIn.AniDB_ServerAddress,
-                Port = int.Parse(contractIn.AniDB_ServerPort)
-            }.Uri;
-
-            if (oldHttpServerUrl != newHttpServerUrl)
-            {
-                anidbSettingsChanged = true;
-
-                if (string.IsNullOrEmpty(contractIn.AniDB_ServerAddress))
-                {
-                    contract.ErrorMessage += "AniDB Server Address must have a value" + Environment.NewLine;
-                }
-
-                if (!(ushort.TryParse(contractIn.AniDB_ServerPort, out var newAniDBServerPort) && newAniDBServerPort > 0))
-                {
-                    contract.ErrorMessage += "AniDB Server Port must be numeric and greater than 0" +
-                                             Environment.NewLine;
-                }
-            }
-
+            
             if (!ushort.TryParse(contractIn.AniDB_AVDumpClientPort, out var newAniDB_AVDumpClientPort))
             {
                 contract.ErrorMessage += "AniDB AVDump port must be a valid port" + Environment.NewLine;
@@ -515,7 +492,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             settings.AniDb.ClientPort = newAniDB_ClientPort;
             settings.AniDb.Password = contractIn.AniDB_Password;
-            settings.AniDb.HTTPServerUrl = newHttpServerUrl.ToString();
             settings.AniDb.Username = contractIn.AniDB_Username;
             settings.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
             settings.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
