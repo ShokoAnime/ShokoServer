@@ -317,17 +317,18 @@ jobs:
           echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Notify Discord Users
-        uses: Ilshidur/action-discord@08d9328877d6954120eef2b07abbc79249bb6210
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: tsickert/discord-webhook@v6.0.0
         with:
-          args: |
-            # <:Shoko:1223419015209422898> Shoko Server: New Daily Build!
-
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-color: 5809492
+          embed-timestamp: ${{ needs.current_info.outputs.date }}
+          embed-author-name: Shoko Server | New Daily Build
+          embed-author-icon-url: https://raw.githubusercontent.com/${{ github.repository }}/master/.github/images/Shoko.png
+          embed-author-url: https://github.com/${{ github.repository }}
+          embed-description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            Update by grabbing the latest daily from [our site](<https://shokoanime.com/downloads/shoko-server>) or through Docker using the `shokoanime/server:daily` tag!
+            Update by grabbing the latest daily from [our site](https://shokoanime.com/downloads/shoko-server) or through Docker using the `shokoanime/server:daily` tag!
 
             **Changes since last build**:
-
             ${{ steps.generate_changelog.outputs.CHANGELOG }}
