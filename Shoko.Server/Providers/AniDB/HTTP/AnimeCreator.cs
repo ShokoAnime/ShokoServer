@@ -268,6 +268,7 @@ public class AnimeCreator
             anime.AllTags = string.Empty;
             anime.AllTitles = string.Empty;
             anime.ImageEnabled = 1;
+            anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
         }
 
         return isUpdated;
