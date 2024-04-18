@@ -19,7 +19,6 @@ using NLog.Targets.Wrappers;
 using Shoko.Models.Enums;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Providers.AniDB.Titles;
-using Shoko.Server.Providers.TMDB.Search;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
