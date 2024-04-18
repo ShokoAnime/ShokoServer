@@ -23,6 +23,7 @@ public static class AVDumpHelper
     #region Private Variables
 
     private static readonly string WorkingDirectory = Path.Combine(Utils.ApplicationPath, "AVDump");
+    private static readonly string RuntimeConfigPath = Path.Combine(WorkingDirectory, "AVDump3CL.runtimeconfig.json");
 
     private static readonly string ArchivePath = Path.Combine(Utils.ApplicationPath, "avdump.zip");
 
@@ -353,7 +354,10 @@ public static class AVDumpHelper
                 force = true;
 
             if (!force && File.Exists(AVDumpExecutable))
+            {
+                if (File.Exists(RuntimeConfigPath) && File.ReadAllText(RuntimeConfigPath).Contains("6.0")) ReplaceNet6();
                 return true;
+            }
 
             ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InstallingAVDump);
 
@@ -416,7 +420,7 @@ public static class AVDumpHelper
             catch (Exception ex)
             {
                 ShokoEventHandler.Instance.OnAVDumpInstallException(ex);
-                logger.Error(ex);
+                logger.Error(ex, "Unable to install AVDump3");
                 return false;
             }
 
@@ -429,8 +433,28 @@ public static class AVDumpHelper
                 // eh we tried
             }
 
+            ReplaceNet6();
+
             ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InstalledAVDump);
             return true;
+        }
+    }
+
+    private static void ReplaceNet6()
+    {
+        try
+        {
+            if (File.Exists(RuntimeConfigPath))
+            {
+                var current = File.ReadAllText(RuntimeConfigPath);
+                var replaced = current.Replace("6.0", "8.0");
+                File.WriteAllText(RuntimeConfigPath, replaced);
+            }
+        }
+        catch (Exception e)
+        {
+            ShokoEventHandler.Instance.OnAVDumpInstallException(e);
+            logger.Error(e, "Unable to install AVDump3");
         }
     }
 
