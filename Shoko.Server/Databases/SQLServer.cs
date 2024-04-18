@@ -73,14 +73,14 @@ public class SQLServer : BaseDatabase<SqlConnection>
     public override string GetTestConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        return $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog=master;user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+        return $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog=master;user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
     }
 
     public override string GetConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+            $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
     }
 
     public override ISessionFactory CreateSessionFactory()
