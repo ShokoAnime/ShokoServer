@@ -98,7 +98,7 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
         if (generateTvDBMatches)
         {
             // Update TvDB Linking. Doing it here as updating anime updates episode info in batch
-            TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
+            lock (obj) TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
         }
     }
 

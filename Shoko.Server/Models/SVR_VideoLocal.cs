@@ -278,7 +278,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
                             c.Hash = Hash;
                             c.Watched = watched;
                             c.UpdateSeriesStats = false;
-                            c.WatchedDateAsSecs = AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime());
+                            c.WatchedDate = watchedDate?.ToUniversalTime();
                         }
                     ).GetAwaiter().GetResult();
                 }

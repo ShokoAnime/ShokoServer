@@ -17,15 +17,4 @@ public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staf
                 .ToList();
         });
     }
-
-    public AniDB_Anime_Staff GetByAnimeIDAndCreatorID(int animeid, int creatorid)
-    {
-        return Lock(() =>
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
-            return session.Query<AniDB_Anime_Staff>()
-                .Where(a => a.AnimeID == animeid && a.CreatorID == creatorid)
-                .SingleOrDefault();
-        });
-    }
 }

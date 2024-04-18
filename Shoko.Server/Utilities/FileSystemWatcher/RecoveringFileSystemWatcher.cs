@@ -97,7 +97,13 @@ public class RecoveringFileSystemWatcher : IDisposable
             // Exclusion Settings
             if (_pathExclusions.Any(a => a.IsMatch(e.FullPath))) return;
             // Temporary Exclusions, like drop folders
-            if (ExclusionsEnabled && _exclusions.Contains(e.FullPath)) return;
+            if (ExclusionsEnabled)
+            {
+                lock (_exclusions)
+                {
+                    if (_exclusions.Contains(e.FullPath)) return;
+                }
+            }
             // handle directories
             if (DirectoryExists(item)) return;
             // Is it a video file
@@ -208,14 +214,20 @@ public class RecoveringFileSystemWatcher : IDisposable
 
     public void AddExclusion(string path)
     {
-        if (!_exclusions.Contains(path)) _exclusions.Add(path);
+        lock (_exclusions)
+        {
+            if (!_exclusions.Contains(path)) _exclusions.Add(path);
+        }
         ExclusionsEnabled = true;
     }
 
     public void RemoveExclusion(string path)
     {
-        _exclusions.Remove(path);
-        ExclusionsEnabled = _exclusions.Any();
+        lock (_exclusions)
+        {
+            _exclusions.Remove(path);
+            ExclusionsEnabled = _exclusions.Any();
+        }
     }
 
     public bool IsPathWatched(string path) => path.Contains(_path);

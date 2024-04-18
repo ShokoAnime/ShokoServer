@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,7 +29,7 @@ public class UpdateMyListFileStatusJob : BaseJob
     public string Hash { get; set; }
     public bool Watched { get; set; }
     public bool UpdateSeriesStats { get; set; }
-    public int WatchedDateAsSecs { get; set; }
+    public DateTime? WatchedDate { get; set; }
 
     public override string TypeName => "Update AniDB MyList";
 
@@ -61,9 +62,8 @@ public class UpdateMyListFileStatusJob : BaseJob
 
         if (vid.GetAniDBFile() != null)
         {
-            if (Watched && WatchedDateAsSecs > 0)
+            if (Watched && WatchedDate != null)
             {
-                var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
                 var request = _requestFactory.Create<RequestUpdateFile>(
                     r =>
                     {
@@ -71,7 +71,7 @@ public class UpdateMyListFileStatusJob : BaseJob
                         r.Hash = vid.Hash;
                         r.Size = vid.FileSize;
                         r.IsWatched = true;
-                        r.WatchedDate = watchedDate;
+                        r.WatchedDate = WatchedDate;
                     }
                 );
                 request.Send();
@@ -96,9 +96,8 @@ public class UpdateMyListFileStatusJob : BaseJob
             var xrefs = vid.EpisodeCrossRefs;
             foreach (var episode in xrefs.Select(xref => xref.GetEpisode()).Where(episode => episode != null))
             {
-                if (Watched && WatchedDateAsSecs > 0)
+                if (Watched && WatchedDate != null)
                 {
-                    var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
                     var request = _requestFactory.Create<RequestUpdateEpisode>(
                         r =>
                         {
@@ -106,7 +105,7 @@ public class UpdateMyListFileStatusJob : BaseJob
                             r.EpisodeNumber = episode.EpisodeNumber;
                             r.AnimeID = episode.AnimeID;
                             r.IsWatched = true;
-                            r.WatchedDate = watchedDate;
+                            r.WatchedDate = WatchedDate;
                         }
                     );
                     request.Send();

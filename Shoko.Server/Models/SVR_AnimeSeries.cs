@@ -480,15 +480,18 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public SVR_AnimeSeries_User GetOrCreateUserRecord(int userID)
     {
-        var userRecord = GetUserRecord(userID);
-        if (userRecord != null)
+        lock (this)
         {
+            var userRecord = GetUserRecord(userID);
+            if (userRecord != null)
+            {
+                return userRecord;
+            }
+
+            userRecord = new SVR_AnimeSeries_User(userID, AnimeSeriesID);
+            RepoFactory.AnimeSeries_User.Save(userRecord);
             return userRecord;
         }
-
-        userRecord = new SVR_AnimeSeries_User(userID, AnimeSeriesID);
-        RepoFactory.AnimeSeries_User.Save(userRecord);
-        return userRecord;
     }
 
     public SVR_AnimeEpisode GetLastEpisodeWatched(int userID)
@@ -1595,303 +1598,309 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public void UpdateStats(bool watchedStats, bool missingEpsStats)
     {
-        var start = DateTime.Now;
-        var initialStart = DateTime.Now;
-        var name = GetAnime()?.MainTitle ?? AniDB_ID.ToString();
-        logger.Info(
-            $"Starting Updating STATS for SERIES {name} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}");
-
-        var startEps = DateTime.Now;
-        var eps = GetAnimeEpisodes().Where(a => a.AniDB_Episode != null).ToList();
-        var tsEps = DateTime.Now - startEps;
-        logger.Trace($"Got episodes for SERIES {name} in {tsEps.TotalMilliseconds}ms");
-
-        if (watchedStats)
+        lock (this)
         {
-            var vls = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID)
-                .Where(a => !string.IsNullOrEmpty(a?.Hash)).Select(xref =>
-                    (xref.EpisodeID, VideoLocal: RepoFactory.VideoLocal.GetByHash(xref.Hash)))
-                .Where(a => a.VideoLocal != null).ToLookup(a => a.EpisodeID, b => b.VideoLocal);
-            var vlUsers = vls.SelectMany(
-                xref =>
-                {
-                    var users = xref?.SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID));
-                    return users?.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ??
-                           Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
-                }
-            ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID),
-                b => b.VideoLocalUser);
-            var epUsers = eps.SelectMany(
-                    ep =>
-                    {
-                        var users = RepoFactory.AnimeEpisode_User.GetByEpisodeID(ep.AnimeEpisodeID);
-                        return users.Select(a => (EpisodeID: ep.AniDB_EpisodeID, AnimeEpisode_User: a));
-                    }
-                ).Where(a => a.AnimeEpisode_User != null)
-                .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
+            var start = DateTime.Now;
+            var initialStart = DateTime.Now;
+            var name = GetAnime()?.MainTitle ?? AniDB_ID.ToString();
+            logger.Info(
+                $"Starting Updating STATS for SERIES {name} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}");
 
-            foreach (var juser in RepoFactory.JMMUser.GetAll())
+            var startEps = DateTime.Now;
+            var eps = GetAnimeEpisodes().Where(a => a.AniDB_Episode != null).ToList();
+            var tsEps = DateTime.Now - startEps;
+            logger.Trace($"Got episodes for SERIES {name} in {tsEps.TotalMilliseconds}ms");
+
+            if (watchedStats)
             {
-                var userRecord = GetOrCreateUserRecord(juser.JMMUserID);
-
-                var unwatchedCount = 0;
-                var hiddenUnwatchedCount = 0;
-                var watchedCount = 0;
-                var watchedEpisodeCount = 0;
-                DateTime? lastEpisodeUpdate = null;
-                DateTime? watchedDate = null;
-
-                var lck = new object();
-
-                eps.AsParallel().Where(ep =>
-                    vls.Contains(ep.AniDB_EpisodeID) &&
-                    ep.EpisodeTypeEnum is EpisodeType.Episode or EpisodeType.Special).ForAll(
-                    ep =>
+                var vls = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID)
+                    .Where(a => !string.IsNullOrEmpty(a?.Hash)).Select(xref =>
+                        (xref.EpisodeID, VideoLocal: RepoFactory.VideoLocal.GetByHash(xref.Hash)))
+                    .Where(a => a.VideoLocal != null).ToLookup(a => a.EpisodeID, b => b.VideoLocal);
+                var vlUsers = vls.SelectMany(
+                    xref =>
                     {
-                        SVR_VideoLocal_User vlUser = null;
-                        if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
+                        var users = xref?.SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID));
+                        return users?.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ??
+                               Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
+                    }
+                ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID),
+                    b => b.VideoLocalUser);
+                var epUsers = eps.SelectMany(
+                        ep =>
                         {
-                            vlUser = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]
-                                .OrderByDescending(a => a.LastUpdated)
-                                .FirstOrDefault(a => a.WatchedDate != null);
+                            var users = RepoFactory.AnimeEpisode_User.GetByEpisodeID(ep.AnimeEpisodeID);
+                            return users.Select(a => (EpisodeID: ep.AniDB_EpisodeID, AnimeEpisode_User: a));
                         }
+                    ).Where(a => a.AnimeEpisode_User != null)
+                    .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
 
-                        var lastUpdated = vlUser?.LastUpdated;
+                foreach (var juser in RepoFactory.JMMUser.GetAll())
+                {
+                    var userRecord = GetOrCreateUserRecord(juser.JMMUserID);
 
-                        SVR_AnimeEpisode_User epUser = null;
-                        if (epUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
+                    var unwatchedCount = 0;
+                    var hiddenUnwatchedCount = 0;
+                    var watchedCount = 0;
+                    var watchedEpisodeCount = 0;
+                    DateTime? lastEpisodeUpdate = null;
+                    DateTime? watchedDate = null;
+
+                    var lck = new object();
+
+                    eps.AsParallel().Where(ep =>
+                        vls.Contains(ep.AniDB_EpisodeID) &&
+                        ep.EpisodeTypeEnum is EpisodeType.Episode or EpisodeType.Special).ForAll(
+                        ep =>
                         {
-                            epUser = epUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]
-                                .FirstOrDefault(a => a.WatchedDate != null);
-                        }
-
-                        if (vlUser?.WatchedDate == null && epUser?.WatchedDate == null)
-                        {
-                            if (ep.IsHidden)
-                                Interlocked.Increment(ref hiddenUnwatchedCount);
-                            else
-                                Interlocked.Increment(ref unwatchedCount);
-                            return;
-                        }
-
-                        lock (lck)
-                        {
-                            if (vlUser != null)
+                            SVR_VideoLocal_User vlUser = null;
+                            if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
                             {
-                                if (watchedDate == null || (vlUser.WatchedDate != null &&
-                                                            vlUser.WatchedDate.Value > watchedDate.Value))
+                                vlUser = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]
+                                    .OrderByDescending(a => a.LastUpdated)
+                                    .FirstOrDefault(a => a.WatchedDate != null);
+                            }
+
+                            var lastUpdated = vlUser?.LastUpdated;
+
+                            SVR_AnimeEpisode_User epUser = null;
+                            if (epUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
+                            {
+                                epUser = epUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]
+                                    .FirstOrDefault(a => a.WatchedDate != null);
+                            }
+
+                            if (vlUser?.WatchedDate == null && epUser?.WatchedDate == null)
+                            {
+                                if (ep.IsHidden)
+                                    Interlocked.Increment(ref hiddenUnwatchedCount);
+                                else
+                                    Interlocked.Increment(ref unwatchedCount);
+                                return;
+                            }
+
+                            lock (lck)
+                            {
+                                if (vlUser != null)
                                 {
-                                    watchedDate = vlUser.WatchedDate;
+                                    if (watchedDate == null || (vlUser.WatchedDate != null &&
+                                                                vlUser.WatchedDate.Value > watchedDate.Value))
+                                    {
+                                        watchedDate = vlUser.WatchedDate;
+                                    }
+
+                                    if (lastEpisodeUpdate == null || lastUpdated.Value > lastEpisodeUpdate.Value)
+                                    {
+                                        lastEpisodeUpdate = lastUpdated;
+                                    }
                                 }
 
-                                if (lastEpisodeUpdate == null || lastUpdated.Value > lastEpisodeUpdate.Value)
+                                if (epUser != null)
                                 {
-                                    lastEpisodeUpdate = lastUpdated;
+                                    if (watchedDate == null || (epUser.WatchedDate != null &&
+                                                                epUser.WatchedDate.Value > watchedDate.Value))
+                                    {
+                                        watchedDate = epUser.WatchedDate;
+                                    }
                                 }
                             }
 
-                            if (epUser != null)
-                            {
-                                if (watchedDate == null || (epUser.WatchedDate != null &&
-                                                            epUser.WatchedDate.Value > watchedDate.Value))
-                                {
-                                    watchedDate = epUser.WatchedDate;
-                                }
-                            }
-                        }
-
-                        Interlocked.Increment(ref watchedEpisodeCount);
-                        Interlocked.Add(ref watchedCount, vlUser?.WatchedCount ?? epUser.WatchedCount);
-                    });
-                userRecord.UnwatchedEpisodeCount = unwatchedCount;
-                userRecord.HiddenUnwatchedEpisodeCount = hiddenUnwatchedCount;
-                userRecord.WatchedEpisodeCount = watchedEpisodeCount;
-                userRecord.WatchedCount = watchedCount;
-                userRecord.WatchedDate = watchedDate;
-                userRecord.LastEpisodeUpdate = lastEpisodeUpdate;
-                RepoFactory.AnimeSeries_User.Save(userRecord);
+                            Interlocked.Increment(ref watchedEpisodeCount);
+                            Interlocked.Add(ref watchedCount, vlUser?.WatchedCount ?? epUser.WatchedCount);
+                        });
+                    userRecord.UnwatchedEpisodeCount = unwatchedCount;
+                    userRecord.HiddenUnwatchedEpisodeCount = hiddenUnwatchedCount;
+                    userRecord.WatchedEpisodeCount = watchedEpisodeCount;
+                    userRecord.WatchedCount = watchedCount;
+                    userRecord.WatchedDate = watchedDate;
+                    userRecord.LastEpisodeUpdate = lastEpisodeUpdate;
+                    RepoFactory.AnimeSeries_User.Save(userRecord);
+                }
             }
-        }
 
-        var ts = DateTime.Now - start;
-        logger.Trace($"Updated WATCHED stats for SERIES {name} in {ts.TotalMilliseconds}ms");
-        start = DateTime.Now;
+            var ts = DateTime.Now - start;
+            logger.Trace($"Updated WATCHED stats for SERIES {name} in {ts.TotalMilliseconds}ms");
+            start = DateTime.Now;
 
-        if (missingEpsStats)
-        {
-            var animeType = GetAnime()?.GetAnimeTypeEnum() ?? AnimeType.TVSeries;
-
-            MissingEpisodeCount = 0;
-            MissingEpisodeCountGroups = 0;
-            HiddenMissingEpisodeCount = 0;
-            HiddenMissingEpisodeCountGroups = 0;
-
-            // get all the group status records
-            var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AniDB_ID);
-
-            // find all the episodes for which the user has a file
-            // from this we can determine what their latest episode number is
-            // find out which groups the user is collecting
-
-            var latestLocalEpNumber = 0;
-            DateTime? lastEpAirDate = null;
-            var epReleasedList = new EpisodeList(animeType);
-            var epGroupReleasedList = new EpisodeList(animeType);
-            var daysofweekcounter = new Dictionary<DayOfWeek, int>();
-
-            var userReleaseGroups = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(
-                a =>
-                {
-                    var vls = a.GetVideoLocals();
-                    if (!vls.Any())
-                    {
-                        return Array.Empty<int>();
-                    }
-
-                    var aniFiles = vls.Select(b => b.GetAniDBFile()).Where(b => b != null).ToList();
-                    if (!aniFiles.Any())
-                    {
-                        return Array.Empty<int>();
-                    }
-
-                    return aniFiles.Select(b => b.GroupID);
-                }
-            ).ToList();
-
-            var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
-                    a.GetVideoLocals().Select(b => new { a.AniDB_EpisodeID, VideoLocal = b }))
-                .ToLookup(a => a.AniDB_EpisodeID, a => a.VideoLocal);
-
-            // This was always Episodes only. Maybe in the future, we'll have a reliable way to check specials.
-            eps.AsParallel().Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).ForAll(ep =>
+            if (missingEpsStats)
             {
-                var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
+                var animeType = GetAnime()?.GetAnimeTypeEnum() ?? AnimeType.TVSeries;
 
-                var aniEp = ep.AniDB_Episode;
-                var thisEpNum = aniEp.EpisodeNumber;
+                MissingEpisodeCount = 0;
+                MissingEpisodeCountGroups = 0;
+                HiddenMissingEpisodeCount = 0;
+                HiddenMissingEpisodeCountGroups = 0;
 
-                if (thisEpNum > latestLocalEpNumber && vids.Any())
-                {
-                    latestLocalEpNumber = thisEpNum;
-                }
+                // get all the group status records
+                var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AniDB_ID);
 
-                var airdate = ep.AniDB_Episode.GetAirDateAsDate();
+                // find all the episodes for which the user has a file
+                // from this we can determine what their latest episode number is
+                // find out which groups the user is collecting
 
-                // Only count episodes that have already aired
-                if (!aniEp.GetFutureDated())
-                {
-                    // Only convert if we have time info
-                    DateTime airdateLocal;
-                    // ignore the possible null on airdate, it's checked in GetFutureDated
-                    if (airdate!.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
+                var latestLocalEpNumber = 0;
+                DateTime? lastEpAirDate = null;
+                var epReleasedList = new EpisodeList(animeType);
+                var epGroupReleasedList = new EpisodeList(animeType);
+                var daysofweekcounter = new Dictionary<DayOfWeek, int>();
+
+                var userReleaseGroups = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(
+                    a =>
                     {
-                        airdateLocal = airdate.Value;
-                    }
-                    else
-                    {
-                        airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
-                        airdateLocal = TimeZoneInfo.ConvertTime(airdateLocal,
-                            TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"), TimeZoneInfo.Local);
-                    }
-
-                    lock (daysofweekcounter)
-                    {
-                        if (!daysofweekcounter.ContainsKey(airdateLocal.DayOfWeek))
+                        var vls = a.GetVideoLocals();
+                        if (!vls.Any())
                         {
-                            daysofweekcounter.Add(airdateLocal.DayOfWeek, 0);
+                            return Array.Empty<int>();
                         }
 
-                        daysofweekcounter[airdateLocal.DayOfWeek]++;
-                    }
+                        var aniFiles = vls.Select(b => b.GetAniDBFile()).Where(b => b != null).ToList();
+                        if (!aniFiles.Any())
+                        {
+                            return Array.Empty<int>();
+                        }
 
-                    if (lastEpAirDate == null || lastEpAirDate < airdate)
-                    {
-                        lastEpAirDate = airdate.Value;
+                        return aniFiles.Select(b => b.GroupID);
                     }
-                }
+                ).ToList();
 
-                // does this episode have a file released
-                // does this episode have a file released by the group the user is collecting
-                var epReleased = false;
-                var epReleasedGroup = false;
-                foreach (var gs in grpStatuses)
+                var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
+                        a.GetVideoLocals().Select(b => new
+                        {
+                            a.AniDB_EpisodeID, VideoLocal = b
+                        }))
+                    .ToLookup(a => a.AniDB_EpisodeID, a => a.VideoLocal);
+
+                // This was always Episodes only. Maybe in the future, we'll have a reliable way to check specials.
+                eps.AsParallel().Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).ForAll(ep =>
                 {
-                    // if it's complete, then assume the episode is included
-                    if (gs.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished)
+                    var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
+
+                    var aniEp = ep.AniDB_Episode;
+                    var thisEpNum = aniEp.EpisodeNumber;
+
+                    if (thisEpNum > latestLocalEpNumber && vids.Any())
                     {
+                        latestLocalEpNumber = thisEpNum;
+                    }
+
+                    var airdate = ep.AniDB_Episode.GetAirDateAsDate();
+
+                    // Only count episodes that have already aired
+                    if (!aniEp.GetFutureDated())
+                    {
+                        // Only convert if we have time info
+                        DateTime airdateLocal;
+                        // ignore the possible null on airdate, it's checked in GetFutureDated
+                        if (airdate!.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
+                        {
+                            airdateLocal = airdate.Value;
+                        }
+                        else
+                        {
+                            airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
+                            airdateLocal = TimeZoneInfo.ConvertTime(airdateLocal,
+                                TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"), TimeZoneInfo.Local);
+                        }
+
+                        lock (daysofweekcounter)
+                        {
+                            if (!daysofweekcounter.ContainsKey(airdateLocal.DayOfWeek))
+                            {
+                                daysofweekcounter.Add(airdateLocal.DayOfWeek, 0);
+                            }
+
+                            daysofweekcounter[airdateLocal.DayOfWeek]++;
+                        }
+
+                        if (lastEpAirDate == null || lastEpAirDate < airdate)
+                        {
+                            lastEpAirDate = airdate.Value;
+                        }
+                    }
+
+                    // does this episode have a file released
+                    // does this episode have a file released by the group the user is collecting
+                    var epReleased = false;
+                    var epReleasedGroup = false;
+                    foreach (var gs in grpStatuses)
+                    {
+                        // if it's complete, then assume the episode is included
+                        if (gs.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished)
+                        {
+                            epReleased = true;
+                            if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
+                            continue;
+                        }
+
+                        if (!gs.HasGroupReleasedEpisode(thisEpNum)) continue;
+
                         epReleased = true;
                         if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
-                        continue;
                     }
 
-                    if (!gs.HasGroupReleasedEpisode(thisEpNum)) continue;
-
-                    epReleased = true;
-                    if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
-                }
-
-                try
-                {
-                    lock (epReleasedList)
+                    try
                     {
-                        epReleasedList.Add(ep, !epReleased || vids.Any());
-                    }
+                        lock (epReleasedList)
+                        {
+                            epReleasedList.Add(ep, !epReleased || vids.Any());
+                        }
 
-                    lock (epGroupReleasedList)
+                        lock (epGroupReleasedList)
+                        {
+                            epGroupReleasedList.Add(ep, !epReleasedGroup || vids.Any());
+                        }
+                    }
+                    catch (Exception e)
                     {
-                        epGroupReleasedList.Add(ep, !epReleasedGroup || vids.Any());
+                        logger.Trace($"Error updating release group stats {e}");
+                        throw;
+                    }
+                });
+
+                foreach (var eplst in epReleasedList)
+                {
+                    if (!eplst.Available)
+                    {
+                        if (eplst.Hidden)
+                            HiddenMissingEpisodeCount++;
+                        else
+                            MissingEpisodeCount++;
                     }
                 }
-                catch (Exception e)
-                {
-                    logger.Trace($"Error updating release group stats {e}");
-                    throw;
-                }
-            });
 
-            foreach (var eplst in epReleasedList)
-            {
-                if (!eplst.Available)
+                foreach (var eplst in epGroupReleasedList)
                 {
-                    if (eplst.Hidden)
-                        HiddenMissingEpisodeCount++;
-                    else
-                        MissingEpisodeCount++;
+                    if (!eplst.Available)
+                    {
+                        if (eplst.Hidden)
+                            HiddenMissingEpisodeCountGroups++;
+                        else
+                            MissingEpisodeCountGroups++;
+                    }
                 }
+
+                LatestLocalEpisodeNumber = latestLocalEpNumber;
+                if (daysofweekcounter.Count > 0)
+                {
+                    AirsOn = daysofweekcounter.OrderByDescending(a => a.Value).FirstOrDefault().Key;
+                }
+
+                LatestEpisodeAirDate = lastEpAirDate;
             }
 
-            foreach (var eplst in epGroupReleasedList)
-            {
-                if (!eplst.Available)
-                {
-                    if (eplst.Hidden)
-                        HiddenMissingEpisodeCountGroups++;
-                    else
-                        MissingEpisodeCountGroups++;
-                }
-            }
+            ts = DateTime.Now - start;
+            logger.Trace($"Updated MISSING EPS stats for SERIES {name} in {ts.TotalMilliseconds}ms");
+            start = DateTime.Now;
 
-            LatestLocalEpisodeNumber = latestLocalEpNumber;
-            if (daysofweekcounter.Count > 0)
-            {
-                AirsOn = daysofweekcounter.OrderByDescending(a => a.Value).FirstOrDefault().Key;
-            }
+            // Skip group filters if we are doing group stats, as the group stats will regenerate group filters
+            RepoFactory.AnimeSeries.Save(this, false, false);
+            ts = DateTime.Now - start;
+            logger.Trace($"Saved stats for SERIES {name} in {ts.TotalMilliseconds}ms");
 
-            LatestEpisodeAirDate = lastEpAirDate;
+
+            ts = DateTime.Now - initialStart;
+            logger.Info($"Finished updating stats for SERIES {name} in {ts.TotalMilliseconds}ms");
         }
-
-        ts = DateTime.Now - start;
-        logger.Trace($"Updated MISSING EPS stats for SERIES {name} in {ts.TotalMilliseconds}ms");
-        start = DateTime.Now;
-
-        // Skip group filters if we are doing group stats, as the group stats will regenerate group filters
-        RepoFactory.AnimeSeries.Save(this, false, false);
-        ts = DateTime.Now - start;
-        logger.Trace($"Saved stats for SERIES {name} in {ts.TotalMilliseconds}ms");
-
-
-        ts = DateTime.Now - initialStart;
-        logger.Info($"Finished updating stats for SERIES {name} in {ts.TotalMilliseconds}ms");
     }
 
     public static Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff> SearchSeriesByStaff(string staffname,

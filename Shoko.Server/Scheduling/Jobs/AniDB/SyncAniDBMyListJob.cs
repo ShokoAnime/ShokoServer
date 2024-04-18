@@ -233,7 +233,7 @@ public class SyncAniDBMyListJob : BaseJob
         {
             a.Hash = vl.Hash;
             a.Watched = updateDate != null;
-            a.WatchedDateAsSecs = Commons.Utils.AniDB.GetAniDBDateAsSeconds(updateDate);
+            a.WatchedDate = updateDate;
             a.UpdateSeriesStats = false;
         });
 

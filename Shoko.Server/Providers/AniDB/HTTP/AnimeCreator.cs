@@ -128,7 +128,7 @@ public class AnimeCreator
     private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
     {
         var isUpdated = false;
-        var isNew = anime.AnimeID == 0;
+        var isNew = anime.AnimeID == 0 || anime.AniDB_AnimeID == 0;
         var description = animeInfo.Description ?? string.Empty;
         var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
         if (anime.AirDate != animeInfo.AirDate)
@@ -268,6 +268,10 @@ public class AnimeCreator
             anime.AllTags = string.Empty;
             anime.AllTitles = string.Empty;
             anime.ImageEnabled = 1;
+        }
+
+        if (isNew || isUpdated)
+        {
 #pragma warning disable CS0618
             anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
 #pragma warning restore CS0618

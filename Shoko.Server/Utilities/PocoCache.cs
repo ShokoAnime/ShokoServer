@@ -68,7 +68,7 @@ public class PocoCache<T, S> where S : class
 
     public S Get(T key)
     {
-        return _dict.TryGetValue(key, out var value) ? value : null;
+        return _dict.GetValueOrDefault(key);
     }
 
     public void Update(S obj)
