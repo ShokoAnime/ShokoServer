@@ -17,59 +17,46 @@ using Shoko.Server.Extensions;
 
 namespace Shoko.Server;
 
-public class RenameFileHelper
+public static class RenameFileHelper
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     public static IDictionary<string, (Type type, string description)> Renamers { get; } =
         new Dictionary<string, (Type type, string description)>();
 
-    private static IRenameScript _getRenameScript(string name)
+    private static RenameScriptImpl GetRenameScript(string name)
     {
         var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
-        if (script == null)
-        {
-            return null;
-        }
-
-        return new RenameScriptImpl { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
+        return script == null ? null : new RenameScriptImpl { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
     }
 
-    private static IRenameScript _getRenameScriptWithFallback(string name)
+    private static RenameScriptImpl GetRenameScriptWithFallback(string name)
     {
         var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
-        if (script == null)
-        {
-            return null;
-        }
-
-        return new RenameScriptImpl { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
+        return script == null ? null : new RenameScriptImpl { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
     }
 
     public static string GetFilename(SVR_VideoLocal_Place place, string scriptName)
     {
         var result = Path.GetFileName(place.FilePath);
-        var script = _getRenameScript(scriptName);
+        var script = GetRenameScript(scriptName);
         var videoLocal = place.VideoLocal ??
-            throw new NullReferenceException(nameof(place.VideoLocal));
+            throw new ArgumentNullException(nameof(place.VideoLocal));
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.GetEpisode())
-            .OfType<SVR_AniDB_Episode>()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnime())
             .ToList();
-        var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var episodeInfo = episodes.ToList();
+        var animeInfo = series.ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnimeSeries())
-            .OfType<SVR_AnimeSeries>()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
-            .Cast<IGroup>()
             .ToList();
         var args = new RenameEventArgs(script, place, videoLocal, episodeInfo, animeInfo, groupInfo);
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
@@ -109,27 +96,24 @@ public class RenameFileHelper
 
     public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
     {
-        var script = _getRenameScriptWithFallback(scriptName);
+        var script = GetRenameScriptWithFallback(scriptName);
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.GetEpisode())
-            .OfType<SVR_AniDB_Episode>()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnime())
             .ToList();
-        var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var episodeInfo = episodes.ToList();
+        var animeInfo = series.ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnimeSeries())
-            .OfType<SVR_AnimeSeries>()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
-            .Cast<IGroup>()
             .ToList();
         var availableFolders = RepoFactory.ImportFolder.GetAll()
             .Cast<IImportFolder>()
@@ -246,7 +230,7 @@ public class RenameFileHelper
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? 0 : int.MaxValue)
-            .ThenBy(a => settings.Plugins.RenamerPriorities.TryGetValue(a.Key, out var priority) ? priority : int.MaxValue)
+            .ThenBy(a => settings.Plugins.RenamerPriorities.GetValueOrDefault(a.Key, int.MaxValue))
             .ThenBy(a => a.Key, StringComparer.InvariantCulture)
             .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, a.Value.type))
             .ToList();

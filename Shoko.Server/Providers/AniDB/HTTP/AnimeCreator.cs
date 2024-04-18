@@ -742,10 +742,21 @@ public class AnimeCreator
 
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
         var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
-        foreach (var rawchar in chars)
+        var charLookup = chars.ToLookup(a => (a.AnimeID, a.CharacterID));
+
+        if (charLookup.Any(a => a.Count() > 1))
+        {
+            foreach (var groupings in charLookup.Where(a => a.Count() > 1))
+            {
+                _logger.LogWarning("Anime had a duplicate character listing for CharacterID: {CharID}", groupings.Key.CharacterID);
+            }
+        }
+
+        foreach (var grouping in charLookup)
         {
             try
             {
+                var rawchar = grouping.FirstOrDefault();
                 var chr = RepoFactory.AniDB_Character.GetByCharID(rawchar.CharacterID) ??
                           new AniDB_Character();
 
@@ -809,24 +820,26 @@ public class AnimeCreator
                 animeChar.CharType = rawchar.CharacterType;
                 xrefsToSave.Add(animeChar);
 
-                foreach (var rawSeiyuu in rawchar.Seiyuus)
+                var seiyuuLookup = rawchar.Seiyuus.ToLookup(a => (rawchar.CharacterID, a.SeiyuuID));
+                if (seiyuuLookup.Any(a => a.Count() > 1))
+                {
+                    foreach (var groupings in seiyuuLookup.Where(a => a.Count() > 1))
+                    {
+                        _logger.LogWarning("Anime had a duplicate seiyuu listing for SeiyuuID: {SeiyuuID} and CharacterID: {CharID}", groupings.Key.SeiyuuID, groupings.Key.CharacterID);
+                    }
+                }
+
+                foreach (var seiyuuGrouping in seiyuuLookup)
                 {
                     try
                     {
+                        var rawSeiyuu = seiyuuGrouping.FirstOrDefault();
                         // save the link between character and seiyuu
-                        var acc = RepoFactory.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(rawchar.CharacterID, rawSeiyuu.SeiyuuID);
-                        if (acc == null)
-                        {
-                            acc = new AniDB_Character_Seiyuu { CharID = chr.CharID, SeiyuuID = rawSeiyuu.SeiyuuID };
-                            seiyuuXrefToSave.Add(acc);
-                        }
+                        // this should always be null
+                        seiyuuXrefToSave.Add(new AniDB_Character_Seiyuu { CharID = chr.CharID, SeiyuuID = rawSeiyuu.SeiyuuID });
 
                         // save the seiyuu
-                        var seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(rawSeiyuu.SeiyuuID);
-                        if (seiyuu == null)
-                        {
-                            seiyuu = new AniDB_Seiyuu();
-                        }
+                        var seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(rawSeiyuu.SeiyuuID) ?? new AniDB_Seiyuu();
 
                         seiyuu.PicName = rawSeiyuu.PicName;
                         seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
@@ -856,9 +869,9 @@ public class AnimeCreator
                         }
 
                         var role = rawchar.CharacterType;
-                        if (CrossRef_Anime_StaffRepository.Roles.ContainsKey(role))
+                        if (CrossRef_Anime_StaffRepository.Roles.TryGetValue(role, out var role1))
                         {
-                            role = CrossRef_Anime_StaffRepository.Roles[role].ToString().Replace("_", " ");
+                            role = role1.ToString().Replace("_", " ");
                         }
 
                         xrefAnimeStaff = new CrossRef_Anime_Staff
@@ -902,8 +915,7 @@ public class AnimeCreator
         if (staffList == null) return;
 
         // delete all the existing cross references just in case one has been removed
-        var animeStaff =
-            RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID);
+        var animeStaff = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID);
 
         try
         {
@@ -916,24 +928,30 @@ public class AnimeCreator
 
         var animeStaffToSave = new List<AniDB_Anime_Staff>();
         var xRefToSave = new List<CrossRef_Anime_Staff>();
-        foreach (var rawStaff in staffList)
+
+        var staffLookup = staffList.ToLookup(a => (a.AnimeID, a.CreatorID, a.CreatorType));
+        if (staffLookup.Any(a => a.Count() > 1))
+        {
+            foreach (var groupings in staffLookup.Where(a => a.Count() > 1))
+            {
+                _logger.LogWarning("Anime had a duplicate staff listing for CreatorID: {CreatorID} and CreatorType: {CreatorType}", groupings.Key.CreatorID, groupings.Key.CreatorType);
+            }
+        }
+
+        foreach (var grouping in staffLookup)
         {
             try
             {
+                var rawStaff = grouping.FirstOrDefault();
                 // save the link between character and seiyuu
-                var stf = RepoFactory.AniDB_Anime_Staff.GetByAnimeIDAndCreatorID(rawStaff.AnimeID, rawStaff.CreatorID);
-                if (stf == null)
+                animeStaffToSave.Add(new AniDB_Anime_Staff
                 {
-                    stf = new AniDB_Anime_Staff
-                    {
-                        AnimeID = rawStaff.AnimeID,
-                        CreatorID = rawStaff.CreatorID,
-                        CreatorType = rawStaff.CreatorType
-                    };
-                    animeStaffToSave.Add(stf);
-                }
+                    AnimeID = rawStaff.AnimeID,
+                    CreatorID = rawStaff.CreatorID,
+                    CreatorType = rawStaff.CreatorType
+                });
 
-                var staff = RepoFactory.AnimeStaff.GetByAniDBID(stf.CreatorID);
+                var staff = RepoFactory.AnimeStaff.GetByAniDBID(rawStaff.CreatorID);
                 if (staff == null)
                 {
                     staff = new AnimeStaff
@@ -966,9 +984,9 @@ public class AnimeCreator
                 }
 
                 var role = rawStaff.CreatorType;
-                if (CrossRef_Anime_StaffRepository.Roles.ContainsKey(role))
+                if (CrossRef_Anime_StaffRepository.Roles.TryGetValue(role, out var role1))
                 {
-                    role = CrossRef_Anime_StaffRepository.Roles[role].ToString().Replace("_", " ");
+                    role = role1.ToString().Replace("_", " ");
                 }
 
                 xrefAnimeStaff = new CrossRef_Anime_Staff
