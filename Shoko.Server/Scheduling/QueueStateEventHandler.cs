@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Quartz;
+using Quartz.Spi;
 
 namespace Shoko.Server.Scheduling;
 
@@ -54,23 +55,26 @@ public class QueueStateEventHandler
         });
     }
 
-    public void OnJobExecuting(IJobDetail jobDetail, QueueStateContext queueContext)
+    public void OnJobExecuting(IEnumerable<(IOperableTrigger trigger, IJobDetail jobDetail)> triggerDetails, QueueStateContext queueContext)
     {
-        var job = _jobFactory.CreateJob(jobDetail);
+        var addedItems = triggerDetails.Select(detail =>
+        {
+            var job = _jobFactory.CreateJob(detail.jobDetail);
+            return new QueueItem()
+            {
+                Key = detail.jobDetail.Key.ToString(),
+                JobType = job?.TypeName ?? detail.jobDetail.JobType.Type.Name,
+                Title = job?.Title,
+                Details = job?.Details,
+                Running = true,
+                StartTime = detail.trigger.StartTimeUtc.LocalDateTime
+            };
+        }).ToList();
+        
 
         ExecutingJobsChanged?.Invoke(null, new QueueChangedEventArgs
         {
-            AddedItems = new List<QueueItem>
-            {
-                new()
-                {
-                    Key = jobDetail.Key.ToString(),
-                    JobType = job?.TypeName ?? jobDetail.JobType.Type.Name,
-                    Title = job?.Title,
-                    Details = job?.Details,
-                    Running = true
-                }
-            },
+            AddedItems = addedItems,
             WaitingJobsCount = queueContext.WaitingTriggersCount,
             BlockedJobsCount = queueContext.BlockedTriggersCount,
             TotalJobsCount = queueContext.TotalTriggersCount,

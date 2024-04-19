@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -79,13 +80,13 @@ public class Startup
         }
     }
 
-    public void Start()
+    public async Task Start()
     {
         try
         {
             _logger.LogInformation("Initializing Web Hosts...");
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingHosts;
-            if (!StartWebHost(_settingsProvider)) return;
+            if (!await StartWebHost(_settingsProvider)) return;
 
             var shokoServer = Utils.ServiceContainer.GetRequiredService<ShokoServer>();
             Utils.ShokoServer = shokoServer;
@@ -104,7 +105,7 @@ public class Startup
             _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
     }
 
-    private bool StartWebHost(ISettingsProvider settingsProvider)
+    private async Task<bool> StartWebHost(ISettingsProvider settingsProvider)
     {
         try
         {
@@ -113,13 +114,13 @@ public class Startup
             {
                 ServiceProvider = Utils.ServiceContainer
             });
-            _webHost.Start();
+            await _webHost.StartAsync();
             return true;
         }
         catch (Exception e)
         {
             Utils.ShowErrorMessage(e, "Unable to start hosting. Check the logs");
-            StopHost();
+            await StopHost();
             ShokoEventHandler.Instance.OnShutdown();
         }
 
@@ -157,14 +158,15 @@ public class Startup
         return result;
     }
 
-    public void WaitForShutdown()
+    public Task WaitForShutdown()
     {
-        _webHost?.WaitForShutdown();
+        return _webHost?.WaitForShutdownAsync();
     }
 
-    private void StopHost()
+    private async Task StopHost()
     {
-        _webHost?.Dispose();
+        if (_webHost is IAsyncDisposable disp) await disp.DisposeAsync();
+        else _webHost?.Dispose();
         _webHost = null;
     }
 }

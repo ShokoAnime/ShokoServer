@@ -56,7 +56,7 @@ public partial class App
             Utils.SettingsProvider = settingsProvider;
             var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
             startup.AboutToStart += (_, _) => AddEventHandlers();
-            startup.Start();
+            startup.Start().GetAwaiter().GetResult();
         }
         catch (Exception exception)
         {

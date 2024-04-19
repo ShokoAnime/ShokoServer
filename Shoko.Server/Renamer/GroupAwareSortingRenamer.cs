@@ -65,10 +65,10 @@ public class GroupAwareRenamer : IRenamer
         var destFolder = series.Restricted switch
         {
             true => args.AvailableFolders.FirstOrDefault(a =>
-                a.Location.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) &&
+                a.Path.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) &&
                 ValidDestinationFolder(a)) ?? args.AvailableFolders.FirstOrDefault(ValidDestinationFolder),
             false => args.AvailableFolders.FirstOrDefault(a =>
-                !a.Location.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) &&
+                !a.Path.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) &&
                 ValidDestinationFolder(a))
         };
 

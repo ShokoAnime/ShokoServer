@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -102,24 +103,26 @@ public static class RenameFileHelper
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.GetEpisode())
+            .Where(a => a != null)
             .ToList();
-        var series = xrefs
+        var anime = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnime())
+            .Where(a => a != null)
             .ToList();
-        var episodeInfo = episodes.ToList();
-        var animeInfo = series.ToList();
-        var groupInfo = xrefs
+        var groups = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnimeSeries())
+            .Where(a => a != null)
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
+            .Where(a => a != null)
             .ToList();
         var availableFolders = RepoFactory.ImportFolder.GetAll()
             .Cast<IImportFolder>()
             .Where(a => a.DropFolderType != DropFolderType.Excluded)
             .ToList();
-        var args = new MoveEventArgs(script, availableFolders, place, videoLocal, episodeInfo, animeInfo, groupInfo);
+        var args = new MoveEventArgs(script, availableFolders, place, videoLocal, episodes, anime, groups);
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
         {
             try
@@ -145,7 +148,7 @@ public static class RenameFileHelper
 
                 destPath = RemoveFilename(place.FilePath, destPath);
 
-                var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Location);
+                var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Path);
                 if (importFolder == null)
                 {
                     Logger.Error(
@@ -226,7 +229,7 @@ public static class RenameFileHelper
         }
     }
 
-    public static IList<IRenamer> GetPluginRenamersSorted(string renamerName)
+    public static IList<IRenamer> GetPluginRenamersSorted([CanBeNull] string renamerName)
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? 0 : int.MaxValue)
@@ -236,8 +239,7 @@ public static class RenameFileHelper
             .ToList();
     }
 
-    private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers(
-        string renamerName)
+    private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers([CanBeNull] string renamerName)
     {
         var settings = Utils.SettingsProvider.GetSettings();
         if (string.IsNullOrEmpty(renamerName)) return Renamers;

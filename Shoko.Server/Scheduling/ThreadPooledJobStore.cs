@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -17,18 +19,25 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling;
 
+using JobState = (int WaitingCount, int BlockedCount, QueueItem[] WaitingItems, QueueItem[] ExecutingItems);
+
 public class ThreadPooledJobStore : JobStoreTX
 {
+    private static DateTimeOffset NoLaterThan => DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(30));
     private readonly ILogger<ThreadPooledJobStore> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly JobFactory _jobFactory;
-    private ITypeLoadHelper _typeLoadHelper;
     private readonly Dictionary<JobKey, (IJobDetail Job, DateTime StartTime)> _executingJobs = new();
     private readonly IAcquisitionFilter[] _acquisitionFilters;
+    private ITypeLoadHelper _typeLoadHelper;
     private Dictionary<Type, int> _typeConcurrencyCache;
     private Dictionary<string, Type[]> _concurrencyGroupCache;
     private int _threadPoolSize;
+    private DateTimeOffset NoEarlierThan => MisfireTime;
+    private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;
+
+#region Init
 
     public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger, ISettingsProvider settingsProvider, IEnumerable<IAcquisitionFilter> acquisitionFilters,
         QueueStateEventHandler queueStateEventHandler, JobFactory jobFactory)
@@ -68,7 +77,7 @@ public class ThreadPooledJobStore : JobStoreTX
             {
                 if (_concurrencyGroupCache.TryGetValue(disallowConcurrencyGroupAttribute.Group, out var groupTypes))
                     groupTypes = groupTypes.Append(type).Distinct().ToArray();
-                else groupTypes = new[] { type };
+                else groupTypes = [type];
                 _concurrencyGroupCache[disallowConcurrencyGroupAttribute.Group] = groupTypes;
             }
         }
@@ -95,53 +104,9 @@ public class ThreadPooledJobStore : JobStoreTX
     {
         SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
     }
+#endregion
 
-    protected override async ValueTask StoreTrigger(ConnectionAndTransactionHolder conn, IOperableTrigger newTrigger, IJobDetail job, bool replaceExisting, string state, bool forceState,
-        bool recovering, CancellationToken cancellationToken = new CancellationToken())
-    {
-        // most of this is pulled from the base. Some fat is trimmed out, as we handle blocking ourselves
-        var existingTrigger = await TriggerExists(conn, newTrigger.Key, cancellationToken).ConfigureAwait(false);
-        if (existingTrigger && !replaceExisting) throw new ObjectAlreadyExistsException(newTrigger);
-
-        try
-        {
-            if (!forceState)
-            {
-                var shouldBePaused = await Delegate.IsTriggerGroupPaused(conn, newTrigger.Key.Group, cancellationToken).ConfigureAwait(false);
-
-                if (!shouldBePaused)
-                {
-                    shouldBePaused = await Delegate.IsTriggerGroupPaused(conn, AllGroupsPaused, cancellationToken).ConfigureAwait(false);
-                    if (shouldBePaused) await Delegate.InsertPausedTriggerGroup(conn, newTrigger.Key.Group, cancellationToken).ConfigureAwait(false);
-                }
-
-                if (shouldBePaused && (state.Equals(StateWaiting) || state.Equals(StateAcquired))) state = StatePaused;
-            }
-
-            job ??= await RetrieveJob(conn, newTrigger.JobKey, cancellationToken).ConfigureAwait(false);
-            if (job == null) throw new JobPersistenceException($"The job ({newTrigger.JobKey}) referenced by the trigger does not exist.");
-
-            if (existingTrigger) await Delegate.UpdateTrigger(conn, newTrigger, state, job, cancellationToken).ConfigureAwait(false);
-            else await Delegate.InsertTrigger(conn, newTrigger, state, job, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception e)
-        {
-            var message = $"Couldn't store trigger '{newTrigger.Key}' for '{newTrigger.JobKey}' job: {e.Message}";
-            throw new JobPersistenceException(message, e);
-        }
-
-        if (!existingTrigger)
-        {
-            try
-            {
-                JobStoringQueueEvents(job, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "An error occurred while firing Job Added events");
-            }
-        }
-    }
+#region Job Acquisition
 
     protected override async ValueTask<IReadOnlyCollection<IOperableTrigger>> AcquireNextTrigger(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
             int maxCount, TimeSpan timeWindow, CancellationToken cancellationToken = default)
@@ -295,6 +260,162 @@ public class ThreadPooledJobStore : JobStoreTX
             .ToDictionary(a => a.Key, a => a.Select(b => b.Name).ToArray());
     }
 
+#endregion
+
+#region Overrides
+    public override async ValueTask StoreJobAndTrigger(IJobDetail newJob, IOperableTrigger newTrigger, CancellationToken cancellationToken = new CancellationToken())
+    {
+        // need to check for existence before saving
+        var exists = false;
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
+        {
+            exists = await JobExists(conn, newJob.Key, cancellationToken);
+        }, cancellationToken: cancellationToken);
+
+        await base.StoreJobAndTrigger(newJob, newTrigger, cancellationToken);
+
+        if (exists) return;
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
+        {
+            await OnJobStoring(conn, newJob, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    public override async ValueTask<object> StoreTrigger(IOperableTrigger newTrigger, bool replaceExisting, CancellationToken cancellationToken = new CancellationToken())
+    {
+        // need to check for existence before saving
+        var exists = false;
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
+        {
+            exists = await TriggerExists(conn, newTrigger.Key, cancellationToken);
+        }, cancellationToken: cancellationToken);
+
+        var result = await base.StoreTrigger(newTrigger, replaceExisting, cancellationToken).ConfigureAwait(false);
+
+        if (exists) return result;
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
+        {
+            var job = await RetrieveJob(conn, newTrigger.JobKey, cancellationToken);
+            await OnJobStoring(conn, job, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        return result;
+    }
+
+    public override async ValueTask<object> StoreJobsAndTriggers(IReadOnlyDictionary<IJobDetail, IReadOnlyCollection<ITrigger>> triggersAndJobs, bool replace, CancellationToken cancellationToken = new CancellationToken())
+    {
+        // need to check for existence before saving
+        var jobs = new List<IJobDetail>(triggersAndJobs.Count);
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
+        {
+            foreach (var triggersAndJob in triggersAndJobs)
+            {
+                if (await JobExists(conn, triggersAndJob.Key.Key, cancellationToken)) continue;
+                jobs.Add(triggersAndJob.Key);
+            }
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var result = await base.StoreJobsAndTriggers(triggersAndJobs, replace, cancellationToken);
+
+        await ExecuteInReadLock(LockTriggerAccess, async conn =>
+        {
+            await OnJobsStoring(conn, jobs, cancellationToken);
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    protected override async ValueTask StoreTrigger(ConnectionAndTransactionHolder conn, IOperableTrigger newTrigger, IJobDetail job, bool replaceExisting, string state, bool forceState,
+        bool recovering, CancellationToken cancellationToken = new CancellationToken())
+    {
+        // most of this is pulled from the base. Some fat is trimmed out, as we handle blocking ourselves
+        var existingTrigger = await TriggerExists(conn, newTrigger.Key, cancellationToken).ConfigureAwait(false);
+        if (existingTrigger && !replaceExisting) throw new ObjectAlreadyExistsException(newTrigger);
+
+        try
+        {
+            if (!forceState)
+            {
+                var shouldBePaused = await Delegate.IsTriggerGroupPaused(conn, newTrigger.Key.Group, cancellationToken).ConfigureAwait(false);
+
+                if (!shouldBePaused)
+                {
+                    shouldBePaused = await Delegate.IsTriggerGroupPaused(conn, AllGroupsPaused, cancellationToken).ConfigureAwait(false);
+                    if (shouldBePaused) await Delegate.InsertPausedTriggerGroup(conn, newTrigger.Key.Group, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (shouldBePaused && (state.Equals(StateWaiting) || state.Equals(StateAcquired))) state = StatePaused;
+            }
+
+            job ??= await RetrieveJob(conn, newTrigger.JobKey, cancellationToken).ConfigureAwait(false);
+            if (job == null) throw new JobPersistenceException($"The job ({newTrigger.JobKey}) referenced by the trigger does not exist.");
+
+            if (existingTrigger) await Delegate.UpdateTrigger(conn, newTrigger, state, job, cancellationToken).ConfigureAwait(false);
+            else await Delegate.InsertTrigger(conn, newTrigger, state, job, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            var message = $"Couldn't store trigger '{newTrigger.Key}' for '{newTrigger.JobKey}' job: {e.Message}";
+            throw new JobPersistenceException(message, e);
+        }
+    }
+
+    public override async ValueTask<IReadOnlyCollection<TriggerFiredResult>> TriggersFired(
+        IReadOnlyCollection<IOperableTrigger> triggers,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await ExecuteInWriteLock(LockTriggerAccess,
+            async conn => (IReadOnlyCollection<TriggerFiredResult>)await TriggersFiredCallback(conn, triggers, cancellationToken),
+            async (conn, result) => await TriggersFiredValidator(conn, result, cancellationToken), cancellationToken: cancellationToken);
+        var triggerDetails = result.Select(a => (a.TriggerFiredBundle?.Trigger, a.TriggerFiredBundle?.JobDetail)).ToArray();
+        await ExecuteInReadLock(LockTriggerAccess, conn => OnJobExecuting(conn, triggerDetails, cancellationToken), cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    private async Task<List<TriggerFiredResult>> TriggersFiredCallback(ConnectionAndTransactionHolder conn, IReadOnlyCollection<IOperableTrigger> triggers,
+        CancellationToken cancellationToken)
+    {
+        List<TriggerFiredResult> results = new(triggers.Count);
+
+        foreach (var trigger in triggers)
+        {
+            TriggerFiredResult result;
+            try
+            {
+                var bundle = await TriggerFired(conn, trigger, cancellationToken).ConfigureAwait(false);
+                result = new TriggerFiredResult(bundle);
+            }
+            catch (JobPersistenceException jpe)
+            {
+                _logger.LogError(jpe, "Caught job persistence exception: {ExceptionMessage}", jpe.Message);
+                result = new TriggerFiredResult(jpe);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Caught exception: {ExceptionMessage}", ex.Message);
+                result = new TriggerFiredResult(ex);
+            }
+
+            results.Add(result);
+        }
+
+        return results;
+    }
+
+    private async Task<bool> TriggersFiredValidator(ConnectionAndTransactionHolder conn, IReadOnlyCollection<TriggerFiredResult> result,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var acquired = await Delegate.SelectInstancesFiredTriggerRecords(conn, InstanceId, cancellationToken).ConfigureAwait(false);
+            var executingTriggers = acquired.Where(ft => StateExecuting.Equals(ft.FireInstanceState)).Select(a => a.FireInstanceId).ToHashSet();
+            return result.Any(tr => tr.TriggerFiredBundle != null && executingTriggers.Contains(tr.TriggerFiredBundle.Trigger.FireInstanceId));
+        }
+        catch (Exception e)
+        {
+            throw new JobPersistenceException("error validating trigger acquisition", e);
+        }
+    }
+
     protected override async ValueTask<TriggerFiredBundle> TriggerFired(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, CancellationToken cancellationToken = default)
     {
         IJobDetail job;
@@ -356,15 +477,6 @@ public class ThreadPooledJobStore : JobStoreTX
         await StoreTrigger(conn, trigger, job, true, nextState, true, false, cancellationToken).ConfigureAwait(false);
 
         job.JobDataMap.ClearDirtyFlag();
-
-        try
-        {
-            JobFiringQueueEvents(trigger, job, cancellationToken);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "An error occurred while firing Job Executing events");
-        }
         
         return new TriggerFiredBundle(
             job,
@@ -377,8 +489,23 @@ public class ThreadPooledJobStore : JobStoreTX
             trigger.GetNextFireTimeUtc());
     }
 
-    private static DateTimeOffset NoLaterThan => DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(30));
-    private DateTimeOffset NoEarlierThan => MisfireTime;
+    public override async ValueTask<object> TriggeredJobComplete(
+        IOperableTrigger trigger,
+        IJobDetail jobDetail,
+        SchedulerInstruction triggerInstCode,
+        CancellationToken cancellationToken = default)
+    {
+        await RetryExecuteInWriteLock(
+            LockTriggerAccess,
+            conn => TriggeredJobComplete(conn, trigger, jobDetail, triggerInstCode, cancellationToken),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        await ExecuteInReadLock(LockTriggerAccess, conn => OnJobCompleted(conn, jobDetail, cancellationToken), cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        return null!;
+    }
+#endregion
+
+#region Queue State
 
     public ValueTask<int> GetWaitingTriggersCount()
     {
@@ -397,8 +524,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private ValueTask<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, NoLaterThan, NoEarlierThan, types,
-            cancellationToken);
+        return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, NoLaterThan, NoEarlierThan, types, cancellationToken);
     }
 
     public ValueTask<int> GetTotalWaitingTriggersCount()
@@ -421,42 +547,31 @@ public class ThreadPooledJobStore : JobStoreTX
         return Delegate.SelectJobTypeCounts(conn, _typeLoadHelper, NoLaterThan, cancellationToken);
     }
 
-    public ValueTask<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
+    public ValueTask<List<QueueItem>> GetJobSummary(int maxCount, int offset, bool excludeBlocked)
     {
-        return ExecuteInReadLock(LockTriggerAccess, async conn => await GetJobs(conn, maxCount, offset, excludeBlocked));
+        return ExecuteInReadLock(LockTriggerAccess, conn => GetJobSummary(conn, maxCount, offset, excludeBlocked));
     }
-
-    private async Task<List<QueueItem>> GetJobs(ConnectionAndTransactionHolder conn, int maxCount, int offset, bool excludeBlocked, CancellationToken cancellationToken = new CancellationToken())
+    
+    public async ValueTask<List<QueueItem>> GetJobSummary(ConnectionAndTransactionHolder conn, int maxCount, int offset, bool excludeBlocked)
     {
         var types = GetTypes();
 
         var result = new List<QueueItem>();
-        lock (_executingJobs)
-        {
-            if (offset < _executingJobs.Count)
-            {
-                result.AddRange(_executingJobs.Values.Skip(offset).Take(maxCount).Select(a =>
-                {
-                    var job = _jobFactory.CreateJob(a.Job);
-                    return new QueueItem
-                    {
-                        Key = a.Job.Key.ToString(),
-                        JobType = job?.TypeName,
-                        Title = job?.Title ?? job?.TypeName,
-                        Details = job?.Details ?? new(),
-                        Running = true,
-                        StartTime = a.StartTime
-                    };
-                }).OrderBy(a => a.StartTime));
-                offset = 0;
-            }
-            else offset -= _executingJobs.Count;
-        }
+        var executingItems = GetExecutingQueueItems();
 
+        // handle paging for the executing items
+        if (offset < executingItems.Length)
+        {
+            result.AddRange(executingItems.Skip(offset).Take(maxCount));
+            offset = 0;
+        }
+        else offset -= executingItems.Length;
+
+        // only had enough room for the executing items, so return
         if (maxCount - result.Count <= 0) return result;
 
-        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types, excludeBlocked,
-            cancellationToken);
+        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types, excludeBlocked);
+
         result.AddRange(jobs.Select(a =>
         {
             var job = _jobFactory.CreateJob(a.Item1);
@@ -469,22 +584,7 @@ public class ThreadPooledJobStore : JobStoreTX
                 Blocked = a.Item2
             };
         }));
-
         return result;
-    }
-
-    protected override async ValueTask TriggeredJobComplete(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, IJobDetail jobDetail, SchedulerInstruction triggerInstCode,
-        CancellationToken cancellationToken = new CancellationToken())
-    {
-        await base.TriggeredJobComplete(conn, trigger, jobDetail, triggerInstCode, cancellationToken);
-        try
-        {
-            JobCompletedQueueEvents(jobDetail, cancellationToken);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "An error occurred while firing Job Completed events");
-        }
     }
 
     private async Task<int> GetThreadPoolSize(CancellationToken cancellationToken)
@@ -497,68 +597,90 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private QueueItem[] GetExecutingQueueItems()
     {
-        QueueItem[] executing;
-        lock (_executingJobs)
-            executing = _executingJobs.Values.Select(a =>
+        // make a copy to reduce locking
+        (IJobDetail Job, DateTime StartTime)[] executingJobs;
+        lock (_executingJobs) executingJobs = _executingJobs.Values.ToArray();
+
+        var executing = executingJobs.Select(a =>
+        {
+            var detail = a.Job;
+            var job = _jobFactory.CreateJob(detail);
+            return new QueueItem
             {
-                var detail = a.Job;
-                var job = _jobFactory.CreateJob(detail);
-                return new QueueItem
-                {
-                    Key = detail.Key.ToString(),
-                    JobType = job?.TypeName ?? detail.JobType.Type.Name,
-                    Title = job?.Title ?? job?.TypeName,
-                    Details = job?.Details ?? new(),
-                    Running = true,
-                    StartTime = a.StartTime
-                };
-            }).OrderBy(a => a.StartTime).ToArray();
+                Key = detail.Key.ToString(),
+                JobType = job?.TypeName ?? detail.JobType.Type.Name,
+                Title = job?.Title ?? job?.TypeName,
+                Details = job?.Details ?? new(),
+                Running = true,
+                StartTime = a.StartTime
+            };
+        }).OrderBy(a => a.StartTime).ToArray();
         return executing;
     }
 
-    private static Func<IJobDetail, CancellationToken,Task> Throttle(Func<IJobDetail, CancellationToken, Task> func, TimeSpan throttle)
-    {   
-        var throttling = false;
-        return async (t, c) =>
+    private async ValueTask OnJobStoring(ConnectionAndTransactionHolder conn, IJobDetail job, CancellationToken cancellationToken)
+    {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
+
+        var (waitingTriggerCount, blockedTriggerCount, waiting, executing) = await GetJobState(conn, cancellationToken);
+
+        _ = Task.Run(() =>_queueStateEventHandler.OnJobAdded(job, new QueueStateContext
         {
-            if(throttling) return;
-            await func(t, c);
-            throttling = true;
-            await Task.Delay(throttle, c).ContinueWith(_ => throttling = false, c);
-        };
+            ThreadCount = _threadPoolSize,
+            WaitingTriggersCount = waitingTriggerCount,
+            BlockedTriggersCount = blockedTriggerCount,
+            TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
+            CurrentlyExecuting = executing,
+            Waiting = waiting
+        }), cancellationToken).ConfigureAwait(false);
+        stopwatch.Stop();
+        _logger.LogError("OnJobStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
-    private void JobStoringQueueEvents(IJobDetail newJob, CancellationToken cancellationToken)
+    private async ValueTask OnJobsStoring(ConnectionAndTransactionHolder conn, [ItemCanBeNull] IEnumerable<IJobDetail> jobs, CancellationToken cancellationToken)
     {
-        Task.Run(() => Throttle(OnJobStoring, TimeSpan.FromSeconds(1.5))(newJob, cancellationToken), cancellationToken).ConfigureAwait(false);
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
+
+        var (waitingTriggerCount, blockedTriggerCount, waiting, executing) = await GetJobState(conn, cancellationToken);
+
+        _ = Task.Run(() =>
+        {
+            foreach (var job in jobs)
+            {
+                _queueStateEventHandler.OnJobAdded(job, new QueueStateContext
+                {
+                    ThreadCount = _threadPoolSize,
+                    WaitingTriggersCount = waitingTriggerCount,
+                    BlockedTriggersCount = blockedTriggerCount,
+                    TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
+                    CurrentlyExecuting = executing,
+                    Waiting = waiting
+                });
+            }
+        }, cancellationToken).ConfigureAwait(false);
+        stopwatch.Stop();
+        _logger.LogError("OnJobsStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
-    private async Task OnJobStoring(IJobDetail job, CancellationToken cancellationToken)
+    private async ValueTask OnJobExecuting(ConnectionAndTransactionHolder conn, (IOperableTrigger trigger, IJobDetail jobDetail)[] triggerDetails, CancellationToken cancellationToken)
     {
-        await ExecuteInReadLock(LockTriggerAccess, async conn =>
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        foreach (var detail in triggerDetails)
         {
-            var types = GetTypes();
-            if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-            var executing = GetExecutingQueueItems();
-            int waitingTriggerCount;
-            int blockedTriggerCount;
-            QueueItem[] waiting;
+            lock (_executingJobs) _executingJobs[detail.jobDetail.Key] = (detail.jobDetail, detail.trigger.StartTimeUtc.LocalDateTime);
+        }
+        if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
 
-            try
-            {
-                waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
-                blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
-                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false, cancellationToken)).ToArray();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error getting job states for cache update");
-                waitingTriggerCount = -1;
-                blockedTriggerCount = -1;
-                waiting = Array.Empty<QueueItem>();
-            }
+        var (waitingTriggerCount, blockedTriggerCount, waiting, executing) = await GetJobState(conn, cancellationToken);
 
-            _queueStateEventHandler.OnJobAdded(job, new QueueStateContext
+        _ = Task.Run(() =>
+            _queueStateEventHandler.OnJobExecuting(triggerDetails, new QueueStateContext
             {
                 ThreadCount = _threadPoolSize,
                 WaitingTriggersCount = waitingTriggerCount,
@@ -566,86 +688,20 @@ public class ThreadPooledJobStore : JobStoreTX
                 TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
                 CurrentlyExecuting = executing,
                 Waiting = waiting
-            });
-        }, cancellationToken: cancellationToken);
+            }), cancellationToken).ConfigureAwait(false);
+        stopwatch.Stop();
+        _logger.LogError("OnJobExecuting took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
-    private void JobFiringQueueEvents(IOperableTrigger trigger, IJobDetail jobDetail,
-        CancellationToken cancellationToken)
+    private async ValueTask OnJobCompleted(ConnectionAndTransactionHolder conn, IJobDetail jobDetail, CancellationToken cancellationToken)
     {
-        lock (_executingJobs) _executingJobs[jobDetail.Key] = (jobDetail, trigger.StartTimeUtc.LocalDateTime);
-        Task.Run(() => Throttle(OnJobExecuting, TimeSpan.FromSeconds(1.5))(jobDetail, cancellationToken), cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task OnJobExecuting(IJobDetail jobDetail, CancellationToken cancellationToken)
-    {
-        await ExecuteInReadLock(LockTriggerAccess, async conn =>
-        {
-            var types = GetTypes();
-            var executing = GetExecutingQueueItems();
-            if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-            int waitingTriggerCount;
-            int blockedTriggerCount;
-            QueueItem[] waiting;
-
-            try
-            {
-                waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
-                blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
-                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false, cancellationToken)).ToArray();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error getting job states for cache update");
-                waitingTriggerCount = -1;
-                blockedTriggerCount = -1;
-                waiting = Array.Empty<QueueItem>();
-            }
-
-            _queueStateEventHandler.OnJobExecuting(jobDetail, new QueueStateContext
-            {
-                ThreadCount = _threadPoolSize,
-                WaitingTriggersCount = waitingTriggerCount,
-                BlockedTriggersCount = blockedTriggerCount,
-                TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
-                CurrentlyExecuting = executing,
-                Waiting = waiting
-            });
-        }, cancellationToken: cancellationToken);
-    }
-
-    private void JobCompletedQueueEvents(IJobDetail jobDetail, CancellationToken cancellationToken)
-    {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
         lock (_executingJobs) _executingJobs.Remove(jobDetail.Key);
-        Task.Run(() => Throttle(OnJobCompleted, TimeSpan.FromSeconds(1.5))(jobDetail, cancellationToken), cancellationToken).ConfigureAwait(false);
-    }
+        if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
+        var (waitingTriggerCount, blockedTriggerCount, waiting, executing) = await GetJobState(conn, cancellationToken);
 
-    private async Task OnJobCompleted(IJobDetail jobDetail, CancellationToken cancellationToken)
-    {
-        await ExecuteInReadLock(LockTriggerAccess, async conn =>
-        {
-            // this runs before the states have been updated, so things that were blocked for concurrency are still blocked at this point
-            var types = GetTypes();
-            if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-            var executing = GetExecutingQueueItems();
-            int waitingTriggerCount;
-            int blockedTriggerCount;
-            QueueItem[] waiting;
-
-            try
-            {
-                waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
-                blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
-                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false, cancellationToken)).ToArray();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error getting job states for cache update");
-                waitingTriggerCount = -1;
-                blockedTriggerCount = -1;
-                waiting = Array.Empty<QueueItem>();
-            }
-
+        _ = Task.Run(() =>
             _queueStateEventHandler.OnJobCompleted(jobDetail, new QueueStateContext
             {
                 ThreadCount = _threadPoolSize,
@@ -654,12 +710,51 @@ public class ThreadPooledJobStore : JobStoreTX
                 TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
                 CurrentlyExecuting = executing,
                 Waiting = waiting
-            });
+            }), cancellationToken).ConfigureAwait(false);
 
-            // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
-            if (waitingTriggerCount > 0 || blockedTriggerCount > 0) SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
-        }, cancellationToken: cancellationToken);
+        // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
+        if (waitingTriggerCount > 0 || blockedTriggerCount > 0) SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
+        stopwatch.Stop();
+        _logger.LogError("OnJobCompleted took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
-    private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;
+    private readonly SemaphoreSlim _jobStateLock = new (1, 1);
+    private async Task<JobState> GetJobState(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken)
+    {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        var types = GetTypes();
+        var executing = GetExecutingQueueItems();
+        var waitingTriggerCount = -1;
+        var blockedTriggerCount = -1;
+        QueueItem[] waiting = [];
+
+        await _jobStateLock.WaitAsync(cancellationToken);
+        try
+        {
+            IEnumerable<Task> tasks =
+            [
+                GetWaitingTriggersCount(conn, types, cancellationToken).AsTask().ContinueWith(async a => waitingTriggerCount = await a, cancellationToken),
+                GetBlockedTriggersCount(conn, types, cancellationToken).AsTask().ContinueWith(async a => blockedTriggerCount = await a, cancellationToken),
+                GetJobSummary(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false).AsTask()
+                    .ContinueWith(async a => waiting = (await a).ToArray(), cancellationToken)
+            ];
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error getting job states for cache update");
+        }
+        finally
+        {
+            _jobStateLock.Release();
+        }
+
+        stopwatch.Stop();
+        _logger.LogError("GetJobState took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
+        return (waitingTriggerCount, blockedTriggerCount, waiting, executing);
+    }
+#endregion
+
 }

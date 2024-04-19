@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
@@ -17,7 +18,7 @@ namespace Shoko.CLI;
 public static class Program
 {
     private static ILogger _logger = null!;
-    public static void Main()
+    public static async Task Main()
     {
         try
         {
@@ -39,8 +40,8 @@ public static class Program
             Utils.SettingsProvider = settingsProvider;
             var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
             startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
-            startup.Start();
-            startup.WaitForShutdown();
+            await startup.Start();
+            await startup.WaitForShutdown();
         }
         catch (Exception e)
         {

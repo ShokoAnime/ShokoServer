@@ -77,6 +77,7 @@ public class ShokoServer
 
     public bool StartUpServer()
     {
+        // TODO Nuke the BackgroundWorkers
         // Check if any of the DLL are blocked, common issue with daily builds
         if (!CheckBlockedFiles())
         {

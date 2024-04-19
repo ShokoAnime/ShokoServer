@@ -143,7 +143,7 @@ public class QueueHandler
 
     public ValueTask<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
     {
-        return _jobStore.GetJobs(maxCount, offset, excludeBlocked);
+        return _jobStore.GetJobSummary(maxCount, offset, excludeBlocked);
     }
 
     public Dictionary<string, string[]> GetAcquisitionFilterResults() => _jobStore.GetAcquisitionFilterResults();
