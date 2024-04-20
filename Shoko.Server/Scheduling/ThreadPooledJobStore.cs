@@ -636,7 +636,7 @@ public class ThreadPooledJobStore : JobStoreTX
             Waiting = waiting
         }), cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
-        _logger.LogError("OnJobStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
+        _logger.LogTrace("OnJobStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
     private async ValueTask OnJobsStoring(ConnectionAndTransactionHolder conn, [ItemCanBeNull] IEnumerable<IJobDetail> jobs, CancellationToken cancellationToken)
@@ -663,7 +663,7 @@ public class ThreadPooledJobStore : JobStoreTX
             }
         }, cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
-        _logger.LogError("OnJobsStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
+        _logger.LogTrace("OnJobsStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
     private async ValueTask OnJobExecuting(ConnectionAndTransactionHolder conn, (IOperableTrigger trigger, IJobDetail jobDetail)[] triggerDetails, CancellationToken cancellationToken)
@@ -690,7 +690,7 @@ public class ThreadPooledJobStore : JobStoreTX
                 Waiting = waiting
             }), cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
-        _logger.LogError("OnJobExecuting took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
+        _logger.LogTrace("OnJobExecuting took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
     private async ValueTask OnJobCompleted(ConnectionAndTransactionHolder conn, IJobDetail jobDetail, CancellationToken cancellationToken)
@@ -715,7 +715,7 @@ public class ThreadPooledJobStore : JobStoreTX
         // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
         if (waitingTriggerCount > 0 || blockedTriggerCount > 0) SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
         stopwatch.Stop();
-        _logger.LogError("OnJobCompleted took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
+        _logger.LogTrace("OnJobCompleted took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
     private readonly SemaphoreSlim _jobStateLock = new (1, 1);
@@ -752,7 +752,7 @@ public class ThreadPooledJobStore : JobStoreTX
         }
 
         stopwatch.Stop();
-        _logger.LogError("GetJobState took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
+        _logger.LogTrace("GetJobState took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
         return (waitingTriggerCount, blockedTriggerCount, waiting, executing);
     }
 #endregion
