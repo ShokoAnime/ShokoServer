@@ -1259,6 +1259,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
     public static void GetAnimeSeriesRecursive(int animeGroupID, ref List<SVR_AnimeSeries> seriesList)
     {
+        if (animeGroupID == 0) return;
         var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
         if (grp == null)
         {

@@ -1888,7 +1888,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             SVR_AnimeGroup grp;
-            if (contract.AnimeGroupID.HasValue && contract.AnimeGroupID != 0)
+            if (contract.AnimeGroupID is > 0)
             {
                 grp = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
                 if (grp == null)
@@ -1929,11 +1929,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             RepoFactory.AnimeGroup.Save(grp, true, true);
 
-            var userRecord = grp.GetUserRecord(userID);
-            if (userRecord == null)
-            {
-                userRecord = new SVR_AnimeGroup_User(userID, grp.AnimeGroupID);
-            }
+            var userRecord = grp.GetUserRecord(userID) ?? new SVR_AnimeGroup_User(userID, grp.AnimeGroupID);
 
             userRecord.IsFave = contract.IsFave;
             RepoFactory.AnimeGroup_User.Save(userRecord);
@@ -1966,8 +1962,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // make sure the group exists
-            var grp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
-            if (grp == null)
+            SVR_AnimeGroup grp;
+            if (newAnimeGroupID == 0 || (grp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID)) == null)
             {
                 contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID;
                 return contractout;
