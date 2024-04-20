@@ -197,23 +197,22 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
-        var vidUserRecord = GetUserRecord(userID);
-        if (watched)
+        lock (this)
         {
-            if (vidUserRecord == null)
-                vidUserRecord = new(userID, VideoLocalID);
-            vidUserRecord.WatchedDate = DateTime.Now;
-            vidUserRecord.WatchedCount++;
+            var vidUserRecord = GetUserRecord(userID);
+            if (watched)
+            {
+                vidUserRecord ??= new SVR_VideoLocal_User(userID, VideoLocalID);
+                vidUserRecord.WatchedDate = DateTime.Now;
+                vidUserRecord.WatchedCount++;
 
-            if (watchedDate.HasValue && updateWatchedDate)
-                vidUserRecord.WatchedDate = watchedDate.Value;
+                if (watchedDate.HasValue && updateWatchedDate)
+                    vidUserRecord.WatchedDate = watchedDate.Value;
 
-            vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
-            RepoFactory.VideoLocalUser.Save(vidUserRecord);
-        }
-        else
-        {
-            if (vidUserRecord != null)
+                vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
+                RepoFactory.VideoLocalUser.Save(vidUserRecord);
+            }
+            else if (vidUserRecord != null)
             {
                 vidUserRecord.WatchedDate = null;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);

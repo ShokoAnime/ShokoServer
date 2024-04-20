@@ -12,10 +12,7 @@ public class SVR_VideoLocal_User : VideoLocal_User
     {
         JMMUserID = userID;
         VideoLocalID = fileID;
-        WatchedDate = null;
-        ResumePosition = 0;
         LastUpdated = DateTime.Now;
-        WatchedCount = 0;
     }
 
     /// <summary>
@@ -24,7 +21,7 @@ public class SVR_VideoLocal_User : VideoLocal_User
     /// </summary>
     public TimeSpan? ResumePositionTimeSpan
     {
-        get => ResumePosition > 0 ? new TimeSpan(0, 0, 0, 0, (int)ResumePosition) : null;
+        get => ResumePosition > 0 ? TimeSpan.FromMilliseconds(ResumePosition) : null;
         set => ResumePosition = value.HasValue ? (long)Math.Round(value.Value.TotalMilliseconds) : 0;
     }
 
@@ -34,14 +31,6 @@ public class SVR_VideoLocal_User : VideoLocal_User
     public SVR_VideoLocal GetVideoLocal()
     {
         return RepoFactory.VideoLocal.GetByID(VideoLocalID);
-    }
-
-    /// <summary>
-    /// Get the related <see cref="SVR_JMMUser"/>.
-    /// </summary>
-    public SVR_JMMUser GetUser()
-    {
-        return RepoFactory.JMMUser.GetByID(JMMUserID);
     }
 
     public override string ToString()

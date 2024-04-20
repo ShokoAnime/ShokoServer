@@ -54,6 +54,7 @@ public class PlexWebhook : BaseController
     {
         /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
             new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
+        if (payload == null) return BadRequest("Need a payload");
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
