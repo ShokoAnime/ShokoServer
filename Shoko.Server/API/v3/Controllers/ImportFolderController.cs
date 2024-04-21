@@ -71,6 +71,7 @@ public class ImportFolderController : BaseController
     [HttpGet("{folderID}")]
     public ActionResult<ImportFolder> GetImportFolderByFolderID([FromRoute] int folderID)
     {
+        if (folderID == 0) return BadRequest("ID must be greater than 0");
         var folder = RepoFactory.ImportFolder.GetByID(folderID);
         if (folder == null)
         {

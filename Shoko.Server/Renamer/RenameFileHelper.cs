@@ -46,20 +46,23 @@ public static class RenameFileHelper
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.GetEpisode())
+            .Where(a => a != null)
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnime())
+            .Where(a => a != null)
             .ToList();
-        var episodeInfo = episodes.ToList();
-        var animeInfo = series.ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnimeSeries())
+            .Where(a => a != null)
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
+            .Where(a => a != null)
             .ToList();
-        var args = new RenameEventArgs(script, place, videoLocal, episodeInfo, animeInfo, groupInfo);
+        var args = new RenameEventArgs(script, place, videoLocal, episodes, series, groupInfo);
+        // ReSharper disable once ConstantConditionalAccessQualifier
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
         {
             try
@@ -123,6 +126,7 @@ public static class RenameFileHelper
             .Where(a => a.DropFolderType != DropFolderType.Excluded)
             .ToList();
         var args = new MoveEventArgs(script, availableFolders, place, videoLocal, episodes, anime, groups);
+        // ReSharper disable once ConstantConditionalAccessQualifier
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
         {
             try
