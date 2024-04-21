@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,7 +7,6 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -23,6 +21,7 @@ public abstract class BaseDatabase<T> : IDatabase
     // ReSharper disable once StaticMemberInGenericType
     protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    // ReSharper disable once StaticMemberInGenericType
     private static string _databaseBackupDirectoryPath;
     private static string DatabaseBackupDirectoryPath
     {
@@ -64,7 +63,7 @@ public abstract class BaseDatabase<T> : IDatabase
     protected abstract Tuple<bool, string> ExecuteCommand(T connection, string command);
     protected abstract void Execute(T connection, string command);
     protected abstract long ExecuteScalar(T connection, string command);
-    protected abstract ArrayList ExecuteReader(T connection, string command);
+    protected abstract List<object> ExecuteReader(T connection, string command);
 
     public abstract string GetConnectionString();
 
@@ -76,6 +75,8 @@ public abstract class BaseDatabase<T> : IDatabase
 
     public abstract bool HasVersionsTable();
     public abstract string GetTestConnectionString();
+
+    protected abstract T1 ConnectionWrapper<T1>(string connectionstring, Func<T, T1> action);
 
     protected abstract void ConnectionWrapper(string connectionstring, Action<T> action);
 
@@ -139,11 +140,9 @@ public abstract class BaseDatabase<T> : IDatabase
     public abstract void CreateAndUpdateSchema();
     public abstract void BackupDatabase(string fullfilename);
 
-    public ArrayList GetData(string sql)
+    public List<object> GetData(string sql)
     {
-        ArrayList ret = null;
-        ConnectionWrapper(GetConnectionString(), myConn => { ret = ExecuteReader(myConn, sql); });
-        return ret;
+        return ConnectionWrapper(GetConnectionString(), myConn => ExecuteReader(myConn, sql));
     }
 
     public abstract string Name { get; }

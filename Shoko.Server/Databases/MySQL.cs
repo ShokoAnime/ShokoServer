@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Cfg;
@@ -11,7 +10,6 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
@@ -963,36 +961,36 @@ public class MySQL : BaseDatabase<MySqlConnection>
         }
     }
 
-    protected override ArrayList ExecuteReader(MySqlConnection connection, string command)
+    protected override List<object> ExecuteReader(MySqlConnection connection, string command)
     {
-        using (var cmd = new MySqlCommand(command, connection))
+        using var cmd = new MySqlCommand(command, connection);
+        cmd.CommandTimeout = 0;
+        using var reader = cmd.ExecuteReader();
+        var rows = new List<object>();
+        while (reader.Read())
         {
-            cmd.CommandTimeout = 0;
-            using (var reader = cmd.ExecuteReader())
-            {
-                var rows = new ArrayList();
-                while (reader.Read())
-                {
-                    var values = new object[reader.FieldCount];
-                    reader.GetValues(values);
-                    rows.Add(values);
-                }
-
-                reader.Close();
-                return rows;
-            }
+            var values = new object[reader.FieldCount];
+            reader.GetValues(values);
+            rows.Add(values);
         }
+
+        reader.Close();
+        return rows;
     }
 
     protected override void ConnectionWrapper(string connectionstring, Action<MySqlConnection> action)
     {
-        using (var conn = new MySqlConnection(connectionstring))
-        {
-            conn.Open();
-            action(conn);
-        }
+        using var conn = new MySqlConnection(connectionstring);
+        conn.Open();
+        action(conn);
     }
 
+    protected override T1 ConnectionWrapper<T1>(string connectionstring, Func<MySqlConnection, T1> action)
+    {
+        using var conn = new MySqlConnection(connectionstring);
+        conn.Open();
+        return action(conn);
+    }
 
     public override string GetConnectionString()
     {
@@ -1087,11 +1085,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
                 $"CREATE DATABASE {settings.Database.Schema} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
             Logger.Trace(sql);
 
-            using (var conn = new MySqlConnection(connStr))
-            {
-                conn.Open();
-                Execute(conn, sql);
-            }
+            using var conn = new MySqlConnection(connStr);
+            conn.Open();
+            Execute(conn, sql);
         }
         catch (Exception ex)
         {

@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using System.IO;
@@ -12,7 +11,6 @@ using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
@@ -21,9 +19,9 @@ namespace Shoko.Server.Databases;
 
 public class SQLite : BaseDatabase<SqliteConnection>
 {
-    public override string Name { get; } = "SQLite";
+    public override string Name => "SQLite";
 
-    public override int RequiredVersion { get; } = 109;
+    public override int RequiredVersion => 109;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -32,7 +30,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         File.Copy(GetDatabaseFilePath(), fullfilename);
     }
 
-    private static string _databasePath = null;
+    private static string _databasePath;
     private static string DatabasePath
     {
         get
@@ -99,7 +97,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         myConn.Open();
         const string sql = "SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name='Versions'";
         var cmd = new SqliteCommand(sql, myConn);
-        var count = (long)cmd.ExecuteScalar();
+        var count = (long)(cmd.ExecuteScalar() ?? 0);
         myConn.Close();
 
         return count > 0;
@@ -966,7 +964,6 @@ public class SQLite : BaseDatabase<SqliteConnection>
         {
             // I'm doing this manually to save time
             var myConn = (SqliteConnection)connection;
-            ;
 
             // make the new one
             // create indexes
@@ -1097,6 +1094,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             }
             catch
             {
+                // ignore
             }
         }
 
@@ -1171,10 +1169,10 @@ public class SQLite : BaseDatabase<SqliteConnection>
         return long.Parse(sqCommand.ExecuteScalar().ToString());
     }
 
-    protected override ArrayList ExecuteReader(SqliteConnection connection, string command)
+    protected override List<object> ExecuteReader(SqliteConnection connection, string command)
     {
         using var sqCommand = new SqliteCommand(command, connection);
-        var rows = new ArrayList();
+        var rows = new List<object>();
         sqCommand.CommandTimeout = 0;
         using var reader = sqCommand.ExecuteReader();
         while (reader.Read())
@@ -1193,6 +1191,13 @@ public class SQLite : BaseDatabase<SqliteConnection>
         using var con = new SqliteConnection(connectionstring);
         con.Open();
         action(con);
+    }
+
+    protected override T1 ConnectionWrapper<T1>(string connectionstring, Func<SqliteConnection, T1> action)
+    {
+        using var con = new SqliteConnection(connectionstring);
+        con.Open();
+        return action(con);
     }
 
     public override void CreateAndUpdateSchema()

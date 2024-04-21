@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using NHibernate;
 
 namespace Shoko.Server.Databases;
@@ -10,7 +11,7 @@ public interface IDatabase
     void CreateDatabase();
     void CreateAndUpdateSchema();
     void BackupDatabase(string fullfilename);
-    ArrayList GetData(string sql);
+    List<object> GetData(string sql);
     string Name { get; }
     int RequiredVersion { get; }
     string GetDatabaseBackupName(int version);

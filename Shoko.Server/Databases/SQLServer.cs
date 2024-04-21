@@ -1,7 +1,5 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
@@ -9,13 +7,12 @@ using FluentNHibernate.Cfg.Db;
 using Microsoft.Data.SqlClient;
 using NHibernate;
 using NHibernate.AdoNet;
+using NHibernate.Driver;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
@@ -36,20 +33,16 @@ public class SQLServer : BaseDatabase<SqlConnection>
         // So we backup in the default SQL SERVER BACKUP DIRECTORY.
 
         var settings = Utils.SettingsProvider.GetSettings();
-        string cmd = "BACKUP DATABASE[" + settings.Database.Schema + "] TO DISK = '" +
-                     fullfilename.Replace("'", "''") + "'";
+        var cmd = "BACKUP DATABASE[" + settings.Database.Schema + "] TO DISK = '" +
+                  fullfilename.Replace("'", "''") + "'";
 
 
-        using (SqlConnection tmpConn = new SqlConnection(GetConnectionString()))
-        {
-            tmpConn.Open();
+        using var tmpConn = new SqlConnection(GetConnectionString());
+        tmpConn.Open();
 
-            using (SqlCommand command = new SqlCommand(cmd, tmpConn))
-            {
-                command.CommandTimeout = 0;
-                command.ExecuteNonQuery();
-            }
-        }
+        using var command = new SqlCommand(cmd, tmpConn);
+        command.CommandTimeout = 0;
+        command.ExecuteNonQuery();
     }
 
     public override bool TestConnection()
@@ -86,7 +79,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
     public override ISessionFactory CreateSessionFactory()
     {
         return Fluently.Configure()
-            .Database(MsSqlConfiguration.MsSql2008.ConnectionString(GetConnectionString()))
+            .Database(MsSqlConfiguration.MsSql2012.Driver<MicrosoftDataSqlClientDriver>().ConnectionString(GetConnectionString()))
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
@@ -107,9 +100,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         var count = ExecuteScalar(tmpConn, cmd);
 
         // if the Versions already exists, it means we have done this already
-        if (count > 0) return true;
-
-        return false;
+        return count > 0;
     }
 
     public override void CreateDatabase()
@@ -131,7 +122,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         using var connection = new SqlConnection(GetConnectionString());
         var command = new SqlCommand(cmd, connection);
         connection.Open();
-        var count = (int) command.ExecuteScalar();
+        var count = (int) (command.ExecuteScalar() ?? 0);
         return count > 0;
     }
 
@@ -803,57 +794,55 @@ public class SQLServer : BaseDatabase<SqlConnection>
 
     protected override long ExecuteScalar(SqlConnection connection, string command)
     {
-        using (SqlCommand cmd = new SqlCommand(command, connection))
-        {
-            cmd.CommandTimeout = 0;
-            object result = cmd.ExecuteScalar();
-            return long.Parse(result.ToString());
-        }
+        using var cmd = new SqlCommand(command, connection);
+        cmd.CommandTimeout = 0;
+        var result = cmd.ExecuteScalar();
+        return long.Parse(result.ToString());
     }
 
-    protected override ArrayList ExecuteReader(SqlConnection connection, string command)
+    protected override List<object> ExecuteReader(SqlConnection connection, string command)
     {
-        using (SqlCommand cmd = new SqlCommand(command, connection))
+        using var cmd = new SqlCommand(command, connection);
+        cmd.CommandTimeout = 0;
+        using var reader = cmd.ExecuteReader();
+        var rows = new List<object>();
+        while (reader.Read())
         {
-            cmd.CommandTimeout = 0;
-            using (SqlDataReader reader = cmd.ExecuteReader())
-            {
-                ArrayList rows = new ArrayList();
-                while (reader.Read())
-                {
-                    object[] values = new object[reader.FieldCount];
-                    reader.GetValues(values);
-                    rows.Add(values);
-                }
-                reader.Close();
-                return rows;
-            }
+            var values = new object[reader.FieldCount];
+            reader.GetValues(values);
+            rows.Add(values);
         }
+        reader.Close();
+        return rows;
+    }
+
+    protected override T1 ConnectionWrapper<T1>(string connectionstring, Func<SqlConnection, T1> action)
+    {
+        using var conn = new SqlConnection(GetConnectionString());
+        conn.Open();
+        return action(conn);
     }
 
     protected override void ConnectionWrapper(string connectionstring, Action<SqlConnection> action)
     {
-        using (SqlConnection conn = new SqlConnection(GetConnectionString()))
-        {
-            conn.Open();
-            action(conn);
-        }
+        using var conn = new SqlConnection(GetConnectionString());
+        conn.Open();
+        action(conn);
     }
-
 
     public override void CreateAndUpdateSchema()
     {
         ConnectionWrapper(GetConnectionString(), myConn =>
         {
-            bool create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
+            var create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
             if (create)
             {
                 ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
                 ExecuteWithException(myConn, createVersionTable);
             }
-            bool update = (ExecuteScalar(myConn,
-                               "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'") ==
-                           0);
+            var update = (ExecuteScalar(myConn,
+                              "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'") ==
+                          0);
             if (update)
             {
                 ExecuteWithException(myConn, updateVersionTable);
