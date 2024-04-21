@@ -1193,13 +1193,6 @@ public class SQLite : BaseDatabase<SqliteConnection>
         action(con);
     }
 
-    protected override T1 ConnectionWrapper<T1>(string connectionstring, Func<SqliteConnection, T1> action)
-    {
-        using var con = new SqliteConnection(connectionstring);
-        con.Open();
-        return action(con);
-    }
-
     public override void CreateAndUpdateSchema()
     {
         ConnectionWrapper(GetConnectionString(), myConn =>

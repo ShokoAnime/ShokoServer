@@ -816,13 +816,6 @@ public class SQLServer : BaseDatabase<SqlConnection>
         return rows;
     }
 
-    protected override T1 ConnectionWrapper<T1>(string connectionstring, Func<SqlConnection, T1> action)
-    {
-        using var conn = new SqlConnection(GetConnectionString());
-        conn.Open();
-        return action(conn);
-    }
-
     protected override void ConnectionWrapper(string connectionstring, Action<SqlConnection> action)
     {
         using var conn = new SqlConnection(GetConnectionString());

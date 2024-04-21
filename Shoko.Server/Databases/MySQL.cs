@@ -985,13 +985,6 @@ public class MySQL : BaseDatabase<MySqlConnection>
         action(conn);
     }
 
-    protected override T1 ConnectionWrapper<T1>(string connectionstring, Func<MySqlConnection, T1> action)
-    {
-        using var conn = new MySqlConnection(connectionstring);
-        conn.Open();
-        return action(conn);
-    }
-
     public override string GetConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();

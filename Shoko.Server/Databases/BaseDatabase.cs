@@ -76,8 +76,6 @@ public abstract class BaseDatabase<T> : IDatabase
     public abstract bool HasVersionsTable();
     public abstract string GetTestConnectionString();
 
-    protected abstract T1 ConnectionWrapper<T1>(string connectionstring, Func<T, T1> action);
-
     protected abstract void ConnectionWrapper(string connectionstring, Action<T> action);
 
     protected Dictionary<(string Version, string Revision), Versions> AllVersions { get; set; }
@@ -139,11 +137,6 @@ public abstract class BaseDatabase<T> : IDatabase
     public abstract void CreateDatabase();
     public abstract void CreateAndUpdateSchema();
     public abstract void BackupDatabase(string fullfilename);
-
-    public List<object> GetData(string sql)
-    {
-        return ConnectionWrapper(GetConnectionString(), myConn => ExecuteReader(myConn, sql));
-    }
 
     public abstract string Name { get; }
 

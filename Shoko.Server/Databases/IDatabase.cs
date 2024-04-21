@@ -11,7 +11,6 @@ public interface IDatabase
     void CreateDatabase();
     void CreateAndUpdateSchema();
     void BackupDatabase(string fullfilename);
-    List<object> GetData(string sql);
     string Name { get; }
     int RequiredVersion { get; }
     string GetDatabaseBackupName(int version);
