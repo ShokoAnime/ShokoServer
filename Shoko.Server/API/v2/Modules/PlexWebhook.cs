@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
@@ -54,13 +53,13 @@ public class PlexWebhook : BaseController
     {
         /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
             new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
-        if (payload == null) return BadRequest("Need a payload");
+        if (payload?.Metadata == null) return BadRequest("Need a valid payload");
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        _logger.LogTrace($"{payload.Event}: {payload.Metadata.Guid}");
+        _logger.LogTrace($"{payload.Event}: {payload.Metadata?.Guid}");
         switch (payload.Event)
         {
             case "media.scrobble":
@@ -88,12 +87,9 @@ public class PlexWebhook : BaseController
     private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
     {
         var metadata = evt.Metadata;
-        (var episode, var anime) = GetEpisode(metadata);
+        var (episode, _) = GetEpisode(metadata);
 
-        if (episode == null)
-        {
-            return;
-        }
+        if (episode == null) return;
 
         var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
 
@@ -112,7 +108,7 @@ public class PlexWebhook : BaseController
     private void Scrobble(PlexEvent data, SVR_JMMUser user)
     {
         var metadata = data.Metadata;
-        (var episode, var anime) = GetEpisode(metadata);
+        var (episode, anime) = GetEpisode(metadata);
         if (episode == null)
         {
             _logger.LogInformation(
@@ -132,7 +128,7 @@ public class PlexWebhook : BaseController
         episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
             true);
         anime.UpdateStats(true, false);
-        anime?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+        anime.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
     }
 
     #endregion
@@ -145,8 +141,6 @@ public class PlexWebhook : BaseController
         {
             return (null, null);
         }
-
-        PathString ps = guid.AbsolutePath;
 
         var animeId = int.Parse(guid.Authority);
         var series = int.Parse(guid.AbsolutePath.Split('/')[1]);
@@ -194,17 +188,14 @@ public class PlexWebhook : BaseController
         var animeEps = anime
             .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
             .Where(a => a.EpisodeTypeEnum == episodeType)
-            .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber);
+            .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber).ToList();
 
         //if only one possible match
-        if (animeEps.Count() == 1)
-        {
-            return (animeEps.First(), anime);
-        }
+        if (animeEps.Count == 1) return (animeEps.First(), anime);
 
         //if TvDB matched.
         SVR_AnimeEpisode result;
-        if ((result = animeEps.FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series)) != null)
+        if ((result = animeEps.FirstOrDefault(a => a.TvDBEpisode?.SeasonNumber == series)) != null)
         {
             return (result, anime);
         }
@@ -495,28 +486,35 @@ internal class PlexBinder : IModelBinder //credit to https://stackoverflow.com/a
 {
     public Task BindModelAsync(ModelBindingContext bindingContext)
     {
-        if (bindingContext == null)
-        {
-            throw new ArgumentNullException(nameof(bindingContext));
-        }
+        ArgumentNullException.ThrowIfNull(bindingContext);
 
         // Check the value sent in
         var valueProviderResult = bindingContext.ValueProvider.GetValue(bindingContext.ModelName);
-        if (valueProviderResult != ValueProviderResult.None)
+        if (valueProviderResult == ValueProviderResult.None)
         {
-            bindingContext.ModelState.SetModelValue(bindingContext.ModelName, valueProviderResult);
-
-            // Attempt to convert the input value
-            var valueAsString = valueProviderResult.FirstValue;
-            var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType);
-            if (result != null)
-            {
-                bindingContext.Result = ModelBindingResult.Success(result);
-                return Task.CompletedTask;
-            }
+            bindingContext.Result = ModelBindingResult.Failed();
+            return Task.CompletedTask;
         }
 
+        bindingContext.ModelState.SetModelValue(bindingContext.ModelName, valueProviderResult);
+
+        // Attempt to convert the input value
+        var valueAsString = valueProviderResult.FirstValue;
+        if (valueAsString == null)
+        {
+            bindingContext.Result = ModelBindingResult.Failed();
+            return Task.CompletedTask;
+        }
+        var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType);
+        if (result == null)
+        {
+            bindingContext.Result = ModelBindingResult.Failed();
+            return Task.CompletedTask;
+        }
+
+        bindingContext.Result = ModelBindingResult.Success(result);
         return Task.CompletedTask;
+
     }
 }
 
