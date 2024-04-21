@@ -161,19 +161,15 @@ public class ShokoServer
     private void WorkerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
         ServerState.Instance.ServerStarting = false;
-        var setupComplete = bool.Parse(e.Result.ToString());
-        if (!setupComplete)
-        {
-            var settings = _settingsProvider.GetSettings();
-            ServerState.Instance.ServerOnline = false;
-            if (!string.IsNullOrEmpty(settings.Database.Type))
-            {
-                return;
-            }
+        if (e.Result is not bool setupComplete) return;
+        if (setupComplete) return;
 
-            settings.Database.Type = Constants.DatabaseType.Sqlite;
-            ShowDatabaseSetup();
-        }
+        var settings = _settingsProvider.GetSettings();
+        ServerState.Instance.ServerOnline = false;
+        if (!string.IsNullOrEmpty(settings.Database.Type)) return;
+
+        settings.Database.Type = Constants.DatabaseType.Sqlite;
+        ShowDatabaseSetup();
     }
 
     private void WorkerSetupDB_ReportProgress()
@@ -408,7 +404,18 @@ public class ShokoServer
         logger.LogInformation("Found file {Path}", path);
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
         ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-        _schedulerFactory.GetScheduler().Result.StartJob<DiscoverFileJob>(a => a.FilePath = path).GetAwaiter().GetResult();
+        Task.Run(async () =>
+        {
+            try
+            {
+                var scheduler = await _schedulerFactory.GetScheduler();
+                await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = path).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Unable to Schedule DiscoverFileJob for new file: {File}", path);
+            }
+        });
     }
 
     public void AddFileWatcherExclusion(string path)
