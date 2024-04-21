@@ -595,13 +595,32 @@ public class FileController : BaseController
     /// <param name="value">Thew new ignore value.</param>
     /// <returns></returns>
     [HttpPut("{fileID}/Ignore")]
-    public ActionResult IgnoreFile([FromRoute] int fileID, [FromQuery] bool value = true)
+    public ActionResult MarkFileAsIgnored([FromRoute] int fileID, [FromQuery] bool value = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
         file.IsIgnored = value;
+        RepoFactory.VideoLocal.Save(file, false);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Mark or unmark a file as a variation.
+    /// </summary>
+    /// <param name="fileID">VideoLocal ID</param>
+    /// <param name="value">Thew new variation value.</param>
+    /// <returns></returns>
+    [HttpPut("{fileID}/Variation")]
+    public ActionResult MarkFileAsVariation([FromRoute] int fileID, [FromQuery] bool value = true)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        file.IsVariation = value;
         RepoFactory.VideoLocal.Save(file, false);
 
         return Ok();
