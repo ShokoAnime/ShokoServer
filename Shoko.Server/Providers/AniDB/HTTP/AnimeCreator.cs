@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -347,7 +347,7 @@ public class AnimeCreator
                     episode.Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
                     episode.Description = rawEpisode.Description ?? string.Empty;
                     epsToSave.Add(episode);
-                    episodeEventsToEmit[episode] = UpdateReason.Added;
+                    episodeEventsToEmit[episode] = UpdateReason.Updated;
                 }
             }
             // Create a new record.
@@ -367,7 +367,7 @@ public class AnimeCreator
                     Description = rawEpisode.Description ?? string.Empty
                 };
                 epsToSave.Add(episode);
-                episodeEventsToEmit[episode] = UpdateReason.Updated;
+                episodeEventsToEmit[episode] = UpdateReason.Added;
             }
 
             // Convert the raw titles to their equivalent database model.
