@@ -230,7 +230,7 @@ public class SeriesFactory
         {
             ID = ser.AnimeSeriesID,
             ParentGroup = ser.AnimeGroupID,
-            TopLevelGroup = ser.TopLevelAnimeGroup.AnimeGroupID
+            TopLevelGroup = ser.TopLevelAnimeGroup?.AnimeGroupID ?? 0
         };
 
         // AniDB

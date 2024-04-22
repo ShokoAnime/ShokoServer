@@ -1146,6 +1146,7 @@ public partial class ShokoServiceImplementation
         try
         {
             var place = RepoFactory.VideoLocalPlace.GetByID(videoLocalPlaceID);
+            if (place == null) return $"VideoLocal_Place of ID: {videoLocalPlaceID} not found";
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
             service.RemoveRecordAndDeletePhysicalFile(place, false).GetAwaiter().GetResult();
             return string.Empty;

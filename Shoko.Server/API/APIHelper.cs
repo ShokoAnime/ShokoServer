@@ -34,18 +34,15 @@ public static class APIHelper
 
     public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
     {
-        if (!ServerState.Instance.ServerOnline)
-        {
-            return InitUser.Instance;
-        }
+        if (!ServerState.Instance.ServerOnline) return InitUser.Instance;
 
-        if (!(identity?.Identity?.IsAuthenticated ?? false))
-        {
-            return null;
-        }
+        var authenticated = identity?.Identity?.IsAuthenticated ?? false;
+        if (!authenticated) return null;
 
         var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-        return nameIdentifier == null ? null : RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
+        if (nameIdentifier == null) return null;
+        if (!int.TryParse(nameIdentifier, out var id) || id == 0) return null;
+        return RepoFactory.JMMUser.GetByID(id);
     }
 
     public static SVR_JMMUser GetUser(this HttpContext ctx)
