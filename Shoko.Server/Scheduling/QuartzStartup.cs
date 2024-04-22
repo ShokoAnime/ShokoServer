@@ -37,30 +37,41 @@ public static class QuartzStartup
 
     private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null, bool replace = false, bool keepSchedule = true) where T : class, IJob
     {
-        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
         jobConfig ??= _ => {};
         triggerConfig ??= t => t;
         var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
         var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).UsingJobData(jobConfig).Build();
-        var exists = await scheduler.CheckExists(jobKey);
-        var existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
-        if (!exists && !existingTriggers.Any())
-        {
-            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
-                triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
-        } else if (replace)
-        {
-            var trigger = triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group));
-            if (keepSchedule)
-            {
-                var nextFireTime = (await scheduler.GetTriggersOfJob(jobKey)).Select(a => a.GetNextFireTimeUtc() ?? DateTimeOffset.MaxValue)
-                    .Where(a => a != DateTimeOffset.MaxValue).DefaultIfEmpty().Min();
-                if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
-            }
 
-            // also nukes triggers
-            await scheduler.DeleteJob(jobKey);
-            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithIdentity(jobKey).Build(), trigger.Build());
+        // this is called when clearing the queue, so the lock is needed to prevent conflicts with StartJob and StartJobNow
+        await QuartzExtensions.SchedulerLock.WaitAsync();
+        try
+        {
+            var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+            var exists = await scheduler.CheckExists(jobKey);
+            var existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
+            if (!exists && !existingTriggers.Any())
+            {
+                await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
+                    triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
+            }
+            else if (replace)
+            {
+                var trigger = triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group));
+                if (keepSchedule)
+                {
+                    var nextFireTime = (await scheduler.GetTriggersOfJob(jobKey)).Select(a => a.GetNextFireTimeUtc() ?? DateTimeOffset.MaxValue)
+                        .Where(a => a != DateTimeOffset.MaxValue).DefaultIfEmpty().Min();
+                    if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
+                }
+
+                // also nukes triggers
+                await scheduler.DeleteJob(jobKey);
+                await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithIdentity(jobKey).Build(), trigger.Build());
+            }
+        }
+        finally
+        {
+            QuartzExtensions.SchedulerLock.Release();
         }
     }
     

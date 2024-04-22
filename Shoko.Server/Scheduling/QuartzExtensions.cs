@@ -11,6 +11,8 @@ namespace Shoko.Server.Scheduling;
 
 public static class QuartzExtensions
 {
+    public static readonly SemaphoreSlim SchedulerLock = new(1, 1);
+
     /// <summary>
     /// Queue a job of type T with the data map setter and generated identity
     /// </summary>
@@ -58,8 +60,15 @@ public static class QuartzExtensions
         var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
         if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
 
-        if (await scheduler.CheckExists(job.Key, token))
+        await SchedulerLock.WaitAsync(token);
+        try
         {
+            if (!await scheduler.CheckExists(job.Key, token))
+            {
+                return await scheduler.ScheduleJob(job,
+                    triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
+            }
+
             // get waiting triggers
             var triggers = (await scheduler.GetTriggersOfJob(job.Key, token)).Select(a => a.GetNextFireTimeUtc())
                 .Where(a => a != null).Select(a => a!.Value).ToList();
@@ -69,10 +78,14 @@ public static class QuartzExtensions
 
             // since we are replacing it, it will remove the triggers, as well
             await scheduler.DeleteJob(job.Key, token);
-        }
 
-        return await scheduler.ScheduleJob(job,
-            triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
+            return await scheduler.ScheduleJob(job,
+                triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
+        }
+        finally
+        {
+            SchedulerLock.Release();
+        }
     }
 
     /// <summary>
