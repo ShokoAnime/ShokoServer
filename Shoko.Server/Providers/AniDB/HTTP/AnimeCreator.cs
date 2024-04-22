@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -544,7 +544,9 @@ public class AnimeCreator
             return false;
 
         var allTitles = string.Empty;
-        var existingTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID)
+        var existingTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
+        var existingTitleDict = existingTitles
+            .DistinctBy(t => $"{t.TitleType},{t.LanguageCode},{t.Title}")
             .ToDictionary(t => $"{t.TitleType},{t.LanguageCode},{t.Title}");
         var titlesToKeep = new HashSet<int>();
         var titlesToSave = new List<SVR_AniDB_Anime_Title>();
@@ -554,7 +556,7 @@ public class AnimeCreator
                 continue;
 
             var key = $"{rawtitle.TitleType},{rawtitle.Language},{rawtitle.Title}";
-            if (existingTitles.TryGetValue(key, out var title))
+            if (existingTitleDict.TryGetValue(key, out var title))
             {
                 titlesToKeep.Add(title.AniDB_Anime_TitleID);
                 continue;
@@ -574,7 +576,7 @@ public class AnimeCreator
                 allTitles += "|";
             allTitles += rawtitle.Title;
         }
-        var titlesToDelete = existingTitles.Values
+        var titlesToDelete = existingTitles
             .ExceptBy(titlesToKeep, t => t.AniDB_Anime_TitleID)
             .ToList();
 
