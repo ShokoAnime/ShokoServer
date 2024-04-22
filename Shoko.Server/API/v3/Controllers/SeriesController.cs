@@ -158,6 +158,28 @@ public class SeriesController : BaseController
     }
 
     /// <summary>
+    /// Override the title of a Series
+    /// </summary>
+    /// <param name="seriesID">The ID of the Series</param>
+    /// <param name="body"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/OverrideTitle")]
+    public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody] SeriesTitleOverride body)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        series.SeriesNameOverride = body.Title;
+
+        RepoFactory.AnimeSeries.Save(series);
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Get the auto-matching settings for the series.
     /// </summary>
     /// <param name="seriesID"></param>

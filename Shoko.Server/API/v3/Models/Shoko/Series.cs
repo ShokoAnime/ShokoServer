@@ -615,3 +615,12 @@ public class SeriesSizes
         public int Camera;
     }
 }
+
+public class SeriesTitleOverride
+{
+    /// <summary>
+    /// New title to be set as override for the series
+    /// </summary>
+    [Required(AllowEmptyStrings = true)]
+    public string Title { get; set; }
+}
