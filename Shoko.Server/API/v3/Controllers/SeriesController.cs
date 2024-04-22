@@ -165,7 +165,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/OverrideTitle")]
-    public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody] SeriesTitleOverride body)
+    public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeriesTitleOverride body)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
 
