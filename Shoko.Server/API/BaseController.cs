@@ -30,6 +30,17 @@ public class BaseController : Controller
     }
 
     [NonAction]
+    protected ActionResult Forbid(string message = null)
+    {
+        if (message == null)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden);
+        }
+
+        return StatusCode(StatusCodes.Status403Forbidden, message);
+    }
+
+    [NonAction]
     protected ActionResult InternalError(string message = null)
     {
         if (message == null)
