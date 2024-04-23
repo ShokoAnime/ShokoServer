@@ -7,6 +7,8 @@
             "type": "process",
             "args": [
                 "build",
+                "-f",
+                "net8.0",
                 "${workspaceFolder}/Shoko.CLI/Shoko.CLI.csproj",
                 "/property:GenerateFullPaths=true,Version=${input:version},InformationalVersion=\"channel=debug,commit=${input:commit},date=${input:date}\"",
                 "/consoleloggerparameters:NoSummary"
