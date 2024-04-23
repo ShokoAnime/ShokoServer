@@ -12,7 +12,7 @@ RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
-RUN dotnet build -c=Release -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date}\""
+RUN dotnet build -c=Release -r linux-x64 -f net8.0 -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date}\""
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 ENV PUID=1000 \
