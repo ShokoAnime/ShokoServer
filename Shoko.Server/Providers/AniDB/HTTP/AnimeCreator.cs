@@ -318,41 +318,73 @@ public class AnimeCreator
                 currentTitles = new();
 
             // Check if the existing record, if any, needs to be updated.
+            var isNew = false;
+            var isUpdated = false;
             if (currentAniDBEpisodes.TryGetValue(rawEpisode.EpisodeID, out var episode))
             {
                 // The data we have stored is either in sync (or newer) than
-                // the raw episode data, so skip updating the episode.
-                if (episode.DateTimeUpdated >= rawEpisode.LastUpdated)
+                // the raw episode data, so skip updating the episode, so if the
+                // episode does not belong to the anime being processed then
+                // skip it..
+                if (episode.DateTimeUpdated >= rawEpisode.LastUpdated && episode.AnimeID != rawEpisode.AnimeID)
+                    continue;
+
+                var airDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate);
+                var rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture);
+                var votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
+                var description = rawEpisode.Description ?? string.Empty;
+                if (episode.AirDate != airDate)
                 {
-                    // If the episode does not belong to the anime being
-                    // processed, or if none of the titles changed since last
-                    // time, then also skip updating the episode titles.
-                    if (episode.AnimeID != rawEpisode.AnimeID)
-                        continue;
-                    if (currentTitles.Count == rawEpisode.Titles.Count &&
-                        currentTitles.All(t1 => rawEpisode.Titles.Any(t2 => string.Equals(t1.Title, t2.Title))))
-                        goto count;
+                    episode.AirDate = airDate;
+                    isUpdated = true;
                 }
-                // Update the existing record.
-                else
+
+                if (episode.AnimeID != anime.AnimeID)
                 {
-                    episode.AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate);
                     episode.AnimeID = anime.AnimeID;
-                    episode.DateTimeUpdated = rawEpisode.LastUpdated;
-                    // episode.EpisodeID = rawEpisode.EpisodeID;
+                    isUpdated = true;
+                }
+
+                if (episode.EpisodeNumber != rawEpisode.EpisodeNumber)
+                {
                     episode.EpisodeNumber = rawEpisode.EpisodeNumber;
+                    isUpdated = true;
+                }
+
+                if (episode.EpisodeType != (int)rawEpisode.EpisodeType)
+                {
                     episode.EpisodeType = (int)rawEpisode.EpisodeType;
+                    isUpdated = true;
+                }
+
+                if (episode.LengthSeconds != rawEpisode.LengthSeconds)
+                {
                     episode.LengthSeconds = rawEpisode.LengthSeconds;
-                    episode.Rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture);
-                    episode.Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
-                    episode.Description = rawEpisode.Description ?? string.Empty;
-                    epsToSave.Add(episode);
-                    episodeEventsToEmit[episode] = UpdateReason.Updated;
+                    isUpdated = true;
+                }
+
+                if (episode.Rating != rating)
+                {
+                    episode.Rating = rating;
+                    isUpdated = true;
+                }
+
+                if (episode.Votes != votes)
+                {
+                    episode.Votes = votes;
+                    isUpdated = true;
+                }
+
+                if (episode.Description != description)
+                {
+                    episode.Description = description;
+                    isUpdated = true;
                 }
             }
             // Create a new record.
             else
             {
+                isNew = true;
                 episode = new()
                 {
                     AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate),
@@ -366,8 +398,6 @@ public class AnimeCreator
                     Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture),
                     Description = rawEpisode.Description ?? string.Empty
                 };
-                epsToSave.Add(episode);
-                episodeEventsToEmit[episode] = UpdateReason.Added;
             }
 
             // Convert the raw titles to their equivalent database model.
@@ -392,15 +422,28 @@ public class AnimeCreator
 
             // Since the HTTP API doesn't return a count of the number of normal
             // episodes and/or specials, then we will calculate it now.
-            count: switch (episode.EpisodeTypeEnum)
+            switch (rawEpisode.EpisodeType)
             {
-                case Shoko.Models.Enums.EpisodeType.Episode:
+                case EpisodeType.Episode:
                     episodeCountNormal++;
                     break;
 
-                case Shoko.Models.Enums.EpisodeType.Special:
+                case EpisodeType.Special:
                     episodeCountSpecial++;
                     break;
+            }
+
+            // Emit the event.
+            if (isNew || isUpdated)
+                episodeEventsToEmit[episode] = isNew ? UpdateReason.Added : UpdateReason.Updated;
+
+            // We need to save the "date time updated" regardless of if there were other changes,
+            // since it will be used to determine if the episode should belong to this anime or
+            // another anime.
+            if (isNew || isUpdated || episode.DateTimeUpdated != rawEpisode.LastUpdated)
+            {
+                episode.DateTimeUpdated = rawEpisode.LastUpdated;
+                epsToSave.Add(episode);
             }
         }
 
@@ -535,7 +578,7 @@ public class AnimeCreator
         foreach (var episode in epsToRemove)
             ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, UpdateReason.Removed);
 
-        return epsToSave.Count > 0 || epsToRemove.Count > 0 || titlesToSave.Count > 0 || titlesToRemove.Count > 0;
+        return episodeEventsToEmit.Count > 0 || epsToRemove.Count > 0 || titlesToSave.Count > 0 || titlesToRemove.Count > 0;
     }
 
     private static bool CreateTitles(List<ResponseTitle> titles, SVR_AniDB_Anime anime)
@@ -549,7 +592,7 @@ public class AnimeCreator
         var keySelector = new Func<SVR_AniDB_Anime_Title, string>(t => $"{t.TitleType},{t.LanguageCode},{t.Title}");
         var existingTitleDict = existingTitles.DistinctBy(keySelector).ToDictionary(keySelector);
         var titlesToKeep = new HashSet<int>();
-        var titlesToSave = new Dictionary<string,SVR_AniDB_Anime_Title>();
+        var titlesToSave = new Dictionary<string, SVR_AniDB_Anime_Title>();
 
         foreach (var rawtitle in titles)
         {
@@ -562,7 +605,7 @@ public class AnimeCreator
                 continue;
             }
 
-            if (titlesToSave.ContainsKey(key)) continue; 
+            if (titlesToSave.ContainsKey(key)) continue;
 
             titlesToSave[key] = new()
             {
