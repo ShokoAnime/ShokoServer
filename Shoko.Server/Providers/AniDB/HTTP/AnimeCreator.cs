@@ -66,7 +66,7 @@ public class AnimeCreator
         _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        // alternatively these could be written as a if..then statement spanning two lines.
+        // alternatively these could be written as an if...then statement spanning two lines.
         updated = await CreateEpisodes(response.Episodes, anime) || updated;
         taskTimer.Stop();
         _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
@@ -540,20 +540,20 @@ public class AnimeCreator
 
     private static bool CreateTitles(List<ResponseTitle> titles, SVR_AniDB_Anime anime)
     {
+        // after this runs once, it should clean up the dupes from before
         if (titles == null)
             return false;
 
         var allTitles = string.Empty;
         var existingTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
-        var existingTitleDict = existingTitles
-            .DistinctBy(t => $"{t.TitleType},{t.LanguageCode},{t.Title}")
-            .ToDictionary(t => $"{t.TitleType},{t.LanguageCode},{t.Title}");
+        var keySelector = new Func<SVR_AniDB_Anime_Title, string>(t => $"{t.TitleType},{t.LanguageCode},{t.Title}");
+        var existingTitleDict = existingTitles.DistinctBy(keySelector).ToDictionary(keySelector);
         var titlesToKeep = new HashSet<int>();
-        var titlesToSave = new List<SVR_AniDB_Anime_Title>();
+        var titlesToSave = new Dictionary<string,SVR_AniDB_Anime_Title>();
+
         foreach (var rawtitle in titles)
         {
-            if (string.IsNullOrEmpty(rawtitle?.Title))
-                continue;
+            if (string.IsNullOrEmpty(rawtitle?.Title)) continue;
 
             var key = $"{rawtitle.TitleType},{rawtitle.Language},{rawtitle.Title}";
             if (existingTitleDict.TryGetValue(key, out var title))
@@ -561,28 +561,27 @@ public class AnimeCreator
                 titlesToKeep.Add(title.AniDB_Anime_TitleID);
                 continue;
             }
-            else
+
+            if (titlesToSave.ContainsKey(key)) continue; 
+
+            titlesToSave[key] = new()
             {
-                titlesToSave.Add(new()
-                {
-                    AnimeID = anime.AnimeID,
-                    Language = rawtitle.Language,
-                    Title = rawtitle.Title,
-                    TitleType = rawtitle.TitleType
-                });
-            }
+                AnimeID = anime.AnimeID,
+                Language = rawtitle.Language,
+                Title = rawtitle.Title,
+                TitleType = rawtitle.TitleType
+            };
 
             if (allTitles.Length > 0)
                 allTitles += "|";
             allTitles += rawtitle.Title;
         }
-        var titlesToDelete = existingTitles
-            .ExceptBy(titlesToKeep, t => t.AniDB_Anime_TitleID)
-            .ToList();
+
+        var titlesToDelete = existingTitles.ExceptBy(titlesToKeep, t => t.AniDB_Anime_TitleID).ToList();
 
         anime.AllTitles = allTitles;
         RepoFactory.AniDB_Anime_Title.Delete(titlesToDelete);
-        RepoFactory.AniDB_Anime_Title.Save(titlesToSave);
+        RepoFactory.AniDB_Anime_Title.Save(titlesToSave.Values);
 
         return titlesToSave.Count > 0 || titlesToDelete.Count > 0;
     }
