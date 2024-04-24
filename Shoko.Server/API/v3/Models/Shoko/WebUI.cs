@@ -70,7 +70,7 @@ public class WebUI
         /// The URL for where the theme definition lives. Used for updates.
         /// </summary>
         public readonly string URL;
-        
+
         /// <summary>
         /// The CSS representation of the theme.
         /// </summary>
@@ -247,7 +247,7 @@ public class WebUI
                             .OrderBy(codec => codec)
                             .ToList());
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoBitDepth) ||
-                        groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoResolutuion))
+                        groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoResolution))
                     {
                         var videoStream = media.Video.FirstOrDefault();
                         if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoBitDepth))
@@ -392,7 +392,7 @@ public class WebUI
             FileLocation = 8,
             VideoCodecs = 16,
             VideoBitDepth = 32,
-            VideoResolutuion = 64,
+            VideoResolution = 64,
             AudioCodecs = 128,
             AudioLanguages = 256,
             AudioStreamCount = 512,
@@ -565,7 +565,7 @@ public class WebUI
             {
                 if (other == null)
                     return false;
-                return 
+                return
                     GroupName == other.GroupName &&
                     // GroupNameShort == other.GroupNameShort &&
 
