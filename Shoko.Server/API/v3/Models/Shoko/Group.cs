@@ -306,6 +306,26 @@ public class Group : BaseModel
                 if (ParentGroupID.HasValue)
                     group.AnimeGroupParentID = ParentGroupID.Value == 0 ? null : ParentGroupID.Value;
 
+                // Move the child groups under the new group.
+                foreach (var childGroup in childGroups)
+                {
+                    // Skip adding child groups already part of the group.
+                    if (childGroup.AnimeGroupParentID.HasValue && childGroup.AnimeGroupParentID.Value == group.AnimeGroupID)
+                        continue;
+
+                    childGroup.AnimeGroupParentID = group.AnimeGroupID;
+                    RepoFactory.AnimeGroup.Save(childGroup, false, false);
+                }
+
+                // Move the series over to the new group.
+                foreach (var series in seriesList)
+                    series.MoveSeries(group, updateGroupStats: false);
+
+                // Set the main series and maybe update the group
+                // name/description.
+                if (PreferredSeriesID.HasValue)
+                    group.SetMainSeries(preferredSeries);
+
                 // Check if the names have changed if we omit the value, or if
                 // we set it to true.
                 if (!HasCustomName.HasValue || HasCustomName.Value)
@@ -326,6 +346,7 @@ public class Group : BaseModel
                 else
                 {
                     group.IsManuallyNamed = 0;
+                    group.GroupName = (preferredSeries ?? group.GetMainSeries()).GetSeriesName();
                 }
 
                 // Same as above, but for the description.
@@ -346,27 +367,8 @@ public class Group : BaseModel
                 else
                 {
                     group.OverrideDescription = 0;
+                    group.Description = (preferredSeries ?? group.GetMainSeries()).GetAnime().Description;
                 }
-
-                // Move the child groups under the new group.
-                foreach (var childGroup in childGroups)
-                {
-                    // Skip adding child groups already part of the group.
-                    if (childGroup.AnimeGroupParentID.HasValue && childGroup.AnimeGroupParentID.Value == group.AnimeGroupID)
-                        continue;
-
-                    childGroup.AnimeGroupParentID = group.AnimeGroupID;
-                    RepoFactory.AnimeGroup.Save(childGroup, false, false);
-                }
-
-                // Move the series over to the new group.
-                foreach (var series in seriesList)
-                    series.MoveSeries(group, updateGroupStats: false);
-
-                // Set the main series and maybe update the group
-                // name/description.
-                if (PreferredSeriesID.HasValue)
-                    group.SetMainSeries(preferredSeries);
 
                 // Update stats for all groups in the chain.
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
