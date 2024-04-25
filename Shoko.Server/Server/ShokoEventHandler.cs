@@ -245,7 +245,6 @@ public class ShokoEventHandler : IShokoEventHandler
         AVDumpEvent?.Invoke(null, new(AVDumpEventType.Started)
         {
             SessionID = session.SessionID,
-            CommandID = session.CommandID,
             VideoIDs = session.VideoIDs,
             AbsolutePaths = session.AbsolutePaths,
             StartedAt = session.StartedAt,
@@ -261,7 +260,6 @@ public class ShokoEventHandler : IShokoEventHandler
         AVDumpEvent?.Invoke(null, new(session.IsSuccess ? AVDumpEventType.Success : AVDumpEventType.Failure)
         {
             SessionID = session.SessionID,
-            CommandID = session.CommandID,
             VideoIDs = session.VideoIDs,
             AbsolutePaths = session.AbsolutePaths,
             Progress = session.Progress,

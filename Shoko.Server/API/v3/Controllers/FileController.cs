@@ -654,11 +654,14 @@ public class FileController : BaseController
 
         var files = new Dictionary<int, string> { { file.VideoLocalID, filePath } };
         if (immediate)
-            AVDumpHelper.DumpFiles(files, synchronous: true);
+            AVDumpHelper.DumpFiles(files, true);
         else
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = files);
+            if (priority)
+                await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = files);
+            else
+                await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = files);
         }
 
         return Ok();

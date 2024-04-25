@@ -846,7 +846,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("avdumpmismatchedfiles")]
-    public ActionResult AVDumpMismatchedFiles()
+    public async Task<ActionResult> AVDumpMismatchedFiles()
     {
         var settings = SettingsProvider.GetSettings();
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
@@ -869,7 +869,9 @@ public class Common : BaseController
             })
             .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
 
-        AVDumpHelper.DumpFiles(list);
+        var scheduler = await _schedulerFactory.GetScheduler();
+        foreach (var (fileId, filePath) in list)
+            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
 
         logger.Info($"Queued {list.Count} files for avdumping.");
 

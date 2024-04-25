@@ -18,32 +18,39 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Utilities;
 
-public static class AVDumpHelper
+public static partial class AVDumpHelper
 {
     #region Private Variables
 
     private static readonly string WorkingDirectory = Path.Combine(Utils.ApplicationPath, "AVDump");
+
     private static readonly string RuntimeConfigPath = Path.Combine(WorkingDirectory, "AVDump3CL.runtimeconfig.json");
 
     private static readonly string ArchivePath = Path.Combine(Utils.ApplicationPath, "avdump.zip");
 
     private const string AVDumpURL = @"AVD3_URL_GOES_HERE";
 
-    private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory,  Utils.IsRunningOnLinuxOrMac() ? "AVDump3CL.dll" : "AVDump3CL.exe");
+    private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory, Utils.IsRunningOnLinuxOrMac() ? "AVDump3CL.dll" : "AVDump3CL.exe");
 
     private static readonly ConcurrentDictionary<int, AVDumpSession> ActiveSessions = new();
 
-    private static readonly Regex ProgressRegex = new Regex(@"^\s*(?<currentFiles>\d+)\/(?<totalFiles>\d+)\s+Files\s+\|\s+(?<currentBytes>\d+)\/(?<totalBytes>\d+)\s+\w{1,4}\s+\|", RegexOptions.Compiled);
+    [GeneratedRegex(@"^\s*(?<currentFiles>\d+)\/(?<totalFiles>\d+)\s+Files\s+\|\s+(?<currentBytes>\d+)\/(?<totalBytes>\d+)\s+\w{1,4}\s+\|", RegexOptions.Compiled)]
+    private static partial Regex ProgressRegex();
 
-    private static readonly Regex SummaryRegex = new Regex(@"^\s*Total\s+\[(?<progress>[\s#]+)\]\s+(?<speed1m>\-?\d+)\s+(?<speed5m>\-?\d+)\s+(?<speed15m>\-?\d+)(?<speedUnit>[A-Za-z]+)/s\s*$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^\s*Total\s+\[(?<progress>[\s#]+)\]\s+(?<speed1m>\-?\d+)\s+(?<speed5m>\-?\d+)\s+(?<speed15m>\-?\d+)(?<speedUnit>[A-Za-z]+)/s\s*$", RegexOptions.Compiled)]
+    private static partial Regex SummaryRegex();
 
-    private static readonly Regex SeperatorRegex = new Regex(@"^\s*\-+\s*$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^\s*\-+\s*$", RegexOptions.Compiled)]
+    private static partial Regex SeperatorRegex();
 
-    private static readonly Regex InvalidCredentialsRegex = new Regex(@"\s+\(WrongUsernameOrApiKey\)$", RegexOptions.Compiled);
+    [GeneratedRegex(@"\s+\(WrongUsernameOrApiKey\)$", RegexOptions.Compiled)]
+    private static partial Regex InvalidCredentialsRegex();
 
-    private static readonly Regex TimeoutRegex = new Regex(@"\s+\(Timeout\)$", RegexOptions.Compiled);
+    [GeneratedRegex(@"\s+\(Timeout\)$", RegexOptions.Compiled)]
+    private static partial Regex TimeoutRegex();
 
-    private static readonly Regex AnidbCreqRegex = new Regex(@"^\s*ACreq\(Done:\s+(?<succeeded>\d+)\s+Failed:\s+(?<failed>\d+)\s+Pending:\s+(?<pending>\d+)\)\s*$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^\s*ACreq\(Done:\s+(?<succeeded>\d+)\s+Failed:\s+(?<failed>\d+)\s+Pending:\s+(?<pending>\d+)\)\s*$", RegexOptions.Compiled)]
+    private static partial Regex AnidbCreqRegex();
 
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -57,7 +64,8 @@ public static class AVDumpHelper
     /// <summary>
     /// The currently expected AVDump version to use.
     /// </summary>
-    public static string? AVDumpVersion = int.TryParse(AVDumpURL.Split('/').LastOrDefault()?.Split('_').ElementAtOrDefault(1), out var version) ? version.ToString() : null;
+    public static string? AVDumpVersion =>
+        int.TryParse(AVDumpURL.Split('/').LastOrDefault()?.Split('_').ElementAtOrDefault(1), out var version) ? version.ToString() : null;
 
     /// <summary>
     /// Checks if the AVDump component is installed.
@@ -124,12 +132,10 @@ public static class AVDumpHelper
     /// storing some results in the database if successful.
     /// </summary>
     /// <param name="videos">The associated video for the file.</param>
-    /// <param name="commandId">The command id if this operation was ran from the queue.</param>
     /// <param name="synchronous">Wait for completion</param>
     /// <returns>The dump results for v1 compatibility.</returns>
-    public static AVDumpSession DumpFiles(IEnumerable<KeyValuePair<int, string>> videos, int? commandId = null, bool synchronous = false)
+    public static AVDumpSession DumpFiles(IEnumerable<KeyValuePair<int, string>> videos, bool synchronous = false)
     {
-        
         // Guard against stupidity and/or unforeseen errors.
         var videoDict = videos.ToDictionary(v => v.Key, v => v.Value);
         if (videoDict.Count == 0)
@@ -149,15 +155,12 @@ public static class AVDumpHelper
             return new(message);
         }
 
-        // Ignore invalid command id values.
-        if (commandId.HasValue && commandId <= 0)
-            commandId = null;
         AVDumpSession session;
         int preExistingSessions;
         lock (_startLock)
         {
             preExistingSessions = ActiveSessions.Count;
-            session = new AVDumpSession(commandId, videoDict.Keys, videoDict.Values);
+            session = new AVDumpSession(videoDict.Keys, videoDict.Values);
             var checkedIds = new HashSet<int>();
             foreach (var videoId in videoDict.Keys)
             {
@@ -187,18 +190,19 @@ public static class AVDumpHelper
                 // Prepare the sub-process and attach the event handler.
                 var stdOutBuilder = new StringBuilder();
                 var stdErrBuilder = new StringBuilder();
-                using var subProcess = GetSubProcessForOS(
-                    new[]
-                    {
-                        $"--Timeout={settings.AniDb.AVDump.CreqTimeout}:{settings.AniDb.AVDump.CreqMaxRetries}",
-                        $"--Concurrent={settings.AniDb.AVDump.MaxConcurrency}", "--HideBuffers=true",
-                        "--HideFileProgress=true", "--DisableFileMove=true",
-                        "--DisableFileRename=true", "--Consumers=ED2K",
-                        $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey?.Trim()}",
-                        // Workaround for when we try to start multiple dump sessions.
-                        $"--LPort={(preExistingSessions == 0 ? settings.AniDb.AVDumpClientPort : 0)}", "--PrintEd2kLink=true",
-                    }.Concat(videoDict.Values).ToArray()
-                );
+                using var subProcess = GetSubProcessForOS([
+                    $"--Timeout={settings.AniDb.AVDump.CreqTimeout}:{settings.AniDb.AVDump.CreqMaxRetries}",
+                    $"--Concurrent={settings.AniDb.AVDump.MaxConcurrency}",
+                    "--HideBuffers=true",
+                    "--HideFileProgress=true",
+                    "--DisableFileMove=true",
+                    "--DisableFileRename=true",
+                    "--Consumers=ED2K",
+                    $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey?.Trim()}",
+                    // Workaround for when we try to start multiple dump sessions.
+                    $"--LPort={(preExistingSessions == 0 ? settings.AniDb.AVDumpClientPort : 0)}", "--PrintEd2kLink=true",
+                    ..videoDict.Values,
+                ]);
                 subProcess.OutputDataReceived += (_, eventArgs) => OnStdOutMessage(eventArgs, session, stdOutBuilder);
                 subProcess.ErrorDataReceived += (_, eventArgs) => OnStdErrMessage(eventArgs, session, stdOutBuilder);
 
@@ -283,10 +287,10 @@ public static class AVDumpHelper
     {
         // Last event (when the stream is closing) will send `null`.
         // Ignore empty lines, separators, the summary, or creq updates in the output for now.
-        if (string.IsNullOrWhiteSpace(eventArgs.Data) || SeperatorRegex.IsMatch(eventArgs.Data) || SummaryRegex.IsMatch(eventArgs.Data)) return;
+        if (string.IsNullOrWhiteSpace(eventArgs.Data) || SeperatorRegex().IsMatch(eventArgs.Data) || SummaryRegex().IsMatch(eventArgs.Data)) return;
 
         // Calculate overall progress.
-        var result = ProgressRegex.Match(eventArgs.Data);
+        var result = ProgressRegex().Match(eventArgs.Data);
         if (result.Success)
         {
             var currentBytes = double.Parse(result.Groups["currentBytes"].Value);
@@ -299,7 +303,7 @@ public static class AVDumpHelper
             return;
         }
 
-        result = AnidbCreqRegex.Match(eventArgs.Data);
+        result = AnidbCreqRegex().Match(eventArgs.Data);
         if (result.Success)
         {
             var succeeded = int.Parse(result.Groups["succeeded"].Value);
@@ -316,11 +320,11 @@ public static class AVDumpHelper
         }
 
         // Emit an invalid credentials event if we couldn't authenticate with AniDB.
-        if (InvalidCredentialsRegex.IsMatch(eventArgs.Data))
+        if (InvalidCredentialsRegex().IsMatch(eventArgs.Data))
             ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InvalidCredentials);
 
         // Emit a timeout event if the connection to anidb timed out.
-        if (TimeoutRegex.IsMatch(eventArgs.Data))
+        if (TimeoutRegex().IsMatch(eventArgs.Data))
             ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.Timeout);
 
         if (eventArgs.Data.Trim().StartsWith("ed2k://|file|"))
@@ -374,18 +378,16 @@ public static class AVDumpHelper
             {
                 try
                 {
-                    using (var stream = Misc.DownloadWebBinary(AVDumpURL))
-                    {
-                        if (stream == null)
-                            return false;
+                    using var stream = Misc.DownloadWebBinary(AVDumpURL);
+                    if (stream == null)
+                        return false;
 
-                        using (var fileStream = File.Create(ArchivePath))
-                            stream.CopyTo(fileStream);
-                    }
+                    using var fileStream = File.Create(ArchivePath);
+                    stream.CopyTo(fileStream);
                 }
                 catch (Exception ex)
                 {
-                    ShokoEventHandler.Instance.OnAVDumpInstallException( ex);
+                    ShokoEventHandler.Instance.OnAVDumpInstallException(ex);
                     logger.Error(ex);
                     return false;
                 }
@@ -400,27 +402,25 @@ public static class AVDumpHelper
 
                 // Then add the new version.
                 Directory.CreateDirectory(WorkingDirectory);
-                using (Stream stream = File.OpenRead(ArchivePath))
-                using (var reader = ReaderFactory.Open(stream))
+                using Stream stream = File.OpenRead(ArchivePath);
+                using var reader = ReaderFactory.Open(stream);
+                while (reader.MoveToNextEntry())
                 {
-                    while (reader.MoveToNextEntry())
+                    if (!reader.Entry.IsDirectory)
                     {
-                        if (!reader.Entry.IsDirectory)
+                        reader.WriteEntryToDirectory(WorkingDirectory, new ExtractionOptions
                         {
-                            reader.WriteEntryToDirectory(WorkingDirectory, new ExtractionOptions
-                            {
-                                // This may have serious problems in the future, but for now, AVDump is flat
-                                ExtractFullPath = false,
-                                Overwrite = true,
-                            });
-                        }
+                            // This may have serious problems in the future, but for now, AVDump is flat
+                            ExtractFullPath = false,
+                            Overwrite = true,
+                        });
                     }
                 }
             }
             catch (Exception ex)
             {
                 ShokoEventHandler.Instance.OnAVDumpInstallException(ex);
-                logger.Error(ex, "Unable to install AVDump3");
+                logger.Error(ex, "Unable to install AVDump3; {ErrorMessage}", ex.Message);
                 return false;
             }
 
@@ -497,8 +497,6 @@ public static class AVDumpHelper
 
         public int SessionID { get; }
 
-        public int? CommandID { get; }
-
         public IReadOnlyList<int> VideoIDs { get; }
 
         public IReadOnlyList<string> AbsolutePaths { get; }
@@ -525,17 +523,16 @@ public static class AVDumpHelper
 
         public DateTime? EndedAt { get; set; }
 
-        public AVDumpSession(int? commandId, IEnumerable<int> videoIds, IEnumerable<string> paths, bool running = true)
+        public AVDumpSession(IEnumerable<int> videoIds, IEnumerable<string> paths)
         {
             if (NextSessionID == int.MaxValue)
                 NextSessionID = 0;
-            SessionID = running ? ++NextSessionID : 0;
+            SessionID = ++NextSessionID;
             VideoIDs = videoIds.ToList();
             AbsolutePaths = paths.ToList();
-            CommandID = commandId;
             StartedAt = DateTime.Now;
-            IsRunning = running;
-            ED2Ks = new();
+            IsRunning = true;
+            ED2Ks = [];
             StandardOutput = string.Empty;
             StandardError = string.Empty;
         }
@@ -545,7 +542,7 @@ public static class AVDumpHelper
             SessionID = 0;
             VideoIDs = new List<int>();
             AbsolutePaths = new List<string>();
-            ED2Ks = new();
+            ED2Ks = [];
             StandardOutput = stdOut;
             StandardError = string.Empty;
         }

@@ -1474,12 +1474,10 @@ public partial class ShokoServiceImplementation
             return "Unable to get file location for VideoLocal with id: " + video.VideoLocalID;
         }
 
-        var session = AVDumpHelper.DumpFiles(new Dictionary<int, string>
-        {
-            {
-                vidLocalID, filePath
-            }
-        }, synchronous: true);
+        var session = AVDumpHelper.DumpFiles(
+            new Dictionary<int, string>() { { vidLocalID, filePath } },
+            true
+        );
 
         var output = session.StandardOutput.Replace("\n", "\r\n");
         if (session.IsSuccess)

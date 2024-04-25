@@ -207,23 +207,24 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("AVDumpMismatchedFiles")]
-    public ActionResult AVDumpMismatchedFiles()
+    public async Task<ActionResult> AVDumpMismatchedFiles()
     {
         var settings = SettingsProvider.GetSettings();
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
-            return BadRequest("Missing AVDump API key");
+            return ValidationProblem("Missing AVDump API key.", "Settings");
 
-        var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
-            .ToDictionary(a => a, a => a.GetAniDBFile());
+        var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
+            .Where(file => !file.IsEmpty() && file.Media != null)
+            .Select(file => (Video: file, AniDB: file.GetAniDBFile()))
+            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.Media?.MenuStreams.Any() != tuple.AniDB.IsChaptered)
+            .Select(tuple => (Path: tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, tuple.Video))
+            .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
+            .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
+        var scheduler = await _schedulerFactory.GetScheduler();
+        foreach (var (fileId, filePath) in mismatchedFiles)
+            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
 
-        var list = allvids.Keys.Select(vid => new { Video = vid, AniDB = allvids[vid] })
-            .Where(_tuple => _tuple.AniDB is { IsDeprecated: false } && _tuple.Video.Media?.MenuStreams.Any() != _tuple.AniDB.IsChaptered)
-            .Select(_tuple => new { Path = _tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, _tuple.Video })
-            .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a =>a.Video.VideoLocalID, a => a.Path);
-
-        AVDumpHelper.DumpFiles(list);
-
-        _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping", list.Count);
+        _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping", mismatchedFiles.Count);
 
         return Ok();
     }

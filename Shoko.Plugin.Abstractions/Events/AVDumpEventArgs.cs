@@ -13,12 +13,6 @@ public class AVDumpEventArgs : EventArgs
     public int? SessionID { get; set; }
 
     /// <summary>
-    /// The command request id, if applicable to the event type.
-    /// </summary>
-    /// <value></value>
-    public int? CommandID { get; set; }
-
-    /// <summary>
     /// The video id, if applicable to the event type.
     /// </summary>
     /// <value></value>

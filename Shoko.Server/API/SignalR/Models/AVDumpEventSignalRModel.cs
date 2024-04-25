@@ -21,9 +21,6 @@ public class AVDumpEventSignalRModel
     public IReadOnlyList<int>? VideoIDs { get; set; }
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public int? CommandID { get; set; }
-
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public double? Progress { get; set; }
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -57,7 +54,6 @@ public class AVDumpEventSignalRModel
     {
         SessionID = eventArgs.SessionID;
         VideoIDs = eventArgs.VideoIDs;
-        CommandID = eventArgs.CommandID;
         Type = eventArgs.Type;
         Progress = eventArgs.Progress;
         SucceededCreqCount = eventArgs.SucceededCreqCount;
@@ -75,7 +71,6 @@ public class AVDumpEventSignalRModel
     {
         SessionID = session.SessionID;
         VideoIDs = session.VideoIDs;
-        CommandID = session.CommandID;
         Type = AVDumpEventType.Restore;
         Progress = session.Progress;
         SucceededCreqCount = session.SucceededCreqCount;
