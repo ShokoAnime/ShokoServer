@@ -15,6 +15,7 @@
         <Version>3.0.0-alpha4</Version>
         <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     </PropertyGroup>
     <ItemGroup>
         <None Include="../LICENSE" Pack="true" PackagePath="/" />
