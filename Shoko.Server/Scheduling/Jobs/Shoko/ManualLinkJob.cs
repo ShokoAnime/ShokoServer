@@ -22,27 +22,25 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 public class ManualLinkJob : BaseJob
 {
     private readonly IServerSettings _settings;
+
     private readonly ISchedulerFactory _schedulerFactory;
+
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    public int VideoLocalID { get; set; }
-    public int EpisodeID { get; set; }
-    public int Percentage { get; set; }
-    
     private SVR_AnimeEpisode _episode;
+
     private SVR_VideoLocal _vlocal;
 
-    public override string TypeName => "Manually Link File";
-    public override string Title => "Manually Linking Episode";
+    public int VideoLocalID { get; set; }
 
-    public override void PostInit()
-    {
-        _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-        _episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
-        if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        if (_episode == null) throw new JobExecutionException($"Episode not Found: {EpisodeID}");
-        if (_episode.GetAnimeSeries() == null) throw new JobExecutionException($"Series not Found: {_episode.AnimeSeriesID}");
-    }
+    public int EpisodeID { get; set; }
+
+    public int Percentage { get; set; }
+
+    public override string TypeName => "Manually Link File";
+
+    public override string Title => "Manually Linking to Episode";
+
     public override Dictionary<string, object> Details => _episode != null ?
         new()
         {
@@ -56,6 +54,16 @@ public class ManualLinkJob : BaseJob
             { "EpisodeID", EpisodeID },
         };
 
+    public override void PostInit()
+    {
+        _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        _episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
+        if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
+        if (_episode == null) throw new JobExecutionException($"Episode not Found: {EpisodeID}");
+        if (_episode.GetAnimeSeries() == null) throw new JobExecutionException($"Series not Found: {_episode.AnimeSeriesID}");
+    }
+
+#pragma warning disable CS0618
     public override async Task Process()
     {
         // The flow has changed.
@@ -110,6 +118,7 @@ public class ManualLinkJob : BaseJob
         // Rename and/or move the physical file(s) if needed.
         await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = _vlocal.VideoLocalID);
     }
+#pragma warning restore CS0618
 
     private async Task ProcessFileQualityFilter()
     {

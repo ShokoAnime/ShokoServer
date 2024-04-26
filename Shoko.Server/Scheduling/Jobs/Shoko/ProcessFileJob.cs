@@ -27,19 +27,33 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 public class ProcessFileJob : BaseJob
 {
     private readonly ISchedulerFactory _schedulerFactory;
+
     private readonly JobFactory _jobFactory;
+
     private readonly IServerSettings _settings;
+
     private readonly IUDPConnectionHandler _udpConnectionHandler;
+
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
     private SVR_VideoLocal _vlocal;
+
     private string _fileName;
 
     public int VideoLocalID { get; set; }
+
     public bool ForceAniDB { get; set; }
+
     public bool SkipMyList { get; set; }
 
     public override string TypeName => "Process File";
+
+    public override string Title => "Get Cross-References for File";
+
+    public override Dictionary<string, object> Details => new()
+    {
+        { "File Path", _fileName ?? VideoLocalID.ToString() }
+    };
 
     public override void PostInit()
     {
@@ -47,10 +61,6 @@ public class ProcessFileJob : BaseJob
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
         _fileName = Utils.GetDistinctPath(_vlocal?.GetBestVideoLocalPlace()?.FullServerPath);
     }
-
-    public override string Title => "Get XRefs for File";
-    public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
-
     public override async Task Process()
     {
         _logger.LogInformation("Processing {Job}: {FileName}", nameof(ProcessFileJob), _fileName ?? VideoLocalID.ToString());
@@ -331,7 +341,7 @@ public class ProcessFileJob : BaseJob
             {
                 // We're banned, so queue it for later
                 _logger.LogError("We are banned. Re-queuing for later: {FileName}", _fileName);
-                
+
                 await (await _schedulerFactory.GetScheduler()).StartJob<ProcessFileJob>(
                     c =>
                     {
