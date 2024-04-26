@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
@@ -149,21 +150,23 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
 
+        // Request an image download
+        await scheduler.StartJobNow<GetAniDBImagesJob>(job => job.AnimeID = AnimeID);
+
         // Emit anidb anime updated event.
         if (updated)
+        {
             ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated);
 
-        // update names based on changes
-
-        var videoLocals = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)).Where(a => a != null)
-            .Distinct();
-        foreach (var vl in videoLocals)
-        {
-            await scheduler.StartJobNow<RenameMoveFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            // Re-schedule the videos to move/rename as required if something changed.
+            var videos = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
+                .DistinctBy(xref => xref.Hash)
+                .Select(xref => xref.GetVideo())
+                .OfType<SVR_VideoLocal>()
+                .ToList();
+            foreach (var video in videos)
+                await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID);
         }
-
-        // Request an image download
-        await scheduler.StartJobNow<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
 
         await ProcessRelations(response);
 
