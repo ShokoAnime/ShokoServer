@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
 using Quartz;
 using Shoko.Server.Scheduling.GenericJobBuilder;
 
@@ -12,6 +13,8 @@ namespace Shoko.Server.Scheduling;
 public static class QuartzExtensions
 {
     public static readonly SemaphoreSlim SchedulerLock = new(1, 1);
+
+    public static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
     /// Queue a job of type T with the data map setter and generated identity
@@ -40,7 +43,7 @@ public static class QuartzExtensions
             return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:10);
         return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:10);
     }
-    
+
     /// <summary>
     /// Start a job with TriggerBuilder.<see cref="TriggerBuilder.StartNow()"/> on the given scheduler
     /// </summary>
@@ -55,7 +58,11 @@ public static class QuartzExtensions
     {
         // if it's running, then ignore
         var currentJobs = await scheduler.GetCurrentlyExecutingJobs(token);
-        if (currentJobs.Any(a => Equals(a.JobDetail.Key, job.Key))) return DateTimeOffset.Now;
+        if (currentJobs.Any(a => Equals(a.JobDetail.Key, job.Key)))
+        {
+            Logger.Trace("Skipped scheduling {JobName} because it is running.", job.Key);
+            return DateTimeOffset.Now;
+        }
 
         var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
         if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
@@ -65,6 +72,7 @@ public static class QuartzExtensions
         {
             if (!await scheduler.CheckExists(job.Key, token))
             {
+                Logger.Trace("Scheduling {JobName} to run.", job.Key);
                 return await scheduler.ScheduleJob(job,
                     triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
             }
@@ -74,11 +82,16 @@ public static class QuartzExtensions
                 .Where(a => a != null).Select(a => a!.Value).ToList();
 
             // we are not set to replace the job, then return the first scheduled time
-            if (triggers.Any() && !replaceExisting) return triggers.Min();
+            if (triggers.Any() && !replaceExisting)
+            {
+                Logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
+                return triggers.Min();
+            }
 
             // since we are replacing it, it will remove the triggers, as well
             await scheduler.DeleteJob(job.Key, token);
 
+            Logger.Trace("Scheduling {JobName} (after removing previous job)", job.Key);
             return await scheduler.ScheduleJob(job,
                 triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
         }
