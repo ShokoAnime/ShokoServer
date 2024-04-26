@@ -6,7 +6,8 @@
     "ms-dotnettools.vscode-dotnet-runtime",
     "ms-dotnettools.csdevkit",
     "augustocdias.tasks-shell-input",
-    "eamodio.gitlens"
+    "eamodio.gitlens",
+    "k--kato.docomment"
   ],
   "unwantedRecommendations": []
 }
