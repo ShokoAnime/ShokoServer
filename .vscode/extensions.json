@@ -5,7 +5,8 @@
     "github.vscode-github-actions",
     "ms-dotnettools.vscode-dotnet-runtime",
     "ms-dotnettools.csdevkit",
-    "augustocdias.tasks-shell-input"
+    "augustocdias.tasks-shell-input",
+    "eamodio.gitlens"
   ],
   "unwantedRecommendations": []
 }
