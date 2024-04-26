@@ -2,7 +2,7 @@
     "name": "Shoko Server Dev Container",
     "image":"mcr.microsoft.com/devcontainers/dotnet:8.0-jammy",
     "appPort": 8111,
-    "onCreateCommand": "sudo apt update; sudo apt install -y rhash mediainfo",
+    "onCreateCommand": "sudo apt update; sudo apt install -y librhash-dev mediainfo",
     // restores nuget packages, installs the dotnet workloads and installs the dev https certificate
     "postStartCommand": "dotnet restore; dotnet workload update; sudo dotnet dev-certs https --trust",
     // reads the extensions list and installs them
