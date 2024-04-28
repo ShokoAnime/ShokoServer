@@ -14,21 +14,24 @@ public class FileEventSignalRModel
         FileID = eventArgs.FileInfo.VideoID;
         FileLocationID = eventArgs.FileInfo.ID;
         ImportFolderID = eventArgs.ImportFolder.ID;
-        var episodes = eventArgs.EpisodeInfo
+        var xrefs = eventArgs.VideoInfo.CrossReferences;
+        var episodeDict = eventArgs.EpisodeInfo
             .Cast<SVR_AniDB_Episode>()
             .Select(e => e.GetShokoEpisode())
             .OfType<SVR_AnimeEpisode>()
-            .ToList();
-        var seriesToGroupDict = episodes
+            .ToDictionary(e => e.AniDB_EpisodeID);
+        var animeToGroupDict = episodeDict.Values
             .DistinctBy(e => e.AnimeSeriesID)
             .Select(e => e.GetAnimeSeries())
-            .ToDictionary(s => s.AnimeSeriesID, s => s.AnimeGroupID);
-        CrossReferences = episodes
-            .Select(e => new FileCrossReferenceSignalRModel()
+            .ToDictionary(s => s.AniDB_ID, s => (s.AnimeSeriesID, s.AnimeGroupID));
+        CrossReferences = xrefs
+            .Select(xref => new FileCrossReferenceSignalRModel()
             {
-                EpisodeID = e.AnimeEpisodeID,
-                SeriesID = e.AnimeSeriesID,
-                GroupID = seriesToGroupDict[e.AnimeSeriesID]
+                EpisodeID = episodeDict.TryGetValue(xref.AnidbEpisodeID, out var shokoEpisode) ? shokoEpisode.AnimeEpisodeID : null,
+                AnidbEpisodeID = xref.AnidbEpisodeID,
+                SeriesID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out var tuple) ? tuple.AnimeSeriesID : null,
+                AnidbAnimeID = xref.AnidbAnimeID,
+                GroupID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out tuple) ? tuple.AnimeGroupID : null,
             })
             .ToList();
     }
@@ -64,15 +67,25 @@ public class FileCrossReferenceSignalRModel
     /// <summary>
     /// Shoko episode id.
     /// </summary>
-    public int EpisodeID { get; set; }
+    public int? EpisodeID { get; set; }
+
+    /// <summary>
+    /// AniDB episode id.
+    /// </summary>
+    public int AnidbEpisodeID { get; set; }
 
     /// <summary>
     /// Shoko series id.
     /// </summary>
-    public int SeriesID { get; set; }
+    public int? SeriesID { get; set; }
+
+    /// <summary>
+    /// AniDB anime id.
+    /// </summary>
+    public int AnidbAnimeID { get; set; }
 
     /// <summary>
     /// Shoko group id.
     /// </summary>
-    public int GroupID { get; set; }
+    public int? GroupID { get; set; }
 }
