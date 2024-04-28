@@ -6,17 +6,19 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IAnime : ISeries
 {
+    #region To-be-removed
+
     /// <summary>
     /// Relations for the anime.
     /// </summary>
+    [Obsolete("Use ISeries.RelatedSeries instead.")]
     IReadOnlyList<IRelatedAnime> Relations { get; }
 
     /// <summary>
     /// The number of total episodes in the series.
     /// </summary>
-    EpisodeCounts EpisodeCounts { get; }
-
-    #region To-be-removed
+    [Obsolete("Use ISeries.EpisodeCounts instead.")]
+    new EpisodeCounts EpisodeCounts { get; }
 
     /// <summary>
     /// The AniDB Anime ID.

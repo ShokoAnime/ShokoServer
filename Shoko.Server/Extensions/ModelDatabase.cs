@@ -146,25 +146,6 @@ public static class ModelDatabase
         return RepoFactory.TvDB_Series.GetByTvDBID(cross.TvDBID);
     }
 
-    public static SVR_VideoLocal GetVideo(this CrossRef_File_Episode cross)
-        => RepoFactory.VideoLocal.GetByHash(cross.Hash);
-
-    public static SVR_AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)
-        => RepoFactory.AniDB_Episode.GetByEpisodeID(cross.EpisodeID);
-
-    public static SVR_AniDB_Anime GetAnime(this CrossRef_File_Episode cross)
-        => RepoFactory.AniDB_Anime.GetByAnimeID(cross.AnimeID);
-
-    public static SVR_AnimeSeries GetAnimeSeries(this CrossRef_File_Episode cross)
-    {
-        return RepoFactory.AnimeSeries.GetByAnimeID(cross.AnimeID);
-    }
-
-    public static SVR_VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
-    {
-        return RepoFactory.VideoLocal.GetByHash(cross.Hash)?.GetUserRecord(userID);
-    }
-
     public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile)
     {
         return RepoFactory.ImportFolder

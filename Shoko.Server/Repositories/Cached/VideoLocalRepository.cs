@@ -538,7 +538,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         );
     }
 
-    private static bool IsImported(CrossRef_File_Episode xref)
+    private static bool IsImported(SVR_CrossRef_File_Episode xref)
     {
         var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
         if (ep?.AniDB_Episode == null) return false;

@@ -191,7 +191,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
 
         fileEps = response.EpisodeIDs
             .Select(
-                (ep, x) => new CrossRef_File_Episode
+                (ep, x) => new SVR_CrossRef_File_Episode
                 {
                     Hash = _vlocal.Hash,
                     CrossRefSource = (int)CrossRefSource.AniDB,
@@ -230,7 +230,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                 if (epAnimeID == null) continue;
 
                 epOrder++;
-                fileEps.Add(new CrossRef_File_Episode
+                fileEps.Add(new SVR_CrossRef_File_Episode
                 {
                     Hash = _vlocal.Hash,
                     CrossRefSource = (int)CrossRefSource.AniDB,

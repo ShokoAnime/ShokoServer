@@ -31,7 +31,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         .Select(crossref => crossref.GetEpisode()).Where(ep => ep != null).ToList();
 
     [XmlIgnore]
-    public List<CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+    public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
 
     // NOTE: I want to cache it, but i won't for now. not until the anidb files and release groups are stored in a non-cached repo.
     public AniDB_ReleaseGroup ReleaseGroup =>

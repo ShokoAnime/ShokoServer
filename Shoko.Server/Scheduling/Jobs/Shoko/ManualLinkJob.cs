@@ -72,7 +72,7 @@ public class ManualLinkJob : BaseJob
         // HashFileJob will create the records for a new file, so don't save an empty record.
         _logger.LogInformation("Processing {Job}: {VideoLocal} | {EpisodeID}", nameof(ManualLinkJob), VideoLocalID, EpisodeID);
 
-        var xref = new CrossRef_File_Episode
+        var xref = new SVR_CrossRef_File_Episode
         {
             Hash = _vlocal.ED2KHash,
             FileName = _vlocal.FileName,

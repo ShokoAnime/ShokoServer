@@ -7,21 +7,21 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories;
 
-public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_File_Episode, int>
+public class CrossRef_File_EpisodeRepository : BaseCachedRepository<SVR_CrossRef_File_Episode, int>
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
-    private PocoIndex<int, CrossRef_File_Episode, string> Hashes;
-    private PocoIndex<int, CrossRef_File_Episode, int> Animes;
-    private PocoIndex<int, CrossRef_File_Episode, int> Episodes;
-    private PocoIndex<int, CrossRef_File_Episode, string> Filenames;
+    private PocoIndex<int, SVR_CrossRef_File_Episode, string> Hashes;
+    private PocoIndex<int, SVR_CrossRef_File_Episode, int> Animes;
+    private PocoIndex<int, SVR_CrossRef_File_Episode, int> Episodes;
+    private PocoIndex<int, SVR_CrossRef_File_Episode, string> Filenames;
 
     public override void PopulateIndexes()
     {
-        Hashes = new PocoIndex<int, CrossRef_File_Episode, string>(Cache, a => a.Hash);
-        Animes = new PocoIndex<int, CrossRef_File_Episode, int>(Cache, a => a.AnimeID);
-        Episodes = new PocoIndex<int, CrossRef_File_Episode, int>(Cache, a => a.EpisodeID);
-        Filenames = new PocoIndex<int, CrossRef_File_Episode, string>(Cache, a => a.FileName);
+        Hashes = new PocoIndex<int, SVR_CrossRef_File_Episode, string>(Cache, a => a.Hash);
+        Animes = new PocoIndex<int, SVR_CrossRef_File_Episode, int>(Cache, a => a.AnimeID);
+        Episodes = new PocoIndex<int, SVR_CrossRef_File_Episode, int>(Cache, a => a.EpisodeID);
+        Filenames = new PocoIndex<int, SVR_CrossRef_File_Episode, string>(Cache, a => a.FileName);
     }
 
     public override void RegenerateDb()
@@ -47,24 +47,24 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
         };
     }
 
-    protected override int SelectKey(CrossRef_File_Episode entity)
+    protected override int SelectKey(SVR_CrossRef_File_Episode entity)
     {
         return entity.CrossRef_File_EpisodeID;
     }
 
-    public List<CrossRef_File_Episode> GetByHash(string hash)
+    public List<SVR_CrossRef_File_Episode> GetByHash(string hash)
     {
         return ReadLock(() => Hashes.GetMultiple(hash).OrderBy(a => a.EpisodeOrder).ToList());
     }
 
 
-    public List<CrossRef_File_Episode> GetByAnimeID(int animeID)
+    public List<SVR_CrossRef_File_Episode> GetByAnimeID(int animeID)
     {
         return ReadLock(() => Animes.GetMultiple(animeID));
     }
 
 
-    public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
+    public List<SVR_CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
     {
         return ReadLock(() => Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList());
     }
@@ -75,12 +75,12 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
     /// <param name="hash"></param>
     /// <param name="episodeID"></param>
     /// <returns></returns>
-    public CrossRef_File_Episode GetByHashAndEpisodeID(string hash, int episodeID)
+    public SVR_CrossRef_File_Episode GetByHashAndEpisodeID(string hash, int episodeID)
     {
         return ReadLock(() => Hashes.GetMultiple(hash).FirstOrDefault(a => a.EpisodeID == episodeID));
     }
 
-    public List<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
+    public List<SVR_CrossRef_File_Episode> GetByEpisodeID(int episodeID)
     {
         return ReadLock(() => Episodes.GetMultiple(episodeID));
     }

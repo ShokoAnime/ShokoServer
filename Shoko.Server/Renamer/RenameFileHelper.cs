@@ -46,22 +46,26 @@ public static class RenameFileHelper
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.GetEpisode())
-            .Where(a => a != null)
+            .OfType<SVR_AniDB_Episode>()
             .ToList();
-        var series = xrefs
+        var anime = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnime())
-            .Where(a => a != null)
+            .OfType<SVR_AniDB_Anime>()
             .ToList();
-        var groupInfo = xrefs
+        var groups = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnimeSeries())
-            .Where(a => a != null)
+            .OfType<SVR_AnimeSeries>()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
-            .Where(a => a != null)
+            .OfType<SVR_AnimeGroup>()
             .ToList();
-        var args = new RenameEventArgs(script, place, videoLocal, episodes, series, groupInfo);
+        var availableFolders = RepoFactory.ImportFolder.GetAll()
+            .Cast<IImportFolder>()
+            .Where(a => a.DropFolderType != DropFolderType.Excluded)
+            .ToList();
+        var args = new RenameEventArgs(script, availableFolders, place, videoLocal, episodes, anime, groups);
         // ReSharper disable once ConstantConditionalAccessQualifier
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
         {
@@ -106,20 +110,20 @@ public static class RenameFileHelper
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.GetEpisode())
-            .Where(a => a != null)
+            .OfType<SVR_AniDB_Episode>()
             .ToList();
         var anime = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnime())
-            .Where(a => a != null)
+            .OfType<SVR_AniDB_Anime>()
             .ToList();
         var groups = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnimeSeries())
-            .Where(a => a != null)
+            .OfType<SVR_AnimeSeries>()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
-            .Where(a => a != null)
+            .OfType<SVR_AnimeGroup>()
             .ToList();
         var availableFolders = RepoFactory.ImportFolder.GetAll()
             .Cast<IImportFolder>()

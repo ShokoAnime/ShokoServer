@@ -532,7 +532,7 @@ public class SeriesFactory
             Poster = GetAniDBPoster(relation.RelatedAnimeID),
             Rating = null,
             UserApproval = null,
-            Relation = ((IRelatedAnime)relation).RelationType,
+            Relation = ((IRelatedMetadata)relation).RelationType,
         };
         SetAniDBTitles(result, relation, series, includeTitles);
         return result;

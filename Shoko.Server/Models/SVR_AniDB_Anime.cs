@@ -22,6 +22,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models;
@@ -1085,13 +1086,37 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
 
     bool ISeries.Restricted => Restricted == 1;
 
+    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries =>
+        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
+
+    IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
+        RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID);
+
     IReadOnlyList<IEpisode> ISeries.EpisodeList => GetAniDBEpisodes();
+
+    IReadOnlyList<IVideo> ISeries.VideoList =>
+        RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
+            .DistinctBy(xref => xref.Hash)
+            .Select(xref => xref.GetVideo())
+            .OfType<SVR_VideoLocal>()
+            .ToList();
+
+    IReadOnlyDictionary<AbstractEpisodeType, int> ISeries.EpisodeCountDict
+    {
+        get
+        {
+            var episodes = (this as ISeries).EpisodeList;
+            return Enum.GetValues<AbstractEpisodeType>()
+                .ToDictionary(a => a, a => episodes.Count(e => e.Type == a));
+        }
+    }
 
     #endregion
 
     #region IAnime Implementation
 
-    IReadOnlyList<IRelatedAnime> IAnime.Relations => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
+    IReadOnlyList<IRelatedAnime> IAnime.Relations =>
+        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
 
     EpisodeCounts IAnime.EpisodeCounts => new()
     {

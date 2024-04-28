@@ -38,7 +38,7 @@ public class SVR_AnimeEpisode : AnimeEpisode
         return RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID, xrefSource);
     }
 
-    public List<CrossRef_File_Episode> FileCrossRefs => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
+    public List<SVR_CrossRef_File_Episode> FileCrossRefs => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
     public TvDB_Episode TvDBEpisode
     {

@@ -1,15 +1,26 @@
 ﻿using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
+
 using RType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 
+#nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedAnime
+public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedAnime, IRelatedMetadata<ISeries>
 {
-    public IAnime RelatedAnime => RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
+    #region IMetadata implementation
 
-    RType IRelatedAnime.RelationType =>
+    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+
+    #endregion
+
+    #region IRelatedMetadata implementation
+
+    int IRelatedMetadata.RelatedID => RelatedAnimeID;
+
+    RType IRelatedMetadata.RelationType =>
         RelationType.ToLowerInvariant() switch
         {
             "prequel" => RType.Prequel,
@@ -25,4 +36,24 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedAnime
             "character" => RType.SharedCharacters,
             _ => RType.Other
         };
+
+    #endregion
+
+    #region IRelatedMetadata<ISeries> implementation
+
+    ISeries? IRelatedMetadata<ISeries>.Related =>
+        RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
+
+    #endregion
+
+    #region IRelatedAnime implementation
+
+    IAnime? IRelatedAnime.RelatedAnime =>
+        RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
+
+    RType IRelatedAnime.RelationType => (this as IRelatedMetadata).RelationType;
+
+    #endregion
+
+
 }

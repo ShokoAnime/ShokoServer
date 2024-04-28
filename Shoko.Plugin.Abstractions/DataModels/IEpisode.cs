@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 #nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
@@ -39,6 +40,16 @@ public interface IEpisode : IWithTitles, IMetadata<int>
     /// Get the series info for the episode, if available.
     /// </summary>
     ISeries? SeriesInfo { get; }
+
+    /// <summary>
+    /// All cross-references linked to the episode.
+    /// </summary>
+    IReadOnlyList<IVideoCrossReference> CrossReferences { get; }
+
+    /// <summary>
+    /// Get all videos linked to the episode, if any.
+    /// </summary>
+    IReadOnlyList<IVideo> VideoList { get; }
 
     #region To-be-removed
 

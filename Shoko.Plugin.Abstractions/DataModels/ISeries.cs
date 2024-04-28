@@ -33,8 +33,27 @@ public interface ISeries : IWithTitles, IMetadata<int>
     bool Restricted { get; }
 
     /// <summary>
+    /// Related series.
+    /// </summary>
+    IReadOnlyList<IRelatedMetadata<ISeries>> RelatedSeries { get; }
+
+    /// <summary>
+    /// All cross-references linked to the series.
+    /// </summary>
+    IReadOnlyList<IVideoCrossReference> CrossReferences { get; }
+
+    /// <summary>
     /// All known episodes for the show.
     /// </summary>
-    /// <value></value>
     IReadOnlyList<IEpisode> EpisodeList { get; }
+
+    /// <summary>
+    /// Episode counts for every episode type.
+    /// </summary>
+    IReadOnlyDictionary<EpisodeType, int> EpisodeCountDict { get; }
+
+    /// <summary>
+    /// Get all videos linked to the series, if any.
+    /// </summary>
+    IReadOnlyList<IVideo> VideoList { get; }
 }

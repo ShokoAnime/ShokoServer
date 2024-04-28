@@ -52,7 +52,7 @@ public class SeriesRelation
 
         IDs = new RelationIDs { AniDB = relation.AnimeID, Shoko = series?.AnimeSeriesID };
         RelatedIDs = new RelationIDs { AniDB = relation.RelatedAnimeID, Shoko = relatedSeries?.AnimeSeriesID };
-        Type = ((IRelatedAnime)relation).RelationType;
+        Type = ((IRelatedMetadata)relation).RelationType;
         Source = "AniDB";
     }
 

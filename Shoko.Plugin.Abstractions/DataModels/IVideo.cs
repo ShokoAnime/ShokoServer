@@ -37,6 +37,11 @@ public interface IVideo : IMetadata<int>
     IMediaContainer? MediaInfo { get; }
 
     /// <summary>
+    /// All cross-references linked to the video.
+    /// </summary>
+    IReadOnlyList<IVideoCrossReference> CrossReferences { get; }
+
+    /// <summary>
     /// All episodes linked to the video.
     /// </summary>
     IReadOnlyList<IEpisode> EpisodeInfo { get; }

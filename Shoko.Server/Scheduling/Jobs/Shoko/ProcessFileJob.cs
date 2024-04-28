@@ -236,7 +236,7 @@ public class ProcessFileJob : BaseJob
         return aniFile;
     }
 
-    private async Task PopulateAnimeForFile(SVR_VideoLocal vidLocal, List<CrossRef_File_Episode> xrefs, Dictionary<int, bool> animeIDs)
+    private async Task PopulateAnimeForFile(SVR_VideoLocal vidLocal, List<SVR_CrossRef_File_Episode> xrefs, Dictionary<int, bool> animeIDs)
     {
         // check if we have the episode info
         // if we don't, we will need to re-download the anime info (which also has episode info)

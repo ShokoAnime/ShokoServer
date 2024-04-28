@@ -185,15 +185,8 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     }
 
 
-    public List<CrossRef_File_Episode> EpisodeCrossRefs
-    {
-        get
-        {
-            if (Hash.Length == 0) return new List<CrossRef_File_Episode>();
-
-            return RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
-        }
-    }
+    public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs =>
+        string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
 
     private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
@@ -568,6 +561,8 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     IHashes IVideo.Hashes => this;
 
     IMediaContainer IVideo.MediaInfo => Media;
+
+    IReadOnlyList<IVideoCrossReference> IVideo.CrossReferences => EpisodeCrossRefs;
 
     IReadOnlyList<IEpisode> IVideo.EpisodeInfo =>
         EpisodeCrossRefs
