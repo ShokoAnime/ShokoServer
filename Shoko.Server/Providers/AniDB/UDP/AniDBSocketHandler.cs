@@ -22,6 +22,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private bool Locked { get; set; }
     public bool IsLocked => Locked;
+    private static int TimeoutMs => 30000; // 30 seconds
 
     public AniDBSocketHandler(ILoggerFactory loggerFactory, string host, ushort serverPort, ushort clientPort)
     {
@@ -45,13 +46,12 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             {
                 result = await SendUnsafe(payload, result);
             }
-            catch (SocketException e)
+            catch (Exception e) when ((e is SocketException se && se.SocketErrorCode == SocketError.TimedOut) ||
+                                      (e is TaskCanceledException tce && tce.CancellationToken.IsCancellationRequested))
             {
-                if (e.SocketErrorCode == SocketError.TimedOut)
-                {
-                    // we will retry once and only once.
-                    result = await SendUnsafe(payload, result);
-                }
+                // catches timeouts in both synchronous and asynchronous calls
+                // we will retry once and only once.
+                result = await SendUnsafe(payload, result);
             }
         }
         catch (Exception e)
@@ -70,9 +70,15 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     private async Task<byte[]> SendUnsafe(byte[] payload, byte[] result)
     {
         EmptyBuffer();
-        await _aniDBSocket.SendToAsync(payload, SocketFlags.None, _remoteIpEndPoint);
+
+        using CancellationTokenSource sendCts = new(TimeoutMs);
+        await _aniDBSocket.SendToAsync(payload, SocketFlags.None, _remoteIpEndPoint, sendCts.Token);
+
         EndPoint temp = _remoteIpEndPoint;
-        var receivedResult = await _aniDBSocket.ReceiveFromAsync(result, SocketFlags.None, temp);
+
+        using CancellationTokenSource receiveCts = new(TimeoutMs);
+        var receivedResult = await _aniDBSocket.ReceiveFromAsync(result, SocketFlags.None, temp, receiveCts.Token);
+
         var received = receivedResult.ReceivedBytes;
 
         if (received > 2 && result[0] == 0 && result[1] == 0)
@@ -131,7 +137,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
              *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
              */
             _aniDBSocket.Bind(_localIpEndPoint);
-            _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
+            _aniDBSocket.ReceiveTimeout = TimeoutMs;
 
             _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
                 _clientPort, _localIpEndPoint.AddressFamily);
@@ -196,7 +202,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             _semaphore.Dispose();
         }
     }
-    
+
     public void Dispose()
     {
         _semaphore.Wait();
