@@ -47,12 +47,16 @@ public class AniDBSocketHandler : IAniDBSocketHandler
                 result = await SendUnsafe(payload, result);
             }
             catch (Exception e) when ((e is SocketException se && se.SocketErrorCode == SocketError.TimedOut) ||
-                                      (e is TaskCanceledException tce && tce.CancellationToken.IsCancellationRequested))
+                                      e is OperationCanceledException)
             {
                 // catches timeouts in both synchronous and asynchronous calls
                 // we will retry once and only once.
                 result = await SendUnsafe(payload, result);
             }
+        }
+        catch (TaskCanceledException e) when (e.CancellationToken.IsCancellationRequested)
+        {
+            _logger.LogError("AniDB UDP request timed out!");
         }
         catch (Exception e)
         {
