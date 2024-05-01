@@ -22,7 +22,8 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private bool Locked { get; set; }
     public bool IsLocked => Locked;
-    private static int TimeoutMs => 30000; // 30 seconds
+    private static int SendTimeoutMs => 30000; // 30 seconds
+    private static int ReceiveTimeoutMs => 30000; // 30 seconds
 
     public AniDBSocketHandler(ILoggerFactory loggerFactory, string host, ushort serverPort, ushort clientPort)
     {
@@ -54,7 +55,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
                 result = await SendUnsafe(payload, result);
             }
         }
-        catch (TaskCanceledException e) when (e.CancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException)
         {
             _logger.LogError("AniDB UDP request timed out!");
         }
@@ -75,12 +76,12 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     {
         EmptyBuffer();
 
-        using CancellationTokenSource sendCts = new(TimeoutMs);
+        using CancellationTokenSource sendCts = new(SendTimeoutMs);
         await _aniDBSocket.SendToAsync(payload, SocketFlags.None, _remoteIpEndPoint, sendCts.Token);
 
         EndPoint temp = _remoteIpEndPoint;
 
-        using CancellationTokenSource receiveCts = new(TimeoutMs);
+        using CancellationTokenSource receiveCts = new(ReceiveTimeoutMs);
         var receivedResult = await _aniDBSocket.ReceiveFromAsync(result, SocketFlags.None, temp, receiveCts.Token);
 
         var received = receivedResult.ReceivedBytes;
@@ -141,7 +142,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
              *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
              */
             _aniDBSocket.Bind(_localIpEndPoint);
-            _aniDBSocket.ReceiveTimeout = TimeoutMs;
+            _aniDBSocket.ReceiveTimeout = ReceiveTimeoutMs;
 
             _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
                 _clientPort, _localIpEndPoint.AddressFamily);
