@@ -426,3 +426,19 @@ public enum EpisodeType
     /// </summary>
     Extra = 10
 }
+
+public class EpisodeWatchList
+{
+    /// <summary>
+    /// A list of episode IDs
+    /// </summary>
+    [Required(ErrorMessage = "EpisodeIds cannot be null or empty")]
+    public IEnumerable<int> EpisodeIds { get; set; }
+
+
+    /// <summary>
+    /// The watch state to set  watched episode is changing to
+    /// </summary>
+    [Required(ErrorMessage = "Watched cannot be null or empty")]
+    public bool Watched { get; set; }
+}

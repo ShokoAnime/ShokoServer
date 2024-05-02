@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
@@ -19,7 +20,6 @@ using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using Shoko.Models.Server;
 using System.Collections.Concurrent;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -459,10 +459,37 @@ public class EpisodeController : BaseController
             return NotFound(EpisodeNotFoundWithEpisodeID);
         }
 
-        episode.ToggleWatchedStatus(watched, true, DateTime.Now, true, User.JMMUserID, true);
-
+        SetWatchedStatusOnEpisode(episode, watched);
         return Ok();
     }
+
+    /// <summary>
+    /// Set the watched status for the episode IDs provided in the body
+    /// </summary>
+    /// <param name="body"></param>
+    /// <returns></returns>
+    [HttpPost("Watched")]
+    public ActionResult SetWatchedStatusOnEpisodes(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] EpisodeWatchList body)
+    {
+        if (body.EpisodeIds.Any(id => id <= 0))
+        {
+            return BadRequest("All provided episode IDs must be greater than 0");
+        }
+        var episodes = body.EpisodeIds.Select(id => (id, episode: RepoFactory.AnimeEpisode.GetByID(id)));
+        var invalidIds = episodes.Where(epTuple => epTuple.episode == null).Select(epTuple => epTuple.id).ToList();
+        if (invalidIds.Count != 0)
+        {
+            var errorMessage = $"The following episode IDs could not be found: {string.Join(",", invalidIds)}";
+            return BadRequest(errorMessage);
+        }
+
+        episodes.ForEach(epTuple => SetWatchedStatusOnEpisode(epTuple.episode, body.Watched));
+        return Ok();
+    }
+
+    private void SetWatchedStatusOnEpisode(SVR_AnimeEpisode episode, bool watched)
+        => episode.ToggleWatchedStatus(watched, true, DateTime.Now, true, User.JMMUserID, true);
 
     /// <summary>
     /// Get all episodes with no files.
