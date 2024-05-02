@@ -488,8 +488,8 @@ public class EpisodeController : BaseController
         return Ok();
     }
 
-    private void SetWatchedStatusOnEpisode(SVR_AnimeEpisode episode, bool watched)
-        => episode.ToggleWatchedStatus(watched, true, DateTime.Now, true, User.JMMUserID, true);
+    private void SetWatchedStatusOnEpisode(SVR_AnimeEpisode episode, bool? watched)
+        => episode.ToggleWatchedStatus(watched ?? false, true, DateTime.Now, true, User.JMMUserID, true);
 
     /// <summary>
     /// Get all episodes with no files.
