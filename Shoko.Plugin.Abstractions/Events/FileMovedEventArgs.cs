@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Shoko.Plugin.Abstractions.DataModels;
 
 #nullable enable
@@ -37,6 +38,11 @@ public class FileMovedEventArgs : FileEventArgs
     public FileMovedEventArgs(string relativePath, IImportFolder importFolder, string previousRelativePath, IImportFolder previousImportFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
         : base(relativePath, importFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo)
     {
+        previousRelativePath = previousRelativePath
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace('\\', Path.DirectorySeparatorChar);
+        if (previousRelativePath[0] != Path.DirectorySeparatorChar)
+            previousRelativePath = Path.DirectorySeparatorChar + previousRelativePath;
         PreviousRelativePath = previousRelativePath;
         PreviousImportFolder = previousImportFolder;
     }

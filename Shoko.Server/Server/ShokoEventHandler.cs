@@ -155,12 +155,6 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public void OnFileMoved(SVR_ImportFolder oldFolder, SVR_ImportFolder newFolder, string oldPath, string newPath, SVR_VideoLocal_Place vlp)
     {
-        newPath = newPath
-            .Replace('/', Path.DirectorySeparatorChar)
-            .Replace('\\', Path.DirectorySeparatorChar);
-        oldPath = oldPath
-            .Replace('/', Path.DirectorySeparatorChar)
-            .Replace('\\', Path.DirectorySeparatorChar);
         var vl = vlp.VideoLocal;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs

@@ -24,6 +24,11 @@ public class FileDetectedEventArgs : EventArgs
 
     public FileDetectedEventArgs(string relativePath, FileInfo fileInfo, IImportFolder importFolder)
     {
+        relativePath = relativePath
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace('\\', Path.DirectorySeparatorChar);
+        if (relativePath[0] != Path.DirectorySeparatorChar)
+            relativePath = Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
         FileInfo = fileInfo;
         ImportFolder = importFolder;
