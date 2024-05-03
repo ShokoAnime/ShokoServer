@@ -73,12 +73,6 @@ public class DiscoverFileJob : BaseJob
 
             if (vlocal.HasAnyEmptyHashes())
                 shouldSave |= FillHashesAgainstVideoLocalRepo(vlocal);
-
-            if (vlocal.EpisodeCrossRefs.Any() && !vlocal.DateTimeImported.HasValue)
-            {
-                vlocal.DateTimeImported = DateTime.Now;
-                shouldSave = true;
-            }
         }
 
         // on a new file, this will always be true
@@ -87,13 +81,19 @@ public class DiscoverFileJob : BaseJob
 
         var scheduler = await _schedulerFactory.GetScheduler();
 
+        // if !shouldHash, then we definitely have a hash
+        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a =>
+            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
+        if (!shouldHash && hasXrefs && !vlocal.DateTimeImported.HasValue)
+        {
+            vlocal.DateTimeImported = DateTime.Now;
+            shouldSave = true;
+        }
+
         // this can't run on a new file, because shouldHash is true
         if (!shouldHash && !shouldSave)
         {
-            // if !shouldHash, then we definitely have a hash
-            var xrefs = vlocal.EpisodeCrossRefs.Where(a =>
-                RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
-            if (xrefs.Count != 0)
+            if (hasXrefs)
             {
                 _logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
                 return;
@@ -127,11 +127,8 @@ public class DiscoverFileJob : BaseJob
                 a.SkipMyList = SkipMyList;
             });
             return;
-
         }
 
-        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a =>
-            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
         if (!hasXrefs)
         {
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);

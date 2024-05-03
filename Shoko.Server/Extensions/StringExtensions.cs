@@ -16,7 +16,10 @@ public static class StringExtensions
         forth = list.Count > 3 ? list[3] : "";
         rest = list.Skip(4).ToList();
     }
-    
+
+    public static string Join(this IEnumerable<string> list, char separator)
+        => string.Join(separator, list);
+
     public static string ToISO8601Date(this DateTime dt)
     {
         return dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);

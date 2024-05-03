@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -75,18 +75,19 @@ public class ProcessFileJob : BaseJob
 
         // Store a hash-set of the old cross-references for comparison later.
         var oldXRefs = _vlocal.EpisodeCrossRefs
-            .Select(xref => xref.EpisodeID)
-            .ToHashSet();
+            .Select(xref => xref.ToString())
+            .Join(',');
 
         // Process and get the AniDB file entry.
         var aniFile = await ProcessFile_AniDB();
 
         // Check if an AniDB file is now available and if the cross-references changed.
         var newXRefs = _vlocal.EpisodeCrossRefs
-            .Select(xref => xref.EpisodeID)
-            .ToHashSet();
-        var xRefsMatch = newXRefs.SetEquals(oldXRefs);
-        if (aniFile != null && newXRefs.Count > 0 && !xRefsMatch)
+            .Select(xref => xref.ToString())
+            .Join(',');
+        var xRefsMatch = newXRefs == oldXRefs;
+        // Fire the file matched event on first import and any later scans where the xrefs changed
+        if (aniFile != null && !string.IsNullOrEmpty(newXRefs) && (!_vlocal.DateTimeImported.HasValue || !xRefsMatch))
         {
             // Set/update the import date
             _vlocal.DateTimeImported = DateTime.Now;
@@ -99,7 +100,7 @@ public class ProcessFileJob : BaseJob
         else
         {
             var autoMatchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(_vlocal.FileSize, _vlocal.Hash).Count;
-            var hasXRefs = newXRefs.Count > 0 && xRefsMatch;
+            var hasXRefs = !string.IsNullOrEmpty(newXRefs) && xRefsMatch;
             var isUDPBanned = _udpConnectionHandler.IsBanned;
             ShokoEventHandler.Instance.OnFileNotMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
         }

@@ -24,6 +24,9 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
     public SVR_VideoLocal_User? GetVideoLocalUserRecord(int userID)
         => RepoFactory.VideoLocal.GetByHash(Hash)?.GetUserRecord(userID);
 
+    public override string ToString() =>
+        $"CrossRef_File_Episode (Anime={AnimeID},Episode={EpisodeID},Hash={Hash},FileSize={FileSize},EpisodeOrder={EpisodeOrder},Percentage={Percentage})";
+
     #region IMetadata implementation
 
     DataSourceEnum IMetadata.Source => (CrossRefSource)CrossRefSource == Shoko.Models.Enums.CrossRefSource.AniDB
