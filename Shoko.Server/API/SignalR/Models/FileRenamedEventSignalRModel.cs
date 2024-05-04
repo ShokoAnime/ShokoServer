@@ -7,7 +7,7 @@ public class FileRenamedEventSignalRModel : FileEventSignalRModel
     public FileRenamedEventSignalRModel(FileRenamedEventArgs eventArgs) : base(eventArgs)
     {
         FileName = eventArgs.FileName;
-        PreviousFileName = eventArgs.PreviousRelativePath;
+        PreviousFileName = eventArgs.PreviousFileName;
     }
 
     /// <summary>
