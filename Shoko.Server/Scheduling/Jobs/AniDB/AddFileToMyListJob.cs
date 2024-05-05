@@ -134,13 +134,11 @@ public class AddFileToMyListJob : BaseJob
                     r =>
                     {
                         r.State = state.GetMyList_State();
-                        if (originalWatchedDate.HasValue)
-                        {
-                            r.IsWatched = originalWatchedDate.HasValue;
-                            r.WatchedDate = originalWatchedDate;                                
-                        }
                         r.Hash = _videoLocal.Hash;
                         r.Size = _videoLocal.FileSize;
+                        if (!originalWatchedDate.HasValue) return;
+                        r.IsWatched = originalWatchedDate.HasValue;
+                        r.WatchedDate = originalWatchedDate;
                     }
                 );
                 updateRequest.Send();

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
-using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
@@ -31,7 +30,7 @@ public class UpdateMyListFileStatusJob : BaseJob
     public bool UpdateSeriesStats { get; set; }
     public DateTime? WatchedDate { get; set; }
 
-    public override string TypeName => "Update AniDB MyList";
+    public override string TypeName => "Update AniDB MyList Status for File";
 
     public override void PostInit()
     {
@@ -41,19 +40,19 @@ public class UpdateMyListFileStatusJob : BaseJob
     public override string Title => "Updating AniDB MyList Status for File";
     public override Dictionary<string, object> Details => FullFileName != null ? new()
     {
-        {
-            "Filename", FullFileName
-        }
+        { "Filename", FullFileName},
+        { "Watched", Watched },
+        { "Date", WatchedDate }
     } : new()
     {
-        {
-            "Hash", Hash
-        }
+        { "Hash", Hash },
+        { "Watched", Watched },
+        { "Date", WatchedDate }
     } ;
 
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job} for {Filename} | {Hash} | {Watched}", nameof(UpdateMyListFileStatusJob), FullFileName, Hash, Watched);
+        _logger.LogInformation("Processing {Job} for {Filename} | {Watched} | {WatchedDate}", nameof(UpdateMyListFileStatusJob), FullFileName, Watched, WatchedDate);
 
         var settings = _settingsProvider.GetSettings();
         // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
@@ -62,33 +61,20 @@ public class UpdateMyListFileStatusJob : BaseJob
 
         if (vid.GetAniDBFile() != null)
         {
-            if (Watched && WatchedDate != null)
-            {
-                var request = _requestFactory.Create<RequestUpdateFile>(
-                    r =>
-                    {
-                        r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                        r.Hash = vid.Hash;
-                        r.Size = vid.FileSize;
-                        r.IsWatched = true;
-                        r.WatchedDate = WatchedDate;
-                    }
-                );
-                request.Send();
-            }
-            else
-            {
-                var request = _requestFactory.Create<RequestUpdateFile>(
-                    r =>
-                    {
-                        r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                        r.Hash = vid.Hash;
-                        r.Size = vid.FileSize;
-                        r.IsWatched = false;
-                    }
-                );
-                request.Send();
-            }
+            _logger.LogInformation("Updating File MyList Status: {Hash}|{Size}", vid.Hash, vid.FileSize);
+            var request = _requestFactory.Create<RequestUpdateFile>(
+                r =>
+                {
+                    r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
+                    r.Hash = vid.Hash;
+                    r.Size = vid.FileSize;
+                    if (!Watched || WatchedDate == null) return;
+                    r.IsWatched = true;
+                    r.WatchedDate = WatchedDate;
+                }
+            );
+
+            request.Send();
         }
         else
         {
@@ -96,37 +82,24 @@ public class UpdateMyListFileStatusJob : BaseJob
             var xrefs = vid.EpisodeCrossRefs;
             foreach (var episode in xrefs.Select(xref => xref.GetEpisode()).Where(episode => episode != null))
             {
-                if (Watched && WatchedDate != null)
-                {
-                    var request = _requestFactory.Create<RequestUpdateEpisode>(
-                        r =>
-                        {
-                            r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                            r.EpisodeNumber = episode.EpisodeNumber;
-                            r.AnimeID = episode.AnimeID;
-                            r.IsWatched = true;
-                            r.WatchedDate = WatchedDate;
-                        }
-                    );
-                    request.Send();
-                }
-                else
-                {
-                    var request = _requestFactory.Create<RequestUpdateEpisode>(
-                        r =>
-                        {
-                            r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                            r.EpisodeNumber = episode.EpisodeNumber;
-                            r.AnimeID = episode.AnimeID;
-                            r.IsWatched = false;
-                        }
-                    );
-                    request.Send();
-                }
+                _logger.LogInformation("Updating Episode MyList Status: AnimeID: {AnimeID}, Episode Type: {Type}, Episode No: {EP}", episode.AnimeID,
+                    episode.EpisodeTypeEnum, episode.EpisodeNumber);
+                var request = _requestFactory.Create<RequestUpdateEpisode>(
+                    r =>
+                    {
+                        r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
+                        r.AnimeID = episode.AnimeID;
+                        r.EpisodeNumber = episode.EpisodeNumber;
+                        r.EpisodeType = (EpisodeType)episode.EpisodeType;
+                        if (!Watched || WatchedDate == null) return;
+                        r.IsWatched = true;
+                        r.WatchedDate = WatchedDate;
+                    }
+                );
+
+                request.Send();
             }
         }
-
-        _logger.LogInformation("Updating file list status: {Hash} - {Watched}", vid.Hash, Watched);
 
         if (!UpdateSeriesStats) return Task.CompletedTask;
 

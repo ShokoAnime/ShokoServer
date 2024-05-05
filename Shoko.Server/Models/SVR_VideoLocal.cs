@@ -253,9 +253,8 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         if (user.IsAniDBUser == 0)
             SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate, lastUpdated);
         else
-            foreach (var juser in aniDBUsers)
-                if (juser.IsAniDBUser == 1)
-                    SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate, lastUpdated);
+            foreach (var juser in aniDBUsers.Where(juser => juser.IsAniDBUser == 1))
+                SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate, lastUpdated);
 
         // now lets find all the associated AniDB_File record if there is one
         if (user.IsAniDBUser == 1)
@@ -276,10 +275,8 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
                 }
         }
 
-        // now find all the episode records associated with this video file
-        // but we also need to check if theer are any other files attached to this episode with a watched
-        // status, 
-
+        // now find all the episode records associated with this video file,
+        // but we also need to check if there are any other files attached to this episode with a watched status
 
         SVR_AnimeSeries ser;
         // get all files associated with this episode
@@ -288,8 +285,8 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         if (watched)
         {
             // find the total watched percentage
-            // eg one file can have a % = 100
-            // or if 2 files make up one episodes they will each have a % = 50
+            // e.g. one file can have a % = 100
+            // or if 2 files make up one episode they will each have a % = 50
 
             foreach (var xref in xrefs)
             {

@@ -39,7 +39,7 @@ public class RequestUpdateFile : UDPRequest<Void>
 
     public MyList_State State { get; set; }
 
-    public bool? IsWatched { get; set; }
+    public bool IsWatched { get; set; }
     public DateTime? WatchedDate { get; set; }
 
     protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
