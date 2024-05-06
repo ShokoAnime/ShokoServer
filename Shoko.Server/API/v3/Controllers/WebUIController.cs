@@ -309,7 +309,7 @@ public class WebUIController : BaseController
     /// Install a fresh copy of the web ui for the selected
     /// <paramref name="channel"/>. Will only install if it detects that no
     /// previous version is installed.
-    /// 
+    ///
     /// You don't need to be authenticated to use this endpoint.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
@@ -318,7 +318,7 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Install")]
-    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
+    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
     {
         var indexLocation = Path.Combine(Utils.ApplicationPath, "webui", "index.html");
         if (System.IO.File.Exists(indexLocation))
@@ -359,8 +359,10 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Update")]
-    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
+    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
     {
+        if (channel == ReleaseChannel.Auto)
+            channel = GetCurrentWebUIReleaseChannel();
         var result = LatestWebUIVersion(channel);
         if (result.Value == null)
             return result.Result;
@@ -387,10 +389,8 @@ public class WebUIController : BaseController
     [InitFriendly]
     [HttpGet("Update")]
     [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later™.")]
-    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
-    {
-        return UpdateWebUI(channel);
-    }
+    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
+        => UpdateWebUI(channel);
 
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
@@ -403,10 +403,12 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestVersion")]
-    public ActionResult<ComponentVersion> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable, [FromQuery] bool force = false)
+    public ActionResult<ComponentVersion> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
     {
-        try 
+        try
         {
+            if (channel == ReleaseChannel.Auto)
+                channel = GetCurrentServerReleaseChannel();
             var key = $"webui:{channel}";
             if (!force && Cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
                 return componentVersion;
@@ -481,15 +483,6 @@ public class WebUIController : BaseController
         }
     }
 
-    private static ReleaseChannel GetDefaultServerReleaseChannel()
-    {
-        var extraVersionDict = Utils.GetApplicationExtraVersion();
-        if (extraVersionDict.TryGetValue("channel", out var rawChannel))
-            if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
-                return parsedChannel;
-        return ReleaseChannel.Stable;
-    }
-
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
     /// return a <see cref="ComponentVersion"/> containing the version
@@ -501,16 +494,16 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestServerVersion")]
-    public ActionResult<ComponentVersion> LatestServerWebUIVersion([FromQuery] ReleaseChannel? channel = null, [FromQuery] bool force = false)
+    public ActionResult<ComponentVersion> LatestServerWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
     {
         try
         {
-            if (!channel.HasValue)
-                channel = GetDefaultServerReleaseChannel();
+            if (channel == ReleaseChannel.Auto)
+                channel = GetCurrentServerReleaseChannel();
             var key = $"server:{channel}";
             if (!force && Cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
                 return componentVersion;
-            switch (channel.Value)
+            switch (channel)
             {
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
@@ -601,6 +594,22 @@ public class WebUIController : BaseController
                 return StatusCode((int)HttpStatusCode.BadGateway, "Unable to use the GitHub API to check for an update. Check your connection.");
             throw;
         }
+    }
+
+    private static ReleaseChannel GetCurrentWebUIReleaseChannel()
+    {
+        var webuiVersion = WebUIHelper.LoadWebUIVersionInfo();
+        if (webuiVersion != null)
+            return webuiVersion.debug ? ReleaseChannel.Debug : webuiVersion.package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable;
+        return GetCurrentServerReleaseChannel();
+    }
+
+    private static ReleaseChannel GetCurrentServerReleaseChannel()
+    {
+        var extraVersionDict = Utils.GetApplicationExtraVersion();
+        if (extraVersionDict.TryGetValue("channel", out var rawChannel) && Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
+            return channel;
+        return ReleaseChannel.Stable;
     }
 
 

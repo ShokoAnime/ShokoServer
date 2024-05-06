@@ -48,6 +48,7 @@ public class ComponentVersion
 [JsonConverter(typeof(StringEnumConverter))]
 public enum ReleaseChannel
 {
+    Auto = 0,
     Stable = 1,
     Dev = 2,
     Debug = 3,

@@ -21,6 +21,8 @@ ENV PUID=1000 \
     LC_CTYPE=C.UTF-8 \
     LC_ALL=C.UTF-8
 
+ARG channel
+
 RUN apt-get update && apt-get install -y gnupg curl
 
 RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
@@ -32,10 +34,17 @@ WORKDIR /usr/src/app/build
 COPY --from=build /usr/src/app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
-WORKDIR /usr/src/app/build/webui
-RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url') -o latest.zip
-RUN unzip -o latest.zip
-RUN rm latest.zip
+# Create a sub-scope where we navigate to the web ui directory, then download the needed web ui archive, extract it, and remove the archive.
+RUN (\
+        cd /usr/src/app/build/webui;\
+        if [ "${channel:-dev}" = "stable" ]; then\
+            curl -L $(curl https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url') -o latest.zip;\
+        else\
+            curl -L $(curl https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url') -o latest.zip;\
+        fi;\
+        unzip -o latest.zip;\
+        rm latest.zip\
+    )
 
 VOLUME /home/shoko/.shoko/
 
