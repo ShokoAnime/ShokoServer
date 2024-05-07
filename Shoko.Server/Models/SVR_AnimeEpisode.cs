@@ -104,7 +104,6 @@ public class SVR_AnimeEpisode : AnimeEpisode
         else if (epUserRecord != null && updateWatchedDate)
         {
             epUserRecord.WatchedDate = null;
-            epUserRecord.WatchedCount = 0;
             RepoFactory.AnimeEpisode_User.Save(epUserRecord);
         }
     }
@@ -167,10 +166,10 @@ public class SVR_AnimeEpisode : AnimeEpisode
             vid.SetResumePosition(0, userID);
         }
     }
-
+        
     public void RemoveVideoLocals(bool deleteFiles)
     {
-
+        
     }
 
     public string Title
