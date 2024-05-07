@@ -193,7 +193,7 @@ public static class ModelHelper
             var anidbEpisode = episode.AniDB_Episode;
             var fileList = episode.GetVideoLocals();
             var isLocal = fileList.Count > 0;
-            var isWatched = (episode.GetUserRecord(userID)?.WatchedCount ?? 0) > 0;
+            var isWatched = episode.GetUserRecord(userID)?.WatchedDate.HasValue ?? false;
             foreach (var file in fileList)
             {
                 // Only iterate the same file once.
