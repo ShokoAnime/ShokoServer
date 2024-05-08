@@ -252,7 +252,7 @@ public class WebUI
                         var videoStream = media.Video.FirstOrDefault();
                         if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoBitDepth))
                             groupByDetails.VideoBitDepth = videoStream?.BitDepth ?? 0;
-                        if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoBitDepth))
+                        if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoResolution))
                         {
                             var width = videoStream?.Width ?? 0;
                             var height = videoStream?.Height ?? 0;
