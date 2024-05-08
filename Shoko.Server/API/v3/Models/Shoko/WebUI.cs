@@ -299,8 +299,8 @@ public class WebUI
                         GroupBy = groupByDetails,
                         Episode = new EpisodeDetails
                         {
-                            FileID = anidbFile?.FileID,
-                            EpisodeID = episode.AniDB.EpisodeID,
+                            FileID = file.VideoLocalID,
+                            EpisodeID = episode.ID,
                             Type = episode.Type,
                             Number = episode.Number,
                             Size = file.FileSize,
