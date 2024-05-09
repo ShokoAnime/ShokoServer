@@ -24,7 +24,6 @@ namespace Shoko.Models.Plex.TVShow
         [DataMember(Name = "title1")] public string Title1 { get; set; }
         [DataMember(Name = "title2")] public string Title2 { get; set; }
         [DataMember(Name = "viewGroup")] public string ViewGroup { get; set; }
-        [DataMember(Name = "viewMode")] public long ViewMode { get; set; }
         [DataMember(Name = "Metadata")] public Episode[] Metadata { get; set; }
     }
 }
