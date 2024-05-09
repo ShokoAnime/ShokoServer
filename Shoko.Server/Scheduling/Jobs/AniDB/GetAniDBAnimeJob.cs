@@ -36,6 +36,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     private readonly AnimeCreator _animeCreator;
     private readonly AnimeGroupCreator _animeGroupCreator;
     private readonly HttpXmlUtils _xmlUtils;
+    private readonly JobFactory _jobFactory;
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IServerSettings _settings;
@@ -151,19 +152,18 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
 
         // Request an image download
-        await scheduler.StartJobNow<GetAniDBImagesJob>(job => job.AnimeID = AnimeID);
+        var imagesJob = _jobFactory.CreateJob<GetAniDBImagesJob>(job => job.AnimeID = AnimeID);
+        await imagesJob.Process();
 
         // Emit anidb anime updated event.
-        if (updated)
+        if (updated.Any())
         {
             ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated);
 
             // Re-schedule the videos to move/rename as required if something changed.
-            var videos = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
-                .DistinctBy(xref => xref.Hash)
-                .Select(xref => xref.GetVideo())
-                .OfType<SVR_VideoLocal>()
-                .ToList();
+            var videos = updated.SelectMany(RepoFactory.CrossRef_File_Episode.GetByEpisodeID).Where(a => a != null)
+                .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)).Where(a => a != null).DistinctBy(a => a.VideoLocalID).ToList();
+
             foreach (var video in videos)
                 await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID);
         }
@@ -336,7 +336,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     }
 
     public GetAniDBAnimeJob(IHttpConnectionHandler handler, HttpAnimeParser parser, AnimeCreator animeCreator, HttpXmlUtils xmlUtils,
-        IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeGroupCreator animeGroupCreator, AniDBTitleHelper titleHelper)
+        IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeGroupCreator animeGroupCreator, AniDBTitleHelper titleHelper, JobFactory jobFactory)
     {
         _handler = handler;
         _parser = parser;
@@ -346,6 +346,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         _schedulerFactory = schedulerFactory;
         _animeGroupCreator = animeGroupCreator;
         _titleHelper = titleHelper;
+        _jobFactory = jobFactory;
         _settings = settingsProvider.GetSettings();
     }
 

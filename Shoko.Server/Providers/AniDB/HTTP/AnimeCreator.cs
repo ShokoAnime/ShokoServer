@@ -36,7 +36,7 @@ public class AnimeCreator
     }
 
 
-    public async Task<bool> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<IEnumerable<int>> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         var settings = _settingsProvider.GetSettings();
         _logger.LogTrace("------------------------------------------------");
@@ -53,12 +53,13 @@ public class AnimeCreator
             _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                              "This is not an error on our end. It is AniDB's issue, " +
                              "as they did not return either an ID or a title for the anime");
-            return false;
+            return [];
         }
 
         var taskTimer = Stopwatch.StartNew();
         var totalTimer = Stopwatch.StartNew();
-        var updated = PopulateAnime(response.Anime, anime);
+        var updated = new HashSet<int>();
+        if (PopulateAnime(response.Anime, anime)) updated.UnionWith(response.Episodes.Select(a => a.EpisodeID));
 
         RepoFactory.AniDB_Anime.Save(anime, false);
 
@@ -67,17 +68,17 @@ public class AnimeCreator
         taskTimer.Restart();
 
         // alternatively these could be written as an if...then statement spanning two lines.
-        updated = await CreateEpisodes(response.Episodes, anime) || updated;
+        updated.UnionWith(await CreateEpisodes(response.Episodes, anime));
         taskTimer.Stop();
         _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        updated = CreateTitles(response.Titles, anime) || updated;
+        if (CreateTitles(response.Titles, anime)) updated.UnionWith(response.Episodes.Select(a => a.EpisodeID));
         taskTimer.Stop();
         _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        updated = CreateTags(response.Tags, anime) || updated;
+        if (CreateTags(response.Tags, anime)) updated.UnionWith(response.Episodes.Select(a => a.EpisodeID));
         taskTimer.Stop();
         _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
@@ -112,7 +113,7 @@ public class AnimeCreator
         anime.DateTimeUpdated = DateTime.Now;
 
         // Track when we last updated the metadata.
-        if (updated)
+        if (updated.Count > 0)
             anime.DateTimeDescUpdated = anime.DateTimeUpdated;
 #pragma warning restore CS0618
 
@@ -280,10 +281,10 @@ public class AnimeCreator
         return isUpdated;
     }
 
-    private async Task<bool> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task<IEnumerable<int>> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
-            return false;
+            return [];
 
         var episodeCountSpecial = 0;
         var episodeCountNormal = 0;
@@ -325,7 +326,7 @@ public class AnimeCreator
                 // The data we have stored is either in sync (or newer) than
                 // the raw episode data, so skip updating the episode, so if the
                 // episode does not belong to the anime being processed then
-                // skip it..
+                // skip it...
                 if (episode.DateTimeUpdated >= rawEpisode.LastUpdated && episode.AnimeID != rawEpisode.AnimeID)
                     continue;
 
@@ -578,7 +579,7 @@ public class AnimeCreator
         foreach (var episode in epsToRemove)
             ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, UpdateReason.Removed);
 
-        return episodeEventsToEmit.Count > 0 || epsToRemove.Count > 0 || titlesToSave.Count > 0 || titlesToRemove.Count > 0;
+        return epsToSave.Select(a => a.EpisodeID);
     }
 
     private static bool CreateTitles(List<ResponseTitle> titles, SVR_AniDB_Anime anime)
