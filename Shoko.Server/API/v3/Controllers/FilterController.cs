@@ -50,7 +50,7 @@ public class FilterController : BaseController
         [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
     {
         var user = User;
-        
+
         return _filterEvaluator.BatchEvaluateFilters(RepoFactory.FilterPreset.GetTopLevel(), user.JMMUserID, true)
             .Where(kv =>
             {
@@ -82,7 +82,7 @@ public class FilterController : BaseController
             var filterPreset = _factory.GetFilterPreset(body, ModelState);
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
-            
+
             RepoFactory.FilterPreset.Save(filterPreset);
             return _factory.GetFilter(filterPreset, true);
         }
@@ -96,10 +96,10 @@ public class FilterController : BaseController
     /// Lists the available expressions.
     /// </summary>
     /// <remarks>
-    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.  
-    /// Expression: The identifier used to create the expression. eg. And, Not, HasTag.  
-    /// Type: Parameters have a type, and this is the type that needs to match.  
-    /// Left, Right, Parameter, and SecondParameter show what type the expression supports as parameters.  
+    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.
+    /// Expression: The identifier used to create the expression. eg. And, Not, HasTag.
+    /// Type: Parameters have a type, and this is the type that needs to match.
+    /// Left, Right, Parameter, and SecondParameter show what type the expression supports as parameters.
     /// Left and Right are Expressions or Selectors. Parameters are constants.
     /// </remarks>
     /// <param name="types">Optional. The Expression types to return</param>
@@ -177,10 +177,10 @@ public class FilterController : BaseController
     /// Lists the available sorting expressions. These are basically selectors that the filter system uses to sort.
     /// </summary>
     /// <remarks>
-    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.  
-    /// Type: The identifier used to create the expression. eg. AddedDate.  
-    /// IsInverted: Whether the sorting should be in descending order.  
-    /// Next: If the expression returns equal values, it defers to the next expression to sort more predictably.  
+    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.
+    /// Type: The identifier used to create the expression. eg. AddedDate.
+    /// IsInverted: Whether the sorting should be in descending order.
+    /// Next: If the expression returns equal values, it defers to the next expression to sort more predictably.
     /// For example, MissingEpisodeCount,Descending -> AirDate, Descending would have thing with the most missing episodes, then the last aired first.
     /// </remarks>
     [HttpGet("SortingCriteria")]
@@ -244,7 +244,7 @@ public class FilterController : BaseController
             filterPreset = _factory.GetFilterPreset(body, ModelState, filterPreset);
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
-            
+
             RepoFactory.FilterPreset.Save(filterPreset);
             return _factory.GetFilter(filterPreset, true);
         }
@@ -273,7 +273,7 @@ public class FilterController : BaseController
             filterPreset = _factory.GetFilterPreset(body, ModelState, filterPreset);
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
-            
+
             RepoFactory.FilterPreset.Save(filterPreset);
             return _factory.GetFilter(filterPreset, true);
         }
@@ -448,12 +448,12 @@ public class FilterController : BaseController
         var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
         if (results.Length == 0)
             return new List<Group>();
-        
+
         // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
         // This should maintain the order of results, but have every group in the tree for those results
         var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.GetAllChildGroups().Select(b => b.AnimeGroupID)).ToArray();
         var groups = orderedGroups.ToHashSet();
-        
+
         return group.GetChildGroups()
             .Where(subGroup =>
             {
