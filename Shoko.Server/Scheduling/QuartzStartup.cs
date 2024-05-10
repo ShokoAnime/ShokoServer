@@ -75,7 +75,7 @@ public static class QuartzStartup
             QuartzExtensions.SchedulerLock.Release();
         }
     }
-    
+
     internal static void AddQuartz(this IServiceCollection services)
     {
         // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
@@ -96,14 +96,14 @@ public static class QuartzStartup
         {
             var settings = Utils.SettingsProvider.GetSettings().Quartz;
             var threadPoolSize = settings.MaxThreadPoolSize;
-            // if it's not set in the settings, then do the number of logical processors + 2. This is to allow a couple to rate limit in the queue 
+            // if it's not set in the settings, then do the number of logical processors + 2. This is to allow a couple to rate limit in the queue
             if (threadPoolSize <= 0) threadPoolSize = Environment.ProcessorCount + 2;
             q.UseDefaultThreadPool(o => o.MaxConcurrency = threadPoolSize);
 
             q.UseDatabase();
             q.MaxBatchSize = 1;
             q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(0.5);
-            q.SetProperty(StdSchedulerFactory.PropertySchedulerIdleWaitTime, TimeSpan.FromSeconds(0.5).ToString());
+            q.SetProperty(StdSchedulerFactory.PropertySchedulerIdleWaitTime, TimeSpan.FromSeconds(0.5).Milliseconds.ToString());
             q.UseJobFactory<JobFactory>();
             q.AddSchedulerListener<SchedulerListener>();
         });
