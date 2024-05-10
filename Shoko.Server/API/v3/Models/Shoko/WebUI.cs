@@ -238,6 +238,8 @@ public class WebUI
                         groupByDetails.FileSource = File.ParseFileSource(anidbFile?.File_Source);
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
                         groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath);
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
+                        groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
 
                     // Video criterias
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoCodecs))
@@ -261,6 +263,8 @@ public class WebUI
                             groupByDetails.VideoResolution = MediaInfoUtils.GetStandardResolution(new(width, height));
                         }
                     }
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoHasChapters))
+                        groupByDetails.VideoHasChapters = media.Chapters.Count > 0;
 
                     // Audio criterias
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.AudioCodecs))
@@ -347,11 +351,13 @@ public class WebUI
                         FileVersion = data.FileVersion,
                         FileSource = data.FileSource,
                         FileLocation = data.FileLocation,
+                        FileIsDeprecated = data.FileIsDeprecated,
                         VideoCodecs = data.VideoCodecs,
                         VideoBitDepth = data.VideoBitDepth,
                         VideoResolution = data.VideoResolution,
                         VideoWidth = data.VideoWidth,
                         VideoHeight = data.VideoHeight,
+                        VideoHasChapters = data.VideoHasChapters,
                         AudioCodecs = data.AudioCodecs,
                         AudioLanguages = data.AudioLanguages == null ? null :
                             string.IsNullOrEmpty(data.AudioLanguages) ? new string[] {} : data.AudioLanguages.Split(", "),
@@ -399,6 +405,8 @@ public class WebUI
             SubtitleCodecs = 1024,
             SubtitleLanguages = 2048,
             SubtitleStreamCount = 4096,
+            VideoHasChapters = 8192,
+            FileIsDeprecated = 16384,
         }
 
         /// <summary>
@@ -441,6 +449,13 @@ public class WebUI
             public string FileLocation;
 
             /// <summary>
+            /// Indicates that the file version is deprecated and has been super
+            /// seeded by a newer file version by the same group.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public bool? FileIsDeprecated;
+
+            /// <summary>
             /// The video codecs used in the files of this range (e.g., h264, h265, etc.).
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -469,6 +484,13 @@ public class WebUI
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public int? VideoHeight;
+
+            /// <summary>
+            /// Indicates that the episodes in the group do have or don't have
+            /// chapters.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public bool? VideoHasChapters;
 
             /// <summary>
             /// The audio codecs used in the files of this range (e.g., acc, ac3, dts, etc.).
@@ -560,6 +582,8 @@ public class WebUI
             public string SubtitleLanguages;
             public int? SubtitleStreamCount;
             public string FileLocation;
+            public bool? VideoHasChapters;
+            public bool? FileIsDeprecated;
 
             public bool Equals(GroupByDetails other)
             {
@@ -572,12 +596,14 @@ public class WebUI
                     FileVersion == other.FileVersion &&
                     FileSource == other.FileSource &&
                     FileLocation == other.FileLocation &&
+                    FileIsDeprecated == other.FileIsDeprecated &&
 
                     VideoCodecs == other.VideoCodecs &&
                     VideoBitDepth == other.VideoBitDepth &&
                     VideoResolution == other.VideoResolution &&
                     // VideoWidth == other.VideoWidth &&
                     // VideoHeight == other.VideoHeight &&
+                    VideoHasChapters == other.VideoHasChapters &&
 
                     AudioCodecs == other.AudioCodecs &&
                     AudioLanguages == other.AudioLanguages &&
@@ -598,12 +624,14 @@ public class WebUI
                 hash = hash * 31 + FileVersion.GetHashCode();
                 hash = hash * 31 + FileSource.GetHashCode();
                 hash = hash * 31 + (FileLocation?.GetHashCode() ?? 0);
+                hash = hash * 31 + (FileIsDeprecated?.GetHashCode() ?? 0);
 
                 hash = hash * 31 + (VideoCodecs?.GetHashCode() ?? 0);
                 hash = hash * 31 + VideoBitDepth.GetHashCode();
                 hash = hash * 31 + (VideoResolution?.GetHashCode() ?? 0);
                 // hash = hash * 31 + VideoWidth.GetHashCode();
                 // hash = hash * 31 + VideoHeight.GetHashCode();
+                hash = hash * 31 + (VideoHasChapters?.GetHashCode() ?? 0);
 
                 hash = hash * 31 + (AudioCodecs?.GetHashCode() ?? 0);
                 hash = hash * 31 + (AudioLanguages?.GetHashCode() ?? 0);
