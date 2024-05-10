@@ -132,7 +132,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Create or update the anime record,
         anime ??= new SVR_AniDB_Anime();
         var isNew = anime.AniDB_AnimeID == 0;
-        var updated = await _animeCreator.CreateAnime(response, anime, 0);
+        var (isUpdated, episodesToMove) = await _animeCreator.CreateAnime(response, anime, 0);
 
         // then conditionally create the series record if it doesn't exist,
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
@@ -156,13 +156,18 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         await imagesJob.Process();
 
         // Emit anidb anime updated event.
-        if (updated.Any())
-        {
+        if (isUpdated)
             ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated);
 
-            // Re-schedule the videos to move/rename as required if something changed.
-            var videos = updated.SelectMany(RepoFactory.CrossRef_File_Episode.GetByEpisodeID).Where(a => a != null)
-                .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)).Where(a => a != null).DistinctBy(a => a.VideoLocalID).ToList();
+        // Re-schedule the videos to move/rename as required if something changed.
+        if (episodesToMove.Count > 0)
+        {
+            var videos = episodesToMove.SelectMany(RepoFactory.CrossRef_File_Episode.GetByEpisodeID)
+                .OfType<SVR_CrossRef_File_Episode>()
+                .Select(a => a.GetVideo())
+                .OfType<SVR_VideoLocal>()
+                .DistinctBy(a => a.VideoLocalID)
+                .ToList();
 
             foreach (var video in videos)
                 await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID);
