@@ -103,7 +103,7 @@ public static class QuartzStartup
             q.UseDatabase();
             q.MaxBatchSize = 1;
             q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(0.5);
-            q.SetProperty(StdSchedulerFactory.PropertySchedulerIdleWaitTime, TimeSpan.FromSeconds(0.5).Milliseconds.ToString());
+            q.SetProperty(StdSchedulerFactory.PropertySchedulerIdleWaitTime, TimeSpan.FromSeconds(0.5).TotalMilliseconds.ToString());
             q.UseJobFactory<JobFactory>();
             q.AddSchedulerListener<SchedulerListener>();
         });
