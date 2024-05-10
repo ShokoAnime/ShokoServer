@@ -23,7 +23,8 @@ using JobState = (int WaitingCount, int BlockedCount, QueueItem[] WaitingItems, 
 
 public class ThreadPooledJobStore : JobStoreTX
 {
-    private static DateTimeOffset NoLaterThan => DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(30));
+    private static DateTimeOffset NoLaterThan => DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(0.5));
+    private DateTimeOffset NoEarlierThan => MisfireTime;
     private readonly ILogger<ThreadPooledJobStore> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly QueueStateEventHandler _queueStateEventHandler;
@@ -34,7 +35,6 @@ public class ThreadPooledJobStore : JobStoreTX
     private Dictionary<Type, int> _typeConcurrencyCache;
     private Dictionary<string, Type[]> _concurrencyGroupCache;
     private int _threadPoolSize;
-    private DateTimeOffset NoEarlierThan => MisfireTime;
     private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;
 
 #region Init
