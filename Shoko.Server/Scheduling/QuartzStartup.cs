@@ -8,6 +8,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
+using Quartz.Impl;
 using Quartz.Spi;
 using Quartz.Util;
 using Shoko.Server.Scheduling.Acquisition.Filters;
@@ -101,7 +102,8 @@ public static class QuartzStartup
 
             q.UseDatabase();
             q.MaxBatchSize = 1;
-            q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(30);
+            q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(0.5);
+            q.SetProperty(StdSchedulerFactory.PropertySchedulerIdleWaitTime, TimeSpan.FromSeconds(0.5).ToString());
             q.UseJobFactory<JobFactory>();
             q.AddSchedulerListener<SchedulerListener>();
         });
