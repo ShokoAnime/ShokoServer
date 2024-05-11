@@ -59,23 +59,22 @@ public class RecoveringFileSystemWatcher : IDisposable
 
     private void OnFileEvent(string path, WatcherChangeTypes type)
     {
-        Task.Factory.StartNew(par1 =>
+        Task.Run(() =>
         {
-            var (path1, type1) = ((string path, WatcherChangeTypes type))par1;
             try
             {
-                switch (type1)
+                switch (type)
                 {
                     case WatcherChangeTypes.Created:
                     case WatcherChangeTypes.Changed:
                     case WatcherChangeTypes.Renamed:
-                        if (!IsLocked(path1)) FileAdded?.Invoke(this, path1);
+                        if (!IsLocked(path)) FileAdded?.Invoke(this, path);
                         break;
                     case WatcherChangeTypes.Deleted:
-                        FileDeleted?.Invoke(this, path1);
+                        FileDeleted?.Invoke(this, path);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(type1));
+                        throw new ArgumentOutOfRangeException(nameof(type));
                 }
             }
             catch (Exception ex)
@@ -84,9 +83,9 @@ public class RecoveringFileSystemWatcher : IDisposable
             }
             finally
             {
-                _buffer.TryRemove(path1, out _);
+                _buffer.TryRemove(path, out _);
             }
-        }, (path, type));
+        });
     }
 
     private void WatcherChangeDetected(object sender, FileSystemEventArgs e)

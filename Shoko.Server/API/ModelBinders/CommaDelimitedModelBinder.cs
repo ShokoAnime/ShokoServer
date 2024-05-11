@@ -41,10 +41,15 @@ public class CommaDelimitedModelBinder : IModelBinder
         {
             // HashSet<T> makes things really hard, as it needs compile time types
             result = Activator.CreateInstance(bindingContext.ModelType);
-            if (!AddCache.TryGetValue(bindingContext.ModelType, out var addMethod))
+
+            MethodInfo? addMethod;
+            lock (AddCache)
             {
-                addMethod = bindingContext.ModelType.GetMethod("Add");
-                if (addMethod != null) AddCache[bindingContext.ModelType] = addMethod;
+                if (!AddCache.TryGetValue(bindingContext.ModelType, out addMethod))
+                {
+                    addMethod = bindingContext.ModelType.GetMethod("Add");
+                    if (addMethod != null) AddCache[bindingContext.ModelType] = addMethod;
+                }
             }
 
             if (addMethod == null)
@@ -58,10 +63,7 @@ public class CommaDelimitedModelBinder : IModelBinder
                 try
                 {
                     var value = converter.ConvertFromString(item);
-                    addMethod.Invoke(result, new[]
-                    {
-                        value
-                    });
+                    addMethod.Invoke(result, [value]);
                 }
                 catch (Exception e)
                 {

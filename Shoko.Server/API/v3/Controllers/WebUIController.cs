@@ -256,6 +256,8 @@ public class WebUIController : BaseController
     [HttpGet("Series/{seriesID}")]
     public ActionResult<WebUISeriesExtra> GetSeries([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
+
         // Retrieve extra information for the specified series if it exists and the user has permissions.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)

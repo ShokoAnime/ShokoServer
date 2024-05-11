@@ -73,6 +73,7 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
 
     public BaseJob CreateJob(IJobDetail jobDetails)
     {
+        if (jobDetails == null) return null;
         try
         {
             var type = jobDetails.JobType;

@@ -92,6 +92,7 @@ public class PlexWebhook : BaseController
         if (episode == null) return;
 
         var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
+        if (vl == null || vl.Duration == 0) return; 
 
         var per = 100 *
                   (metadata.ViewOffset /

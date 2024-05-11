@@ -57,6 +57,8 @@ public class SeriesController : BaseController
 
     #region Return messages
 
+    internal const string SeriesWithZeroID = "SeriesID must be greater than 0";
+
     internal const string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
 
     internal const string SeriesNotFoundWithAnidbID = "No Series entry for the given anidbID";
@@ -121,6 +123,7 @@ public class SeriesController : BaseController
     public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -146,6 +149,7 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}")]
     public async Task<ActionResult> DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -167,6 +171,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/OverrideTitle")]
     public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeriesTitleOverride body)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
 
         if (series == null)
@@ -188,6 +193,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AutoMatchSettings")]
     public ActionResult<Series.AutoMatchSettings> GetAutoMatchSettingsBySeriesID([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -209,6 +215,7 @@ public class SeriesController : BaseController
     [HttpPatch("{seriesID}/AutoMatchSettings")]
     public ActionResult<Series.AutoMatchSettings> PatchAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] JsonPatchDocument<Series.AutoMatchSettings> patchDocument)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -237,6 +244,7 @@ public class SeriesController : BaseController
     [HttpPut("{seriesID}/AutoMatchSettings")]
     public ActionResult<Series.AutoMatchSettings> PutAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] Series.AutoMatchSettings autoMatchSettings)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -255,6 +263,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/Relations")]
     public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -366,6 +375,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB")]
     public ActionResult<Series.AniDB> GetSeriesAnidbBySeriesID([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -394,6 +404,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB/Similar")]
     public ActionResult<List<Series.AniDB>> GetAnidbSimilarBySeriesID([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -424,6 +435,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB/Related")]
     public ActionResult<List<Series.AniDB>> GetAnidbRelatedBySeriesID([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -454,6 +466,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/AniDB/Relations")]
     public ActionResult<List<SeriesRelation>> GetAnidbRelationsBySeriesID([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -803,6 +816,7 @@ public class SeriesController : BaseController
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
         [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         if (!createSeriesEntry.HasValue)
         {
             var settings = SettingsProvider.GetSettings();
@@ -853,6 +867,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/TvDB")]
     public ActionResult<List<Series.TvDB>> GetSeriesTvdb([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -877,6 +892,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/TvDB")]
     public async Task<ActionResult> LinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TvdbNotFoundForSeriesID);
@@ -900,6 +916,7 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/TvDB")]
     public ActionResult UnlinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TvdbNotFoundForSeriesID);
@@ -927,6 +944,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/TvDB/Refresh")]
     public async Task<ActionResult> RefreshSeriesTvdbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -1068,6 +1086,7 @@ public class SeriesController : BaseController
         [FromQuery] bool fuzzy = true
     )
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1102,6 +1121,7 @@ public class SeriesController : BaseController
         [FromQuery] string search = null,
         [FromQuery] bool fuzzy = true)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1399,6 +1419,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/File/Rescan")]
     public async Task<ActionResult> RescanSeriesFiles([FromRoute] int seriesID, [FromQuery] bool priority = false)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1437,6 +1458,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/File/Rehash")]
     public async Task<ActionResult> RehashSeriesFiles([FromRoute] int seriesID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1475,6 +1497,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/Vote")]
     public async Task<ActionResult> PostSeriesUserVote([FromRoute] int seriesID, [FromBody] Vote vote)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1514,6 +1537,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/Images")]
     public ActionResult<Images> GetSeriesImages([FromRoute] int seriesID, [FromQuery] bool includeDisabled)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -1542,6 +1566,7 @@ public class SeriesController : BaseController
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         if (!AllowedImageTypes.Contains(imageType))
             return NotFound();
 
@@ -1581,6 +1606,7 @@ public class SeriesController : BaseController
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         if (!AllowedImageTypes.Contains(imageType))
             return NotFound();
 
@@ -1713,6 +1739,7 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/Images/{imageType}")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         if (!AllowedImageTypes.Contains(imageType))
             return NotFound();
 
@@ -1761,6 +1788,7 @@ public class SeriesController : BaseController
         [FromQuery] bool excludeDescriptions = false, [FromQuery] bool orderByName = false,
         [FromQuery] bool onlyVerified = true)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -1794,6 +1822,7 @@ public class SeriesController : BaseController
     public ActionResult<List<Tag>> GetSeriesTagsFromPath([FromRoute] int seriesID, [FromRoute] TagFilter.Filter filter,
         [FromQuery] bool excludeDescriptions = false)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         return GetSeriesTags(seriesID, filter, excludeDescriptions);
     }
 
@@ -1811,6 +1840,7 @@ public class SeriesController : BaseController
     public ActionResult<List<Role>> GetSeriesCast([FromRoute] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Role.CreatorRoleType> roleType = null)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -1839,6 +1869,7 @@ public class SeriesController : BaseController
     [HttpPatch("{seriesID}/Move/{groupID}")]
     public ActionResult MoveSeries([FromRoute] int seriesID, [FromRoute] int groupID)
     {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {

@@ -18,14 +18,15 @@ public class FileEventSignalRModel
         var episodeDict = eventArgs.EpisodeInfo
             .Cast<SVR_AniDB_Episode>()
             .Select(e => e.GetShokoEpisode())
-            .OfType<SVR_AnimeEpisode>()
-            .ToDictionary(e => e.AniDB_EpisodeID);
+            .Where(e => e != null)
+            .ToDictionary(e => e!.AniDB_EpisodeID, e => e!);
         var animeToGroupDict = episodeDict.Values
             .DistinctBy(e => e.AnimeSeriesID)
             .Select(e => e.GetAnimeSeries())
+            .Where(s => s != null)
             .ToDictionary(s => s.AniDB_ID, s => (s.AnimeSeriesID, s.AnimeGroupID));
         CrossReferences = xrefs
-            .Select(xref => new FileCrossReferenceSignalRModel()
+            .Select(xref => new FileCrossReferenceSignalRModel
             {
                 EpisodeID = episodeDict.TryGetValue(xref.AnidbEpisodeID, out var shokoEpisode) ? shokoEpisode.AnimeEpisodeID : null,
                 AnidbEpisodeID = xref.AnidbEpisodeID,

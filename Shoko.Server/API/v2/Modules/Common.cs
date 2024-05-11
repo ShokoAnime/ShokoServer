@@ -3260,15 +3260,15 @@ public class Common : BaseController
         var links = new Dictionary<string, object>();
 
         var serie = RepoFactory.AnimeSeries.GetByID(id);
-        var trakt = serie.GetTraktShow();
-        links.Add("trakt", trakt?.Select(x => x.URL));
-        var tvdb = serie.GetTvDBSeries();
+        var trakt = serie?.GetTraktShow();
+        if (trakt != null) links.Add("trakt", trakt.Where(a => !string.IsNullOrEmpty(a.URL)).Select(x => x.URL).ToArray());
+        var tvdb = serie?.GetTvDBSeries();
         if (tvdb != null)
         {
-            links.Add("tvdb", tvdb.Select(x => x.SeriesID));
+            links.Add("tvdb", tvdb.Select(x => x.SeriesID).ToArray());
         }
 
-        var tmdb = serie.CrossRefMovieDB;
+        var tmdb = serie?.CrossRefMovieDB;
         if (tmdb != null)
         {
             links.Add("tmdb", tmdb.CrossRefID); //not sure this will work.

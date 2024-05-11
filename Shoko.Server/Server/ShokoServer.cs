@@ -403,9 +403,23 @@ public class ShokoServer
 
         logger.LogInformation("Found file {Path}", path);
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
-        ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
+        if (tup == default)
+        {
+            logger.LogWarning("File path could not be parsed into an import folder location: {Path}", path);
+            return;
+        }
+
         Task.Run(async () =>
         {
+            try
+            {
+                ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Unable to run File Detected Event for File: {File}", path);
+            }
+
             try
             {
                 var scheduler = await _schedulerFactory.GetScheduler();
