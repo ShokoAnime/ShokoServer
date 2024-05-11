@@ -182,7 +182,19 @@ public class PlexWebhook : BaseController
         if (episodeType != EpisodeType.Episode ||
             metadata.Index == 0) //metadata.index = 0 when it's something else.
         {
-            return (null, anime); //right now no clean way to detect the episode. I could do by title.
+            var nameMatches = anime
+                .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
+                .Where(a => a.EpisodeTypeEnum == episodeType)
+                .Where(a => a.Title.Equals(metadata.Title))
+                .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber
+                    || (a.TvDBEpisode?.SeasonNumber == series && a.TvDBEpisode?.EpisodeNumber == episodeNumber)).ToList();
+
+            if (nameMatches.Count == 1) return (nameMatches.First(), anime);
+
+            _logger.LogInformation(
+            $"Unable to work out the metadata for {metadata.Guid} using title {metadata.Title}.");
+
+            return (null, anime);
         }
 
 
@@ -204,7 +216,7 @@ public class PlexWebhook : BaseController
 
         //catch all
         _logger.LogInformation(
-            $"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
+            $"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multiple episodes linked, but no tvdb link.");
         return (null, anime);
     }
 
