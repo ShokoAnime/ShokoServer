@@ -44,6 +44,12 @@ public class FileCrossReference
         public List<int> TvDB { get; set; }
 
         /// <summary>
+        /// The AniDB Release Group's ID, or null if this is a manually linked
+        /// file. May also be 0 if the release group is currently unknown.
+        /// </summary>
+        public int? ReleaseGroup { get; set; }
+
+        /// <summary>
         /// ED2K hash to look up the file by hash + file size.
         /// </summary>
         public string ED2K { get; set; }
@@ -109,12 +115,12 @@ public class FileCrossReference
                 {
                     // Percentages.
                     Tuple<int, int> percentage = new(0, 100);
+                    int? releaseGroup = xref.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize)?.GroupID ?? 0 : null;
                     if (xref.Percentage < 100)
                     {
-                        var releaseGroup = xref.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize)?.GroupID ?? -1 : 0;
                         var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.EpisodeID)
                             // Filter to only cross-references which are partially linked to the episode and from the same group as the current cross-reference.
-                            .Where(xref2 => xref2.Percentage < 100 && (xref2.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref2.Hash, xref2.FileSize)?.GroupID ?? -1 : 0) == releaseGroup)
+                            .Where(xref2 => xref2.Percentage < 100 && (xref2.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref2.Hash, xref2.FileSize)?.GroupID ?? -1 : null) == releaseGroup)
                             // Order by episode order because it may be returned in semi-random order from the cache, and we need them in the order they arrived in from remote.
                             .OrderBy(xref => xref.EpisodeOrder)
                             .ToList();
@@ -146,6 +152,7 @@ public class FileCrossReference
                         {
                             ID = shokoEpisode?.AnimeEpisodeID,
                             AniDB = xref.EpisodeID,
+                            ReleaseGroup = releaseGroup,
                             TvDB = shokoEpisode?.TvDBEpisodes.Select(b => b.Id).ToList() ?? [],
                             Percentage = new()
                             {
