@@ -56,12 +56,30 @@ public class FileCrossReference
         /// <summary>
         /// Percentage file is matched to the episode.
         /// </summary>
-        public Tuple<int, int> Percentage { get; set; }
+        public CrossReferencePercentage Percentage { get; set; }
 
         /// <summary>
         /// The cross-reference source.
         /// </summary>
         public string Source { get; set; }
+    }
+
+    public class CrossReferencePercentage
+    {
+        /// <summary>
+        /// File/episode cross-reference percentage range end.
+        /// </summary>
+        public int Start { get; set; }
+
+        /// <summary>
+        /// File/episode cross-reference percentage range end.
+        /// </summary>
+        public int End { get; set; }
+
+        /// <summary>
+        /// The raw percentage to "group" the cross-references by.
+        /// </summary>
+        public int Size { get; set; }
     }
 
     /// <summary>
@@ -122,21 +140,31 @@ public class FileCrossReference
                     }
 
                     var shokoEpisode = xref.GetAnimeEpisode();
-                    return new EpisodeCrossReferenceIDs
-                    {
-                        ID = shokoEpisode?.AnimeEpisodeID,
-                        AniDB = xref.EpisodeID,
-                        TvDB = shokoEpisode?.TvDBEpisodes.Select(b => b.Id).ToList() ?? [],
-                        Percentage = percentage,
-                        Source = xref.CrossRefSource == (int)CrossRefSource.AniDB ? "AniDB" : "User",
-                    };
+                    return (
+                        xref,
+                        dto: new EpisodeCrossReferenceIDs
+                        {
+                            ID = shokoEpisode?.AnimeEpisodeID,
+                            AniDB = xref.EpisodeID,
+                            TvDB = shokoEpisode?.TvDBEpisodes.Select(b => b.Id).ToList() ?? [],
+                            Percentage = new()
+                            {
+                                Size = xref.Percentage,
+                                Start = percentage.Item1,
+                                End = percentage.Item2,
+                            },
+                            ED2K = xref.Hash,
+                            FileSize = xref.FileSize,
+                            Source = xref.CrossRefSource == (int)CrossRefSource.AniDB ? "AniDB" : "User",
+                        }
+                    );
                 })
-                .OrderBy(xref => xref.Percentage.Item1)
-                .ThenByDescending(xref => xref.Percentage.Item2)
-                .GroupBy(xref => xref.AniDB)
+                .OrderBy(tuple => tuple.dto.Percentage.Start)
+                .ThenByDescending(tuple => tuple.dto.Percentage.End)
+                .GroupBy(tuple => tuple.xref.AnimeID)
                 .Select(tuples =>
                 {
-                    var shokoSeries = RepoFactory.AnimeSeries.GetByID(tuples.Key);
+                    var shokoSeries = RepoFactory.AnimeSeries.GetByAnimeID(tuples.Key);
                     return new FileCrossReference
                     {
                         SeriesID = new SeriesCrossReferenceIDs
@@ -145,7 +173,7 @@ public class FileCrossReference
                             AniDB = tuples.Key,
                             TvDB = shokoSeries?.GetTvDBSeries().Select(b => b.SeriesID).ToList() ?? [],
                         },
-                        EpisodeIDs = [.. tuples],
+                        EpisodeIDs = tuples.Select(tuple => tuple.dto).ToList(),
                     };
                 })
                 .ToList();
