@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Shoko.Models.Plex.TVShow;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -15,7 +15,7 @@ internal class SVR_Episode : Episode
     }
 
     public SVR_AnimeEpisode AnimeEpisode =>
-        RepoFactory.AnimeEpisode.GetByFilename(Path.GetFileName(Media[0].Part[0].File));
+        RepoFactory.AnimeEpisode.GetByFilename(Path.GetFileName(Media[0].Part[0].File), Media[0].Part[0].Size);
 
     public void Unscrobble()
     {
