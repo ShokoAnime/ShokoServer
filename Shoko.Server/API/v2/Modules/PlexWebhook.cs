@@ -14,13 +14,15 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Connections;
-using Shoko.Models.Plex.Libraries;
+using Shoko.Models.Plex.TVShow;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
+using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
+using Shoko.Server.Plex.TVShow;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -60,20 +62,29 @@ public class PlexWebhook : BaseController
         }
 
         _logger.LogTrace($"{payload.Event}: {payload.Metadata?.Guid}");
+
+        var user = User;
+        user ??= RepoFactory.JMMUser.GetAll().FirstOrDefault(u => payload.Account.Title.FindIn(u.GetPlexUsers()));
+        if (user == null)
+        {
+            _logger.LogInformation("Unable to determine who \"{AccountTitle}\" is in Shoko, make sure this is set under user settings in Desktop", payload.Account.Title);
+            return Ok(); //At this point in time, we don't want to scrobble for unknown users
+        }
+
         switch (payload.Event)
         {
             case "media.scrobble":
-                Scrobble(payload, User);
+                Scrobble(payload, user);
                 break;
             case "media.resume":
             case "media.play":
-                TraktScrobble(payload, ScrobblePlayingStatus.Start);
+                TraktScrobble(payload, ScrobblePlayingStatus.Start, user);
                 break;
             case "media.pause":
-                TraktScrobble(payload, ScrobblePlayingStatus.Pause);
+                TraktScrobble(payload, ScrobblePlayingStatus.Pause, user);
                 break;
             case "media.stop":
-                TraktScrobble(payload, ScrobblePlayingStatus.Stop);
+                TraktScrobble(payload, ScrobblePlayingStatus.Stop, user);
                 break;
         }
 
@@ -84,15 +95,15 @@ public class PlexWebhook : BaseController
     #region Plex events
 
     [NonAction]
-    private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
+    private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type, JMMUser user)
     {
         var metadata = evt.Metadata;
-        var (episode, _) = GetEpisode(metadata);
+        var (episode, _) = GetEpisode(metadata, user);
 
         if (episode == null) return;
 
         var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
-        if (vl == null || vl.Duration == 0) return; 
+        if (vl == null || vl.Duration == 0) return;
 
         var per = 100 *
                   (metadata.ViewOffset /
@@ -109,7 +120,7 @@ public class PlexWebhook : BaseController
     private void Scrobble(PlexEvent data, SVR_JMMUser user)
     {
         var metadata = data.Metadata;
-        var (episode, anime) = GetEpisode(metadata);
+        var (episode, anime) = GetEpisode(metadata, user);
         if (episode == null)
         {
             _logger.LogInformation(
@@ -119,12 +130,6 @@ public class PlexWebhook : BaseController
 
         _logger.LogTrace("Got anime: {Anime}, ep: {EpisodeNumber}", anime, episode.AniDB_Episode.EpisodeNumber);
 
-        user ??= RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
-        if (user == null)
-        {
-            _logger.LogInformation("Unable to determine who \"{AccountTitle}\" is in Shoko, make sure this is set under user settings in Desktop", data.Account.Title);
-            return; //At this point in time, we don't want to scrobble for unknown users
-        }
 
         episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
             true);
@@ -135,7 +140,7 @@ public class PlexWebhook : BaseController
     #endregion
 
     [NonAction]
-    private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+    private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata, JMMUser user)
     {
         var guid = new Uri(metadata.Guid);
         if (guid.Scheme != "com.plexapp.agents.shoko" && guid.Scheme != "com.plexapp.agents.shokorelay")
@@ -179,20 +184,29 @@ public class PlexWebhook : BaseController
                 break;
         }
 
+        var key = metadata.Key.Split("/").LastOrDefault();  // '/library/metadata/{key}'
+
+        var plexEpisode = (SVR_Episode)GetPlexEpisodeData(key, user);
+        var episode = plexEpisode?.AnimeEpisode;
+
         if (episodeType != EpisodeType.Episode ||
             metadata.Index == 0) //metadata.index = 0 when it's something else.
         {
-            var nameMatches = anime
-                .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
-                .Where(a => a.EpisodeTypeEnum == episodeType)
-                .Where(a => a.Title.Equals(metadata.Title))
-                .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber
-                    || (a.TvDBEpisode?.SeasonNumber == series && a.TvDBEpisode?.EpisodeNumber == episodeNumber)).ToList();
+            if (episode == null)
+            {
+                _logger.LogInformation(
+                    $"Failed to get anime episode from plex using key {metadata.Key}.");
+                return (null, anime);
+            }
 
-            if (nameMatches.Count == 1) return (nameMatches.First(), anime);
+            if (episode.EpisodeTypeEnum == episodeType
+                && anime.GetAnimeEpisodes().Contains(episode))
+            {
+                return (episode, anime);
+            }
 
             _logger.LogInformation(
-            $"Unable to work out the metadata for {metadata.Guid} using title {metadata.Title}.");
+            $"Unable to work out the metadata for {metadata.Guid}.");
 
             return (null, anime);
         }
@@ -285,7 +299,7 @@ public class PlexWebhook : BaseController
 
     [Authorize]
     [HttpGet("libraries")]
-    public ActionResult<Directory[]> GetLibraries()
+    public ActionResult<Shoko.Models.Plex.Libraries.Directory[]> GetLibraries()
     {
         var result = CallPlexHelper(h => h.GetDirectories());
 
@@ -345,6 +359,13 @@ public class PlexWebhook : BaseController
     {
         JMMUser user = HttpContext.GetUser();
         return act(PlexHelper.GetForUser(user));
+    }
+
+    [NonAction]
+    private Episode GetPlexEpisodeData(string ratingKey, JMMUser user)
+    {
+        var helper = PlexHelper.GetForUser(user);
+        return new SVR_PlexLibrary(helper).GetEpisode(ratingKey).FirstOrDefault();
     }
 
     #region plexapi
