@@ -1,13 +1,14 @@
 {
   "recommendations": [
-    "ms-dotnettools.csharp",
-    "editorconfig.editorconfig",
-    "github.vscode-github-actions",
-    "ms-dotnettools.vscode-dotnet-runtime",
-    "ms-dotnettools.csdevkit",
+    "aaron-bond.better-comments",
     "augustocdias.tasks-shell-input",
     "eamodio.gitlens",
-    "k--kato.docomment"
+    "editorconfig.editorconfig",
+    "github.vscode-github-actions",
+    "k--kato.docomment",
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.vscode-dotnet-runtime",
   ],
   "unwantedRecommendations": []
 }
