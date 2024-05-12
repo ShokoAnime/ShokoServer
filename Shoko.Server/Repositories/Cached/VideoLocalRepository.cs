@@ -30,6 +30,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     private PocoIndex<int, SVR_VideoLocal, string> _hashes;
     private PocoIndex<int, SVR_VideoLocal, string> _sha1;
     private PocoIndex<int, SVR_VideoLocal, string> _md5;
+    private PocoIndex<int, SVR_VideoLocal, string> _crc32;
     private PocoIndex<int, SVR_VideoLocal, bool> _ignored;
 
     public VideoLocalRepository()
@@ -51,10 +52,11 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         //Fix null hashes
         foreach (var l in Cache.Values)
         {
-            if (l.MD5 != null && l.SHA1 != null && l.Hash != null && l.FileName != null) continue;
+            if (l.MD5 != null && l.SHA1 != null && l.Hash != null && l.CRC32 != null && l.FileName != null) continue;
 
             l.MediaVersion = 0;
             l.MD5 ??= string.Empty;
+            l.CRC32 ??= string.Empty;
             l.SHA1 ??= string.Empty;
             l.Hash ??= string.Empty;
             l.FileName ??= string.Empty;
@@ -63,6 +65,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         _hashes = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.Hash);
         _sha1 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.SHA1);
         _md5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
+        _crc32 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.CRC32);
         _ignored = new PocoIndex<int, SVR_VideoLocal, bool>(Cache, a => a.IsIgnored);
     }
 
@@ -260,10 +263,23 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return ReadLock(() => _hashes.GetOne(hash));
     }
 
+    public SVR_VideoLocal GetByHashAndSize(string hash, long fileSize)
+    {
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Hash");
+        if (fileSize <= 0) throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
+        return ReadLock(() => _hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
+    }
+
     public SVR_VideoLocal GetByMD5(string hash)
     {
         if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty MD5");
         return ReadLock(() => _md5.GetOne(hash));
+    }
+    public SVR_VideoLocal GetByMD5AndSize(string hash, long fileSize)
+    {
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty MD5");
+        if (fileSize <= 0) throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
+        return ReadLock(() => _md5.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
     }
 
     public SVR_VideoLocal GetBySHA1(string hash)
@@ -271,12 +287,24 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty SHA1");
         return ReadLock(() => _sha1.GetOne(hash));
     }
-
-    public SVR_VideoLocal GetByHashAndSize(string hash, long fsize)
+    public SVR_VideoLocal GetBySHA1AndSize(string hash, long fileSize)
     {
-        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Hash");
-        if (fsize <= 0) throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
-        return ReadLock(() => _hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize));
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty SHA1");
+        if (fileSize <= 0) throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
+        return ReadLock(() => _sha1.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
+    }
+
+    public SVR_VideoLocal GetByCRC32(string hash)
+    {
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty CRC32");
+        return ReadLock(() => _crc32.GetOne(hash));
+    }
+
+    public SVR_VideoLocal GetByCRC32AndSize(string hash, long fileSize)
+    {
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty CRC32");
+        if (fileSize <= 0) throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
+        return ReadLock(() => _crc32.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
     }
 
     public List<SVR_VideoLocal> GetByName(string fileName)
@@ -487,7 +515,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         return ReadLock(
             () => Cache.Values
-                .Where( a =>
+                .Where(a =>
                 {
                     if (a.IsIgnored)
                         return false;
@@ -516,7 +544,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         return ReadLock(
             () => Cache.Values
-                .Where( a =>
+                .Where(a =>
                 {
                     if (a.IsIgnored)
                         return false;

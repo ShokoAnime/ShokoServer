@@ -47,6 +47,8 @@ public class FileController : BaseController
 
     internal const string FileNotFoundWithFileID = "No File entry for the given fileID";
 
+    internal const string FileNotFoundWithHash = "No File entry for the given hash and file size.";
+
     private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly VideoLocal_PlaceService _vlPlaceService;
@@ -83,7 +85,7 @@ public class FileController : BaseController
     {
         return ModelHelper.FilterFiles(RepoFactory.VideoLocal.GetAll(), User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
-    
+
     /// <summary>
     /// Get or search through the files accessible to the current user.
     /// </summary>
@@ -158,6 +160,118 @@ public class FileController : BaseController
 
         return Ok();
     }
+
+    #region Hash Lookup
+
+    /// <summary>
+    /// Get a file by it's ED2K hash and file size.
+    /// </summary>
+    /// <param name="hash">ED2K hex-encoded hash.</param>
+    /// <param name="size">File size.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns>The file that matches the given ED2K hash and file size, if found.</returns>
+    [HttpGet("Hash/ED2K")]
+    public ActionResult<File> GetFileByEd2k(
+        [FromQuery, Required, Length(32, 32)] string hash,
+        [FromQuery, Required, Range(0L, long.MaxValue)] long size,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+    {
+        if (string.IsNullOrEmpty(hash) || size <= 0)
+            return NotFound(FileNotFoundWithHash);
+
+        var file = RepoFactory.VideoLocal.GetByHashAndSize(hash, size);
+        if (file == null)
+            return NotFound(FileNotFoundWithHash);
+
+        include ??= [];
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+    }
+
+    /// <summary>
+    /// Get a file by it's CRC32 hash and file size.
+    /// </summary>
+    /// <param name="hash">CRC32 hex-encoded hash.</param>
+    /// <param name="size">File size.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns>The file that matches the given CRC32 hash and file size, if found.</returns>
+    [HttpGet("Hash/CRC32")]
+    public ActionResult<File> GetFileByCrc32(
+        [FromQuery, Required, Length(8, 8)] string hash,
+        [FromQuery, Required, Range(0L, long.MaxValue)] long size,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+    {
+        if (string.IsNullOrEmpty(hash) || size <= 0)
+            return NotFound(FileNotFoundWithHash);
+
+        var file = RepoFactory.VideoLocal.GetByCRC32AndSize(hash, size);
+        if (file == null)
+            return NotFound(FileNotFoundWithHash);
+
+        include ??= [];
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+    }
+
+    /// <summary>
+    /// Get a file by it's MD5 hash and file size.
+    /// </summary>
+    /// <param name="hash">MD5 hex-encoded hash.</param>
+    /// <param name="size">File size.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns>The file that matches the given MD5 hash and file size, if found.</returns>
+    [HttpGet("Hash/MD5")]
+    public ActionResult<File> GetFileByMd5(
+        [FromQuery, Required, Length(32, 32)] string hash,
+        [FromQuery, Required, Range(0L, long.MaxValue)] long size,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+    {
+        if (string.IsNullOrEmpty(hash) || size <= 0)
+            return NotFound(FileNotFoundWithHash);
+
+        var file = RepoFactory.VideoLocal.GetByMD5AndSize(hash, size);
+        if (file == null)
+            return NotFound(FileNotFoundWithHash);
+
+        include ??= [];
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+    }
+
+    /// <summary>
+    /// Get a file by it's SHA1 hash and file size.
+    /// </summary>
+    /// <param name="hash">SHA1 hex-encoded hash.</param>
+    /// <param name="size">File size.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns>The file that matches the given SHA1 hash and file size, if found.</returns>
+    [HttpGet("Hash/SHA1")]
+    public ActionResult<File> GetFileBySha1(
+        [FromQuery, Required, Length(40, 40)] string hash,
+        [FromQuery, Required, Range(0L, long.MaxValue)] long size,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+    {
+        if (string.IsNullOrEmpty(hash) || size <= 0)
+            return NotFound(FileNotFoundWithHash);
+
+        var file = RepoFactory.VideoLocal.GetBySHA1AndSize(hash, size);
+        if (file == null)
+            return NotFound(FileNotFoundWithHash);
+
+        include ??= [];
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+    }
+
+    #endregion
 
     /// <summary>
     /// Get File Details
@@ -388,7 +502,6 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        
         foreach (var place in file.Places)
         {
             var path = place.GetFile()?.Directory?.FullName;
