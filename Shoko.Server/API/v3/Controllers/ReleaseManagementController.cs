@@ -58,6 +58,7 @@ public class ReleaseManagementController : BaseController
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
@@ -69,6 +70,7 @@ public class ReleaseManagementController : BaseController
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery] bool includeXRefs = false,
         [FromQuery] bool ignoreVariations = true,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
@@ -83,9 +85,9 @@ public class ReleaseManagementController : BaseController
         IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
 
         return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
+            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
     }
-    
+
     /// <summary>
     /// Get episodes with multiple files attached.
     /// </summary>
@@ -93,6 +95,7 @@ public class ReleaseManagementController : BaseController
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
@@ -103,6 +106,7 @@ public class ReleaseManagementController : BaseController
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery] bool includeXRefs = false,
         [FromQuery] bool ignoreVariations = true,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
@@ -110,7 +114,7 @@ public class ReleaseManagementController : BaseController
         IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations);
 
         return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
+            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
     }
 
     /// <summary>

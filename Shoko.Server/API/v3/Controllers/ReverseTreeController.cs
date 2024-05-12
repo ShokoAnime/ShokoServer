@@ -23,8 +23,9 @@ namespace Shoko.Server.API.v3.Controllers;
 public class ReverseTreeController : BaseController
 {
     private readonly FilterFactory _filterFactory;
+
     private readonly SeriesFactory _seriesFactory;
-    
+
     /// <summary>
     /// Get the parent <see cref="Filter"/> for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
@@ -174,6 +175,7 @@ public class ReverseTreeController : BaseController
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("File/{fileID}/Episode")]
@@ -182,6 +184,7 @@ public class ReverseTreeController : BaseController
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -197,7 +200,7 @@ public class ReverseTreeController : BaseController
         }
 
         return episodes
-            .Select(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths))
+            .Select(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs))
             .ToList();
     }
 

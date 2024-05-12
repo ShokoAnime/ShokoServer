@@ -288,7 +288,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        include ??= Array.Empty<FileNonDefaultIncludeType>();
+        include ??= [];
         return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
@@ -676,7 +676,7 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private ActionResult ScrobbleStatusOnFile(SVR_VideoLocal file, bool? watched, long? resumePosition)
+    private OkResult ScrobbleStatusOnFile(SVR_VideoLocal file, bool? watched, long? resumePosition)
     {
         if (!(watched ?? false) && resumePosition != null)
         {
@@ -1009,7 +1009,7 @@ public class FileController : BaseController
 
         // Validate that the cross-references are allowed to be removed.
         var all = body == null;
-        var episodeIdSet = body?.EpisodeIDs?.ToHashSet() ?? new();
+        var episodeIdSet = body?.EpisodeIDs?.ToHashSet() ?? [];
         var seriesIDs = new HashSet<int>();
         var episodeList = file.GetAnimeEpisodes()
             .Where(episode => all || episodeIdSet.Contains(episode.AniDB_EpisodeID))
@@ -1202,7 +1202,7 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private void RemoveXRefsForFile(SVR_VideoLocal file)
+    private static void RemoveXRefsForFile(SVR_VideoLocal file)
     {
         foreach (var xref in RepoFactory.CrossRef_File_Episode.GetByHash(file.Hash))
         {
@@ -1221,7 +1221,7 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private void CheckXRefsForFile(SVR_VideoLocal file, ModelStateDictionary modelState)
+    private static void CheckXRefsForFile(SVR_VideoLocal file, ModelStateDictionary modelState)
     {
         foreach (var xref in RepoFactory.CrossRef_File_Episode.GetByHash(file.Hash))
             if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
@@ -1315,8 +1315,8 @@ public class FileController : BaseController
     public ActionResult<List<File>> RegexSearchByPath([FromRoute] string path)
     {
         var query = path;
-        if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
-        if (query.Contains("%")) query = Uri.UnescapeDataString(query);
+        if (query.Contains('%') || query.Contains('+')) query = Uri.UnescapeDataString(query);
+        if (query.Contains('%')) query = Uri.UnescapeDataString(query);
         if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
         Regex regex;
 
@@ -1349,8 +1349,8 @@ public class FileController : BaseController
     public ActionResult<List<File>> RegexSearchByFileName([FromRoute] string path)
     {
         var query = path;
-        if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
-        if (query.Contains("%")) query = Uri.UnescapeDataString(query);
+        if (query.Contains('%') || query.Contains('+')) query = Uri.UnescapeDataString(query);
+        if (query.Contains('%')) query = Uri.UnescapeDataString(query);
         if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
         Regex regex;
 
@@ -1382,17 +1382,13 @@ public class FileController : BaseController
     /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
     /// <returns></returns>
     [HttpGet("MissingCrossReferenceData")]
-    public ActionResult<ListResult<File>> GetFilesWithMissingCrossReferenceData([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
+    public ActionResult<ListResult<File>> GetFilesWithMissingCrossReferenceData(
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
     {
         return RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
             .ToListResult(
-                file => new File(HttpContext, file)
-                {
-                    SeriesIDs = includeXRefs ? file.EpisodeCrossRefs
-                        .GroupBy(xref => xref.AnimeID, xref => new File.CrossReferenceIDs { ID = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID)?.AnimeEpisodeID ?? 0, AniDB = xref.EpisodeID, TvDB = new() })
-                        .Select(tuples => new File.SeriesCrossReference { SeriesID = new() { ID = RepoFactory.AnimeSeries.GetByAnimeID(tuples.Key)?.AnimeSeriesID ?? 0, AniDB = tuples.Key, TvDB = new() }, EpisodeIDs = tuples.ToList() })
-                        .ToList() : null
-                },
+                file => new File(HttpContext, file, includeXRefs),
                 page,
                 pageSize
             );

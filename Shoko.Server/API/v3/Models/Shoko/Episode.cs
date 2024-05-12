@@ -80,9 +80,15 @@ public class Episode : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<File> Files { get; set; }
 
+    /// <summary>
+    /// File/episode cross-references linked to the episode.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IEnumerable<FileCrossReference> CrossReferences { get; set; }
+
     public Episode() { }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
@@ -109,11 +115,13 @@ public class Episode : BaseModel
         Size = files.Count;
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
-            _AniDB = new Episode.AniDB(anidbEpisode);
+            _AniDB = new AniDB(anidbEpisode);
         if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
             _TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
         if (includeFiles)
             Files = files.Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths));
+        if (withXRefs)
+            CrossReferences = FileCrossReference.From(episode.FileCrossRefs);
     }
 
     internal static string GetEpisodeTitle(int anidbEpisodeID)
@@ -136,35 +144,21 @@ public class Episode : BaseModel
     }
 
     internal static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
-    {
-        switch (episodeType)
+        => episodeType switch
         {
-            case AniDBEpisodeType.Episode:
-                return EpisodeType.Normal;
-            case AniDBEpisodeType.Special:
-                return EpisodeType.Special;
-            case AniDBEpisodeType.Parody:
-                return EpisodeType.Parody;
-            case AniDBEpisodeType.Credits:
-                return EpisodeType.ThemeSong;
-            case AniDBEpisodeType.Trailer:
-                return EpisodeType.Trailer;
-            case AniDBEpisodeType.Other:
-                return EpisodeType.Other;
-            default:
-                return EpisodeType.Unknown;
-        }
-    }
+            AniDBEpisodeType.Episode => EpisodeType.Normal,
+            AniDBEpisodeType.Special => EpisodeType.Special,
+            AniDBEpisodeType.Parody => EpisodeType.Parody,
+            AniDBEpisodeType.Credits => EpisodeType.ThemeSong,
+            AniDBEpisodeType.Trailer => EpisodeType.Trailer,
+            AniDBEpisodeType.Other => EpisodeType.Other,
+            _ => EpisodeType.Unknown,
+        };
 
     public static void AddEpisodeVote(HttpContext context, SVR_AnimeEpisode ep, int userID, Vote vote)
     {
-        var dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
-
-        if (dbVote == null)
-        {
-            dbVote = new AniDB_Vote { EntityID = ep.AnimeEpisodeID, VoteType = (int)AniDBVoteType.Episode };
-        }
-
+        var dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode) ??
+            new AniDB_Vote { EntityID = ep.AnimeEpisodeID, VoteType = (int)AniDBVoteType.Episode };
         dbVote.VoteValue = (int)Math.Floor(vote.GetRating(1000));
 
         RepoFactory.AniDB_Vote.Save(dbVote);
@@ -361,7 +355,7 @@ public class Episode : BaseModel
         /// <summary>
         /// The TvDB IDs
         /// </summary>
-        public List<int> TvDB { get; set; } = new();
+        public List<int> TvDB { get; set; } = [];
 
         // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
 

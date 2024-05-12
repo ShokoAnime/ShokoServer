@@ -15,6 +15,9 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
     public SVR_AniDB_Episode? GetEpisode()
         => RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
 
+    public SVR_AnimeEpisode? GetAnimeEpisode()
+        => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
+
     public SVR_AniDB_Anime? GetAnime()
         => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 

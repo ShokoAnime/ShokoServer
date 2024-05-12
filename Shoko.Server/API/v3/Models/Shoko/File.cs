@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
@@ -28,7 +29,7 @@ public class File
     /// shown. In many cases, this will have arrays of 1 item
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<SeriesCrossReference> SeriesIDs { get; set; }
+    public List<FileCrossReference> SeriesIDs { get; set; }
 
     /// <summary>
     /// The Filesize in bytes
@@ -121,7 +122,8 @@ public class File
     public MediaInfo MediaInfo { get; set; }
 
     public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
-        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths) {}
+        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths)
+    { }
 
     public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
@@ -146,50 +148,18 @@ public class File
         Created = file.DateTimeCreated.ToUniversalTime();
         Updated = file.DateTimeUpdated.ToUniversalTime();
         if (withXRefs)
-        {
-            SeriesIDs = file.GetAnimeEpisodes()
-                .GroupBy(episode => episode.AnimeSeriesID, episode => new CrossReferenceIDs
-                {
-                    ID = episode.AnimeEpisodeID,
-                    AniDB = episode.AniDB_EpisodeID,
-                    TvDB = episode.TvDBEpisodes.Select(b => b.Id).ToList(),
-                })
-                .Select(tuples =>
-                {
-                    var series = RepoFactory.AnimeSeries.GetByID(tuples.Key);
-                    if (series == null)
-                    {
-                        return new SeriesCrossReference
-                        {
-                            EpisodeIDs = tuples.ToList(),
-                        };
-                    }
-
-                    return new SeriesCrossReference
-                    {
-                        SeriesID = new CrossReferenceIDs
-                        {
-                            ID = series.AnimeSeriesID,
-                            AniDB = series.AniDB_ID,
-                            TvDB = series.GetTvDBSeries().Select(b => b.SeriesID).ToList(),
-                        },
-                        EpisodeIDs = tuples.ToList(),
-                    };
-                })
-                .ToList();
-        }
+            SeriesIDs = FileCrossReference.From(file.EpisodeCrossRefs);
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
         {
             var anidbFile = file.GetAniDBFile();
             if (anidbFile != null)
-                this._AniDB = new File.AniDB(anidbFile);
+                _AniDB = new AniDB(anidbFile);
         }
 
         if (includeMediaInfo)
         {
-            var mediaContainer = file?.Media;
-            if (mediaContainer == null)
+            var mediaContainer = file?.Media ??
                 throw new Exception("Unable to find media container for File");
             MediaInfo = new MediaInfo(file, mediaContainer);
         }
@@ -317,37 +287,6 @@ public class File
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime Updated { get; set; }
 
-    }
-
-    public class CrossReferenceIDs
-    {
-        /// <summary>
-        /// The Shoko ID
-        /// /// </summary>
-        public int ID { get; set; }
-
-        /// <summary>
-        /// Any AniDB ID linked to this object
-        /// </summary>
-        public int AniDB { get; set; }
-
-        /// <summary>
-        /// Any TvDB IDs linked to this object
-        /// </summary>
-        public List<int> TvDB { get; set; }
-    }
-
-    public class SeriesCrossReference
-    {
-        /// <summary>
-        /// The Series IDs
-        /// </summary>
-        public CrossReferenceIDs SeriesID { get; set; }
-
-        /// <summary>
-        /// The Episode IDs
-        /// </summary>
-        public List<CrossReferenceIDs> EpisodeIDs { get; set; }
     }
 
     /// <summary>
@@ -607,7 +546,7 @@ public class File
 
     public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> enumerable, List<string> sortCriterias)
     {
-        bool first = true;
+        var first = true;
         return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
         {
             // Any unrecognised criterias are ignored.
@@ -680,7 +619,7 @@ public class File
         /// <summary>
         /// Indicates if an AVDump session is queued or running.
         /// </summary>
-        public string Status;
+        public string Status { get; set; }
 
         /// <summary>
         /// The current progress if an AVDump session is running.

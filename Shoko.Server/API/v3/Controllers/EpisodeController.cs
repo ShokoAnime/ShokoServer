@@ -56,6 +56,7 @@ public class EpisodeController : BaseController
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
@@ -71,6 +72,7 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery] bool includeXRefs = false,
         [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
     {
         var user = User;
@@ -155,7 +157,7 @@ public class EpisodeController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
+                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
         }
 
         return episodes
@@ -163,7 +165,7 @@ public class EpisodeController : BaseController
             .OrderBy(episode => episode.Shoko.AnimeSeriesID)
             .ThenBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
+            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
     }
 
     /// <summary>
@@ -284,6 +286,7 @@ public class EpisodeController : BaseController
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{episodeID}")]
@@ -292,6 +295,7 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
@@ -300,7 +304,7 @@ public class EpisodeController : BaseController
             return NotFound(EpisodeNotFoundWithEpisodeID);
         }
 
-        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
     }
 
     /// <summary>
@@ -379,6 +383,7 @@ public class EpisodeController : BaseController
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
@@ -387,6 +392,7 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
@@ -401,7 +407,7 @@ public class EpisodeController : BaseController
             return NotFound(EpisodeNotFoundForAnidbEpisodeID);
         }
 
-        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
     }
 
     /// <summary>
@@ -468,6 +474,7 @@ public class EpisodeController : BaseController
     /// Get all episodes with no files.
     /// </summary>
     /// <param name="includeSpecials">Include specials in the list.</param>
+    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="onlyFinishedSeries">Only show episodes for completed series.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
@@ -475,6 +482,7 @@ public class EpisodeController : BaseController
     [HttpGet("WithNoFiles")]
     public ActionResult<ListResult<Episode>> GetMissingEpisodes(
         [FromQuery] bool includeSpecials = false,
+        [FromQuery] bool includeXRefs = false,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
@@ -489,7 +497,7 @@ public class EpisodeController : BaseController
         }
 
         return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode), page, pageSize);
+            .ToListResult(episode => new Episode(HttpContext, episode, withXRefs: includeXRefs), page, pageSize);
     }
 
     public EpisodeController(ISettingsProvider settingsProvider) : base(settingsProvider)
