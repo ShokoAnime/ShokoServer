@@ -84,7 +84,7 @@ public class Episode : BaseModel
     /// File/episode cross-references linked to the episode.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IEnumerable<FileCrossReference> CrossReferences { get; set; }
+    public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs> CrossReferences { get; set; }
 
     public Episode() { }
 
@@ -121,7 +121,7 @@ public class Episode : BaseModel
         if (includeFiles)
             Files = files.Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths));
         if (withXRefs)
-            CrossReferences = FileCrossReference.From(episode.FileCrossRefs);
+            CrossReferences = FileCrossReference.From(episode.FileCrossRefs).FirstOrDefault()?.EpisodeIDs ?? [];
     }
 
     internal static string GetEpisodeTitle(int anidbEpisodeID)
