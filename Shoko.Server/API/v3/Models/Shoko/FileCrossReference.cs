@@ -119,8 +119,8 @@ public class FileCrossReference
                     if (xref.Percentage < 100)
                     {
                         var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.EpisodeID)
-                            // Filter to only cross-references which are partially linked to the episode and from the same group as the current cross-reference.
-                            .Where(xref2 => xref2.Percentage < 100 && (xref2.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref2.Hash, xref2.FileSize)?.GroupID ?? -1 : null) == releaseGroup)
+                            // Filter to only cross-references which are partially linked in the same number of parts to the episode, and from the same group as the current cross-reference.
+                            .Where(xref2 => xref2.Percentage == xref.Percentage && (xref2.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref2.Hash, xref2.FileSize)?.GroupID ?? -1 : null) == releaseGroup)
                             // Order by episode order because it may be returned in semi-random order from the cache, and we need them in the order they arrived in from remote.
                             .OrderBy(xref => xref.EpisodeOrder)
                             .ToList();
