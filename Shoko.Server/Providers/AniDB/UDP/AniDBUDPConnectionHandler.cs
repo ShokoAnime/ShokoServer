@@ -448,7 +448,6 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 {
                     r.Username = username;
                     r.Password = password;
-                    r.UseUnicode = true;
                 }
             );
             return login.Send();
