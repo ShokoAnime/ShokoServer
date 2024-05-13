@@ -13,9 +13,9 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
-            var cr = session.Query<SVR_AniDB_Anime_Relation>()
-                .Where(a => a.AnimeID == animeid && a.RelatedAnimeID == relatedanimeid)
-                .SingleOrDefault();
+            var cr = session
+                .Query<SVR_AniDB_Anime_Relation>()
+                .FirstOrDefault(a => a.AnimeID == animeid && a.RelatedAnimeID == relatedanimeid);
             return cr;
         });
     }
@@ -78,10 +78,7 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
             // get and remove first entry; break when empty
             if (!allRelations.TryDequeue(out var relation)) break;
             // skip if we've already done it
-            if (visitedNodes.Contains(relation)) continue;
-
-            // add it to the visited nodes
-            visitedNodes.Add(relation);
+            if (!visitedNodes.Add(relation)) continue;
 
             // actually get the relations
             var sequels = GetLinearRelationsUnsafe(session, relation);

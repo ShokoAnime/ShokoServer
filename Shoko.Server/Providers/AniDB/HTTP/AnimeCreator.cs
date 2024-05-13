@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -27,6 +29,7 @@ public class AnimeCreator
     private readonly ILogger<AnimeCreator> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
     public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory)
     {
@@ -38,96 +41,107 @@ public class AnimeCreator
 
     public async Task<(bool animeUpdated, ISet<int> episodesAddedOrUpdated)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
-        var settings = _settingsProvider.GetSettings();
-        _logger.LogTrace("------------------------------------------------");
-        _logger.LogTrace(
-            "PopulateAndSaveFromHTTP: for {AnimeID} - {MainTitle} @ Depth: {RelationDepth}/{MaxRelationDepth}",
-            response.Anime.AnimeID, response.Anime.MainTitle, relDepth,
-            settings.AniDb.MaxRelationDepth
-        );
-        _logger.LogTrace("------------------------------------------------");
+        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, new HashSet<int>());
+        var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
+        Monitor.Enter(lockObj);
+        // check if we updated in a lock
+        var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
+        if (DateTime.Now - existingAnime.GetDateTimeUpdated() < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
 
-        // We need various values to be populated to be considered valid
-        if (string.IsNullOrEmpty(response.Anime?.MainTitle) || response.Anime.AnimeID <= 0)
+        try
         {
-            _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
-                             "This is not an error on our end. It is AniDB's issue, " +
-                             "as they did not return either an ID or a title for the anime");
-            return (false, new HashSet<int>());
-        }
+            var settings = _settingsProvider.GetSettings();
+            _logger.LogTrace("------------------------------------------------");
+            _logger.LogTrace(
+                "PopulateAndSaveFromHTTP: for {AnimeID} - {MainTitle} @ Depth: {RelationDepth}/{MaxRelationDepth}",
+                response.Anime.AnimeID, response.Anime.MainTitle, relDepth, settings.AniDb.MaxRelationDepth
+            );
+            _logger.LogTrace("------------------------------------------------");
 
-        var taskTimer = Stopwatch.StartNew();
-        var totalTimer = Stopwatch.StartNew();
-        var updated = PopulateAnime(response.Anime, anime);
-        RepoFactory.AniDB_Anime.Save(anime, false);
+            // We need various values to be populated to be considered valid
+            if (string.IsNullOrEmpty(response.Anime.MainTitle) || response.Anime.AnimeID <= 0)
+            {
+                _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
+                                 "This is not an error on our end. It is AniDB's issue, " +
+                                 "as they did not return either an ID or a title for the anime");
+                return (false, new HashSet<int>());
+            }
 
-        taskTimer.Stop();
-        _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            var taskTimer = Stopwatch.StartNew();
+            var totalTimer = Stopwatch.StartNew();
+            var updated = PopulateAnime(response.Anime, anime);
+            RepoFactory.AniDB_Anime.Save(anime, false);
 
-        // alternatively these could be written as an if...then statement spanning two lines.
-        var (episodesAddedOrRemoved, updatedEpisodes) = await CreateEpisodes(response.Episodes, anime);
-        if (episodesAddedOrRemoved && !updated)
-            updated = true;
+            taskTimer.Stop();
+            _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
-        taskTimer.Stop();
-        _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            // alternatively these could be written as an if...then statement spanning two lines.
+            // we need ConfigureAwait(true) because of the lock
+            var (episodesAddedOrRemoved, updatedEpisodes) = await CreateEpisodes(response.Episodes, anime).ConfigureAwait(true);
+            if (episodesAddedOrRemoved && !updated) updated = true;
 
-        updated = CreateTitles(response.Titles, anime) || updated;
-        taskTimer.Stop();
-        _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            taskTimer.Stop();
+            _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
-        updated = CreateTags(response.Tags, anime) || updated;
-        taskTimer.Stop();
-        _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            updated = CreateTitles(response.Titles, anime) || updated;
+            taskTimer.Stop();
+            _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
-        CreateCharacters(response.Characters, anime);
-        taskTimer.Stop();
-        _logger.LogTrace("CreateCharacters in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            updated = CreateTags(response.Tags, anime) || updated;
+            taskTimer.Stop();
+            _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
-        CreateStaff(response.Staff, anime);
-        taskTimer.Stop();
-        _logger.LogTrace("CreateStaff in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            CreateCharacters(response.Characters, anime);
+            taskTimer.Stop();
+            _logger.LogTrace("CreateCharacters in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
-        CreateResources(response.Resources, anime);
-        taskTimer.Stop();
-        _logger.LogTrace("CreateResources in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            CreateStaff(response.Staff, anime);
+            taskTimer.Stop();
+            _logger.LogTrace("CreateStaff in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
-        CreateRelations(response.Relations);
-        taskTimer.Stop();
-        _logger.LogTrace("CreateRelations in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            CreateResources(response.Resources, anime);
+            taskTimer.Stop();
+            _logger.LogTrace("CreateResources in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
-        CreateSimilarAnime(response.Similar);
-        taskTimer.Stop();
-        _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
-        taskTimer.Restart();
+            CreateRelations(response.Relations);
+            taskTimer.Stop();
+            _logger.LogTrace("CreateRelations in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
+
+            CreateSimilarAnime(response.Similar);
+            taskTimer.Stop();
+            _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
+            taskTimer.Restart();
 
 #pragma warning disable CS0618
-        // Track when we last tried to update the metadata.
-        anime.DateTimeUpdated = DateTime.Now;
+            // Track when we last tried to update the metadata.
+            anime.DateTimeUpdated = DateTime.Now;
 
-        // Track when we last updated the metadata.
-        if (updated)
-            anime.DateTimeDescUpdated = anime.DateTimeUpdated;
+            // Track when we last updated the metadata.
+            if (updated)
+                anime.DateTimeDescUpdated = anime.DateTimeUpdated;
 #pragma warning restore CS0618
 
-        RepoFactory.AniDB_Anime.Save(anime);
+            RepoFactory.AniDB_Anime.Save(anime);
 
-        totalTimer.Stop();
-        _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
-        _logger.LogTrace("------------------------------------------------");
+            totalTimer.Stop();
+            _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
+            _logger.LogTrace("------------------------------------------------");
 
-        return (
-            updated,
-            updated ? response.Episodes.Select(ep => ep.EpisodeID).ToHashSet() : updatedEpisodes
-        );
+            return (updated, updated ? response.Episodes.Select(ep => ep.EpisodeID).ToHashSet() : updatedEpisodes);
+        }
+        finally
+        {
+            Monitor.Exit(lockObj);
+            _updatingIDs.TryRemove(response.Anime.AnimeID, out _);
+        }
     }
 
     private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
@@ -819,10 +833,7 @@ public class AnimeCreator
                 if (chr.CharID != 0)
                 {
                     // only update the fields that come from HTTP API
-                    if (string.IsNullOrEmpty(rawchar?.CharacterName))
-                    {
-                        continue;
-                    }
+                    if (string.IsNullOrEmpty(rawchar?.CharacterName)) continue;
 
                     chr.CharDescription = rawchar.CharacterDescription ?? string.Empty;
                     chr.CharName = rawchar.CharacterName;
@@ -830,15 +841,8 @@ public class AnimeCreator
                 }
                 else
                 {
-                    if (rawchar == null)
-                    {
-                        continue;
-                    }
-
-                    if (rawchar.CharacterID <= 0 || string.IsNullOrEmpty(rawchar.CharacterName))
-                    {
-                        continue;
-                    }
+                    if (rawchar == null) continue;
+                    if (rawchar.CharacterID <= 0 || string.IsNullOrEmpty(rawchar.CharacterName)) continue;
 
                     chr.CharID = rawchar.CharacterID;
                     chr.CharDescription = rawchar.CharacterDescription ?? string.Empty;
@@ -866,10 +870,7 @@ public class AnimeCreator
 
                 // create cross ref's between anime and character, but don't actually download anything
                 var animeChar = new AniDB_Anime_Character();
-                if (rawchar.AnimeID <= 0 || rawchar.CharacterID <= 0 || string.IsNullOrEmpty(rawchar.CharacterType))
-                {
-                    continue;
-                }
+                if (rawchar.AnimeID <= 0 || rawchar.CharacterID <= 0 || string.IsNullOrEmpty(rawchar.CharacterType)) continue;
 
                 animeChar.CharID = rawchar.CharacterID;
                 animeChar.AnimeID = rawchar.AnimeID;
