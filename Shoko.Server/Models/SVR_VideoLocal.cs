@@ -158,13 +158,19 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         return RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
     }
 
+    private readonly object _userLock = new();
     public SVR_VideoLocal_User GetOrCreateUserRecord(int userID)
     {
-        var userRecord = GetUserRecord(userID);
-        if (userRecord != null)
-            return userRecord;
-        userRecord = new(userID, VideoLocalID);
-        RepoFactory.VideoLocalUser.Save(userRecord);
+        SVR_VideoLocal_User userRecord;
+        lock (_userLock)
+        {
+            userRecord = GetUserRecord(userID);
+            if (userRecord != null)
+                return userRecord;
+            userRecord = new(userID, VideoLocalID);
+            RepoFactory.VideoLocalUser.Save(userRecord);
+        }
+
         return userRecord;
     }
 
@@ -192,10 +198,10 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     {
         lock (this)
         {
-            var vidUserRecord = GetUserRecord(userID);
+            
             if (watched)
             {
-                vidUserRecord ??= new SVR_VideoLocal_User(userID, VideoLocalID);
+                var vidUserRecord = GetOrCreateUserRecord(userID);
                 vidUserRecord.WatchedDate = DateTime.Now;
                 vidUserRecord.WatchedCount++;
 
@@ -205,8 +211,9 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
                 vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
             }
-            else if (vidUserRecord != null)
+            else
             {
+                var vidUserRecord = GetUserRecord(userID);
                 vidUserRecord.WatchedDate = null;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
             }
