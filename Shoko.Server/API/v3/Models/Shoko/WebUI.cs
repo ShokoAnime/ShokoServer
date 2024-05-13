@@ -208,7 +208,7 @@ public class WebUI
                 .Where(releaseGroup => releaseGroup != null)
                 .ToDictionary(releaseGroup => releaseGroup.GroupID);
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
-            var files = crossRefs
+            var filesWithXrefAndLocation = crossRefs
                 .Where(xref => episodes.ContainsKey(xref.EpisodeID))
                 .Select(xref =>
                 {
@@ -216,6 +216,14 @@ public class WebUI
                     var location = file?.GetBestVideoLocalPlace();
                     if (file?.Media == null || location == null)
                         return null;
+
+                    return new { file, xref, location };
+                })
+                .Where(f => f != null);
+            var files = filesWithXrefAndLocation
+                .Select(fileWithEpisode =>
+                {
+                    var (file, xref, location) = (fileWithEpisode.file, fileWithEpisode.xref, fileWithEpisode.location);
 
                     var media = new MediaInfo(file, file.Media);
                     var episode = episodes[xref.EpisodeID];
@@ -383,7 +391,42 @@ public class WebUI
                 .ThenBy(episode => episode.Number)
                 .Select(episode => new Episode.AniDB(episode.AniDB))
                 .ToList();
+
+
+            var releaseGroupNames = releaseGroups.Values
+                .Select(group => group.GroupNameShort)
+                .ToList();
+
+            var sourcesByType = filesWithXrefAndLocation
+                .Select(f => new
+                {
+                    f.file,
+                    EpisodeType = episodes[f.xref.EpisodeID].Type,
+                    FileSource = (CrossRefSource)f.xref.CrossRefSource == CrossRefSource.AniDB && anidbFiles.ContainsKey(f.xref.Hash) ? anidbFiles[f.xref.Hash].File_Source : null
+                })
+                .Where(f => f != null)
+                .GroupBy(f => f.EpisodeType)
+                .Select(fileGroup =>
+                {
+                    var sources = fileGroup
+                        .GroupBy(f => f.FileSource)
+                        .Select(f => new SourceGrouping { Type = f.Key, Count = f.Count() })
+                        .ToList();
+                    return new SourcesByType { Type = fileGroup.Key, Sources = sources };
+                })
+                .ToList();
+
+            var totalFileSize = files
+                .Sum(fileWrapper => fileWrapper.Episode.Size);
+            Overview = new FileSummaryOverview()
+            {
+                ReleaseGroups = releaseGroupNames,
+                SourcesByType = sourcesByType,
+                TotalFileSize = totalFileSize,
+            };
         }
+
+        public FileSummaryOverview Overview;
 
         public List<EpisodeGroupSummary> Groups;
 
@@ -677,6 +720,44 @@ public class WebUI
             /// ED2K File Hash.
             /// </summary>
             public string ED2K;
+        }
+
+        public class FileSummaryOverview
+        {
+            /// <summary>
+            /// The list of all AniDB episode sources, and their associated file counts
+            /// </summary>
+            public List<SourcesByType> SourcesByType;
+
+            /// <summary>
+            /// The total size of all locally available files for a series
+            /// </summary>
+            public long TotalFileSize;
+
+            /// <summary>
+            /// A summarised list of all the locally available release groups for a series.
+            /// </summary>
+            public List<string> ReleaseGroups;
+        }
+
+        public class SourcesByType
+        {
+            /// <summary>
+            /// The type of episode.
+            /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
+            public EpisodeType Type;
+
+            /// <summary>
+            /// The source of the file for the episode
+            /// </summary>
+            public List<SourceGrouping> Sources;
+        }
+
+        public class SourceGrouping
+        {
+            public string Type;
+            public int Count;
         }
 
         /// <summary>
