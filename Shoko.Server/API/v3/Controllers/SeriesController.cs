@@ -1389,6 +1389,7 @@ public class SeriesController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
+        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1885,6 +1886,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return ValidationProblem("No Group entry for the given groupID", "groupID");

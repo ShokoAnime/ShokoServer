@@ -293,6 +293,7 @@ public class WebUIController : BaseController
         [FromQuery] bool includeMissingFutureEpisodes = false)
     {
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
+        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {

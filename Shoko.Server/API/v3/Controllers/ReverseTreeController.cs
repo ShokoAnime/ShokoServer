@@ -78,6 +78,7 @@ public class ReverseTreeController : BaseController
     [HttpGet("Group/{groupID}/Parent")]
     public ActionResult<Group> GetParentFromGroup([FromRoute] int groupID, [FromQuery] bool topLevel = false)
     {
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -117,6 +118,7 @@ public class ReverseTreeController : BaseController
     [HttpGet("Series/{seriesID}/Group")]
     public ActionResult<Group> GetGroupFromSeries([FromRoute] int seriesID, [FromQuery] bool topLevel = false)
     {
+        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {

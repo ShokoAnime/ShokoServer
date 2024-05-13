@@ -433,6 +433,7 @@ public class FilterController : BaseController
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         // Check if the group exists.
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
@@ -493,6 +494,7 @@ public class FilterController : BaseController
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         // Check if the group exists.
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);

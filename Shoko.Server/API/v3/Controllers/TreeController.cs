@@ -329,6 +329,7 @@ public class TreeController : BaseController
             return NotFound(FilterController.FilterNotFound);
 
         // Check if the group exists.
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
@@ -392,6 +393,7 @@ public class TreeController : BaseController
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
         [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         // Return the groups with no group filter applied.
         if (filterID == 0)
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages, includeDataFrom);
@@ -450,6 +452,7 @@ public class TreeController : BaseController
         [FromQuery] bool includeEmpty = false)
     {
         // Check if the group exists.
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -502,6 +505,7 @@ public class TreeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -534,6 +538,7 @@ public class TreeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
+        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -580,6 +585,7 @@ public class TreeController : BaseController
     [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
     [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
+        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)

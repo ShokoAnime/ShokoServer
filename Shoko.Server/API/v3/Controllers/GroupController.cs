@@ -27,6 +27,8 @@ public class GroupController : BaseController
 
     #region Return messages
 
+    internal const string GroupWithZeroID = "GroupID must be greater than 0";
+
     internal const string GroupNotFound = "No Group entry for the given groupID";
 
     internal const string GroupForbiddenForUser = "Accessing Group is not allowed for the current user";
@@ -127,7 +129,7 @@ public class GroupController : BaseController
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = new SVR_AnimeGroup()
+        var animeGroup = new SVR_AnimeGroup
         {
             GroupName = string.Empty,
             Description = string.Empty,
@@ -159,6 +161,7 @@ public class GroupController : BaseController
     [HttpGet("{groupID}")]
     public ActionResult<Group> GetGroup([FromRoute] int groupID)
     {
+        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -186,6 +189,7 @@ public class GroupController : BaseController
     [HttpPut("{groupID}")]
     public ActionResult<Group> PutGroup([FromRoute] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
+        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
         if (animeGroup == null)
         {
@@ -221,6 +225,7 @@ public class GroupController : BaseController
     [HttpPatch("{groupID}")]
     public ActionResult<Group> PatchGroup([FromRoute] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
     {
+        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
         if (animeGroup == null)
         {
@@ -263,6 +268,7 @@ public class GroupController : BaseController
     public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int groupID,
         [FromQuery] bool recursive = false)
     {
+        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -308,6 +314,7 @@ public class GroupController : BaseController
     [HttpDelete("{groupID}")]
     public async Task<ActionResult> DeleteGroup(int groupID, bool deleteSeries = false, bool deleteFiles = false)
     {
+        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -343,6 +350,7 @@ public class GroupController : BaseController
     [HttpPost("{groupID}/Recalculate")]
     public async Task<ActionResult> RecalculateStats(int groupID)
     {
+        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {

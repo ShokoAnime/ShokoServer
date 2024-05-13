@@ -75,6 +75,7 @@ public class ReleaseManagementController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
+        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
@@ -130,6 +131,7 @@ public class ReleaseManagementController : BaseController
         [FromQuery] bool ignoreVariations = true
     )
     {
+        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return new List<int>();
