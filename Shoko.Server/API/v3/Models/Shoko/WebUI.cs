@@ -201,7 +201,7 @@ public class WebUI
                 .DistinctBy(anidbFile => anidbFile.Hash)
                 .ToDictionary(anidbFile => anidbFile.Hash);
             var releaseGroups = anidbFiles.Values
-                .Select(anidbFile => anidbFile.ReleaseGroup.GroupID)
+                .Select(anidbFile => anidbFile.GroupID)
                 .Distinct()
                 .Where(groupID => groupID != 0)
                 .Select(RepoFactory.AniDB_ReleaseGroup.GetByGroupID)
