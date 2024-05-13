@@ -172,7 +172,7 @@ public class WebUI
             groupByCriteria ??= new();
             var crossRefs = RepoFactory.CrossRef_File_Episode
                 .GetByAnimeID(series.AniDB_ID);
-            // The episodes we want to look at. We filter it down to only normal and speical episodes.
+            // The episodes we want to look at. We filter it down to only normal and special episodes.
             var episodes = series.GetAnimeEpisodes()
                 .Select(shoko =>
                 {
@@ -201,10 +201,10 @@ public class WebUI
                 .DistinctBy(anidbFile => anidbFile.Hash)
                 .ToDictionary(anidbFile => anidbFile.Hash);
             var releaseGroups = anidbFiles.Values
-                .Select(anidbFile => anidbFile.AniDB_FileID)
+                .Select(anidbFile => anidbFile.ReleaseGroup.GroupID)
                 .Distinct()
                 .Where(groupID => groupID != 0)
-                .Select(groupID =>  RepoFactory.AniDB_ReleaseGroup.GetByGroupID(groupID))
+                .Select(RepoFactory.AniDB_ReleaseGroup.GetByGroupID)
                 .Where(releaseGroup => releaseGroup != null)
                 .ToDictionary(releaseGroup => releaseGroup.GroupID);
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
@@ -227,8 +227,8 @@ public class WebUI
                     // Release group criterias
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.GroupName))
                     {
-                        groupByDetails.GroupName = isAutoLinked ? file.ReleaseGroup?.GroupName ?? "Unknown" : "None";
-                        groupByDetails.GroupNameShort = isAutoLinked ? file.ReleaseGroup?.GroupNameShort ?? "Unk" : "-";
+                        groupByDetails.GroupName = isAutoLinked ? releaseGroup?.GroupName ?? "Unknown" : "None";
+                        groupByDetails.GroupNameShort = isAutoLinked ? releaseGroup?.GroupNameShort ?? "Unk" : "-";
                     }
 
                     // File criterias
@@ -649,7 +649,7 @@ public class WebUI
         {
             /// <summary>
             /// AniDB Episode ID.
-            /// /// </summary>
+            /// </summary>
             public int EpisodeID;
 
             /// <summary>
