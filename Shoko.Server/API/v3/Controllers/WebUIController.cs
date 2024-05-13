@@ -32,7 +32,7 @@ using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
-/// The WebUI spesific controller. Only WebUI should use these endpoints.
+/// The WebUI specific controller. Only WebUI should use these endpoints.
 /// They may break at any time if the WebUI client needs to change something,
 /// and is therefore unsafe for other clients.
 /// </summary>
