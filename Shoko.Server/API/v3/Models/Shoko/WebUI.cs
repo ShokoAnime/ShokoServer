@@ -214,16 +214,15 @@ public class WebUI
                 {
                     var file = RepoFactory.VideoLocal.GetByHash(xref.Hash);
                     var location = file?.GetBestVideoLocalPlace();
-                    if (file?.Media == null || location == null)
-                        return null;
 
-                    return new { file, xref, location };
+                    return (file, xref, location);
                 })
-                .Where(f => f != null);
+                .Where(t => t.file?.Media != null && t.location != null)
+                .ToList();
             var files = filesWithXrefAndLocation
-                .Select(fileWithEpisode =>
+                .Select(tuple =>
                 {
-                    var (file, xref, location) = (fileWithEpisode.file, fileWithEpisode.xref, fileWithEpisode.location);
+                    var (file, xref, location) = tuple;
 
                     var media = new MediaInfo(file, file.Media);
                     var episode = episodes[xref.EpisodeID];
@@ -398,21 +397,22 @@ public class WebUI
                 .ToList();
 
             var sourcesByType = filesWithXrefAndLocation
-                .Select(f => new
+                .Select(t =>
                 {
-                    f.file,
-                    EpisodeType = episodes[f.xref.EpisodeID].Type,
-                    FileSource = (CrossRefSource)f.xref.CrossRefSource == CrossRefSource.AniDB && anidbFiles.ContainsKey(f.xref.Hash) ? anidbFiles[f.xref.Hash].File_Source : null
+                    var episodeType = episodes[t.xref.EpisodeID].Type;
+                    var fileSource = t.xref.CrossRefSource == (int)CrossRefSource.AniDB && anidbFiles.TryGetValue(t.xref.Hash, out var anidbFile)
+                        ? File.ParseFileSource(anidbFile.File_Source) : FileSource.Unknown;
+
+                    return (episodeType, fileSource);
                 })
-                .Where(f => f != null)
-                .GroupBy(f => f.EpisodeType)
-                .Select(fileGroup =>
+                .GroupBy(t => t.episodeType)
+                .Select(episodeTypeGroup =>
                 {
-                    var sources = fileGroup
-                        .GroupBy(f => f.FileSource)
-                        .Select(f => new SourceGrouping { Type = f.Key, Count = f.Count() })
+                    var sources = episodeTypeGroup
+                        .GroupBy(tuple => tuple.fileSource)
+                        .Select(sourceGroup => new SourceGrouping { Type = sourceGroup.Key, Count = sourceGroup.Count() })
                         .ToList();
-                    return new SourcesByType { Type = fileGroup.Key, Sources = sources };
+                    return new SourcesByType { Type = episodeTypeGroup.Key, Sources = sources };
                 })
                 .ToList();
 
@@ -756,7 +756,15 @@ public class WebUI
 
         public class SourceGrouping
         {
-            public string Type;
+            /// <summary>
+            /// The file source.
+            /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
+            public FileSource Type;
+
+            /// <summary>
+            /// Amount of files with this file source.
+            /// </summary>
             public int Count;
         }
 
