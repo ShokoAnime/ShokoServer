@@ -135,7 +135,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         try
         {
             if (!_isLoggedOn) return;
-            if (_socketHandler.IsLocked) return;
+            if (_socketHandler.IsLocked || !_socketHandler.IsConnected) return;
             if (IsBanned || BackoffSecs.HasValue) return;
 
             var ping = _requestFactory.Create<RequestPing>();
@@ -152,7 +152,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         try
         {
             if (!_isLoggedOn) return;
-            if (_socketHandler.IsLocked) return;
+            if (_socketHandler.IsLocked || !_socketHandler.IsConnected) return;
             if (IsBanned || BackoffSecs.HasValue) return;
 
             ForceLogout();
@@ -229,7 +229,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         // 4. Return a pretty response object, with a parsed return code and trimmed string
         var encoding = needsUnicode ? new UnicodeEncoding(true, false) : Encoding.ASCII;
 
-        if (_socketHandler == null) throw new ObjectDisposedException("The connection was closed by shoko");
+        if (_socketHandler is not { IsConnected: true }) throw new ObjectDisposedException("The connection was closed by shoko");
 
         var sendByteAdd = encoding.GetBytes(command);
         var decodedString = await RateLimiter.EnsureRate(async () =>

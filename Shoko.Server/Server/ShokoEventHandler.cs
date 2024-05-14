@@ -5,9 +5,7 @@ using System.Linq;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server;

@@ -49,8 +49,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             {
                 result = await SendUnsafe(payload, result);
             }
-            catch (Exception e) when ((e is SocketException se && se.SocketErrorCode == SocketError.TimedOut) ||
-                                      e is OperationCanceledException)
+            catch (Exception e) when (e is SocketException { SocketErrorCode: SocketError.TimedOut } or OperationCanceledException)
             {
                 // catches timeouts in both synchronous and asynchronous calls
                 // we will retry once and only once.
