@@ -132,7 +132,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Create or update the anime record,
         anime ??= new SVR_AniDB_Anime();
         var isNew = anime.AniDB_AnimeID == 0;
-        var (isUpdated, episodesToMove) = await _animeCreator.CreateAnime(response, anime, 0);
+        var (isUpdated, episodesToMove) = await _animeCreator.CreateAnime(response, anime, RelDepth);
 
         // then conditionally create the series record if it doesn't exist,
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
