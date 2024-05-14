@@ -42,6 +42,7 @@ public class AnimeCreator
 #pragma warning disable CS0618
     public async Task<(bool animeUpdated, ISet<int> episodesAddedOrUpdated)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
+        _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
         if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, new HashSet<int>());
         var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
@@ -49,7 +50,7 @@ public class AnimeCreator
         {
             // check if we updated in a lock
             var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-            if (DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
+            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
 
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
@@ -135,6 +136,11 @@ public class AnimeCreator
             _logger.LogTrace("------------------------------------------------");
 
             return (updated, updated ? response.Episodes.Select(ep => ep.EpisodeID).ToHashSet() : updatedEpisodes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating anime {AnimeID}", response.Anime.AnimeID);
+            throw;
         }
         finally
         {
