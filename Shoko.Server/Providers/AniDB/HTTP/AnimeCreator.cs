@@ -39,6 +39,7 @@ public class AnimeCreator
     }
 
 
+#pragma warning disable CS0618
     public async Task<(bool animeUpdated, ISet<int> episodesAddedOrUpdated)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, new HashSet<int>());
@@ -48,7 +49,7 @@ public class AnimeCreator
         {
             // check if we updated in a lock
             var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-            if (DateTime.Now - existingAnime.GetDateTimeUpdated() < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
+            if (DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
 
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
@@ -120,14 +121,12 @@ public class AnimeCreator
             _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-#pragma warning disable CS0618
             // Track when we last tried to update the metadata.
             anime.DateTimeUpdated = DateTime.Now;
 
             // Track when we last updated the metadata.
             if (updated)
                 anime.DateTimeDescUpdated = anime.DateTimeUpdated;
-#pragma warning restore CS0618
 
             RepoFactory.AniDB_Anime.Save(anime);
 
@@ -143,6 +142,7 @@ public class AnimeCreator
             _updatingIDs.TryRemove(response.Anime.AnimeID, out _);
         }
     }
+#pragma warning restore CS0618
 
     private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
     {
