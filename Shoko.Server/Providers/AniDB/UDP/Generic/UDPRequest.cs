@@ -79,7 +79,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         // parts[0] => 200 FILE
         // parts[1] => Response
         // parts[2] => empty, since we ended with a newline
-        if (decodedParts.Length < 2)
+        if (decodedParts.Length < 2 && !returnFullResponse)
         {
             throw new UnexpectedUDPResponseException(response, Command);
         }
