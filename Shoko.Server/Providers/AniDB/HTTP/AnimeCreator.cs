@@ -44,12 +44,12 @@ public class AnimeCreator
         if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, new HashSet<int>());
         var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
-        // check if we updated in a lock
-        var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-        if (DateTime.Now - existingAnime.GetDateTimeUpdated() < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
-
         try
         {
+            // check if we updated in a lock
+            var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
+            if (DateTime.Now - existingAnime.GetDateTimeUpdated() < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
+
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
             _logger.LogTrace(
