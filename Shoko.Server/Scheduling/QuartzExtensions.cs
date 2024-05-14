@@ -67,25 +67,25 @@ public static class QuartzExtensions
         var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
         if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
 
-        await SchedulerLock.WaitAsync(token);
+        await SchedulerLock.WaitAsync(token).ConfigureAwait(true);
         try
         {
             if (!await scheduler.CheckExists(job.Key, token))
             {
                 Logger.Trace("Scheduling {JobName} to run.", job.Key);
                 return await scheduler.ScheduleJob(job,
-                    triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
+                    triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token).ConfigureAwait(true);
             }
 
             // get waiting triggers
-            var triggers = (await scheduler.GetTriggersOfJob(job.Key, token)).Select(a => a.GetNextFireTimeUtc())
-                .Where(a => a != null).Select(a => a!.Value).ToList();
+            var nextFire = (await scheduler.GetTriggersOfJob(job.Key, token).ConfigureAwait(true)).Select(a => a.GetNextFireTimeUtc())
+                .Where(a => a != null).Select(a => a.Value).DefaultIfEmpty().Min();
 
             // we are not set to replace the job, then return the first scheduled time
-            if (triggers.Any() && !replaceExisting)
+            if (nextFire != default && !replaceExisting)
             {
                 Logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
-                return triggers.Min();
+                return nextFire;
             }
 
             // since we are replacing it, it will remove the triggers, as well
@@ -93,7 +93,7 @@ public static class QuartzExtensions
 
             Logger.Trace("Scheduling {JobName} (after removing previous job)", job.Key);
             return await scheduler.ScheduleJob(job,
-                triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
+                triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token).ConfigureAwait(true);
         }
         finally
         {
