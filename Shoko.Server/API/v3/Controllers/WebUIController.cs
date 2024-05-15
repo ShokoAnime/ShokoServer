@@ -353,6 +353,14 @@ public class WebUIController : BaseController
         return Redirect("/webui/index.html");
     }
 
+    /// <inheritdoc cref="InstallWebUI"/>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Install")]
+    [Obsolete("Post is correct, but we want legacy versions of the webui boot-strapper to be able to install. We can remove this later™.")]
+    public ActionResult UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
+        => InstallWebUI(channel);
+
     /// <summary>
     /// Update an existing version of the web ui to the latest for the selected
     /// <paramref name="channel"/>.
