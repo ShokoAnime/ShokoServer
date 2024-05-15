@@ -783,9 +783,8 @@ public class AnimeCreator
     {
         if (chars == null) return;
 
-        // delete all the existing cross references just in case one has been removed
-        var animeChars =
-            RepoFactory.AniDB_Anime_Character.GetByAnimeID(anime.AnimeID);
+        // delete all the existing cross-references just in case one has been removed
+        var animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(anime.AnimeID);
 
         try
         {
@@ -796,17 +795,9 @@ public class AnimeCreator
             _logger.LogError(ex, "Unable to Remove Characters for {MainTitle}", anime.MainTitle);
         }
 
-
-        var chrsToSave = new List<AniDB_Character>();
-        var xrefsToSave = new List<AniDB_Anime_Character>();
-
-        var seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
-        var seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
-
         // delete existing relationships to seiyuu's
-        var charSeiyuusToDelete =
-            chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharacterID))
-                .ToList();
+        var charSeiyuusToDelete = chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharacterID)).ToList();
+
         try
         {
             RepoFactory.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
@@ -816,16 +807,19 @@ public class AnimeCreator
             _logger.LogError(ex, "Unable to Remove Seiyuus for {MainTitle}", anime.MainTitle);
         }
 
+        var chrsToSave = new List<AniDB_Character>();
+        var xrefsToSave = new List<AniDB_Anime_Character>();
+
+        var seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
+        var seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
+
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
         var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
-        var charLookup = chars.ToLookup(a => (a.AnimeID, a.CharacterID));
+        var charLookup = chars.ToLookup(a => a.CharacterID);
 
-        if (charLookup.Any(a => a.Count() > 1))
+        foreach (var groupings in charLookup.Where(a => a.Count() > 1))
         {
-            foreach (var groupings in charLookup.Where(a => a.Count() > 1))
-            {
-                _logger.LogWarning("Anime had a duplicate character listing for CharacterID: {CharID}", groupings.Key.CharacterID);
-            }
+            _logger.LogWarning("Anime had a duplicate character listing for CharacterID: {CharID}", groupings.Key);
         }
 
         foreach (var grouping in charLookup)
@@ -833,8 +827,7 @@ public class AnimeCreator
             try
             {
                 var rawchar = grouping.FirstOrDefault();
-                var chr = RepoFactory.AniDB_Character.GetByCharID(rawchar.CharacterID) ??
-                          new AniDB_Character();
+                var chr = RepoFactory.AniDB_Character.GetByCharID(rawchar.CharacterID) ?? new AniDB_Character();
 
                 if (chr.CharID != 0)
                 {
@@ -977,7 +970,7 @@ public class AnimeCreator
     {
         if (staffList == null) return;
 
-        // delete all the existing cross references just in case one has been removed
+        // delete all the existing cross-references just in case one has been removed
         var animeStaff = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID);
 
         try
