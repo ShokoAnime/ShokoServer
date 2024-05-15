@@ -27,9 +27,9 @@ public class SyncPlexWatchedStatesJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     public JMMUser User { get; set; }
 
-    public override string TypeName => "Sync Series to Trakt Collection";
+    public override string TypeName => "Sync Plex States for User";
 
-    public override string Title => "Sync Plex States for User";
+    public override string Title => "Syncing Plex States for User";
     public override Dictionary<string, object> Details => new()
     {
         { "User", User.Username }

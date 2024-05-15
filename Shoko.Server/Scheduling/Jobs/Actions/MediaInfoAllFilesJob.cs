@@ -15,7 +15,7 @@ internal class MediaInfoAllFilesJob : BaseJob
 {
     private readonly ISchedulerFactory _schedulerFactory;
 
-    public override string TypeName => "MediaInfo All Files";
+    public override string TypeName => "Schedule MediaInfo Scan for All Files";
     public override string Title => "Scheduling MediaInfo Scan for All Files";
 
     public override async Task Process()

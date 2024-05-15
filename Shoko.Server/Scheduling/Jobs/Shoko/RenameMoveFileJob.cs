@@ -23,6 +23,7 @@ public class RenameMoveFileJob : BaseJob
     public int VideoLocalID { get; set; }
 
     public override string TypeName => "Rename/Move File";
+    public override string Title => "Renaming/Moving File";
 
     public override void PostInit()
     {
@@ -30,7 +31,7 @@ public class RenameMoveFileJob : BaseJob
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
         _fileName = Utils.GetDistinctPath(_vlocal?.GetBestVideoLocalPlace()?.FullServerPath);
     }
-    public override string Title => "Renaming/Moving File";
+
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
 
 

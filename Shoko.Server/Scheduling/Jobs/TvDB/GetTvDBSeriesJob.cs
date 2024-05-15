@@ -21,7 +21,7 @@ public class GetTvDBSeriesJob : BaseJob<TvDB_Series>
     public int TvDBSeriesID { get; set; }
     public bool ForceRefresh { get; set; }
 
-    public override string TypeName => "Get TvDB Series";
+    public override string TypeName => "Get TvDB Series Data";
 
     public override string Title => "Getting TvDB Series Data";
     public override void PostInit()

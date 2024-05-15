@@ -33,6 +33,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
     public bool ForceRefresh { get; set; }
 
     public override string TypeName => "Get AniDB Release Group Status for Anime";
+    public override string Title => "Getting AniDB Release Group Status for Anime";
 
     public override void PostInit()
     {
@@ -40,7 +41,6 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         _animeName = _anime?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
     }
 
-    public override string Title => "Getting AniDB Release Group Status for Anime";
     public override Dictionary<string, object> Details => _animeName == null ? new()
     {
         {

@@ -32,9 +32,9 @@ public class VoteAniDBAnimeJob : BaseJob
         _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override string TypeName => "Rate Anime";
+    public override string TypeName => "Send AniDB Anime Rating";
 
-    public override string Title => "Sending AniDB Anime Vote";
+    public override string Title => "Sending AniDB Anime Rating";
     public override Dictionary<string, object> Details => new()
     {
         { "Anime", _animeName },

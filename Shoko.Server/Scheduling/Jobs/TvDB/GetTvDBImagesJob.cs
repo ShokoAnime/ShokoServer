@@ -20,7 +20,7 @@ public class GetTvDBImagesJob : BaseJob
     public int TvDBSeriesID { get; set; }
     public bool ForceRefresh { get; set; }
 
-    public override string TypeName => "Get TvDB Images";
+    public override string TypeName => "Get TvDB Images for Series";
     public override string Title => "Getting TvDB Images for Series";
     public override void PostInit()
     {

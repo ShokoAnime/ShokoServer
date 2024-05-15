@@ -28,7 +28,7 @@ public class DiscoverFileJob : BaseJob
     public string FilePath { get; set; }
     public bool SkipMyList { get; set; }
 
-    public override string TypeName => "Discover File";
+    public override string TypeName => "Preprocess File";
 
     public override string Title => "Preprocessing File";
     public override Dictionary<string, object> Details => new()

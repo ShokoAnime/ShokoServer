@@ -28,7 +28,7 @@ public class SearchTMDBSeriesJob : BaseJob
         _animeTitle = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override string TypeName => "Search TMDB Series";
+    public override string TypeName => "Search for TMDB Series";
     public override string Title => "Searching for TMDB Series";
     public override Dictionary<string, object> Details => new() { { "Anime", _animeTitle } };
 

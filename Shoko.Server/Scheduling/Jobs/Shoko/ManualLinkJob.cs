@@ -37,9 +37,9 @@ public class ManualLinkJob : BaseJob
 
     public int Percentage { get; set; }
 
-    public override string TypeName => "Manually Link File";
+    public override string TypeName => "Manually Link File to Episode";
 
-    public override string Title => "Manually Linking to Episode";
+    public override string Title => "Manually Linking File to Episode";
 
     public override Dictionary<string, object> Details => _episode != null ?
         new()

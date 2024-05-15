@@ -46,9 +46,9 @@ public class ProcessFileJob : BaseJob
 
     public bool SkipMyList { get; set; }
 
-    public override string TypeName => "Process File";
+    public override string TypeName => "Get Cross-References for File";
 
-    public override string Title => "Get Cross-References for File";
+    public override string Title => "Getting Cross-References for File";
 
     public override Dictionary<string, object> Details => new()
     {

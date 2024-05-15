@@ -31,14 +31,14 @@ public class SearchTvDBSeriesJob : BaseJob
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
 
-    public override string TypeName => "Search TvDB Series";
+    public override string TypeName => "Search for TvDB Series";
+    public override string Title => "Searching for TvDB Series";
 
     public override void PostInit()
     {
         _title = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override string Title => "Searching for TvDB Series";
     public override Dictionary<string, object> Details => new() { { "Anime", _title } };
 
     public override async Task Process()

@@ -30,7 +30,7 @@ public class SearchTraktSeriesJob : BaseJob
     private string _anime;
     public int AnimeID { get; set; }
 
-    public override string TypeName => "Get Trakt Series";
+    public override string TypeName => "Search for Trakt Series";
     public override string Title => "Searching for Trakt Series";
     public override void PostInit()
     {

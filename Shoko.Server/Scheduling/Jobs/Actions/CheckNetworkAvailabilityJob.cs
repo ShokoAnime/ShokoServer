@@ -14,7 +14,7 @@ public class CheckNetworkAvailabilityJob : BaseJob
 {
     private readonly IConnectivityService _connectivityService;
     public override string TypeName => "Check Network Availability";
-    public override string Title => "Checking Network Connectivity";
+    public override string Title => "Checking Network Availability";
 
     public CheckNetworkAvailabilityJob(IConnectivityService connectivityService)
     {

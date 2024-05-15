@@ -31,13 +31,13 @@ public class UpdateMyListFileStatusJob : BaseJob
     public DateTime? WatchedDate { get; set; }
 
     public override string TypeName => "Update AniDB MyList Status for File";
+    public override string Title => "Updating AniDB MyList Status for File";
 
     public override void PostInit()
     {
         FullFileName = RepoFactory.FileNameHash?.GetByHash(Hash).FirstOrDefault()?.FileName;
     }
 
-    public override string Title => "Updating AniDB MyList Status for File";
     public override Dictionary<string, object> Details => FullFileName != null ? new()
     {
         { "Filename", FullFileName},

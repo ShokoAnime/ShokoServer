@@ -17,7 +17,7 @@ public class GetTraktSeriesJob : BaseJob
     private readonly TraktTVHelper _helper;
     public string TraktID { get; set; }
 
-    public override string TypeName => "Get Trakt Series";
+    public override string TypeName => "Get Trakt Series Data";
     public override string Title => "Getting Trakt Series Data";
     public override Dictionary<string, object> Details => new() { { "TraktID", TraktID } };
 

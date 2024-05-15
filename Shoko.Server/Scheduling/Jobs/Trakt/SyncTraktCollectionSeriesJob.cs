@@ -22,13 +22,13 @@ public class SyncTraktCollectionSeriesJob : BaseJob
     public int AnimeSeriesID { get; set; }
 
     public override string TypeName => "Sync Series to Trakt Collection";
+    public override string Title => "Syncing Series to Trakt Collection";
 
     public override void PostInit()
     {
         _seriesName = RepoFactory.AnimeSeries?.GetByID(AnimeSeriesID)?.GetSeriesName() ?? AnimeSeriesID.ToString();
     }
 
-    public override string Title => "Syncing Series to Trakt Collection";
     public override Dictionary<string, object> Details => new() { { "Anime", _seriesName } };
 
     public override Task Process()

@@ -22,7 +22,8 @@ public class MediaInfoJob : BaseJob
 
     public int VideoLocalID { get; set; }
 
-    public override string TypeName => "Read MediaInfo";
+    public override string TypeName => "Read MediaInfo for File";
+    public override string Title => "Reading MediaInfo for File";
 
     public override void PostInit()
     {
@@ -31,7 +32,6 @@ public class MediaInfoJob : BaseJob
         _fileName = Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath);
     }
 
-    public override string Title => "Reading MediaInfo for File";
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
 
     public override Task Process()

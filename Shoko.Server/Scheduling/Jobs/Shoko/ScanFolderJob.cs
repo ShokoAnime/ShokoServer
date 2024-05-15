@@ -17,7 +17,7 @@ internal class ScanFolderJob : BaseJob
 
     [JobKeyMember]
     public int ImportFolderID { get; set; }
-    public override string TypeName => "Scan Folder";
+    public override string TypeName => "Scan Import Folder";
     public override string Title => "Scanning Import Folder";
     public override void PostInit()
     {
