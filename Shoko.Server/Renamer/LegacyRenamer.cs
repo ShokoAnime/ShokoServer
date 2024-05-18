@@ -2269,7 +2269,7 @@ public class LegacyRenamer : IRenamer
             foreach (var vid in ep.GetVideoLocals()
                          .Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
             {
-                if (vid.ED2KHash == args.VideoInfo.Hashes.ED2K)
+                if (vid.Hash == args.VideoInfo.Hashes.ED2K)
                 {
                     continue;
                 }

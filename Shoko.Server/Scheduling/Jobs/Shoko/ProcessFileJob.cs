@@ -180,7 +180,7 @@ public class ProcessFileJob : BaseJob
         {
             await (await _schedulerFactory.GetScheduler()).StartJob<AddFileToMyListJob>(c =>
             {
-                c.Hash = _vlocal.ED2KHash;
+                c.Hash = _vlocal.Hash;
                 c.ReadStates = true;
             });
         }
@@ -244,7 +244,7 @@ public class ProcessFileJob : BaseJob
         if (xrefs.Count == 0)
         {
             // if we have the AniDB file, but no cross refs it means something has been broken
-            _logger.LogDebug("Could not find any cross ref records for: {Ed2KHash}", vidLocal.ED2KHash);
+            _logger.LogDebug("Could not find any cross ref records for: {Ed2KHash}", vidLocal.Hash);
         }
         else
         {

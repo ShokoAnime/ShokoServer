@@ -74,7 +74,7 @@ public class ManualLinkJob : BaseJob
 
         var xref = new SVR_CrossRef_File_Episode
         {
-            Hash = _vlocal.ED2KHash,
+            Hash = _vlocal.Hash,
             FileName = _vlocal.FileName,
             FileSize = _vlocal.FileSize,
             CrossRefSource = (int)CrossRefSource.User,

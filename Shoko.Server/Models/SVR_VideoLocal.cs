@@ -7,7 +7,6 @@ using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Quartz;
-using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Models.MediaInfo;
@@ -140,13 +139,6 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         return sb.ToString();
     }
 
-    public string ED2KHash
-    {
-        get => Hash;
-        set => Hash = value;
-    }
-
-
     public SVR_AniDB_File GetAniDBFile()
     {
         return RepoFactory.AniDB_File.GetByHash(Hash);
@@ -198,10 +190,11 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     {
         lock (this)
         {
-            
+            SVR_VideoLocal_User vidUserRecord;
+            // mark as watched
             if (watched)
             {
-                var vidUserRecord = GetOrCreateUserRecord(userID);
+                vidUserRecord = GetOrCreateUserRecord(userID);
                 vidUserRecord.WatchedDate = DateTime.Now;
                 vidUserRecord.WatchedCount++;
 
@@ -210,13 +203,15 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
                 vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
+                return;
             }
-            else
-            {
-                var vidUserRecord = GetUserRecord(userID);
-                vidUserRecord.WatchedDate = null;
-                RepoFactory.VideoLocalUser.Save(vidUserRecord);
-            }
+
+            // unmark
+            vidUserRecord = GetUserRecord(userID);
+            if (vidUserRecord == null) return;
+
+            vidUserRecord.WatchedDate = null;
+            RepoFactory.VideoLocalUser.Save(vidUserRecord);
         }
     }
 
@@ -551,10 +546,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     #region IVideo Implementation
 
-    string IVideo.EarliestKnownName => RepoFactory.FileNameHash.GetByHash(Hash)
-        .OrderBy(a => a.FileNameHashID)
-        .FirstOrDefault()
-        ?.FileName;
+    string IVideo.EarliestKnownName => RepoFactory.FileNameHash.GetByHash(Hash).MinBy(a => a.FileNameHashID)?.FileName;
 
     long IVideo.Size => FileSize;
 
@@ -607,11 +599,17 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     string IHashes.MD5 => MD5;
 
-    string IHashes.ED2K => ED2KHash;
+    string IHashes.ED2K => Hash;
 
     string IHashes.SHA1 => SHA1;
 
     #endregion
+
+    string IHash.ED2KHash
+    {
+        get => Hash;
+        set => Hash = value;
+    }
 }
 
 // This is a comparer used to sort the completeness of a videolocal, more complete first.

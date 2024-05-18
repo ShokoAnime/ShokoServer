@@ -36,7 +36,7 @@ public class IntegrityCheckController : BaseController
             .Select(p => new { p, v = p.VideoLocal })
             .Select(t => new ScanFile
             {
-                Hash = t.v.ED2KHash,
+                Hash = t.v.Hash,
                 FileSize = t.v.FileSize,
                 FullName = t.p.FullServerPath,
                 ScanID = scan.ScanID,

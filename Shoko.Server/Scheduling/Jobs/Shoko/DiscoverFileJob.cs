@@ -252,9 +252,9 @@ public class DiscoverFileJob : BaseJob
     private static bool FillHashesAgainstVideoLocalRepo(SVR_VideoLocal v)
     {
         var changed = false;
-        if (!string.IsNullOrEmpty(v.ED2KHash))
+        if (!string.IsNullOrEmpty(v.Hash))
         {
-            var n = RepoFactory.VideoLocal.GetByHash(v.ED2KHash);
+            var n = RepoFactory.VideoLocal.GetByHash(v.Hash);
             if (n != null)
             {
                 if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))

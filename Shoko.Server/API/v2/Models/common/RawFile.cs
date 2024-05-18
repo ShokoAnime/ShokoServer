@@ -122,7 +122,7 @@ public class RawFile : BaseDirectory
         id = vl.VideoLocalID;
 
         crc32 = vl.CRC32;
-        ed2khash = vl.ED2KHash;
+        ed2khash = vl.Hash;
         md5 = vl.MD5;
         sha1 = vl.SHA1;
 

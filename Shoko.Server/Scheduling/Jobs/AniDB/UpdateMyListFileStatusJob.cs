@@ -104,7 +104,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         if (!UpdateSeriesStats) return Task.CompletedTask;
 
         // update watched stats
-        var eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
+        var eps = RepoFactory.AnimeEpisode.GetByHash(vid.Hash);
         if (eps.Count > 0)
         {
             eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
