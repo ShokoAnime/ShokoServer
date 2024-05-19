@@ -21,7 +21,8 @@ public enum ScheduledUpdateType
     LogClean = 11,
     AzureUserInfo = 12,
     TraktToken = 13,
-    DayFiltersUpdate = 14
+    DayFiltersUpdate = 14,
+    AniDBNotify = 15,
 }
 
 public enum TraktSyncAction
