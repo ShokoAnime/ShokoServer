@@ -61,7 +61,7 @@ public class GetAniDBMessageJob : BaseJob
         };
 
         // add flag if its a file moved system message
-        if (message.Type == AniDBMessageType.System && message.Title.StartsWith("file moved:"))
+        if (message.Type == AniDBMessageType.System && message.Title.ToLower().StartsWith("file moved:"))
         {
             message.IsFileMoved = true;
         }
