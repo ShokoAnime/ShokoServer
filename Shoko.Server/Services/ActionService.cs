@@ -937,6 +937,34 @@ public class ActionService
         await _tvdbHelper.ScanForMatches();
     }
 
+    public async Task CheckForUnreadNotifications(bool forceRefresh)
+    {
+        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
+        if (sched == null)
+        {
+            sched = new()
+            {
+                UpdateType = (int)ScheduledUpdateType.AniDBNotify,
+                UpdateDetails = string.Empty
+            };
+        }
+        else
+        {
+            var settings = _settingsProvider.GetSettings();
+            var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
+
+            // if we have run this in the last freqHours and are not forcing it, then exit
+            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            if (!forceRefresh && tsLastRun.TotalHours < freqHours) return;
+        }
+
+        sched.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(sched);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetAniDBNotifyJob>(n => n.ForceRefresh = forceRefresh);
+    }
+
     public async Task CheckForCalendarUpdate(bool forceRefresh)
     {
         var settings = _settingsProvider.GetSettings();

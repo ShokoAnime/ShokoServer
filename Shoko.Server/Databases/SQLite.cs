@@ -323,7 +323,11 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new DatabaseCommand(1, 109,
             "CREATE TABLE VideoLocal_User( VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate timestamp NOT NULL ); "),
         new DatabaseCommand(1, 110,
-            "CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);")
+            "CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);"),
+        new DatabaseCommand(1, 111,
+            "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID INTEGER PRIMARY KEY AUTOINCREMENT, Type int NOT NULL, ID int NOT NULL, Added timestamp NOT NULL ); "),
+        new DatabaseCommand(1, 112,
+            "CREATE TABLE AniDB_Message( AniDB_MessageID INTEGER PRIMARY KEY AUTOINCREMENT, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName text NOT NULL, Date timestamp NOT NULL, Type int NOT NULL, Title text NOT NULL, Body text NOT NULL, Flags int NOT NULL ); "),
     };
 
     private List<DatabaseCommand> updateVersionTable = new()

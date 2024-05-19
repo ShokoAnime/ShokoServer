@@ -450,5 +450,17 @@ public class ActionController : BaseController
         return Ok($"Saved {files.Count} AddToMyList Commands");
     }
 
+    /// <summary>
+    /// Fetch unread notifications and messages from AniDB
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("GetAniDBNotifications")]
+    public async Task<ActionResult> GetAniDBNotifications()
+    {
+        await _actionService.CheckForUnreadNotifications(true);
+        return Ok();
+    }
+
     #endregion
 }

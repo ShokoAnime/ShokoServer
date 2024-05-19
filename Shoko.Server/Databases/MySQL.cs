@@ -247,7 +247,11 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(1, 109,
             "CREATE TABLE `Trakt_Season` ( `Trakt_SeasonID` INT NOT NULL AUTO_INCREMENT, `Trakt_ShowID` int NOT NULL, `Season` int NOT NULL, `URL` text character set utf8, PRIMARY KEY (`Trakt_SeasonID`) ) ; "),
         new DatabaseCommand(1, 110,
-            "CREATE TABLE `CrossRef_AniDB_Trakt` ( `CrossRef_AniDB_TraktID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `TraktID` varchar(100) character set utf8, `TraktSeasonNumber` int NOT NULL, `CrossRefSource` int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TraktID`) ) ; ")
+            "CREATE TABLE `CrossRef_AniDB_Trakt` ( `CrossRef_AniDB_TraktID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `TraktID` varchar(100) character set utf8, `TraktSeasonNumber` int NOT NULL, `CrossRefSource` int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TraktID`) ) ; "),
+        new DatabaseCommand(1, 111,
+            "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `Added` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
+        new DatabaseCommand(1, 112,
+            "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `Date` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
     };
 
     private List<DatabaseCommand> patchCommands = new()
