@@ -64,7 +64,7 @@ public class RequestGetNotifyList : UDPRequest<IList<ResponseNotifyId>>
             }
 
             var typeStr = parts[0];
-            if (!typeStr.Equals('M') || !typeStr.Equals('N'))
+            if (!typeStr.Equals("M") && !typeStr.Equals("N"))
             {
                 throw new UnexpectedUDPResponseException("Type was not M or N", code, receivedData, Command);
             }
@@ -72,7 +72,7 @@ public class RequestGetNotifyList : UDPRequest<IList<ResponseNotifyId>>
             notifications.Add(
                 new ResponseNotifyId
                 {
-                    Message = typeStr.Equals('M'),
+                    Message = typeStr.Equals("M"),
                     ID = id
                 }
             );
