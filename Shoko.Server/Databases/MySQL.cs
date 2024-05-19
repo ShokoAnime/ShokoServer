@@ -247,7 +247,11 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(1, 109,
             "CREATE TABLE `Trakt_Season` ( `Trakt_SeasonID` INT NOT NULL AUTO_INCREMENT, `Trakt_ShowID` int NOT NULL, `Season` int NOT NULL, `URL` text character set utf8, PRIMARY KEY (`Trakt_SeasonID`) ) ; "),
         new DatabaseCommand(1, 110,
-            "CREATE TABLE `CrossRef_AniDB_Trakt` ( `CrossRef_AniDB_TraktID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `TraktID` varchar(100) character set utf8, `TraktSeasonNumber` int NOT NULL, `CrossRefSource` int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TraktID`) ) ; ")
+            "CREATE TABLE `CrossRef_AniDB_Trakt` ( `CrossRef_AniDB_TraktID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `TraktID` varchar(100) character set utf8, `TraktSeasonNumber` int NOT NULL, `CrossRefSource` int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TraktID`) ) ; "),
+        new DatabaseCommand(1, 111,
+            "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `Date` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
+        new DatabaseCommand(1, 112,
+            "CREATE TABLE `AniDB_Notification` ( `AniDB_NotificationID` INT NOT NULL AUTO_INCREMENT, `NotificationID` int NOT NULL, `RelatedTypeID` int NOT NULL, `NotificationType` int NOT NULL, `CountPending` int NOT NULL, `Date` datetime NOT NULL, `RelatedTypeName` varchar(100) character set utf8 NOT NULL, `FileIds` text character set utf8 NOT NULL, PRIMARY KEY (`AniDB_NotificationID`) ) ;"),
     };
 
     private List<DatabaseCommand> patchCommands = new()
