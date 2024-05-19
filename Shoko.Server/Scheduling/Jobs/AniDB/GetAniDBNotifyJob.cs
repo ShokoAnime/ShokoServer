@@ -9,8 +9,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -22,7 +20,6 @@ public class GetAniDBNotifyJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly ISettingsProvider _settingsProvider;
     public bool ForceRefresh { get; set; }
 
     public override string TypeName => "Get AniDB Unread Notifications and Messages";
@@ -33,30 +30,8 @@ public class GetAniDBNotifyJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}", nameof(GetAniDBNotifyJob));
 
-        var settings = _settingsProvider.GetSettings();
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
-        if (sched == null)
-        {
-            sched = new()
-            {
-                UpdateType = (int)ScheduledUpdateType.AniDBNotify,
-                UpdateDetails = string.Empty
-            };
-        }
-        else
-        {
-            var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
-
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
-            if (!ForceRefresh && tsLastRun.TotalHours < freqHours) return;
-        }
-
-        sched.LastUpdate = DateTime.Now;
-
         var requestCount = _requestFactory.Create<RequestGetNotifyCount>(r => r.Buddies = false); // we do not care about the number of online buddies
         var responseCount = requestCount.Send();
-        RepoFactory.ScheduledUpdate.Save(sched);
         if (responseCount?.Response == null) return;
 
         var unreadCount = responseCount.Response.Files + responseCount.Response.Messages;
@@ -101,11 +76,10 @@ public class GetAniDBNotifyJob : BaseJob
         }
     }
 
-    public GetAniDBNotifyJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
+    public GetAniDBNotifyJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
-        _settingsProvider = settingsProvider;
     }
 
     protected GetAniDBNotifyJob()
