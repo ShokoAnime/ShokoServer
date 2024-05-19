@@ -53,10 +53,10 @@ public class GetAniDBNotifyJob : BaseJob
         }
 
         sched.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(sched);
 
         var requestCount = _requestFactory.Create<RequestGetNotifyCount>(r => r.Buddies = false); // we do not care about the number of online buddies
         var responseCount = requestCount.Send();
+        RepoFactory.ScheduledUpdate.Save(sched);
         if (responseCount?.Response == null) return;
 
         var unreadCount = responseCount.Response.Files + responseCount.Response.Messages;
