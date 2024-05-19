@@ -1,16 +1,13 @@
+using Shoko.Server.Server;
+
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
 public class ResponseNotifyId
 {
     /// <summary>
-    /// Is notification a message
+    /// Notify type
     /// </summary>
-    public bool Message { get; set; }
-
-    /// <summary>
-    /// Is notification an actual notification
-    /// </summary>
-    public bool Notification => !Message;
+    public AniDBNotifyType Type { get; set; }
 
     /// <summary>
     /// Notification/message id

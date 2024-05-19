@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
@@ -64,18 +65,30 @@ public class RequestGetNotifyList : UDPRequest<IList<ResponseNotifyId>>
             }
 
             var typeStr = parts[0];
-            if (!typeStr.Equals("M") && !typeStr.Equals("N"))
+            if (typeStr.Equals("M"))
+            {
+                notifications.Add(
+                    new()
+                    {
+                        Type = AniDBNotifyType.Message,
+                        ID = id
+                    }
+                );
+            }
+            else if (typeStr.Equals("N"))
+            {
+                notifications.Add(
+                    new()
+                    {
+                        Type = AniDBNotifyType.Notification,
+                        ID = id
+                    }
+                );
+            }
+            else
             {
                 throw new UnexpectedUDPResponseException("Type was not M or N", code, receivedData, Command);
             }
-
-            notifications.Add(
-                new ResponseNotifyId
-                {
-                    Message = typeStr.Equals("M"),
-                    ID = id
-                }
-            );
         }
 
         return new UDPResponse<IList<ResponseNotifyId>>

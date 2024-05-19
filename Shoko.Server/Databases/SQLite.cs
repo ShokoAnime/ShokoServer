@@ -325,9 +325,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new DatabaseCommand(1, 110,
             "CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);"),
         new DatabaseCommand(1, 111,
-            "CREATE TABLE AniDB_Message( AniDB_MessageID INTEGER PRIMARY KEY AUTOINCREMENT, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName text NOT NULL, Date timestamp NOT NULL, Type int NOT NULL, Title text NOT NULL, Body text NOT NULL ); "),
+            "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID INTEGER PRIMARY KEY AUTOINCREMENT, Type int NOT NULL, ID int NOT NULL, Added timestamp NOT NULL ); "),
         new DatabaseCommand(1, 112,
-            "CREATE TABLE AniDB_Notification( AniDB_NotificationID INTEGER PRIMARY KEY AUTOINCREMENT, NotificationID int NOT NULL, RelatedTypeID int NOT NULL, NotificationType int NOT NULL, CountPending int NOT NULL, Date timestamp NOT NULL, RelatedTypeName text NOT NULL, FileIds text NOT NULL ); "),
+            "CREATE TABLE AniDB_Message( AniDB_MessageID INTEGER PRIMARY KEY AUTOINCREMENT, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName text NOT NULL, Date timestamp NOT NULL, Type int NOT NULL, Title text NOT NULL, Body text NOT NULL, Flags int NOT NULL ); "),
     };
 
     private List<DatabaseCommand> updateVersionTable = new()

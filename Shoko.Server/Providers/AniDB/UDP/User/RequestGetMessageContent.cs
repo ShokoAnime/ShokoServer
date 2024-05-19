@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
@@ -62,15 +63,16 @@ public class RequestGetMessageContent : UDPRequest<ResponseMessageContent>
                     }
                     var sentDateTime = DateTime.UnixEpoch.AddSeconds(sentTime).ToLocalTime();
 
-                    if (!int.TryParse(parts[4], out var msgType))
+                    if (!int.TryParse(parts[4], out var msgTypeI))
                     {
                         throw new UnexpectedUDPResponseException("Type was not an int", code, receivedData, Command);
                     }
 
-                    if (msgType < 0 || msgType > 3)
+                    if (msgTypeI < 0 || msgTypeI > 3)
                     {
                         throw new UnexpectedUDPResponseException("Type was not in 0-3 range", code, receivedData, Command);
                     }
+                    var msgType = (AniDBMessageType)msgTypeI;
 
                     var msgTitle = parts[5];
                     var msgBody = BreakRegex.Replace(parts[6], "\n");

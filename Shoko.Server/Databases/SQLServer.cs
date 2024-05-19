@@ -329,9 +329,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(1, 110,
             "CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID)"),
         new DatabaseCommand(1, 111,
-            "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), Date datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX) ); "),
+            "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID int IDENTITY(1,1) NOT NULL, Type int NOT NULL, ID int NOT NULL, Added datetime NOT NULL ); "),
         new DatabaseCommand(1, 112,
-            "CREATE TABLE AniDB_Notification( AniDB_NotificationID int IDENTITY(1,1) NOT NULL, NotificationID int NOT NULL, RelatedTypeID int NOT NULL, NotificationType int NOT NULL, CountPending int NOT NULL, Date datetime NOT NULL, RelatedTypeName nvarchar(MAX), FileIds nvarchar(MAX) ); "),
+            "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), Date datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL ); "),
     };
 
     private List<DatabaseCommand> patchCommands = new()

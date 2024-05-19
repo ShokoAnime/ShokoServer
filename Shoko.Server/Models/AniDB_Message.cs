@@ -1,15 +1,72 @@
 using System;
+using Shoko.Commons.Utils;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Models;
 
 public class AniDB_Message
 {
+    #region DB Columns
+
     public int AniDB_MessageID { get; set; }
     public int MessageID { get; set; }
     public int FromUserId { get; set; }
     public string FromUserName { get; set; }
     public DateTime Date { get; set; }
-    public int Type { get; set; }
+    public AniDBMessageType Type { get; set; }
     public string Title { get; set; }
     public string Body { get; set; }
+    public AniDBMessageFlags Flags { get; set; }
+
+    #endregion
+
+    #region Disabled Auto Matching
+
+    public bool IsReadOnAniDB
+    {
+        get
+        {
+            return Flags.HasFlag(AniDBMessageFlags.ReadOnAniDB);
+        }
+        set
+        {
+            if (value)
+                Flags |= AniDBMessageFlags.ReadOnAniDB;
+            else
+                Flags &= ~AniDBMessageFlags.ReadOnAniDB;
+        }
+    }
+
+    public bool IsReadOnShoko
+    {
+        get
+        {
+            return Flags.HasFlag(AniDBMessageFlags.ReadOnShoko);
+        }
+        set
+        {
+            if (value)
+                Flags |= AniDBMessageFlags.ReadOnShoko;
+            else
+                Flags &= ~AniDBMessageFlags.ReadOnShoko;
+        }
+    }
+
+    public bool IsFileMoved
+    {
+        get
+        {
+            return Flags.HasFlag(AniDBMessageFlags.FileMoved);
+        }
+        set
+        {
+            if (value)
+                Flags |= AniDBMessageFlags.FileMoved;
+            else
+                Flags &= ~AniDBMessageFlags.FileMoved;
+        }
+    }
+
+    #endregion
+
 }

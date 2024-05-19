@@ -52,7 +52,7 @@ public static class RepoFactory
     public static ScanRepository Scan { get; } = new();
     public static ScanFileRepository ScanFile { get; } = new();
     public static AniDB_MessageRepository AniDB_Message { get; } = new();
-    public static AniDB_NotificationRepository AniDB_Notification { get; } = new();
+    public static AniDB_NotifyQueueRepository AniDB_NotifyQueue { get; } = new();
 
     //Cached Ones
     // DECLARE THESE IN ORDER OF DEPENDENCY

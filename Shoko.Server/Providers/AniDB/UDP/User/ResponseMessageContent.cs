@@ -1,4 +1,5 @@
 using System;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
@@ -27,7 +28,7 @@ public class ResponseMessageContent
     /// <summary>
     /// Type of message
     /// </summary>
-    public int Type { get; set; }
+    public AniDBMessageType Type { get; set; }
 
     /// <summary>
     /// Message title

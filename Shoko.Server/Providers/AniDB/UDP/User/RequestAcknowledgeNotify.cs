@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
@@ -10,17 +11,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User;
 /// </summary>
 public class RequestAcknowledgeNotify : UDPRequest<Void>
 {
-    /// <summary>
-    /// Is Message, otherwise Notification
-    /// </summary>
-    public bool Message { get; set; }
-
-    /// <summary>
-    /// Message ID
-    /// </summary>
+    public AniDBNotifyType Type { get; set; }
     public int ID { get; set; }
 
-    protected override string BaseCommand => $"NOTIFYACK type={(Message ? 'M' : 'N')}&id={ID}";
+    protected override string BaseCommand => $"NOTIFYACK type={(Type == AniDBNotifyType.Message ? "M" : "N")}&id={ID}";
 
     protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
