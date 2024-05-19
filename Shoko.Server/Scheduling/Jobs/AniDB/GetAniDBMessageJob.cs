@@ -77,7 +77,7 @@ public class GetAniDBMessageJob : BaseJob
                     r.ID = MessageID;
                 }
             );
-            var responseAck = request.Send();
+            var responseAck = requestAck.Send();
             // set flag
             message.IsReadOnAniDB = true;
         }
