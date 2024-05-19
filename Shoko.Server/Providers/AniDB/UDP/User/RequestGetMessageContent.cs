@@ -74,8 +74,8 @@ public class RequestGetMessageContent : UDPRequest<ResponseMessageContent>
                     }
                     var msgType = (AniDBMessageType)msgTypeI;
 
-                    var msgTitle = parts[5];
-                    var msgBody = BreakRegex.Replace(parts[6], "\n");
+                    var msgTitle = parts[5].Trim();
+                    var msgBody = BreakRegex.Replace(parts[6], "\n").Trim();
 
                     return new UDPResponse<ResponseMessageContent>
                     {
