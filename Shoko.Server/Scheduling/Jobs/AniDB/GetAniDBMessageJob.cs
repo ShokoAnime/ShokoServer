@@ -60,6 +60,12 @@ public class GetAniDBMessageJob : BaseJob
             Flags = AniDBMessageFlags.None
         };
 
+        // add flag if its a file moved system message
+        if (message.Type == AniDBMessageType.System && message.Title.StartsWith("file moved:"))
+        {
+            message.IsFileMoved = true;
+        }
+
         // acknowledge if enabled
         var settings = _settingsProvider.GetSettings();
         if (settings.AniDb.Notification_Acknowledge)
