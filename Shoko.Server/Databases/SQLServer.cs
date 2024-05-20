@@ -328,10 +328,6 @@ public class SQLServer : BaseDatabase<SqlConnection>
             "CREATE TABLE VideoLocal_User( VideoLocal_UserID int IDENTITY(1,1) NOT NULL, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate datetime NOT NULL, CONSTRAINT [PK_VideoLocal_User] PRIMARY KEY CLUSTERED  ( VideoLocal_UserID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new DatabaseCommand(1, 110,
             "CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID)"),
-        new DatabaseCommand(1, 111,
-            "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID int IDENTITY(1,1) NOT NULL, Type int NOT NULL, ID int NOT NULL, Added datetime NOT NULL ); "),
-        new DatabaseCommand(1, 112,
-            "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), Date datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL ); "),
     };
 
     private List<DatabaseCommand> patchCommands = new()
@@ -690,6 +686,10 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(114, 2, DropPlexContractColumns),
         new DatabaseCommand(115, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
         new DatabaseCommand(116, 1, "DROP TABLE CommandRequest"),
+        new DatabaseCommand(117, 1,
+            "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID int IDENTITY(1,1) NOT NULL, Type int NOT NULL, ID int NOT NULL, Added datetime NOT NULL ); "),
+        new DatabaseCommand(118, 1,
+            "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), Date datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL ); "),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

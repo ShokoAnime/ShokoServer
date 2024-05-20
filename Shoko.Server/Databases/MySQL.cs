@@ -248,10 +248,6 @@ public class MySQL : BaseDatabase<MySqlConnection>
             "CREATE TABLE `Trakt_Season` ( `Trakt_SeasonID` INT NOT NULL AUTO_INCREMENT, `Trakt_ShowID` int NOT NULL, `Season` int NOT NULL, `URL` text character set utf8, PRIMARY KEY (`Trakt_SeasonID`) ) ; "),
         new DatabaseCommand(1, 110,
             "CREATE TABLE `CrossRef_AniDB_Trakt` ( `CrossRef_AniDB_TraktID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `TraktID` varchar(100) character set utf8, `TraktSeasonNumber` int NOT NULL, `CrossRefSource` int NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TraktID`) ) ; "),
-        new DatabaseCommand(1, 111,
-            "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `Added` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
-        new DatabaseCommand(1, 112,
-            "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `Date` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
     };
 
     private List<DatabaseCommand> patchCommands = new()
@@ -760,6 +756,10 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(121, 9, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
         new DatabaseCommand(122, 1, "ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_CommandType (CommandType); ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_Priority_Date (Priority, DateTimeUpdated);"),
         new DatabaseCommand(123, 1, "DROP TABLE CommandRequest"),
+        new DatabaseCommand(124, 1,
+            "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `Added` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
+        new DatabaseCommand(125, 1,
+            "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `Date` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
