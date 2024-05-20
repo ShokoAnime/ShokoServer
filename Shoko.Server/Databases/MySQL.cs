@@ -759,7 +759,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(124, 1,
             "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `Added` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
         new DatabaseCommand(124, 2,
-            "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `Date` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
+            "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `Date` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL DEFAULT 0, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

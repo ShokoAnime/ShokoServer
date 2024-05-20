@@ -689,7 +689,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(117, 1,
             "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID int IDENTITY(1,1) NOT NULL, Type int NOT NULL, ID int NOT NULL, Added datetime NOT NULL ); "),
         new DatabaseCommand(117, 2,
-            "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), Date datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL ); "),
+            "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), Date datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL DEFAULT(0) ); "),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
