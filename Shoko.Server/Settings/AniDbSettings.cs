@@ -63,6 +63,8 @@ public class AniDbSettings
 
     public bool Notification_Acknowledge { get; set; } = false;
 
+    public bool Notification_HandleMovedFiles { get; set; } = false;
+
     public bool DownloadCharacters { get; set; } = true;
 
     public bool DownloadCreators { get; set; } = true;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -15,6 +16,17 @@ public class AniDB_MessageRepository : BaseDirectRepository<AniDB_Message, int>
                 .Where(a => a.MessageID == id)
                 .Take(1)
                 .SingleOrDefault();
+        });
+    }
+
+    public List<AniDB_Message> GetUnhandledFileMoveMessages()
+    {
+        return Lock(() =>
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return session.Query<AniDB_Message>()
+                .Where(a => a.IsFileMoved && !a.IsFileMoveHandled)
+                .ToList();
         });
     }
 }

@@ -72,4 +72,9 @@ public enum AniDBMessageFlags
     /// Is a file moved notification
     /// </summary>
     FileMoved = 4,
+
+    /// <summary>
+    /// Has the file move been handled
+    /// </summary>
+    FileMoveHandled = 8
 }

@@ -66,6 +66,21 @@ public class AniDB_Message
         }
     }
 
+    public bool IsFileMoveHandled
+    {
+        get
+        {
+            return Flags.HasFlag(AniDBMessageFlags.FileMoveHandled);
+        }
+        set
+        {
+            if (value)
+                Flags |= AniDBMessageFlags.FileMoveHandled;
+            else
+                Flags &= ~AniDBMessageFlags.FileMoveHandled;
+        }
+    }
+
     #endregion
 
 }

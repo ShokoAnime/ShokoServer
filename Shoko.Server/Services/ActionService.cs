@@ -963,6 +963,25 @@ public class ActionService
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<GetAniDBNotifyJob>(n => n.ForceRefresh = forceRefresh);
+        // automatically handle moved files after fetching notifications
+        await HandleMovedFiles();
+    }
+
+    public async Task HandleMovedFiles()
+    {
+        var settings = _settingsProvider.GetSettings();
+        if (settings.AniDb.Notification_HandleMovedFiles)
+        {
+            var messages = RepoFactory.AniDB_Message.GetUnhandledFileMoveMessages();
+            if (messages.Count > 0)
+            {
+                var scheduler = await _schedulerFactory.GetScheduler();
+                foreach (var msg in messages)
+                {
+                    await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.Message = msg);
+                }
+            }
+        }
     }
 
     public async Task CheckForCalendarUpdate(bool forceRefresh)

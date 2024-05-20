@@ -462,5 +462,17 @@ public class ActionController : BaseController
         return Ok();
     }
 
+    /// <summary>
+    /// Process file moved messages
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("MoveMovedFiles")]
+    public async Task<ActionResult> MoveMovedFiles()
+    {
+        await _actionService.HandleMovedFiles();
+        return Ok();
+    }
+
     #endregion
 }
