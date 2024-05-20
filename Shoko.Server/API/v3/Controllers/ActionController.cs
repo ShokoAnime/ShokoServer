@@ -470,7 +470,7 @@ public class ActionController : BaseController
     [HttpGet("MoveMovedFiles")]
     public async Task<ActionResult> MoveMovedFiles()
     {
-        await _actionService.HandleMovedFiles();
+        await _actionService.HandleMovedFiles(true);
         return Ok();
     }
 
