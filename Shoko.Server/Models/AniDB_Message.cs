@@ -1,5 +1,4 @@
 using System;
-using Shoko.Commons.Utils;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Models;
@@ -20,7 +19,7 @@ public class AniDB_Message
 
     #endregion
 
-    #region Disabled Auto Matching
+    #region Flags
 
     public bool IsReadOnAniDB
     {
