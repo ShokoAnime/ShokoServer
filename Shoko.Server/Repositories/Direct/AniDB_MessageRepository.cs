@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct;
 
@@ -25,7 +26,7 @@ public class AniDB_MessageRepository : BaseDirectRepository<AniDB_Message, int>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.Query<AniDB_Message>()
-                .Where(a => a.IsFileMoved && !a.IsFileMoveHandled)
+                .Where(a => a.Flags.HasFlag(AniDBMessageFlags.FileMoved) && !a.Flags.HasFlag(AniDBMessageFlags.FileMoveHandled))
                 .ToList();
         });
     }
