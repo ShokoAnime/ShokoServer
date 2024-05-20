@@ -208,14 +208,21 @@ public class WebUI
                 .Where(releaseGroup => releaseGroup != null)
                 .ToDictionary(releaseGroup => releaseGroup.GroupID);
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
-            var files = crossRefs
+            var filesWithXrefAndLocation = crossRefs
                 .Where(xref => episodes.ContainsKey(xref.EpisodeID))
                 .Select(xref =>
                 {
                     var file = RepoFactory.VideoLocal.GetByHash(xref.Hash);
                     var location = file?.GetBestVideoLocalPlace();
-                    if (file?.Media == null || location == null)
-                        return null;
+
+                    return (file, xref, location);
+                })
+                .Where(t => t.file?.Media != null && t.location != null)
+                .ToList();
+            var files = filesWithXrefAndLocation
+                .Select(tuple =>
+                {
+                    var (file, xref, location) = tuple;
 
                     var media = new MediaInfo(file, file.Media);
                     var episode = episodes[xref.EpisodeID];
@@ -383,7 +390,43 @@ public class WebUI
                 .ThenBy(episode => episode.Number)
                 .Select(episode => new Episode.AniDB(episode.AniDB))
                 .ToList();
+
+
+            var releaseGroupNames = releaseGroups.Values
+                .Select(group => group.GroupNameShort)
+                .ToList();
+
+            var sourcesByType = filesWithXrefAndLocation
+                .Select(t =>
+                {
+                    var episodeType = episodes[t.xref.EpisodeID].Type;
+                    var fileSource = t.xref.CrossRefSource == (int)CrossRefSource.AniDB && anidbFiles.TryGetValue(t.xref.Hash, out var anidbFile)
+                        ? File.ParseFileSource(anidbFile.File_Source) : FileSource.Unknown;
+
+                    return (episodeType, fileSource);
+                })
+                .GroupBy(t => t.episodeType)
+                .Select(episodeTypeGroup =>
+                {
+                    var sources = episodeTypeGroup
+                        .GroupBy(tuple => tuple.fileSource)
+                        .Select(sourceGroup => new SourceGrouping { Type = sourceGroup.Key, Count = sourceGroup.Count() })
+                        .ToList();
+                    return new SourcesByType { Type = episodeTypeGroup.Key, Sources = sources };
+                })
+                .ToList();
+
+            var totalFileSize = files
+                .Sum(fileWrapper => fileWrapper.Episode.Size);
+            Overview = new FileSummaryOverview()
+            {
+                ReleaseGroups = releaseGroupNames,
+                SourcesByType = sourcesByType,
+                TotalFileSize = totalFileSize,
+            };
         }
+
+        public FileSummaryOverview Overview;
 
         public List<EpisodeGroupSummary> Groups;
 
@@ -677,6 +720,52 @@ public class WebUI
             /// ED2K File Hash.
             /// </summary>
             public string ED2K;
+        }
+
+        public class FileSummaryOverview
+        {
+            /// <summary>
+            /// The list of all AniDB episode sources, and their associated file counts
+            /// </summary>
+            public List<SourcesByType> SourcesByType;
+
+            /// <summary>
+            /// The total size of all locally available files for a series
+            /// </summary>
+            public long TotalFileSize;
+
+            /// <summary>
+            /// A summarised list of all the locally available release groups for a series.
+            /// </summary>
+            public List<string> ReleaseGroups;
+        }
+
+        public class SourcesByType
+        {
+            /// <summary>
+            /// The type of episode.
+            /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
+            public EpisodeType Type;
+
+            /// <summary>
+            /// The source of the file for the episode
+            /// </summary>
+            public List<SourceGrouping> Sources;
+        }
+
+        public class SourceGrouping
+        {
+            /// <summary>
+            /// The file source.
+            /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
+            public FileSource Type;
+
+            /// <summary>
+            /// Amount of files with this file source.
+            /// </summary>
+            public int Count;
         }
 
         /// <summary>
