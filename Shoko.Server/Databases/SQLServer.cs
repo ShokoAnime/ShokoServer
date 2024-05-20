@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 116;
+    public override int RequiredVersion { get; } = 117;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -688,7 +688,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(116, 1, "DROP TABLE CommandRequest"),
         new DatabaseCommand(117, 1,
             "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID int IDENTITY(1,1) NOT NULL, Type int NOT NULL, ID int NOT NULL, Added datetime NOT NULL ); "),
-        new DatabaseCommand(118, 1,
+        new DatabaseCommand(117, 2,
             "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), Date datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL ); "),
     };
 
