@@ -31,12 +31,14 @@ public class ProcessFileMovedMessageJob : BaseJob
         if (file == null)
         {
             _logger.LogWarning("Could not find file with AniDB ID: {ID}", fileId);
+            return;
         }
 
         var vlocal = RepoFactory.VideoLocal.GetByHash(file.Hash);
         if (vlocal == null)
         {
             _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.Hash);
+            return;
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
