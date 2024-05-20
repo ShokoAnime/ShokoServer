@@ -36,17 +36,17 @@ public class GetAniDBMessageJob : BaseJob
         }
     };
 
-    public override Task Process()
+    public override async Task Process()
     {
         _logger.LogInformation("Processing {Job}: {MessageID}", nameof(GetAniDBMessageJob), MessageID);
 
         var message = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
-        if (!ForceRefresh && message != null) return Task.CompletedTask;
+        if (!ForceRefresh && message != null) return;
 
         var request = _requestFactory.Create<RequestGetMessageContent>(r => r.ID = MessageID);
         var response = request.Send();
 
-        if (response?.Response == null) return Task.CompletedTask;
+        if (response?.Response == null) return;
 
         message = new()
         {
@@ -60,32 +60,29 @@ public class GetAniDBMessageJob : BaseJob
             Flags = AniDBMessageFlags.None
         };
 
-        // add flag if its a file moved system message
+        // set flag if its a file moved system message
         if (message.Type == AniDBMessageType.System && message.Title.ToLower().StartsWith("file moved:"))
         {
             message.IsFileMoved = true;
         }
 
-        // acknowledge if enabled
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.Notification_Acknowledge)
-        {
-            var requestAck = _requestFactory.Create<RequestAcknowledgeNotify>(
-                r =>
-                {
-                    r.Type = AniDBNotifyType.Message;
-                    r.ID = MessageID;
-                }
-            );
-            var responseAck = requestAck.Send();
-            // set flag
-            message.IsReadOnAniDB = true;
-        }
-
         // save to db and remove from queue
         RepoFactory.AniDB_Message.Save(message);
         RepoFactory.AniDB_NotifyQueue.DeleteForTypeID(AniDBNotifyType.Message, MessageID);
-        return Task.CompletedTask;
+
+        // queue acknowledge job
+        var settings = _settingsProvider.GetSettings();
+        if (settings.AniDb.Notification_Acknowledge)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+            await scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
+                r =>
+                {
+                    r.NotifyType = AniDBNotifyType.Message;
+                    r.NotifyID = MessageID;
+                }
+            );
+        }
     }
 
     public GetAniDBMessageJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
