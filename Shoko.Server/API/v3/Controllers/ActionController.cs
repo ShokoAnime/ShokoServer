@@ -463,14 +463,15 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Process file moved messages
+    /// Process file moved messages from AniDB. This will force an update on the affected files.
     /// </summary>
+    /// <param name="force">Bypasses configuration if disabled</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("MoveMovedFiles")]
-    public async Task<ActionResult> MoveMovedFiles()
+    public async Task<ActionResult> MoveMovedFiles([FromQuery] bool force = false)
     {
-        await _actionService.HandleMovedFiles(true);
+        await _actionService.HandleMovedFiles(force);
         return Ok();
     }
 
