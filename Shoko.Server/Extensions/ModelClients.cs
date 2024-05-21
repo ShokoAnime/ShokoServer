@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -15,8 +13,6 @@ namespace Shoko.Server.Extensions;
 
 public static class ModelClients
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
-
     public static CL_ServerSettings ToContract(this IServerSettings settings)
     {
         var httpServerUri = new Uri(settings.AniDb.HTTPServerUrl);
@@ -176,21 +172,6 @@ public static class ModelClients
         return cl;
     }
 
-
-    public static CL_AniDB_Character ToClient(this AniDB_Character c)
-    {
-        return new CL_AniDB_Character
-        {
-            AniDB_CharacterID = c.AniDB_CharacterID,
-            CharID = c.CharID,
-            PicName = c.PicName,
-            CreatorListRaw = c.CreatorListRaw ?? "",
-            CharName = c.CharName,
-            CharKanjiName = c.CharKanjiName,
-            CharDescription = c.CharDescription
-        };
-    }
-
     public static CL_AniDB_GroupStatus ToClient(this AniDB_GroupStatus g)
     {
         return new CL_AniDB_GroupStatus
@@ -204,54 +185,6 @@ public static class ModelClients
             Rating = g.Rating,
             Votes = g.Votes,
             EpisodeRange = g.EpisodeRange
-        };
-    }
-
-    public static CL_AnimeEpisode_User ToClient(this AnimeEpisode_User e)
-    {
-        return new CL_AnimeEpisode_User
-        {
-            AnimeEpisode_UserID = e.AnimeEpisode_UserID,
-            JMMUserID = e.JMMUserID,
-            AnimeEpisodeID = e.AnimeEpisodeID,
-            AnimeSeriesID = e.AnimeSeriesID,
-            WatchedDate = e.WatchedDate,
-            PlayedCount = e.PlayedCount,
-            WatchedCount = e.WatchedCount,
-            StoppedCount = e.StoppedCount
-        };
-    }
-
-    public static CL_AnimeGroup_User ToClient(this AnimeGroup_User g)
-    {
-        return new CL_AnimeGroup_User
-        {
-            AnimeGroup_UserID = g.AnimeGroup_UserID,
-            JMMUserID = g.JMMUserID,
-            AnimeGroupID = g.AnimeGroupID,
-            IsFave = g.IsFave,
-            UnwatchedEpisodeCount = g.UnwatchedEpisodeCount,
-            WatchedEpisodeCount = g.WatchedEpisodeCount,
-            WatchedDate = g.WatchedDate,
-            PlayedCount = g.PlayedCount,
-            WatchedCount = g.WatchedCount,
-            StoppedCount = g.StoppedCount
-        };
-    }
-
-    public static CL_AnimeSeries_User ToClient(this AnimeSeries_User s)
-    {
-        return new CL_AnimeSeries_User
-        {
-            AnimeSeries_UserID = s.AnimeSeries_UserID,
-            JMMUserID = s.JMMUserID,
-            AnimeSeriesID = s.AnimeSeriesID,
-            UnwatchedEpisodeCount = s.UnwatchedEpisodeCount,
-            WatchedEpisodeCount = s.WatchedEpisodeCount,
-            WatchedDate = s.WatchedDate,
-            PlayedCount = s.PlayedCount,
-            WatchedCount = s.WatchedCount,
-            StoppedCount = s.StoppedCount
         };
     }
 
@@ -372,22 +305,26 @@ public static class ModelClients
         return cl;
     }
 
-    public static CL_AniDB_Character ToClient(this AniDB_Character character, string charType, AniDB_Seiyuu seiyuu)
+    public static CL_AniDB_Character ToClient(this AniDB_Character character)
     {
-        var contract = character.ToClient();
+        var seiyuu = character.GetSeiyuu();
+        var contract = new CL_AniDB_Character
+        {
+            AniDB_CharacterID = character.AniDB_CharacterID,
+            CharID = character.CharID,
+            PicName = character.PicName,
+            CreatorListRaw = character.CreatorListRaw ?? "",
+            CharName = character.CharName,
+            CharKanjiName = character.CharKanjiName,
+            CharDescription = character.CharDescription
+        };
+
         if (seiyuu != null)
         {
             contract.Seiyuu = seiyuu;
         }
 
         return contract;
-    }
-
-    public static CL_AniDB_Character ToClient(this AniDB_Character character, string charType)
-    {
-        var seiyuu = character.GetSeiyuu();
-
-        return character.ToClient(charType, seiyuu);
     }
 
     public static CL_BookmarkedAnime ToClient(this BookmarkedAnime bookmarkedanime)
@@ -405,40 +342,6 @@ public static class ModelClients
         if (an != null)
         {
             cl.Anime = an.Contract.AniDBAnime;
-        }
-
-        return cl;
-    }
-
-    public static CL_DuplicateFile ToClient(this DuplicateFile duplicatefile)
-    {
-        var cl = new CL_DuplicateFile
-        {
-            DuplicateFileID = duplicatefile.DuplicateFileID,
-            FilePathFile1 = duplicatefile.FilePathFile1,
-            FilePathFile2 = duplicatefile.FilePathFile2,
-            Hash = duplicatefile.Hash,
-            ImportFolderIDFile1 = duplicatefile.ImportFolderIDFile1,
-            ImportFolderIDFile2 = duplicatefile.ImportFolderIDFile2,
-            ImportFolder1 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
-            ImportFolder2 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
-            DateTimeUpdated = duplicatefile.DateTimeUpdated
-        };
-        if (duplicatefile.GetAniDBFile() != null)
-        {
-            var eps = duplicatefile.GetAniDBFile().Episodes;
-            if (eps.Count > 0)
-            {
-                cl.EpisodeNumber = eps[0].EpisodeNumber;
-                cl.EpisodeType = eps[0].EpisodeType;
-                cl.EpisodeName = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
-                cl.AnimeID = eps[0].AnimeID;
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
-                if (anime != null)
-                {
-                    cl.AnimeName = anime.MainTitle;
-                }
-            }
         }
 
         return cl;

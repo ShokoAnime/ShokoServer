@@ -1524,7 +1524,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniChars[0].AnimeID);
                         if (anime != null)
                         {
-                            var cl = chr.ToClient(aniChars[0].CharType);
+                            var cl = chr.ToClient();
                             chars.Add(cl);
                         }
                     }

@@ -756,7 +756,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
         try
         {
             return RepoFactory.AniDB_Character.GetCharactersAndSeiyuuForAnime(AnimeID)
-                .Select(a => a.Character.ToClient(a.CharacterType, a.Seiyuu)).ToList();
+                .Select(a => a.ToClient()).ToList();
         }
         catch (Exception ex)
         {
