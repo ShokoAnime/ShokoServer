@@ -1,5 +1,7 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Shoko.Commons.Collections;
@@ -8,45 +10,48 @@ namespace Shoko.Commons.Extensions
 {
     public static class EnumerableExtensions
     {
-        private static Random rand;
+        private static readonly Random s_rand;
+        private static readonly int[] s_zero = [0];
 
         static EnumerableExtensions()
         {
-            rand = new Random();
+            s_rand = new Random();
         }
 
-
-        public static TSource GetRandomElement<TSource>(this IEnumerable<TSource> source, Random random = null)
+        public static TSource? GetRandomElement<TSource>(this IEnumerable<TSource> source, Random? random = null)
         {
-            if (random == null) random = rand;
+            random ??= s_rand;
             // speedup, don't convert to list if it is one
             if (source is IList<TSource> sourceList)
             {
-                if (sourceList.Count == 0) return default;
-                return sourceList[random.Next(sourceList.Count)];
+                return sourceList.Count == 0 ? default : sourceList[random.Next(sourceList.Count)];
             }
 
             var list = source.ToList();
-            if (list.Count == 0) return default;
-            return list.ElementAt(random.Next(list.Count));
+            return list.Count == 0 ? default : list.ElementAt(random.Next(list.Count));
         }
 
-        public static IOrderedEnumerable<TSource> OrderByNatural<TSource>(this IEnumerable<TSource> items, Func<TSource, string> selector, StringComparer stringComparer = null)
+        public static IOrderedEnumerable<TSource?> OrderByNatural<TSource>(this IEnumerable<TSource> items, Func<TSource, string?> selector, StringComparer? stringComparer = null)
         {
             var regex = new Regex(@"\d+", RegexOptions.Compiled);
 
-            var maxDigits = (items.Select(selector)
-                    .Where(sel => sel != null)
-                    .SelectMany(sel => regex.Matches(sel).Cast<Match>(), (sel, match) => match?.Value?.Length ?? 0))
-                .Concat(new[] {0}).Max();
+            var maxDigits = items.Select(selector)
+                .WhereNotNull()
+                .SelectMany(sel => regex.Matches(sel), (_, match) => match.Success ? match.Value.Length : 0)
+                .Concat(s_zero).Max();
 
             return items.OrderBy(i => selector(i) != null).ThenBy(i =>
                 {
-                    string sel = selector(i);
-                    if (sel == null) return null;
-                    return regex.Replace(sel, match => match.Value.PadLeft(maxDigits, '0'));
+                    var sel = selector(i);
+                    return sel == null ? null : regex.Replace(sel, match => match.Value.PadLeft(maxDigits, '0'));
                 }, stringComparer ?? StringComparer.CurrentCulture);
         }
+
+        [return: NotNullIfNotNull(nameof(enumerable))]
+        public static IEnumerable<T>? WhereNotNull<T>(this IEnumerable<T?>? enumerable) => enumerable?.Where(a => a != null).Select(a => a!);
+
+        [return: NotNullIfNotNull(nameof(enumerable))]
+        public static IQueryable<T>? WhereNotNull<T>(this IQueryable<T?>? enumerable) => enumerable?.Where(a => a != null).Select(a => a!);
 
         public static string ToRanges(this List<int> ints) {
             if (ints.Count < 1) return "";
@@ -65,19 +70,18 @@ namespace Shoko.Commons.Extensions
             }
             tonums.Add(ints[lng - 1]);
             return string.Join(", ", Enumerable.Range(0, tonums.Count).Select(
-                i => fromnums[i].ToString() +
-                     (tonums[i] == fromnums[i] ? "" : "-" + tonums[i].ToString())
+                i => fromnums[i] + (tonums[i] == fromnums[i] ? "" : "-" + tonums[i])
             ));
         }
 
         public static ILookup<TKey, TSource> ToLazyLookup<TKey, TSource>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector,
-            IEqualityComparer<TKey> comparer = null)
+            IEqualityComparer<TKey>? comparer = null)
         {
             return LazyLookup<TKey, TSource>.Create(source, keySelector, comparer);
         }
 
         public static ILookup<TKey, TElement> ToLazyLookup<TSource, TKey, TElement>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector,
-            Func<TSource, TElement> elementSelector, IEqualityComparer<TKey> comparer = null)
+            Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null)
         {
             return LazyLookup<TKey, TElement>.Create(source, keySelector, elementSelector, comparer);
         }
@@ -93,20 +97,17 @@ namespace Shoko.Commons.Extensions
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="size"/> is less than 1.</exception>
         public static IEnumerable<TSource[]> Batch<TSource>(this IEnumerable<TSource> source, int size)
         {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-            if (size < 1)
-                throw new ArgumentOutOfRangeException(nameof(size), size, "The batch size must be >= 1");
+            if (source == null) throw new ArgumentNullException(nameof(source));
 
-            TSource[] bucket = null;
+            if (size < 1)
+                throw new ArgumentOutOfRangeException(nameof(size), size, @"The batch size must be >= 1");
+
+            TSource[]? bucket = null;
             var count = 0;
 
             foreach (var item in source)
             {
-                if (bucket == null)
-                {
-                    bucket = new TSource[size];
-                }
+                bucket ??= new TSource[size];
 
                 bucket[count++] = item;
 
@@ -139,16 +140,14 @@ namespace Shoko.Commons.Extensions
         /// <param name="finalizer">The <see cref="Action{T}"/> to call for the last item.</param>
         /// <param name="appendFinalizer">If the <paramref name="finalizer" /> is not null, also execute the <paramref name="action"/></param>
         /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="action"/> is <c>null</c>.</exception>
-        public static void ForEach<TSource>(this IEnumerable<TSource> source, Action<TSource> action, Action<TSource> finalizer = null, bool appendFinalizer = false)
+        public static void ForEach<TSource>(this IEnumerable<TSource> source, Action<TSource> action, Action<TSource>? finalizer = null, bool appendFinalizer = false)
         {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (action == null) throw new ArgumentNullException(nameof(action));
 
             if (finalizer == null)
             {
-                foreach (TSource item in source)
+                foreach (var item in source)
                 {
                     action(item);
                 }
@@ -156,8 +155,8 @@ namespace Shoko.Commons.Extensions
             else if (source.GetType().IsAssignableFrom(typeof(IList<TSource>)))
             {
                 // It's to be tested, but I'm fairly certain that this is faster for Lists, and we use Lists a lot
-                IList<TSource> lSource = (IList<TSource>) source; 
-                for (int i = 0; i < lSource.Count; i++)
+                var lSource = (IList<TSource>) source; 
+                for (var i = 0; i < lSource.Count; i++)
                 {
                     var item = lSource[i];
                     if (i == lSource.Count - 1)
@@ -172,22 +171,20 @@ namespace Shoko.Commons.Extensions
             else
             {
                 // I honestly forgot this existed. It's basically the only way to foreach in Java
-                using (var iterator = source.GetEnumerator())
+                using var iterator = source.GetEnumerator();
+                while (true)
                 {
-                    while (true)
+                    var item = iterator.Current;
+                    var hasNext = iterator.MoveNext();
+                    if (!hasNext)
                     {
-                        var item = iterator.Current;
-                        var hasNext = iterator.MoveNext();
-                        if (!hasNext)
-                        {
-                            finalizer(item);
-                            if (!appendFinalizer) return;
-                            action(item);
-                            return;
-                        }
-
+                        finalizer(item);
+                        if (!appendFinalizer) return;
                         action(item);
+                        return;
                     }
+
+                    action(item);
                 }
             }
         }
@@ -196,8 +193,8 @@ namespace Shoko.Commons.Extensions
         public static IEnumerable<TSource> DistinctBy<TSource, TKey>
             (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
         {
-            HashSet<TKey> seenKeys = new HashSet<TKey>();
-            foreach (TSource element in source)
+            var seenKeys = new HashSet<TKey>();
+            foreach (var element in source)
             {
                 if (seenKeys.Add(keySelector(element)))
                 {
@@ -214,12 +211,12 @@ namespace Shoko.Commons.Extensions
         }
 
         public static IEnumerable<TSource> MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector, IComparer<TKey> comparer)
+            Func<TSource, TKey> selector, IComparer<TKey>? comparer)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (selector == null) throw new ArgumentNullException(nameof(selector));
 
-            comparer = comparer ?? Comparer<TKey>.Default;
+            comparer ??= Comparer<TKey>.Default;
             return ExtremaBy(source, selector, (x, y) => comparer.Compare(x, y));
         }
         
@@ -230,12 +227,12 @@ namespace Shoko.Commons.Extensions
         }
 
         public static IEnumerable<TSource> MinBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector, IComparer<TKey> comparer)
+            Func<TSource, TKey> selector, IComparer<TKey>? comparer)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (selector == null) throw new ArgumentNullException(nameof(selector));
 
-            comparer = comparer ?? Comparer<TKey>.Default;
+            comparer ??= Comparer<TKey>.Default;
             return ExtremaBy(source, selector, (x, y) => comparer.Compare(y, x));
         }
 #endif
@@ -245,35 +242,34 @@ namespace Shoko.Commons.Extensions
         {
             foreach (var item in Extrema())
                 yield return item;
+            yield break;
 
             IEnumerable<TSource> Extrema()
             {
-                using (var e = source.GetEnumerator())
+                using var e = source.GetEnumerator();
+                if (!e.MoveNext())
+                    return new List<TSource>();
+
+                var extrema = new List<TSource> { e.Current };
+                var extremaKey = selector(e.Current);
+
+                while (e.MoveNext())
                 {
-                    if (!e.MoveNext())
-                        return new List<TSource>();
-
-                    var extrema = new List<TSource> { e.Current };
-                    var extremaKey = selector(e.Current);
-
-                    while (e.MoveNext())
+                    var item = e.Current;
+                    var key = selector(item);
+                    var comparison = comparer(key, extremaKey);
+                    if (comparison > 0)
                     {
-                        var item = e.Current;
-                        var key = selector(item);
-                        var comparison = comparer(key, extremaKey);
-                        if (comparison > 0)
-                        {
-                            extrema = new List<TSource> { item };
-                            extremaKey = key;
-                        }
-                        else if (comparison == 0)
-                        {
-                            extrema.Add(item);
-                        }
+                        extrema = new List<TSource> { item };
+                        extremaKey = key;
                     }
-
-                    return extrema;
+                    else if (comparison == 0)
+                    {
+                        extrema.Add(item);
+                    }
                 }
+
+                return extrema;
             }
         }
 
@@ -300,12 +296,9 @@ namespace Shoko.Commons.Extensions
         /// <returns>A <see cref="IReadOnlyCollection{T}"/> version of the specified sequence.</returns>
         public static IReadOnlyCollection<TSource> AsReadOnlyCollection<TSource>(this IEnumerable<TSource> source)
         {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
+            if (source == null) throw new ArgumentNullException(nameof(source));
 
-            var readonlyColl = source as IReadOnlyCollection<TSource>;
-
-            if (readonlyColl != null)
+            if (source is IReadOnlyCollection<TSource> readonlyColl)
             {
                 return readonlyColl;
             }
@@ -323,6 +316,6 @@ namespace Shoko.Commons.Extensions
                     (t1, t2) => t1.Concat(new[] { t2 }));
         }
 
-        public static string GetAssemblyName(this Type type) => type.Assembly.GetName().Name;
+        public static string? GetAssemblyName(this Type type) => type.Assembly.GetName().Name;
     }
 }
