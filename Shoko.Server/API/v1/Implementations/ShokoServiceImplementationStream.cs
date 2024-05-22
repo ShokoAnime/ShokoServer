@@ -221,7 +221,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         }
 
         r.VideoLocal = loc;
-        r.File = loc.GetBestFileLink();
+        r.File = loc.GetBestVideoLocalPlace(true)?.GetFile();
         return FinishResolve(r, userId, autowatch);
     }
 
