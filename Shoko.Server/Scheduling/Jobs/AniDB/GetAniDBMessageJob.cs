@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -8,6 +7,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
@@ -23,29 +23,20 @@ public class GetAniDBMessageJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
     public int MessageID { get; set; }
-    public bool ForceRefresh { get; set; }
 
     public override string TypeName => "Get AniDB Message Content";
 
     public override string Title => "Getting AniDB Message Content";
-
-    public override Dictionary<string, object> Details => new()
-    {
-        {
-            "MessageID", MessageID
-        }
-    };
 
     public override async Task Process()
     {
         _logger.LogInformation("Processing {Job}: {MessageID}", nameof(GetAniDBMessageJob), MessageID);
 
         var message = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
-        if (!ForceRefresh && message != null) return;
+        if (message is not null) return; // message content has already been fetched
 
         var request = _requestFactory.Create<RequestGetMessageContent>(r => r.ID = MessageID);
         var response = request.Send();
-
         if (response?.Response == null) return;
 
         message = new()
@@ -70,11 +61,11 @@ public class GetAniDBMessageJob : BaseJob
         RepoFactory.AniDB_Message.Save(message);
         RepoFactory.AniDB_NotifyQueue.DeleteForTypeID(AniDBNotifyType.Message, MessageID);
 
-        // queue acknowledge job
         var settings = _settingsProvider.GetSettings();
+        var scheduler = await _schedulerFactory.GetScheduler();
+
         if (settings.AniDb.Notification_Acknowledge)
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
             await scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
                 r =>
                 {
@@ -82,6 +73,11 @@ public class GetAniDBMessageJob : BaseJob
                     r.NotifyID = MessageID;
                 }
             );
+        }
+
+        if (message.IsFileMoved && settings.AniDb.Notification_HandleMovedFiles)
+        {
+            await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.Message = message);
         }
     }
 
