@@ -9,7 +9,6 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueue, int>
 {
-
     public AniDB_NotifyQueue GetByTypeID(AniDBNotifyType type, int id)
     {
         return Lock(() =>
