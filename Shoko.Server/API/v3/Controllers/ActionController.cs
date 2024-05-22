@@ -465,7 +465,7 @@ public class ActionController : BaseController
     /// <summary>
     /// Process file moved messages from AniDB. This will force an update on the affected files.
     /// </summary>
-    /// <param name="force">Bypasses configuration if disabled</param>
+    /// <param name="force">Execute even if disabled in config</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("MoveMovedFiles")]
