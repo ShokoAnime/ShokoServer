@@ -984,7 +984,7 @@ public class ActionService
                 var scheduler = await _schedulerFactory.GetScheduler();
                 foreach (var msg in messages)
                 {
-                    await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.Message = msg);
+                    await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.AniDB_MessageID = msg.AniDB_MessageID);
                 }
             }
         }
