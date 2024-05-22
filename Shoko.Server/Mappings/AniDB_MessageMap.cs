@@ -15,7 +15,8 @@ public class AniDB_MessageMap : ClassMap<AniDB_Message>
         Map(x => x.MessageID).Not.Nullable();
         Map(x => x.FromUserId).Not.Nullable();
         Map(x => x.FromUserName).Not.Nullable();
-        Map(x => x.Date).Not.Nullable();
+        Map(x => x.SentAt).Not.Nullable();
+        Map(x => x.FetchedAt).Not.Nullable();
         Map(x => x.Type).Not.Nullable().CustomType<AniDBMessageType>();
         Map(x => x.Title).Not.Nullable();
         Map(x => x.Body).Not.Nullable();

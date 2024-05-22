@@ -11,7 +11,8 @@ public class AniDB_Message
     public int MessageID { get; set; }
     public int FromUserId { get; set; }
     public string FromUserName { get; set; }
-    public DateTime Date { get; set; }
+    public DateTime SentAt { get; set; }
+    public DateTime FetchedAt { get; set; }
     public AniDBMessageType Type { get; set; }
     public string Title { get; set; }
     public string Body { get; set; }

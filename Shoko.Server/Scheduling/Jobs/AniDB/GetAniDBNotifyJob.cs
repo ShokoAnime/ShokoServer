@@ -60,7 +60,7 @@ public class GetAniDBNotifyJob : BaseJob
                 {
                     Type = notify.Type,
                     ID = notify.ID,
-                    Added = DateTime.Now
+                    AddedAt = DateTime.Now
                 };
                 RepoFactory.AniDB_NotifyQueue.Save(type);
             }

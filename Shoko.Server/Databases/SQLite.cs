@@ -683,9 +683,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new DatabaseCommand(108, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
         new DatabaseCommand(109, 1, "DROP TABLE CommandRequest"),
         new DatabaseCommand(110, 1,
-            "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID INTEGER PRIMARY KEY AUTOINCREMENT, Type int NOT NULL, ID int NOT NULL, Added timestamp NOT NULL ); "),
+            "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID INTEGER PRIMARY KEY AUTOINCREMENT, Type int NOT NULL, ID int NOT NULL, AddedAt timestamp NOT NULL ); "),
         new DatabaseCommand(110, 2,
-            "CREATE TABLE AniDB_Message( AniDB_MessageID INTEGER PRIMARY KEY AUTOINCREMENT, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName text NOT NULL, Date timestamp NOT NULL, Type int NOT NULL, Title text NOT NULL, Body text NOT NULL, Flags int NOT NULL DEFAULT 0 ); "),
+            "CREATE TABLE AniDB_Message( AniDB_MessageID INTEGER PRIMARY KEY AUTOINCREMENT, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName text NOT NULL, SentAt timestamp NOT NULL, FetchedAt timestamp NOT NULL, Type int NOT NULL, Title text NOT NULL, Body text NOT NULL, Flags int NOT NULL DEFAULT 0 ); "),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

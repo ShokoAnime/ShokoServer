@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -44,7 +45,8 @@ public class GetAniDBMessageJob : BaseJob
             MessageID = MessageID,
             FromUserId = response.Response.SenderID,
             FromUserName = response.Response.SenderName,
-            Date = response.Response.SentTime,
+            SentAt = response.Response.SentTime,
+            FetchedAt = DateTime.Now,
             Type = response.Response.Type,
             Title = response.Response.Title,
             Body = response.Response.Body,

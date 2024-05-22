@@ -14,6 +14,6 @@ public class AniDB_NotifyQueueMap : ClassMap<AniDB_NotifyQueue>
 
         Map(x => x.Type).Not.Nullable().CustomType<AniDBNotifyType>();
         Map(x => x.ID).Not.Nullable();
-        Map(x => x.Added).Not.Nullable();
+        Map(x => x.AddedAt).Not.Nullable();
     }
 }
