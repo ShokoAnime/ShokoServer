@@ -9,6 +9,7 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -20,11 +21,10 @@ public class GetAniDBNotifyJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
-    public bool ForceRefresh { get; set; }
 
-    public override string TypeName => "Get AniDB Unread Notifications and Messages";
+    public override string TypeName => "Fetch Unread AniDB Messages List";
 
-    public override string Title => "Getting AniDB Unread Notifications and Messages";
+    public override string Title => "Fetching Unread AniDB Messages List";
 
     public override async Task Process()
     {
@@ -39,7 +39,7 @@ public class GetAniDBNotifyJob : BaseJob
         {
             _logger.LogInformation("There are {Count} unread notifications and messages", unreadCount);
 
-            // request list of IDs
+            // request an ID list of all unread messages and notifications
             var request = _requestFactory.Create<RequestGetNotifyList>();
             var response = request.Send();
             if (response?.Response == null) return;
@@ -49,10 +49,10 @@ public class GetAniDBNotifyJob : BaseJob
                 var type = RepoFactory.AniDB_NotifyQueue.GetByTypeID(notify.Type, notify.ID);
                 if (type is not null) continue; // if we already have it in the queue
 
-                if (!ForceRefresh && notify.Type == AniDBNotifyType.Message)
+                if (notify.Type == AniDBNotifyType.Message)
                 {
                     var msg = RepoFactory.AniDB_Message.GetByMessageId(notify.ID);
-                    if (msg is not null) continue; // if we have already processed it
+                    if (msg is not null) continue; // if the message content was already fetched
                 }
 
                 // save to db queue
@@ -66,7 +66,7 @@ public class GetAniDBNotifyJob : BaseJob
             }
         }
 
-        // try to clear the queue
+        // fetch the content of all messages currently in the queue
         var messages = RepoFactory.AniDB_NotifyQueue.GetByType(AniDBNotifyType.Message);
         if (messages.Count > 0)
         {
