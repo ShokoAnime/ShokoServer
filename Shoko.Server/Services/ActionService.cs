@@ -970,10 +970,10 @@ public class ActionService
         await scheduler.StartJob<GetAniDBNotifyJob>();
 
         // process any unhandled moved file messages
-        await HandleMovedFiles(false);
+        await RefreshAniDBMovedFiles(false);
     }
 
-    public async Task HandleMovedFiles(bool force)
+    public async Task RefreshAniDBMovedFiles(bool force)
     {
         var settings = _settingsProvider.GetSettings();
         if (force || settings.AniDb.Notification_HandleMovedFiles)

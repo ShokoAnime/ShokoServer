@@ -465,13 +465,12 @@ public class ActionController : BaseController
     /// <summary>
     /// Process file moved messages from AniDB. This will force an update on the affected files.
     /// </summary>
-    /// <param name="force">Execute even if disabled in config</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpGet("MoveMovedFiles")]
-    public async Task<ActionResult> MoveMovedFiles([FromQuery] bool force = false)
+    [HttpGet("RefreshAniDBMovedFiles")]
+    public async Task<ActionResult> RefreshAniDBMovedFiles()
     {
-        await _actionService.HandleMovedFiles(force);
+        await _actionService.RefreshAniDBMovedFiles(true);
         return Ok();
     }
 
