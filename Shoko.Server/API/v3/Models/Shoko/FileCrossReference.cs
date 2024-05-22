@@ -178,7 +178,7 @@ public class FileCrossReference
                         }
                         else
                         {
-                            throw new IndexOutOfRangeException($"Unable to find cross-reference for hash on the episode. (Hash={xref.Hash},Episode={xref.EpisodeID},Anime={xref.AnimeID})");
+                            percentage = new(0, 0);
                         }
                     }
 
