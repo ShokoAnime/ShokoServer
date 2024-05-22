@@ -21,6 +21,13 @@ public class ProcessFileMovedMessageJob : BaseJob
     public override async Task Process()
     {
         _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), Message.MessageID);
+
+        if (Message.IsFileMoveHandled)
+        {
+            _logger.LogInformation("File moved message already handled: {MessageId}", Message.MessageID);
+            return;
+        }
+
         // title should be in the format "file moved: <fileID>"
         if (!int.TryParse(Message.Title[12..].Trim(), out var fileId))
         {
