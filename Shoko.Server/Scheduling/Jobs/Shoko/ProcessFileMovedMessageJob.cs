@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -18,34 +17,21 @@ public class ProcessFileMovedMessageJob : BaseJob
     public override string Title => "Handling Moved File Message";
     public int AniDB_MessageID { get; set; }
 
-    private AniDB_Message _message;
-    private int? _aniDbId;
-
-    public override void PostInit()
-    {
-        _message = RepoFactory.AniDB_Message.GetByID(AniDB_MessageID);
-        if (_message == null) throw new JobExecutionException($"AniDB_Message not found: {AniDB_MessageID}");
-        _aniDbId = _message.AniDB_MessageID;
-    }
-
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), _aniDbId ?? AniDB_MessageID);
+        _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), AniDB_MessageID);
 
-        if (_message == null)
-        {
-            _message = RepoFactory.AniDB_Message.GetByID(AniDB_MessageID);
-            if (_message == null) return;
-        }
+        var message = RepoFactory.AniDB_Message.GetByID(AniDB_MessageID);
+        if (message == null) return;
 
-        if (_message.IsFileMoveHandled)
+        if (message.IsFileMoveHandled)
         {
-            _logger.LogInformation("File moved message already handled: {MessageId}", _message.MessageID);
+            _logger.LogInformation("File moved message already handled: {MessageId}", message.MessageID);
             return;
         }
 
         // title should be in the format "file moved: <fileID>"
-        if (!int.TryParse(_message.Title[12..].Trim(), out var fileId))
+        if (!int.TryParse(message.Title[12..].Trim(), out var fileId))
         {
             throw new Exception("Could not parse file ID from message title");
         }
