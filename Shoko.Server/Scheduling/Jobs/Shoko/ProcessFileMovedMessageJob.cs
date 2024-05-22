@@ -15,13 +15,13 @@ public class ProcessFileMovedMessageJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     public override string TypeName => "Handle Moved File Message";
     public override string Title => "Handling Moved File Message";
-    public int AniDB_MessageID { get; set; }
+    public int MessageID { get; set; }
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), AniDB_MessageID);
+        _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), MessageID);
 
-        var message = RepoFactory.AniDB_Message.GetByID(AniDB_MessageID);
+        var message = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
         if (message == null) return;
 
         if (message.IsFileMoveHandled)
@@ -63,7 +63,7 @@ public class ProcessFileMovedMessageJob : BaseJob
             {
                 // This runs after ProcessFileJob is successfully done, which might be at a later point in time
                 // Let us refetch the message to make sure we have the latest data and then mark it as handled
-                var msg = RepoFactory.AniDB_Message.GetByID(AniDB_MessageID);
+                var msg = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
                 if (msg == null) return;
 
                 msg.IsFileMoveHandled = true;

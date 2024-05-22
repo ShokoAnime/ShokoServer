@@ -79,7 +79,7 @@ public class GetAniDBMessageJob : BaseJob
 
         if (message.IsFileMoved && settings.AniDb.Notification_HandleMovedFiles)
         {
-            await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.Message = message);
+            await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = message.MessageID);
         }
     }
 
