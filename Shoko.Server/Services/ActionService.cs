@@ -937,7 +937,7 @@ public class ActionService
         await _tvdbHelper.ScanForMatches();
     }
 
-    public async Task CheckForUnreadNotifications(bool forceRefresh)
+    public async Task CheckForUnreadNotifications(bool ignoreSchedule)
     {
         var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
         if (sched == null)
@@ -952,18 +952,24 @@ public class ActionService
         {
             var settings = _settingsProvider.GetSettings();
             var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
+            var tsLastRun = DateTime.Now - sched.LastUpdate;
+
+            // The NOTIFY command must not be issued more than once every 20 minutes according to the AniDB UDP API documentation:
+            // https://wiki.anidb.net/UDP_API_Definition#NOTIFY:_Notifications
+            // We will use 30 minutes as a safe interval.
+            if (tsLastRun.TotalMinutes < 30) return;
 
             // if we have run this in the last freqHours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
-            if (!forceRefresh && tsLastRun.TotalHours < freqHours) return;
+            if (!ignoreSchedule && tsLastRun.TotalHours < freqHours) return;
         }
 
         sched.LastUpdate = DateTime.Now;
         RepoFactory.ScheduledUpdate.Save(sched);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetAniDBNotifyJob>(n => n.ForceRefresh = forceRefresh);
-        // automatically handle moved files after fetching notifications
+        await scheduler.StartJob<GetAniDBNotifyJob>();
+
+        // process any unhandled moved file messages
         await HandleMovedFiles(false);
     }
 
