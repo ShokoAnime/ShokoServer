@@ -404,7 +404,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
         AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
         AddCommandParameter(cmd, "limit", maxCount);
-        AddCommandParameter(cmd, "baseLimit", maxCount);
+        if (offset == 0) AddCommandParameter(cmd, "baseLimit", maxCount);
         AddCommandParameter(cmd, "offset", offset);
         if (hasExcludeTypes)
             cmd.AddArrayParameters("types",

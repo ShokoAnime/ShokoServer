@@ -42,19 +42,21 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} NOT IN (@types)";
 
-    private const string GetSelectPartNoExclusionsWithLimit = @$"SELECT * FROM (SELECT TOP @baseLimit t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
+    private const string GetSelectPartNoExclusionsWithLimit = @$"SELECT * FROM (t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
               JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan 
                 AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
-              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC) b";
+              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
+              OFFSET 0 ROWS FETCH NEXT @baseLimit ROWS ONLY) b";
 
-    private const string GetSelectPartExcludingTypesWithLimit = @$"SELECT * FROM (SELECT TOP @baseLimit t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
+    private const string GetSelectPartExcludingTypesWithLimit = @$"SELECT * FROM (SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
               JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} NOT IN (@types)
-              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC) b";
+              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
+              OFFSET 0 ROWS FETCH NEXT @baseLimit ROWS ONLY) b";
 
     private static string GetSelectPartOfType(int index)
     {
@@ -403,7 +405,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
         AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
         AddCommandParameter(cmd, "limit", maxCount);
-        AddCommandParameter(cmd, "baseLimit", maxCount);
+        if (offset == 0) AddCommandParameter(cmd, "baseLimit", maxCount);
         AddCommandParameter(cmd, "offset", offset);
         if (hasExcludeTypes)
             cmd.AddArrayParameters("types",
