@@ -514,7 +514,17 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private ValueTask<int> GetWaitingTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Delegate.SelectWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, types, cancellationToken);
+        var sw = new Stopwatch();
+        sw.Start();
+        try
+        {
+            return Delegate.SelectWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, types, cancellationToken);
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogTrace("{Name} took {Time:0.####}ms", nameof(GetWaitingTriggersCount), sw.ElapsedTicks / 10000D);
+        }
     }
 
     public ValueTask<int> GetBlockedTriggersCount()
@@ -524,7 +534,17 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private ValueTask<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, NoLaterThan, NoEarlierThan, types, cancellationToken);
+        var sw = new Stopwatch();
+        sw.Start();
+        try
+        {
+            return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, NoLaterThan, NoEarlierThan, types, cancellationToken);
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogTrace("{Name} took {Time:0.####}ms", nameof(GetBlockedTriggersCount), sw.ElapsedTicks / 10000D);
+        }
     }
 
     public ValueTask<int> GetTotalWaitingTriggersCount()
@@ -534,7 +554,17 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private ValueTask<int> GetTotalWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Delegate.SelectTotalWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, cancellationToken);
+        var sw = new Stopwatch();
+        sw.Start();
+        try
+        {
+            return Delegate.SelectTotalWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, cancellationToken);
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogTrace("{Name} took {Time:0.####}ms", nameof(GetTotalWaitingTriggersCount), sw.ElapsedTicks / 10000D);
+        }
     }
 
     public ValueTask<Dictionary<Type, int>> GetJobCounts()
@@ -554,37 +584,48 @@ public class ThreadPooledJobStore : JobStoreTX
     
     public async ValueTask<List<QueueItem>> GetJobSummary(ConnectionAndTransactionHolder conn, int maxCount, int offset, bool excludeBlocked)
     {
-        var types = GetTypes();
-
-        var result = new List<QueueItem>();
-        var executingItems = GetExecutingQueueItems();
-
-        // handle paging for the executing items
-        if (offset < executingItems.Length)
+        var sw = new Stopwatch();
+        sw.Start();
+        try
         {
-            result.AddRange(executingItems.Skip(offset).Take(maxCount));
-            offset = 0;
-        }
-        else offset -= executingItems.Length;
 
-        // only had enough room for the executing items, so return
-        if (maxCount - result.Count <= 0) return result;
+            var types = GetTypes();
 
-        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types, excludeBlocked);
+            var result = new List<QueueItem>();
+            var executingItems = GetExecutingQueueItems();
 
-        result.AddRange(jobs.Select(a =>
-        {
-            var job = _jobFactory.CreateJob(a.Item1);
-            return new QueueItem
+            // handle paging for the executing items
+            if (offset < executingItems.Length)
             {
-                Key = a.Item1.Key.ToString(),
-                JobType = job?.TypeName,
-                Title = job?.Title ?? job?.TypeName,
-                Details = job?.Details ?? new(),
-                Blocked = a.Item2
-            };
-        }));
-        return result;
+                result.AddRange(executingItems.Skip(offset).Take(maxCount));
+                offset = 0;
+            }
+            else offset -= executingItems.Length;
+
+            // only had enough room for the executing items, so return
+            if (maxCount - result.Count <= 0) return result;
+
+            var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types, excludeBlocked);
+
+            result.AddRange(jobs.Select(a =>
+            {
+                var job = _jobFactory.CreateJob(a.Item1);
+                return new QueueItem
+                {
+                    Key = a.Item1.Key.ToString(),
+                    JobType = job?.TypeName,
+                    Title = job?.Title ?? job?.TypeName,
+                    Details = job?.Details ?? new(),
+                    Blocked = a.Item2
+                };
+            }));
+            return result;
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogTrace("{Name} took {Time:0.####}ms", nameof(GetJobSummary), sw.ElapsedTicks / 10000D);
+        }
     }
 
     private async Task<int> GetThreadPoolSize(CancellationToken cancellationToken)
