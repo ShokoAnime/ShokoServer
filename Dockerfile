@@ -48,7 +48,7 @@ RUN (\
 
 VOLUME /home/shoko/.shoko/
 
-HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/v1/Server' || exit 1
+HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/api/v3/Init/Status' || exit 1
 
 EXPOSE 8111
 
