@@ -288,14 +288,16 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
             results[jobType] = GetInt32(rs, "Count")!;
         }
 
-        // TODO logic here is wrong
         // We need to get the number of jobs that are queued, then subtract the allowed number, ensuring that blocked count doesn't go negative
+        // blocked means that available is 0
         var blocked = results.Join(jobTypes.TypesToExclude, a => a.Key, a => a, (result, _) => result.Value).Sum();
+        // if we're limited, then available = limit, and the total = total queued for each type - limit
         var limited = results.Join(jobTypes.TypesToLimit, a => a.Key, a => a.Key,
             (result, limit) => Math.Max(result.Value - limit.Value, 0)).Sum();
         // count how many jobs are in a concurrency group, then subtract 1 from each.
-        // there is 1 that is available in each group. We don't need to check, as it wouldn't be in this list if it was not allowed
-        var groups = jobTypes.AvailableConcurrencyGroups.Select(types => results.Where(r => types.Contains(r.Key)).Sum(r => r.Value)).Where(group => group > 0).Sum(group => group - 1);
+        // there is 1 that is available in each group. We don't need to check, as it would be in Excluded if it was not allowed
+        var groups = jobTypes.AvailableConcurrencyGroups.Select(types => results.Where(r => types.Contains(r.Key)).Sum(r => r.Value)).Where(group => group > 0)
+            .Sum(group => group - 1);
 
         return blocked + limited + groups;
     }

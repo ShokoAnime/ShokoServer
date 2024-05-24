@@ -770,18 +770,26 @@ public class ThreadPooledJobStore : JobStoreTX
         var blockedTriggerCount = -1;
         QueueItem[] waiting = [];
 
-        await _jobStateLock.WaitAsync(cancellationToken);
+        await _jobStateLock.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
         {
             IEnumerable<Task> tasks =
             [
-                GetWaitingTriggersCount(conn, types, cancellationToken).AsTask().ContinueWith(async a => waitingTriggerCount = await a, cancellationToken),
-                GetBlockedTriggersCount(conn, types, cancellationToken).AsTask().ContinueWith(async a => blockedTriggerCount = await a, cancellationToken),
-                GetJobSummary(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false).AsTask()
-                    .ContinueWith(async a => waiting = (await a).ToArray(), cancellationToken)
+                Task.Run(async () =>
+                {
+                    waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
+                }),
+                Task.Run(async () =>
+                {
+                    blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
+                }),
+                Task.Run(async () =>
+                {
+                    waiting = (await GetJobSummary(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false)).ToArray();
+                })
             ];
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(true);
         }
         catch (Exception e)
         {

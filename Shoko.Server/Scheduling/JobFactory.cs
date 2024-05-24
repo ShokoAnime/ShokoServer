@@ -31,7 +31,6 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
                 // This is used to make a logger with a useful name
                 baseJob._logger = _loggerFactory.CreateLogger(bundle.JobDetail.Key.Name.Replace(".", "․"));
                 if (ServerState.Instance.DatabaseAvailable) baseJob.PostInit();
-                else baseJob._logger.LogDebug("Server not started yet. Details will be less descriptive");
             }
             else if (job.GetType().Name.Equals("ScopedJob"))
             {
@@ -41,7 +40,6 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
                 if (innerJob is not BaseJob innerBaseJob) return job;
                 innerBaseJob._logger = _loggerFactory.CreateLogger(bundle.JobDetail.Key.Name.Replace(".", "․"));
                 if (ServerState.Instance.DatabaseAvailable) innerBaseJob.PostInit();
-                else innerBaseJob._logger.LogDebug("Server not started yet. Details will be less descriptive");
             }
             return job;
         }
@@ -66,7 +64,6 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
                 // This is used to make a logger with a useful name
                 baseJob._logger = _loggerFactory.CreateLogger(jobKey.Name.Replace(".", "․"));
                 if (ServerState.Instance.DatabaseAvailable) baseJob.PostInit();
-                else baseJob._logger.LogDebug("Server not started yet. Details will be less descriptive");
             }
             return job;
         }
@@ -87,7 +84,6 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
             SetObjectProperties(job, jobDetails.JobDataMap);
             job._logger = _loggerFactory.CreateLogger(jobDetails.Key.Name);
             if (ServerState.Instance.DatabaseAvailable) job.PostInit();
-            else job._logger.LogDebug("Server not started yet. Details will be less descriptive");
             return job;
         }
         catch
