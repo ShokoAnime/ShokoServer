@@ -28,6 +28,7 @@ public static class FilterExtensions
                 if (group != null) result.Add(group.GroupName);
                 return result;
             },
+            AniDBIDsDelegate = () => new HashSet<string>(){series.AniDB_ID.ToString()},
             SortingNameDelegate = () => series.GetSeriesName().ToSortName(),
             SeriesCountDelegate = () => 1,
             AirDateDelegate = () => series.GetAnime()?.AirDate,
@@ -221,6 +222,12 @@ public static class FilterExtensions
                     group.GroupName
                 };
                 result.UnionWith(group.GetAllSeries().SelectMany(a => a.GetAllTitles()));
+                return result;
+            },
+            AniDBIDsDelegate = () =>
+            {
+                var result = new HashSet<string>();
+                result.UnionWith(group.GetAllSeries().Select(a => a.AniDB_ID.ToString()));
                 return result;
             },
             SortingNameDelegate = () => group.GroupName.ToSortName(),

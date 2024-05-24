@@ -17,6 +17,11 @@ public interface IFilterable
     IReadOnlySet<string> Names { get; }
 
     /// <summary>
+    /// All AniDB IDs for the series
+    /// </summary>
+    IReadOnlySet<string> AniDBIDs { get; }
+
+    /// <summary>
     /// Sorting Name
     /// </summary>
     string SortingName { get; }
