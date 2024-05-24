@@ -221,15 +221,19 @@ public static class FilterExtensions
                 {
                     group.GroupName
                 };
-                result.UnionWith(group.GetAllSeries().SelectMany(a => a.GetAllTitles()));
+                result.UnionWith(group.GetAllSeries().SelectMany(a =>
+                {
+                    var titles = new HashSet<string>();
+                    if (!string.IsNullOrEmpty(a.SeriesNameOverride)) titles.Add(a.SeriesNameOverride);
+                    var ani = a.GetAnime();
+                    if (ani != null) titles.UnionWith(ani.GetAllTitles());
+                    var tvdb = a.GetTvDBSeries()?.Select(t => t.SeriesName);
+                    if (tvdb != null) titles.UnionWith(tvdb);
+                    return titles;
+                }));
                 return result;
             },
-            AniDBIDsDelegate = () =>
-            {
-                var result = new HashSet<string>();
-                result.UnionWith(group.GetAllSeries().Select(a => a.AniDB_ID.ToString()));
-                return result;
-            },
+            AniDBIDsDelegate = () => group.GetAllSeries().Select(a => a.AniDB_ID.ToString()).ToHashSet(),
             SortingNameDelegate = () => group.GroupName.ToSortName(),
             SeriesCountDelegate = () => series.Count,
             AirDateDelegate = () => group.GetAllSeries().Select(a => a.AirDate).DefaultIfEmpty(DateTime.MaxValue).Min(),
