@@ -211,6 +211,7 @@ public class Filter : BaseModel
             DateSelector,
             NumberSelector,
             StringSelector,
+            StringSetSelector,
             Date,
             Number,
             String,

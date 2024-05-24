@@ -1,20 +1,21 @@
+using System.Collections.Generic;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors.StringSelectors;
+namespace Shoko.Server.Filters.Selectors.StringSetSelectors;
 
-public class NamesSelector : FilterExpression<string>
+public class AniDBIDsSelector : FilterExpression<IReadOnlySet<string>>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns a bar separated list of all the names in a filterable. This includes series and group names. It is bar separated because names do sometimes contain commas.";
+    public override string HelpDescription => "This returns a set of all the AniDB IDs in a filterable.";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override IReadOnlySet<string> Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return string.Join("|", filterable.Names);
+        return filterable.AniDBIDs;
     }
 
-    protected bool Equals(NamesSelector other)
+    protected bool Equals(AniDBIDsSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +37,7 @@ public class NamesSelector : FilterExpression<string>
             return false;
         }
 
-        return Equals((NamesSelector)obj);
+        return Equals((AniDBIDsSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +45,12 @@ public class NamesSelector : FilterExpression<string>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(NamesSelector left, NamesSelector right)
+    public static bool operator ==(AniDBIDsSelector left, AniDBIDsSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(NamesSelector left, NamesSelector right)
+    public static bool operator !=(AniDBIDsSelector left, AniDBIDsSelector right)
     {
         return !Equals(left, right);
     }

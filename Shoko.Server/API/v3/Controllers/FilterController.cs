@@ -124,6 +124,7 @@ public class FilterController : BaseController
                     IWithDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
                     IWithNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
                     IWithStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                    IWithStringSetSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSetSelector,
                     _ => null
                 };
                 Filter.FilterExpressionHelp.FilterExpressionParameterType? right = expression switch

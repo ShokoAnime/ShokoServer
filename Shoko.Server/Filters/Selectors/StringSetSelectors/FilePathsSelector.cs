@@ -1,20 +1,21 @@
+using System.Collections.Generic;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors.StringSelectors;
+namespace Shoko.Server.Filters.Selectors.StringSetSelectors;
 
-public class AniDBIDsSelector : FilterExpression<string>
+public class FilePathsSelector : FilterExpression<IReadOnlySet<string>>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns a comma separated list of all the AniDB IDs in a filterable.";
+    public override string HelpDescription => "This returns a set of the file paths in a filterable";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override IReadOnlySet<string> Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return string.Join(",", filterable.AniDBIDs);
+        return filterable.FilePaths;
     }
 
-    protected bool Equals(AniDBIDsSelector other)
+    protected bool Equals(FilePathsSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +37,7 @@ public class AniDBIDsSelector : FilterExpression<string>
             return false;
         }
 
-        return Equals((NamesSelector)obj);
+        return Equals((FilePathsSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +45,12 @@ public class AniDBIDsSelector : FilterExpression<string>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(AniDBIDsSelector left, AniDBIDsSelector right)
+    public static bool operator ==(FilePathsSelector left, FilePathsSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(AniDBIDsSelector left, AniDBIDsSelector right)
+    public static bool operator !=(FilePathsSelector left, FilePathsSelector right)
     {
         return !Equals(left, right);
     }
