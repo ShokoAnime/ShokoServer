@@ -35,7 +35,7 @@ public class AnyFuzzyMatchesExpression : FilterExpression<bool>, IWithStringSetS
         var left = Left.Evaluate(filterable, userInfo);
         var right = Parameter ?? Right?.Evaluate(filterable, userInfo);
         if (string.IsNullOrEmpty(right)) return !left.Any();
-        return left.All(a => a.FuzzyMatches(right));
+        return left.Any(a => a.FuzzyMatches(right));
     }
 
     protected bool Equals(AnyFuzzyMatchesExpression other)

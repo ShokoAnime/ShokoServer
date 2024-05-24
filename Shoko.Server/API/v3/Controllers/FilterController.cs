@@ -154,6 +154,7 @@ public class FilterController : BaseController
                     FilterExpression<DateTime?> => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
                     FilterExpression<double> => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
                     FilterExpression<string> => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                    FilterExpression<IReadOnlySet<string>> => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSetSelector,
                     _ => throw new Exception($"Expression {a.Name} is not a handled type for Filter Expression Help")
                 };
                 return new Filter.FilterExpressionHelp

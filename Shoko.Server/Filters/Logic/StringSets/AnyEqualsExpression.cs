@@ -34,7 +34,7 @@ public class AnyEqualsExpression : FilterExpression<bool>, IWithStringSetSelecto
         var left = Left.Evaluate(filterable, userInfo);
         var right = Parameter ?? Right?.Evaluate(filterable, userInfo);
         if (string.IsNullOrEmpty(right)) return !left.Any();
-        return left.All(a => a.Equals(right, StringComparison.InvariantCultureIgnoreCase));
+        return left.Any(a => a.Equals(right, StringComparison.InvariantCultureIgnoreCase));
     }
 
     protected bool Equals(AnyEqualsExpression other)
