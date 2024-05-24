@@ -258,7 +258,7 @@ namespace Shoko.Commons.Extensions
             {
                 if (!_alltitlescache.ContainsKey(anime.AnimeID))
                     _alltitlescache[anime.AnimeID] = new HashSet<string>(
-                        anime.AllTitles.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+                        anime.AllTitles.Split('|')
                             .Select(a => a.Trim())
                             .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
                 return _alltitlescache[anime.AnimeID];
