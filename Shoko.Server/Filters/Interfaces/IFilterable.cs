@@ -12,6 +12,11 @@ public interface IFilterable
     string Name { get; }
 
     /// <summary>
+    /// All Names for the group and series within
+    /// </summary>
+    IReadOnlySet<string> Names { get; }
+
+    /// <summary>
     /// Sorting Name
     /// </summary>
     string SortingName { get; }

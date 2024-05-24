@@ -21,6 +21,13 @@ public static class FilterExtensions
         var filterable = new Filterable
         {
             NameDelegate = () => series.GetSeriesName(),
+            NamesDelegate = () =>
+            {
+                var result = series.GetAllTitles();
+                var group = series.AnimeGroup;
+                if (group != null) result.Add(group.GroupName);
+                return result;
+            },
             SortingNameDelegate = () => series.GetSeriesName().ToSortName(),
             SeriesCountDelegate = () => 1,
             AirDateDelegate = () => series.GetAnime()?.AirDate,
@@ -207,6 +214,15 @@ public static class FilterExtensions
         var filterable = new Filterable
         {
             NameDelegate = () => group.GroupName,
+            NamesDelegate = () =>
+            {
+                var result = new HashSet<string>()
+                {
+                    group.GroupName
+                };
+                result.UnionWith(group.GetAllSeries().SelectMany(a => a.GetAllTitles()));
+                return result;
+            },
             SortingNameDelegate = () => group.GroupName.ToSortName(),
             SeriesCountDelegate = () => series.Count,
             AirDateDelegate = () => group.GetAllSeries().Select(a => a.AirDate).DefaultIfEmpty(DateTime.MaxValue).Min(),

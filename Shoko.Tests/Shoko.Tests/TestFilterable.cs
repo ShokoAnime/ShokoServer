@@ -8,6 +8,7 @@ namespace Shoko.Tests;
 public class TestFilterable : IFilterable
 {
     public string Name { get; init; }
+    public IReadOnlySet<string> Names { get; init; }
     public string SortingName { get; init; }
     public int SeriesCount { get; init; }
     public int MissingEpisodes { get; init; }
