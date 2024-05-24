@@ -350,24 +350,9 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public List<TvDB_Series> GetTvDBSeries()
     {
-        var sers = new List<TvDB_Series>();
-
-        var xrefs = GetCrossRefTvDB();
-        if (xrefs == null || xrefs.Count == 0)
-        {
-            return sers;
-        }
-
-        foreach (var xref in xrefs)
-        {
-            var series = xref.GetTvDBSeries();
-            if (series != null)
-            {
-                sers.Add(series);
-            }
-        }
-
-        return sers;
+        var xrefs = GetCrossRefTvDB()?.WhereNotNull().ToArray();
+        if (xrefs == null || xrefs.Length == 0) return [];
+        return xrefs.Select(xref => xref.GetTvDBSeries()).WhereNotNull().ToList();
     }
 
     #endregion

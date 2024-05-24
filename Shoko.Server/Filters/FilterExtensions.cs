@@ -227,7 +227,7 @@ public static class FilterExtensions
                     if (!string.IsNullOrEmpty(a.SeriesNameOverride)) titles.Add(a.SeriesNameOverride);
                     var ani = a.GetAnime();
                     if (ani != null) titles.UnionWith(ani.GetAllTitles());
-                    var tvdb = a.GetTvDBSeries()?.Select(t => t.SeriesName);
+                    var tvdb = a.GetTvDBSeries()?.Select(t => t.SeriesName).WhereNotNull();
                     if (tvdb != null) titles.UnionWith(tvdb);
                     return titles;
                 }));
