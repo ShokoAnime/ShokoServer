@@ -72,7 +72,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     public override async Task<SVR_AniDB_Anime> Process()
     {
         if (AnimeID == 0) return null;
-        _logger.LogInformation("Processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
+        _logger.LogInformation("Processing {Job}: {AnimeID}", nameof(GetAniDBAnimeJob), AnimeID);
         if (ForceRefresh && _handler.IsBanned)
         {
             _logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", AnimeID);

@@ -50,8 +50,8 @@ public class DeleteFileFromMyListJob : BaseJob
     public override Task Process()
     {
         // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.
-        _logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash} FileSize: {Size} MyListID: {MyListID} FileID: {FileID} AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
-            Hash, FileSize, MyListID, FileID, AnimeID, EpisodeType, EpisodeNumber);
+        _logger.LogInformation("Processing {Job}: Hash: {Hash} FileSize: {Size} MyListID: {MyListID} FileID: {FileID} AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
+            nameof(DeleteFileFromMyListJob), Hash, FileSize, MyListID, FileID, AnimeID, EpisodeType, EpisodeNumber);
 
         var settings = _settingsProvider.GetSettings();
         switch (settings.AniDb.MyList_DeleteType)

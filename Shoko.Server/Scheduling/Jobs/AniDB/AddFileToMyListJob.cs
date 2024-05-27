@@ -52,8 +52,8 @@ public class AddFileToMyListJob : BaseJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing CommandRequest_AddFileToMyList: {FileName} - {Hash} - {ReadStates}",
-            _videoLocal?.GetBestVideoLocalPlace()?.FileName, Hash, ReadStates);
+        _logger.LogInformation("Processing {Job}: {FileName} - {Hash} - {ReadStates}",
+            nameof(AddFileToMyListJob), _videoLocal?.GetBestVideoLocalPlace()?.FileName, Hash, ReadStates);
 
         if (_videoLocal == null) return;
 

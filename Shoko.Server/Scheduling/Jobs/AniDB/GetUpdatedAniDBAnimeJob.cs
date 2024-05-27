@@ -112,7 +112,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
                 continue;
             }
 
-            _logger.LogInformation("Updating CommandRequest_GetUpdated: {AnimeID} ", animeID);
+            _logger.LogInformation("Scheduling Update for {AnimeID} ", anime.MainTitle);
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
 
             // but only if it hasn't been recently updated

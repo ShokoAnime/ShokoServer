@@ -47,12 +47,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Remove="Commands\Import\CommandRequest_DownloadAniDBImages.cs" />
-    <Compile Remove="Commands\Import\CommandRequest_DownloadImage.cs" />
-    <Compile Remove="Commands\Import\CommandRequest_HashFile.cs" />
-    <Compile Remove="Commands\Import\CommandRequest_LinkFileManually.cs" />
-    <Compile Remove="Commands\Import\CommandRequest_ReadMediaInfo.cs" />
-    <Compile Remove="Commands\Import\CommandRequest_ValidateAllImages.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
