@@ -219,9 +219,19 @@ public class ShokoEventHandler : IShokoEventHandler
         AniDBBanned?.Invoke(null, new(type, time, resumeTime));
     }
 
+    public void OnSeriesUpdated(SVR_AnimeSeries series, UpdateReason reason)
+    {
+        SeriesUpdated?.Invoke(null, new(series, reason));
+    }
+
     public void OnSeriesUpdated(SVR_AniDB_Anime anime, UpdateReason reason)
     {
         SeriesUpdated?.Invoke(null, new(anime, reason));
+    }
+
+    public void OnEpisodeUpdated(SVR_AnimeSeries series, SVR_AnimeEpisode episode, UpdateReason reason)
+    {
+        EpisodeUpdated?.Invoke(null, new(series, episode, reason));
     }
 
     public void OnEpisodeUpdated(SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, UpdateReason reason)

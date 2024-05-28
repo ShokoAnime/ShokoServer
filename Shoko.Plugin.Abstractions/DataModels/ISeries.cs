@@ -33,6 +33,11 @@ public interface ISeries : IWithTitles, IMetadata<int>
     bool Restricted { get; }
 
     /// <summary>
+    /// All series linked to this entity.
+    /// </summary>
+    IReadOnlyList<ISeries> LinkedSeries { get; }
+
+    /// <summary>
     /// Related series.
     /// </summary>
     IReadOnlyList<IRelatedMetadata<ISeries>> RelatedSeries { get; }

@@ -28,6 +28,11 @@ public class Episode : BaseModel
     public EpisodeIDs IDs { get; set; }
 
     /// <summary>
+    /// Indicates that the episode have a custom name set.
+    /// </summary>
+    public bool HasCustomName { get; set; }
+
+    /// <summary>
     /// The duration of the episode.
     /// </summary>
     public TimeSpan Duration { get; set; }
@@ -106,12 +111,13 @@ public class Episode : BaseModel
             AniDB = episode.AniDB_EpisodeID,
             TvDB = tvdbEpisodes.Select(a => a.Id).ToList()
         };
+        HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
         ResumePosition = fileUserRecord?.ResumePositionTimeSpan;
         Watched = fileUserRecord?.WatchedDate?.ToUniversalTime();
         WatchCount = episodeUserRecord?.WatchedCount ?? 0;
         IsHidden = episode.IsHidden;
-        Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
+        Name = episode.PreferredTitle;
         Size = files.Count;
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
@@ -122,25 +128,6 @@ public class Episode : BaseModel
             Files = files.Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths));
         if (withXRefs)
             CrossReferences = FileCrossReference.From(episode.FileCrossRefs).FirstOrDefault()?.EpisodeIDs ?? [];
-    }
-
-    internal static string GetEpisodeTitle(int anidbEpisodeID)
-    {
-        // Try finding one of the preferred languages.
-        foreach (var language in Languages.PreferredEpisodeNamingLanguages)
-        {
-            var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, language.Language)
-                .FirstOrDefault()?.Title;
-            if (!string.IsNullOrEmpty(title))
-            {
-                return title;
-            }
-        }
-
-        // Fallback to English if available.
-        return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, TitleLanguage.English)
-            .FirstOrDefault()
-            ?.Title;
     }
 
     internal static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
@@ -419,4 +406,13 @@ public enum EpisodeType
     /// A DVD or BD extra, e.g. BD-menu or deleted scenes.
     /// </summary>
     Extra = 10
+}
+
+public class EpisodeTitleOverride
+{
+    /// <summary>
+    /// New title to be set as override for the series
+    /// </summary>
+    [Required(AllowEmptyStrings = true)]
+    public string Title { get; set; }
 }

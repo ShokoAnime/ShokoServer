@@ -5,11 +5,11 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -372,6 +372,10 @@ public class Group : BaseModel
 
                 // Update stats for all groups in the chain.
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
+
+                // Emit the updated events now, after the groups and series states have been properly updated.
+                foreach (var series in seriesList)
+                    ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
 
                 // Return a new representation of the group.
                 return new Group(ctx, group);

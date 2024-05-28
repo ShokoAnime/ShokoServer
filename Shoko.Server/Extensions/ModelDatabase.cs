@@ -61,17 +61,20 @@ public static class ModelDatabase
         return null;
     }
 
-    public static void CreateAnimeEpisode(this SVR_AniDB_Episode episode, int animeSeriesID)
+    public static (SVR_AnimeEpisode episode, bool isNew, bool isUpdated) CreateAnimeEpisode(this SVR_AniDB_Episode episode, int animeSeriesID)
     {
         // check if there is an existing episode for this EpisodeID
-        var existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID) ??
-                         new SVR_AnimeEpisode();
+        var existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+        var isNew = existingEp is null;
+        if (isNew)
+            existingEp = new();
 
         var old = existingEp.DeepClone();
         existingEp.Populate(episode);
         existingEp.AnimeSeriesID = animeSeriesID;
 
-        if (!old.Equals(existingEp))
+        var updated = !old.Equals(existingEp);
+        if (updated)
             RepoFactory.AnimeEpisode.Save(existingEp);
 
         // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
@@ -108,6 +111,8 @@ public static class ModelDatabase
             // these will probably never exist, but if they do, cover our bases
             RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
         }
+
+        return (existingEp, isNew, updated);
     }
 
     public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)

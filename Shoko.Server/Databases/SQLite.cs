@@ -21,7 +21,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 109;
+    public override int RequiredVersion => 110;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -671,17 +671,16 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(103, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion text;"),
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
-        new DatabaseCommand(105, 1,
-            "CREATE TABLE FilterPreset( FilterPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
-        new DatabaseCommand(105, 2,
-            "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
-        new DatabaseCommand(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
-        new DatabaseCommand(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
-        new DatabaseCommand(105, 5, DatabaseFixes.DropGroupFilter),
-        new DatabaseCommand(106, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
-        new DatabaseCommand(107, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),
-        new DatabaseCommand(108, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
-        new DatabaseCommand(109, 1, "DROP TABLE CommandRequest"),
+        new(105, 1, "CREATE TABLE FilterPreset( FilterPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
+        new(105, 2, "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
+        new(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
+        new(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new(105, 5, DatabaseFixes.DropGroupFilter),
+        new(106, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
+        new(107, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),
+        new(108, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
+        new(109, 1, "DROP TABLE CommandRequest"),
+        new(110, 1, "ALTER TABLE AnimeEpisode ADD EpisodeNameOverride text"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

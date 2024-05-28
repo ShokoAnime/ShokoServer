@@ -11,9 +11,11 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
+using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -21,18 +23,17 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using Quartz;
-using Shoko.Server.Providers.AniDB.Titles;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -149,14 +150,16 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}")]
     public async Task<ActionResult> DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
+        if (seriesID == 0)
+            return BadRequest(SeriesWithZeroID);
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         await series.DeleteSeries(deleteFiles, true, completelyRemove);
+
+        ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Removed);
 
         return Ok();
     }
@@ -171,15 +174,24 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/OverrideTitle")]
     public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeriesTitleOverride body)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (seriesID == 0)
+            return BadRequest(SeriesWithZeroID);
 
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
-        series.SeriesNameOverride = body.Title;
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
 
-        RepoFactory.AnimeSeries.Save(series);
+        if (!string.Equals(series.SeriesNameOverride, body.Title))
+        {
+            series.SeriesNameOverride = body.Title;
+
+            RepoFactory.AnimeSeries.Save(series);
+
+            ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
+        }
 
         return Ok();
     }
@@ -1220,7 +1232,7 @@ public class SeriesController : BaseController
                     ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
                         .Where(title => title != null && languages.Contains(title.Language))
                         .Select(title => title.Title)
-                        .Append(ep.Shoko.Title)
+                        .Append(ep.Shoko.PreferredTitle)
                         .Distinct()
                         .ToList(),
                     fuzzy
@@ -1341,7 +1353,7 @@ public class SeriesController : BaseController
                     ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
                         .Where(title => title != null && languages.Contains(title.Language))
                         .Select(title => title.Title)
-                        .Append(ep.Shoko.Title)
+                        .Append(ep.Shoko.PreferredTitle)
                         .Distinct()
                         .ToList(),
                     fuzzy
@@ -1731,6 +1743,8 @@ public class SeriesController : BaseController
 
         // Update the contract data (used by Shoko Desktop).
         RepoFactory.AnimeSeries.Save(series, false);
+
+        ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
 
         return new Image(imageID, imageEntityType.Value, true);
     }

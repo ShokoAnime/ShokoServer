@@ -143,7 +143,7 @@ public static class Dashboard
                     ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.AnimeEpisodeID
                     : null
             };
-            Title = Episode.GetEpisodeTitle(episode.EpisodeID);
+            Title = episode.GetPreferredTitle();
             Number = episode.EpisodeNumber;
             Type = Episode.MapAniDBEpisodeType(episode.GetEpisodeTypeEnum());
             AirDate = episode.GetAirDateAsDate();

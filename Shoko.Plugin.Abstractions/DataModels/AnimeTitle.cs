@@ -1,12 +1,18 @@
 using System.Xml.Serialization;
+using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.DataModels
 {
     public class AnimeTitle
     {
+        public DataSourceEnum Source { get; set; }
+
         public TitleLanguage Language { get; set; }
+
         public string LanguageCode { get; set; }
+
         public string Title { get; set; }
+
         public TitleType Type { get; set; }
     }
 
