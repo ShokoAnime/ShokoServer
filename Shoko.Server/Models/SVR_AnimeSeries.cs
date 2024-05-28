@@ -2028,6 +2028,8 @@ label0:;
             }
         }
 
+        ShokoEventHandler.Instance.OnSeriesUpdated(this, UpdateReason.Removed);
+
         if (completelyRemove)
         {
             // episodes, anime, characters, images, staff relations, tag relations, titles

@@ -159,8 +159,6 @@ public class SeriesController : BaseController
 
         await series.DeleteSeries(deleteFiles, true, completelyRemove);
 
-        ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Removed);
-
         return Ok();
     }
 
