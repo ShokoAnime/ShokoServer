@@ -157,6 +157,14 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             var ping = _requestFactory.Create<RequestPing>();
             ping.Send();
         }
+        catch (UnexpectedUDPResponseException)
+        {
+            _pingTimer.Stop();
+        }
+        catch (AniDBBannedException)
+        {
+            _pingTimer.Stop();
+        }
         catch (Exception exception)
         {
             Logger.LogError(exception, "{Message}", exception);
