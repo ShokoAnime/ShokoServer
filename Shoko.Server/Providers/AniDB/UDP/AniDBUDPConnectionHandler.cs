@@ -271,7 +271,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             });
         var result = await timeoutPolicy.ExecuteAndCaptureAsync(async () => await RateLimiter.EnsureRate(async () =>
         {
-            if (_connectivityService.NetworkAvailability != NetworkAvailability.Internet)
+            if (_connectivityService.NetworkAvailability < NetworkAvailability.PartialInternet)
             {
                 Logger.LogError("No internet, so not sending AniDB request");
                 throw new SocketException((int)SocketError.HostUnreachable);
