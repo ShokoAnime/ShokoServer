@@ -22,10 +22,6 @@ public class ConnectivityService : IConnectivityService
 
     private readonly IConnectivityMonitor[] _connectivityMonitors;
 
-    private readonly IUDPConnectionHandler _anidbUdpHandler;
-
-    private readonly IHttpConnectionHandler _anidbHttpHandler;
-
     private NetworkAvailability _networkAvailability = NetworkAvailability.NoInterfaces;
 
     private DateTime _lastChangedAt = DateTime.Now;
@@ -53,25 +49,11 @@ public class ConnectivityService : IConnectivityService
     public DateTime LastChangedAt =>
         _lastChangedAt;
 
-    /// <inheritdoc/>
-    public bool IsAniDBUdpReachable =>
-        _anidbUdpHandler.IsNetworkAvailable;
-
-    /// <inheritdoc/>
-    public bool IsAniDBHttpBanned =>
-        _anidbHttpHandler.IsBanned;
-
-    /// <inheritdoc/>
-    public bool IsAniDBUdpBanned =>
-        _anidbUdpHandler.IsBanned;
-
-    public ConnectivityService(ILogger<ConnectivityService> logger, ISettingsProvider settingsProvider, IEnumerable<IConnectivityMonitor> connectivityMonitors, IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler)
+    public ConnectivityService(ILogger<ConnectivityService> logger, ISettingsProvider settingsProvider, IEnumerable<IConnectivityMonitor> connectivityMonitors)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
         _connectivityMonitors = connectivityMonitors.ToArray();
-        _anidbUdpHandler = udpHandler;
-        _anidbHttpHandler = httpHandler;
     }
 
     public async Task<NetworkAvailability> CheckAvailability()

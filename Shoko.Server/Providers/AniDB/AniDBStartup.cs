@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -22,6 +23,7 @@ public static class AniDBStartup
         services.AddSingleton<HttpRateLimiter>();
         services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
         services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();
+        services.AddTransient<IAniDBService, AniDBService>();
         services.AddSingleton<IRequestFactory, RequestFactory>();
 
         // Register Requests
