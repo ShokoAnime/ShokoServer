@@ -3,10 +3,12 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -25,6 +27,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     // 45 seconds
     private const int PingFrequency = 45 * 1000;
     private readonly IRequestFactory _requestFactory;
+    private readonly IConnectivityService _connectivityService;
     private IAniDBSocketHandler _socketHandler;
     private static readonly Regex s_logMask = new("(?<=(\\bpass=|&pass=\\bs=|&s=))[^&]+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -81,10 +84,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     public bool IsNetworkAvailable { private set; get; }
 
-    public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory, ISettingsProvider settings, UDPRateLimiter rateLimiter) :
+    public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory, ISettingsProvider settings, UDPRateLimiter rateLimiter, IConnectivityService connectivityService) :
         base(loggerFactory, rateLimiter)
     {
         _requestFactory = requestFactory;
+        _connectivityService = connectivityService;
         SettingsProvider = settings;
     }
 
@@ -256,8 +260,23 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         if (_socketHandler is not { IsConnected: true }) throw new ObjectDisposedException("The connection was closed by shoko");
 
         var sendByteAdd = encoding.GetBytes(command);
-        var decodedString = await RateLimiter.EnsureRate(async () =>
+
+        var timeoutPolicy = Policy
+            .Handle<SocketException>(e => e is { SocketErrorCode: SocketError.TimedOut})
+            .Or<OperationCanceledException>()
+            .RetryAsync(async (_, _) =>
+            {
+                Logger.LogWarning("AniDB request timed out. Checking Network and trying again");
+                await _connectivityService.CheckAvailability();
+            });
+        var result = await timeoutPolicy.ExecuteAndCaptureAsync(async () => await RateLimiter.EnsureRate(async () =>
         {
+            if (_connectivityService.NetworkAvailability != NetworkAvailability.Internet)
+            {
+                Logger.LogError("No internet, so not sending AniDB request");
+                throw new SocketException((int)SocketError.HostUnreachable);
+            }
+
             var start = DateTime.Now;
 
             Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", MaskLog(command));
@@ -281,9 +300,14 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             var ts = DateTime.Now - start;
             Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, MaskLog(decodedString));
             return decodedString;
-        });
+        }));
 
-        return decodedString;
+        if (result.FinalException != null)
+        {
+            Logger.LogError(result.FinalException, "Failed to send AniDB message");
+        }
+
+        return result.Result;
     }
 
     private void StopPinging()
