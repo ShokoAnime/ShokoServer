@@ -221,21 +221,33 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public void OnSeriesUpdated(SVR_AnimeSeries series, UpdateReason reason)
     {
+        if (series is null)
+            throw new ArgumentNullException(nameof(series));
         SeriesUpdated?.Invoke(null, new(series, reason));
     }
 
     public void OnSeriesUpdated(SVR_AniDB_Anime anime, UpdateReason reason)
     {
+        if (anime is null)
+            throw new ArgumentNullException(nameof(anime));
         SeriesUpdated?.Invoke(null, new(anime, reason));
     }
 
     public void OnEpisodeUpdated(SVR_AnimeSeries series, SVR_AnimeEpisode episode, UpdateReason reason)
     {
+        if (series is null)
+            throw new ArgumentNullException(nameof(series));
+        if (episode is null)
+            throw new ArgumentNullException(nameof(episode));
         EpisodeUpdated?.Invoke(null, new(series, episode, reason));
     }
 
     public void OnEpisodeUpdated(SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, UpdateReason reason)
     {
+        if (anime is null)
+            throw new ArgumentNullException(nameof(anime));
+        if (episode is null)
+            throw new ArgumentNullException(nameof(episode));
         EpisodeUpdated?.Invoke(null, new(anime, episode, reason));
     }
 
