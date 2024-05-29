@@ -63,6 +63,22 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
     }
 
+    public override bool IsBanned
+    {
+        get => base.IsBanned;
+        set
+        {
+            if (value)
+            {
+                _isLoggedOn = false;
+                IsInvalidSession = false;
+                SessionID = null;
+            }
+
+            base.IsBanned = value;
+        }
+    }
+
     public bool IsNetworkAvailable { private set; get; }
 
     public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory, ISettingsProvider settings, UDPRateLimiter rateLimiter) :

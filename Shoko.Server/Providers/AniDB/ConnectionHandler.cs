@@ -35,7 +35,7 @@ public abstract class ConnectionHandler
     public DateTime? BanTime { get; set; }
     private bool _isBanned;
 
-    public bool IsBanned
+    public virtual bool IsBanned
     {
         get => _isBanned;
         set
