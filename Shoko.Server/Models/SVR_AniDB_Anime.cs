@@ -225,12 +225,14 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
             var posters = new List<AniDB_Anime_DefaultImage>();
             posters.Add(new AniDB_Anime_DefaultImage
             {
-                AniDB_Anime_DefaultImageID = AnimeID, ImageType = (int)ImageEntityType.AniDB_Cover
+                AniDB_Anime_DefaultImageID = AnimeID,
+                ImageType = (int)ImageEntityType.AniDB_Cover
             });
             var tvdbposters = GetTvDBImagePosters()?.Where(img => img != null).Select(img =>
                 new AniDB_Anime_DefaultImage
                 {
-                    AniDB_Anime_DefaultImageID = img.TvDB_ImagePosterID, ImageType = (int)ImageEntityType.TvDB_Cover
+                    AniDB_Anime_DefaultImageID = img.TvDB_ImagePosterID,
+                    ImageType = (int)ImageEntityType.TvDB_Cover
                 });
             if (tvdbposters != null)
             {
@@ -320,7 +322,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
                 {
                     details = new ImageDetails
                     {
-                        ImageType = ImageEntityType.TvDB_Cover, ImageID = tvPoster.TvDB_ImagePosterID
+                        ImageType = ImageEntityType.TvDB_Cover,
+                        ImageID = tvPoster.TvDB_ImagePosterID
                     };
                 }
 
@@ -333,7 +336,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
                 {
                     details = new ImageDetails
                     {
-                        ImageType = ImageEntityType.MovieDB_Poster, ImageID = moviePoster.MovieDB_PosterID
+                        ImageType = ImageEntityType.MovieDB_Poster,
+                        ImageID = moviePoster.MovieDB_PosterID
                     };
                 }
 
@@ -365,7 +369,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
             var art = fanarts[fanartRandom.Next(0, fanarts.Count)];
             details = new ImageDetails
             {
-                ImageID = art.AniDB_Anime_DefaultImageID, ImageType = (ImageEntityType)art.ImageType
+                ImageID = art.AniDB_Anime_DefaultImageID,
+                ImageType = (ImageEntityType)art.ImageType
             };
             return details;
         }
@@ -380,7 +385,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
                 {
                     details = new ImageDetails
                     {
-                        ImageType = ImageEntityType.TvDB_FanArt, ImageID = tvFanart.TvDB_ImageFanartID
+                        ImageType = ImageEntityType.TvDB_FanArt,
+                        ImageID = tvFanart.TvDB_ImageFanartID
                     };
                 }
 
@@ -392,7 +398,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
                 {
                     details = new ImageDetails
                     {
-                        ImageType = ImageEntityType.MovieDB_FanArt, ImageID = movieFanart.MovieDB_FanartID
+                        ImageType = ImageEntityType.MovieDB_FanArt,
+                        ImageID = movieFanart.MovieDB_FanartID
                     };
                 }
 
@@ -492,7 +499,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
             var art = banners[bannerRandom.Next(0, banners.Count)];
             details = new ImageDetails
             {
-                ImageID = art.AniDB_Anime_DefaultImageID, ImageType = (ImageEntityType)art.ImageType
+                ImageID = art.AniDB_Anime_DefaultImageID,
+                ImageType = (ImageEntityType)art.ImageType
             };
             return details;
         }
@@ -730,7 +738,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
             }));
         }
 
-        cl.Banners = tvDbBanners?.Select(a => new CL_AniDB_Anime_DefaultImage
+        cl.Banners = tvDbBanners?.Select(a =>
+            new CL_AniDB_Anime_DefaultImage
             {
                 ImageType = (int)ImageEntityType.TvDB_Banner,
                 TVWideBanner = a,
@@ -756,7 +765,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
         try
         {
             return RepoFactory.AniDB_Character.GetCharactersAndSeiyuuForAnime(AnimeID)
-                .Select(a => a.Character.ToClient(a.CharacterType, a.Seiyuu)).ToList();
+                .Select(a => a.ToClient()).ToList();
         }
         catch (Exception ex)
         {
@@ -987,7 +996,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
         {
             cl.CustomTags.Add(custag);
         }
-        
+
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Tag Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
@@ -1059,13 +1068,15 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
         return update?.UpdatedAt ?? DateTime.MinValue;
     }
 
-    #region ISeries Implementation
+    #region IMetadata Implementation
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
 
     int IMetadata<int>.ID => AnimeID;
 
-    AnimeType ISeries.Type => (AnimeType)AnimeType;
+    #endregion
+
+    #region IWithTitles Implementation
 
     string IWithTitles.DefaultTitle => MainTitle;
 
@@ -1074,6 +1085,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
     IReadOnlyList<AnimeTitle> IWithTitles.Titles => GetTitles()
         .Select(a => new AnimeTitle
         {
+            Source = DataSourceEnum.AniDB,
             LanguageCode = a.LanguageCode,
             Language = a.Language,
             Title = a.Title,
@@ -1082,9 +1094,31 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
         .Where(a => a.Type != TitleType.None)
         .ToList();
 
+    #endregion
+
+    #region ISeries Implementation
+
+    AnimeType ISeries.Type => (AnimeType)AnimeType;
+
     double ISeries.Rating => Rating / 100D;
 
     bool ISeries.Restricted => Restricted == 1;
+
+    IReadOnlyList<ISeries> ISeries.LinkedSeries
+    {
+        get
+        {
+            var seriesList = new List<ISeries>();
+
+            var shokoSeries = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+            if (shokoSeries is not null)
+                seriesList.Add(shokoSeries);
+
+            // TODO: Add more series here.
+
+            return seriesList;
+        }
+    }
 
     IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries =>
         RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);

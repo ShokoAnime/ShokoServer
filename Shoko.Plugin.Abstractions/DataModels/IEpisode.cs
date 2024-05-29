@@ -42,6 +42,11 @@ public interface IEpisode : IWithTitles, IMetadata<int>
     ISeries? SeriesInfo { get; }
 
     /// <summary>
+    /// All episodes linked to this entity.
+    /// </summary>
+    IReadOnlyList<IEpisode> LinkedEpisodes { get; }
+
+    /// <summary>
     /// All cross-references linked to the episode.
     /// </summary>
     IReadOnlyList<IVideoCrossReference> CrossReferences { get; }

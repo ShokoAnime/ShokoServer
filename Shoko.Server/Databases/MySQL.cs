@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 124;
+    public override int RequiredVersion { get; } = 125;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -737,29 +737,26 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(117, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
         new(118, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(118, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
-        new DatabaseCommand(119, 1,
-            "CREATE TABLE FilterPreset( FilterPresetID INT NOT NULL AUTO_INCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression longtext, SortingExpression longtext, PRIMARY KEY (`FilterPresetID`) ); "),
-        new DatabaseCommand(119, 2,
-            "ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_ParentFilterPresetID (ParentFilterPresetID); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_Name (Name(255)); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_FilterType (FilterType); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_LockedHidden (Locked, Hidden);"),
-        new DatabaseCommand(119, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
-        new DatabaseCommand(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
-        new DatabaseCommand(119, 5, DatabaseFixes.DropGroupFilter),
-        new DatabaseCommand(120, 1, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup' AND COLUMN_NAME='SortName' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup DROP COLUMN SortName', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 1, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeEpisode' AND COLUMN_NAME='PlexContractVersion' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 2, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeEpisode' AND COLUMN_NAME='PlexContractBlob' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 3, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeEpisode' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 4, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup_User' AND COLUMN_NAME='PlexContractVersion' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 5, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup_User' AND COLUMN_NAME='PlexContractBlob' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 6, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup_User' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 7, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractVersion' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 8, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractBlob' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(121, 9, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
-        new DatabaseCommand(122, 1, "ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_CommandType (CommandType); ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_Priority_Date (Priority, DateTimeUpdated);"),
-        new DatabaseCommand(123, 1, "DROP TABLE CommandRequest"),
-        new DatabaseCommand(124, 1,
-            "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `AddedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
-        new DatabaseCommand(124, 2,
-            "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `SentAt` datetime NOT NULL, `FetchedAt` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL DEFAULT 0, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
+        new(119, 1, "CREATE TABLE FilterPreset( FilterPresetID INT NOT NULL AUTO_INCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression longtext, SortingExpression longtext, PRIMARY KEY (`FilterPresetID`) ); "),
+        new(119, 2, "ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_ParentFilterPresetID (ParentFilterPresetID); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_Name (Name(255)); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_FilterType (FilterType); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_LockedHidden (Locked, Hidden);"),
+        new(119, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
+        new(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new(119, 5, DatabaseFixes.DropGroupFilter),
+        new(120, 1, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup' AND COLUMN_NAME='SortName' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup DROP COLUMN SortName', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 1, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeEpisode' AND COLUMN_NAME='PlexContractVersion' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 2, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeEpisode' AND COLUMN_NAME='PlexContractBlob' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 3, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeEpisode' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 4, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup_User' AND COLUMN_NAME='PlexContractVersion' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 5, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup_User' AND COLUMN_NAME='PlexContractBlob' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 6, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup_User' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 7, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractVersion' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 8, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractBlob' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(121, 9, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
+        new(122, 1, "ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_CommandType (CommandType); ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_Priority_Date (Priority, DateTimeUpdated);"),
+        new(123, 1, "DROP TABLE CommandRequest"),
+        new(124, 1, "ALTER TABLE `AnimeEpisode` ADD `EpisodeNameOverride` text NULL;"),
+        new(125, 1, "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `AddedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
+        new(125, 2, "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `SentAt` datetime NOT NULL, `FetchedAt` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL DEFAULT 0, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

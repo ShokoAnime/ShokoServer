@@ -13,35 +13,26 @@ public class ConnectivityDetails
     /// Current network availibility.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public readonly NetworkAvailability NetworkAvailability;
+    public NetworkAvailability NetworkAvailability { get; init; }
 
     /// <summary>
     /// When the last network change was detected.
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
-    public readonly DateTime LastChangedAt;
+    public DateTime LastChangedAt { get; init; }
 
     /// <summary>
     /// Is the AniDB UDP API currently reachable?
     /// </summary>
-    public readonly bool IsAniDBUdpReachable;
+    public bool IsAniDBUdpReachable { get; init; }
 
     /// <summary>
     /// Are we currently banned from using the AniDB HTTP API?
     /// </summary>
-    public readonly bool IsAniDBHttpBanned;
+    public bool IsAniDBHttpBanned { get; init; }
 
     /// <summary>
     /// Are we currently banned from using the AniDB UDP API?
     /// </summary>
-    public readonly bool IsAniDBUdpBanned;
-
-    public ConnectivityDetails(IConnectivityService service)
-    {
-        NetworkAvailability = service.NetworkAvailability;
-        LastChangedAt = service.LastChangedAt.ToUniversalTime();
-        IsAniDBUdpReachable = service.IsAniDBUdpReachable;
-        IsAniDBHttpBanned = service.IsAniDBHttpBanned;
-        IsAniDBUdpBanned = service.IsAniDBUdpBanned;
-    }
+    public bool IsAniDBUdpBanned { get; init; }
 }

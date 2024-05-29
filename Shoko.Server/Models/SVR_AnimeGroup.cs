@@ -515,6 +515,16 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             $"Starting Updating STATS for GROUP {GroupName} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}");
         var seriesList = GetAllSeries();
 
+        // Reset the name/description for the group if needed.
+        var mainSeries = IsManuallyNamed == 0 || OverrideDescription == 0 ? GetMainSeries() : null;
+        if (mainSeries is not null)
+        {
+            if (IsManuallyNamed == 0)
+                GroupName = mainSeries.GetSeriesName();
+            if (OverrideDescription == 0)
+                Description = mainSeries.GetAnime().Description;
+        }
+
         if (missingEpsStats)
         {
             UpdateMissingEpisodeStats(this, seriesList);

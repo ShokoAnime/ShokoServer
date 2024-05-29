@@ -53,37 +53,67 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
     public SVR_AnimeSeries? GetShokoSeries() =>
         RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
 
-    #region IEpisode Implementation
+    #region IMetadata Implementation
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
 
     int IMetadata<int>.ID => EpisodeID;
 
-    int IEpisode.SeriesID => AnimeID;
+    #endregion
 
-    Shoko.Plugin.Abstractions.DataModels.EpisodeType IEpisode.Type =>
-        (Shoko.Plugin.Abstractions.DataModels.EpisodeType)(EpisodeType);
-
-    int? IEpisode.SeasonNumber => EpisodeType == (int)EpisodeTypeEnum.Episode ? 1 : null;
+    #region IWithTitles Implementation
 
     string IWithTitles.DefaultTitle => GetDefaultTitle();
 
     string IWithTitles.PreferredTitle => GetPreferredTitle();
 
-    IReadOnlyList<AnimeTitle> IWithTitles.Titles =>
-        GetTitles()
-            .Select(a => new AnimeTitle
-            {
-                LanguageCode = a.LanguageCode,
-                Language = a.Language,
-                Title = a.Title,
-                Type = TitleType.None,
-            })
-            .ToList();
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles
+    {
+        get
+        {
+            var defaultTitle = GetDefaultTitle();
+            return GetTitles()
+                .Select(a => new AnimeTitle
+                {
+                    Source = DataSourceEnum.AniDB,
+                    LanguageCode = a.LanguageCode,
+                    Language = a.Language,
+                    Title = a.Title,
+                    Type = string.Equals(a.Title, defaultTitle) ? TitleType.Main : TitleType.None,
+                })
+                .ToList();
+        }
+    }
+
+    #endregion
+
+    #region IEpisode Implementation
+
+    int IEpisode.SeriesID => AnimeID;
+
+    EpisodeType IEpisode.Type => (EpisodeType)EpisodeType;
+
+    int? IEpisode.SeasonNumber => EpisodeType == (int)EpisodeTypeEnum.Episode ? 1 : null;
 
     DateTime? IEpisode.AirDate => this.GetAirDateAsDate();
 
     ISeries? IEpisode.SeriesInfo => GetAnime();
+
+    IReadOnlyList<IEpisode> IEpisode.LinkedEpisodes
+    {
+        get
+        {
+            var episodeList = new List<IEpisode>();
+
+            var shokoEpisode = GetShokoEpisode();
+            if (shokoEpisode is not null)
+                episodeList.Add(shokoEpisode);
+
+            // TODO: Add more episodes here.
+
+            return episodeList;
+        }
+    }
 
     IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);

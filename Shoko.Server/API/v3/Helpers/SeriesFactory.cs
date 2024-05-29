@@ -69,6 +69,7 @@ public class SeriesFactory
         }
 
         result.IDs = GetIDs(ser);
+        result.HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
         result.Images = GetDefaultImages(ser, randomiseImages);
         result.AirsOn = animeType == AniDBAnimeType.TVSeries || animeType == AniDBAnimeType.Web ? ser.GetAirsOnDaysOfWeek(ael) : new();
 

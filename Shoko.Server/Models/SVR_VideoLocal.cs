@@ -7,6 +7,7 @@ using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Quartz;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Models.MediaInfo;
@@ -153,12 +154,12 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     private readonly object _userLock = new();
     public SVR_VideoLocal_User GetOrCreateUserRecord(int userID)
     {
-        SVR_VideoLocal_User userRecord;
+        var userRecord = GetUserRecord(userID);
+        if (userRecord != null)
+            return userRecord;
+
         lock (_userLock)
         {
-            userRecord = GetUserRecord(userID);
-            if (userRecord != null)
-                return userRecord;
             userRecord = new(userID, VideoLocalID);
             RepoFactory.VideoLocalUser.Save(userRecord);
         }
@@ -188,36 +189,28 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
-        lock (this)
+        SVR_VideoLocal_User vidUserRecord;
+        // mark as watched
+        if (watched)
         {
-            SVR_VideoLocal_User vidUserRecord;
-            // mark as watched
-            if (watched)
-            {
-                vidUserRecord = GetOrCreateUserRecord(userID);
-                vidUserRecord.WatchedDate = DateTime.Now;
-                vidUserRecord.WatchedCount++;
+            vidUserRecord = GetOrCreateUserRecord(userID);
+            vidUserRecord.WatchedDate = DateTime.Now;
+            vidUserRecord.WatchedCount++;
 
-                if (watchedDate.HasValue && updateWatchedDate)
-                    vidUserRecord.WatchedDate = watchedDate.Value;
+            if (watchedDate.HasValue && updateWatchedDate)
+                vidUserRecord.WatchedDate = watchedDate.Value;
 
-                vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
-                RepoFactory.VideoLocalUser.Save(vidUserRecord);
-                return;
-            }
-
-            // unmark
-            vidUserRecord = GetUserRecord(userID);
-            if (vidUserRecord == null) return;
-
-            vidUserRecord.WatchedDate = null;
+            vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
             RepoFactory.VideoLocalUser.Save(vidUserRecord);
+            return;
         }
-    }
 
-    public FileInfo GetBestFileLink()
-    {
-        return Places.OrderBy(a => a.ImportFolderType).Select(p => p.GetFile()).FirstOrDefault(file => file != null);
+        // unmark
+        vidUserRecord = GetUserRecord(userID);
+        if (vidUserRecord == null) return;
+
+        vidUserRecord.WatchedDate = null;
+        RepoFactory.VideoLocalUser.Save(vidUserRecord);
     }
 
     public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
@@ -563,14 +556,14 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     IReadOnlyList<IEpisode> IVideo.EpisodeInfo =>
         EpisodeCrossRefs
             .Select(x => x.GetEpisode())
-            .OfType<SVR_AniDB_Episode>()
+            .WhereNotNull()
             .ToArray();
 
     IReadOnlyList<ISeries> IVideo.SeriesInfo =>
         EpisodeCrossRefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnime())
-            .OfType<SVR_AniDB_Anime>()
+            .WhereNotNull()
             .OrderBy(a => a.MainTitle)
             .Cast<IAnime>()
             .ToArray();
@@ -579,10 +572,10 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         EpisodeCrossRefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.GetAnimeSeries())
-            .OfType<SVR_AnimeSeries>()
+            .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
-            .OfType<SVR_AnimeGroup>()
+            .WhereNotNull()
             .OrderBy(g => g.GroupName)
             .Cast<IGroup>()
             .ToArray();

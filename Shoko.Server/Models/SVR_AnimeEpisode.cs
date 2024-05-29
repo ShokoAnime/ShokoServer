@@ -9,16 +9,29 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+
+using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 using AnimeTitle = Shoko.Plugin.Abstractions.DataModels.AnimeTitle;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
+#nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AnimeEpisode : AnimeEpisode
+public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
 {
-    public EpisodeType EpisodeTypeEnum => (EpisodeType)AniDB_Episode.EpisodeType;
+    #region DB Columns
 
-    public SVR_AniDB_Episode AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
+    /// <summary>
+    /// Episode name override.
+    /// </summary>
+    /// <value></value>
+    public string? EpisodeNameOverride { get; set; }
+
+    #endregion
+
+    public EpisodeType EpisodeTypeEnum => (EpisodeType)(AniDB_Episode?.EpisodeType ?? 1);
+
+    public SVR_AniDB_Episode? AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
     public SVR_AnimeEpisode_User GetUserRecord(int userID)
     {
@@ -40,7 +53,7 @@ public class SVR_AnimeEpisode : AnimeEpisode
 
     public List<SVR_CrossRef_File_Episode> FileCrossRefs => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
-    public TvDB_Episode TvDBEpisode
+    public TvDB_Episode? TvDBEpisode
     {
         get
         {
@@ -119,7 +132,8 @@ public class SVR_AnimeEpisode : AnimeEpisode
 
     public CL_AnimeEpisode_User GetUserContract(int userID)
     {
-        var anidbEpisode = AniDB_Episode;
+        var anidbEpisode = AniDB_Episode
+            ?? throw new NullReferenceException($"Unable to find AniDB Episode with id {AniDB_EpisodeID} locally while generating user contract for shoko episode.");
         var seriesUserRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
         var episodeUserRecord = GetUserRecord(userID);
         var contract = new CL_AnimeEpisode_User
@@ -150,12 +164,6 @@ public class SVR_AnimeEpisode : AnimeEpisode
         return contract;
     }
 
-    public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID,
-        bool syncTrakt)
-    {
-        ToggleWatchedStatus(watched, updateOnline, watchedDate, true, userID, syncTrakt);
-    }
-
     public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats,
         int userID, bool syncTrakt)
     {
@@ -166,16 +174,25 @@ public class SVR_AnimeEpisode : AnimeEpisode
             vid.SetResumePosition(0, userID);
         }
     }
-        
-    public void RemoveVideoLocals(bool deleteFiles)
-    {
-        
-    }
 
-    public string Title
+    public string DefaultTitle
     {
         get
         {
+            // Fallback to English if available.
+            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
+                .FirstOrDefault()
+                ?.Title ?? $"Shoko Episode {AnimeEpisodeID}";
+        }
+    }
+
+    public string PreferredTitle
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(EpisodeNameOverride))
+                return EpisodeNameOverride;
+
             // Try finding one of the preferred languages.
             foreach (var language in Languages.PreferredEpisodeNamingLanguages)
             {
@@ -186,10 +203,7 @@ public class SVR_AnimeEpisode : AnimeEpisode
                     return title;
             }
 
-            // Fallback to English if available.
-            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
-                .FirstOrDefault()
-                ?.Title;
+            return DefaultTitle;
         }
     }
 
@@ -200,7 +214,7 @@ public class SVR_AnimeEpisode : AnimeEpisode
                DateTimeCreated.Equals(other.DateTimeCreated);
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj))
         {
@@ -232,4 +246,109 @@ public class SVR_AnimeEpisode : AnimeEpisode
             return hashCode;
         }
     }
+    #region IMetadata Implementation
+
+    DataSourceEnum IMetadata.Source => DataSourceEnum.Shoko;
+
+    int IMetadata<int>.ID => AnimeEpisodeID;
+
+    #endregion
+
+    #region IWithTitles Implementation
+
+    string IWithTitles.DefaultTitle => DefaultTitle;
+
+    string IWithTitles.PreferredTitle => PreferredTitle;
+
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles
+    {
+        get
+        {
+            var titles = new List<AnimeTitle>();
+            var episodeOverrideTitle = false;
+            if (!string.IsNullOrEmpty(EpisodeNameOverride))
+            {
+                titles.Add(new()
+                {
+                    Source = DataSourceEnum.Shoko,
+                    Language = TitleLanguage.Unknown,
+                    LanguageCode = "unk",
+                    Title = EpisodeNameOverride,
+                    Type = TitleType.Main,
+                });
+                episodeOverrideTitle = true;
+            }
+
+            var episode = AniDB_Episode;
+            if (episode is not null && episode is IEpisode animeEpisode)
+            {
+                var animeTitles = animeEpisode.Titles;
+                if (episodeOverrideTitle)
+                {
+                    var mainTitle = animeTitles.FirstOrDefault(title => title.Type == TitleType.Main);
+                    if (mainTitle is not null)
+                        mainTitle.Type = TitleType.Official;
+                }
+                titles.AddRange(animeTitles);
+            }
+
+            // TODO: Add other sources here.
+
+            return titles;
+        }
+    }
+
+    #endregion
+
+    #region IEpisode Implementation
+
+    int IEpisode.SeriesID => AnimeSeriesID;
+
+    AbstractEpisodeType IEpisode.Type => (AbstractEpisodeType)EpisodeTypeEnum;
+
+    int IEpisode.EpisodeNumber => AniDB_Episode?.EpisodeNumber ?? 1;
+
+    int? IEpisode.SeasonNumber => EpisodeTypeEnum == EpisodeType.Episode ? 1 : null;
+
+    TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(AniDB_Episode?.LengthSeconds ?? 0);
+
+    DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
+
+    ISeries? IEpisode.SeriesInfo => GetAnimeSeries();
+
+    IReadOnlyList<IEpisode> IEpisode.LinkedEpisodes
+    {
+        get
+        {
+            var episodeList = new List<IEpisode>();
+
+            var anidbEpisode = AniDB_Episode;
+            if (anidbEpisode is not null)
+                episodeList.Add(anidbEpisode);
+
+            // TODO: Add more episodes here.
+
+            return episodeList;
+        }
+    }
+
+    IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
+        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
+
+    IReadOnlyList<IVideo> IEpisode.VideoList =>
+        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID)
+            .DistinctBy(xref => xref.Hash)
+            .Select(xref => xref.GetVideo())
+            .OfType<SVR_VideoLocal>()
+            .ToList();
+
+    int IEpisode.EpisodeID => AnimeEpisodeID;
+
+    int IEpisode.AnimeID => AnimeSeriesID;
+
+    int IEpisode.Number => AniDB_Episode?.EpisodeNumber ?? 1;
+
+    int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;
+
+    #endregion
 }

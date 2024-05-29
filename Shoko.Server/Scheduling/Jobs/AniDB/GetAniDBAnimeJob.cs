@@ -72,7 +72,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     public override async Task<SVR_AniDB_Anime> Process()
     {
         if (AnimeID == 0) return null;
-        _logger.LogInformation("Processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
+        _logger.LogInformation("Processing {Job}: {AnimeID}", nameof(GetAniDBAnimeJob), AnimeID);
         if (ForceRefresh && _handler.IsBanned)
         {
             _logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", AnimeID);
@@ -136,16 +136,19 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         // then conditionally create the series record if it doesn't exist,
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+        var seriesIsNew = series is null;
+        var seriesUpdated = false;
         if (series == null && CreateSeriesEntry)
         {
             series = await CreateAnimeSeriesAndGroup(anime);
+            seriesIsNew = true;
         }
 
         // and then create or update the episode records if we have an
         // existing series record.
         if (series != null)
         {
-            await series.CreateAnimeEpisodes(anime);
+            seriesUpdated = await series.CreateAnimeEpisodes(anime);
             RepoFactory.AnimeSeries.Save(series, true, false);
         }
 
@@ -158,6 +161,10 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Emit anidb anime updated event.
         if (isUpdated)
             ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated);
+
+        // Emit shoko series updated event.
+        if (seriesUpdated || seriesIsNew)
+            ShokoEventHandler.Instance.OnSeriesUpdated(series, seriesIsNew ? UpdateReason.Added : UpdateReason.Updated);
 
         // Re-schedule the videos to move/rename as required if something changed.
         if (episodesToMove.Count > 0)

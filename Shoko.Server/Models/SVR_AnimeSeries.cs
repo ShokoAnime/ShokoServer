@@ -12,6 +12,8 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
@@ -23,12 +25,15 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+
+using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AnimeSeries : AnimeSeries
+public class SVR_AnimeSeries : AnimeSeries, ISeries
 {
     #region DB Columns
 
@@ -350,24 +355,9 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public List<TvDB_Series> GetTvDBSeries()
     {
-        var sers = new List<TvDB_Series>();
-
-        var xrefs = GetCrossRefTvDB();
-        if (xrefs == null || xrefs.Count == 0)
-        {
-            return sers;
-        }
-
-        foreach (var xref in xrefs)
-        {
-            var series = xref.GetTvDBSeries();
-            if (series != null)
-            {
-                sers.Add(series);
-            }
-        }
-
-        return sers;
+        var xrefs = GetCrossRefTvDB()?.WhereNotNull().ToArray();
+        if (xrefs == null || xrefs.Length == 0) return [];
+        return xrefs.Select(xref => xref.GetTvDBSeries()).WhereNotNull().ToList();
     }
 
     #endregion
@@ -661,7 +651,8 @@ public class SVR_AnimeSeries : AnimeSeries
                 .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
                 .FirstOrDefault();
 
-            if (lastWatchedEpisode != null) {
+            if (lastWatchedEpisode != null)
+            {
                 // Return `null` if we're on the last episode in the list, or
                 // if we're on the last normal episode and there is no specials
                 // after it.
@@ -791,40 +782,35 @@ public class SVR_AnimeSeries : AnimeSeries
         SeriesNameOverride = string.Empty;
     }
 
-    public async Task CreateAnimeEpisodes(SVR_AniDB_Anime anime = null)
+    public async Task<bool> CreateAnimeEpisodes(SVR_AniDB_Anime anime = null)
     {
-        anime ??= GetAnime();
-        if (anime == null)
-        {
-            return;
-        }
-
-        var eps = anime.GetAniDBEpisodes();
+        var anidbEpisodes = anime.GetAniDBEpisodes();
         // Cleanup deleted episodes
-        var epsToRemove = RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID).Where(a => a.AniDB_Episode == null).ToList();
+        var epsToRemove = RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
+            .Where(a => a.AniDB_Episode is null)
+            .ToList();
         var filesToUpdate = epsToRemove
-            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AniDB_EpisodeID)).ToList();
-        var vlIDsToUpdate = filesToUpdate.Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)?.VideoLocalID)
-            .Where(a => a != null).Select(a => a.Value).ToList();
-        // remove existing xrefs
-        RepoFactory.CrossRef_File_Episode.Delete(filesToUpdate);
+            .SelectMany(a => a.FileCrossRefs)
+            .ToList();
+        var vlIDsToUpdate = filesToUpdate
+            .Select(a => a.GetVideo()?.VideoLocalID)
+            .Where(a => a != null)
+            .Select(a => a.Value)
+            .ToList();
 
         // queue rescan for the files
         var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
         var scheduler = await schedulerFactory.GetScheduler();
         foreach (var id in vlIDsToUpdate)
-        {
             await scheduler.StartJob<ProcessFileJob>(a => a.VideoLocalID = id);
-        }
 
-        RepoFactory.AnimeEpisode.Delete(epsToRemove);
+        logger.Trace($"Generating {anidbEpisodes.Count} episodes for {anime.MainTitle}");
 
-        var one_forth = (int)Math.Round(eps.Count / 4D, 0, MidpointRounding.AwayFromZero);
-        var one_half = (int)Math.Round(eps.Count / 2D, 0, MidpointRounding.AwayFromZero);
-        var three_forths = (int)Math.Round(eps.Count * 3 / 4D, 0, MidpointRounding.AwayFromZero);
-
-        logger.Trace($"Generating {eps.Count} episodes for {anime.MainTitle}");
-        for (var i = 0; i < eps.Count; i++)
+        var one_forth = (int)Math.Round(anidbEpisodes.Count / 4D, 0, MidpointRounding.AwayFromZero);
+        var one_half = (int)Math.Round(anidbEpisodes.Count / 2D, 0, MidpointRounding.AwayFromZero);
+        var three_forths = (int)Math.Round(anidbEpisodes.Count * 3 / 4D, 0, MidpointRounding.AwayFromZero);
+        var episodeDict = new Dictionary<SVR_AnimeEpisode, UpdateReason>();
+        for (var i = 0; i < anidbEpisodes.Count; i++)
         {
             if (i == one_forth)
             {
@@ -841,14 +827,26 @@ public class SVR_AnimeSeries : AnimeSeries
                 logger.Trace($"Generating episodes for {anime.MainTitle}: 75%");
             }
 
-            if (i == eps.Count - 1)
+            if (i == anidbEpisodes.Count - 1)
             {
                 logger.Trace($"Generating episodes for {anime.MainTitle}: 100%");
             }
 
-            var ep = eps[i];
-            ep.CreateAnimeEpisode(AnimeSeriesID);
+            var anidbEpisode = anidbEpisodes[i];
+            var (shokoEpisode, isNew, isUpdated) = anidbEpisode.CreateAnimeEpisode(AnimeSeriesID);
+            if (isUpdated)
+                episodeDict.Add(shokoEpisode, isNew ? UpdateReason.Added : UpdateReason.Updated);
         }
+
+        RepoFactory.AnimeEpisode.Delete(epsToRemove);
+
+        // Emit shoko episode updated events.
+        foreach (var (episode, reason) in episodeDict)
+            ShokoEventHandler.Instance.OnEpisodeUpdated(this, episode, reason);
+        foreach (var episode in epsToRemove)
+            ShokoEventHandler.Instance.OnEpisodeUpdated(this, episode, UpdateReason.Removed);
+
+        return episodeDict.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0;
     }
 
     public bool NeedsEpisodeUpdate()
@@ -1139,7 +1137,8 @@ public class SVR_AnimeSeries : AnimeSeries
                 {
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage
                     {
-                        AnimeID = im.ImageID, ImageType = (int)im.ImageType
+                        AnimeID = im.ImageID,
+                        ImageType = (int)im.ImageType
                     };
                 }
             }
@@ -1152,7 +1151,8 @@ public class SVR_AnimeSeries : AnimeSeries
                 {
                     contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage
                     {
-                        AnimeID = im.ImageID, ImageType = (int)im.ImageType
+                        AnimeID = im.ImageID,
+                        ImageType = (int)im.ImageType
                     };
                 }
             }
@@ -1402,7 +1402,7 @@ public class SVR_AnimeSeries : AnimeSeries
             var hidden = ep.IsHidden;
             if (AnimeType == AnimeType.OVA || AnimeType == AnimeType.Movie)
             {
-                var ename = ep.Title;
+                var ename = ep.PreferredTitle;
                 var empty = string.IsNullOrEmpty(ename);
                 Match m = null;
                 if (!empty)
@@ -1436,7 +1436,7 @@ public class SVR_AnimeSeries : AnimeSeries
                     }
                     else
                     {
-                        var rname = partmatch.Replace(ep.Title, string.Empty);
+                        var rname = partmatch.Replace(ep.PreferredTitle, string.Empty);
                         rname = remsymbols.Replace(rname, string.Empty);
                         rname = remmultispace.Replace(rname, " ");
                         s.Match = rname.Trim();
@@ -1540,7 +1540,7 @@ public class SVR_AnimeSeries : AnimeSeries
         }
     }
 
-    public void MoveSeries(SVR_AnimeGroup newGroup, bool updateGroupStats = true)
+    public void MoveSeries(SVR_AnimeGroup newGroup, bool updateGroupStats = true, bool updateEvent = true)
     {
         // Skip moving series if it's already part of the group.
         if (AnimeGroupID == newGroup.AnimeGroupID)
@@ -1588,6 +1588,9 @@ public class SVR_AnimeSeries : AnimeSeries
                 topGroup.UpdateStatsFromTopLevel(true, true);
             }
         }
+
+        if (updateEvent)
+            ShokoEventHandler.Instance.OnSeriesUpdated(this, UpdateReason.Updated);
     }
 
     public void QueueUpdateStats()
@@ -1766,7 +1769,8 @@ public class SVR_AnimeSeries : AnimeSeries
                 var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
                         a.GetVideoLocals().Select(b => new
                         {
-                            a.AniDB_EpisodeID, VideoLocal = b
+                            a.AniDB_EpisodeID,
+                            VideoLocal = b
                         }))
                     .ToLookup(a => a.AniDB_EpisodeID, a => a.VideoLocal);
 
@@ -1927,51 +1931,51 @@ public class SVR_AnimeSeries : AnimeSeries
                 .GetByAnimeID(series.AniDB_ID).Select(a => (a, RepoFactory.AnimeStaff.GetByID(a.StaffID))).ToList();
 
             foreach (var animeStaff in staff)
-            foreach (var search in stringsToSearchFor)
-            {
-                if (fuzzy)
+                foreach (var search in stringsToSearchFor)
                 {
-                    if (!animeStaff.Item2.Name.FuzzyMatch(search))
+                    if (fuzzy)
                     {
-                        continue;
+                        if (!animeStaff.Item2.Name.FuzzyMatch(search))
+                        {
+                            continue;
+                        }
                     }
+                    else
+                    {
+                        if (!animeStaff.Item2.Name.Equals(search, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (!results.ContainsKey(series))
+                    {
+                        results.Add(series, animeStaff.Item1);
+                    }
+                    else
+                    {
+                        if (!Enum.TryParse(results[series].Role, out CharacterAppearanceType type1))
+                        {
+                            continue;
+                        }
+
+                        if (!Enum.TryParse(animeStaff.Item1.Role, out CharacterAppearanceType type2))
+                        {
+                            continue;
+                        }
+
+                        var comparison = ((int)type1).CompareTo((int)type2);
+                        if (comparison == 1)
+                        {
+                            results[series] = animeStaff.Item1;
+                        }
+                    }
+
+                    goto label0;
                 }
-                else
-                {
-                    if (!animeStaff.Item2.Name.Equals(search, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        continue;
-                    }
-                }
 
-                if (!results.ContainsKey(series))
-                {
-                    results.Add(series, animeStaff.Item1);
-                }
-                else
-                {
-                    if (!Enum.TryParse(results[series].Role, out CharacterAppearanceType type1))
-                    {
-                        continue;
-                    }
-
-                    if (!Enum.TryParse(animeStaff.Item1.Role, out CharacterAppearanceType type2))
-                    {
-                        continue;
-                    }
-
-                    var comparison = ((int)type1).CompareTo((int)type2);
-                    if (comparison == 1)
-                    {
-                        results[series] = animeStaff.Item1;
-                    }
-                }
-
-                goto label0;
-            }
-
-            // People hate goto, but this is a legit use for it.
-            label0: ;
+// People hate goto, but this is a legit use for it.
+label0:;
         }
 
         return results;
@@ -2024,6 +2028,8 @@ public class SVR_AnimeSeries : AnimeSeries
             }
         }
 
+        ShokoEventHandler.Instance.OnSeriesUpdated(this, UpdateReason.Removed);
+
         if (completelyRemove)
         {
             // episodes, anime, characters, images, staff relations, tag relations, titles
@@ -2055,4 +2061,108 @@ public class SVR_AnimeSeries : AnimeSeries
             RepoFactory.AniDB_AnimeUpdate.Delete(update);
         }
     }
+    #region IMetadata Implementation
+
+    DataSourceEnum IMetadata.Source => DataSourceEnum.Shoko;
+
+    int IMetadata<int>.ID => AnimeSeriesID;
+
+    #endregion
+
+    #region IWithTitles Implementation
+
+    string IWithTitles.DefaultTitle => SeriesNameOverride ?? GetAnime()?.MainTitle ?? $"<Shoko Series {AnimeSeriesID}>";
+
+    string IWithTitles.PreferredTitle => GetSeriesName();
+
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles
+    {
+        get
+        {
+            var titles = new List<AnimeTitle>();
+            var seriesOverrideTitle = false;
+            if (!string.IsNullOrEmpty(SeriesNameOverride))
+            {
+                titles.Add(new()
+                {
+                    Source = DataSourceEnum.Shoko,
+                    Language = TitleLanguage.Unknown,
+                    LanguageCode = "unk",
+                    Title = SeriesNameOverride,
+                    Type = TitleType.Main,
+                });
+                seriesOverrideTitle = true;
+            }
+
+            var anime = GetAnime();
+            if (anime is not null && anime is ISeries animeSeries)
+            {
+                var animeTitles = animeSeries.Titles;
+                if (seriesOverrideTitle)
+                {
+                    var mainTitle = animeTitles.FirstOrDefault(title => title.Type == TitleType.Main);
+                    if (mainTitle is not null)
+                        mainTitle.Type = TitleType.Official;
+                }
+                titles.AddRange(animeTitles);
+            }
+
+            // TODO: Add other sources here.
+
+            return titles;
+        }
+    }
+
+    #endregion
+
+    #region ISeries Implementation
+
+    AbstractAnimeType ISeries.Type => (AbstractAnimeType)(GetAnime()?.AnimeType ?? -1);
+
+    double ISeries.Rating => (GetAnime()?.Rating ?? 0) / 100D;
+
+    bool ISeries.Restricted => (GetAnime()?.Restricted ?? 0) == 1;
+
+    IReadOnlyList<ISeries> ISeries.LinkedSeries
+    {
+        get
+        {
+            var seriesList = new List<ISeries>();
+
+            var anidbAnime = RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
+            if (anidbAnime is not null)
+                seriesList.Add(anidbAnime);
+
+            // TODO: Add more series here.
+
+            return seriesList;
+        }
+    }
+
+    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries =>
+        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AniDB_ID);
+
+    IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
+        RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
+
+    IReadOnlyList<IEpisode> ISeries.EpisodeList => GetAnimeEpisodes();
+
+    IReadOnlyList<IVideo> ISeries.VideoList =>
+        RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID)
+            .DistinctBy(xref => xref.Hash)
+            .Select(xref => xref.GetVideo())
+            .OfType<SVR_VideoLocal>()
+            .ToList();
+
+    IReadOnlyDictionary<AbstractEpisodeType, int> ISeries.EpisodeCountDict
+    {
+        get
+        {
+            var episodes = (this as ISeries).EpisodeList;
+            return Enum.GetValues<AbstractEpisodeType>()
+                .ToDictionary(a => a, a => episodes.Count(e => e.Type == a));
+        }
+    }
+
+    #endregion
 }

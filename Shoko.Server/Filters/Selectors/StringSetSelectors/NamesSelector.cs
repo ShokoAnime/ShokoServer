@@ -1,20 +1,21 @@
+using System.Collections.Generic;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors.StringSelectors;
+namespace Shoko.Server.Filters.Selectors.StringSetSelectors;
 
-public class FilePathSelector : FilterExpression<string>
+public class NamesSelector : FilterExpression<IReadOnlySet<string>>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns a comma separated list of the file paths in a filterable";
+    public override string HelpDescription => "This returns a set of all the names in a filterable. This includes series and group names.";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override IReadOnlySet<string> Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return string.Join(",", filterable.FilePaths);
+        return filterable.Names;
     }
 
-    protected bool Equals(FilePathSelector other)
+    protected bool Equals(NamesSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +37,7 @@ public class FilePathSelector : FilterExpression<string>
             return false;
         }
 
-        return Equals((FilePathSelector)obj);
+        return Equals((NamesSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +45,12 @@ public class FilePathSelector : FilterExpression<string>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(FilePathSelector left, FilePathSelector right)
+    public static bool operator ==(NamesSelector left, NamesSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(FilePathSelector left, FilePathSelector right)
+    public static bool operator !=(NamesSelector left, NamesSelector right)
     {
         return !Equals(left, right);
     }

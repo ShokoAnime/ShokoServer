@@ -20,13 +20,19 @@ public class EpisodeInfoUpdatedEventSignalRModel
         // TODO: Add support for more metadata sources when they're hooked up internally.
         switch (Source)
         {
-            case DataSourceEnum.AniDB:
-                if (eventArgs.EpisodeInfo is SVR_AniDB_Episode anidbEpisode && anidbEpisode.GetShokoEpisode() is SVR_AnimeEpisode shokoEpisode)
+            case DataSourceEnum.Shoko when eventArgs.EpisodeInfo is SVR_AnimeEpisode shokoEpisode:
                 {
-                    var series = shokoEpisode.GetAnimeSeries();
-                    ShokoEpisodeIDs = new int[1] { shokoEpisode.AnimeEpisodeID };
-                    ShokoSeriesIDs = new int[1] { shokoEpisode.AnimeSeriesID };
-                    if (series != null)
+                    ShokoEpisodeIDs = [shokoEpisode.AnimeEpisodeID];
+                    ShokoSeriesIDs = [shokoEpisode.AnimeSeriesID];
+                    if (eventArgs.SeriesInfo is SVR_AnimeSeries series)
+                        ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
+                }
+                break;
+            case DataSourceEnum.AniDB when eventArgs.EpisodeInfo is SVR_AniDB_Episode anidbEpisode && anidbEpisode.GetShokoEpisode() is SVR_AnimeEpisode shokoEpisode:
+                {
+                    ShokoEpisodeIDs = [shokoEpisode.AnimeEpisodeID];
+                    ShokoSeriesIDs = [shokoEpisode.AnimeSeriesID];
+                    if (shokoEpisode.GetAnimeSeries() is SVR_AnimeSeries series)
                         ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
                 }
                 break;

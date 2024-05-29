@@ -20,13 +20,18 @@ public class SeriesInfoUpdatedEventSignalRModel
         // TODO: Add support for more metadata sources when they're hooked up internally.
         switch (Source)
         {
-            case DataSourceEnum.AniDB:
-                if (eventArgs.SeriesInfo is SVR_AniDB_Anime anidbAnime)
+            case DataSourceEnum.Shoko when eventArgs.SeriesInfo is SVR_AnimeSeries shokoSeries:
+                {
+                    ShokoSeriesIDs = [shokoSeries.AnimeSeriesID];
+                    ShokoGroupIDs = shokoSeries.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
+                }
+                break;
+            case DataSourceEnum.AniDB when eventArgs.SeriesInfo is SVR_AniDB_Anime anidbAnime:
                 {
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(eventArgs.SeriesInfo.ID);
                     if (series == null)
                         break;
-                    ShokoSeriesIDs = new int[1] { series.AnimeSeriesID };
+                    ShokoSeriesIDs = [series.AnimeSeriesID];
                     ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
                 }
                 break;

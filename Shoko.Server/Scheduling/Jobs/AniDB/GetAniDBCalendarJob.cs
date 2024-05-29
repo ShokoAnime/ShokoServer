@@ -32,7 +32,7 @@ public class GetAniDBCalendarJob : BaseJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing CommandRequest_GetCalendar");
+        _logger.LogInformation("Processing {Job}", nameof(GetAniDBCalendarJob));
 
         var settings = _settingsProvider.GetSettings();
         // we will always assume that an anime was downloaded via http first

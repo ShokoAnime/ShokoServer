@@ -26,21 +26,6 @@ namespace Shoko.Plugin.Abstractions.Services
         public DateTime LastChangedAt { get; }
 
         /// <summary>
-        /// Is the AniDB UDP API currently reachable?
-        /// </summary>
-        public bool IsAniDBUdpReachable { get; }
-
-        /// <summary>
-        /// Are we currently banned from using the AniDB HTTP API?
-        /// </summary>
-        public bool IsAniDBHttpBanned { get; }
-
-        /// <summary>
-        /// Are we currently banned from using the AniDB UDP API?
-        /// </summary>
-        public bool IsAniDBUdpBanned { get; }
-
-        /// <summary>
         /// Check for network availability now.
         /// </summary>
         /// <returns>The updated network availability status.</returns>

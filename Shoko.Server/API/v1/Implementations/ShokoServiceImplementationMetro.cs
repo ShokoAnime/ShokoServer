@@ -861,7 +861,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
                                 // anidb
                                 contract.EpisodeNumber = anidbep.EpisodeNumber;
-                                contract.EpisodeName = epFresh.Title;
+                                contract.EpisodeName = epFresh.PreferredTitle;
 
                                 contract.EpisodeType = anidbep.EpisodeType;
                                 contract.LengthSeconds = anidbep.LengthSeconds;

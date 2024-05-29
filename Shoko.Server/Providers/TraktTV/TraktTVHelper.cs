@@ -1064,7 +1064,7 @@ public class TraktTVHelper
                 //3. nothing to send log error
                 _logger.LogWarning(
                     "TraktTVHelper.Scrobble: No TraktID found for: AnimeEpisodeID: {ID} AnimeRomajiName: {Title}", aep,
-                    ep.Title);
+                    ep.PreferredTitle);
                 return 404;
             }
 

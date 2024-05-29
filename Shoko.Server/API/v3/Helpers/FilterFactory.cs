@@ -120,6 +120,9 @@ public class FilterFactory
             case IWithStringSelectorParameter left:
                 result.Left = GetExpressionTree(left.Left);
                 break;
+            case IWithStringSetSelectorParameter left:
+                result.Left = GetExpressionTree(left.Left);
+                break;
         }
 
         // Parameters
@@ -183,6 +186,9 @@ public class FilterFactory
                 break;
             case IWithStringSelectorParameter left:
                 left.Left = GetExpressionTree<string>(condition.Left);
+                break;
+            case IWithStringSetSelectorParameter left:
+                left.Left = GetExpressionTree<IReadOnlySet<string>>(condition.Left);
                 break;
         }
 

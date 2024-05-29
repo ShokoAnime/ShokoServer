@@ -22,6 +22,8 @@ namespace Shoko.Server.API.v3.Controllers;
 public class SettingsController : BaseController
 {
     private readonly IConnectivityService _connectivityService;
+    private readonly IUDPConnectionHandler _udpHandler;
+    private readonly IHttpConnectionHandler _httpHandler;
     private readonly ILogger<SettingsController> _logger;
 
     // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
@@ -83,20 +85,19 @@ public class SettingsController : BaseController
             return ValidationProblem(ModelState);
         }
 
-        var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        var alive = handler.IsAlive;
+        var alive = _udpHandler.IsAlive;
         var settings = SettingsProvider.GetSettings();
-        if (!alive)
-            await handler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
-        else handler.ForceLogout();
+        if (!_udpHandler.IsAlive)
+            await _udpHandler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
+        else _udpHandler.ForceLogout();
 
-        if (!await handler.TestLogin(credentials.Username, credentials.Password))
+        if (!await _udpHandler.TestLogin(credentials.Username, credentials.Password))
         {
             _logger.LogInformation("Failed AniDB Login and Connection");
             return ValidationProblem("Failed to log in.", "Connection");
         }
 
-        if (!alive) await handler.CloseConnections();
+        if (!alive) await _udpHandler.CloseConnections();
         return Ok();
     }
 
@@ -107,7 +108,14 @@ public class SettingsController : BaseController
     [HttpGet("Connectivity")]
     public ActionResult<ConnectivityDetails> GetNetworkAvailability()
     {
-        return new ConnectivityDetails(_connectivityService);
+        return new ConnectivityDetails
+        {
+            NetworkAvailability = _connectivityService.NetworkAvailability,
+            LastChangedAt = _connectivityService.LastChangedAt,
+            IsAniDBUdpReachable = _udpHandler.IsAlive && _udpHandler.IsNetworkAvailable,
+            IsAniDBUdpBanned = _udpHandler.IsBanned,
+            IsAniDBHttpBanned = _httpHandler.IsBanned
+        };
     }
 
     /// <summary>
@@ -123,9 +131,11 @@ public class SettingsController : BaseController
         return GetNetworkAvailability();
     }
 
-    public SettingsController(ISettingsProvider settingsProvider, IConnectivityService connectivityService, ILogger<SettingsController> logger) : base(settingsProvider)
+    public SettingsController(ISettingsProvider settingsProvider, IConnectivityService connectivityService, ILogger<SettingsController> logger, IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler) : base(settingsProvider)
     {
         _connectivityService = connectivityService;
         _logger = logger;
+        _udpHandler = udpHandler;
+        _httpHandler = httpHandler;
     }
 }

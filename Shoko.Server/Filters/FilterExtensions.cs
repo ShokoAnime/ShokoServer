@@ -21,6 +21,14 @@ public static class FilterExtensions
         var filterable = new Filterable
         {
             NameDelegate = () => series.GetSeriesName(),
+            NamesDelegate = () =>
+            {
+                var result = series.GetAllTitles();
+                var group = series.AnimeGroup;
+                if (group != null) result.Add(group.GroupName);
+                return result;
+            },
+            AniDBIDsDelegate = () => new HashSet<string>(){series.AniDB_ID.ToString()},
             SortingNameDelegate = () => series.GetSeriesName().ToSortName(),
             SeriesCountDelegate = () => 1,
             AirDateDelegate = () => series.GetAnime()?.AirDate,
@@ -207,6 +215,25 @@ public static class FilterExtensions
         var filterable = new Filterable
         {
             NameDelegate = () => group.GroupName,
+            NamesDelegate = () =>
+            {
+                var result = new HashSet<string>()
+                {
+                    group.GroupName
+                };
+                result.UnionWith(group.GetAllSeries().SelectMany(a =>
+                {
+                    var titles = new HashSet<string>();
+                    if (!string.IsNullOrEmpty(a.SeriesNameOverride)) titles.Add(a.SeriesNameOverride);
+                    var ani = a.GetAnime();
+                    if (ani != null) titles.UnionWith(ani.GetAllTitles());
+                    var tvdb = a.GetTvDBSeries()?.Select(t => t.SeriesName).WhereNotNull();
+                    if (tvdb != null) titles.UnionWith(tvdb);
+                    return titles;
+                }));
+                return result;
+            },
+            AniDBIDsDelegate = () => group.GetAllSeries().Select(a => a.AniDB_ID.ToString()).ToHashSet(),
             SortingNameDelegate = () => group.GroupName.ToSortName(),
             SeriesCountDelegate = () => series.Count,
             AirDateDelegate = () => group.GetAllSeries().Select(a => a.AirDate).DefaultIfEmpty(DateTime.MaxValue).Min(),

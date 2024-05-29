@@ -151,7 +151,7 @@ public class AnimeCharacterAndSeiyuu
 
     public CL_AniDB_Character ToClient()
     {
-        return Character.ToClient(CharacterType, Seiyuu);
+        return Character.ToClient();
     }
 
     public int AnimeID { get; private set; }

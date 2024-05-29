@@ -38,7 +38,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
                 AND jd.{ColumnJobClass} NOT IN (@types)";
 
     // when using limit, we need to sort first
-    private static string GetSelectPartOfType(int index)
+    private static string GetSelectPartOfType(int index, bool limit)
     {
         return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @limitBlocked{index} as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
@@ -46,11 +46,11 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} = @limit{index}Type
               ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
-              LIMIT @limit{index} OFFSET @offset{index}";
+              {(limit ? $"LIMIT @limit{index} " : "")}OFFSET @offset{index}";
     }
 
     // when using limit, we need to sort first
-    private static string GetSelectPartInTypes(int index)
+    private static string GetSelectPartInTypes(int index, bool limit)
     {
         return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @groupBlocked{index} as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
@@ -58,7 +58,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} IN (@groupLimit{index}Types)
               ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
-              LIMIT @groupLimit{index} OFFSET @groupOffset{index}";
+              {(limit ? $"LIMIT @groupLimit{index} " : "")}OFFSET @groupOffset{index}";
     }
 
     private const string GetCountNoExclusions = @$"SELECT Count(1)
@@ -117,14 +117,14 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartOfType(index));
+            commandText.Append(GetSelectPartOfType(index, true));
             commandText.Append("\n)");
         }
 
         for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartInTypes(index));
+            commandText.Append(GetSelectPartInTypes(index, true));
             commandText.Append("\n)");
         }
 
@@ -200,14 +200,14 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartOfType(index));
+            commandText.Append(GetSelectPartOfType(index, true));
             commandText.Append("\n)");
         }
 
         for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartInTypes(index));
+            commandText.Append(GetSelectPartInTypes(index, true));
             commandText.Append("\n)");
         }
 
@@ -319,7 +319,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         for (index = 0; index < startIndex + jobTypes.TypesToLimit.Count; index++)
         {
             subquery.Append("\nUNION SELECT * FROM (\n");
-            subquery.Append(GetSelectPartOfType(index));
+            subquery.Append(GetSelectPartOfType(index, true));
             subquery.Append("\n)");
         }
 
@@ -330,7 +330,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
             for (; index < startIndex + jobTypes.TypesToLimit.Count; index++)
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
-                subquery.Append(GetSelectPartOfType(index));
+                subquery.Append(GetSelectPartOfType(index, false));
                 subquery.Append("\n)");
             }
         }
@@ -340,7 +340,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         for (index = 0; index < startIndex + jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             subquery.Append("\nUNION SELECT * FROM (\n");
-            subquery.Append(GetSelectPartInTypes(index));
+            subquery.Append(GetSelectPartInTypes(index, true));
             subquery.Append("\n)");
         }
 
@@ -351,14 +351,14 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
             for (; index < startIndex + jobTypes.AvailableConcurrencyGroups.Count(); index++)
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
-                subquery.Append(GetSelectPartInTypes(index));
+                subquery.Append(GetSelectPartInTypes(index, false));
                 subquery.Append("\n)");
             }
 
             if (jobTypes.TypesToExclude.Any())
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
-                subquery.Append(GetSelectPartInTypes(index));
+                subquery.Append(GetSelectPartInTypes(index, false));
                 subquery.Append("\n)");
             }
         }

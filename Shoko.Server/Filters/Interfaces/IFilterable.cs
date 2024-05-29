@@ -12,6 +12,16 @@ public interface IFilterable
     string Name { get; }
 
     /// <summary>
+    /// All Names for the group and series within
+    /// </summary>
+    IReadOnlySet<string> Names { get; }
+
+    /// <summary>
+    /// All AniDB IDs for the series
+    /// </summary>
+    IReadOnlySet<string> AniDBIDs { get; }
+
+    /// <summary>
     /// Sorting Name
     /// </summary>
     string SortingName { get; }

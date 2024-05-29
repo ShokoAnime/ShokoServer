@@ -21,6 +21,8 @@ using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using Shoko.Models.Server;
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -30,6 +32,9 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class EpisodeController : BaseController
 {
+
+    internal const string EpisodeWithZeroID = "episodeID must be greater than 0";
+
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
     internal const string EpisodeNotFoundForAnidbEpisodeID = "No Episode entry for the given anidbEpisodeID";
@@ -39,6 +44,8 @@ public class EpisodeController : BaseController
     internal const string AnidbNotFoundForAnidbEpisodeID = "No Episode.Anidb entry for the given anidbEpisodeID";
 
     internal const string EpisodeForbiddenForUser = "Accessing Episode is not allowed for the current user";
+
+    internal const string EpisodeNoSeriesForEpisodeID = "Unable to find a Series entry for given episodeID";
 
     /// <summary>
     /// Get all <see cref="Episode"/>s for the given filter.
@@ -152,7 +159,7 @@ public class EpisodeController : BaseController
                     ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
                         .Where(title => title != null && languages.Contains(title.Language))
                         .Select(title => title.Title)
-                        .Append(ep.Shoko.Title)
+                        .Append(ep.Shoko.PreferredTitle)
                         .Distinct()
                         .ToList(),
                     fuzzy
@@ -160,8 +167,8 @@ public class EpisodeController : BaseController
                 .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
         }
 
+        // Order the episodes since we're not using the search ordering.
         return episodes
-            // Order the episodes since we're not using the search ordering.
             .OrderBy(episode => episode.Shoko.AnimeSeriesID)
             .ThenBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
@@ -211,7 +218,6 @@ public class EpisodeController : BaseController
 
                 return true;
             })
-            // Order the episodes.
             .OrderBy(episode => episode.AnimeID)
             .ThenBy(episode => episode.EpisodeType)
             .ThenBy(episode => episode.EpisodeNumber)
@@ -266,7 +272,7 @@ public class EpisodeController : BaseController
                     var anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
                     isAllowed = anime == null ? isAdmin : user.AllowedAnime(anime);
 
-                    addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
+addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
                 }
                 if (!isAllowed)
                     return false;
@@ -298,13 +304,58 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
+        if (episodeID == 0)
+            return BadRequest(EpisodeWithZeroID);
+
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeNotFoundWithEpisodeID);
-        }
+
+        var series = episode.GetAnimeSeries();
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
 
         return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
+    }
+
+    /// <summary>
+    /// Override the title of a Episode.
+    /// </summary>
+    /// <param name="episodeID">The ID of the Episode</param>
+    /// <param name="body"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{episodeID}/OverrideTitle")]
+    public ActionResult OverrideEpisodeTitle([FromRoute] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] EpisodeTitleOverride body)
+    {
+        if (episodeID == 0)
+            return BadRequest(EpisodeWithZeroID);
+
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.GetAnimeSeries();
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        if (!string.Equals(episode.EpisodeNameOverride, body.Title))
+        {
+            episode.EpisodeNameOverride = body.Title;
+
+            RepoFactory.AnimeEpisode.Save(episode);
+
+            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
+        }
+
+        return Ok();
     }
 
     /// <summary>
@@ -314,23 +365,37 @@ public class EpisodeController : BaseController
     /// <param name="value">The new value to set.</param>
     /// <param name="updateStats">Update series and group stats.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{episodeID}/SetHidden")]
     public ActionResult PostEpisodeSetHidden([FromRoute] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
     {
+        if (episodeID == 0)
+            return BadRequest(EpisodeWithZeroID);
+
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeNotFoundWithEpisodeID);
-        }
 
-        episode.IsHidden = value;
-        RepoFactory.AnimeEpisode.Save(episode);
+        var series = episode.GetAnimeSeries();
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
 
-        if (updateStats)
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        if (episode.IsHidden != value)
         {
-            var series = episode.GetAnimeSeries();
-            series.UpdateStats(true, true);
-            series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
+            episode.IsHidden = value;
+
+            RepoFactory.AnimeEpisode.Save(episode);
+
+            if (updateStats)
+            {
+                series.UpdateStats(true, true);
+                series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
+            }
+
+            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
         }
 
         return Ok();
@@ -344,17 +409,16 @@ public class EpisodeController : BaseController
     [HttpGet("{episodeID}/AniDB")]
     public ActionResult<Episode.AniDB> GetEpisodeAnidbByEpisodeID([FromRoute] int episodeID)
     {
+        if (episodeID == 0)
+            return BadRequest(EpisodeWithZeroID);
+
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeNotFoundWithEpisodeID);
-        }
 
         var anidb = episode.AniDB_Episode;
         if (anidb == null)
-        {
             return InternalError(AnidbNotFoundForEpisodeID);
-        }
 
         return new Episode.AniDB(anidb);
     }
@@ -369,9 +433,7 @@ public class EpisodeController : BaseController
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
-        {
             return NotFound(AnidbNotFoundForAnidbEpisodeID);
-        }
 
         return new Episode.AniDB(anidb);
     }
@@ -397,15 +459,11 @@ public class EpisodeController : BaseController
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
-        {
             return NotFound(AnidbNotFoundForAnidbEpisodeID);
-        }
 
         var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidb.EpisodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeNotFoundForAnidbEpisodeID);
-        }
 
         return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
     }
@@ -419,9 +477,19 @@ public class EpisodeController : BaseController
     [HttpPost("{episodeID}/Vote")]
     public ActionResult PostEpisodeVote([FromRoute] int episodeID, [FromBody] Vote vote)
     {
+        if (episodeID == 0)
+            return BadRequest(EpisodeWithZeroID);
+
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.GetAnimeSeries();
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
 
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
@@ -439,11 +507,19 @@ public class EpisodeController : BaseController
     [HttpGet("{episodeID}/TvDB")]
     public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails([FromRoute] int episodeID)
     {
+        if (episodeID == 0)
+            return BadRequest(EpisodeWithZeroID);
+
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeNotFoundWithEpisodeID);
-        }
+
+        var series = episode.GetAnimeSeries();
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
 
         return episode.TvDBEpisodes
             .Select(a => new Episode.TvDB(a))
@@ -459,11 +535,19 @@ public class EpisodeController : BaseController
     [HttpPost("{episodeID}/Watched/{watched}")]
     public ActionResult SetWatchedStatusOnEpisode([FromRoute] int episodeID, [FromRoute] bool watched)
     {
+        if (episodeID == 0)
+            return BadRequest(EpisodeWithZeroID);
+
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeNotFoundWithEpisodeID);
-        }
+
+        var series = episode.GetAnimeSeries();
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
 
         episode.ToggleWatchedStatus(watched, true, DateTime.Now, true, User.JMMUserID, true);
 

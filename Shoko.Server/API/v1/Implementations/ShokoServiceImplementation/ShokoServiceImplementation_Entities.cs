@@ -9,6 +9,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
@@ -1852,46 +1853,18 @@ public partial class ShokoServiceImplementation : IShokoServer
         return retGroups;
     }
 
-
-    /// <summary>
-    ///     Can only be used when the group only has one series
-    /// </summary>
-    /// <param name="animeGroupID"></param>
-    /// <param name="allSeries"></param>
-    /// <returns></returns>
-    [HttpGet("Series/ForGroup/{animeGroupID}/{userID}")]
-    public SVR_AnimeSeries GetSeriesForGroup(int animeGroupID, List<SVR_AnimeSeries> allSeries)
-    {
-        try
-        {
-            foreach (var ser in allSeries)
-            {
-                if (ser.AnimeGroupID == animeGroupID)
-                {
-                    return ser;
-                }
-            }
-
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-            return null;
-        }
-    }
-
     [HttpPost("Group/{userID}")]
     public CL_Response<CL_AnimeGroup_User> SaveGroup(CL_AnimeGroup_Save_Request contract, int userID)
     {
         var contractout = new CL_Response<CL_AnimeGroup_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
-            SVR_AnimeGroup grp;
+            SVR_AnimeGroup group;
+            var updated = false;
             if (contract.AnimeGroupID is > 0)
             {
-                grp = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
-                if (grp == null)
+                group = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
+                if (group == null)
                 {
                     contractout.ErrorMessage = "Could not find existing group with ID: " +
                                                contract.AnimeGroupID.Value;
@@ -1900,7 +1873,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
             else
             {
-                grp = new SVR_AnimeGroup
+                group = new SVR_AnimeGroup
                 {
                     Description = string.Empty,
                     IsManuallyNamed = 0,
@@ -1910,6 +1883,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     MissingEpisodeCountGroups = 0,
                     OverrideDescription = 0
                 };
+                updated = true;
             }
 
             if (string.IsNullOrEmpty(contract.GroupName))
@@ -1918,24 +1892,99 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return contractout;
             }
 
-            grp.AnimeGroupParentID = contract.AnimeGroupParentID;
-            grp.Description = contract.Description;
-            grp.GroupName = contract.GroupName;
+            if (contract.AnimeGroupParentID.HasValue && contract.AnimeGroupParentID.Value > 0)
+            {
+                // make sure the parent group exists
+                var parent = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupParentID.Value);
+                if (parent is null)
+                {
+                    contractout.ErrorMessage = "Could not find existing parent group with ID: " + contract.AnimeGroupParentID.Value;
+                    return contractout;
+                }
+                if (group.AnimeGroupParentID != group.AnimeGroupID)
+                {
+                    group.AnimeGroupParentID = parent.AnimeGroupID;
+                    updated = true;
+                }
+            }
+            else if (!contract.AnimeGroupParentID.HasValue)
+            {
+                if (group.AnimeGroupParentID.HasValue)
+                {
+                    group.AnimeGroupParentID = null;
+                    updated = true;
+                }
+            }
 
-            grp.IsManuallyNamed = contract.IsManuallyNamed;
-            grp.OverrideDescription = 0;
+            var mainSeries = group.GetMainSeries();
+            var customName = !string.IsNullOrEmpty(contract.GroupName) && (group.IsManuallyNamed == 1 || !string.Equals(group.GroupName, contract.GroupName));
+            var customDesc = !string.IsNullOrEmpty(contract.Description) && (group.OverrideDescription == 1 || !string.Equals(group.Description, contract.Description));
+            if (customName || mainSeries is null)
+            {
+                if (!string.Equals(group.GroupName, contract.GroupName))
+                {
+                    group.GroupName = contract.GroupName;
+                    updated = true;
+                }
+                if (group.IsManuallyNamed != 1)
+                {
+                    group.IsManuallyNamed = 1;
+                    updated = true;
+                }
+            }
+            else
+            {
+                var mainName = mainSeries.GetSeriesName();
+                if (!string.Equals(group.GroupName, mainName))
+                {
+                    group.GroupName = mainName;
+                    updated = true;
+                }
+                if (group.IsManuallyNamed != 0)
+                {
+                    group.IsManuallyNamed = 0;
+                    updated = true;
+                }
+            }
+            if (customDesc || mainSeries is null)
+            {
+                if (!string.Equals(group.Description, contract.Description))
+                {
+                    group.Description = contract.Description;
+                    updated = true;
+                }
+                if (group.OverrideDescription != 1)
+                {
+                    group.OverrideDescription = 1;
+                    updated = true;
+                }
+            }
+            else
+            {
+                var mainDescription = mainSeries.GetAnime()?.Description ?? string.Empty;
+                if (!string.Equals(group.Description, mainDescription))
+                {
+                    group.Description = mainDescription;
+                    updated = true;
+                }
+                if (group.OverrideDescription != 0)
+                {
+                    group.OverrideDescription = 0;
+                    updated = true;
+                }
+            }
 
-            grp.ValidateMainSeries();
+            if (group.ValidateMainSeries() || updated)
+            {
+                group.DateTimeUpdated = DateTime.Now;
+                RepoFactory.AnimeGroup.Save(group, true, true);
+            }
 
-            RepoFactory.AnimeGroup.Save(grp, true, true);
-
-            var userRecord = grp.GetUserRecord(userID) ?? new SVR_AnimeGroup_User(userID, grp.AnimeGroupID);
-
+            var userRecord = group.GetUserRecord(userID) ?? new(userID, group.AnimeGroupID);
             userRecord.IsFave = contract.IsFave;
             RepoFactory.AnimeGroup_User.Save(userRecord);
 
-            contractout.Result = grp.GetUserContract(userID);
-
+            contractout.Result = group.GetUserContract(userID);
 
             return contractout;
         }
@@ -1954,31 +2003,26 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             // make sure the series exists
-            var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (ser == null)
+            var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+            if (series is null)
             {
                 contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID;
                 return contractout;
             }
 
             // make sure the group exists
-            SVR_AnimeGroup grp;
-            if (newAnimeGroupID == 0 || (grp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID)) == null)
+            var group = newAnimeGroupID <= 0
+                ? _groupCreator.GetOrCreateSingleGroupForSeries(series)
+                : RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
+            if (group is null)
             {
                 contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID;
                 return contractout;
             }
 
-            ser.MoveSeries(grp);
+            series.MoveSeries(group);
 
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
-            if (anime == null)
-            {
-                contractout.ErrorMessage = $"Could not find anime record with ID: {ser.AniDB_ID}";
-                return contractout;
-            }
-
-            contractout.Result = ser.GetUserContract(userID);
+            contractout.Result = series.GetUserContract(userID);
 
             return contractout;
         }
@@ -1996,66 +2040,113 @@ public partial class ShokoServiceImplementation : IShokoServer
         var contractout = new CL_Response<CL_AnimeSeries_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
-            SVR_AnimeSeries ser;
-
-            int? oldGroupID = null;
-            if (contract.AnimeSeriesID.HasValue)
+            if (contract.AnimeSeriesID.HasValue && contract.AnimeSeriesID.Value > 0)
             {
-                ser = RepoFactory.AnimeSeries.GetByID(contract.AnimeSeriesID.Value);
-                if (ser == null)
+                var series = RepoFactory.AnimeSeries.GetByID(contract.AnimeSeriesID.Value);
+                if (series == null)
                 {
                     contractout.ErrorMessage = "Could not find existing series with ID: " + contract.AnimeSeriesID.Value;
                     return contractout;
                 }
 
-                // check if we are moving a series
-                oldGroupID = ser.AnimeGroupID;
+                if (series.AniDB_ID != contract.AniDB_ID)
+                {
+                    contractout.ErrorMessage = $"Invalid anime id for series record with ID: {series.AniDB_ID}";
+                    return contractout;
+                }
+
+                // Check if we are moving a series, and also check the group if we are.
+                SVR_AnimeGroup group = null;
+                var shouldMove = contract.AnimeGroupID != series.AnimeGroupID;
+                if (shouldMove)
+                {
+                    group = contract.AnimeGroupID <= 0
+                        ? _groupCreator.GetOrCreateSingleGroupForSeries(series)
+                        : RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID);
+                    if (group is null)
+                    {
+                        contractout.ErrorMessage = $"Invalid series group id for series record with ID: {series.AniDB_ID}";
+                        return contractout;
+                    }
+                }
+                var updated = shouldMove;
+
+                if (string.Equals(contract.DefaultAudioLanguage, series.DefaultAudioLanguage))
+                {
+                    series.DefaultAudioLanguage = contract.DefaultAudioLanguage;
+                    updated = true;
+                }
+
+                if (string.Equals(contract.DefaultSubtitleLanguage, series.DefaultSubtitleLanguage))
+                {
+                    series.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
+                    updated = true;
+                }
+
+                if (string.Equals(contract.SeriesNameOverride, series.SeriesNameOverride))
+                {
+                    series.SeriesNameOverride = contract.SeriesNameOverride;
+                    updated = true;
+                }
+
+                if (string.Equals(contract.DefaultFolder, series.DefaultFolder))
+                {
+                    series.DefaultFolder = contract.DefaultFolder;
+                    updated = true;
+                }
+
+                // The move will take care of saving and emitting the event.
+                if (shouldMove)
+                {
+                    series.MoveSeries(group);
+                }
+                else if (updated)
+                {
+                    series.DateTimeUpdated = DateTime.Now;
+
+                    RepoFactory.AnimeSeries.Save(series, true, true);
+
+                    ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
+                }
+
+                contractout.Result = series.GetUserContract(userID);
             }
             else
             {
-                ser = new SVR_AnimeSeries
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(contract.AniDB_ID);
+                if (anime == null)
                 {
-                    DateTimeCreated = DateTime.Now,
-                    DefaultAudioLanguage = string.Empty,
-                    DefaultSubtitleLanguage = string.Empty,
-                    MissingEpisodeCount = 0,
-                    MissingEpisodeCountGroups = 0,
-                    LatestLocalEpisodeNumber = 0,
-                    SeriesNameOverride = string.Empty
+                    contractout.ErrorMessage = $"Could not find anime record with ID: {contract.AniDB_ID}";
+                    return contractout;
+                }
+
+                // Create a new series.
+                var series = new SVR_AnimeSeries()
+                {
+                    DefaultAudioLanguage = contract.DefaultAudioLanguage,
+                    DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage,
+                    SeriesNameOverride = contract.SeriesNameOverride,
+                    DefaultFolder = contract.DefaultFolder,
                 };
+
+                series.Populate(anime);
+                var group = contract.AnimeGroupID <= 0
+                    ? _groupCreator.GetOrCreateSingleGroupForAnime(anime)
+                    : RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID);
+                series.AnimeGroupID = group.AnimeGroupID;
+
+                // Populate before making a group to ensure IDs and stats are set for group filters.
+                RepoFactory.AnimeSeries.Save(series, false, false);
+
+                series.CreateAnimeEpisodes(anime).ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
+
+                ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Added);
+
+                contractout.Result = series.GetUserContract(userID);
             }
 
-
-            ser.AnimeGroupID = contract.AnimeGroupID;
-            if (ser.AnimeGroupID == 0) ser.AnimeGroupID = _groupCreator.GetOrCreateSingleGroupForSeries(ser).AnimeGroupID;
-            ser.AniDB_ID = contract.AniDB_ID;
-            ser.DefaultAudioLanguage = contract.DefaultAudioLanguage;
-            ser.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
-            ser.DateTimeUpdated = DateTime.Now;
-            ser.SeriesNameOverride = contract.SeriesNameOverride;
-            ser.DefaultFolder = contract.DefaultFolder;
-
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
-            if (anime == null)
-            {
-                contractout.ErrorMessage = $"Could not find anime record with ID: {ser.AniDB_ID}";
-                return contractout;
-            }
-
-            // update stats for groups
-            //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true ,true, true);
-
-            //Update and Save
-            ser.UpdateStats(true, true);
-            ser.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
-
-            if (oldGroupID.HasValue)
-            {
-                var grp = RepoFactory.AnimeGroup.GetByID(oldGroupID.Value);
-                grp?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
-            }
-
-            contractout.Result = ser.GetUserContract(userID);
             return contractout;
         }
         catch (Exception ex)
