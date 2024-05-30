@@ -1886,19 +1886,19 @@ public class SeriesController : BaseController
     [HttpPatch("{seriesID}/Move/{groupID}")]
     public ActionResult MoveSeries([FromRoute] int seriesID, [FromRoute] int groupID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
+        if (seriesID == 0)
+            return BadRequest(SeriesWithZeroID);
+
+        if (groupID == 0)
+            return BadRequest(GroupController.GroupWithZeroID);
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
 
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return ValidationProblem("No Group entry for the given groupID", "groupID");
