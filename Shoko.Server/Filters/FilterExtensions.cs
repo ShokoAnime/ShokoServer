@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
+using Shoko.Server.Filters.Info;
+using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
@@ -376,5 +379,112 @@ public static class FilterExtensions
 
             return !RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID).Any();
         });
+    }
+
+    public static IReadOnlyList<FilterPreset> GetAllYearFilters()
+    {
+        var years = GetYears(RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).ToList());
+        return years.Select(s => new FilterPreset
+        {
+            Name = s.ToString(),
+            FilterType = GroupFilterType.Year,
+            Locked = true,
+            ApplyAtSeriesLevel = true,
+            Expression = new InYearExpression
+            {
+                Parameter = s
+            },
+            SortingExpression = new NameSortingSelector()
+        }).ToList();
+    }
+
+    private static IEnumerable<int> GetYears(IEnumerable<AniDB_Anime> objects)
+    {
+        var anime = objects.WhereNotNull().Where(a => a.AirDate != null).ToList();
+        var minDate = anime.Min(a => a.AirDate!.Value);
+        var maxDate = anime.Max(o => o.EndDate ?? DateTime.Today);
+
+        for (var year = minDate.Year; year <= maxDate.Year; year++)
+        {
+            var yearStart = new DateTime(year, 1, 1);
+            var yearEnd = new DateTime(year, 12, 31);
+
+            if (anime.Any(o => o.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate == null)))
+            {
+                yield return year;
+            }
+        }
+    }
+
+    public static IReadOnlyList<FilterPreset> GetAllSeasonFilters()
+    {
+        var seasons = GetSeasons(RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).ToList());
+        return seasons.Select(season => new FilterPreset
+        {
+            Name = season.Season + " " + season.Year,
+            Locked = true,
+            FilterType = GroupFilterType.Season,
+            ApplyAtSeriesLevel = true,
+            Expression = new InSeasonExpression { Season = season.Season, Year = season.Year },
+            SortingExpression = new NameSortingSelector()
+        }).ToList();
+    }
+
+    private static IEnumerable<(int Year, AnimeSeason Season)> GetSeasons(IEnumerable<AniDB_Anime> objects)
+    {
+        var anime = objects.Where(a => a?.AirDate != null).ToList();
+        var seasons = new SortedSet<(int Year, AnimeSeason Season)>();
+        foreach (var current in anime)
+        {
+            var beginYear = current.AirDate!.Value.Year;
+            var endYear = current.EndDate?.Year ?? DateTime.Today.Year;
+            for (var year = beginYear; year <= endYear; year++)
+            {
+                if (beginYear < year && year < endYear)
+                {
+                    seasons.Add((year, AnimeSeason.Winter));
+                    seasons.Add((year, AnimeSeason.Spring));
+                    seasons.Add((year, AnimeSeason.Summer));
+                    seasons.Add((year, AnimeSeason.Fall));
+                    continue;
+                }
+
+                if (!seasons.Contains((year, AnimeSeason.Winter)) && current.IsInSeason(AnimeSeason.Winter, year)) seasons.Add((year, AnimeSeason.Winter));
+                if (!seasons.Contains((year, AnimeSeason.Spring)) && current.IsInSeason(AnimeSeason.Spring, year)) seasons.Add((year, AnimeSeason.Spring));
+                if (!seasons.Contains((year, AnimeSeason.Summer)) && current.IsInSeason(AnimeSeason.Summer, year)) seasons.Add((year, AnimeSeason.Summer));
+                if (!seasons.Contains((year, AnimeSeason.Fall)) && current.IsInSeason(AnimeSeason.Fall, year)) seasons.Add((year, AnimeSeason.Fall));
+            }
+        }
+
+        return seasons;
+    }
+
+    public static IReadOnlyList<FilterPreset> GetAllTagFilters()
+    {
+        var allTags = new HashSet<string>(
+            RepoFactory.AniDB_Tag.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')),
+            StringComparer.InvariantCultureIgnoreCase);
+        var info = new CultureInfo("en-US", false).TextInfo;
+        return allTags.Select(s => new FilterPreset
+        {
+            FilterType = GroupFilterType.Tag,
+            ApplyAtSeriesLevel = true,
+            Name = info.ToTitleCase(s),
+            Locked = true,
+            Expression = new HasTagExpression
+            {
+                Parameter = s
+            },
+            SortingExpression = new NameSortingSelector()
+        }).ToList();
+    }
+
+    public static IReadOnlyList<FilterPreset> GetAllFilters()
+    {
+        var filters = RepoFactory.FilterPreset.GetTopLevel().Where(a => (a.FilterType & GroupFilterType.Directory) == 0).ToList();
+        filters.AddRange(GetAllYearFilters());
+        filters.AddRange(GetAllSeasonFilters());
+        filters.AddRange(GetAllTagFilters());
+        return filters;
     }
 }
