@@ -231,7 +231,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updating Series Contract");
         sw.Restart();
-        var types = obj.UpdateContract(onlyupdatestats);
+        obj.UpdateContract(onlyupdatestats);
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updated Series Contract in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();

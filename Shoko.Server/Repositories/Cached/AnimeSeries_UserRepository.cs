@@ -1,15 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_User, int>
+public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User, int>
 {
-    private PocoIndex<int, SVR_AnimeSeries_User, int> Users;
-    private PocoIndex<int, SVR_AnimeSeries_User, int> Series;
-    private PocoIndex<int, SVR_AnimeSeries_User, (int UserID, int SeriesID)> UsersSeries;
+    private PocoIndex<int, AnimeSeries_User, int> Users;
+    private PocoIndex<int, AnimeSeries_User, int> Series;
+    private PocoIndex<int, AnimeSeries_User, (int UserID, int SeriesID)> UsersSeries;
     private Dictionary<int, ChangeTracker<int>> Changes = new();
 
     public AnimeSeries_UserRepository()
@@ -22,7 +22,7 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
         };
     }
 
-    protected override int SelectKey(SVR_AnimeSeries_User entity)
+    protected override int SelectKey(AnimeSeries_User entity)
     {
         return entity.AnimeSeries_UserID;
     }
@@ -39,30 +39,30 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
     }
 
 
-    public override void Save(SVR_AnimeSeries_User obj)
+    public override void Save(AnimeSeries_User obj)
     {
         base.Save(obj);
         Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
         Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
     }
 
-    public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
+    public AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
     {
         return ReadLock(() => UsersSeries.GetOne((userid, seriesid)));
     }
 
-    public List<SVR_AnimeSeries_User> GetByUserID(int userid)
+    public List<AnimeSeries_User> GetByUserID(int userid)
     {
         return ReadLock(() => Users.GetMultiple(userid));
     }
 
-    public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
+    public List<AnimeSeries_User> GetBySeriesID(int seriesid)
     {
         return ReadLock(() => Series.GetMultiple(seriesid));
     }
 
 
-    public List<SVR_AnimeSeries_User> GetMostRecentlyWatched(int userID)
+    public List<AnimeSeries_User> GetMostRecentlyWatched(int userID)
     {
         return
             GetByUserID(userID)
