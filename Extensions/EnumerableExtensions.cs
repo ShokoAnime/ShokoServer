@@ -51,6 +51,9 @@ namespace Shoko.Commons.Extensions
         public static IEnumerable<T>? WhereNotNull<T>(this IEnumerable<T?>? enumerable) => enumerable?.Where(a => a != null).Select(a => a!);
 
         [return: NotNullIfNotNull(nameof(enumerable))]
+        public static IEnumerable<T>? WhereNotNull<T>(this IEnumerable<T?>? enumerable) where T : struct => enumerable?.Where(a => a != null).Select(a => a!.Value);
+
+        [return: NotNullIfNotNull(nameof(enumerable))]
         public static IQueryable<T>? WhereNotNull<T>(this IQueryable<T?>? enumerable) => enumerable?.Where(a => a != null).Select(a => a!);
 
         public static string ToRanges(this List<int> ints) {

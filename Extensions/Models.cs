@@ -168,6 +168,15 @@ namespace Shoko.Commons.Extensions
             var endYear = anime.EndDate?.Year ?? DateTime.Today.Year;
             for (var year = beginYear; year <= endYear; year++)
             {
+                if (beginYear < year && year < endYear)
+                {
+                    yield return (year, AnimeSeason.Winter);
+                    yield return (year, AnimeSeason.Spring);
+                    yield return (year, AnimeSeason.Summer);
+                    yield return (year, AnimeSeason.Fall);
+                    continue;
+                }
+
                 if (anime.IsInSeason(AnimeSeason.Winter, year)) yield return (year, AnimeSeason.Winter);
                 if (anime.IsInSeason(AnimeSeason.Spring, year)) yield return (year, AnimeSeason.Spring);
                 if (anime.IsInSeason(AnimeSeason.Summer, year)) yield return (year, AnimeSeason.Summer);
