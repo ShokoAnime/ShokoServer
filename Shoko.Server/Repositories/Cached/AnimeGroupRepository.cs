@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -109,7 +108,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         });
 
         UpdateCache(grp);
-        var types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
+        grp.UpdateContract(sessionWrapper, updategrpcontractstats);
         Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();
@@ -118,12 +117,6 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         });
 
         Changes.AddOrUpdate(grp.AnimeGroupID);
-
-        if (verifylockedFilters)
-        {
-            RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
-                grp.Contract?.Stat_AllYears, grp.Contract?.GetSeasons());
-        }
 
         if (grp.AnimeGroupParentID.HasValue && recursive)
         {

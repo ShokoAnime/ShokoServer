@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 124;
+    public override int RequiredVersion { get; } = 125;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -755,6 +755,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(122, 1, "ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_CommandType (CommandType); ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_Priority_Date (Priority, DateTimeUpdated);"),
         new(123, 1, "DROP TABLE CommandRequest"),
         new(124, 1, "ALTER TABLE `AnimeEpisode` ADD `EpisodeNameOverride` text NULL;"),
+        new(125, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

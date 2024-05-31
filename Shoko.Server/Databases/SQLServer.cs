@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 117;
+    public override int RequiredVersion { get; } = 118;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -687,6 +687,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(115, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
         new DatabaseCommand(116, 1, "DROP TABLE CommandRequest"),
         new DatabaseCommand(117, 1, "ALTER TABLE AnimeEpisode ADD EpisodeNameOverride nvarchar(500) NULL"),
+        new(118, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

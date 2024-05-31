@@ -29,7 +29,6 @@ public class AnimeGroupCreator
     private readonly AnimeSeriesRepository _animeSeriesRepo = RepoFactory.AnimeSeries;
     private readonly AnimeGroupRepository _animeGroupRepo = RepoFactory.AnimeGroup;
     private readonly AnimeGroup_UserRepository _animeGroupUserRepo = RepoFactory.AnimeGroup_User;
-    private readonly FilterPresetRepository _filterRepo = RepoFactory.FilterPreset;
     private readonly bool _autoGroupSeries;
 
     /// <summary>
@@ -187,7 +186,6 @@ public class AnimeGroupCreator
         _logger.LogInformation("Calculating Tag Filters");
         ServerState.Instance.DatabaseBlocked =
             new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Tag Filters" };
-        _filterRepo.CreateOrVerifyDirectoryFilters();
 
         _logger.LogInformation("Group Filters updated");
     }

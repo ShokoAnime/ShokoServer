@@ -23,6 +23,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -2733,18 +2734,18 @@ public class Common : BaseController
         {
             id = 0, name = "Filters", viewed = 0, url = APIV2Helper.ConstructFilterUrl(HttpContext)
         };
-        var allGfs = RepoFactory.FilterPreset.GetTopLevel().Where(a => !a.Hidden).ToList();
+
         var _filters = new List<APIFilters>();
         var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
         var user = HttpContext.GetUser();
         var hideCategories = user.GetHideCategories();
-        var filtersToEvaluate = level > 1
-            ? RepoFactory.FilterPreset.GetAll().Where(a => (a.FilterType & GroupFilterType.Tag) == 0 || !hideCategories.Contains(a.Name)).ToList()
-            : allGfs;
-        var result = evaluator.BatchEvaluateFilters(filtersToEvaluate, user.JMMUserID, true);
-        allGfs = allGfs.Where(a => a.IsDirectory() || result[a].Any()).ToList();
+        var allFPs = level > 1
+            ? RepoFactory.FilterPreset.GetAllFiltersForLegacy().Where(a => !a.Hidden && ((a.FilterType & GroupFilterType.Tag) == 0 || !hideCategories.Contains(a.Name))).ToList()
+            : RepoFactory.FilterPreset.GetAllFiltersForLegacy(true).Where(a => !a.Hidden).ToList();
+        var result = evaluator.BatchEvaluateFilters(allFPs, user.JMMUserID, true);
+        allFPs = allFPs.Where(a => a.IsDirectory() || result[a].Any()).ToList();
 
-        foreach (var gf in allGfs)
+        foreach (var gf in allFPs)
         {
             APIFilters filter;
             if (!gf.IsDirectory())
@@ -2795,7 +2796,7 @@ public class Common : BaseController
     internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
-        var gf = RepoFactory.FilterPreset.GetByID(id);
+        var gf = id < 0 ? RepoFactory.FilterPreset.GetAllFiltersForLegacy().FirstOrDefault(a => a.FilterPresetID == id) : RepoFactory.FilterPreset.GetByID(id);
 
         if (gf.IsDirectory())
         {

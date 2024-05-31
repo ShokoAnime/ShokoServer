@@ -32,7 +32,10 @@ public class Filters : BaseDirectory
     {
         var f = new Filters { id = gf.FilterPresetID, name = gf.Name };
         var hideCategories = ctx.GetUser().GetHideCategories();
-        var gfs = RepoFactory.FilterPreset.GetByParentID(f.id).AsParallel().Where(a =>
+        var children = f.id < 0
+            ? RepoFactory.FilterPreset.GetAllFiltersForLegacy().AsParallel().Where(a => a.ParentFilterPresetID == f.id)
+            : RepoFactory.FilterPreset.GetByParentID(f.id).AsParallel();
+        var gfs = children.Where(a =>
             {
                 if (a.Hidden) return false;
                 // return true if it's not a tag

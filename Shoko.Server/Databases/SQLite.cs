@@ -21,7 +21,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 110;
+    public override int RequiredVersion => 111;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -681,6 +681,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(108, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
         new(109, 1, "DROP TABLE CommandRequest"),
         new(110, 1, "ALTER TABLE AnimeEpisode ADD EpisodeNameOverride text"),
+        new(111, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)
