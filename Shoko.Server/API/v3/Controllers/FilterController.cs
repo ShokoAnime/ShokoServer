@@ -165,6 +165,7 @@ public class FilterController : BaseController
                     Description = expression.HelpDescription,
                     PossibleParameters = expression.HelpPossibleParameters,
                     PossibleSecondParameters = expression.HelpPossibleSecondParameters,
+                    PossibleParameterPairs = expression.HelpPossibleParameterPairs,
                     Left = left,
                     Right = right,
                     Parameter = parameter,

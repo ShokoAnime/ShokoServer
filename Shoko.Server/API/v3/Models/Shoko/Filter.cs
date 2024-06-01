@@ -113,17 +113,17 @@ public class Filter : BaseModel
     {
         /// <summary>
         /// The internal type name of the FilterExpression<br/>
-        /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression) 
+        /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression)
         /// </summary>
         [Required]
         public string Expression { get; init; }
-        
+
         /// <summary>
         /// The human readable name of the Expression
         /// </summary>
         [Required]
         public string Name { get; init; }
-        
+
         /// <summary>
         /// The group that this filter expression belongs to. This can help with filtering the expression types
         /// </summary>
@@ -177,6 +177,11 @@ public class Filter : BaseModel
         public string[]? PossibleSecondParameters { get; init; }
 
         /// <summary>
+        /// This will list the possible parameter pairs, usually with the most common ones first.
+        /// </summary>
+        public string[][]? PossibleParameterPairs { get; init; }
+
+        /// <summary>
         /// The parameter type that the <see cref="FilterCondition.SecondParameter"/> property requires<br/>
         /// This will always be a string for simplicity in type safety, but the type is what it expects
         /// </summary>
@@ -198,6 +203,14 @@ public class Filter : BaseModel
         public bool ShouldSerializePossibleSecondParameters()
         {
             return PossibleSecondParameters?.Length > 0;
+        }
+
+        /// <summary>
+        /// Magical Json.Net stuff
+        /// </summary>
+        public bool ShouldSerializePossibleParameterPairs()
+        {
+            return PossibleParameterPairs?.Length > 0;
         }
 
         /// <summary>
@@ -223,7 +236,7 @@ public class Filter : BaseModel
     {
         /// <summary>
         /// The internal type name of the FilterExpression<br/>
-        /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression) 
+        /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression)
         /// </summary>
         [Required]
         public string Type { get; init; }
