@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using Shoko.Models.Enums;
 using Shoko.Server.Filters.Interfaces;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Filters.Info;
 
@@ -18,11 +20,7 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime aired in the specified season and year";
-    public override string[] HelpPossibleSecondParameters => new[]
-    {
-        AnimeSeason.Winter.ToString(), AnimeSeason.Spring.ToString(),
-        AnimeSeason.Summer.ToString(), AnimeSeason.Fall.ToString(),
-    };
+    public override string[][] HelpPossibleParameterPairs => RepoFactory.AnimeSeries.GetAllSeasons().Select(a => new[] { a.Year.ToString(), a.Season.ToString() }).ToArray();
 
     double IWithNumberParameter.Parameter
     {

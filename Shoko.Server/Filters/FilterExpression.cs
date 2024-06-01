@@ -14,8 +14,9 @@ public class FilterExpression : IFilterExpression
         GetType().Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("SortingSelector").TrimEnd("Selector").CamelCaseToNatural();
     [IgnoreDataMember] [JsonIgnore] public virtual FilterExpressionGroup Group => FilterExpressionGroup.Info;
     [IgnoreDataMember] [JsonIgnore] public virtual string HelpDescription => string.Empty;
-    [IgnoreDataMember] [JsonIgnore] public virtual string[] HelpPossibleParameters => Array.Empty<string>();
-    [IgnoreDataMember] [JsonIgnore] public virtual string[] HelpPossibleSecondParameters => Array.Empty<string>();
+    [IgnoreDataMember] [JsonIgnore] public virtual string[][] HelpPossibleParameterPairs => [];
+    [IgnoreDataMember] [JsonIgnore] public virtual string[] HelpPossibleParameters => [];
+    [IgnoreDataMember] [JsonIgnore] public virtual string[] HelpPossibleSecondParameters => [];
 
     protected virtual bool Equals(FilterExpression other)
     {

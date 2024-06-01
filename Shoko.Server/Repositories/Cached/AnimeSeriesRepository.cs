@@ -407,7 +407,12 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
     public SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons()
     {
-        var anime = RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        return GetAllSeasons(anime);
+    }
+
+    public static SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons(IEnumerable<AniDB_Anime> anime)
+    {
         var seasons = new SortedSet<(int Year, AnimeSeason Season)>();
         foreach (var current in anime)
         {
