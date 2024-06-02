@@ -1669,7 +1669,7 @@ label0:;
             var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
             foreach (var place in GetVideoLocals().SelectMany(a => a.Places).Where(a => a != null))
             {
-                if (deleteFiles) await service.RemoveRecordAndDeletePhysicalFile(place, false);
+                if (deleteFiles) await service.RemoveRecordAndDeletePhysicalFile(place, true);
                 else await service.RemoveRecord(place);
             }
 
