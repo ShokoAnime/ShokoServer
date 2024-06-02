@@ -29,7 +29,7 @@ public class StringContainsExpression : FilterExpression<bool>, IWithStringSelec
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        var left = Left.Evaluate(filterable, userInfo);
+        var left = Left?.Evaluate(filterable, userInfo);
         var right = Parameter ?? Right?.Evaluate(filterable, userInfo);
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right))
         {

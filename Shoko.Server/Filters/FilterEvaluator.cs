@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -19,17 +20,13 @@ public class FilterEvaluator
     private readonly AnimeGroupRepository _groups;
 
     private readonly AnimeSeriesRepository _series;
+    private readonly ILogger<FilterEvaluator> _logger;
 
-    public FilterEvaluator()
-    {
-        _series = RepoFactory.AnimeSeries;
-        _groups = RepoFactory.AnimeGroup;
-    }
-
-    public FilterEvaluator(AnimeGroupRepository groups, AnimeSeriesRepository series)
+    public FilterEvaluator(AnimeGroupRepository groups, AnimeSeriesRepository series, ILogger<FilterEvaluator> logger)
     {
         _groups = groups;
         _series = series;
+        _logger = logger;
     }
 
     /// <summary>
@@ -62,7 +59,23 @@ public class FilterEvaluator
         };
 
         // Filtering
-        var filtered = filterables.Where(a => filter.Expression?.Evaluate(a.Filterable, a.UserInfo) ?? true);
+        var errors = new List<Exception>();
+        var filtered = filterables.Where(a =>
+        {
+            try
+            {
+                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo) ?? true;
+            }
+            catch (Exception e)
+            {
+                errors.Add(e);
+                return false;
+            }
+        });
+
+        if (errors.Any())
+            _logger.LogError(new AggregateException(errors.DistinctBy(a => a.StackTrace)), "There were one or more errors while evaluating filter: {Filter}",
+                filter);
 
         // ordering
         var ordered = OrderFilterables(filter, filtered);
