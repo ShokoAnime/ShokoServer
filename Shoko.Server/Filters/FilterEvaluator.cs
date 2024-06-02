@@ -18,14 +18,13 @@ namespace Shoko.Server.Filters;
 public class FilterEvaluator
 {
     private readonly AnimeGroupRepository _groups;
-
     private readonly AnimeSeriesRepository _series;
     private readonly ILogger<FilterEvaluator> _logger;
 
-    public FilterEvaluator(AnimeGroupRepository groups, AnimeSeriesRepository series, ILogger<FilterEvaluator> logger)
+    public FilterEvaluator(ILogger<FilterEvaluator> logger)
     {
-        _groups = groups;
-        _series = series;
+        _groups = RepoFactory.AnimeGroup;
+        _series = RepoFactory.AnimeSeries;
         _logger = logger;
     }
 
