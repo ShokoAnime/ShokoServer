@@ -410,7 +410,7 @@ public class VideoLocal_PlaceService
 
             if (dropFolder.IsDropSource == 1 && deleteEmpty)
             {
-                var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, ReturnSpecialDirectories = true, IgnoreInaccessible = true })
+                var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
                     .Select(dirInfo => dirInfo.FullName);
                 RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
             }
