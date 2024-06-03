@@ -7,7 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -85,6 +87,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 }
                 catch
                 {
+                    // ignore
                 }
 
                 if (i % 10 == 0)
@@ -119,6 +122,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 }
                 catch
                 {
+                    // ignore
                 }
 
                 if (i % 10 == 0)
@@ -231,7 +235,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updating Series Contract");
         sw.Restart();
-        var types = obj.UpdateContract(onlyupdatestats);
+        obj.UpdateContract(onlyupdatestats);
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updated Series Contract in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
@@ -381,5 +385,57 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             .Select(GetByAnimeID)
             .Where(a => a != null)
             .ToList();
+    }
+
+    public IEnumerable<int> GetAllYears()
+    {
+        var anime = RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        var minDate = anime.Min(a => a.AirDate!.Value);
+        var maxDate = anime.Max(o => o.EndDate ?? DateTime.Today);
+
+        for (var year = minDate.Year; year <= maxDate.Year; year++)
+        {
+            var yearStart = new DateTime(year, 1, 1);
+            var yearEnd = new DateTime(year, 12, 31);
+
+            if (anime.Any(o => o.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate == null)))
+            {
+                yield return year;
+            }
+        }
+    }
+
+    public SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons()
+    {
+        var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        return GetAllSeasons(anime);
+    }
+
+    public static SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons(IEnumerable<AniDB_Anime> anime)
+    {
+        var seasons = new SortedSet<(int Year, AnimeSeason Season)>();
+        foreach (var current in anime)
+        {
+            var beginYear = current.AirDate!.Value.Year;
+            var endYear = current.EndDate?.Year ?? DateTime.Today.Year;
+            for (var year = beginYear; year <= endYear; year++)
+            {
+                if (beginYear < year && year < endYear)
+                {
+                    seasons.Add((year, AnimeSeason.Winter));
+                    seasons.Add((year, AnimeSeason.Spring));
+                    seasons.Add((year, AnimeSeason.Summer));
+                    seasons.Add((year, AnimeSeason.Fall));
+                    continue;
+                }
+
+                if (!seasons.Contains((year, AnimeSeason.Winter)) && current.IsInSeason(AnimeSeason.Winter, year)) seasons.Add((year, AnimeSeason.Winter));
+                if (!seasons.Contains((year, AnimeSeason.Spring)) && current.IsInSeason(AnimeSeason.Spring, year)) seasons.Add((year, AnimeSeason.Spring));
+                if (!seasons.Contains((year, AnimeSeason.Summer)) && current.IsInSeason(AnimeSeason.Summer, year)) seasons.Add((year, AnimeSeason.Summer));
+                if (!seasons.Contains((year, AnimeSeason.Fall)) && current.IsInSeason(AnimeSeason.Fall, year)) seasons.Add((year, AnimeSeason.Fall));
+            }
+        }
+
+        return seasons;
     }
 }

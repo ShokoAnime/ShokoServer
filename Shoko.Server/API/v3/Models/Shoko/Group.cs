@@ -319,7 +319,7 @@ public class Group : BaseModel
 
                 // Move the series over to the new group.
                 foreach (var series in seriesList)
-                    series.MoveSeries(group, updateGroupStats: false);
+                    series.MoveSeries(group, updateGroupStats: false, updateEvent: false);
 
                 // Set the main series and maybe update the group
                 // name/description.

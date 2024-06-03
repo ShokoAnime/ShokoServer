@@ -165,6 +165,7 @@ public class FilterController : BaseController
                     Description = expression.HelpDescription,
                     PossibleParameters = expression.HelpPossibleParameters,
                     PossibleSecondParameters = expression.HelpPossibleSecondParameters,
+                    PossibleParameterPairs = expression.HelpPossibleParameterPairs,
                     Left = left,
                     Right = right,
                     Parameter = parameter,
@@ -521,11 +522,12 @@ public class FilterController : BaseController
         if (results.Length == 0)
             return new List<Series>();
 
-        var seriesIDs = recursive
-            ? group.GetAllChildGroups().SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID))
-            : results.FirstOrDefault(a => a.Key == groupID);
+        var seriesIDs = results.FirstOrDefault(a => a.Key == groupID)?.ToList();
+        seriesIDs ??= recursive
+            ? group.GetAllChildGroups().SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID)?.ToList() ?? []).ToList()
+            : results.FirstOrDefault(a => a.Key == groupID)?.ToList();
 
-        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => a.GetVideoLocals().Any() || includeMissing) ??
+        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => (a?.GetVideoLocals().Any() ?? false) || includeMissing) ??
                      Array.Empty<SVR_AnimeSeries>();
 
         return series

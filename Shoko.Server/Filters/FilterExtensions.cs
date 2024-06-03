@@ -20,13 +20,18 @@ public static class FilterExtensions
     {
         var filterable = new Filterable
         {
-            NameDelegate = () => series.GetSeriesName(),
+            NameDelegate = series.GetSeriesName,
             NamesDelegate = () =>
             {
-                var result = series.GetAllTitles();
+                var titles = new HashSet<string>();
+                if (!string.IsNullOrEmpty(series.SeriesNameOverride)) titles.Add(series.SeriesNameOverride);
+                var ani = series.GetAnime();
+                if (ani != null) titles.UnionWith(ani.GetAllTitles());
+                var tvdb = series.GetTvDBSeries()?.Select(t => t.SeriesName).WhereNotNull();
+                if (tvdb != null) titles.UnionWith(tvdb);
                 var group = series.AnimeGroup;
-                if (group != null) result.Add(group.GroupName);
-                return result;
+                if (group != null) titles.Add(group.GroupName);
+                return titles;
             },
             AniDBIDsDelegate = () => new HashSet<string>(){series.AniDB_ID.ToString()},
             SortingNameDelegate = () => series.GetSeriesName().ToSortName(),

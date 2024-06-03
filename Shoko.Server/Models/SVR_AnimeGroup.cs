@@ -394,9 +394,9 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             }
 
             var groupVotes = new GroupVotes(
-                allVoteCount == 0 ? (decimal?)null : allVoteTotal / allVoteCount / 100m,
-                permVoteCount == 0 ? (decimal?)null : permVoteTotal / permVoteCount / 100m,
-                tempVoteCount == 0 ? (decimal?)null : tempVoteTotal / tempVoteCount / 100m);
+                allVoteCount == 0 ? null : allVoteTotal / allVoteCount / 100m,
+                permVoteCount == 0 ? null : permVoteTotal / permVoteCount / 100m,
+                tempVoteCount == 0 ? null : tempVoteTotal / tempVoteCount / 100m);
 
             votesByGroup[animeGroup.AnimeGroupID] = groupVotes;
         }
@@ -698,189 +698,12 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         animeGroup.LatestEpisodeAirDate = latestEpisodeAirDate;
     }
 
-
-    public static HashSet<GroupFilterConditionType> GetConditionTypesChanged(CL_AnimeGroup_User oldcontract,
-        CL_AnimeGroup_User newcontract)
-    {
-        var h = new HashSet<GroupFilterConditionType>();
-        if (oldcontract == null || oldcontract.Stat_IsComplete != newcontract.Stat_IsComplete)
-        {
-            h.Add(GroupFilterConditionType.CompletedSeries);
-        }
-
-        if (oldcontract == null ||
-            (oldcontract.MissingEpisodeCount > 0 || oldcontract.MissingEpisodeCountGroups > 0) !=
-            (newcontract.MissingEpisodeCount > 0 || newcontract.MissingEpisodeCountGroups > 0))
-        {
-            h.Add(GroupFilterConditionType.MissingEpisodes);
-        }
-
-        if (oldcontract == null || !oldcontract.Stat_AllTags.SetEquals(newcontract.Stat_AllTags))
-        {
-            h.Add(GroupFilterConditionType.Tag);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_AirDate_Min != newcontract.Stat_AirDate_Min ||
-            oldcontract.Stat_AirDate_Max != newcontract.Stat_AirDate_Max)
-        {
-            h.Add(GroupFilterConditionType.AirDate);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_HasTvDBLink != newcontract.Stat_HasTvDBLink)
-        {
-            h.Add(GroupFilterConditionType.AssignedTvDBInfo);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_HasTraktLink != newcontract.Stat_HasTraktLink)
-        {
-            h.Add(GroupFilterConditionType.AssignedTraktInfo);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_HasMALLink != newcontract.Stat_HasMALLink)
-        {
-            h.Add(GroupFilterConditionType.AssignedMALInfo);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_HasMovieDBLink != newcontract.Stat_HasMovieDBLink)
-        {
-            h.Add(GroupFilterConditionType.AssignedMovieDBInfo);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_HasMovieDBOrTvDBLink != newcontract.Stat_HasMovieDBOrTvDBLink)
-        {
-            h.Add(GroupFilterConditionType.AssignedTvDBOrMovieDBInfo);
-        }
-
-        if (oldcontract == null || !oldcontract.Stat_AnimeTypes.SetEquals(newcontract.Stat_AnimeTypes))
-        {
-            h.Add(GroupFilterConditionType.AnimeType);
-        }
-
-        if (oldcontract == null || !oldcontract.Stat_AllVideoQuality.SetEquals(newcontract.Stat_AllVideoQuality) ||
-            !oldcontract.Stat_AllVideoQuality_Episodes.SetEquals(newcontract.Stat_AllVideoQuality_Episodes))
-        {
-            h.Add(GroupFilterConditionType.VideoQuality);
-        }
-
-        if (oldcontract == null || oldcontract.AnimeGroupID != newcontract.AnimeGroupID)
-        {
-            h.Add(GroupFilterConditionType.AnimeGroup);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_AniDBRating != newcontract.Stat_AniDBRating)
-        {
-            h.Add(GroupFilterConditionType.AniDBRating);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_SeriesCreatedDate != newcontract.Stat_SeriesCreatedDate)
-        {
-            h.Add(GroupFilterConditionType.SeriesCreatedDate);
-        }
-
-        if (oldcontract == null || oldcontract.EpisodeAddedDate != newcontract.EpisodeAddedDate)
-        {
-            h.Add(GroupFilterConditionType.EpisodeAddedDate);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_HasFinishedAiring != newcontract.Stat_HasFinishedAiring ||
-            oldcontract.Stat_IsCurrentlyAiring != newcontract.Stat_IsCurrentlyAiring)
-        {
-            h.Add(GroupFilterConditionType.FinishedAiring);
-        }
-
-        if (oldcontract == null ||
-            oldcontract.MissingEpisodeCountGroups > 0 != newcontract.MissingEpisodeCountGroups > 0)
-        {
-            h.Add(GroupFilterConditionType.MissingEpisodesCollecting);
-        }
-
-        if (oldcontract == null || !oldcontract.Stat_AudioLanguages.SetEquals(newcontract.Stat_AudioLanguages))
-        {
-            h.Add(GroupFilterConditionType.AudioLanguage);
-        }
-
-        if (oldcontract == null ||
-            !oldcontract.Stat_SubtitleLanguages.SetEquals(newcontract.Stat_SubtitleLanguages))
-        {
-            h.Add(GroupFilterConditionType.SubtitleLanguage);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_EpisodeCount != newcontract.Stat_EpisodeCount)
-        {
-            h.Add(GroupFilterConditionType.EpisodeCount);
-        }
-
-        if (oldcontract == null || !oldcontract.Stat_AllCustomTags.SetEquals(newcontract.Stat_AllCustomTags))
-        {
-            h.Add(GroupFilterConditionType.CustomTags);
-        }
-
-        if (oldcontract == null || oldcontract.LatestEpisodeAirDate != newcontract.LatestEpisodeAirDate)
-        {
-            h.Add(GroupFilterConditionType.LatestEpisodeAirDate);
-        }
-
-        var oldyear = -1;
-        var newyear = -1;
-        if (oldcontract?.Stat_AirDate_Min != null)
-        {
-            oldyear = oldcontract.Stat_AirDate_Min.Value.Year;
-        }
-
-        if (newcontract?.Stat_AirDate_Min != null)
-        {
-            newyear = newcontract.Stat_AirDate_Min.Value.Year;
-        }
-
-        if (oldyear != newyear)
-        {
-            h.Add(GroupFilterConditionType.Year);
-        }
-
-        if (oldcontract?.Stat_AllYears == null || !oldcontract.Stat_AllYears.SetEquals(newcontract.Stat_AllYears))
-        {
-            h.Add(GroupFilterConditionType.Year);
-        }
-
-        if (oldcontract?.Stat_AllSeasons == null || !oldcontract.Stat_AllSeasons.SetEquals(newcontract.Stat_AllSeasons))
-        {
-            h.Add(GroupFilterConditionType.Season);
-        }
-
-        //TODO This two should be moved to AnimeGroup_User in the future...
-        if (oldcontract == null || oldcontract.Stat_UserVotePermanent != newcontract.Stat_UserVotePermanent)
-        {
-            h.Add(GroupFilterConditionType.UserVoted);
-        }
-
-        if (oldcontract == null || oldcontract.Stat_UserVoteOverall != newcontract.Stat_UserVoteOverall)
-        {
-            h.Add(GroupFilterConditionType.UserRating);
-            h.Add(GroupFilterConditionType.UserVotedAny);
-        }
-
-        return h;
-    }
-
-    public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(ISessionWrapper session,
+    public static void BatchUpdateContracts(ISessionWrapper session,
         IReadOnlyCollection<SVR_AnimeGroup> animeGroups, bool updateStats)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
-        if (animeGroups == null)
-        {
-            throw new ArgumentNullException(nameof(animeGroups));
-        }
-
-        var grpFilterCondTypesByGroup = new Dictionary<int, HashSet<GroupFilterConditionType>>();
-
-        if (animeGroups.Count == 0)
-        {
-            return grpFilterCondTypesByGroup;
-        }
+        if (session == null) throw new ArgumentNullException(nameof(session));
+        if (animeGroups == null) throw new ArgumentNullException(nameof(animeGroups));
+        if (animeGroups.Count == 0) return;
 
         var seriesByGroup = animeGroups.ToDictionary(g => g.AnimeGroupID, g => g.GetAllSeries());
         var allAnimeIds = new Lazy<int[]>(
@@ -1224,19 +1047,13 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                 contract.Stat_UserVoteTemporary = votes?.TemporaryVotes;
             }
 
-            grpFilterCondTypesByGroup[animeGroup.AnimeGroupID] =
-                GetConditionTypesChanged(animeGroup.Contract, contract);
             animeGroup.Contract = contract;
         }
-
-        return grpFilterCondTypesByGroup;
     }
 
-    public HashSet<GroupFilterConditionType> UpdateContract(ISessionWrapper session, bool updatestats)
+    public void UpdateContract(ISessionWrapper session, bool updatestats)
     {
-        var grpFilterCondTypesByGroup = BatchUpdateContracts(session, new[] { this }, updatestats);
-
-        return grpFilterCondTypesByGroup[AnimeGroupID];
+        BatchUpdateContracts(session, new[] { this }, updatestats);
     }
 
     private static ILookup<int, string> GetVideoQualities(IEnumerable<int> groupIds = null)

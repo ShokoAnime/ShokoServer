@@ -1,5 +1,11 @@
 using System;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Server.API;
 using Shoko.Server.Filters.Interfaces;
+using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Filters.Info;
 
@@ -15,6 +21,7 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime have the specified tag";
+    public override string[] HelpPossibleParameters => RepoFactory.AniDB_Tag.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')).ToArray();
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

@@ -408,7 +408,12 @@ public class VideoLocal_PlaceService
 
             MoveExternalSubtitles(newFullServerPath, originalFileName);
 
-            if (dropFolder.IsDropSource == 1 && deleteEmpty) RecursiveDeleteEmptyDirectories(dropFolder.ImportFolderLocation, true);
+            if (dropFolder.IsDropSource == 1 && deleteEmpty)
+            {
+                var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, ReturnSpecialDirectories = true, IgnoreInaccessible = true })
+                    .Select(dirInfo => dirInfo.FullName);
+                RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
+            }
 
             ShokoEventHandler.Instance.OnFileMoved(dropFolder, destFolder, oldPath, newFilePath, videoLocalPlace);
 
@@ -469,42 +474,59 @@ public class VideoLocal_PlaceService
         }
     }
 
-    private void RecursiveDeleteEmptyDirectories(string dir, bool importFolder)
+    private void RecursiveDeleteEmptyDirectories(string toBeChecked, string directoryToClean)
+        => RecursiveDeleteEmptyDirectories([toBeChecked], directoryToClean);
+
+    private void RecursiveDeleteEmptyDirectories(IEnumerable<string> toBeChecked, string directoryToClean)
     {
         try
         {
-            if (string.IsNullOrEmpty(dir)) return;
-            if (!Directory.Exists(dir)) return;
-            if (_settingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(dir, s))) return;
-
-            if (IsDirectoryEmpty(dir))
-            {
-                if (importFolder) return;
-
-                try
+            var directoriesToClean = toBeChecked
+                .SelectMany(path =>
                 {
-                    Directory.Delete(dir);
-                }
-                catch (Exception ex)
-                {
-                    if (ex is DirectoryNotFoundException or FileNotFoundException) return;
-                    _logger.LogWarning(ex, "Unable to DELETE directory: {Directory} Error: {Ex}", dir, ex);
-                }
-
-                return;
-            }
-
-            // If it has folder, recurse
-            foreach (var d in Directory.EnumerateDirectories(dir))
+                    int? isExcludedAt = null;
+                    var paths = new List<(string path, int level)>();
+                    while (!string.IsNullOrEmpty(path))
+                    {
+                        var level = path == directoryToClean ? 0 : path[(directoryToClean.Length + 1)..].Split(Path.DirectorySeparatorChar).Length;
+                        if (path == directoryToClean)
+                            break;
+                        if (_settingsProvider.GetSettings().Import.Exclude.Any(reg => Regex.IsMatch(path, reg)))
+                            isExcludedAt = level;
+                        paths.Add((path, level));
+                        path = Path.GetDirectoryName(path);
+                    }
+                    return isExcludedAt.HasValue
+                        ? paths.Where(tuple => tuple.level < isExcludedAt!.Value)
+                        : paths;
+                })
+                .DistinctBy(tuple => tuple.path)
+                .OrderByDescending(tuple => tuple.level)
+                .ThenBy(tuple => tuple.path)
+                .Select(tuple => tuple.path)
+                .ToList();
+            foreach (var directoryPath in directoriesToClean)
             {
-                if (_settingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(d, s))) continue;
-                RecursiveDeleteEmptyDirectories(d, false);
+                if (Directory.Exists(directoryPath) && IsDirectoryEmpty(directoryPath))
+                {
+                    _logger.LogTrace("Removing EMPTY directory at {Path}", directoryPath);
+
+                    try
+                    {
+                        Directory.Delete(directoryPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is DirectoryNotFoundException or FileNotFoundException) return;
+                        _logger.LogWarning(ex, "Unable to DELETE directory: {Directory}", directoryPath);
+                    }
+                }
             }
         }
         catch (Exception e)
         {
             if (e is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException) return;
-            _logger.LogError(e, "There was an error removing the empty directory: {Dir}\n{Ex}", dir, e);
+            _logger.LogError(e, "There was an error removing the empty directories in {Dir}\n{Ex}", directoryToClean, e);
         }
     }
 
@@ -519,7 +541,7 @@ public class VideoLocal_PlaceService
             return false;
         }
     }
-    
+
     public bool RefreshMediaInfo(SVR_VideoLocal_Place place)
     {
         try
@@ -602,9 +624,7 @@ public class VideoLocal_PlaceService
         }
 
         if (deleteFolder)
-        {
-            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), true);
-        }
+            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder.ImportFolderLocation);
 
         await RemoveRecord(place);
     }
@@ -637,7 +657,7 @@ public class VideoLocal_PlaceService
                 return;
             }
 
-            if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), true);
+            if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder.ImportFolderLocation);
             await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
             // For deletion of files from Trakt, we will rely on the Daily sync
         }

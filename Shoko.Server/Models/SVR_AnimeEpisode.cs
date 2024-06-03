@@ -33,7 +33,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
 
     public SVR_AniDB_Episode? AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
-    public SVR_AnimeEpisode_User GetUserRecord(int userID)
+    public SVR_AnimeEpisode_User? GetUserRecord(int userID)
     {
         return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
     }
@@ -41,7 +41,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     /// <summary>
     /// Gets the AnimeSeries this episode belongs to
     /// </summary>
-    public SVR_AnimeSeries GetAnimeSeries()
+    public SVR_AnimeSeries? GetAnimeSeries()
     {
         return RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
     }
@@ -99,14 +99,13 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
 
         if (watched)
         {
-            // lets check if an update is actually required
+            // let's check if an update is actually required
             if (epUserRecord?.WatchedDate != null && watchedDate.HasValue &&
                 epUserRecord.WatchedDate.Equals(watchedDate.Value) ||
                 (epUserRecord?.WatchedDate == null && !watchedDate.HasValue))
                 return;
 
-            if (epUserRecord == null)
-                epUserRecord = new SVR_AnimeEpisode_User(userID, AnimeEpisodeID, AnimeSeriesID);
+            epUserRecord ??= new SVR_AnimeEpisode_User(userID, AnimeEpisodeID, AnimeSeriesID);
             epUserRecord.WatchedCount++;
 
             if (epUserRecord.WatchedDate.HasValue && updateWatchedDate || !epUserRecord.WatchedDate.HasValue)
@@ -167,7 +166,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats,
         int userID, bool syncTrakt)
     {
-        foreach (SVR_VideoLocal vid in GetVideoLocals())
+        foreach (var vid in GetVideoLocals())
         {
             vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, userID,
                 syncTrakt, true);

@@ -1886,19 +1886,19 @@ public class SeriesController : BaseController
     [HttpPatch("{seriesID}/Move/{groupID}")]
     public ActionResult MoveSeries([FromRoute] int seriesID, [FromRoute] int groupID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
+        if (seriesID == 0)
+            return BadRequest(SeriesWithZeroID);
+
+        if (groupID == 0)
+            return BadRequest(GroupController.GroupWithZeroID);
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
 
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return ValidationProblem("No Group entry for the given groupID", "groupID");
@@ -2157,4 +2157,57 @@ public class SeriesController : BaseController
 
     #endregion
 
+    /// <summary>
+    /// Get a list of all years that series that you have aired in. One Piece would return every year from 1999 to preset (assuming it's still airing *today*)
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("Years")]
+    public ActionResult<IEnumerable<int>> GetAllYears()
+    {
+        return RepoFactory.AnimeSeries.GetAllYears().ToList();
+    }
+
+    /// <summary>
+    /// Get a list of all years and seasons (2024 Winter) that series that you have aired in. One Piece would return every Season from 1999 Fall to preset (assuming it's still airing *today*)
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("Seasons")]
+    public ActionResult<IEnumerable<Season>> GetAllSeasons()
+    {
+        return RepoFactory.AnimeSeries.GetAllSeasons().Select(a => new Season(a.Year, a.Season)).OrderBy(a => a, Season.SeasonComparer).ToList();
+    }
+
+    public record Season(int Year, AnimeSeason AnimeSeason)
+    {
+        private sealed class SeasonRelationalComparer : IComparer<Season>
+        {
+            public int Compare(Season x, Season y)
+            {
+                if (ReferenceEquals(x, y))
+                {
+                    return 0;
+                }
+
+                if (ReferenceEquals(null, y))
+                {
+                    return 1;
+                }
+
+                if (ReferenceEquals(null, x))
+                {
+                    return -1;
+                }
+
+                var yearComparison = x.Year.CompareTo(y.Year);
+                if (yearComparison != 0)
+                {
+                    return yearComparison;
+                }
+
+                return x.AnimeSeason.CompareTo(y.AnimeSeason);
+            }
+        }
+
+        public static IComparer<Season> SeasonComparer { get; } = new SeasonRelationalComparer();
+    }
 }

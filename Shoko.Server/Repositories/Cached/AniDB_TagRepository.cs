@@ -1,9 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Server;
+using Shoko.Server.API;
+using Shoko.Server.Models;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories;
 
@@ -79,14 +84,24 @@ public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
         return ReadLock(() => SourceNames.GetMultiple(sourceName));
     }
 
-
     /// <summary>
     /// Gets all the tags, but only if we have the anime locally
     /// </summary>
     /// <returns></returns>
-    public List<AniDB_Tag> GetAllForLocalSeries()
+    public List<AniDB_Tag> GetAllForLocalSeries(bool useUser = false)
     {
-        return RepoFactory.AnimeSeries.GetAll()
+        IEnumerable<SVR_AnimeSeries> series;
+        if (useUser)
+        {
+            var user = Utils.ServiceContainer.GetService<IHttpContextAccessor>()?.HttpContext?.GetUser();
+            series = RepoFactory.AnimeSeries.GetAll().Where(a => user?.AllowedSeries(a) ?? true);
+        }
+        else
+        {
+            series = RepoFactory.AnimeSeries.GetAll();
+        }
+
+        return series
             .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
             .Where(a => a != null)
             .Select(a => GetByTagID(a.TagID))
