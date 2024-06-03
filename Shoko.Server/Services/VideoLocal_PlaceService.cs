@@ -481,6 +481,7 @@ public class VideoLocal_PlaceService
     {
         try
         {
+            directoryToClean = directoryToClean.TrimEnd(Path.DirectorySeparatorChar);
             var directoriesToClean = toBeChecked
                 .SelectMany(path =>
                 {
