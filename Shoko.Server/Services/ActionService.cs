@@ -939,6 +939,9 @@ public class ActionService
 
     public async Task CheckForUnreadNotifications(bool ignoreSchedule)
     {
+        var settings = _settingsProvider.GetSettings();
+        if (!ignoreSchedule && settings.AniDb.Notification_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
+
         var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
         if (sched == null)
         {
@@ -950,7 +953,6 @@ public class ActionService
         }
         else
         {
-            var settings = _settingsProvider.GetSettings();
             var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
             var tsLastRun = DateTime.Now - sched.LastUpdate;
 
