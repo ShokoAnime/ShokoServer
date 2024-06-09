@@ -207,32 +207,21 @@ public class DownloadTMDBImageJob : BaseJob, IImageDownloadJob
     {
         switch (ImageType)
         {
-            case ImageEntityType.TvDB_FanArt:
+            case ImageEntityType.MovieDB_FanArt:
                 {
-                    var fanart = RepoFactory.TvDB_ImageFanart.GetByID(ImageID);
+                    var fanart = RepoFactory.MovieDB_Fanart.GetByID(ImageID);
                     if (fanart == null)
                         return;
-
-                    RepoFactory.TvDB_ImageFanart.Delete(fanart);
+                    RepoFactory.MovieDB_Fanart.Delete(fanart);
                     return;
                 }
-            case ImageEntityType.TvDB_Cover:
+            case ImageEntityType.MovieDB_Poster:
                 {
-                    var poster = RepoFactory.TvDB_ImagePoster.GetByID(ImageID);
+                    var poster = RepoFactory.MovieDB_Poster.GetByID(ImageID);
                     if (poster == null)
                         return;
-
-                    RepoFactory.TvDB_ImagePoster.Delete(poster);
+                    RepoFactory.MovieDB_Poster.Delete(poster);
                     return;
-                }
-            case ImageEntityType.TvDB_Banner:
-                {
-                    var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(ImageID);
-                    if (wideBanner == null)
-                        return;
-
-                    RepoFactory.TvDB_ImageWideBanner.Delete(wideBanner);
-                    break;
                 }
         }
     }
