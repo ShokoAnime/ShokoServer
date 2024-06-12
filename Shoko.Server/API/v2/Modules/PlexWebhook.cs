@@ -194,19 +194,16 @@ public class PlexWebhook : BaseController
         {
             if (episode == null)
             {
-                _logger.LogInformation(
-                    $"Failed to get anime episode from plex using key {metadata.Key}.");
+                _logger.LogInformation($"Failed to get anime episode from plex using key {metadata.Key}.");
                 return (null, anime);
             }
 
-            if (episode.EpisodeTypeEnum == episodeType
-                && anime.GetAnimeEpisodes().Contains(episode))
+            if (episode.EpisodeTypeEnum == episodeType && anime.GetAnimeEpisodes().Contains(episode))
             {
                 return (episode, anime);
             }
 
-            _logger.LogInformation(
-            $"Unable to work out the metadata for {metadata.Guid}.");
+            _logger.LogInformation($"Unable to work out the metadata for {metadata.Guid}.");
 
             return (null, anime);
         }
@@ -299,7 +296,7 @@ public class PlexWebhook : BaseController
 
     [Authorize]
     [HttpGet("libraries")]
-    public ActionResult<Shoko.Models.Plex.Libraries.Directory[]> GetLibraries()
+    public ActionResult<Directory[]> GetLibraries()
     {
         var result = CallPlexHelper(h => h.GetDirectories());
 
