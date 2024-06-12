@@ -17,8 +17,7 @@ internal class SVR_PlexLibrary : PlexLibrary
 
     public Episode[] GetEpisodes()
     {
-        var (_, data) = Helper.RequestFromPlexAsync($"/library/metadata/{RatingKey}/allLeaves").GetAwaiter()
-            .GetResult();
+        var (_, data) = Helper.RequestFromPlexAsync($"/library/metadata/{RatingKey}/allLeaves").Result;
         return JsonConvert
             .DeserializeObject<MediaContainer<MediaContainer>>(data, Helper.SerializerSettings)
             .Container.Metadata;

@@ -14,6 +14,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Connections;
+using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Plex.TVShow;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
@@ -98,7 +99,7 @@ public class PlexWebhook : BaseController
     private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type, JMMUser user)
     {
         var metadata = evt.Metadata;
-        var (episode, _) = GetEpisode(metadata, user);
+        var (episode, _) = GetEpisodeForUser(metadata, user);
 
         if (episode == null) return;
 
@@ -120,7 +121,7 @@ public class PlexWebhook : BaseController
     private void Scrobble(PlexEvent data, SVR_JMMUser user)
     {
         var metadata = data.Metadata;
-        var (episode, anime) = GetEpisode(metadata, user);
+        var (episode, anime) = GetEpisodeForUser(metadata, user);
         if (episode == null)
         {
             _logger.LogInformation(
@@ -140,7 +141,7 @@ public class PlexWebhook : BaseController
     #endregion
 
     [NonAction]
-    private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata, JMMUser user)
+    private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisodeForUser(PlexEvent.PlexMetadata metadata, JMMUser user)
     {
         var guid = new Uri(metadata.Guid);
         if (guid.Scheme != "com.plexapp.agents.shoko" && guid.Scheme != "com.plexapp.agents.shokorelay")
