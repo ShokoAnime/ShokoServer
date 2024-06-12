@@ -55,10 +55,9 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     /// <summary>
     /// Get the AnimeEpisode 
     /// </summary>
-    /// <param name="name">The filename of the anime to search for.</param>
-    /// <param name="size">The size of the file in bytes</param>
-    /// <returns>the AnimeEpisode given the file information</returns>
-    public SVR_AnimeEpisode GetByFilename(string name, long? size = null)
+    /// <param name="name">The filename of the anime to search for. Only the characters after the last directory separator are considered</param>
+    /// <returns>the AnimeEpisode given the file name</returns>
+    public SVR_AnimeEpisode GetByFilename(string name)
     {
         if (string.IsNullOrEmpty(name))
         {
@@ -69,8 +68,29 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                 StringComparison.InvariantCultureIgnoreCase))
             .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
-            .Where(a => size == null || a.FileSize == size)
             .SelectMany(a => GetByHash(a.Hash)).ToArray();
+        var ep = eps.FirstOrDefault(a => a.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode);
+        return ep ?? eps.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Get the AnimeEpisode 
+    /// </summary>
+    /// <param name="name">The filename of the anime to search for. Only the characters after the last directory separator are considered</param>
+    /// <param name="size">The size of the file in bytes</param>
+    /// <returns>the AnimeEpisode given the file name and size</returns>
+    public SVR_AnimeEpisode GetByFilenameAndSize(string name, long size)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return null;
+        }
+        var eps = RepoFactory.VideoLocalPlace.GetAll()
+        .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(),
+            StringComparison.InvariantCultureIgnoreCase))
+        .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
+        .Where(a => a.FileSize == size)
+        .SelectMany(a => GetByHash(a.Hash)).ToArray();
         var ep = eps.FirstOrDefault(a => a.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode);
         return ep ?? eps.FirstOrDefault();
     }

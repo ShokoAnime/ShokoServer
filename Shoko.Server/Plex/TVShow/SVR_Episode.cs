@@ -15,7 +15,7 @@ internal class SVR_Episode : Episode
     }
 
     public SVR_AnimeEpisode AnimeEpisode =>
-        RepoFactory.AnimeEpisode.GetByFilename(Path.GetFileName(Media[0].Part[0].File), Media[0].Part[0].Size);
+        RepoFactory.AnimeEpisode.GetByFilenameAndSize(Path.GetFileName(Media[0].Part[0].File), Media[0].Part[0].Size);
 
     public void Unscrobble()
     {
