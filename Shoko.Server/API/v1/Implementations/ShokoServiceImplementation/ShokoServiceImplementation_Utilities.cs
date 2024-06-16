@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
@@ -318,163 +319,82 @@ public partial class ShokoServiceImplementation
 
     [HttpGet("File/Rename/Preview/{videoLocalID}")]
     public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID)
-    {
-        var ret = new CL_VideoLocal_Renamed
-        {
-            VideoLocalID = videoLocalID,
-            Success = true
-        };
-        try
-        {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
-            {
-                ret.VideoLocal = null;
-                ret.NewFileName = "ERROR: Could not find file record";
-                ret.Success = false;
-            }
-            else
-            {
-                ret.VideoLocal = null;
-                if (string.IsNullOrEmpty(vid.GetBestVideoLocalPlace(true)?.FullServerPath))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: The file could not be found.";
-                    return ret;
-                }
-                ret.NewFileName = RenameFileHelper.GetFilename(vid.GetBestVideoLocalPlace(), Shoko.Models.Constants.Renamer.TempFileName);
-
-                if (string.IsNullOrEmpty(ret.NewFileName))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
-                    return ret;
-                }
-
-                if (ret.NewFileName.StartsWith("*Error: "))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
-                    return ret;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-            ret.VideoLocal = null;
-            ret.NewFileName = $"ERROR: {ex.Message}";
-            ret.Success = false;
-        }
-        return ret;
-    }
+        => RenameAndMoveFile(videoLocalID, null, false, true).ConfigureAwait(false).GetAwaiter().GetResult();
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}")]
     public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
-    {
-        return RenameAndMoveFile(videoLocalID, scriptName, false);
-    }
+        => RenameAndMoveFile(videoLocalID, scriptName, move: false, preview: false).ConfigureAwait(false).GetAwaiter().GetResult();
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}/{move}")]
     public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move)
+        => RenameAndMoveFile(videoLocalID, scriptName, move, preview: false).ConfigureAwait(false).GetAwaiter().GetResult();
+
+    [NonAction]
+    private async Task<CL_VideoLocal_Renamed> RenameAndMoveFile(int videoLocalID, string scriptName, bool move, bool preview)
     {
         var ret = new CL_VideoLocal_Renamed
         {
             VideoLocalID = videoLocalID,
-            Success = true
+            VideoLocal = null,
+            Success = false,
         };
-        if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+        if (scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
         {
-            ret.VideoLocal = null;
             ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
-            ret.Success = false;
             return ret;
         }
         try
         {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            var file = RepoFactory.VideoLocal.GetByID(videoLocalID);
+            if (file == null)
             {
-                ret.VideoLocal = null;
-                ret.NewFileName = "ERROR: Could not find file record";
-                ret.Success = false;
+                ret.NewFileName = "ERROR: Could not find file.";
                 return ret;
             }
 
-            ret.NewFileName = RenameFileHelper.GetFilename(vid.GetBestVideoLocalPlace(), scriptName);
-
-            if (string.IsNullOrEmpty(ret.NewFileName))
+            var allLocations = file.Places;
+            if (allLocations.Count <= 0)
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
+                ret.NewFileName = "ERROR: No locations were found for the file. Run the \"Remove Missing Files\" action to remove the file.";
                 return ret;
             }
 
-            if (ret.NewFileName.StartsWith("*Error: ", StringComparison.OrdinalIgnoreCase))
-            {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
-                return ret;
-            }
-
-            if (vid.Places.Count <= 0)
-            {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: No Places were found for the VideoLocal. Run Remove Missing Files.";
-                return ret;
-            }
-
-            var errorCount = 0;
-            var errorString = string.Empty;
-            var name = Path.GetFileName(vid.GetBestVideoLocalPlace().FilePath);
+            // First do a dry-run on the best location.
+            var bestLocation = file.GetBestVideoLocalPlace();
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
-
-            foreach (var place in vid.Places)
+            var previewResult = await service.AutoRelocateFile(bestLocation, new() { Preview = true, ScriptName = scriptName, SkipMove = !move });
+            if (!previewResult.Success)
             {
-                if (move)
-                {
-                    var result = service.MoveFile(place, scriptName: scriptName);
-                    if (!result.IsSuccess)
-                    {
-                        errorCount++;
-                        errorString = result.ErrorMessage;
-                        continue;
-                    }
-                    ret.NewDestination = result.NewFolder;
-                }
-
-                var output = service.RenameFile(place, scriptName: scriptName);
-                var error = output.ErrorMessage;
-                if (string.IsNullOrEmpty(error)) name = output.NewFilename;
-                else
-                {
-                    errorCount++;
-                    errorString = error;
-                }
+                ret.NewFileName = $"ERROR: {previewResult.ErrorMessage}";
+                return ret;
             }
-            if (errorCount >= vid.Places.Count) // should never be greater but shit happens
+
+            // Relocate the file locations.
+            var fullPath = string.Empty;
+            var errorString = string.Empty;
+            foreach (var place in allLocations)
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
+                var result = await service.AutoRelocateFile(place, new() { Preview = preview, ScriptName = scriptName, SkipMove = !move });
+                if (result.Success)
+                    fullPath = result.AbsolutePath;
+                else
+                    errorString = result.ErrorMessage;
+            }
+            if (!string.IsNullOrEmpty(errorString))
+            {
                 ret.NewFileName = errorString;
                 return ret;
             }
 
-            ret.NewFileName = name;
-            ret.VideoLocal ??= new CL_VideoLocal { VideoLocalID = videoLocalID };
+            // Return the full path if we moved, otherwise return the file name.
+            ret.Success = true;
+            ret.VideoLocal = new CL_VideoLocal { VideoLocalID = videoLocalID };
+            ret.NewFileName = fullPath;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-            ret.VideoLocal = null;
+            _logger.LogError(ex, "An unexpected error occurred while trying to rename/move a file; {ErrorMessage}", ex.Message);
             ret.NewFileName = $"ERROR: {ex.Message}";
-            ret.Success = false;
         }
         return ret;
     }

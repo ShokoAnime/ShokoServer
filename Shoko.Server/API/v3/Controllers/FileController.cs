@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
 using Quartz;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -48,6 +49,8 @@ public class FileController : BaseController
     internal const string FileNotFoundWithFileID = "No File entry for the given fileID";
 
     internal const string FileNotFoundWithHash = "No File entry for the given hash and file size.";
+
+    internal const string FileLocationNotFoundWithLocationID = "No File.Location entry for the given locationID.";
 
     private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
@@ -284,6 +287,8 @@ public class FileController : BaseController
     public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
+        if (fileID is <= 0)
+            return NotFound(FileNotFoundWithFileID);
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
@@ -306,6 +311,8 @@ public class FileController : BaseController
     [HttpDelete("{fileID}")]
     public async Task<ActionResult> DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
     {
+        if (fileID is <= 0)
+            return NotFound(FileNotFoundWithFileID);
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
@@ -316,6 +323,208 @@ public class FileController : BaseController
             else
                 await _vlPlaceService.RemoveRecord(place);
         return Ok();
+    }
+
+    /// <summary>
+    /// Retrieves all file locations associated with a given file ID.
+    /// </summary>
+    /// <param name="fileID">File ID</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <returns>A list of file locations associated with the specified file ID.</returns>
+    [HttpGet("{fileID}/Location")]
+    public ActionResult<List<File.Location>> GetFileLocations([FromRoute] int fileID, [FromQuery] bool includeAbsolutePaths = false)
+    {
+        if (fileID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        return file.Places
+            .Select(location => new File.Location(location, includeAbsolutePaths))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Retrieves information about a specific file location.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be retrieved.
+    /// </param>
+    /// <returns>Returns the file location information.</returns>
+    [HttpGet("Location/{locationID}")]
+    public ActionResult<File.Location> GetFileLocation([FromRoute] int locationID)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        return new File.Location(fileLocation, true);
+    }
+
+    /// <summary>
+    /// Deletes a file location, optionally also deleting the physical file.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be deleted.
+    /// </param>
+    /// <param name="deleteFile">Whether to delete the physical file.</param>
+    /// <param name="deleteFolder">Whether to delete any empty folders after removing the file.</param>
+    /// <returns>Returns a result indicating if the deletion was successful.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpDelete("Location/{locationID}")]
+    public async Task<ActionResult> DeleteFileLocation([FromRoute] int locationID, [FromQuery] bool deleteFile = true, [FromQuery] bool deleteFolder = true)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        if (deleteFile)
+            await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(fileLocation, deleteFolder);
+        else
+            await _vlPlaceService.RemoveRecord(fileLocation);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Directly relocates a file to a new location specified by the user.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be relocated.</param>
+    /// <param name="body">New location information.</param>
+    /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
+    [HttpPost("Location/{locationID}/Relocate")]
+    public async Task<ActionResult<File.Location.RelocateResult>> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.NewLocationBody body)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        var importFolder = RepoFactory.ImportFolder.GetByID(body.ImportFolderID);
+        if (importFolder == null)
+            return BadRequest($"Unknown import folder with the given id `{body.ImportFolderID}`.");
+
+        // Sanitize relative path and reject paths leading to outside the import folder.
+        var fullPath = Path.GetFullPath(Path.Combine(importFolder.ImportFolderLocation, body.RelativePath));
+        if (!fullPath.StartsWith(importFolder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("The provided relative path leads outside the import folder.");
+        var sanitizedRelativePath = Path.GetRelativePath(importFolder.ImportFolderLocation, fullPath);
+
+        // Store the old import folder id and relative path for comparison.
+        var oldImportFolderId = fileLocation.ImportFolderID;
+        var oldRelativePath = fileLocation.FilePath;
+
+        // Rename and move the file.
+        var result = await _vlPlaceService.DirectlyRelocateFile(
+            fileLocation,
+            new()
+            {
+                ImportFolder = importFolder,
+                RelativePath = sanitizedRelativePath,
+                DeleteEmptyDirectories = body.DeleteEmptyDirectories
+            }
+        );
+        if (!result.Success)
+            return new File.Location.RelocateResult
+            {
+                ID = fileLocation.VideoLocal_Place_ID,
+                FileID = fileLocation.VideoLocalID,
+                ErrorMessage = result.ErrorMessage,
+                IsSuccess = false,
+            };
+
+        // Check if it was actually relocated, or if we landed on the same location as earlier.
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
+        return new File.Location.RelocateResult
+        {
+            ID = fileLocation.VideoLocal_Place_ID,
+            FileID = fileLocation.VideoLocalID,
+            ImportFolderID = result.ImportFolder.ImportFolderID,
+            RelativePath = result.RelativePath,
+            IsSuccess = true,
+            IsRelocated = relocated,
+        };
+    }
+
+    /// <summary>
+    /// Automatically relocates a file to a new location based on predefined rules.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be relocated.</param>
+    /// <param name="body">Parameters for the automatic relocation process.</param>
+    /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
+    [HttpPost("Location/{locationID}/AutoRelocate")]
+    public async Task<ActionResult<File.Location.RelocateResult>> AutomaticallyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.AutoRelocateBody body)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        // Make sure we have a valid script to use.
+        RenameScript script;
+        if (!body.ScriptID.HasValue || body.ScriptID.Value <= 0)
+        {
+            script = RepoFactory.RenameScript.GetDefaultOrFirst();
+            if (script == null)
+                return BadRequest($"No default script have been selected! Select one before continuing.");
+        }
+        else
+        {
+            script = RepoFactory.RenameScript.GetByID(body.ScriptID.Value);
+            if (script == null)
+                return BadRequest($"Unknown script with id \"{body.ScriptID.Value}\"! Omit `ScriptID` or set it to 0 to use the default script!");
+
+            if (string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
+                return BadRequest("Do not attempt to use a temp file to rename.");
+        }
+
+        // Store the old import folder id and relative path for comparison.
+        var oldImportFolderId = fileLocation.ImportFolderID;
+        var oldRelativePath = fileLocation.FilePath;
+        var settings = SettingsProvider.GetSettings();
+
+        // Rename and move the file, or preview where it would land if we did.
+        var result = await _vlPlaceService.AutoRelocateFile(
+            fileLocation,
+            new()
+            {
+                Preview = body.Preview,
+                DeleteEmptyDirectories = body.DeleteEmptyDirectories,
+                ScriptName = script.ScriptName,
+                SkipMove = body.SkipMove ?? settings.Import.MoveOnImport,
+                SkipRename = body.SkipRename ?? settings.Import.RenameOnImport,
+            }
+        );
+        if (!result.Success)
+            return new File.Location.RelocateResult
+            {
+                ID = fileLocation.VideoLocal_Place_ID,
+                FileID = fileLocation.VideoLocalID,
+                ErrorMessage = result.ErrorMessage,
+                IsSuccess = false,
+            };
+
+        // Check if it was actually relocated, or if we landed on the same location as earlier.
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
+        return new File.Location.RelocateResult
+        {
+            ID = fileLocation.VideoLocal_Place_ID,
+            FileID = fileLocation.VideoLocalID,
+            ScriptID = script.RenameScriptID,
+            ImportFolderID = result.ImportFolder.ImportFolderID,
+            RelativePath = result.RelativePath,
+            IsSuccess = true,
+            IsRelocated = relocated,
+            IsPreview = body.Preview,
+        };
     }
 
     /// <summary>

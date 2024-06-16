@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
+using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -46,7 +48,20 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
             return session
                 .Query<RenameScript>()
                 .Where(a => a.ScriptName == scriptName)
-                .Take(1).SingleOrDefault();
+                .Take(1)
+                .SingleOrDefault();
         });
+    }
+
+    public List<RenameScript> GetByRenamerType(string renamerType)
+    {
+        if (string.IsNullOrEmpty(renamerType)) return new();
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        var cr = session
+            .CreateCriteria(typeof(RenameScript))
+            .Add(Restrictions.Eq("RenamerType", renamerType))
+            .List<RenameScript>()
+            .ToList();
+        return cr;
     }
 }

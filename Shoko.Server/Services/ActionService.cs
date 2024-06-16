@@ -163,7 +163,8 @@ public class ActionService
             {
                 i++;
 
-                if (dictFilesExisting.TryGetValue(fileName, out var value) && fldr.IsDropSource == 1) _placeService.RenameAndMoveAsRequired(value);
+                if (dictFilesExisting.TryGetValue(fileName, out var value) && fldr.IsDropSource == 1)
+                    await _placeService.RenameAndMoveAsRequired(value);
 
                 if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
                 {

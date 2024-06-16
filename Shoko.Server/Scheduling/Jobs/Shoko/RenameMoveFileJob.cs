@@ -35,7 +35,7 @@ public class RenameMoveFileJob : BaseJob
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
 
 
-    public override Task Process()
+    public override async Task Process()
     {
         _logger.LogInformation("Processing {Job}: {FileName}", nameof(RenameMoveFileJob), _fileName ?? VideoLocalID.ToString());
 
@@ -44,16 +44,12 @@ public class RenameMoveFileJob : BaseJob
         {
             _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
             if (_vlocal == null)
-                return Task.CompletedTask;
+                return;
         }
 
         var places = _vlocal.Places;
         foreach (var place in places)
-        {
-            _vlPlaceService.RenameAndMoveAsRequired(place);
-        }
-
-        return Task.CompletedTask;
+            await _vlPlaceService.RenameAndMoveAsRequired(place);
     }
 
     public RenameMoveFileJob(VideoLocal_PlaceService vlPlaceService)
