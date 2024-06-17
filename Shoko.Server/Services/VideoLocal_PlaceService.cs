@@ -57,7 +57,7 @@ public class VideoLocal_PlaceService
         var settings = Utils.SettingsProvider.GetSettings();
         if (!settings.Import.RenameOnImport)
             _logger.LogDebug("Skipping rename of {FilePath} as rename on import is disabled.", place.FullServerPath);
-        if (!!settings.Import.MoveOnImport)
+        if (!settings.Import.MoveOnImport)
             _logger.LogDebug("Skipping move of {FilePath} as move on import is disabled.", place.FullServerPath);
 
         await AutoRelocateFile(place, new AutoRelocateRequest()
@@ -509,7 +509,7 @@ public class VideoLocal_PlaceService
                 RelativePath = place.FilePath,
             };
 
-        string newFileName;
+        string? newFileName;
         try
         {
             newFileName = RenameFileHelper.GetFilename(place, request.ScriptName);
@@ -521,7 +521,7 @@ public class VideoLocal_PlaceService
             if (ex.Message.StartsWith("*Error:"))
                 errorMessage = errorMessage[7..].Trim();
 
-            _logger.LogError(ex, "Error: The renamer returned an error on file: {FilePath}\n{ErrorMessage}", place.FullServerPath, errorMessage);
+            _logger.LogError(ex, "An error occurred while trying to find a new file name for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
             return new()
             {
                 Success = false,
@@ -531,22 +531,13 @@ public class VideoLocal_PlaceService
             };
         }
 
-        if (string.IsNullOrWhiteSpace(newFileName))
+        // Or it may return an error message or empty/null file name.
+        if (string.IsNullOrWhiteSpace(newFileName) || newFileName.StartsWith("*Error:"))
         {
-            _logger.LogError("Error: The renamer returned a null or empty name for: {FilePath}", place.FullServerPath);
-            return new()
-            {
-                Success = false,
-                ShouldRetry = false,
-                ErrorMessage = "The file renamer returned a null or empty value",
-            };
-        }
-
-        // Or it may return an error message.
-        if (newFileName.StartsWith("*Error:"))
-        {
-            var errorMessage = newFileName[7..].Trim();
-            _logger.LogError("Error: The renamer returned an error on file: {FilePath}\n{ErrorMessage}", place.FullServerPath, errorMessage);
+            var errorMessage = !string.IsNullOrWhiteSpace(newFileName)
+                ? newFileName[7..].Trim()
+                : "The file renamer returned a null or empty value.";
+            _logger.LogError("An error occurred while trying to find a new file name for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
             return new()
             {
                 Success = false,
@@ -596,12 +587,12 @@ public class VideoLocal_PlaceService
                 RelativePath = place.FilePath,
             };
 
-        ImportFolder destImpl;
-        string newFolderPath;
+        SVR_ImportFolder? importFolder;
+        string? newFolderPath;
         try
         {
             // Find the new destination.
-            (destImpl, newFolderPath) = RenameFileHelper.GetDestination(place, request.ScriptName);
+            (importFolder, newFolderPath) = RenameFileHelper.GetDestination(place, request.ScriptName);
         }
         // The renamer may throw an error
         catch (Exception ex)
@@ -610,7 +601,7 @@ public class VideoLocal_PlaceService
             if (ex.Message.StartsWith("*Error:"))
                 errorMessage = errorMessage[7..].Trim();
 
-            _logger.LogError(ex, "Could not find a valid destination: {FilePath}\n{ErrorMessage}", place.FullServerPath, errorMessage);
+            _logger.LogError(ex, "An error occurred while trying to find a destination for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
             return new()
             {
                 Success = false,
@@ -620,33 +611,17 @@ public class VideoLocal_PlaceService
         }
 
         // Ensure the new folder path is not null.
-        newFolderPath ??= "";
+        newFolderPath ??= string.Empty;
 
-        // Check if we have an import folder selected.
-        if (destImpl is not SVR_ImportFolder importFolder)
+        // Check if we have an import folder selected, and check the path for errors, even if an import folder is selected.
+        if (importFolder is null || newFolderPath.StartsWith("*Error:", StringComparison.InvariantCultureIgnoreCase))
         {
-            _logger.LogWarning("Could not find a valid destination: {FilePath}", place.FullServerPath);
-            return new()
-            {
-                Success = false,
-                ShouldRetry = false,
-                ErrorMessage = !string.IsNullOrWhiteSpace(newFolderPath) ? (
-                    newFolderPath.StartsWith("*Error:", StringComparison.InvariantCultureIgnoreCase) ? (
-                        newFolderPath[7..].Trim()
-                    ) : (
-                        newFolderPath
-                    )
-                ) : (
-                    $"Could not find a valid destination: \"{place.FullServerPath}"
-                ),
-            };
-        }
-
-        // Check the path for errors, even if an import folder is selected.
-        if (newFolderPath.StartsWith("*Error:", StringComparison.InvariantCultureIgnoreCase))
-        {
-            var errorMessage = newFolderPath[7..].Trim();
-            _logger.LogError("Could not find a valid destination: {FilePath}\n{ErrorMessage}", place.FullServerPath, errorMessage);
+            var errorMessage = !string.IsNullOrWhiteSpace(newFolderPath)
+                ? newFolderPath.StartsWith("*Error:", StringComparison.InvariantCultureIgnoreCase)
+                    ? newFolderPath[7..].Trim()
+                    : newFolderPath
+                : "Could not find a valid destination.";
+            _logger.LogWarning("An error occurred while trying to find a destination for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
             return new()
             {
                 Success = false,

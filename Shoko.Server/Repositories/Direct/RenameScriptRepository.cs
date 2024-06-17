@@ -4,11 +4,12 @@ using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Direct;
 
 public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
 {
-    public RenameScript GetDefaultScript()
+    public RenameScript? GetDefaultScript()
     {
         return Lock(() =>
         {
@@ -21,7 +22,7 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
         });
     }
 
-    public RenameScript GetDefaultOrFirst()
+    public RenameScript? GetDefaultOrFirst()
     {
         return Lock(() =>
         {
@@ -35,15 +36,12 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
         });
     }
 
-    public RenameScript GetByName(string scriptName)
+    public RenameScript? GetByName(string? scriptName)
     {
+        if (string.IsNullOrEmpty(scriptName))
+            return null;
         return Lock(() =>
         {
-            if (string.IsNullOrEmpty(scriptName))
-            {
-                return null;
-            }
-
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<RenameScript>()
