@@ -216,13 +216,11 @@ public class File
             /// <summary>
             /// The file location id.
             /// </summary>
-            [Required]
             public int ID { get; set; }
 
             /// <summary>
             /// The file id.
             /// </summary>
-            [Required]
             public int FileID { get; set; }
 
             /// <summary>
@@ -230,13 +228,11 @@ public class File
             /// file if the relocation was successful and was not the result of
             /// a manual relocation.
             /// </summary>
-            [Required]
             public int? ScriptID { get; set; } = null;
 
             /// <summary>
             /// The error message if the relocation was not successful.
             /// </summary>
-            [Required]
             public string? ErrorMessage { get; set; } = null;
 
             /// <summary>
@@ -244,7 +240,6 @@ public class File
             /// resides, if the relocation was successful. Remember to check
             /// <see cref="IsSuccess"/> to see the status of the relocation.
             /// </summary>
-            [Required]
             public int? ImportFolderID { get; set; } = null;
 
             /// <summary>
@@ -252,13 +247,18 @@ public class File
             /// on the server, if relocation was successful. Remember to check
             /// <see cref="IsSuccess"/> to see the status of the relocation.
             /// </summary>
-            [Required]
             public string? RelativePath { get; set; } = null;
+
+            /// <summary>
+            /// The new absolute path for the file on the server, if relocation
+            /// was successful. Remember to check <see cref="IsSuccess"/> to see
+            /// the status of the relocation.
+            /// </summary>
+            public string? AbsolutePath { get; set; } = null;
 
             /// <summary>
             /// Indicates whether the file was relocated successfully.
             /// </summary>
-            [Required]
             public bool IsSuccess { get; set; } = false;
 
             /// <summary>
@@ -266,14 +266,12 @@ public class File
             /// location to another, or if it was already at it's correct
             /// location.
             /// </summary>
-            [Required]
             public bool IsRelocated { get; set; } = false;
 
             /// <summary>
             /// Indicates if the result is only a preview and the file has not
             /// actually been relocated yet.
             /// </summary>
-            [Required]
             public bool IsPreview { get; set; } = false;
         }
 
@@ -331,7 +329,7 @@ public class File
             /// on the server.
             /// </summary>
             [Required]
-            public string RelativePath { get; set; } = "";
+            public string RelativePath { get; set; } = string.Empty;
 
             /// <summary>
             /// Indicates whether empty directories should be deleted after

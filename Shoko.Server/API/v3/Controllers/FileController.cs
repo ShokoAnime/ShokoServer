@@ -447,6 +447,7 @@ public class FileController : BaseController
             FileID = fileLocation.VideoLocalID,
             ImportFolderID = result.ImportFolder.ImportFolderID,
             RelativePath = result.RelativePath,
+            AbsolutePath = result.AbsolutePath,
             IsSuccess = true,
             IsRelocated = relocated,
         };
@@ -521,6 +522,7 @@ public class FileController : BaseController
             ScriptID = script.RenameScriptID,
             ImportFolderID = result.ImportFolder.ImportFolderID,
             RelativePath = result.RelativePath,
+            AbsolutePath = result.AbsolutePath,
             IsSuccess = true,
             IsRelocated = relocated,
             IsPreview = body.Preview,
