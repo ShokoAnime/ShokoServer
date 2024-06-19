@@ -1491,7 +1491,7 @@ public class SeriesController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
-            var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.FullServerPath;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 

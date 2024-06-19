@@ -60,7 +60,7 @@ public class ProcessFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.GetBestVideoLocalPlace()?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.FullServerPath);
     }
     public override async Task Process()
     {
@@ -95,7 +95,7 @@ public class ProcessFileJob : BaseJob
             RepoFactory.VideoLocal.Save(_vlocal);
 
             // Dispatch the on file matched event.
-            ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal);
+            ShokoEventHandler.Instance.OnFileMatched(_vlocal.FirstValidPlace, _vlocal);
         }
         // Fire the file not matched event if we didn't update the cross-references.
         else
@@ -103,7 +103,7 @@ public class ProcessFileJob : BaseJob
             var autoMatchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(_vlocal.FileSize, _vlocal.Hash).Count;
             var hasXRefs = !string.IsNullOrEmpty(newXRefs) && xRefsMatch;
             var isUDPBanned = _udpConnectionHandler.IsBanned;
-            ShokoEventHandler.Instance.OnFileNotMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
+            ShokoEventHandler.Instance.OnFileNotMatched(_vlocal.FirstValidPlace, _vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
         }
 
         // Rename and/or move the physical file(s) if needed.

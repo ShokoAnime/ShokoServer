@@ -224,7 +224,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             return;
         }
 
-        var place = obj.GetBestVideoLocalPlace(true);
+        var place = obj.FirstResolvedPlace;
         if (place != null) Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>().RefreshMediaInfo(place);
     }
 
@@ -531,7 +531,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 })
                 .OrderByNatural(local =>
                 {
-                    var place = local?.GetBestVideoLocalPlace();
+                    var place = local?.FirstValidPlace;
                     if (place == null) return null;
                     return place.FullServerPath ?? place.FilePath;
                 })
@@ -557,7 +557,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 })
                 .OrderByNatural(local =>
                 {
-                    var place = local?.GetBestVideoLocalPlace();
+                    var place = local?.FirstValidPlace;
                     if (place == null) return null;
                     return place.FullServerPath ?? place.FilePath;
                 })

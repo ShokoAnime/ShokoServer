@@ -204,7 +204,7 @@ public class WebUI
                 .Select(xref =>
                 {
                     var file = RepoFactory.VideoLocal.GetByHash(xref.Hash);
-                    var location = file?.GetBestVideoLocalPlace();
+                    var location = file?.FirstValidPlace;
 
                     return (file, xref, location);
                 })

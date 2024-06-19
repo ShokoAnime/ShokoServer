@@ -168,7 +168,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     {
         foreach (var vid in GetVideoLocals())
         {
-            vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, userID,
+            vid.SetWatchedStatus(watched, updateOnline, watchedDate, updateStats, userID,
                 syncTrakt, true);
             vid.SetResumePosition(0, userID);
         }

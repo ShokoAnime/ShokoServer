@@ -120,11 +120,6 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     public List<SVR_VideoLocal_Place> Places => VideoLocalID == 0 ? new List<SVR_VideoLocal_Place>() : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
 
-    public void CollectContractMemory()
-    {
-        _media = null;
-    }
-
     public string ToStringDetailed()
     {
         var sb = new StringBuilder("");
@@ -208,14 +203,10 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         RepoFactory.VideoLocalUser.Save(vidUserRecord);
     }
 
-    public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
-    {
-        if (!resolve)
-            return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
+    public SVR_VideoLocal_Place FirstValidPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
 
-        return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
-            .FirstOrDefault(p => File.Exists(p.FullServerPath));
-    }
+    public SVR_VideoLocal_Place FirstResolvedPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
+        .FirstOrDefault(p => File.Exists(p.FullServerPath));
 
     public void SetResumePosition(long resumeposition, int userID)
     {
@@ -225,12 +216,12 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         RepoFactory.VideoLocalUser.Save(userRecord);
     }
 
-    public void ToggleWatchedStatus(bool watched, int userID)
+    public void SetWatchedStatus(bool watched, int userID)
     {
-        ToggleWatchedStatus(watched, true, watched ? DateTime.Now : null, true, userID, true, true);
+        SetWatchedStatus(watched, true, watched ? DateTime.Now : null, true, userID, true, true);
     }
 
-    public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
+    public void SetWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
         bool syncTrakt, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
         var settings = Utils.SettingsProvider.GetSettings();

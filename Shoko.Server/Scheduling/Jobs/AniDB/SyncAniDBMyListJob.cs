@@ -199,7 +199,7 @@ public class SyncAniDBMyListJob : BaseJob
             {
                 var watchedDate = myitem.ViewedAt;
                 modifiedItems++;
-                vl.ToggleWatchedStatus(true, false, watchedDate, false, juser.JMMUserID, false, true);
+                vl.SetWatchedStatus(true, false, watchedDate, false, juser.JMMUserID, false, true);
                 vl.AnimeEpisodes.Select(a => a.GetAnimeSeries()).Where(a => a != null)
                     .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
             }
@@ -210,7 +210,7 @@ public class SyncAniDBMyListJob : BaseJob
             foreach (var juser in aniDBUsers)
             {
                 modifiedItems++;
-                vl.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID, false, true);
+                vl.SetWatchedStatus(false, false, null, false, juser.JMMUserID, false, true);
                 vl.AnimeEpisodes.Select(a => a.GetAnimeSeries()).Where(a => a != null)
                     .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
             }

@@ -902,7 +902,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
         if (vl != null)
         {
-            var pl = vl.GetBestVideoLocalPlace(true);
+            var pl = vl.FirstResolvedPlace;
             if (pl == null)
             {
                 _logger.LogError("Unable to hash videolocal with id = {VideoLocalID}, it has no assigned place", videoLocalID);
@@ -1260,7 +1260,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find video local record";
             }
 
-            vid.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, true, userID, true, true);
+            vid.SetWatchedStatus(watchedStatus, true, DateTime.Now, true, userID, true, true);
             return string.Empty;
         }
         catch (Exception ex)

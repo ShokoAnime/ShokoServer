@@ -148,7 +148,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
                 outstream.CrossPositionCrossed +=
                     a =>
                     {
-                        Task.Factory.StartNew(() => { r.VideoLocal.ToggleWatchedStatus(true, r.User.JMMUserID); },
+                        Task.Factory.StartNew(() => { r.VideoLocal.SetWatchedStatus(true, r.User.JMMUserID); },
                             new CancellationToken(),
                             TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     };
@@ -221,7 +221,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         }
 
         r.VideoLocal = loc;
-        r.File = loc.GetBestVideoLocalPlace(true)?.GetFile();
+        r.File = loc.FirstResolvedPlace?.GetFile();
         return FinishResolve(r, userId, autowatch);
     }
 

@@ -146,7 +146,7 @@ public class RawFile : BaseDirectory
         var vl_user = vl.GetUserRecord(uid);
         offset = vl_user?.ResumePosition ?? 0;
 
-        var place = vl.GetBestVideoLocalPlace();
+        var place = vl.FirstValidPlace;
         if (place != null)
         {
             filename = place.FilePath;

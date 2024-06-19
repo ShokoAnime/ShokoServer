@@ -466,7 +466,7 @@ public class File
             file ??= existing.GetVideoLocal();
 
             // Sync the watch date and aggregate the data up to the episode if needed.
-            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true, LastUpdatedAt.ToLocalTime());
+            file.SetWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true, LastUpdatedAt.ToLocalTime());
 
             // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
             existing.WatchedCount = WatchedCount;

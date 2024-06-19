@@ -67,7 +67,7 @@ public class ActionService
         foreach (var vl in filesToHash)
         {
             dictFilesToHash[vl.VideoLocalID] = vl;
-            var p = vl.GetBestVideoLocalPlace(true);
+            var p = vl.FirstResolvedPlace;
             if (p == null) continue;
 
             await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
@@ -80,7 +80,7 @@ public class ActionService
 
             try
             {
-                var p = vl.GetBestVideoLocalPlace(true);
+                var p = vl.FirstResolvedPlace;
                 if (p == null) continue;
 
                 await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);

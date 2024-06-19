@@ -33,7 +33,7 @@ public class ScrobblingFileResult : PhysicalFileResult
         var end = GetRange(context.HttpContext, VideoLocal.FileSize);
         if (end != VideoLocal.FileSize) return;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        Task.Factory.StartNew(() => VideoLocal.ToggleWatchedStatus(true, UserID), new CancellationToken(), TaskCreationOptions.LongRunning,
+        Task.Factory.StartNew(() => VideoLocal.SetWatchedStatus(true, UserID), new CancellationToken(), TaskCreationOptions.LongRunning,
             TaskScheduler.Default);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     }

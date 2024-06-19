@@ -84,7 +84,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
         if (response?.Response == null)
         {
             _logger.LogInformation("File {VideoLocalID} ({Ed2kHash} | {FileName}) could not be found on AniDB",
-                _vlocal.VideoLocalID, _vlocal.Hash, _vlocal.GetBestVideoLocalPlace()?.FileName);
+                _vlocal.VideoLocalID, _vlocal.Hash, _vlocal.FirstValidPlace?.FileName);
             return null;
         }
 

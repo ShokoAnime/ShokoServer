@@ -410,7 +410,7 @@ public static class ModelHelper
         var enumerable = input
             .Select(video => (
                 Video: video,
-                BestLocation: video.GetBestVideoLocalPlace(),
+                BestLocation: video.FirstValidPlace,
                 Locations: includeLocations ? video.Places : null,
                 UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
             ))

@@ -96,7 +96,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
                     if (isWatched && !alreadyWatched)
                     {
                         _logger.LogInformation("Marking episode watched in Shoko");
-                        video.ToggleWatchedStatus(true, true, lastWatched ?? DateTime.Now, true, User.JMMUserID, true, true);
+                        video.SetWatchedStatus(true, true, lastWatched ?? DateTime.Now, true, User.JMMUserID, true, true);
                     }
                 }
             }

@@ -42,7 +42,7 @@ public class ManualLinkJob : BaseJob
     public override Dictionary<string, object> Details => _episode != null ?
         new()
         {
-            { "File Path", Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath) },
+            { "File Path", Utils.GetDistinctPath(_vlocal.FirstValidPlace?.FullServerPath) },
             { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AniDB_Episode.AnimeID)?.PreferredTitle },
             { "Episode Type", _episode.AniDB_Episode.EpisodeType.ToString() },
             { "Episode Number", _episode.AniDB_Episode.EpisodeNumber }
@@ -104,7 +104,7 @@ public class ManualLinkJob : BaseJob
         }
 
         // Dispatch the on file matched event.
-        ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal);
+        ShokoEventHandler.Instance.OnFileMatched(_vlocal.FirstValidPlace, _vlocal);
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (_settings.AniDb.MyList_AddFiles)

@@ -358,7 +358,7 @@ public partial class ShokoServiceImplementation
             }
 
             // First do a dry-run on the best location.
-            var bestLocation = file.GetBestVideoLocalPlace();
+            var bestLocation = file.FirstValidPlace;
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
             var previewResult = await service.AutoRelocateFile(bestLocation, new() { Preview = true, ScriptName = scriptName, SkipMove = !move });
             if (!previewResult.Success)
@@ -1387,7 +1387,7 @@ public partial class ShokoServiceImplementation
             return "Unable to get VideoLocal with id: " + vidLocalID;
         }
 
-        var filePath = video.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = video.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
         {
             return "Unable to get file location for VideoLocal with id: " + video.VideoLocalID;

@@ -218,7 +218,7 @@ public class ActionController : BaseController
             .Where(file => !file.IsEmpty() && file.Media != null)
             .Select(file => (Video: file, AniDB: file.AniDBFile))
             .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.Media?.MenuStreams.Any() != tuple.AniDB.IsChaptered)
-            .Select(tuple => (Path: tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, tuple.Video))
+            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
         var scheduler = await _schedulerFactory.GetScheduler();

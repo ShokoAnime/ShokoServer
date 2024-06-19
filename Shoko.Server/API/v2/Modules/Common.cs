@@ -366,7 +366,7 @@ public class Common : BaseController
             return NotFound("VideoLocal Not Found");
         }
 
-        var pl = vl.GetBestVideoLocalPlace(true);
+        var pl = vl.FirstResolvedPlace;
         if (pl?.FullServerPath == null)
         {
             return NotFound("videolocal_place not found");
@@ -397,7 +397,7 @@ public class Common : BaseController
             // files which have been hashed, but don't have an associated episode
             foreach (var vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
             {
-                var pl = vl.GetBestVideoLocalPlace(true);
+                var pl = vl.FirstResolvedPlace;
                 if (pl?.FullServerPath == null)
                 {
                     continue;
@@ -433,7 +433,7 @@ public class Common : BaseController
             // files which have been hashed, but don't have an associated episode
             foreach (var vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
             {
-                var pl = vl.GetBestVideoLocalPlace(true);
+                var pl = vl.FirstResolvedPlace;
                 if (pl?.FullServerPath == null)
                 {
                     continue;
@@ -870,7 +870,7 @@ public class Common : BaseController
             .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
             .Select(_tuple => new
             {
-                Path = _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath, Video = _tuple.vid
+                Path = _tuple.vid.FirstResolvedPlace?.FullServerPath, Video = _tuple.vid
             })
             .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
 

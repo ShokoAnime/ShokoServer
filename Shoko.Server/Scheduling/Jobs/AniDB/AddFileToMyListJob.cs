@@ -47,14 +47,14 @@ public class AddFileToMyListJob : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "File Path", Utils.GetDistinctPath(_videoLocal?.GetBestVideoLocalPlace()?.FullServerPath) ?? Hash
+            "File Path", Utils.GetDistinctPath(_videoLocal?.FirstValidPlace?.FullServerPath) ?? Hash
         }
     };
 
     public override async Task Process()
     {
         _logger.LogInformation("Processing {Job}: {FileName} - {Hash} - {ReadStates}",
-            nameof(AddFileToMyListJob), _videoLocal?.GetBestVideoLocalPlace()?.FileName, Hash, ReadStates);
+            nameof(AddFileToMyListJob), _videoLocal?.FirstValidPlace?.FileName, Hash, ReadStates);
 
         if (_videoLocal == null) return;
 
@@ -156,7 +156,7 @@ public class AddFileToMyListJob : BaseJob
         var newWatchedDate = response?.Response?.WatchedDate;
         _logger.LogInformation(
             "Added File to MyList. File: {FileName}  Manual Link: {IsManualLink}  Watched Locally: {Unknown}  Watched AniDB: {ResponseIsWatched}  Local State: {AniDbMyListStorageState}  AniDB State: {State}  ReadStates: {ReadStates}  ReadWatched Setting: {AniDbMyListReadWatched}  ReadUnwatched Setting: {AniDbMyListReadUnwatched}",
-            _videoLocal.GetBestVideoLocalPlace()?.FileName, isManualLink, originalWatchedDate != null,
+            _videoLocal.FirstValidPlace?.FileName, isManualLink, originalWatchedDate != null,
             response?.Response?.IsWatched, settings.AniDb.MyList_StorageState, state, ReadStates,
             settings.AniDb.MyList_ReadWatched, settings.AniDb.MyList_ReadUnwatched
         );
@@ -170,12 +170,12 @@ public class AddFileToMyListJob : BaseJob
                 // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                 if (settings.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                 {
-                    _videoLocal.ToggleWatchedStatus(true, false, newWatchedDate?.ToLocalTime(), false, juser.JMMUserID,
+                    _videoLocal.SetWatchedStatus(true, false, newWatchedDate?.ToLocalTime(), false, juser.JMMUserID,
                         false, false);
                 }
                 else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                 {
-                    _videoLocal.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
+                    _videoLocal.SetWatchedStatus(false, false, null, false, juser.JMMUserID,
                         false, false);
                 }
             }

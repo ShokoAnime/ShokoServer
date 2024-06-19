@@ -615,7 +615,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -658,7 +658,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         var bestLocation = file.Places.FirstOrDefault(a => a.FileName.Equals(filename));
-        bestLocation ??= file.GetBestVideoLocalPlace();
+        bestLocation ??= file.FirstValidPlace;
 
         var fileInfo = bestLocation.GetFile();
         if (fileInfo == null)
@@ -803,7 +803,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        file.ToggleWatchedStatus(watched, User.JMMUserID);
+        file.SetWatchedStatus(watched, User.JMMUserID);
 
         return Ok();
     }
@@ -867,7 +867,7 @@ public class FileController : BaseController
         }
 
         if (watched.HasValue)
-            file.ToggleWatchedStatus(watched.Value, User.JMMUserID);
+            file.SetWatchedStatus(watched.Value, User.JMMUserID);
         file.SetResumePosition(playbackPositionTicks, User.JMMUserID);
 
         return NoContent();
@@ -904,7 +904,7 @@ public class FileController : BaseController
         if (watched != null)
         {
             var safeWatched = watched.Value;
-            file.ToggleWatchedStatus(safeWatched, User.JMMUserID);
+            file.SetWatchedStatus(safeWatched, User.JMMUserID);
             if (safeWatched)
                 file.SetResumePosition(0, User.JMMUserID);
 
@@ -970,7 +970,7 @@ public class FileController : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             ModelState.AddModelError("Settings", "Missing AVDump API key");
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             ModelState.AddModelError("File", FileNoPath);
 
@@ -1005,7 +1005,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -1040,7 +1040,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 

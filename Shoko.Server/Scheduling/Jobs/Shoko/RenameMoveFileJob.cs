@@ -29,7 +29,7 @@ public class RenameMoveFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.GetBestVideoLocalPlace()?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.FullServerPath);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
