@@ -9,7 +9,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);Shoko.Models\**\*</DefaultItemExcludes>
     <Deterministic>false</Deterministic>
     <LangVersion>latest</LangVersion>
-    <Configurations>Debug;Release</Configurations>
+    <Configurations>Debug;Release;Benchmarks</Configurations>
     <TargetFrameworks>net8.0;netstandard2.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
