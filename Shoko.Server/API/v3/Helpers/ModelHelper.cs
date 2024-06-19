@@ -422,7 +422,7 @@ public static class ModelHelper
                     .Select(xref => xref.AnimeID)
                     .Distinct()
                     .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
-                    .Where(anime => anime != null)
+                    .WhereNotNull()
                     .All(user.AllowedAnime);
                 if (!isAnimeAllowed)
                     return false;
@@ -440,9 +440,9 @@ public static class ModelHelper
                         RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(x.EpisodeID) != null)) return false;
 
                 if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
-                    xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
+                    xrefs.All(xref => xref.CrossRefSource == (int)CrossRefSource.User)) return false;
                 if (include_only.Contains(FileIncludeOnlyType.ManualLinks) &&
-                    (xrefs.Count == 0 || xrefs.Any(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB))) return false;
+                    (xrefs.Count == 0 || xrefs.All(xref => xref.CrossRefSource != (int)CrossRefSource.User))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;

@@ -329,7 +329,8 @@ public class SeriesController : BaseController
     {
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Any(a => a.CrossRefSource == (int)CrossRefSource.User))
+            .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Where(a => a.GetVideo() != null)
+                .Any(a => a.CrossRefSource == (int)CrossRefSource.User))
             .OrderBy(series => series.SeriesName.ToLowerInvariant())
             .ToListResult(series => _seriesFactory.GetSeries(series), page, pageSize);
     }

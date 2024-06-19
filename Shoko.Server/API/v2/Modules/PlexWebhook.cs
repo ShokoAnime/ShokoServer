@@ -26,6 +26,10 @@ using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+#if DEBUG
+using Shoko.Models.Plex.Collection;
+using Shoko.Server.Plex.Libraries;
+#endif
 
 namespace Shoko.Server.API.v2.Modules;
 
