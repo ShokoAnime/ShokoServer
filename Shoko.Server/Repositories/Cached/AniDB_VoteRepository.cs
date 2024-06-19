@@ -5,7 +5,8 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -14,7 +15,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
     private PocoIndex<int, AniDB_Vote, int> EntityIDs;
     private PocoIndex<int, AniDB_Vote, (int, AniDBVoteType)> EntityIDAndTypes;
 
-    public AniDB_VoteRepository()
+    public AniDB_VoteRepository(DatabaseFactory databaseFactory, JobFactory jobFactory) : base(databaseFactory)
     {
         EndSaveCallback = cr =>
         {
@@ -22,7 +23,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
             {
                 case (int)AniDBVoteType.Anime:
                 case (int)AniDBVoteType.AnimeTemp:
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = cr.EntityID).Process().GetAwaiter().GetResult();
                     break;
                 case (int)AniDBVoteType.Episode:
                     var ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
@@ -36,7 +37,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
             {
                 case (int)AniDBVoteType.Anime:
                 case (int)AniDBVoteType.AnimeTemp:
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
+                    jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = cr.EntityID).Process().GetAwaiter().GetResult();
                     break;
                 case (int)AniDBVoteType.Episode:
                     var ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
@@ -62,7 +63,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
 
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             foreach (var dbVote in cr.Skip(1))
             {
                 using var transact = session.BeginTransaction();

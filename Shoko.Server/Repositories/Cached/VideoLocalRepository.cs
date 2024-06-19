@@ -33,7 +33,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     private PocoIndex<int, SVR_VideoLocal, string> _crc32;
     private PocoIndex<int, SVR_VideoLocal, bool> _ignored;
 
-    public VideoLocalRepository()
+    public VideoLocalRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         DeleteWithOpenTransactionCallback = (ses, obj) =>
         {
@@ -82,7 +82,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
         foreach (var batch in list.Batch(50))
         {
-            using var session2 = DatabaseFactory.SessionFactory.OpenSession();
+            using var session2 = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session2.BeginTransaction();
             foreach (var a in batch)
             {
@@ -135,7 +135,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             Resources.Database_Validating, nameof(VideoLocal),
             " Cleaning Empty Records"
         );
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         using (var transaction = session.BeginTransaction())
         {
             list = Cache.Values.Where(a => a.IsEmpty()).ToList();
@@ -230,7 +230,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public override void Delete(SVR_VideoLocal obj)
     {
-        var list = obj.GetAnimeEpisodes();
+        var list = obj.AnimeEpisodes;
         base.Delete(obj);
         list.Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
     }
@@ -253,7 +253,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
         if (updateEpisodes)
         {
-            RepoFactory.AnimeEpisode.Save(obj.GetAnimeEpisodes());
+            RepoFactory.AnimeEpisode.Save(obj.AnimeEpisodes);
         }
     }
 
@@ -336,7 +336,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             return ReadLock(
                 () => Cache.Values
                     .Where(
-                        a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                        a => a.AnimeEpisodes.Select(b => b.GetAnimeSeries()).Where(b => b != null)
                             .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)
                     ).OrderByDescending(a => a.DateTimeCreated)
                     .ToList()
@@ -345,7 +345,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
         return ReadLock(
             () => Cache.Values
-                .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                .Where(a => a.AnimeEpisodes.Select(b => b.GetAnimeSeries()).Where(b => b != null)
                     .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)).OrderByDescending(a => a.DateTimeCreated)
                 .Take(maxResults).ToList()
         );
@@ -375,13 +375,13 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return ReadLock(
             () => take == -1
                 ? Cache.Values
-                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                    .Where(a => a.AnimeEpisodes.Select(b => b.GetAnimeSeries()).Where(b => b != null)
                         .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
                     .OrderByDescending(a => a.DateTimeCreated)
                     .Skip(skip)
                     .ToList()
                 : Cache.Values
-                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                    .Where(a => a.AnimeEpisodes.Select(b => b.GetAnimeSeries()).Where(b => b != null)
                         .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
                     .OrderByDescending(a => a.DateTimeCreated)
                     .Skip(skip)
@@ -496,13 +496,13 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
                     .Where(xref => xref.CrossRefSource == (int)xrefSource.Value)
                     .Select(xref => GetByHash(xref.Hash))
-                    .Where(file => file != null)
+                    .WhereNotNull()
                     .ToList();
 
         return
             RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
                 .Select(a => GetByHash(a.Hash))
-                .Where(a => a != null)
+                .WhereNotNull()
                 .ToList();
     }
 
@@ -571,7 +571,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
         if (ep?.AniDB_Episode == null) return false;
         var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-        return anime?.GetAnime() != null;
+        return anime?.AniDB_Anime != null;
     }
 
     public List<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()

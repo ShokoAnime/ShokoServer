@@ -155,10 +155,10 @@ public class TreeController : BaseController
                     if (!user.AllowedGroup(group))
                         return false;
 
-                    return includeEmpty || group.GetAllSeries()
-                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                    return includeEmpty || group.AllSeries
+                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
                 })
-                .OrderBy(group => group.GetSortName());
+                .OrderBy(group => group.SortName);
         }
         else
         {
@@ -182,8 +182,8 @@ public class TreeController : BaseController
                     if (group == null || group.AnimeGroupParentID.HasValue)
                         return false;
 
-                    return includeEmpty || group.GetAllSeries()
-                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                    return includeEmpty || group.AllSeries
+                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
                 });
         }
 
@@ -230,10 +230,10 @@ public class TreeController : BaseController
                     if (group is not { AnimeGroupParentID: null })
                         return false;
 
-                    return includeEmpty || group.GetAllSeries()
-                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                    return includeEmpty || group.AllSeries
+                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
                 })
-                .GroupBy(group => group.GetSortName()[0])
+                .GroupBy(group => group.SortName[0])
                 .OrderBy(groupList => groupList.Key)
                 .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
         }
@@ -247,10 +247,10 @@ public class TreeController : BaseController
                 if (!user.AllowedGroup(group))
                     return false;
 
-                return includeEmpty || group.GetAllSeries()
-                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                return includeEmpty || group.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
             })
-            .GroupBy(group => group.GetSortName()[0])
+            .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)
             .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
     }
@@ -280,8 +280,8 @@ public class TreeController : BaseController
         var user = User;
         if (filterID == 0)
             return RepoFactory.AnimeSeries.GetAll()
-                .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
-                .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+                .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0))
+                .OrderBy(series => series.SeriesName.ToLowerInvariant())
                 .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
 
         // Check if the group filter exists.
@@ -299,8 +299,8 @@ public class TreeController : BaseController
 
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
         return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
-            .Where(series => series != null && (includeMissing || series.GetVideoLocals().Count > 0))
-            .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+            .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
+            .OrderBy(series => series.SeriesName.ToLowerInvariant())
             .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
     }
 
@@ -349,10 +349,10 @@ public class TreeController : BaseController
         
         // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
         // This should maintain the order of results, but have every group in the tree for those results
-        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.GetAllChildGroups().Select(b => b.AnimeGroupID)).ToArray();
+        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.AnimeGroupID)).ToArray();
         var groups = orderedGroups.ToHashSet();
         
-        return group.GetChildGroups()
+        return group.Children
             .Where(subGroup =>
             {
                 if (subGroup == null)
@@ -361,8 +361,8 @@ public class TreeController : BaseController
                 if (!user.AllowedGroup(subGroup))
                     return false;
 
-                if (!includeEmpty && !subGroup.GetAllSeries()
-                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0)))
+                if (!includeEmpty && !subGroup.AllSeries
+                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0)))
                     return false;
 
                 return groups.Contains(subGroup.AnimeGroupID);
@@ -425,10 +425,10 @@ public class TreeController : BaseController
             return new List<Series>();
 
         var seriesIDs = recursive
-            ? group.GetAllChildGroups().SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID))
+            ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID))
             : results.FirstOrDefault(a => a.Key == groupID);
 
-        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => a.GetVideoLocals().Any() || includeMissing) ??
+        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => a.VideoLocals.Any() || includeMissing) ??
                      Array.Empty<SVR_AnimeSeries>();
 
         return series
@@ -465,7 +465,7 @@ public class TreeController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
         }
 
-        return group.GetChildGroups()
+        return group.Children
             .Where(subGroup =>
             {
                 if (subGroup == null)
@@ -478,8 +478,8 @@ public class TreeController : BaseController
                     return false;
                 }
 
-                return includeEmpty || subGroup.GetAllSeries()
-                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                return includeEmpty || subGroup.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
             })
             .OrderBy(g => g.GroupName)
             .Select(g => new Group(HttpContext, g, randomImages))
@@ -513,7 +513,7 @@ public class TreeController : BaseController
         }
 
         var user = User;
-        return (recursive ? group.GetAllSeries() : group.GetSeries())
+        return (recursive ? group.AllSeries : group.Series)
             .Where(a => user.AllowedSeries(a))
             .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
@@ -551,7 +551,7 @@ public class TreeController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
         }
 
-        var mainSeries = group.GetMainSeries();
+        var mainSeries = group.MainSeries;
         if (mainSeries == null)
         {
             return InternalError("Unable to find main series for group.");
@@ -598,7 +598,7 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return ModelHelper.FilterFiles(series.GetVideoLocals(), user, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+        return ModelHelper.FilterFiles(series.VideoLocals, user, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
     
     #region Episode

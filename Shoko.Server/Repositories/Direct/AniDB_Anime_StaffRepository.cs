@@ -11,10 +11,14 @@ public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staf
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             return session.Query<AniDB_Anime_Staff>()
                 .Where(a => a.AnimeID == id)
                 .ToList();
         });
+    }
+
+    public AniDB_Anime_StaffRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

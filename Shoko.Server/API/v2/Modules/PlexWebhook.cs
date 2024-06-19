@@ -12,7 +12,6 @@ using Newtonsoft.Json;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Server;
@@ -20,11 +19,11 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
-using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Plex;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -38,12 +37,16 @@ public class PlexWebhook : BaseController
     private readonly ILogger<PlexWebhook> _logger;
     private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly AnimeSeriesService _seriesService;
+    private readonly AnimeGroupService _groupService;
 
-    public PlexWebhook(ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(settingsProvider)
+    public PlexWebhook(ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
     {
         _logger = logger;
         _traktHelper = traktHelper;
         _schedulerFactory = schedulerFactory;
+        _seriesService = seriesService;
+        _groupService = groupService;
     }
 
     //The second one is to just make sure
@@ -98,7 +101,7 @@ public class PlexWebhook : BaseController
                   (metadata.ViewOffset /
                    (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
-        var scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int)AnimeType.Movie
+        var scrobbleType = episode.GetAnimeSeries()?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
             ? ScrobblePlayingType.movie
             : ScrobblePlayingType.episode;
 
@@ -128,8 +131,8 @@ public class PlexWebhook : BaseController
 
         episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
             true);
-        anime.UpdateStats(true, false);
-        anime.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+        _seriesService.UpdateStats(anime, true, false);
+        _groupService.UpdateStatsFromTopLevel(anime.AnimeGroup?.TopLevelAnimeGroup, true, true);
     }
 
     #endregion
@@ -187,9 +190,7 @@ public class PlexWebhook : BaseController
 
 
         var animeEps = anime
-            .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
-            .Where(a => a.EpisodeTypeEnum == episodeType)
-            .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber).ToList();
+            .AnimeEpisodes.Where(a => a.EpisodeTypeEnum == episodeType && a.AniDB_Episode?.EpisodeNumber == episodeNumber).ToList();
 
         //if only one possible match
         if (animeEps.Count == 1) return (animeEps.First(), anime);

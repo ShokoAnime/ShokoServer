@@ -13,6 +13,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -62,7 +63,7 @@ public class AddFileToMyListJob : BaseJob
         // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
         // if the file is already on the user's list
 
-        var isManualLink = _videoLocal.GetAniDBFile() == null;
+        var isManualLink = _videoLocal.AniDBFile == null;
 
         // mark the video file as watched
         var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
@@ -79,7 +80,7 @@ public class AddFileToMyListJob : BaseJob
 
         if (isManualLink)
         {
-            var episodes = _videoLocal.GetAnimeEpisodes().Select(a => a.AniDB_Episode).ToArray();
+            var episodes = _videoLocal.AnimeEpisodes.Select(a => a.AniDB_Episode).ToArray();
             foreach (var episode in episodes)
             {
                 var request = _requestFactory.Create<RequestAddEpisode>(
@@ -187,17 +188,13 @@ public class AddFileToMyListJob : BaseJob
             return;
         }
 
-        foreach (var id in series)
-        {
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(id);
-            ser?.QueueUpdateStats();
-        }
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await Task.WhenAll(series.Select(id => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
 
-        // lets also try adding to the users trakt collection
+        // let's also try adding to the users trakt collection
         if (settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            foreach (var aep in _videoLocal.GetAnimeEpisodes())
+            foreach (var aep in _videoLocal.AnimeEpisodes)
             {
                 await scheduler.StartJob<SyncTraktCollectionEpisodeJob>(
                     c =>

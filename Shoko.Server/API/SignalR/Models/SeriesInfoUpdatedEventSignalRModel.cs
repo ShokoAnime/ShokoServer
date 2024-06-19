@@ -1,11 +1,8 @@
 using System.Collections.Generic;
-using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;
@@ -17,25 +14,9 @@ public class SeriesInfoUpdatedEventSignalRModel
         Source = eventArgs.SeriesInfo.Source;
         Reason = eventArgs.Reason;
         SeriesID = eventArgs.SeriesInfo.ID;
-        // TODO: Add support for more metadata sources when they're hooked up internally.
-        switch (Source)
-        {
-            case DataSourceEnum.Shoko when eventArgs.SeriesInfo is SVR_AnimeSeries shokoSeries:
-                {
-                    ShokoSeriesIDs = [shokoSeries.AnimeSeriesID];
-                    ShokoGroupIDs = shokoSeries.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
-                }
-                break;
-            case DataSourceEnum.AniDB when eventArgs.SeriesInfo is SVR_AniDB_Anime anidbAnime:
-                {
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(eventArgs.SeriesInfo.ID);
-                    if (series == null)
-                        break;
-                    ShokoSeriesIDs = [series.AnimeSeriesID];
-                    ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
-                }
-                break;
-        }
+
+        if (eventArgs.SeriesInfo.SeriesID != null) ShokoSeriesIDs = [eventArgs.SeriesInfo.SeriesID.Value];
+        ShokoGroupIDs = eventArgs.SeriesInfo.GroupIDs;
     }
 
     /// <summary>

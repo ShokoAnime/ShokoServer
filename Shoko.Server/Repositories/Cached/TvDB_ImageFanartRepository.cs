@@ -5,6 +5,7 @@ using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -72,5 +73,9 @@ public class TvDB_ImageFanartRepository : BaseCachedRepository<TvDB_ImageFanart,
     protected override int SelectKey(TvDB_ImageFanart entity)
     {
         return entity.TvDB_ImageFanartID;
+    }
+
+    public TvDB_ImageFanartRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

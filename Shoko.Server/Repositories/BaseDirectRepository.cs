@@ -9,8 +9,15 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories;
 
-public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> where T : class
+public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRepository<T, S> where T : class
 {
+    protected readonly DatabaseFactory _databaseFactory;
+
+    public BaseDirectRepository(DatabaseFactory databaseFactory)
+    {
+        _databaseFactory = databaseFactory;
+    }
+
     public Action<T> BeginDeleteCallback { get; set; }
     public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
     public Action<T> EndDeleteCallback { get; set; }
@@ -22,7 +29,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Get<T>(id);
         });
     }
@@ -41,7 +48,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.CreateCriteria(typeof(T)).List<T>().ToList();
         });
     }
@@ -69,7 +76,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
         Lock(() =>
         {
             BeginDeleteCallback?.Invoke(cr);
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             DeleteWithOpenTransactionCallback?.Invoke(session, cr);
             session.Delete(cr);
@@ -89,7 +96,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
                 BeginDeleteCallback?.Invoke(obj);
             }
 
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             foreach (var cr in objs)
             {
@@ -143,7 +150,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
         Lock(() =>
         {
             BeginSaveCallback?.Invoke(obj);
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             session.SaveOrUpdate(obj);
             SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
@@ -158,7 +165,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
 
         Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             foreach (var obj in objs)
             {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
@@ -16,6 +17,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Scheduling.Jobs.TvDB;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
 
@@ -44,7 +46,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
         try
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime == null)
             {
@@ -56,7 +58,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             // TvDB
             result.CrossRef_AniDB_TvDB = xrefs;
 
-            foreach (var ep in anime.GetTvDBEpisodes())
+            foreach (var ep in anime.TvDBEpisodes)
             {
                 result.TvDBEpisodes.Add(ep);
             }
@@ -89,7 +91,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             // Trakt
 
 
-            foreach (var xref in anime.GetCrossRefTraktV2(session))
+            foreach (var xref in anime.GetCrossRefTraktV2())
             {
                 result.CrossRef_AniDB_Trakt.Add(xref);
 
@@ -102,14 +104,14 @@ public partial class ShokoServiceImplementation : IShokoServer
 
 
             // MovieDB
-            var xrefMovie = anime.GetCrossRefMovieDB();
+            var xrefMovie = anime.CrossRefMovieDB;
             result.CrossRef_AniDB_MovieDB = xrefMovie;
 
 
-            result.MovieDBMovie = anime.GetMovieDBMovie();
+            result.MovieDBMovie = anime.MovieDBMovie;
 
 
-            foreach (var fanart in anime.GetMovieDBFanarts())
+            foreach (var fanart in anime.MovieDBFanarts)
             {
                 if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
                         StringComparison.InvariantCultureIgnoreCase))
@@ -118,7 +120,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
-            foreach (var poster in anime.GetMovieDBPosters())
+            foreach (var poster in anime.MovieDBPosters)
             {
                 if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
                         StringComparison.InvariantCultureIgnoreCase))
@@ -841,7 +843,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return seasonNumbers;
             }
 
-            foreach (var season in show.GetSeasons())
+            foreach (var season in show.GetTraktSeasons())
             {
                 seasonNumbers.Add(season.Season);
             }

@@ -130,7 +130,7 @@ public static class ModelHelper
         return (episodeNumber, episodeType, null);
     }
 
-    public static int GetTotalEpisodesForType(List<SVR_AnimeEpisode> episodeList, EpisodeType episodeType)
+    public static int GetTotalEpisodesForType(IEnumerable<SVR_AnimeEpisode> episodeList, EpisodeType episodeType)
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
@@ -183,7 +183,7 @@ public static class ModelHelper
         }
     }
 
-    public static SeriesSizes GenerateSeriesSizes(List<SVR_AnimeEpisode> episodeList, int userID)
+    public static SeriesSizes GenerateSeriesSizes(IEnumerable<SVR_AnimeEpisode> episodeList, int userID)
     {
         var now = DateTime.Now;
         var sizes = new SeriesSizes();
@@ -200,7 +200,7 @@ public static class ModelHelper
                 if (!fileSet.Add(file.VideoLocalID))
                     continue;
 
-                var anidbFile = file.GetAniDBFile();
+                var anidbFile = file.AniDBFile;
                 if (anidbFile == null)
                 {
                     sizes.FileSources.Unknown++;
@@ -359,13 +359,13 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static GroupSizes GenerateGroupSizes(List<SVR_AnimeSeries> seriesList, List<SVR_AnimeEpisode> episodeList,
+    public static GroupSizes GenerateGroupSizes(IEnumerable<SVR_AnimeSeries> seriesList, IEnumerable<SVR_AnimeEpisode> episodeList,
         int subGroups, int userID)
     {
         var sizes = new GroupSizes(GenerateSeriesSizes(episodeList, userID));
         foreach (var series in seriesList)
         {
-            var anime = series.GetAnime();
+            var anime = series.AniDB_Anime;
             switch (SeriesFactory.GetAniDBSeriesType(anime?.AnimeType))
             {
                 case SeriesType.Unknown:

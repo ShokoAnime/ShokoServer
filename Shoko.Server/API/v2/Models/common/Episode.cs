@@ -117,8 +117,8 @@ public class Episode : BaseDirectory
                     });
                 }
 
-                var fanarts = aep.GetAnimeSeries()?.GetAnime()?.Contract?.AniDBAnime?.Fanarts;
-                if (fanarts != null && fanarts.Count > 0)
+                var fanarts = aep.GetAnimeSeries()?.AniDB_Anime?.AllFanarts;
+                if (fanarts is { Count: > 0 })
                 {
                     var cont_image =
                         fanarts[new Random().Next(fanarts.Count)];

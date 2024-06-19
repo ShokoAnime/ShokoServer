@@ -4,6 +4,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -86,5 +87,9 @@ public class CrossRef_Anime_StaffRepository : BaseCachedRepository<CrossRef_Anim
     {
         return GetByAnimeID(AnimeID).FirstOrDefault(a =>
             a.RoleID == RoleID && a.StaffID == StaffID && a.RoleType == (int)RoleType);
+    }
+
+    public CrossRef_Anime_StaffRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

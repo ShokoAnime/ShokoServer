@@ -21,7 +21,7 @@ public class AniDB_ReleaseGroupRepository : BaseCachedRepository<AniDB_ReleaseGr
     {
         var results = Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Query<AniDB_ReleaseGroup>().Where(a => a.GroupName != "raw/unknown").Join(session.Query<AniDB_File>(), a => a.GroupID, a => a.GroupID, (a, b) => new { Group = a, File = b })
                 .Join(session.Query<SVR_CrossRef_File_Episode>(), a => a.File.Hash, a => a.Hash, (a, b) => a.Group).OrderBy(a => a.GroupName).ToList().Distinct().ToList();
         });
@@ -32,7 +32,7 @@ public class AniDB_ReleaseGroupRepository : BaseCachedRepository<AniDB_ReleaseGr
     {
         var results = Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Query<AniDB_ReleaseGroup>().Where(a => a.GroupName != "raw/unknown").LeftJoin(session.Query<AniDB_File>(), a => a.GroupID, a => a.GroupID,
                 (a, b) => new { Group = a, File = b }).Where(a => a.File == null).Select(a => a.Group).OrderBy(a => a.GroupName).ToList().Distinct().ToList();
         });
@@ -51,5 +51,9 @@ public class AniDB_ReleaseGroupRepository : BaseCachedRepository<AniDB_ReleaseGr
     protected override int SelectKey(AniDB_ReleaseGroup entity)
     {
         return entity.AniDB_ReleaseGroupID;
+    }
+
+    public AniDB_ReleaseGroupRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

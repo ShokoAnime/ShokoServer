@@ -11,12 +11,16 @@ public class VersionsRepository : BaseDirectRepository<Versions, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<Versions>()
                 .Where(a => a.VersionType == vertype).ToList()
                 .GroupBy(a => (a.VersionValue ?? string.Empty, a.VersionRevision ?? string.Empty))
                 .ToDictionary(a => a.Key, a => a.FirstOrDefault());
         });
+    }
+
+    public VersionsRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

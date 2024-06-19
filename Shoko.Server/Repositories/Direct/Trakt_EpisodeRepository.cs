@@ -11,7 +11,7 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<Trakt_Episode>()
                 .Where(a => a.Trakt_ShowID == showID)
@@ -23,7 +23,7 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<Trakt_Episode>()
                 .Where(a => a.Trakt_ShowID == showID && a.Season == seasonNumber)
@@ -35,12 +35,16 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<Trakt_Episode>()
                 .Where(a => a.Trakt_ShowID == showID && a.Season == seasonNumber && a.EpisodeNumber == epnumber)
                 .Take(1)
                 .SingleOrDefault();
         });
+    }
+
+    public Trakt_EpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

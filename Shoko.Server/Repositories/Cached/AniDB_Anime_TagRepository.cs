@@ -4,9 +4,10 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_Anime_TagRepository : BaseCachedRepository<AniDB_Anime_Tag, int>
 {
@@ -84,5 +85,9 @@ public class AniDB_Anime_TagRepository : BaseCachedRepository<AniDB_Anime_Tag, i
             .Where(a => a != null)
             .Distinct()
             .ToList();
+    }
+
+    public AniDB_Anime_TagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

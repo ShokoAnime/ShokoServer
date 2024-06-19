@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.IO;
 using System.Linq;
 using System.Security.Principal;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
@@ -113,9 +111,9 @@ public class SVR_JMMUser : JMMUser, IIdentity
     public bool AllowedSeries(SVR_AnimeSeries ser)
     {
         if (this.GetHideCategories().Count == 0) return true;
-        var anime = ser?.GetAnime();
+        var anime = ser?.AniDB_Anime;
         if (anime == null) return false;
-        return !this.GetHideCategories().FindInEnumerable(anime.GetTags().Select(a => a.TagName));
+        return !this.GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
     }
 
     /// <summary>
@@ -126,14 +124,13 @@ public class SVR_JMMUser : JMMUser, IIdentity
     public bool AllowedAnime(SVR_AniDB_Anime anime)
     {
         if (this.GetHideCategories().Count == 0) return true;
-        return !this.GetHideCategories().FindInEnumerable(anime.GetTags().Select(a => a.TagName));
+        return !this.GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
     }
 
     public bool AllowedGroup(SVR_AnimeGroup grp)
     {
         if (this.GetHideCategories().Count == 0) return true;
-        if (grp.Contract == null) return false;
-        return !this.GetHideCategories().FindInEnumerable(grp.Contract.Stat_AllTags);
+        return !AllowedGroup(grp);
     }
 
     public bool AllowedTag(AniDB_Tag tag)

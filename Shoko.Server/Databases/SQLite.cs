@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using Shoko.Commons.Properties;
 using Shoko.Server.Databases.NHIbernate;
@@ -21,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 111;
+    public override int RequiredVersion => 112;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -682,6 +683,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(109, 1, "DROP TABLE CommandRequest"),
         new(110, 1, "ALTER TABLE AnimeEpisode ADD EpisodeNameOverride text"),
         new(111, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
+        new(112, 1, "ALTER TABLE AniDB_Anime DROP COLUMN ContractVersion;ALTER TABLE AniDB_Anime DROP COLUMN ContractBlob;ALTER TABLE AniDB_Anime DROP COLUMN ContractSize;"),
+        new(112, 2, "ALTER TABLE AnimeSeries DROP COLUMN ContractVersion;ALTER TABLE AnimeSeries DROP COLUMN ContractBlob;ALTER TABLE AnimeSeries DROP COLUMN ContractSize;"),
+        new(112, 3, "ALTER TABLE AnimeGroup DROP COLUMN ContractVersion;ALTER TABLE AnimeGroup DROP COLUMN ContractBlob;ALTER TABLE AnimeGroup DROP COLUMN ContractSize;"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)
@@ -689,7 +693,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         try
         {
             var myConn = (SqliteConnection)connection;
-            var factory = (SQLite)DatabaseFactory.Instance;
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
 
             var addCommand = "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
             var updateCommand =
@@ -706,7 +710,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             var createCommand =
                 "CREATE TABLE CrossRef_Languages_AniDB_File ( CrossRef_Languages_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageName TEXT NOT NULL);";
 
-            ((SQLite)DatabaseFactory.Instance).DropColumns(
+            factory.DropColumns(
                 myConn, "CrossRef_Languages_AniDB_File",
                 new List<string> { "LanguageID" }, createCommand, new List<string>()
             );
@@ -714,7 +718,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             createCommand =
                 "CREATE TABLE CrossRef_Subtitles_AniDB_File ( CrossRef_Subtitles_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageName TEXT NOT NULL);";
 
-            ((SQLite)DatabaseFactory.Instance).DropColumns(
+            factory.DropColumns(
                 myConn, "CrossRef_Subtitles_AniDB_File",
                 new List<string> { "LanguageID" }, createCommand, new List<string>()
             );
@@ -734,6 +738,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var indexCommands = new List<string>
             {
@@ -742,7 +747,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             var createCommand =
                 "CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp, EndDate timestamp, URL text, Picname text, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, Restricted int NOT NULL, AnimePlanetID int, ANNID int, AllCinemaID int, AnimeNfo int, LatestEpisodeNumber int, DisableExternalLinksFlag int, ContractVersion int DEFAULT 0 NOT NULL, ContractBlob BLOB, ContractSize int DEFAULT 0 NOT NULL, Site_JP TEXT, Site_EN TEXT, Wikipedia_ID TEXT, WikipediaJP_ID TEXT, SyoboiID INT, AnisonID INT, CrunchyrollID TEXT );";
 
-            ((SQLite)DatabaseFactory.Instance).DropColumns(
+            factory.DropColumns(
                 myConn, "AniDB_Anime",
                 new List<string> { "AwardList" }, createCommand, indexCommands
             );
@@ -759,6 +764,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var indexCommands = new List<string>
             {
@@ -769,7 +775,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             var createCommand =
                 "CREATE TABLE AniDB_Anime_Character ( AniDB_Anime_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int  NOT NULL, CharID int  NOT NULL, CharType text NOT NULL);";
 
-            ((SQLite)DatabaseFactory.Instance).DropColumns(
+            factory.DropColumns(
                 myConn, "AniDB_Anime_Character",
                 new List<string> { "EpisodeListRaw" }, createCommand, indexCommands
             );
@@ -786,6 +792,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var indexCommands = new List<string>
             {
@@ -794,7 +801,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             var createCommand =
                 "CREATE TABLE AniDB_Character (AniDB_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, CharID int NOT NULL, CharName text NOT NULL, PicName text NOT NULL, CharKanjiName text NOT NULL, CharDescription text NOT NULL);";
 
-            ((SQLite)DatabaseFactory.Instance).DropColumns(
+            factory.DropColumns(
                 myConn, "AniDB_Character",
                 new List<string> { "CreatorListRaw" }, createCommand, indexCommands
             );
@@ -811,6 +818,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var commands = new List<string>
             {
@@ -826,7 +834,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 
             foreach (var command in commands)
             {
-                ((SQLite)DatabaseFactory.Instance).Execute(myConn, command);
+                factory.Execute(myConn, command);
             }
         }
         catch (Exception e)
@@ -841,6 +849,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var indexCommands = new List<string>
             {
@@ -851,7 +860,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             var createCommand =
                 "CREATE TABLE AniDB_File ( AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, Hash text NOT NULL, GroupID int NOT NULL, File_Source text NOT NULL, File_Description text NOT NULL, File_ReleaseDate int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL, FileSize INTEGER NOT NULL,  FileVersion int NULL, InternalVersion int NULL, IsDeprecated int NOT NULL, IsCensored int NULL, IsChaptered INT NOT NULL);";
 
-            ((SQLite)DatabaseFactory.Instance).DropColumns(
+            factory.DropColumns(
                 myConn, "AniDB_File",
                 new List<string>
                 {
@@ -885,6 +894,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var indexCommands = new List<string>
             {
@@ -894,7 +904,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             var createCommand =
                 "CREATE TABLE AnimeEpisode_User (AnimeEpisode_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, AnimeEpisodeID int NOT NULL, AnimeSeriesID int NOT NULL, WatchedDate timestamp, PlayedCount int NOT NULL, WatchedCount int NOT NULL, StoppedCount int NOT NULL);";
 
-            ((SQLite)DatabaseFactory.Instance).DropColumns(
+            factory.DropColumns(
                 myConn, "AnimeEpisode_User",
                 new List<string> { "ContractSize", "ContractBlob", "ContractVersion" }, createCommand, indexCommands
             );
@@ -911,12 +921,13 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var createvlcommand =
                 "CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL DEFAULT '', DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0, MyListID INT NOT NULL DEFAULT 0);";
             var indexvlcommands =
                 new List<string> { "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)" };
-            ((SQLite)DatabaseFactory.Instance).DropColumns(myConn, "VideoLocal",
+            factory.DropColumns(myConn, "VideoLocal",
                 new List<string>
                 {
                     "VideoCodec",
@@ -940,6 +951,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var createcommand =
                 "create table AniDB_Episode ( AniDB_EpisodeID integer primary key autoincrement, EpisodeID int not null, AnimeID int not null, LengthSeconds int not null, Rating text not null, Votes text not null, EpisodeNumber int not null, EpisodeType int not null, AirDate int not null, DateTimeUpdated datetime not null, Description text default '' not null )";
@@ -948,7 +960,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
                 "create index IX_AniDB_Episode_AnimeID on AniDB_Episode (AnimeID)",
                 "create unique index UIX_AniDB_Episode_EpisodeID on AniDB_Episode (EpisodeID)"
             };
-            ((SQLite)DatabaseFactory.Instance).DropColumns(myConn, "AniDB_Episode",
+            factory.DropColumns(myConn, "AniDB_Episode",
                 new List<string> { "EnglishName", "RomajiName" }, createcommand, indexcommands);
             return new Tuple<bool, string>(true, null);
         }
@@ -962,6 +974,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             // I'm doing this manually to save time
             var myConn = (SqliteConnection)connection;
 
@@ -978,7 +991,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             };
             foreach (var cmdTable in cmds)
             {
-                ((SQLite)DatabaseFactory.Instance).Execute(myConn, cmdTable);
+                factory.Execute(myConn, cmdTable);
             }
 
             return new Tuple<bool, string>(true, null);
@@ -993,6 +1006,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var createcommand =
                 "CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp NULL, EndDate timestamp NULL, URL text NULL, Picname text NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, AwardList text NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, LatestEpisodeNumber int NULL, DisableExternalLinksFlag int NULL );";
@@ -1000,7 +1014,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             {
                 "CREATE UNIQUE INDEX [UIX2_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);"
             };
-            ((SQLite)DatabaseFactory.Instance).DropColumns(myConn, "AniDB_Anime",
+            factory.DropColumns(myConn, "AniDB_Anime",
                 new List<string> { "AllCategories" }, createcommand, indexcommands);
             return new Tuple<bool, string>(true, null);
         }
@@ -1015,12 +1029,13 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var createvlcommand =
                 "CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL DEFAULT '', VideoCodec text NOT NULL DEFAULT '', VideoBitrate text NOT NULL DEFAULT '',VideoBitDepth text NOT NULL DEFAULT '',VideoFrameRate text NOT NULL DEFAULT '',VideoResolution text NOT NULL DEFAULT '',AudioCodec text NOT NULL DEFAULT '',AudioBitrate text NOT NULL DEFAULT '',Duration INTEGER NOT NULL DEFAULT 0,DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0 );";
             var indexvlcommands =
                 new List<string> { "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)" };
-            ((SQLite)DatabaseFactory.Instance).DropColumns(myConn, "VideoLocal",
+            factory.DropColumns(myConn, "VideoLocal",
                 new List<string> { "FilePath", "ImportFolderID" }, createvlcommand, indexvlcommands);
             return new Tuple<bool, string>(true, null);
         }
@@ -1034,12 +1049,13 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var createtvepcommand =
                 "CREATE TABLE TvDB_Episode ( TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, Id int NOT NULL, SeriesID int NOT NULL, SeasonID int NOT NULL, SeasonNumber int NOT NULL, EpisodeNumber int NOT NULL, EpisodeName text, Overview text, Filename text, EpImgFlag int NOT NULL, AbsoluteNumber int, AirsAfterSeason int, AirsBeforeEpisode int, AirsBeforeSeason int, AirDate timestamp, Rating int)";
             var indextvepcommands =
                 new List<string> { "CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id);" };
-            ((SQLite)DatabaseFactory.Instance).DropColumns(myConn, "TvDB_Episode",
+            factory.DropColumns(myConn, "TvDB_Episode",
                 new List<string> { "FirstAired" }, createtvepcommand, indextvepcommands);
             return new Tuple<bool, string>(true, null);
         }
@@ -1053,6 +1069,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
     {
         try
         {
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             var myConn = (SqliteConnection)connection;
             var createvluser =
                 "CREATE TABLE VideoLocal_User ( VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate timestamp NULL, ResumePosition bigint NOT NULL DEFAULT 0); ";
@@ -1060,7 +1077,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             {
                 "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);"
             };
-            ((SQLite)DatabaseFactory.Instance).Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
+            factory.Alter(myConn, "VideoLocal_User", createvluser, indexvluser);
             return new Tuple<bool, string>(true, null);
         }
         catch (Exception e)

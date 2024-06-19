@@ -73,4 +73,8 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
         Delete(user);
         return true;
     }
+
+    public JMMUserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
+    }
 }

@@ -5,6 +5,7 @@ using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.AdoNet;
 using NHibernate.Driver;
@@ -22,7 +23,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 118;
+    public override int RequiredVersion { get; } = 119;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -687,7 +688,10 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(115, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
         new DatabaseCommand(116, 1, "DROP TABLE CommandRequest"),
         new DatabaseCommand(117, 1, "ALTER TABLE AnimeEpisode ADD EpisodeNameOverride nvarchar(500) NULL"),
-        new(118, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
+        new DatabaseCommand(118, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
+        new DatabaseCommand(119, 1, "ALTER TABLE AniDB_Anime DROP COLUMN ContractVersion;ALTER TABLE AniDB_Anime DROP COLUMN ContractBlob;ALTER TABLE AniDB_Anime DROP COLUMN ContractSize;"),
+        new DatabaseCommand(119, 2, "ALTER TABLE AnimeSeries DROP COLUMN ContractVersion;ALTER TABLE AnimeSeries DROP COLUMN ContractBlob;ALTER TABLE AnimeSeries DROP COLUMN ContractSize;"),
+        new DatabaseCommand(119, 3, "ALTER TABLE AnimeGroup DROP COLUMN ContractVersion;ALTER TABLE AnimeGroup DROP COLUMN ContractBlob;ALTER TABLE AnimeGroup DROP COLUMN ContractSize;"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
@@ -739,7 +743,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
 
     private static void DropColumnWithDefaultConstraint(string table, string column)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
         var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
@@ -758,7 +762,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
 
     private static void DropDefaultConstraint(string table, string column)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
         var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')

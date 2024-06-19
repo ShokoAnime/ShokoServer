@@ -17,7 +17,7 @@ public class FileEventSignalRModel
         var xrefs = eventArgs.VideoInfo.CrossReferences;
         var episodeDict = eventArgs.EpisodeInfo
             .Cast<SVR_AniDB_Episode>()
-            .Select(e => e.GetShokoEpisode())
+            .Select(e => e.AnimeEpisode)
             .Where(e => e != null)
             .ToDictionary(e => e!.AniDB_EpisodeID, e => e!);
         var animeToGroupDict = episodeDict.Values

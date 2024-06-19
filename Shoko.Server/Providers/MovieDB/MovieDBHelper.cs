@@ -10,9 +10,9 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Utilities;
 using TMDbLib.Client;
@@ -23,12 +23,16 @@ public class MovieDBHelper
 {
     private readonly ILogger<MovieDBHelper> _logger;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly DatabaseFactory _databaseFactory;
+    private readonly JobFactory _jobFactory;
     private const string APIKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
-    public MovieDBHelper(ILogger<MovieDBHelper> logger, ISchedulerFactory schedulerFactory)
+    public MovieDBHelper(ILogger<MovieDBHelper> logger, ISchedulerFactory schedulerFactory, DatabaseFactory databaseFactory, JobFactory jobFactory)
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
+        _databaseFactory = databaseFactory;
+        _jobFactory = jobFactory;
     }
 
     private async Task SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
@@ -162,7 +166,7 @@ public class MovieDBHelper
 
     public async Task UpdateAllMovieInfo(bool saveImages)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         var all = RepoFactory.MovieDb_Movie.GetAll();
         var max = all.Count;
         var i = 0;
@@ -225,7 +229,7 @@ public class MovieDBHelper
         xref.CrossRefType = (int)CrossRefType.MovieDB;
         xref.CrossRefID = movieDBID.ToString();
         RepoFactory.CrossRef_AniDB_Other.Save(xref);
-        SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+        _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).Process().GetAwaiter().GetResult();
 
         _logger.LogTrace("Changed moviedb association: {AnimeID}", animeID);
     }
@@ -256,14 +260,14 @@ public class MovieDBHelper
         {
             if (ser.IsTMDBAutoMatchingDisabled) continue;
 
-            var anime = ser.GetAnime();
+            var anime = ser.AniDB_Anime;
             if (anime == null) continue;
 
             // don't scan if it is associated on the TvDB
             if (anime.GetCrossRefTvDB().Count > 0) continue;
 
             // don't scan if it is associated on the MovieDB
-            if (anime.GetCrossRefMovieDB() != null) continue;
+            if (anime.CrossRefMovieDB != null) continue;
 
             // don't scan if it is not a movie
             if (!anime.GetSearchOnMovieDB()) continue;

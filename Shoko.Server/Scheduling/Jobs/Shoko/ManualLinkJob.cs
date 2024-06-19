@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -22,10 +21,9 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 public class ManualLinkJob : BaseJob
 {
     private readonly IServerSettings _settings;
-
     private readonly ISchedulerFactory _schedulerFactory;
-
     private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly AnimeSeriesService _seriesService;
 
     private SVR_AnimeEpisode _episode;
 
@@ -88,7 +86,6 @@ public class ManualLinkJob : BaseJob
 
         await ProcessFileQualityFilter();
 
-
         // Set the import date.
         _vlocal.DateTimeImported = DateTime.Now;
         RepoFactory.VideoLocal.Save(_vlocal);
@@ -98,12 +95,12 @@ public class ManualLinkJob : BaseJob
         RepoFactory.AnimeSeries.Save(ser, false, true);
 
         //Update will re-save
-        ser.QueueUpdateStats();
+        _seriesService.QueueUpdateStats(ser);
 
         foreach (var grp in ser.AllGroupsAbove)
         {
             grp.EpisodeAddedDate = DateTime.Now;
-            RepoFactory.AnimeGroup.Save(grp, false, false);
+            RepoFactory.AnimeGroup.Save(grp, false);
         }
 
         // Dispatch the on file matched event.
@@ -138,11 +135,12 @@ public class ManualLinkJob : BaseJob
         foreach (var toDelete in videoLocals.SelectMany(a => a.Places)) await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(toDelete);
     }
 
-    public ManualLinkJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService)
+    public ManualLinkJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService, AnimeSeriesService seriesService)
     {
         _settings = settingsProvider.GetSettings();
         _schedulerFactory = schedulerFactory;
         _vlPlaceService = vlPlaceService;
+        _seriesService = seriesService;
     }
 
     protected ManualLinkJob() { }

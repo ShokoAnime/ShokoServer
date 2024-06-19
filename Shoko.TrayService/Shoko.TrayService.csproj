@@ -15,7 +15,7 @@
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <UseWPF>true</UseWPF>
         <UseWindowsForms>true</UseWindowsForms>
-        <Configurations>Debug;Release;ApiLogging</Configurations>
+        <Configurations>Debug;Release;ApiLogging;Benchmarks</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
         <Nullable>enable</Nullable>

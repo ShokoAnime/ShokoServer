@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Shoko.Server.Extensions;

@@ -12,7 +12,7 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<Trakt_Season>()
                 .Where(a => a.Trakt_ShowID == id)
@@ -24,7 +24,7 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return GetByShowIDAndSeasonUnsafe(session, id, season);
         });
     }
@@ -40,5 +40,9 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
             .Query<Trakt_Season>()
             .Where(a => a.Trakt_ShowID == id && a.Season == season)
             .Take(1).SingleOrDefault();
+    }
+
+    public Trakt_SeasonRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

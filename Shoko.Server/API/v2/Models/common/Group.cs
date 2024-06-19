@@ -53,7 +53,7 @@ public class Group : BaseDirectory
         }
 
         var animes = evaluatedSeriesIDs != null
-            ? evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).Select(ser => ser.GetAnime()).Where(a => a != null).OrderBy(a => a.BeginYear)
+            ? evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).Select(ser => ser.AniDB_Anime).Where(a => a != null).OrderBy(a => a.BeginYear)
                 .ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList()
             : ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
 
@@ -68,13 +68,13 @@ public class Group : BaseDirectory
         if (evaluatedSeriesIDs != null)
         {
             var series = evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).ToList();
-            ael = series.SelectMany(ser => ser?.GetAnimeEpisodes()).Where(a => a != null).ToList();
+            ael = series.SelectMany(ser => ser?.AnimeEpisodes).Where(a => a != null).ToList();
             g.size = series.Count;
         }
         else
         {
-            var series = ag.GetAllSeries();
-            ael = series.SelectMany(a => a?.GetAnimeEpisodes()).Where(a => a != null).ToList();
+            var series = ag.AllSeries;
+            ael = series.SelectMany(a => a?.AnimeEpisodes).Where(a => a != null).ToList();
             g.size = series.Count;
         }
 
@@ -84,55 +84,41 @@ public class Group : BaseDirectory
 
         g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
         g.summary = anime.Description ?? string.Empty;
-        g.titles = anime.GetTitles().Select(s => new AnimeTitle
+        g.titles = anime.Titles.Select(s => new AnimeTitle
         {
             Type = s.TitleType.ToString().ToLower(), Language = s.LanguageCode, Title = s.Title
         }).ToList();
         g.year = anime.BeginYear.ToString();
 
-        if (!notag && ag.Contract.Stat_AllTags != null)
+        var tags = ag.Tags.Select(a => a.TagName).ToList();
+        if (!notag && tags.Count > 0)
         {
-            g.tags = TagFilter.String.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList());
+            g.tags = TagFilter.String.ProcessTags(tagfilter, tags);
         }
 
         if (!nocast)
         {
-            var xref_animestaff =
-                RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
+            var xref_animestaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
             foreach (var xref in xref_animestaff)
             {
-                if (xref.RoleID == null)
-                {
-                    continue;
-                }
+                if (xref.RoleID == null) continue;
 
                 var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
-                if (character == null)
-                {
-                    continue;
-                }
+                if (character == null) continue;
 
                 var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
-                if (staff == null)
-                {
-                    continue;
-                }
+                if (staff == null) continue;
 
                 var role = new Role
                 {
                     character = character.Name,
-                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character,
-                        xref.RoleID.Value),
+                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character, xref.RoleID.Value),
                     staff = staff.Name,
-                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff,
-                        xref.StaffID),
+                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff, xref.StaffID),
                     role = xref.Role,
                     type = ((StaffRoleType)xref.RoleType).ToString()
                 };
-                if (g.roles == null)
-                {
-                    g.roles = new List<Role>();
-                }
+                g.roles ??= new List<Role>();
 
                 g.roles.Add(role);
             }
@@ -249,7 +235,7 @@ public class Group : BaseDirectory
 
                 if (fanarts.Count > 0)
                 {
-                    var default_fanart = anime.GetDefaultFanart();
+                    var default_fanart = anime.DefaultFanart;
 
                     if (default_fanart != null)
                     {
@@ -274,7 +260,7 @@ public class Group : BaseDirectory
 
                 if (banners.Count > 0)
                 {
-                    var default_fanart = anime.GetDefaultWideBanner();
+                    var default_fanart = anime.DefaultWideBanner;
 
                     if (default_fanart != null)
                     {

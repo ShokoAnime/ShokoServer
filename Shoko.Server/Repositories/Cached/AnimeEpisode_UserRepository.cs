@@ -3,6 +3,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
 
@@ -90,5 +91,9 @@ public class AnimeEpisode_UserRepository : BaseCachedRepository<SVR_AnimeEpisode
     public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
     {
         return ReadLock(() => UsersSeries.GetMultiple((userid, seriesid)));
+    }
+
+    public AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

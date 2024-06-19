@@ -2,9 +2,10 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_Episode_TitleRepository : BaseCachedRepository<SVR_AniDB_Episode_Title, int>
 {
@@ -32,5 +33,9 @@ public class AniDB_Episode_TitleRepository : BaseCachedRepository<SVR_AniDB_Epis
     public List<SVR_AniDB_Episode_Title> GetByEpisodeID(int id)
     {
         return ReadLock(() => Episodes.GetMultiple(id));
+    }
+
+    public AniDB_Episode_TitleRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

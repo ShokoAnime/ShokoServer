@@ -11,6 +11,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
@@ -23,6 +24,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ISettingsProvider _settingsProvider;
+    private readonly AnimeSeriesService _seriesService;
 
     private string FullFileName { get; set; }
     public string Hash { get; set; }
@@ -59,7 +61,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         var vid = RepoFactory.VideoLocal.GetByHash(Hash);
         if (vid == null) return Task.CompletedTask;
 
-        if (vid.GetAniDBFile() != null)
+        if (vid.AniDBFile != null)
         {
             _logger.LogInformation("Updating File MyList Status: {Hash}|{Size}", vid.Hash, vid.FileSize);
             var request = _requestFactory.Create<RequestUpdateFile>(
@@ -107,19 +109,18 @@ public class UpdateMyListFileStatusJob : BaseJob
         var eps = RepoFactory.AnimeEpisode.GetByHash(vid.Hash);
         if (eps.Count > 0)
         {
-            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
+            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => _seriesService.QueueUpdateStats(a.GetAnimeSeries()));
         }
 
         return Task.CompletedTask;
     }
     
-    public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider)
+    public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService)
     {
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
+        _seriesService = seriesService;
     }
 
-    protected UpdateMyListFileStatusJob()
-    {
-    }
+    protected UpdateMyListFileStatusJob() { }
 }

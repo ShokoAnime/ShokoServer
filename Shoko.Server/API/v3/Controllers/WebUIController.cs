@@ -10,14 +10,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -203,7 +201,7 @@ public class WebUIController : BaseController
 
         try
         {
-            theme = await WebUIThemeProvider.UpdateTheme(theme, false);
+            theme = await WebUIThemeProvider.UpdateTheme(theme);
             return new WebUITheme(theme);
         }
         catch (ValidationException valEx)
@@ -235,8 +233,8 @@ public class WebUIController : BaseController
                     return null;
                 }
 
-                var series = group.GetMainSeries();
-                var anime = series?.GetAnime();
+                var series = group.MainSeries;
+                var anime = series?.AniDB_Anime;
                 if (series == null || anime == null)
                 {
                     return null;
@@ -446,10 +444,10 @@ public class WebUIController : BaseController
                                 DateTime releaseDate = release.published_at;
                                 releaseDate = releaseDate.ToUniversalTime();
                                 string description = release.body;
-                                return Cache.Set<ComponentVersion>(key, new ComponentVersion
+                                return Cache.Set(key, new ComponentVersion
                                 {
                                     Version = version,
-                                    Commit = commit[0..7],
+                                    Commit = commit[..7],
                                     ReleaseChannel = ReleaseChannel.Dev,
                                     ReleaseDate = releaseDate,
                                     Tag = tagName,
@@ -524,7 +522,7 @@ public class WebUIController : BaseController
                     string commitSha = masterBranch["object"].sha;
                     var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", "shokoanime/shokoserver");
                     string tagName = latestRelease.tag_name;
-                    string version = tagName[1..] + ".0";
+                    var version = tagName[1..] + ".0";
                     DateTime releaseDate = latestCommit.commit.author.date;
                     releaseDate = releaseDate.ToUniversalTime();
                     string description;
@@ -536,7 +534,7 @@ public class WebUIController : BaseController
                     // We're not on the latest daily release.
                     else if (!string.Equals(currentCommit, commitSha))
                     {
-                        var diff = WebUI.WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", "shokoanime/shokoserver");
+                        var diff = WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", "shokoanime/shokoserver");
                         var aheadBy = (int)diff.ahead_by;
                         var behindBy = (int)diff.behind_by;
                         description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
@@ -545,7 +543,7 @@ public class WebUIController : BaseController
                     else {
                         description = "All caught up! You are running the latest daily release.";
                     }
-                    return Cache.Set<ComponentVersion>(key, new ComponentVersion
+                    return Cache.Set(key, new ComponentVersion
                     {
                         Version = version,
                         Commit = commitSha,
@@ -582,19 +580,19 @@ public class WebUIController : BaseController
                     var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", "shokoanime/shokoserver");
                     string tagName = latestRelease.tag_name;
                     var tagResponse = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}", "shokoanime/shokoserver");
-                    string version = tagName[1..] + ".0";
+                    var version = tagName[1..] + ".0";
                     string commit = tagResponse["object"].sha;
                     DateTime releaseDate = latestRelease.published_at;
                     releaseDate = releaseDate.ToUniversalTime();
                     string description = latestRelease.body;
-                    return Cache.Set<ComponentVersion>(key, new ComponentVersion
+                    return Cache.Set(key, new ComponentVersion
                     {
                         Version = version,
                         Commit = commit,
                         ReleaseChannel = ReleaseChannel.Stable,
                         ReleaseDate = releaseDate,
                         Tag = tagName,
-                        Description = description.Trim(),
+                        Description = description.Trim()
                     }, CacheTTL);
                 }
             }

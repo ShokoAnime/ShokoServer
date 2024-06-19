@@ -7,7 +7,6 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
@@ -17,6 +16,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Server;
@@ -32,16 +32,18 @@ public class TvDBApiHelper
 {
     private readonly ITvDbClient _client;
     private readonly ILogger<TvDBApiHelper> _logger;
+    private readonly JobFactory _jobFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly IConnectivityService _connectivityService;
 
-    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ISettingsProvider settingsProvider, IConnectivityService connectivityService, ISchedulerFactory schedulerFactory)
+    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ISettingsProvider settingsProvider, IConnectivityService connectivityService, ISchedulerFactory schedulerFactory, JobFactory jobFactory)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
         _connectivityService = connectivityService;
         _schedulerFactory = schedulerFactory;
+        _jobFactory = jobFactory;
         _client = new TvDbClient();
         _client.BaseUrl = "https://api-beta.thetvdb.com";
     }
@@ -276,7 +278,7 @@ public class TvDBApiHelper
 
         if (updateStats)
         {
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).Process().GetAwaiter().GetResult();
         }
     }
 
@@ -895,8 +897,8 @@ public class TvDBApiHelper
             }
 
             // Updating stats as it will not happen with the episodes
-            RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(seriesID).Select(a => a.AniDBID).Distinct()
-                .ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
+            await Task.WhenAll(RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(seriesID).Select(a => a.AniDBID).Distinct()
+                .Select(animeID => _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).Process()));
 
             return tvSeries;
         }
@@ -920,7 +922,7 @@ public class TvDBApiHelper
 
         var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniDBID);
 
-        SVR_AniDB_Anime.UpdateStatsByAnimeID(ep.AniDB_Episode.AnimeID);
+        _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = ep.AniDB_Episode.AnimeID).Process().GetAwaiter().GetResult();
         RepoFactory.AnimeEpisode.Save(ep);
 
         _logger.LogTrace("Changed tvdb episode association: {AniDbid}", aniDBID);
@@ -949,7 +951,7 @@ public class TvDBApiHelper
             RepoFactory.AnimeSeries.Save(series, false, true);
         }
 
-        SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+        _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).Process().GetAwaiter().GetResult();
     }
 
     public async Task ScanForMatches()
@@ -966,7 +968,7 @@ public class TvDBApiHelper
             if (ser.IsTvDBAutoMatchingDisabled)
                 continue;
 
-            var anime = ser.GetAnime();
+            var anime = ser.AniDB_Anime;
             if (anime == null)
                 continue;
 
@@ -1102,7 +1104,7 @@ public class TvDBApiHelper
 
             foreach (var ser in RepoFactory.AnimeSeries.GetAll())
             {
-                var xrefs = ser.GetCrossRefTvDB();
+                var xrefs = ser.TvDBXrefs;
                 if (xrefs == null)
                 {
                     continue;

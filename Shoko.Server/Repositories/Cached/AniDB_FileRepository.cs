@@ -1,15 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_FileRepository : BaseCachedRepository<SVR_AniDB_File, int>
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private readonly JobFactory _jobFactory;
 
     private PocoIndex<int, SVR_AniDB_File, string> Hashes;
     private PocoIndex<int, SVR_AniDB_File, int> FileIds;
@@ -47,7 +51,7 @@ public class AniDB_FileRepository : BaseCachedRepository<SVR_AniDB_File, int>
 
         Logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {Hash}", obj.Hash);
         var anime = RepoFactory.CrossRef_File_Episode.GetByHash(obj.Hash).Select(a => a.AnimeID).Distinct();
-        anime.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
+        Task.WhenAll(anime.Select(a => _jobFactory.CreateJob<RefreshAnimeStatsJob>(b => b.AnimeID = a).Process())).GetAwaiter().GetResult();
     }
 
 
@@ -70,5 +74,10 @@ public class AniDB_FileRepository : BaseCachedRepository<SVR_AniDB_File, int>
     public SVR_AniDB_File GetByFileID(int fileID)
     {
         return ReadLock(() => FileIds.GetOne(fileID));
+    }
+
+    public AniDB_FileRepository(DatabaseFactory databaseFactory, JobFactory jobFactory) : base(databaseFactory)
+    {
+        _jobFactory = jobFactory;
     }
 }

@@ -13,7 +13,7 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             var cr = session
                 .Query<RenameScript>()
                 .Where(a => a.IsEnabledOnImport == 1)
@@ -27,7 +27,7 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
         return Lock(() =>
         {
             // This should list the enabled one first, falling back if none are
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<RenameScript>()
                 .OrderByDescending(a => a.IsEnabledOnImport)
@@ -42,7 +42,7 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
             return null;
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<RenameScript>()
                 .Where(a => a.ScriptName == scriptName)
@@ -54,12 +54,16 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
     public List<RenameScript> GetByRenamerType(string renamerType)
     {
         if (string.IsNullOrEmpty(renamerType)) return new();
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         var cr = session
             .CreateCriteria(typeof(RenameScript))
             .Add(Restrictions.Eq("RenamerType", renamerType))
             .List<RenameScript>()
             .ToList();
         return cr;
+    }
+
+    public RenameScriptRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

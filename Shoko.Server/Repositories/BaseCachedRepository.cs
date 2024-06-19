@@ -19,7 +19,13 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     where T : class, new()
 {
     private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
-    internal PocoCache<S, T> Cache;
+    protected readonly DatabaseFactory _databaseFactory;
+    public PocoCache<S, T> Cache;
+
+    protected BaseCachedRepository(DatabaseFactory databaseFactory)
+    {
+        _databaseFactory = databaseFactory;
+    }
 
     public Action<T> BeginDeleteCallback { get; set; }
     public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
@@ -27,11 +33,6 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     public Action<T> BeginSaveCallback { get; set; }
     public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
     public Action<T> EndSaveCallback { get; set; }
-
-    public BaseCachedRepository()
-    {
-        RepoFactory.CachedRepositories.Add(this);
-    }
 
     public virtual void Populate(ISessionWrapper session, bool displayname = true)
     {
@@ -50,7 +51,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     public virtual void Populate(bool displayname = true)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         Populate(session.Wrap(), displayname);
     }
 
@@ -214,13 +215,13 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         BeginSaveCallback?.Invoke(obj);
         Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             session.SaveOrUpdate(obj);
             transaction.Commit();
         });
 
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
 
         WriteLock(() => UpdateCacheUnsafe(obj));
@@ -242,7 +243,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             foreach (var obj in objs)
             {
@@ -251,7 +252,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             transaction.Commit();
         });
 
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        using (var session = _databaseFactory.SessionFactory.OpenSession())
         {
             foreach (var obj in objs)
             {
@@ -427,7 +428,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     private void DeleteFromDatabaseUnsafe(T cr)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
         DeleteWithOpenTransactionCallback?.Invoke(session, cr);
         session.Delete(cr);
@@ -436,7 +437,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     private void DeleteFromDatabaseUnsafe(IReadOnlyCollection<T> objs)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
 
         foreach (var cr in objs)

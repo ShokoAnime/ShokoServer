@@ -16,7 +16,9 @@ using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -29,16 +31,33 @@ public class VideoLocal_PlaceService
     private readonly ILogger<VideoLocal_PlaceService> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly DatabaseFactory _databaseFactory;
+    private readonly FileWatcherService _fileWatcherService;
+    private readonly AniDB_FileRepository _aniDBFile;
+    private readonly AniDB_EpisodeRepository _aniDBEpisode;
+    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
+    private readonly VideoLocalRepository _videoLocal;
+    private readonly VideoLocal_PlaceRepository _videoLocalPlace;
 
-    public VideoLocal_PlaceService(ILogger<VideoLocal_PlaceService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
+
+    public VideoLocal_PlaceService(ILogger<VideoLocal_PlaceService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory,
+        FileWatcherService fileWatcherService, VideoLocalRepository videoLocal, VideoLocal_PlaceRepository videoLocalPlace,
+        CrossRef_File_EpisodeRepository crossRefFileEpisode, AniDB_FileRepository aniDBFile, AniDB_EpisodeRepository aniDBEpisode,
+        DatabaseFactory databaseFactory)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _fileWatcherService = fileWatcherService;
+        _videoLocal = videoLocal;
+        _videoLocalPlace = videoLocalPlace;
+        _crossRefFileEpisode = crossRefFileEpisode;
+        _aniDBFile = aniDBFile;
+        _aniDBEpisode = aniDBEpisode;
+        _databaseFactory = databaseFactory;
     }
 
     #region Relocation (Move & Rename)
-    #region Enums
 
     private enum DelayInUse
     {
@@ -47,7 +66,6 @@ public class VideoLocal_PlaceService
         Third = 5000
     }
 
-    #endregion Enums
     #region Move On Import
 
     public async Task RenameAndMoveAsRequired(SVR_VideoLocal_Place place)
@@ -81,7 +99,7 @@ public class VideoLocal_PlaceService
     /// the relocation operation.</returns>
     public async Task<RelocationResult> DirectlyRelocateFile(SVR_VideoLocal_Place place, DirectRelocateRequest request)
     {
-        if (request?.ImportFolder is null || string.IsNullOrWhiteSpace(request.RelativePath))
+        if (request.ImportFolder is null || string.IsNullOrWhiteSpace(request.RelativePath))
             return new()
             {
                 Success = false,
@@ -112,7 +130,7 @@ public class VideoLocal_PlaceService
             };
         }
 
-        // this can happen due to file locks, so retry in awhile.
+        // this can happen due to file locks, so retry in a while.
         if (!File.Exists(oldFullPath))
         {
             _logger.LogWarning("Could not find or access the file to move: {FilePath}", oldFullPath);
@@ -161,7 +179,7 @@ public class VideoLocal_PlaceService
         {
             try
             {
-                Utils.ShokoServer.AddFileWatcherExclusion(destFullTree);
+                _fileWatcherService.AddFileWatcherExclusion(destFullTree);
                 Directory.CreateDirectory(destFullTree);
             }
             catch (Exception ex)
@@ -176,7 +194,7 @@ public class VideoLocal_PlaceService
             }
             finally
             {
-                Utils.ShokoServer.RemoveFileWatcherExclusion(destFullTree);
+                _fileWatcherService.RemoveFileWatcherExclusion(destFullTree);
             }
         }
 
@@ -227,7 +245,7 @@ public class VideoLocal_PlaceService
 
             // Not a dupe, don't delete it
             _logger.LogTrace("A file already exists at the new location, checking it for version and group");
-            var destinationExistingAniDBFile = destVideoLocal.GetAniDBFile();
+            var destinationExistingAniDBFile = destVideoLocal.AniDBFile;
             if (destinationExistingAniDBFile is null)
             {
                 _logger.LogWarning("The existing file at the new location does not have AniDB info. Not moving.");
@@ -239,7 +257,7 @@ public class VideoLocal_PlaceService
                 };
             }
 
-            var aniDBFile = place.VideoLocal.GetAniDBFile();
+            var aniDBFile = place.VideoLocal.AniDBFile;
             if (aniDBFile is null)
             {
                 _logger.LogWarning("The file does not have AniDB info. Not moving.");
@@ -262,8 +280,8 @@ public class VideoLocal_PlaceService
                 await RemoveRecordAndDeletePhysicalFile(destVideoLocalPlace);
 
                 // Move
-                Utils.ShokoServer.AddFileWatcherExclusion(oldFullPath);
-                Utils.ShokoServer.AddFileWatcherExclusion(newFullPath);
+                _fileWatcherService.AddFileWatcherExclusion(oldFullPath);
+                _fileWatcherService.AddFileWatcherExclusion(newFullPath);
                 _logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
                 try
                 {
@@ -272,8 +290,8 @@ public class VideoLocal_PlaceService
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Unable to MOVE file: {PreviousPath} to {NextPath}\n{ErrorMessage}", oldFullPath, newFullPath, e.Message);
-                    Utils.ShokoServer.RemoveFileWatcherExclusion(oldFullPath);
-                    Utils.ShokoServer.RemoveFileWatcherExclusion(newFullPath);
+                    _fileWatcherService.RemoveFileWatcherExclusion(oldFullPath);
+                    _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
                     return new()
                     {
                         Success = false,
@@ -296,8 +314,8 @@ public class VideoLocal_PlaceService
         }
         else
         {
-            Utils.ShokoServer.AddFileWatcherExclusion(oldFullPath);
-            Utils.ShokoServer.AddFileWatcherExclusion(newFullPath);
+            _fileWatcherService.AddFileWatcherExclusion(oldFullPath);
+            _fileWatcherService.AddFileWatcherExclusion(newFullPath);
             _logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
             try
             {
@@ -306,8 +324,8 @@ public class VideoLocal_PlaceService
             catch (Exception e)
             {
                 _logger.LogError(e, "Unable to MOVE file: {PreviousPath} to {NextPath}\n{ErrorMessage}", oldFullPath, newFullPath, e.Message);
-                Utils.ShokoServer.RemoveFileWatcherExclusion(oldFullPath);
-                Utils.ShokoServer.RemoveFileWatcherExclusion(newFullPath);
+                _fileWatcherService.RemoveFileWatcherExclusion(oldFullPath);
+                _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
                 return new()
                 {
                     Success = false,
@@ -473,11 +491,9 @@ public class VideoLocal_PlaceService
         var correctFileName = Path.GetFileName(renameResult.RelativePath)!;
         var correctFolder = Path.GetDirectoryName(moveResult.RelativePath);
         var correctRelativePath = !string.IsNullOrEmpty(correctFolder) ? Path.Combine(correctFolder, correctFileName) : correctFileName;
-        var correctFullPath = Path.Combine(moveResult.ImportFolder!.ImportFolderLocation, correctRelativePath!);
-        if (request.Preview)
-            _logger.LogTrace("Resolved to move from {PreviousPath} to {NextPath}.", oldFullPath, correctFullPath);
-        else
-            _logger.LogTrace("Moved from {PreviousPath} to {NextPath}.", oldFullPath, correctFullPath);
+        var correctFullPath = Path.Combine(moveResult.ImportFolder!.ImportFolderLocation, correctRelativePath);
+        _logger.LogTrace(request.Preview ? "Resolved to move from {PreviousPath} to {NextPath}." : "Moved from {PreviousPath} to {NextPath}.", oldFullPath,
+            correctFullPath);
         return new()
         {
             Success = true,
@@ -733,7 +749,7 @@ public class VideoLocal_PlaceService
                         path = Path.GetDirectoryName(path);
                     }
                     return isExcludedAt.HasValue
-                        ? paths.Where(tuple => tuple.level < isExcludedAt!.Value)
+                        ? paths.Where(tuple => tuple.level < isExcludedAt.Value)
                         : paths;
                 })
                 .DistinctBy(tuple => tuple.path)
@@ -937,6 +953,7 @@ public class VideoLocal_PlaceService
             _logger.LogError(ex, "There was an error deleting external subtitles: {Ex}", ex);
         }
     }
+
     public async Task RemoveRecord(SVR_VideoLocal_Place place, bool updateMyListStatus = true)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
@@ -944,7 +961,7 @@ public class VideoLocal_PlaceService
         var v = place.VideoLocal;
         var scheduler = await _schedulerFactory.GetScheduler();
 
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        using (var session = _databaseFactory.SessionFactory.OpenSession())
         {
             if (v?.Places?.Count <= 1)
             {
@@ -994,7 +1011,7 @@ public class VideoLocal_PlaceService
 
                     seriesToUpdate.AddRange(
                         v
-                            .GetAnimeEpisodes()
+                            .AnimeEpisodes
                             .DistinctBy(a => a.AnimeSeriesID)
                             .Select(a => a.GetAnimeSeries())
                             .WhereNotNull()
@@ -1024,10 +1041,7 @@ public class VideoLocal_PlaceService
             }
         }
 
-        foreach (var ser in seriesToUpdate)
-        {
-            ser?.QueueUpdateStats();
-        }
+        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
     public async Task RemoveRecordWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, ICollection<SVR_AnimeSeries> seriesToUpdate,
@@ -1041,12 +1055,12 @@ public class VideoLocal_PlaceService
             if (updateMyListStatus)
             {
                 var scheduler = await _schedulerFactory.GetScheduler();
-                if (RepoFactory.AniDB_File.GetByHash(v.Hash) is null)
+                if (_aniDBFile.GetByHash(v.Hash) is null)
                 {
-                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                    var xrefs = _crossRefFileEpisode.GetByHash(v.Hash);
                     foreach (var xref in xrefs)
                     {
-                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                        var ep = _aniDBEpisode.GetByEpisodeID(xref.EpisodeID);
                         if (ep is null)
                         {
                             continue;
@@ -1071,7 +1085,7 @@ public class VideoLocal_PlaceService
                 }
             }
 
-            var eps = v.GetAnimeEpisodes()?.WhereNotNull().ToList();
+            var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
             eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
 
             try
@@ -1086,14 +1100,15 @@ public class VideoLocal_PlaceService
             BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
-                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
-                RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                _videoLocalPlace.DeleteWithOpenTransaction(session, place);
+                _videoLocal.DeleteWithOpenTransaction(session, v);
                 transaction.Commit();
             });
         }
         else
         {
             if (v is not null)
+            {
                 try
                 {
                     ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
@@ -1102,11 +1117,12 @@ public class VideoLocal_PlaceService
                 {
                     // ignore
                 }
+            }
 
             BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
-                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+                _videoLocalPlace.DeleteWithOpenTransaction(session, place);
                 transaction.Commit();
             });
         }

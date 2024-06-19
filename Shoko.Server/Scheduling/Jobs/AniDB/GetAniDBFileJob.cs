@@ -16,6 +16,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -26,6 +27,9 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
 {
     private readonly IUDPConnectionHandler _handler;
     private readonly IRequestFactory _requestFactory;
+    private readonly DatabaseFactory _databaseFactory;
+    private readonly AnimeSeriesService _seriesService;
+    private readonly AnimeGroupService _groupService;
     private SVR_VideoLocal _vlocal;
 
     public int VideoLocalID { get; set; }
@@ -121,15 +125,15 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
         }
 
         var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);
-        series?.UpdateStats(true, true);
-        series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+        _seriesService.UpdateStats(series, true, true);
+        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
 
         return aniFile;
     }
 
-    private static async Task CreateLanguages(ResponseGetFile response)
+    private async Task CreateLanguages(ResponseGetFile response)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         // playing with async
         await BaseRepository.Lock(session, async s =>
         {
@@ -183,7 +187,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
 
         await BaseRepository.Lock(fileEps, async x =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var trans = session.BeginTransaction();
             await RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransactionAsync(session, x);
             await trans.CommitAsync();
@@ -248,20 +252,21 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
         // There is a chance that AniDB returned a dup, however unlikely
         await BaseRepository.Lock(fileEps, async x =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var trans = session.BeginTransaction();
             await RepoFactory.CrossRef_File_Episode.SaveWithOpenTransactionAsync(session, x.DistinctBy(a => (a.Hash, a.EpisodeID)).ToList());
             await trans.CommitAsync();
         });
     }
 
-    public GetAniDBFileJob(IUDPConnectionHandler handler, IRequestFactory requestFactory)
+    public GetAniDBFileJob(IUDPConnectionHandler handler, IRequestFactory requestFactory, DatabaseFactory databaseFactory, AnimeSeriesService seriesService, AnimeGroupService groupService)
     {
         _handler = handler;
         _requestFactory = requestFactory;
+        _databaseFactory = databaseFactory;
+        _seriesService = seriesService;
+        _groupService = groupService;
     }
 
-    protected GetAniDBFileJob()
-    {
-    }
+    protected GetAniDBFileJob() { }
 }

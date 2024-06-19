@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -13,13 +10,14 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Server;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
 {
     private static PocoIndex<int, SVR_AniDB_Anime, int> Animes;
+
+    public AniDB_AnimeRepository(DatabaseFactory databaseFactory) : base(databaseFactory) { }
 
     protected override int SelectKey(SVR_AniDB_Anime entity)
     {
@@ -31,51 +29,7 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
         Animes = new PocoIndex<int, SVR_AniDB_Anime, int>(Cache, a => a.AnimeID);
     }
 
-    public override void RegenerateDb()
-    {
-        using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
-        const int batchSize = 50;
-        var sessionWrapper = session.Wrap();
-        var animeToUpdate = session.CreateCriteria<SVR_AniDB_Anime>()
-            .Add(Restrictions.Lt(nameof(SVR_AniDB_Anime.ContractVersion), SVR_AniDB_Anime.CONTRACT_VERSION))
-            .List<SVR_AniDB_Anime>();
-        var max = animeToUpdate.Count;
-        var count = 0;
-
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, typeof(AniDB_Anime).Name, " DbRegen");
-        if (max <= 0)
-        {
-            return;
-        }
-
-        foreach (var animeBatch in animeToUpdate.Batch(batchSize))
-        {
-            SVR_AniDB_Anime.UpdateContractDetailedBatch(sessionWrapper, animeBatch);
-
-            using var trans = session.BeginTransaction();
-            foreach (var anime in animeBatch)
-            {
-                anime.Description = anime.Description?.Replace("`", "\'") ?? string.Empty;
-                anime.MainTitle = anime.MainTitle.Replace("`", "\'");
-                anime.AllTags = anime.AllTags.Replace("`", "\'");
-                anime.AllTitles = anime.AllTitles.Replace("`", "\'");
-                session.Update(anime);
-                Cache.Update(anime);
-                count++;
-            }
-
-            trans.Commit();
-
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, typeof(AniDB_Anime).Name,
-                " DbRegen - " + count + "/" + max);
-        }
-
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, typeof(AniDB_Anime).Name,
-            " DbRegen - " + max + "/" + max);
-    }
+    public override void RegenerateDb() { }
 
     public override void Save(SVR_AniDB_Anime obj)
     {
@@ -86,11 +40,8 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
     {
         if (obj.AniDB_AnimeID == 0)
         {
-            obj.Contract = null;
             base.Save(obj);
         }
-
-        obj.UpdateContractDetailed();
 
         // populate the database
         base.Save(obj);

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using NutzCode.InMemoryIndex;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -40,5 +41,9 @@ public class VideoLocal_UserRepository : BaseCachedRepository<SVR_VideoLocal_Use
     public SVR_VideoLocal_User GetByUserIDAndVideoLocalID(int userid, int vidid)
     {
         return ReadLock(() => UsersVideoLocals.GetOne((userid, vidid)));
+    }
+
+    public VideoLocal_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

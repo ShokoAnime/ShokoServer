@@ -526,7 +526,7 @@ public class Core : BaseController
         try
         {
             // This is for testing changes in the algorithm. It will be slow.
-            var list = RepoFactory.AnimeSeries.GetAll().Select(a => a.GetAnime())
+            var list = RepoFactory.AnimeSeries.GetAll().Select(a => a.AniDB_Anime)
                 .Where(a => !string.IsNullOrEmpty(a?.MainTitle)).OrderBy(a => a.MainTitle).ToList();
             var result = new List<EpisodeMatchComparison>();
             foreach (var animeseries in list)
@@ -539,7 +539,7 @@ public class Core : BaseController
                     {
                         AniDBEpisodeType = a.AniDB.EpisodeType,
                         AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
-                        AniDBEpisodeName = a.AniDB.GetDefaultTitle()
+                        AniDBEpisodeName = a.AniDB.DefaultTitle
                     },
                     TvDB: a.TvDB == null
                         ? null
@@ -559,7 +559,7 @@ public class Core : BaseController
                             {
                                 AniDBEpisodeType = AniDB.EpisodeType,
                                 AniDBEpisodeNumber = AniDB.EpisodeNumber,
-                                AniDBEpisodeName = AniDB.GetDefaultTitle()
+                                AniDBEpisodeName = AniDB.DefaultTitle
                             },
                             TvDB: TvDB == null
                                 ? null

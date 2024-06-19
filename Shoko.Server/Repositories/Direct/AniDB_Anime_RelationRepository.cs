@@ -12,7 +12,7 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             var cr = session
                 .Query<SVR_AniDB_Anime_Relation>()
                 .FirstOrDefault(a => a.AnimeID == animeid && a.RelatedAnimeID == relatedanimeid);
@@ -24,7 +24,7 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             return GetByAnimeID(session.Wrap(), id);
         });
     }
@@ -34,7 +34,7 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
         var aids = ids.ToArray();
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             return session.Query<SVR_AniDB_Anime_Relation>()
                 .Where(a => aids.Contains(a.AnimeID))
                 .ToList();
@@ -57,7 +57,7 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             var resultRelations = GetAllLinearRelations(session.Wrap(), animeID);
             return resultRelations.OrderBy(a => a).ToList();
         });
@@ -104,5 +104,9 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
                                (relation.RelationType == "Prequel" || relation.RelationType == "Sequel"))
             .Select(relation => relation.RelatedAnimeID).ToList();
         return new HashSet<int>(cats.Concat(cats2));
+    }
+
+    public AniDB_Anime_RelationRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

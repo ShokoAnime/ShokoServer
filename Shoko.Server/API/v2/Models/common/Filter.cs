@@ -127,7 +127,7 @@ public class Filter : Filters
 
     private static bool SeriesHasCompleteArt(SVR_AnimeSeries series)
     {
-        var anime = series?.GetAnime();
+        var anime = series?.AniDB_Anime;
         if (anime == null)
         {
             return false;
@@ -149,7 +149,7 @@ public class Filter : Filters
 
     private static bool SeriesHasMostlyCompleteArt(SVR_AnimeSeries series)
     {
-        var anime = series?.GetAnime();
+        var anime = series?.AniDB_Anime;
         if (anime == null)
         {
             return false;

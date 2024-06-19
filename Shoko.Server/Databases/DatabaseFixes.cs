@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NHibernate;
@@ -19,6 +20,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
@@ -34,16 +36,15 @@ public class DatabaseFixes
 
     public static void UpdateAllStats()
     {
-        foreach (var ser in RepoFactory.AnimeSeries.GetAll())
-        {
-            ser.QueueUpdateStats();
-        }
+        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().GetAwaiter().GetResult();
+        Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter()
+            .GetResult();
     }
     
     public static void MigrateGroupFilterToFilterPreset()
     {
         var legacyConverter = Utils.ServiceContainer.GetRequiredService<LegacyFilterConverter>();
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         var groupFilters = session.CreateSQLQuery(
                 "SELECT GroupFilterID, " +
                 "ParentGroupFilterID, " +
@@ -115,7 +116,7 @@ public class DatabaseFixes
 
     public static void DropGroupFilter()
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         session.CreateSQLQuery("DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition").ExecuteUpdate();
     }
     
@@ -216,7 +217,7 @@ public class DatabaseFixes
 
     public static void MigrateTvDBLinks_v2_to_V3()
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        using (var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession())
         {
             // Clean up possibly failed migration
             RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
@@ -628,11 +629,11 @@ public class DatabaseFixes
 
     public static void EnsureNoOrphanedGroupsOrSeries()
     {
-        var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.GetAllSeries().Count == 0).ToArray();
+        var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.AllSeries.Count == 0).ToArray();
         RepoFactory.AnimeGroup.Delete(emptyGroups);
         var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroup == null).ToArray();
         var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         foreach (var series in orphanedSeries)
         {
             try
@@ -646,7 +647,7 @@ public class DatabaseFixes
                 var name = "";
                 try
                 {
-                    name = series.GetSeriesName();
+                    name = series.SeriesName;
                 }
                 catch
                 {
@@ -718,6 +719,7 @@ public class DatabaseFixes
             .GroupBy(record => record.AnimeSeriesID)
             .Select(records => (RepoFactory.AnimeSeries.GetByID(records.Key),
                 records.Select(record => record.JMMUserID).Distinct())).ToList();
+        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
         foreach (var (series, userIDs) in seriesList)
         {
             // No idea why we would have episode entries for a deleted series, but just in case.
@@ -729,7 +731,7 @@ public class DatabaseFixes
             // Update the timestamp for when an episode for the series was last partially or fully watched.
             foreach (var userID in userIDs)
             {
-                var seriesUserRecord = series.GetOrCreateUserRecord(userID);
+                var seriesUserRecord = seriesService.GetOrCreateUserRecord(series.AnimeSeriesID, userID);
                 seriesUserRecord.LastEpisodeUpdate = DateTime.Now;
                 logger.Debug(
                     $"Updating series user contract for user \"{userDict[seriesUserRecord.JMMUserID].Username}\". (UserID={seriesUserRecord.JMMUserID},SeriesID={seriesUserRecord.AnimeSeriesID})");
@@ -737,13 +739,14 @@ public class DatabaseFixes
             }
 
             // Update the rest of the stats for the series.
-            series.UpdateStats(true, true);
+            seriesService.UpdateStats(series, true, true);
         }
 
+        var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
         var groups = seriesList.Select(a => a.Item1.AnimeGroup).Where(a => a != null).DistinctBy(a => a.AnimeGroupID);
         foreach (var group in groups)
         {
-            group.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+            groupService.UpdateStatsFromTopLevel(group, true, true);
         }
     }
 
@@ -937,8 +940,9 @@ public class DatabaseFixes
             .Where(series => series != null)
             .ToList();
 
+        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
         foreach (var series in seriesList)
-            series.UpdateStats(false, true);
+            seriesService.UpdateStats(series, false, true);
     }
 
     public static void FixOrphanedShokoEpisodes()

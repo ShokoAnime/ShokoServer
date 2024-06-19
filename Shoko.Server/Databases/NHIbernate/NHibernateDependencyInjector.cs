@@ -50,7 +50,7 @@ public class NHibernateDependencyInjector : EmptyInterceptor
 
         var instance = ActivatorUtilities.CreateInstance(_provider, type);
         var md = _session?.SessionFactory?.GetClassMetadata(type);
-        md ??= DatabaseFactory.SessionFactory?.GetClassMetadata(type);
+        md ??= _provider.GetRequiredService<DatabaseFactory>().SessionFactory?.GetClassMetadata(type);
         md?.SetIdentifier(instance, id);
 
         return instance;

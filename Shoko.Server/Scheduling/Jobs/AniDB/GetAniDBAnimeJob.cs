@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
@@ -15,10 +15,12 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Scheduling.Jobs.TvDB;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
@@ -40,6 +42,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IServerSettings _settings;
+    private readonly AnimeSeriesService _seriesService;
     private string _animeName;
 
     public int AnimeID { get; set; }
@@ -136,23 +139,22 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         // then conditionally create the series record if it doesn't exist,
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-        var seriesIsNew = series is null;
+        var seriesIsNew = series == null;
         var seriesUpdated = false;
         if (series == null && CreateSeriesEntry)
         {
             series = await CreateAnimeSeriesAndGroup(anime);
-            seriesIsNew = true;
         }
 
         // and then create or update the episode records if we have an
         // existing series record.
         if (series != null)
         {
-            seriesUpdated = await series.CreateAnimeEpisodes(anime);
+            seriesUpdated = await _seriesService.CreateAnimeEpisodes(series);
             RepoFactory.AnimeSeries.Save(series, true, false);
         }
 
-        SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
+        await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = AnimeID).Process();
 
         // Request an image download
         var imagesJob = _jobFactory.CreateJob<GetAniDBImagesJob>(job => job.AnimeID = AnimeID);
@@ -163,16 +165,16 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated);
 
         // Emit shoko series updated event.
-        if (seriesUpdated || seriesIsNew)
+        if (series != null && (seriesUpdated || seriesIsNew))
             ShokoEventHandler.Instance.OnSeriesUpdated(series, seriesIsNew ? UpdateReason.Added : UpdateReason.Updated);
 
         // Re-schedule the videos to move/rename as required if something changed.
         if (episodesToMove.Count > 0)
         {
             var videos = episodesToMove.SelectMany(RepoFactory.CrossRef_File_Episode.GetByEpisodeID)
-                .OfType<SVR_CrossRef_File_Episode>()
+                .WhereNotNull()
                 .Select(a => a.GetVideo())
-                .OfType<SVR_VideoLocal>()
+                .WhereNotNull()
                 .DistinctBy(a => a.VideoLocalID)
                 .ToList();
 
@@ -284,9 +286,16 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         // Create a new AnimeSeries record
-        var series = new SVR_AnimeSeries();
+        var series = new SVR_AnimeSeries
+        {
+            AniDB_ID = anime.AnimeID,
+            LatestLocalEpisodeNumber = 0,
+            DateTimeUpdated = DateTime.Now,
+            DateTimeCreated = DateTime.Now,
+            UpdatedAt = DateTime.Now,
+            SeriesNameOverride = string.Empty
+        };
 
-        series.Populate(anime);
         var grp = _animeGroupCreator.GetOrCreateSingleGroupForAnime(anime);
         series.AnimeGroupID = grp.AnimeGroupID;
         // Populate before making a group to ensure IDs and stats are set for group filters.
@@ -348,7 +357,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     }
 
     public GetAniDBAnimeJob(IHttpConnectionHandler handler, HttpAnimeParser parser, AnimeCreator animeCreator, HttpXmlUtils xmlUtils,
-        IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeGroupCreator animeGroupCreator, AniDBTitleHelper titleHelper, JobFactory jobFactory)
+        IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeGroupCreator animeGroupCreator, AniDBTitleHelper titleHelper, JobFactory jobFactory, AnimeSeriesService seriesService)
     {
         _handler = handler;
         _parser = parser;
@@ -359,6 +368,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         _animeGroupCreator = animeGroupCreator;
         _titleHelper = titleHelper;
         _jobFactory = jobFactory;
+        _seriesService = seriesService;
         _settings = settingsProvider.GetSettings();
     }
 

@@ -13,7 +13,7 @@
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
         <PackageReleaseNotes>File Events</PackageReleaseNotes>
         <Version>3.0.0-alpha8</Version>
-        <Configurations>Debug;Release</Configurations>
+        <Configurations>Debug;Release;Benchmarks</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     </PropertyGroup>

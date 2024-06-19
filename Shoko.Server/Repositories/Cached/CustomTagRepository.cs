@@ -1,13 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
 {
-    public CustomTagRepository()
+    public CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory) 
     {
         DeleteWithOpenTransactionCallback = (ses, obj) =>
         {

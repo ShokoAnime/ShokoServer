@@ -16,7 +16,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     private PocoIndex<int, SVR_AnimeEpisode, int> Series;
     private PocoIndex<int, SVR_AnimeEpisode, int> EpisodeIDs;
 
-    public AnimeEpisodeRepository()
+    public AnimeEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         BeginDeleteCallback = cr =>
         {
@@ -103,7 +103,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     {
         var ids = Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             if (animeID.HasValue && animeID.Value > 0)
             {
                 var animeQuery = ignoreVariations ? IgnoreVariationsWithAnimeQuery : CountVariationsWithAnimeQuery;
@@ -175,8 +175,8 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .ToList();
         all.Sort((a1, a2) =>
         {
-            var name1 = a1.GetAnimeSeries()?.GetSeriesName();
-            var name2 = a2.GetAnimeSeries()?.GetSeriesName();
+            var name1 = a1.GetAnimeSeries()?.SeriesName;
+            var name2 = a2.GetAnimeSeries()?.SeriesName;
 
             if (!string.IsNullOrEmpty(name1) && !string.IsNullOrEmpty(name2))
             {

@@ -55,7 +55,7 @@ public class Serie : BaseDirectory, IComparable
             return sr;
         }
 
-        var ser = vl.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+        var ser = vl.AnimeEpisodes.FirstOrDefault()?.GetAnimeSeries();
         if (ser == null)
         {
             return sr;
@@ -127,7 +127,7 @@ public class Serie : BaseDirectory, IComparable
             sr.userrating = Math.Round(vote.VoteValue / 100D, 1).ToString(CultureInfo.InvariantCulture);
         }
 
-        sr.titles = anime.GetTitles().Select(title =>
+        sr.titles = anime.Titles.Select(title =>
             new AnimeTitle
             {
                 Language = title.LanguageCode, Title = title.Title, Type = title.TitleType.ToString().ToLower()
@@ -193,17 +193,12 @@ public class Serie : BaseDirectory, IComparable
     public static Serie GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag,
         int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
     {
-        var sr = GenerateFromAniDB_Anime(ctx, ser.GetAnime(), nocast, notag, allpics, pic, tagfilter);
+        var sr = GenerateFromAniDB_Anime(ctx, ser.AniDB_Anime, nocast, notag, allpics, pic, tagfilter);
 
-        var ael = ser.GetAnimeEpisodes();
-        var contract = ser.Contract;
-        if (contract == null)
-        {
-            ser.UpdateContract();
-        }
+        var ael = ser.AnimeEpisodes;
 
         sr.id = ser.AnimeSeriesID;
-        sr.name = ser.GetSeriesName();
+        sr.name = ser.SeriesName;
         GenerateSizes(sr, ael, uid);
 
         var season = ael.FirstOrDefault(a =>
@@ -233,7 +228,7 @@ public class Serie : BaseDirectory, IComparable
 
         if (!notag)
         {
-            var tags = ser.Contract.AniDBAnime.AniDBAnime.GetAllTags();
+            var tags = ser.AniDB_Anime.GetAllTags();
             if (tags != null)
             {
                 sr.tags = TagFilter.String.ProcessTags(tagfilter, tags.ToList());
@@ -278,7 +273,7 @@ public class Serie : BaseDirectory, IComparable
         return sr;
     }
 
-    private static void GenerateSizes(Serie sr, List<SVR_AnimeEpisode> ael, int uid)
+    private static void GenerateSizes(Serie sr, IEnumerable<SVR_AnimeEpisode> ael, int uid)
     {
         var eps = 0;
         var credits = 0;
@@ -531,7 +526,7 @@ public class Serie : BaseDirectory, IComparable
 
             if (fanarts.Count > 0)
             {
-                var default_fanart = anime.GetDefaultFanart();
+                var default_fanart = anime.DefaultFanart;
 
                 if (default_fanart != null)
                 {
@@ -556,7 +551,7 @@ public class Serie : BaseDirectory, IComparable
 
             if (banners.Count > 0)
             {
-                var default_fanart = anime.GetDefaultWideBanner();
+                var default_fanart = anime.DefaultWideBanner;
 
                 if (default_fanart != null)
                 {

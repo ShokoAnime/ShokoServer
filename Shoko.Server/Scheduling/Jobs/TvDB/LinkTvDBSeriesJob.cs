@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Actions;
 
 namespace Shoko.Server.Scheduling.Jobs.TvDB;
 
@@ -17,6 +17,7 @@ namespace Shoko.Server.Scheduling.Jobs.TvDB;
 public class LinkTvDBSeriesJob : BaseJob
 {
     private readonly TvDBApiHelper _helper;
+    private readonly JobFactory _jobFactory; 
     private string _animeName;
     private string _seriesName;
     public int AnimeID { get; set; }
@@ -47,12 +48,13 @@ public class LinkTvDBSeriesJob : BaseJob
             AdditiveLink);
 
         await _helper.LinkAniDBTvDB(AnimeID, TvDBID, AdditiveLink);
-        SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
+        await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = AnimeID).Process();
     }
 
-    public LinkTvDBSeriesJob(TvDBApiHelper helper)
+    public LinkTvDBSeriesJob(TvDBApiHelper helper, JobFactory jobFactory)
     {
         _helper = helper;
+        _jobFactory = jobFactory;
     }
 
     protected LinkTvDBSeriesJob() { }

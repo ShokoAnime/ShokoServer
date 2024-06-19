@@ -1,9 +1,9 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Mappings;
 
-public class AnimeGroup_UserMap : ClassMap<SVR_AnimeGroup_User>
+public class AnimeGroup_UserMap : ClassMap<AnimeGroup_User>
 {
     public AnimeGroup_UserMap()
     {

@@ -15,7 +15,7 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return GetByOnlineIDUnsafe(session.Wrap(), id);
         });
     }
@@ -78,5 +78,9 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
 
             return movieByAnime;
         });
+    }
+
+    public MovieDb_MovieRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

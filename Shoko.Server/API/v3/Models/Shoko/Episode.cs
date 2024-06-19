@@ -171,8 +171,8 @@ public class Episode : BaseModel
                 votes = 0;
             }
 
-            var defaultTitle = ep.GetDefaultTitle();
-            var mainTitle = ep.GetPreferredTitle();
+            var defaultTitle = ep.DefaultTitle;
+            var mainTitle = ep.PreferredTitle;
             var titles = ep.GetTitles();
             ID = ep.EpisodeID;
             Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());

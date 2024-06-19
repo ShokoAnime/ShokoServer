@@ -24,6 +24,7 @@ public class DiscoverFileJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly ImportFolderRepository _importFolders;
 
     public string FilePath { get; set; }
     public bool SkipMyList { get; set; }
@@ -139,7 +140,7 @@ public class DiscoverFileJob : BaseJob
     private (SVR_VideoLocal, SVR_VideoLocal_Place) GetVideoLocal()
     {
         // hash and read media info for file
-        var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FilePath);
+        var (folder, filePath) = _importFolders.GetFromFullPath(FilePath);
         if (folder == null)
         {
             _logger.LogError("Unable to locate Import Folder for {FileName}", FilePath);
@@ -382,11 +383,12 @@ public class DiscoverFileJob : BaseJob
         return true;
     }
 
-    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService)
+    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
     {
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
         _vlPlaceService = vlPlaceService;
+        _importFolders = importFolders;
     }
 
     protected DiscoverFileJob() { }

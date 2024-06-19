@@ -4,9 +4,10 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_EpisodeRepository : BaseCachedRepository<SVR_AniDB_Episode, int>
 {
@@ -59,5 +60,9 @@ public class AniDB_EpisodeRepository : BaseCachedRepository<SVR_AniDB_Episode, i
         return GetByAnimeID(animeid)
             .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
             .ToList();
+    }
+
+    public AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

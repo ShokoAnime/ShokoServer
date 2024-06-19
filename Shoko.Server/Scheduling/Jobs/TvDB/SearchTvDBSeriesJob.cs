@@ -8,12 +8,12 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.TvDB;
@@ -25,6 +25,7 @@ namespace Shoko.Server.Scheduling.Jobs.TvDB;
 public class SearchTvDBSeriesJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
+    private readonly JobFactory _jobFactory;
     private readonly TvDBApiHelper _helper;
     private string _title;
 
@@ -72,7 +73,7 @@ public class SearchTvDBSeriesJob : BaseJob
         if (results.Count != 0) return;
 
         var foundResult = false;
-        foreach (var title in anime.GetTitles())
+        foreach (var title in anime.Titles)
         {
             if (title.TitleType != TitleType.Official) continue;
             if (title.Language != TitleLanguage.English && title.Language != TitleLanguage.Romaji) continue;
@@ -106,7 +107,7 @@ public class SearchTvDBSeriesJob : BaseJob
 
                 // add links for multiple seasons (for long shows)
                 AddCrossRef_AniDB_TvDBV2(AnimeID, results[0].SeriesID, CrossRefSource.Automatic);
-                SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
+                await _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = AnimeID).Process();
                 return true;
             case 0:
                 return false;
@@ -121,7 +122,7 @@ public class SearchTvDBSeriesJob : BaseJob
 
                     // add links for multiple seasons (for long shows)
                     AddCrossRef_AniDB_TvDBV2(AnimeID, results[0].SeriesID, CrossRefSource.Automatic);
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
+                    await _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = AnimeID).Process();
                     return true;
                 }
 
@@ -154,10 +155,11 @@ public class SearchTvDBSeriesJob : BaseJob
         return result;
     }
 
-    public SearchTvDBSeriesJob(TvDBApiHelper helper, ISettingsProvider settingsProvider)
+    public SearchTvDBSeriesJob(TvDBApiHelper helper, ISettingsProvider settingsProvider, JobFactory jobFactory)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
+        _jobFactory = jobFactory;
     }
 
     protected SearchTvDBSeriesJob() { }

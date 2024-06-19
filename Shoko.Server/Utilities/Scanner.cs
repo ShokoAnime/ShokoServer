@@ -5,16 +5,18 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Notification;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Utilities;
@@ -177,19 +179,18 @@ public class Scanner : INotifyPropertyChangedExt
         var files = ActiveErrorFiles.ToList();
         ActiveErrorFiles.Clear();
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
-        var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        var vlpService = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
+        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+        var databaseFactory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>();
+        using (var session = databaseFactory.SessionFactory.OpenSession())
         {
             files.ForEach(file =>
             {
                 var place = RepoFactory.VideoLocalPlace.GetByID(file.VideoLocal_Place_ID);
-                service.RemoveAndDeleteFileWithOpenTransaction(session, place, seriesToUpdate);
+                vlpService.RemoveAndDeleteFileWithOpenTransaction(session, place, seriesToUpdate).GetAwaiter().GetResult();
             });
             // update everything we modified
-            foreach (var ser in seriesToUpdate)
-            {
-                ser?.QueueUpdateStats();
-            }
+            Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter().GetResult();
         }
 
         RepoFactory.ScanFile.Delete(files);

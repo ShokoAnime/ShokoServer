@@ -1043,7 +1043,7 @@ public class LegacyRenamer : IRenamer
                 Constants.FileRenameTag.AnimeNameEnglish.Length - 1); // remove % at the front
             if (test.Trim().Equals(tagAnimeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
             {
-                if (anime.GetTitles().Any(ti =>
+                if (anime.Titles.Any(ti =>
                         ti.Language == TitleLanguage.English &&
                         (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
                 {
@@ -1061,7 +1061,7 @@ public class LegacyRenamer : IRenamer
                 Constants.FileRenameTag.AnimeNameKanji.Length - 1); // remove % at the front
             if (test.Trim().Equals(tagAnimeNameKanji, StringComparison.InvariantCultureIgnoreCase))
             {
-                if (anime.GetTitles().Any(ti =>
+                if (anime.Titles.Any(ti =>
                         ti.Language == TitleLanguage.Japanese &&
                         (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
                 {
@@ -1079,7 +1079,7 @@ public class LegacyRenamer : IRenamer
                 Constants.FileRenameTag.AnimeNameMain.Length - 1); // remove % at the front
             if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
             {
-                if (anime.GetTitles().Any(ti =>
+                if (anime.Titles.Any(ti =>
                         ti.TitleType == TitleType.Main ||
                         (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official)))
                 {
@@ -1375,10 +1375,10 @@ public class LegacyRenamer : IRenamer
         }
 
         // get all the data so we don't need to get multiple times
-        var aniFile = vid.GetAniDBFile();
+        var aniFile = vid.AniDBFile;
         if (aniFile == null)
         {
-            var animeEps = vid.GetAnimeEpisodes();
+            var animeEps = vid.AnimeEpisodes;
             if (animeEps.Count == 0)
             {
                 throw new Exception("*Error: Unable to get episode for file");
@@ -1561,7 +1561,7 @@ public class LegacyRenamer : IRenamer
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameEnglish.ToLower()))
         {
-            newFileName = anime.GetTitles()
+            newFileName = anime.Titles
                 .Where(ti =>
                     ti.Language == TitleLanguage.English &&
                     (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
@@ -1575,7 +1575,7 @@ public class LegacyRenamer : IRenamer
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameMain.ToLower()))
         {
-            newFileName = anime.GetTitles()
+            newFileName = anime.Titles
                 .Where(ti =>
                     ti.TitleType == TitleType.Main ||
                     (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official))
@@ -1589,7 +1589,7 @@ public class LegacyRenamer : IRenamer
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameKanji.ToLower()))
         {
-            newFileName = anime.GetTitles()
+            newFileName = anime.Titles
                 .Where(ti =>
                     ti.Language == TitleLanguage.Japanese &&
                     (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
@@ -2234,7 +2234,7 @@ public class LegacyRenamer : IRenamer
         }
 
         // sort the episodes by air date, so that we will move the file to the location of the latest episode
-        var allEps = series.GetAnimeEpisodes()
+        var allEps = series.AllAnimeEpisodes
             .OrderByDescending(a => a.AniDB_Episode.AirDate)
             .ToList();
 
@@ -2332,6 +2332,6 @@ public class LegacyRenamer : IRenamer
             return (null, "Unable to resolve a destination");
         }
 
-        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName()));
+        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.SeriesName));
     }
 }

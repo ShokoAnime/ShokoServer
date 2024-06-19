@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <Configurations>Debug;Release;ApiLogging</Configurations>
+    <Configurations>Debug;Release;ApiLogging;Benchmarks</Configurations>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 

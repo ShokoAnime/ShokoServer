@@ -59,7 +59,7 @@ public static class FileQualityFilter
         var result = true;
         var allowUnknown = Utils.SettingsProvider.GetSettings().FileQualityPreferences.AllowDeletingFilesWithMissingInfo;
 
-        var aniFile = file?.GetAniDBFile();
+        var aniFile = file?.AniDBFile;
         // Don't delete files with missing info. If it's not getting updated, then do it manually
         if (IsNullOrUnknown(aniFile) && !allowUnknown) return true;
 
@@ -169,7 +169,7 @@ public static class FileQualityFilter
 
     private static bool CheckChaptered(SVR_VideoLocal aniFile)
     {
-        return aniFile?.GetAniDBFile()?.IsChaptered ?? (aniFile?.Media?.MenuStreams.Any() ?? false);
+        return aniFile?.AniDBFile?.IsChaptered ?? (aniFile?.Media?.MenuStreams.Any() ?? false);
     }
 
     private static bool CheckDeprecated(AniDB_File aniFile)
@@ -334,8 +334,8 @@ public static class FileQualityFilter
     // -1 if oldFile is to be deleted, 0 if they are comparatively equal, 1 if the oldFile is better
     public static int CompareTo(this SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
     {
-        var oldEp = oldFile?.GetAniDBFile();
-        var newEp = newFile?.GetAniDBFile();
+        var oldEp = oldFile?.AniDBFile;
+        var newEp = newFile?.AniDBFile;
         var result = 0;
 
         foreach (var type in Settings.PreferredTypes)
@@ -587,8 +587,8 @@ public static class FileQualityFilter
 
     private static int CompareVersionTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
     {
-        var newAni = newFile?.GetAniDBFile();
-        var oldAni = oldFile?.GetAniDBFile();
+        var newAni = newFile?.AniDBFile;
+        var oldAni = oldFile?.AniDBFile;
         if (IsNullOrUnknown(newAni) || IsNullOrUnknown(oldAni))return 0;
         if (!newAni.Anime_GroupName.Equals(oldAni.Anime_GroupName))return 0;
         if (!(newFile.Media?.VideoStream?.BitDepth).Equals(oldFile.Media?.VideoStream?.BitDepth))return 0;

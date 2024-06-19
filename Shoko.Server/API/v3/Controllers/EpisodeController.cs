@@ -19,10 +19,10 @@ using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using Shoko.Models.Server;
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -32,6 +32,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class EpisodeController : BaseController
 {
+    private readonly AnimeSeriesService _seriesService;
+    private readonly AnimeGroupService _groupService;
 
     internal const string EpisodeWithZeroID = "episodeID must be greater than 0";
 
@@ -391,8 +393,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
 
             if (updateStats)
             {
-                series.UpdateStats(true, true);
-                series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
+                _seriesService.UpdateStats(series, true, true);
+                _groupService.UpdateStatsFromTopLevel(series.TopLevelAnimeGroup, true, true);
             }
 
             ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
@@ -575,7 +577,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (onlyFinishedSeries)
         {
             var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()
-                .ToDictionary(a => a.AnimeSeriesID, a => a.GetAnime().GetFinishedAiring());
+                .ToDictionary(a => a.AnimeSeriesID, a => a.AniDB_Anime.GetFinishedAiring());
             enumerable = enumerable.Where(episode =>
                 dictSeriesFinishedAiring.TryGetValue(episode.AnimeSeriesID, out var finishedAiring) && finishedAiring);
         }
@@ -584,7 +586,9 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
             .ToListResult(episode => new Episode(HttpContext, episode, withXRefs: includeXRefs), page, pageSize);
     }
 
-    public EpisodeController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public EpisodeController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
     {
+        _seriesService = seriesService;
+        _groupService = groupService;
     }
 }

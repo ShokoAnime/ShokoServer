@@ -2,14 +2,19 @@
 using System.IO;
 using System.Linq;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.Server;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
 public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int>
 {
+    public EventHandler ImportFolderSaved;
+
+    public ImportFolderRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
+    }
+
     protected override int SelectKey(SVR_ImportFolder entity)
     {
         return entity.ImportFolderID;
@@ -87,9 +92,34 @@ public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int
 
         Save(ns);
 
-        Utils.ShokoServer.StopWatchingFiles();
-        Utils.ShokoServer.StartWatchingFiles();
+        ImportFolderSaved?.Invoke(null, EventArgs.Empty);
 
         return ns;
+    }
+
+    public (SVR_ImportFolder folder, string relativePath) GetFromFullPath(string fullPath)
+    {
+        if (string.IsNullOrEmpty(fullPath)) return default;
+        var shares = GetAll();
+
+        // TODO make sure that import folders are not sub folders of each other
+        foreach (var ifolder in shares)
+        {
+            var importLocation = ifolder.ImportFolderLocation;
+            var importLocationFull = importLocation.TrimEnd(Path.DirectorySeparatorChar);
+
+            // add back the trailing backslashes
+            importLocationFull += $"{Path.DirectorySeparatorChar}";
+
+            importLocation = importLocation.TrimEnd(Path.DirectorySeparatorChar);
+            if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
+            {
+                var filePath = fullPath.Replace(importLocation, string.Empty);
+                filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
+                return (ifolder, filePath);
+            }
+        }
+
+        return default;
     }
 }

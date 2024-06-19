@@ -12,6 +12,16 @@ public interface ISeries : IWithTitles, IMetadata<int>
     AnimeType Type { get; }
 
     /// <summary>
+    /// The shoko series ID, if we have it
+    /// </summary>
+    int? SeriesID { get; }
+
+    /// <summary>
+    /// The shoko group IDs, if we have them
+    /// </summary>
+    IReadOnlyList<int> GroupIDs { get; }
+
+    /// <summary>
     /// The first aired date, if known.
     /// </summary>
     /// <value></value>

@@ -12,7 +12,7 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Query<ScanFile>()
                 .Where(a => a.ScanID == scanid && a.Status == (int)ScanFileStatus.Waiting)
                 .OrderBy(a => a.CheckDate)
@@ -24,7 +24,7 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Query<ScanFile>()
                 .Where(a => a.ScanID == scanid)
                 .ToList();
@@ -35,7 +35,7 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Query<ScanFile>()
                 .Where(a => a.ScanID == scanid && a.Status > (int)ScanFileStatus.ProcessedOK)
                 .OrderBy(a => a.CheckDate)
@@ -47,9 +47,13 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Query<ScanFile>()
                 .Count(a => a.ScanID == scanid && a.Status == (int)ScanFileStatus.Waiting);
         });
+    }
+
+    public ScanFileRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

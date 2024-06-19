@@ -535,12 +535,12 @@ public class Image
                 .GetRandomElement()?.AnimeID,
             ImageEntityType.AniDB_Character => RepoFactory.AniDB_Anime.GetAll()
                 .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                .SelectMany(a => a.GetAnimeCharacters()).Select(a => a.GetCharacter()).Where(a => a != null)
+                .SelectMany(a => a.Characters).Select(a => a.GetCharacter()).Where(a => a != null)
                 .GetRandomElement()?.AniDB_CharacterID,
             // This will likely be slow
             ImageEntityType.AniDB_Creator => RepoFactory.AniDB_Anime.GetAll()
                 .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                .SelectMany(a => a.GetAnimeCharacters())
+                .SelectMany(a => a.Characters)
                 .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
                 .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).Where(a => a != null)
                 .GetRandomElement()?.AniDB_SeiyuuID,

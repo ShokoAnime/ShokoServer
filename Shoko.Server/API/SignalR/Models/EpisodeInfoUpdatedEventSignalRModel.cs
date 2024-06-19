@@ -28,7 +28,7 @@ public class EpisodeInfoUpdatedEventSignalRModel
                         ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
                 }
                 break;
-            case DataSourceEnum.AniDB when eventArgs.EpisodeInfo is SVR_AniDB_Episode anidbEpisode && anidbEpisode.GetShokoEpisode() is SVR_AnimeEpisode shokoEpisode:
+            case DataSourceEnum.AniDB when eventArgs.EpisodeInfo is SVR_AniDB_Episode anidbEpisode && anidbEpisode.AnimeEpisode is SVR_AnimeEpisode shokoEpisode:
                 {
                     ShokoEpisodeIDs = [shokoEpisode.AnimeEpisodeID];
                     ShokoSeriesIDs = [shokoEpisode.AnimeSeriesID];

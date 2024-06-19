@@ -21,6 +21,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
@@ -544,7 +545,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var anidb = file.GetAniDBFile();
+        var anidb = file.AniDBFile;
         if (anidb == null)
             return NotFound(AnidbNotFoundForFileID);
 
@@ -830,7 +831,7 @@ public class FileController : BaseController
             return ScrobbleStatusOnFile(file, watched, resumePosition);
         }
 
-        var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.GetAnimeEpisodes()?.FirstOrDefault();
+        var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.AnimeEpisodes?.FirstOrDefault();
         if (episode == null)
             return ValidationProblem($"Could not get Episode with ID: {episodeID}", nameof(episodeID));
 
@@ -879,7 +880,7 @@ public class FileController : BaseController
             return;
 
         var percentage = 100 * ((float)position / file.Duration);
-        var scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int)AnimeType.Movie
+        var scrobbleType = episode.GetAnimeSeries()?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
             ? ScrobblePlayingType.movie
             : ScrobblePlayingType.episode;
 
@@ -1149,7 +1150,7 @@ public class FileController : BaseController
 
         // Validate that the ranges are valid for the series.
         var episodeType = startType ?? EpisodeType.Episode;
-        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.GetAnimeEpisodes(), episodeType);
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.AllAnimeEpisodes, episodeType);
         if (rangeStart < 1)
             ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
 
@@ -1212,7 +1213,7 @@ public class FileController : BaseController
     /// <param name="body">Optional. The body.</param>
     /// <returns></returns>
     [HttpDelete("{fileID}/Link")]
-    public ActionResult UnlinkMultipleEpisodesFromFile([FromRoute] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
+    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -1222,7 +1223,7 @@ public class FileController : BaseController
         var all = body == null;
         var episodeIdSet = body?.EpisodeIDs?.ToHashSet() ?? [];
         var seriesIDs = new HashSet<int>();
-        var episodeList = file.GetAnimeEpisodes()
+        var episodeList = file.AnimeEpisodes
             .Where(episode => all || episodeIdSet.Contains(episode.AniDB_EpisodeID))
             .Select(episode => (Episode: episode, XRef: RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(file.Hash, episode.AniDB_EpisodeID)))
             .Where(obj => obj.XRef != null)
@@ -1250,10 +1251,11 @@ public class FileController : BaseController
         }
 
         // Update any series affected by this unlinking.
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var seriesID in seriesIDs)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            series?.QueueUpdateStats();
+            await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
         }
 
         return Ok();
@@ -1298,7 +1300,7 @@ public class FileController : BaseController
         // Validate the range.
         var episodeType = startType ?? EpisodeType.Episode;
         var rangeEnd = rangeStart + files.Count - 1;
-        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.GetAnimeEpisodes(), episodeType);
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.AllAnimeEpisodes, episodeType);
         if (rangeStart < 1)
             ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
 
@@ -1545,7 +1547,7 @@ public class FileController : BaseController
             .Distinct()
             .Where(a =>
             {
-                var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                var ser = a?.AnimeEpisodes.FirstOrDefault()?.GetAnimeSeries();
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
@@ -1579,7 +1581,7 @@ public class FileController : BaseController
             .Distinct()
             .Where(a =>
             {
-                var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                var ser = a?.AnimeEpisodes.FirstOrDefault()?.GetAnimeSeries();
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;

@@ -465,7 +465,7 @@ public class Image : BaseController
             case ImageEntityType.AniDB_Character:
                 var chr = RepoFactory.AniDB_Anime.GetAll()
                     .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                    .SelectMany(a => a.GetAnimeCharacters()).Select(a => a.GetCharacter()).Where(a => a != null)
+                    .SelectMany(a => a.Characters).Select(a => a.GetCharacter()).Where(a => a != null)
                     .GetRandomElement();
                 if (chr == null)
                 {
@@ -489,7 +489,7 @@ public class Image : BaseController
             case ImageEntityType.AniDB_Creator:
                 var creator = RepoFactory.AniDB_Anime.GetAll()
                     .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                    .SelectMany(a => a.GetAnimeCharacters())
+                    .SelectMany(a => a.Characters)
                     .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
                     .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).Where(a => a != null)
                     .GetRandomElement();

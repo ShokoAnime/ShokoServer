@@ -17,6 +17,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Connectivity;
@@ -47,7 +48,7 @@ public class Startup
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<ISettingsProvider, SettingsProvider>();
-            services.AddScoped<AnimeGroupCreator>();
+            services.AddSingleton<FileWatcherService>();
             services.AddSingleton<ShokoServer>();
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
@@ -56,6 +57,9 @@ public class Startup
             services.AddSingleton<FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
+            services.AddSingleton<AniDB_AnimeService>();
+            services.AddSingleton<AnimeSeriesService>();
+            services.AddSingleton<AnimeGroupService>();
             services.AddSingleton<VideoLocal_PlaceService>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
@@ -63,7 +67,9 @@ public class Startup
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
+            services.AddScoped<AnimeGroupCreator>();
 
+            services.AddRepositories();
             services.AddSentry();
             services.AddQuartz();
 

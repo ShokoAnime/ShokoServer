@@ -146,7 +146,7 @@ public class File
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
         {
-            var anidbFile = file.GetAniDBFile();
+            var anidbFile = file.AniDBFile;
             if (anidbFile != null)
                 _AniDB = new AniDB(anidbFile);
         }

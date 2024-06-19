@@ -42,10 +42,10 @@ public class ReleaseManagementController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         IEnumerable<SVR_AnimeSeries> enumerable = RepoFactory.AnimeSeries.GetWithMultipleReleases(ignoreVariations);
-        if (onlyFinishedSeries) enumerable = enumerable.Where(a => a.GetAnime().GetFinishedAiring());
+        if (onlyFinishedSeries) enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
-            .OrderBy(series => series.GetSeriesName())
+            .OrderBy(series => series.SeriesName)
             .ThenBy(series => series.AniDB_ID)
             .ToListResult(series => _seriesFactory.GetSeriesWithMultipleReleasesResult(series, false, includeDataFrom, ignoreVariations), page, pageSize);
     }

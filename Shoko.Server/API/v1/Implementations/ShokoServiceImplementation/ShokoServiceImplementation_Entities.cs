@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
@@ -81,13 +83,14 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
+            var seriesService = Utils.ServiceContainer.GetService<AnimeSeriesService>();
             var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
             if (series == null)
             {
                 return null;
             }
 
-            var episode = series.GetNextEpisode(userID);
+            var episode = seriesService.GetNextEpisode(series, userID);
             if (episode == null)
             {
                 return null;
@@ -137,7 +140,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return null;
             }
 
-            var allSeries = grp.GetAllSeries().OrderBy(a => a.AirDate).ToList();
+            var allSeries = grp.AllSeries.OrderBy(a => a.AirDate).ToList();
 
 
             foreach (var ser in allSeries)
@@ -173,8 +176,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (gf == null) return retEps;
 
             var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
+            var groupService = HttpContext.RequestServices.GetRequiredService<AnimeGroupService>(); 
             var comboGroups = evaluator.EvaluateFilter(gf, userID).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null)
-                .Select(a => a.GetUserContract(userID));
+                .Select(a => groupService.GetV1Contract(a, userID));
 
             foreach (var grp in comboGroups)
             {
@@ -186,8 +190,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 {
                     if (!user.AllowedSeries(ser)) continue;
 
-                    var anime = ser.GetAnime();
-                    var useSeries = seriesWatching.Count == 0 || anime.AnimeType != (int)AnimeType.TVSeries || !anime.GetRelatedAnime().Any(a =>
+                    var anime = ser.AniDB_Anime;
+                    var useSeries = seriesWatching.Count == 0 || anime.AnimeType != (int)AnimeType.TVSeries || !anime.RelatedAnime.Any(a =>
                         a.RelationType.ToLower().Trim().Equals("sequel") || a.RelationType.ToLower().Trim().Equals("prequel"));
                     if (!useSeries) continue;
 
@@ -313,13 +317,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 if (string.IsNullOrEmpty(vid.Hash)) continue;
 
-                foreach (var ep in vid.GetAnimeEpisodes())
+                foreach (var ep in vid.AnimeEpisodes)
                 {
                     var epContract = ep.GetUserContract(userID);
-                    if (!user.AllowedSeries(ep.GetAnimeSeries()) || epContract == null) continue;
+                    if (!user.AllowedSeries(ep.GetAnimeSeries())) continue;
                     retEps.Add(epContract);
 
-                    // Lets only return the specified amount
+                    // Let's only return the specified amount
                     if (retEps.Count < maxRecords) continue;
                     return retEps;
                 }
@@ -348,7 +352,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var start = DateTime.Now;
 
             var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, userID)
-                .SelectMany(a => a.GetAnimeEpisodes()).Select(a => a.AnimeSeriesID).Distinct().Take(maxRecords);
+                .SelectMany(a => a.AnimeEpisodes).Select(a => a.AnimeSeriesID).Distinct().Take(maxRecords);
 
 
             var ts2 = DateTime.Now - start;
@@ -374,7 +378,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     continue;
                 }
 
-                var eps = vids[0].GetAnimeEpisodes();
+                var eps = vids[0].AnimeEpisodes;
                 if (eps.Count == 0)
                 {
                     continue;
@@ -418,8 +422,9 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return retSeries;
             }
 
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(maxRecords, userID);
-            retSeries.AddRange(series.Select(a => a.GetUserContract(userID)).Where(a => a != null));
+            retSeries.AddRange(series.Select(a => seriesService.GetV1UserContract(a, userID)).Where(a => a != null));
         }
         catch (Exception ex)
         {
@@ -492,6 +497,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
             if (vid == null)
             {
@@ -504,7 +510,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             int? animeSeriesID = null;
-            foreach (var ep in vid.GetAnimeEpisodes())
+            foreach (var ep in vid.AnimeEpisodes)
             {
                 if (ep.AniDB_EpisodeID != animeEpisodeID)
                 {
@@ -537,7 +543,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID.Value);
                 if (ser != null)
                 {
-                    ser.QueueUpdateStats();
+                    seriesService.QueueUpdateStats(ser);
                 }
             }
 
@@ -1079,7 +1085,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            var userRecord = ser.GetOrCreateUserRecord(userID);
+            var userRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, ser.AnimeSeriesID);
 
             switch ((StatCountType)statCountType)
             {
@@ -1280,9 +1286,10 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
             var series = ep.GetAnimeSeries();
-            series?.UpdateStats(true, false);
-            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
-            //StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            seriesService.UpdateStats(series, true, false);
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
 
             // refresh from db
 
@@ -1330,7 +1337,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return contracts;
             }
 
-            foreach (var ep in vid.GetAnimeEpisodes())
+            foreach (var ep in vid.AnimeEpisodes)
             {
                 var eps = ep.GetUserContract(userID);
                 if (eps != null)
@@ -1381,14 +1388,14 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             // get a list of all the release groups the user is collecting
             var userReleaseGroups = new Dictionary<int, int>();
-            foreach (var ep in series.GetAnimeEpisodes())
+            foreach (var ep in series.AllAnimeEpisodes)
             {
                 var vids = ep.GetVideoLocals();
                 var hashes = vids.Select(a => a.Hash).Distinct().ToList();
                 foreach (var s in hashes)
                 {
                     var vid = vids.First(a => a.Hash == s);
-                    AniDB_File anifile = vid.GetAniDBFile();
+                    AniDB_File anifile = vid.AniDBFile;
                     if (anifile != null)
                     {
                         if (!userReleaseGroups.ContainsKey(anifile.GroupID))
@@ -1437,7 +1444,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeSeries.GetByID(animeSeriesID)?.GetUserContract(userID);
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            return seriesService.GetV1UserContract(RepoFactory.AnimeSeries.GetByID(animeSeriesID), userID);
         }
         catch (Exception ex)
         {
@@ -1578,6 +1586,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var eps = RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID);
 
             SVR_AnimeSeries ser = null;
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             foreach (var ep in eps)
             {
                 if (ep?.AniDB_Episode == null)
@@ -1610,8 +1619,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             // now update the stats
             if (ser != null)
             {
-                ser.UpdateStats(true, true);
-                ser.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+                seriesService.UpdateStats(ser, true, true);
+                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                groupService.UpdateStatsFromTopLevel(ser.AnimeGroup?.TopLevelAnimeGroup, true, true);
             }
 
             return string.Empty;
@@ -1628,7 +1638,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeSeries.GetByAnimeID(animeID)?.GetUserContract(userID);
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            return seriesService.GetV1UserContract(RepoFactory.AnimeSeries.GetByAnimeID(animeID), userID);
         }
         catch (Exception ex)
         {
@@ -1665,8 +1676,9 @@ public partial class ShokoServiceImplementation : IShokoServer
         var grps = new List<CL_AnimeGroup_User>();
         try
         {
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             return RepoFactory.AnimeGroup.GetAll()
-                .Select(a => a.GetUserContract(userID))
+                .Select(a => groupService.GetV1Contract(a, userID))
                 .OrderBy(a => a.GroupName)
                 .ToList();
         }
@@ -1685,13 +1697,14 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             int? grpid = animeGroupID;
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             while (grpid.HasValue)
             {
                 grpid = null;
                 var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
                 if (grp != null)
                 {
-                    grps.Add(grp.GetUserContract(userID));
+                    grps.Add(groupService.GetV1Contract(grp, userID));
                     grpid = grp.AnimeGroupParentID;
                 }
             }
@@ -1718,9 +1731,10 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return grps;
             }
 
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             foreach (var grp in series.AllGroupsAbove)
             {
-                grps.Add(grp.GetUserContract(userID));
+                grps.Add(groupService.GetV1Contract(grp, userID));
             }
 
             return grps;
@@ -1738,7 +1752,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeGroup.GetByID(animeGroupID)?.GetUserContract(userID);
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            return groupService.GetV1Contract(RepoFactory.AnimeGroup.GetByID(animeGroupID), userID);
         }
         catch (Exception ex)
         {
@@ -1766,7 +1781,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            SVR_AnimeGroup.RenameAllGroups();
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            groupService.RenameAllGroups();
         }
         catch (Exception ex)
         {
@@ -1788,12 +1804,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Group does not exist";
             }
 
-            if (grp.GetAllSeries().Count != 0)
+            if (grp.AllSeries.Count != 0)
             {
                 return "Group must be empty to be deleted. Move the series out of the group first.";
             }
 
-            grp.DeleteGroup();
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            groupService.DeleteGroup(grp);
 
             return string.Empty;
         }
@@ -1819,12 +1836,15 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
                 var results = evaluator.EvaluateFilter(gf, userID);
-                retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null).Select(a => a.GetUserContract(userID)).ToList();
+                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null).Select(a => groupService.GetV1Contract(a, userID))
+                    .ToList();
             }
 
             if (!getSingleSeriesGroups) return retGroups;
 
             var nGroups = new List<CL_AnimeGroup_User>();
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             foreach (var cag in retGroups)
             {
                 var ng = cag.DeepCopy();
@@ -1832,12 +1852,11 @@ public partial class ShokoServiceImplementation : IShokoServer
                 {
                     if (cag.DefaultAnimeSeriesID.HasValue)
                     {
-                        ng.SeriesForNameOverride = RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
-                            .FirstOrDefault(a => a.AnimeSeriesID == cag.DefaultAnimeSeriesID.Value)
-                            ?.GetUserContract(userID);
+                        ng.SeriesForNameOverride = seriesService.GetV1UserContract(RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
+                            .FirstOrDefault(a => a.AnimeSeriesID == cag.DefaultAnimeSeriesID.Value), userID);
                     }
 
-                    ng.SeriesForNameOverride ??= RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID).FirstOrDefault()?.GetUserContract(userID);
+                    ng.SeriesForNameOverride ??= seriesService.GetV1UserContract(RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID).FirstOrDefault(), userID);
                 }
 
                 nGroups.Add(ng);
@@ -1916,7 +1935,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
-            var mainSeries = group.GetMainSeries();
+            var mainSeries = group.MainSeries;
             var customName = !string.IsNullOrEmpty(contract.GroupName) && (group.IsManuallyNamed == 1 || !string.Equals(group.GroupName, contract.GroupName));
             var customDesc = !string.IsNullOrEmpty(contract.Description) && (group.OverrideDescription == 1 || !string.Equals(group.Description, contract.Description));
             if (customName || mainSeries is null)
@@ -1934,7 +1953,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
             else
             {
-                var mainName = mainSeries.GetSeriesName();
+                var mainName = mainSeries.SeriesName;
                 if (!string.Equals(group.GroupName, mainName))
                 {
                     group.GroupName = mainName;
@@ -1961,7 +1980,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
             else
             {
-                var mainDescription = mainSeries.GetAnime()?.Description ?? string.Empty;
+                var mainDescription = mainSeries.AniDB_Anime?.Description ?? string.Empty;
                 if (!string.Equals(group.Description, mainDescription))
                 {
                     group.Description = mainDescription;
@@ -1977,14 +1996,18 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (group.ValidateMainSeries() || updated)
             {
                 group.DateTimeUpdated = DateTime.Now;
-                RepoFactory.AnimeGroup.Save(group, true, true);
+                RepoFactory.AnimeGroup.Save(group, true);
             }
 
-            var userRecord = group.GetUserRecord(userID) ?? new(userID, group.AnimeGroupID);
+            var userRecord = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(userID, group.AnimeGroupID) ?? new AnimeGroup_User
+            {
+                JMMUserID = userID, AnimeGroupID = group.AnimeGroupID
+            };
             userRecord.IsFave = contract.IsFave;
             RepoFactory.AnimeGroup_User.Save(userRecord);
 
-            contractout.Result = group.GetUserContract(userID);
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            contractout.Result = groupService.GetV1Contract(group, userID);
 
             return contractout;
         }
@@ -2020,9 +2043,10 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return contractout;
             }
 
-            series.MoveSeries(group);
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            seriesService.MoveSeries(series, group);
 
-            contractout.Result = series.GetUserContract(userID);
+            contractout.Result = seriesService.GetV1UserContract(series, userID);
 
             return contractout;
         }
@@ -2037,6 +2061,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("Series/{userID}")]
     public CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
     {
+        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
         var contractout = new CL_Response<CL_AnimeSeries_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
@@ -2098,7 +2123,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 // The move will take care of saving and emitting the event.
                 if (shouldMove)
                 {
-                    series.MoveSeries(group);
+                    seriesService.MoveSeries(series, group);
                 }
                 else if (updated)
                 {
@@ -2109,7 +2134,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
                 }
 
-                contractout.Result = series.GetUserContract(userID);
+                contractout.Result = seriesService.GetV1UserContract(series, userID);
             }
             else
             {
@@ -2121,15 +2146,19 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
 
                 // Create a new series.
-                var series = new SVR_AnimeSeries()
+                var series = new SVR_AnimeSeries
                 {
+                    AniDB_ID = anime.AnimeID,
+                    LatestLocalEpisodeNumber = 0,
+                    DateTimeUpdated = DateTime.Now,
+                    DateTimeCreated = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
                     DefaultAudioLanguage = contract.DefaultAudioLanguage,
                     DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage,
                     SeriesNameOverride = contract.SeriesNameOverride,
                     DefaultFolder = contract.DefaultFolder,
                 };
 
-                series.Populate(anime);
                 var group = contract.AnimeGroupID <= 0
                     ? _groupCreator.GetOrCreateSingleGroupForAnime(anime)
                     : RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID);
@@ -2138,13 +2167,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 // Populate before making a group to ensure IDs and stats are set for group filters.
                 RepoFactory.AnimeSeries.Save(series, false, false);
 
-                series.CreateAnimeEpisodes(anime).ConfigureAwait(false)
+                seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false)
                     .GetAwaiter()
                     .GetResult();
 
                 ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Added);
 
-                contractout.Result = series.GetUserContract(userID);
+                contractout.Result = seriesService.GetV1UserContract(series, userID);
             }
 
             return contractout;
@@ -2162,6 +2191,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         bool forceOverwrite)
     {
         var response = new CL_Response<CL_AnimeSeries_User> { Result = null, ErrorMessage = string.Empty };
+        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
         try
         {
             if (animeGroupID is > 0)
@@ -2211,7 +2241,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c => c.AnimeID = anime.AnimeID).GetAwaiter().GetResult();
             }
 
-            response.Result = ser.GetUserContract(userID);
+            response.Result = seriesService.GetV1UserContract(ser, userID);
             return response;
         }
         catch (Exception ex)
@@ -2249,6 +2279,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
             var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
             var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
             {
@@ -2268,7 +2299,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             ).GetAwaiter().GetResult();
 
-            return anime?.Contract;
+            return aniDBAnimeService.GetV1DetailedContract(anime);
         }
         catch (Exception ex)
         {
@@ -2301,7 +2332,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.SetMainSeries(ser);
+            grp.MainSeries = ser;
         }
         catch (Exception ex)
         {
@@ -2320,7 +2351,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.SetMainSeries(null);
+            grp.MainSeries = null;
         }
         catch (Exception ex)
         {
@@ -2333,7 +2364,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeSeries.GetByID(animeSeriesID)?.TopLevelAnimeGroup?.GetUserContract(userID);
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            return groupService.GetV1Contract(RepoFactory.AnimeSeries.GetByID(animeSeriesID)?.TopLevelAnimeGroup, userID);
         }
         catch (Exception ex)
         {
@@ -2381,6 +2413,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         var links = new List<CL_AniDB_Anime_Similar>();
         try
         {
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime == null)
             {
@@ -2394,7 +2428,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
 
-            foreach (var link in anime.GetSimilarAnime())
+            foreach (var link in anime.SimilarAnime)
             {
                 var animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
                 if (animeLink != null)
@@ -2407,8 +2441,18 @@ public partial class ShokoServiceImplementation : IShokoServer
 
                 // check if this anime has a series
                 var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
+                var cl = new CL_AniDB_Anime_Similar
+                {
+                    AniDB_Anime_SimilarID = link.AniDB_Anime_SimilarID,
+                    AnimeID = link.AnimeID,
+                    SimilarAnimeID = link.SimilarAnimeID,
+                    Approval = link.Approval,
+                    Total = link.Total
+                };
+                cl.AniDB_Anime = aniDBAnimeService.GetV1Contract(animeLink);
+                cl.AnimeSeries = seriesService.GetV1UserContract(ser, userID);
 
-                links.Add(link.ToClient(animeLink, ser, userID));
+                links.Add(cl);
             }
 
             return links;
@@ -2426,6 +2470,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         var links = new List<CL_AniDB_Anime_Relation>();
         try
         {
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime == null)
             {
@@ -2439,7 +2485,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
 
-            foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
+            foreach (AniDB_Anime_Relation link in anime.RelatedAnime)
             {
                 var animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
                 if (animeLink != null)
@@ -2452,8 +2498,17 @@ public partial class ShokoServiceImplementation : IShokoServer
 
                 // check if this anime has a series
                 var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
+                var cl = new CL_AniDB_Anime_Relation
+                {
+                    AniDB_Anime_RelationID = link.AniDB_Anime_RelationID,
+                    AnimeID = link.AnimeID,
+                    RelationType = link.RelationType,
+                    RelatedAnimeID = link.RelatedAnimeID
+                };
+                cl.AniDB_Anime = aniDBAnimeService.GetV1Contract(animeLink);
+                cl.AnimeSeries = seriesService.GetV1UserContract(ser, userID);
 
-                links.Add(link.ToClient(animeLink, ser, userID));
+                links.Add(cl);
             }
 
             return links;
@@ -2485,7 +2540,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var animeGroupID = ser.AnimeGroupID;
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
 
-            foreach (var ep in ser.GetAnimeEpisodes())
+            foreach (var ep in ser.AllAnimeEpisodes)
             {
                 foreach (var vid in ep.GetVideoLocals())
                 {
@@ -2520,13 +2575,14 @@ public partial class ShokoServiceImplementation : IShokoServer
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
             if (grp != null)
             {
-                if (grp.GetAllSeries().Count == 0)
+                if (grp.AllSeries.Count == 0)
                 {
                     DeleteAnimeGroup(grp.AnimeGroupID, false);
                 }
                 else
                 {
-                    grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
+                    var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                    groupService.UpdateStatsFromTopLevel(grp.TopLevelAnimeGroup, true, true);
                 }
             }
 
@@ -2544,8 +2600,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            return anime?.Contract.AniDBAnime;
+            return aniDBAnimeService.GetV1Contract(anime);
         }
         catch (Exception ex)
         {
@@ -2560,7 +2617,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AniDB_Anime.GetAll().Select(a => a.Contract.AniDBAnime).ToList();
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
+            return RepoFactory.AniDB_Anime.GetAll().Select(a => aniDBAnimeService.GetV1Contract(a)).ToList();
         }
         catch (Exception ex)
         {
@@ -2577,9 +2635,10 @@ public partial class ShokoServiceImplementation : IShokoServer
 
         try
         {
-            var series = RepoFactory.AnimeSeries.GetAll();
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
+            var allSeries = RepoFactory.AnimeSeries.GetAll();
             var dictSeries = new Dictionary<int, SVR_AnimeSeries>();
-            foreach (var ser in series)
+            foreach (var ser in allSeries)
             {
                 dictSeries[ser.AniDB_ID] = ser;
             }
@@ -2601,7 +2660,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var i = 0;
 
-
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             foreach (var anime in animes)
             {
                 i++;
@@ -2614,12 +2673,12 @@ public partial class ShokoServiceImplementation : IShokoServer
                         continue;
                     }
 
-                    if (!dictSeries.ContainsKey(anime.AnimeID))
+                    if (!dictSeries.TryGetValue(anime.AnimeID, out var series))
                     {
                         continue;
                     }
 
-                    if (dictSeries[anime.AnimeID].MissingEpisodeCount > 0)
+                    if (series.MissingEpisodeCount > 0)
                     {
                         continue;
                     }
@@ -2649,12 +2708,12 @@ public partial class ShokoServiceImplementation : IShokoServer
                 // evaluate watched states
                 if (_watchedState == RatingWatchedState.AllEpisodesWatched)
                 {
-                    if (!dictSeries.ContainsKey(anime.AnimeID))
+                    if (!dictSeries.TryGetValue(anime.AnimeID, out var series))
                     {
                         continue;
                     }
 
-                    AnimeSeries_User userRec = dictSeries[anime.AnimeID].GetUserRecord(userID);
+                    var userRec = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
                     if (userRec == null)
                     {
                         continue;
@@ -2668,9 +2727,9 @@ public partial class ShokoServiceImplementation : IShokoServer
 
                 if (_watchedState == RatingWatchedState.NotWatched)
                 {
-                    if (dictSeries.ContainsKey(anime.AnimeID))
+                    if (dictSeries.TryGetValue(anime.AnimeID, out var series))
                     {
-                        AnimeSeries_User userRec = dictSeries[anime.AnimeID].GetUserRecord(userID);
+                        var userRec = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
                         if (userRec != null)
                         {
                             if (userRec.UnwatchedEpisodeCount == 0)
@@ -2722,10 +2781,10 @@ public partial class ShokoServiceImplementation : IShokoServer
                     }
                 }
 
-                var contract = new CL_AnimeRating { AnimeID = anime.AnimeID, AnimeDetailed = anime.Contract };
-                if (dictSeries.ContainsKey(anime.AnimeID))
+                var contract = new CL_AnimeRating { AnimeID = anime.AnimeID, AnimeDetailed = aniDBAnimeService.GetV1DetailedContract(anime) };
+                if (dictSeries.TryGetValue(anime.AnimeID, out var series1))
                 {
-                    contract.AnimeSeries = dictSeries[anime.AnimeID].GetUserContract(userID);
+                    contract.AnimeSeries = seriesService.GetV1UserContract(series1, userID);
                 }
 
                 contracts.Add(contract);
@@ -2744,7 +2803,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AniDB_Anime.GetAll().Select(a => a.Contract).ToList();
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
+            return RepoFactory.AniDB_Anime.GetAll().Select(a => aniDBAnimeService.GetV1DetailedContract(a)).ToList();
         }
         catch (Exception ex)
         {
@@ -2759,7 +2819,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeSeries.GetAll().Select(a => a.GetUserContract(userID)).ToList();
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            return RepoFactory.AnimeSeries.GetAll().Select(a => seriesService.GetV1UserContract(a, userID)).ToList();
         }
         catch (Exception ex)
         {
@@ -2774,7 +2835,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AniDB_Anime.GetByAnimeID(animeID)?.Contract;
+            var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
+            return aniDBAnimeService.GetV1DetailedContract(RepoFactory.AniDB_Anime.GetByAnimeID(animeID));
         }
         catch (Exception ex)
         {
@@ -2795,13 +2857,11 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return retGroups;
             }
 
-            foreach (var grpChild in grp.GetChildGroups())
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            foreach (var grpChild in grp.Children)
             {
-                var ugrp = grpChild.GetUserContract(userID);
-                if (ugrp != null)
-                {
-                    retGroups.Add(ugrp);
-                }
+                var ugrp = groupService.GetV1Contract(grpChild, userID);
+                if (ugrp != null) retGroups.Add(ugrp);
             }
 
             return retGroups;
@@ -2820,15 +2880,16 @@ public partial class ShokoServiceImplementation : IShokoServer
         var series = new List<CL_AnimeSeries_User>();
         try
         {
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
             if (grp == null)
             {
                 return series;
             }
 
-            foreach (var ser in grp.GetSeries())
+            foreach (var ser in grp.Series)
             {
-                var s = ser.GetUserContract(userID);
+                var s = seriesService.GetV1UserContract(ser, userID);
                 if (s != null)
                 {
                     series.Add(s);
@@ -2848,6 +2909,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     public List<CL_AnimeSeries_User> GetSeriesForGroupRecursive(int animeGroupID, int userID)
     {
         var series = new List<CL_AnimeSeries_User>();
+        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
         try
         {
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
@@ -2856,9 +2918,9 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return series;
             }
 
-            foreach (var ser in grp.GetAllSeries())
+            foreach (var ser in grp.AllSeries)
             {
-                var s = ser.GetUserContract(userID);
+                var s = seriesService.GetV1UserContract(ser, userID);
                 if (s != null)
                 {
                     series.Add(s);
@@ -3255,7 +3317,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             RepoFactory.CrossRef_CustomTag.Save(xref);
 
             contractRet.Result = xref;
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(contract.CrossRefID);
+            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = contract.CrossRefID).Process().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -3303,7 +3366,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             RepoFactory.CrossRef_CustomTag.Delete(xrefs[0].CrossRef_CustomTagID);
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(crossRefID);
+            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = crossRefID).Process().GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
@@ -3376,11 +3440,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             RepoFactory.CustomTag.Delete(customTagID);
 
             // update cached data for any anime that were affected
-            foreach (var xref in xrefs)
-            {
-                SVR_AniDB_Anime.UpdateStatsByAnimeID(xref.CrossRefID);
-            }
-
+            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            Task.WhenAll(xrefs.Select(xref => jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = xref.CrossRefID).Process())).GetAwaiter().GetResult();
 
             return string.Empty;
         }
@@ -3569,10 +3630,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             // update stats
             if (updateStats)
             {
-                foreach (var ser in RepoFactory.AnimeSeries.GetAll())
-                {
-                    ser.QueueUpdateStats();
-                }
+                var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+                Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(ser => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = ser.AniDB_ID)))
+                    .GetAwaiter().GetResult();
             }
         }
         catch (Exception ex)

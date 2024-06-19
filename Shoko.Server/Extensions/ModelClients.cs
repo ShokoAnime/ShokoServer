@@ -145,7 +145,7 @@ public static class ModelClients
             TempVoteCount = anime.TempVoteCount,
             AvgReviewRating = anime.AvgReviewRating,
             ReviewCount = anime.ReviewCount,
-            DateTimeUpdated = anime.GetDateTimeUpdated(),
+            DateTimeUpdated = anime.DateTimeUpdated,
             DateTimeDescUpdated = anime.DateTimeDescUpdated,
             ImageEnabled = anime.ImageEnabled,
             Restricted = anime.Restricted,
@@ -154,22 +154,6 @@ public static class ModelClients
             LatestEpisodeNumber = anime.LatestEpisodeNumber,
             DisableExternalLinksFlag = 0
         };
-    }
-
-
-    public static CL_AniDB_Anime_Relation ToClient(this AniDB_Anime_Relation ar, SVR_AniDB_Anime anime,
-        SVR_AnimeSeries ser, int userID)
-    {
-        var cl = new CL_AniDB_Anime_Relation
-        {
-            AniDB_Anime_RelationID = ar.AniDB_Anime_RelationID,
-            AnimeID = ar.AnimeID,
-            RelationType = ar.RelationType,
-            RelatedAnimeID = ar.RelatedAnimeID
-        };
-        cl.AniDB_Anime = anime?.Contract?.AniDBAnime;
-        cl.AnimeSeries = ser?.GetUserContract(userID);
-        return cl;
     }
 
     public static CL_AniDB_GroupStatus ToClient(this AniDB_GroupStatus g)
@@ -207,7 +191,7 @@ public static class ModelClients
             Trakt_ShowID = season.Trakt_ShowID,
             Season = season.Season,
             URL = season.URL,
-            Episodes = season.GetEpisodes()
+            Episodes = season.GetTraktEpisodes()
         };
     }
 
@@ -222,7 +206,7 @@ public static class ModelClients
             URL = show.URL,
             Overview = show.Overview,
             TvDB_ID = show.TvDB_ID,
-            Seasons = show.GetSeasons().Select(a => a.ToClient()).ToList()
+            Seasons = show.GetTraktSeasons().Select(a => a.ToClient()).ToList()
         };
     }
 
@@ -289,22 +273,6 @@ public static class ModelClients
         return contract;
     }
 
-    public static CL_AniDB_Anime_Similar ToClient(this AniDB_Anime_Similar similar, SVR_AniDB_Anime anime,
-        SVR_AnimeSeries ser, int userID)
-    {
-        var cl = new CL_AniDB_Anime_Similar
-        {
-            AniDB_Anime_SimilarID = similar.AniDB_Anime_SimilarID,
-            AnimeID = similar.AnimeID,
-            SimilarAnimeID = similar.SimilarAnimeID,
-            Approval = similar.Approval,
-            Total = similar.Total
-        };
-        cl.AniDB_Anime = anime?.Contract?.AniDBAnime;
-        cl.AnimeSeries = ser?.GetUserContract(userID);
-        return cl;
-    }
-
     public static CL_AniDB_Character ToClient(this AniDB_Character character)
     {
         var seiyuu = character.GetSeiyuu();
@@ -325,26 +293,6 @@ public static class ModelClients
         }
 
         return contract;
-    }
-
-    public static CL_BookmarkedAnime ToClient(this BookmarkedAnime bookmarkedanime)
-    {
-        var cl = new CL_BookmarkedAnime
-        {
-            BookmarkedAnimeID = bookmarkedanime.BookmarkedAnimeID,
-            AnimeID = bookmarkedanime.AnimeID,
-            Priority = bookmarkedanime.Priority,
-            Notes = bookmarkedanime.Notes,
-            Downloading = bookmarkedanime.Downloading
-        };
-        cl.Anime = null;
-        var an = RepoFactory.AniDB_Anime.GetByAnimeID(bookmarkedanime.AnimeID);
-        if (an != null)
-        {
-            cl.Anime = an.Contract.AniDBAnime;
-        }
-
-        return cl;
     }
 
     public static CL_AniDB_Episode ToClient(this SVR_AniDB_Episode ep)

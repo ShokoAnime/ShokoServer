@@ -20,6 +20,7 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
@@ -56,7 +57,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     public int MyListID { get; set; }
 
-    public bool IsManualLink => GetAniDBFile() == null;
+    public bool IsManualLink => AniDBFile == null;
 
     /// <summary>
     /// Playback duration in milliseconds.
@@ -140,10 +141,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         return sb.ToString();
     }
 
-    public SVR_AniDB_File GetAniDBFile()
-    {
-        return RepoFactory.AniDB_File.GetByHash(Hash);
-    }
+    public SVR_AniDB_File AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
 
 
     public SVR_VideoLocal_User GetUserRecord(int userID)
@@ -171,17 +169,14 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     {
         get
         {
-            var anifile = GetAniDBFile();
+            var anifile = AniDBFile;
             if (anifile == null) return null;
 
             return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anifile.GroupID);
         }
     }
 
-    public List<SVR_AnimeEpisode> GetAnimeEpisodes()
-    {
-        return RepoFactory.AnimeEpisode.GetByHash(Hash);
-    }
+    public List<SVR_AnimeEpisode> AnimeEpisodes => RepoFactory.AnimeEpisode.GetByHash(Hash);
 
 
     public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs =>
@@ -384,17 +379,19 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         // update stats for groups and series
         if (toUpdateSeries.Count > 0 && updateStats)
         {
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             foreach (var s in toUpdateSeries.Values)
             {
                 // update all the groups above this series in the hierarchy
-                s.UpdateStats(true, true);
+                seriesService.UpdateStats(s, true, true);
             }
 
             var groups = toUpdateSeries.Values.Select(a => a.AnimeGroup?.TopLevelAnimeGroup).Where(a => a != null)
                 .DistinctBy(a => a.AnimeGroupID);
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             foreach (var group in groups)
             {
-                group.UpdateStatsFromTopLevel(true, true);
+                groupService.UpdateStatsFromTopLevel(group, true, true);
             }
         }
     }
@@ -481,7 +478,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         if (xrefs.Count == 0) return null;
 
         var userRecord = GetUserRecord(userID);
-        var aniFile = GetAniDBFile(); // to prevent multiple db calls
+        var aniFile = AniDBFile; // to prevent multiple db calls
         var relGroup = ReleaseGroup; // to prevent multiple db calls
         var cl = new CL_VideoDetailed { Percentage = xrefs[0].Percentage, EpisodeOrder = xrefs[0].EpisodeOrder, CrossRefSource = xrefs[0].CrossRefSource, AnimeEpisodeID = xrefs[0].EpisodeID,
             VideoLocal_FileName = FileName,
@@ -545,7 +542,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     IReadOnlyList<IVideoFile> IVideo.Locations => throw new NotImplementedException();
 
-    IAniDBFile IVideo.AniDB => GetAniDBFile();
+    IAniDBFile IVideo.AniDB => AniDBFile;
 
     IHashes IVideo.Hashes => this;
 

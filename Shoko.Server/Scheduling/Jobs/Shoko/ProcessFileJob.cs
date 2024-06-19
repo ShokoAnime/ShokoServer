@@ -13,6 +13,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -135,7 +136,7 @@ public class ProcessFileJob : BaseJob
         GetWatchedStateIfNeeded(_vlocal, videoLocals);
 
         // update stats for groups and series. The series are not saved until here, so it's absolutely necessary!!
-        animeIDs.Keys.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
+        await Task.WhenAll(animeIDs.Keys.Select(a => _jobFactory.CreateJob<RefreshAnimeStatsJob>(b => b.AnimeID = a).Process()));
 
         if (_settings.FileQualityFilterEnabled)
         {

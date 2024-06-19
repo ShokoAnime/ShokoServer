@@ -195,7 +195,7 @@ public class ReverseTreeController : BaseController
             return NotFound(FileController.FileNotFoundWithFileID);
         }
 
-        var episodes = file.GetAnimeEpisodes();
+        var episodes = file.AnimeEpisodes;
         if (!episodes.All(episode => User.AllowedSeries(episode.GetAnimeSeries())))
         {
             return Forbid(FileController.FileForbiddenForUser);

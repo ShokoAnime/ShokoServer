@@ -55,25 +55,20 @@ public class SeriesFactory
     public Series GetSeries(SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSource> includeDataFrom = null)
     {
         var uid = _context.GetUser()?.JMMUserID ?? 0;
-        var anime = ser.GetAnime();
+        var anime = ser.AniDB_Anime;
         var animeType = (AniDBAnimeType)anime.AnimeType;
 
         var result = new Series();
         AddBasicAniDBInfo(result, anime);
 
-        var ael = ser.GetAnimeEpisodes();
-        var contract = ser.Contract;
-        if (contract == null)
-        {
-            ser.UpdateContract();
-        }
+        var ael = ser.AnimeEpisodes;
 
         result.IDs = GetIDs(ser);
         result.HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
         result.Images = GetDefaultImages(ser, randomiseImages);
-        result.AirsOn = animeType == AniDBAnimeType.TVSeries || animeType == AniDBAnimeType.Web ? ser.GetAirsOnDaysOfWeek(ael) : new();
+        result.AirsOn = animeType == AniDBAnimeType.TVSeries || animeType == AniDBAnimeType.Web ? GetAirsOnDaysOfWeek(ael) : new();
 
-        result.Name = ser.GetSeriesName();
+        result.Name = ser.SeriesName;
         result.Sizes = ModelHelper.GenerateSeriesSizes(ael, uid);
         result.Size = result.Sizes.Local.Credits + result.Sizes.Local.Episodes + result.Sizes.Local.Others + result.Sizes.Local.Parodies +
                       result.Sizes.Local.Specials + result.Sizes.Local.Trailers;
@@ -89,6 +84,54 @@ public class SeriesFactory
             result._TvDB = GetTvDBInfo(ser);
 
         return result;
+    }
+
+    /// <summary>
+    /// Get the most recent days in the week the show airs on.
+    /// </summary>
+    /// <param name="animeEpisodes">Optionally pass in the episodes so we don't have to fetch them.</param>
+    /// <param name="includeThreshold">Threshold of episodes to include in the calculation.</param>
+    /// <returns></returns>
+    public List<DayOfWeek> GetAirsOnDaysOfWeek(IEnumerable<SVR_AnimeEpisode> animeEpisodes, int includeThreshold = 24)
+    {
+        var now = DateTime.Now;
+        var filteredEpisodes = animeEpisodes
+            .Select(episode =>
+            {
+                var aniDB = episode.AniDB_Episode;
+                var airDate = aniDB.GetAirDateAsDate();
+                return (episode, aniDB, airDate);
+            })
+            .Where(tuple =>
+            {
+                // We ignore all other types except the "normal" type.
+                if ((AniDBEpisodeType)tuple.aniDB.EpisodeType != AniDBEpisodeType.Episode)
+                    return false;
+
+                // We ignore any unknown air dates and dates in the future.
+                if (!tuple.airDate.HasValue || tuple.airDate.Value > now)
+                    return false;
+
+                return true;
+            })
+            .ToList();
+
+        // Threshold used to filter out outliners, e.g. a weekday that only happens
+        // once or twice for whatever reason, or when a show gets an early preview,
+        // an episode moving, etc...
+        var outlierThreshold = Math.Min((int)Math.Ceiling(filteredEpisodes.Count / 12D), 4);
+        return filteredEpisodes
+            .OrderByDescending(tuple => tuple.aniDB.EpisodeNumber)
+            // We check up to the `x` last aired episodes to get a grasp on which days
+            // it airs on. This helps reduce variance in days for long-running
+            // shows, such as One Piece, etc...
+            .Take(includeThreshold)
+            .Select(tuple => tuple.airDate.Value.DayOfWeek)
+            .GroupBy(weekday => weekday)
+            .Where(list => list.Count() > outlierThreshold)
+            .Select(list => list.Key)
+            .OrderBy(weekday => weekday)
+            .ToList();
     }
 
     private void AddBasicAniDBInfo(Series result, SVR_AniDB_Anime anime)
@@ -235,7 +278,7 @@ public class SeriesFactory
         };
 
         // AniDB
-        var anidbId = ser.GetAnime()?.AnimeID;
+        var anidbId = ser.AniDB_Anime?.AnimeID;
         if (anidbId.HasValue)
         {
             ids.AniDB = anidbId.Value;
@@ -322,7 +365,7 @@ public class SeriesFactory
 
     public List<Series.TvDB> GetTvDBInfo(SVR_AnimeSeries ser)
     {
-        var ael = ser.GetAnimeEpisodes(true);
+        var ael = ser.AnimeEpisodes;
         return RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID)
             .Select(xref => RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID))
             .Select(tvdbSer => GetTvDB(tvdbSer, ser, ael))
@@ -335,7 +378,7 @@ public class SeriesFactory
         {
             "temporary" => AniDBVoteType.AnimeTemp,
             "permanent" => AniDBVoteType.Anime,
-            _ => ser.GetAnime()?.GetFinishedAiring() ?? false ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp
+            _ => ser.AniDB_Anime?.GetFinishedAiring() ?? false ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp
         };
 
         var dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.AnimeTemp) ??
@@ -450,7 +493,7 @@ public class SeriesFactory
     public Series.AniDB GetAniDB(SVR_AniDB_Anime anime, SVR_AnimeSeries series = null, bool includeTitles = true)
     {
         series ??= RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-        var seriesTitle = series?.GetSeriesName() ?? anime.PreferredTitle;
+        var seriesTitle = series?.SeriesName ?? anime.PreferredTitle;
         var result = new Series.AniDB
         {
             ID = anime.AnimeID,
@@ -458,7 +501,7 @@ public class SeriesFactory
             Type = GetAniDBSeriesType(anime.AnimeType),
             Title = seriesTitle,
             Titles = includeTitles
-                ? anime.GetTitles().Select(title => new Title
+                ? anime.Titles.Select(title => new Title
                     {
                         Name = title.Title,
                         Language = title.LanguageCode,
@@ -493,9 +536,9 @@ public class SeriesFactory
             series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
         }
 
-        var anime = series != null ? series.GetAnime() : RepoFactory.AniDB_Anime.GetByAnimeID(result.AnimeID);
+        var anime = series != null ? series.AniDB_Anime : RepoFactory.AniDB_Anime.GetByAnimeID(result.AnimeID);
 
-        var animeTitle = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.PreferredTitle;
+        var animeTitle = series?.SeriesName ?? anime?.PreferredTitle ?? result.PreferredTitle;
         var anidb = new Series.AniDB
         {
             ID = result.AnimeID,
@@ -545,9 +588,9 @@ public class SeriesFactory
         if (anime is not null)
         {
             aniDB.Type = GetAniDBSeriesType(anime.AnimeType);
-            aniDB.Title = series?.GetSeriesName() ?? anime.PreferredTitle;
+            aniDB.Title = series?.SeriesName ?? anime.PreferredTitle;
             aniDB.Titles = includeTitles
-                ? anime.GetTitles().Select(
+                ? anime.Titles.Select(
                     title => new Title
                     {
                         Name = title.Title,
@@ -623,9 +666,9 @@ public class SeriesFactory
         if (anime is not null)
         {
             aniDB.Type = GetAniDBSeriesType(anime.AnimeType);
-            aniDB.Title = series?.GetSeriesName() ?? anime.PreferredTitle;
+            aniDB.Title = series?.SeriesName ?? anime.PreferredTitle;
             aniDB.Titles = includeTitles
-                ? anime.GetTitles().Select(
+                ? anime.Titles.Select(
                     title => new Title
                     {
                         Name = title.Title,
@@ -786,12 +829,9 @@ public class SeriesFactory
     }
     
     public Series.TvDB GetTvDB(TvDB_Series tbdbSeries, SVR_AnimeSeries series,
-        List<SVR_AnimeEpisode> episodeList = null)
+        IEnumerable<SVR_AnimeEpisode> episodeList = null)
     {
-        if (episodeList == null)
-        {
-            episodeList = series.GetAnimeEpisodes(true);
-        }
+        episodeList ??= series.AnimeEpisodes;
 
         var images = new Images();
         AddTvDBImages(images, series.AniDB_ID);

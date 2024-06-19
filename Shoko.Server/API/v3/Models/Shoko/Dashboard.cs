@@ -143,14 +143,14 @@ public static class Dashboard
                     ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.AnimeEpisodeID
                     : null
             };
-            Title = episode.GetPreferredTitle();
+            Title = episode.PreferredTitle;
             Number = episode.EpisodeNumber;
             Type = Episode.MapAniDBEpisodeType(episode.GetEpisodeTypeEnum());
             AirDate = episode.GetAirDateAsDate();
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
             ResumePosition = userRecord?.ResumePositionTimeSpan;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
-            SeriesTitle = series?.GetSeriesName() ?? anime.PreferredTitle;
+            SeriesTitle = series?.SeriesName ?? anime.PreferredTitle;
             SeriesPoster = SeriesFactory.GetDefaultImage(anime.AnimeID, ImageSizeType.Poster) ??
                            SeriesFactory.GetAniDBPoster(anime.AnimeID);
         }
