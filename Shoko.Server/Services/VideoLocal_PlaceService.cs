@@ -398,7 +398,7 @@ public class VideoLocal_PlaceService
         // Allows calling the method without any parameters.
         request ??= new();
 
-        if (!string.IsNullOrEmpty(request.ScriptName) && string.Equals(request.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
+        if (string.Equals(request.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
         {
             return new()
             {
