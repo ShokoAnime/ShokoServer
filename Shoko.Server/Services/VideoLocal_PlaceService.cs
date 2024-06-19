@@ -1025,6 +1025,7 @@ public class VideoLocal_PlaceService
             else
             {
                 if (v is not null)
+                {
                     try
                     {
                         ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
@@ -1033,6 +1034,7 @@ public class VideoLocal_PlaceService
                     {
                         // ignore
                     }
+                }
 
                 BaseRepository.Lock(session, s =>
                 {
