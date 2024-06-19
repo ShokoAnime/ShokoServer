@@ -150,15 +150,15 @@ public class VideoLocal_PlaceService
         var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.InvariantCultureIgnoreCase);
         var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.InvariantCultureIgnoreCase);
 
-        // Don't touch files not in a drop source... unless we're requested to.
-        if (moved && dropFolder.IsDropSource == 0)
+        // Don't relocate files not in a drop source or drop destination.
+        if (dropFolder.IsDropSource == 0 && dropFolder.IsDropDestination == 0)
         {
-            _logger.LogTrace("Not moving file as it is NOT in an import folder marked as a drop source: {FullPath}", oldFullPath);
+            _logger.LogTrace("Not relocating file as it is NOT in an import folder marked as a drop source: {FullPath}", oldFullPath);
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"Not moving file as it is NOT in an import folder marked as a drop source: \"{oldFullPath}\"",
+                ErrorMessage = $"Not relocating file as it is NOT in an import folder marked as a drop source: \"{oldFullPath}\"",
             };
         }
 
