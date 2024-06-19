@@ -18,7 +18,7 @@ public interface IAnime : ISeries
     /// The number of total episodes in the series.
     /// </summary>
     [Obsolete("Use ISeries.EpisodeCounts instead.")]
-    new EpisodeCounts EpisodeCounts { get; }
+    EpisodeCounts EpisodeCounts { get; }
 
     /// <summary>
     /// The AniDB Anime ID.

@@ -15,8 +15,8 @@ public class SeriesInfoUpdatedEventSignalRModel
         Reason = eventArgs.Reason;
         SeriesID = eventArgs.SeriesInfo.ID;
 
-        if (eventArgs.SeriesInfo.SeriesID != null) ShokoSeriesIDs = [eventArgs.SeriesInfo.SeriesID.Value];
-        ShokoGroupIDs = eventArgs.SeriesInfo.GroupIDs;
+        ShokoSeriesIDs = eventArgs.SeriesInfo.ShokoSeriesIDs;
+        ShokoGroupIDs = eventArgs.SeriesInfo.ShokoGroupIDs;
     }
 
     /// <summary>
@@ -39,12 +39,10 @@ public class SeriesInfoUpdatedEventSignalRModel
     /// <summary>
     /// Shoko series ids affected by this update.
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IReadOnlyList<int>? ShokoSeriesIDs { get; }
+    public IReadOnlyList<int> ShokoSeriesIDs { get; }
 
     /// <summary>
     /// Shoko group ids affected by this update.
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IReadOnlyList<int>? ShokoGroupIDs { get; }
+    public IReadOnlyList<int> ShokoGroupIDs { get; }
 }

@@ -18,10 +18,11 @@ using Shoko.Server.Utilities;
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime : AniDB_Anime, IAnime
+public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
 {
     #region Properties and fields
 
@@ -563,17 +564,39 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     #endregion
 
+    #region IWithDescription Implementation
+
+    string IWithDescriptions.DefaultDescription => Description;
+
+    string IWithDescriptions.PreferredDescription => Description;
+
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => [
+        new()
+        {
+            Source = DataSourceEnum.AniDB,
+            Language = TitleLanguage.English,
+            LanguageCode = "en",
+            Value = string.Empty,
+        },
+    ];
+
+    #endregion
+
     #region ISeries Implementation
 
     AnimeType ISeries.Type => (AnimeType)AnimeType;
 
-    int? ISeries.SeriesID => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.AnimeSeriesID;
+    IReadOnlyList<int> ISeries.ShokoSeriesIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series.AnimeSeriesID] : [];
 
-    IReadOnlyList<int> ISeries.GroupIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.AllGroupsAbove.Select(a => a.AnimeGroupID).ToList() ?? [];
+    IReadOnlyList<int> ISeries.ShokoGroupIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.AllGroupsAbove.Select(a => a.AnimeGroupID).ToList() ?? [];
 
     double ISeries.Rating => Rating / 100D;
 
     bool ISeries.Restricted => Restricted == 1;
+
+    IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
+
+    IReadOnlyList<IShokoGroup> ISeries.ShokoGroups => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.AllGroupsAbove ?? [];
 
     IReadOnlyList<ISeries> ISeries.LinkedSeries
     {

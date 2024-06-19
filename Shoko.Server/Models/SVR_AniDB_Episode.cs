@@ -87,6 +87,24 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
 
     #endregion
 
+    #region IWithDescription Implementation
+
+    string IWithDescriptions.DefaultDescription => Description;
+
+    string IWithDescriptions.PreferredDescription => Description;
+
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => [
+        new()
+        {
+            Source = DataSourceEnum.AniDB,
+            Language = TitleLanguage.English,
+            LanguageCode = "en",
+            Value = string.Empty,
+        },
+    ];
+
+    #endregion
+
     #region IEpisode Implementation
 
     int IEpisode.SeriesID => AnimeID;

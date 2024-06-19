@@ -6,6 +6,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -19,7 +20,7 @@ using Range = System.Range;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AnimeSeries : AnimeSeries, ISeries
+public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 {
     #region DB Columns
 
@@ -241,7 +242,6 @@ public class SVR_AnimeSeries : AnimeSeries, ISeries
     public SVR_AniDB_Anime AniDB_Anime => RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
 
     private DateTime? _airDate;
-    public IReadOnlyList<int> GroupIDs => AllGroupsAbove.Select(a => a.AnimeGroupID).Distinct().ToList();
 
     public DateTime? AirDate
     {
@@ -395,14 +395,58 @@ public class SVR_AnimeSeries : AnimeSeries, ISeries
 
     #endregion
 
+    #region IWithDescription Implementation
+
+    string IWithDescriptions.DefaultDescription => AniDB_Anime?.Description ?? string.Empty;
+
+    string IWithDescriptions.PreferredDescription => AniDB_Anime?.Description ?? string.Empty;
+
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions
+    {
+        get
+        {
+            var titles = new List<TextDescription>();
+
+            var anime = AniDB_Anime;
+            if (anime is not null && anime is ISeries animeSeries)
+            {
+                var animeTitles = animeSeries.Descriptions;
+                titles.AddRange(animeTitles);
+            }
+
+            // TODO: Add other sources here.
+
+            // Fallback in the off-chance that the AniDB data is unavailable for whatever reason. It should never reach this code.
+            if (titles.Count is 0)
+                titles.Add(new()
+                {
+                    Source = DataSourceEnum.AniDB,
+                    Language = TitleLanguage.English,
+                    LanguageCode = "en",
+                    Value = string.Empty,
+                });
+
+            return titles;
+        }
+    }
+
+    #endregion
+
     #region ISeries Implementation
 
     AbstractAnimeType ISeries.Type => (AbstractAnimeType)(AniDB_Anime?.AnimeType ?? -1);
-    public int? SeriesID => AnimeSeriesID;
+
+    IReadOnlyList<int> ISeries.ShokoSeriesIDs => [AnimeSeriesID];
+
+    IReadOnlyList<int> ISeries.ShokoGroupIDs => AllGroupsAbove.Select(a => a.AnimeGroupID).Distinct().ToList();
 
     double ISeries.Rating => (AniDB_Anime?.Rating ?? 0) / 100D;
 
     bool ISeries.Restricted => (AniDB_Anime?.Restricted ?? 0) == 1;
+
+    IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => [this];
+
+    IReadOnlyList<IShokoGroup> ISeries.ShokoGroups => AllGroupsAbove;
 
     IReadOnlyList<ISeries> ISeries.LinkedSeries
     {
@@ -444,6 +488,23 @@ public class SVR_AnimeSeries : AnimeSeries, ISeries
                 .ToDictionary(a => a, a => episodes.Count(e => e.Type == a));
         }
     }
+
+    #endregion
+
+    #region IShokoSeries Implementation
+
+    int IShokoSeries.AnidbAnimeID => AniDB_ID;
+
+    int IShokoSeries.ParentGroupID => AnimeGroupID;
+
+    int IShokoSeries.TopLevelGroupID => TopLevelAnimeGroup.AnimeGroupID;
+
+    ISeries IShokoSeries.AnidbAnime => AniDB_Anime ??
+        throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IShokoSeries.AnidbAnime");
+
+    IShokoGroup IShokoSeries.ParentGroup => AnimeGroup;
+
+    IShokoGroup IShokoSeries.TopLevelGroup => TopLevelAnimeGroup;
 
     #endregion
 }

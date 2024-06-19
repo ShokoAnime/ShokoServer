@@ -299,6 +299,43 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
 
     #endregion
 
+    #region IWithDescription Implementation
+
+    string IWithDescriptions.DefaultDescription => AniDB_Episode?.Description ?? string.Empty;
+
+    string IWithDescriptions.PreferredDescription => AniDB_Episode?.Description ?? string.Empty;
+
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions
+    {
+        get
+        {
+            var titles = new List<TextDescription>();
+
+            var episode = AniDB_Episode;
+            if (episode is not null && episode is IEpisode anidbEpisode)
+            {
+                var episodetitles = anidbEpisode.Descriptions;
+                titles.AddRange(episodetitles);
+            }
+
+            // TODO: Add other sources here.
+
+            // Fallback in the off-chance that the AniDB data is unavailable for whatever reason. It should never reach this code.
+            if (titles.Count is 0)
+                titles.Add(new()
+                {
+                    Source = DataSourceEnum.AniDB,
+                    Language = TitleLanguage.English,
+                    LanguageCode = "en",
+                    Value = string.Empty,
+                });
+
+            return titles;
+        }
+    }
+
+    #endregion
+
     #region IEpisode Implementation
 
     int IEpisode.SeriesID => AnimeSeriesID;

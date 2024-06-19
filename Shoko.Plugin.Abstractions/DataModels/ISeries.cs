@@ -1,25 +1,26 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 #nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
-public interface ISeries : IWithTitles, IMetadata<int>
+public interface ISeries : IWithTitles, IWithDescriptions, IMetadata<int>
 {
+    /// <summary>
+    /// The shoko series ID, if we have any.
+    /// /// </summary>
+    IReadOnlyList<int> ShokoSeriesIDs { get; }
+
+    /// <summary>
+    /// The shoko group IDs, if we have any.
+    /// </summary>
+    IReadOnlyList<int> ShokoGroupIDs { get; }
+
     /// <summary>
     /// The Anime Type.
     /// </summary>
     AnimeType Type { get; }
-
-    /// <summary>
-    /// The shoko series ID, if we have it
-    /// </summary>
-    int? SeriesID { get; }
-
-    /// <summary>
-    /// The shoko group IDs, if we have them
-    /// </summary>
-    IReadOnlyList<int> GroupIDs { get; }
 
     /// <summary>
     /// The first aired date, if known.
@@ -33,7 +34,7 @@ public interface ISeries : IWithTitles, IMetadata<int>
     DateTime? EndDate { get; }
 
     /// <summary>
-    /// Overall user rating for the show, normalised on a scale of 1-10.
+    /// Overall user rating for the show, normalized on a scale of 1-10.
     /// </summary>
     double Rating { get; }
 
@@ -41,6 +42,16 @@ public interface ISeries : IWithTitles, IMetadata<int>
     /// Indicates it's restricted for non-adult viewers. 😉
     /// </summary>
     bool Restricted { get; }
+
+    /// <summary>
+    /// All shoko series linked to this entity.
+    /// </summary>
+    IReadOnlyList<IShokoSeries> ShokoSeries { get; }
+
+    /// <summary>
+    /// All shoko series linked to this entity.
+    /// </summary>
+    IReadOnlyList<IShokoGroup> ShokoGroups { get; }
 
     /// <summary>
     /// All series linked to this entity.

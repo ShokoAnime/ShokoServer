@@ -6,11 +6,14 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AnimeGroup : AnimeGroup, IGroup
+public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -28,7 +31,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         }
     }
 
-    public SVR_AnimeGroup Parent => AnimeGroupParentID.HasValue ? RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value) : null;
+    public SVR_AnimeGroup? Parent => AnimeGroupParentID.HasValue ? RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value) : null;
 
     public List<SVR_AniDB_Anime> Anime =>
         RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).Select(s => s.AniDB_Anime).Where(anime => anime != null).ToList();
@@ -82,7 +85,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     }
 
     // TODO probably figure out a different way to do this, for example, have this only have a getter, and the setter exists in the service
-    public SVR_AnimeSeries MainSeries
+    public SVR_AnimeSeries? MainSeries
     {
         get
         {
@@ -156,7 +159,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             // within the group.
             if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
             {
-                SVR_AnimeSeries mainSeries = null;
+                SVR_AnimeSeries? mainSeries = null;
                 if (DefaultAnimeSeriesID.HasValue)
                     mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
 
@@ -175,68 +178,31 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     }
 
 
-    public List<AniDB_Tag> Tags
-    {
-        get
-        {
-            var animeTags = AllSeries.SelectMany(ser => ser.AniDB_Anime.AnimeTags).ToList();
-            return animeTags.OrderByDescending(a => a.Weight).Select(animeTag => RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID)).WhereNotNull()
-                .DistinctBy(a => a.TagID).ToList();
-        }
-    }
+    public List<AniDB_Tag> Tags => AllSeries
+        .SelectMany(ser => ser.AniDB_Anime.AnimeTags)
+        .OrderByDescending(a => a.Weight)
+        .Select(animeTag => RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID))
+        .WhereNotNull()
+        .DistinctBy(a => a.TagID)
+        .ToList();
 
-    public List<CustomTag> CustomTags
-    {
-        get
-        {
-            var tags = new List<CustomTag>();
-            var tagIDs = new List<int>();
-
-
-            // get a list of all the unique custom tags for all the series in this group
-            foreach (var ser in AllSeries)
-            foreach (var tag in RepoFactory.CustomTag.GetByAnimeID(ser.AniDB_ID))
-            {
-                if (!tagIDs.Contains(tag.CustomTagID))
-                {
-                    tagIDs.Add(tag.CustomTagID);
-                    tags.Add(tag);
-                }
-            }
-
-            return tags.OrderBy(a => a.TagName).ToList();
-        }
-    }
+    public List<CustomTag> CustomTags => AllSeries
+        .SelectMany(ser => RepoFactory.CustomTag.GetByAnimeID(ser.AniDB_ID))
+        .DistinctBy(a => a.CustomTagID)
+        .OrderBy(a => a.TagName)
+        .ToList();
 
     public HashSet<int> Years => AllSeries.SelectMany(a => a.Years).ToHashSet();
+
     public HashSet<(int Year, AnimeSeason Season)> Seasons => AllSeries.SelectMany(a => a.AniDB_Anime.Seasons).ToHashSet();
 
-    public List<SVR_AniDB_Anime_Title> Titles
-    {
-        get
-        {
-            var animeTitleIDs = new List<int>();
-            var animeTitles = new List<SVR_AniDB_Anime_Title>();
-
-            // get a list of all the unique titles for this all the series in this group
-            foreach (var ser in AllSeries)
-            foreach (var aat in ser.AniDB_Anime.Titles)
-            {
-                if (!animeTitleIDs.Contains(aat.AniDB_Anime_TitleID))
-                {
-                    animeTitleIDs.Add(aat.AniDB_Anime_TitleID);
-                    animeTitles.Add(aat);
-                }
-            }
-
-            return animeTitles;
-        }
-    }
+    public List<SVR_AniDB_Anime_Title> Titles => AllSeries
+        .SelectMany(ser => ser.AniDB_Anime.Titles)
+        .DistinctBy(tit => tit.AniDB_Anime_TitleID)
+        .ToList();
 
     public override string ToString()
-    {
-        return $"Group: {GroupName} ({AnimeGroupID})";
-    }
+        => $"Group: {GroupName} ({AnimeGroupID})";
 
     public SVR_AnimeGroup TopLevelAnimeGroup
     {
@@ -282,6 +248,8 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         return false;
     }
 
+    #region IGroup Implementation
+
     string IGroup.Name => GroupName;
     IAnime IGroup.MainSeries => (MainSeries ?? AllSeries.First()).AniDB_Anime;
 
@@ -293,6 +261,118 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         .ThenBy(a => a.MainTitle)
         .Cast<IAnime>()
         .ToList();
+
+    #endregion
+
+    #region IMetadata Implementation
+
+    DataSourceEnum IMetadata.Source => DataSourceEnum.Shoko;
+
+    int IMetadata<int>.ID => AnimeGroupID;
+
+    #endregion
+
+    #region IWithTitles Implementation
+
+    string IWithTitles.DefaultTitle => IsManuallyNamed == 1 ? GroupName : (this as IShokoGroup).MainSeries.DefaultTitle ?? $"<Shoko Group {AnimeGroupID}>";
+
+    string IWithTitles.PreferredTitle => GroupName;
+
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles
+    {
+        get
+        {
+            var titles = new List<AnimeTitle>();
+            if (IsManuallyNamed == 1)
+            {
+                titles.Add(new()
+                {
+                    Source = DataSourceEnum.Shoko,
+                    Language = TitleLanguage.Unknown,
+                    LanguageCode = "unk",
+                    Title = GroupName,
+                    Type = TitleType.Main,
+                });
+            }
+
+            var mainSeriesId = (this as IShokoGroup).MainSeriesID;
+            foreach (var series in (this as IShokoGroup).AllSeries)
+            {
+                foreach (var title in series.Titles)
+                {
+                    if ((IsManuallyNamed == 1 || series.ID != mainSeriesId) && title.Type == TitleType.Main)
+                        title.Type = TitleType.Official;
+                    titles.Add(title);
+                }
+            }
+
+            return titles;
+        }
+    }
+
+    #endregion
+
+    #region IWithDescription Implementation
+
+    string IWithDescriptions.DefaultDescription => OverrideDescription == 1 ? Description : (this as IShokoGroup).MainSeries.DefaultDescription ?? string.Empty;
+
+    string IWithDescriptions.PreferredDescription => Description;
+
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions
+    {
+        get
+        {
+            var titles = new List<TextDescription>();
+            if (OverrideDescription == 1)
+            {
+                titles.Add(new()
+                {
+                    Source = DataSourceEnum.Shoko,
+                    Language = TitleLanguage.Unknown,
+                    LanguageCode = "unk",
+                    Value = GroupName,
+                });
+            }
+
+            foreach (var series in (this as IShokoGroup).AllSeries)
+                titles.AddRange(series.Descriptions);
+
+            return titles;
+        }
+    }
+
+    #endregion
+
+    #region IShokoGroup Implementation
+
+    int? IShokoGroup.ParentGroupID => AnimeGroupParentID;
+
+    int IShokoGroup.TopLevelGroupID => TopLevelAnimeGroup.AnimeGroupID;
+
+    int IShokoGroup.MainSeriesID => (this as IShokoGroup).MainSeries.ID;
+
+    bool IShokoGroup.HasConfiguredMainSeries => DefaultAnimeSeriesID.HasValue;
+
+    bool IShokoGroup.HasCustomTitle => IsManuallyNamed == 1;
+
+    bool IShokoGroup.HasCustomDescription => OverrideDescription == 1;
+
+    IShokoGroup? IShokoGroup.ParentGroup => Parent;
+
+    IShokoGroup IShokoGroup.TopLevelGroup => TopLevelAnimeGroup;
+
+    IReadOnlyList<IShokoGroup> IShokoGroup.Groups => Children;
+
+    IReadOnlyList<IShokoGroup> IShokoGroup.AllGroups => AllChildren.ToList();
+
+    IShokoSeries IShokoGroup.MainSeries => MainSeries ?? AllSeries.FirstOrDefault() ??
+        throw new NullReferenceException($"Unable to get main series for group {AnimeGroupID} when accessed through IShokoGroup.MainSeries");
+
+    IReadOnlyList<IShokoSeries> IShokoGroup.Series => Series;
+
+    IReadOnlyList<IShokoSeries> IShokoGroup.AllSeries => AllSeries;
+
+    #endregion
 }
 
 public class GroupVotes

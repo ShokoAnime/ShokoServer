@@ -16,6 +16,7 @@
         <Configurations>Debug;Release;Benchmarks</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
         <None Include="../LICENSE" Pack="true" PackagePath="/" />

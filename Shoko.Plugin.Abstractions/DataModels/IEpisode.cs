@@ -4,7 +4,7 @@ using System.Collections.Generic;
 #nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
-public interface IEpisode : IWithTitles, IMetadata<int>
+public interface IEpisode : IWithTitles, IWithDescriptions, IMetadata<int>
 {
     /// <summary>
     /// The AniDB Anime ID.
