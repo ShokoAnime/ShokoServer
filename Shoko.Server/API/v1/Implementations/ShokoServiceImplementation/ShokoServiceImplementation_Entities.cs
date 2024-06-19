@@ -1878,6 +1878,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var contractout = new CL_Response<CL_AnimeGroup_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             SVR_AnimeGroup group;
             var updated = false;
             if (contract.AnimeGroupID is > 0)
@@ -1935,7 +1936,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
-            var mainSeries = group.MainSeries;
+            var mainSeries = group.MainSeries ?? group.AllSeries.FirstOrDefault();
             var customName = !string.IsNullOrEmpty(contract.GroupName) && (group.IsManuallyNamed == 1 || !string.Equals(group.GroupName, contract.GroupName));
             var customDesc = !string.IsNullOrEmpty(contract.Description) && (group.OverrideDescription == 1 || !string.Equals(group.Description, contract.Description));
             if (customName || mainSeries is null)
@@ -1993,7 +1994,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
-            if (group.ValidateMainSeries() || updated)
+            groupService.ValidateMainSeries(group);
+            if (updated)
             {
                 group.DateTimeUpdated = DateTime.Now;
                 RepoFactory.AnimeGroup.Save(group, true);
@@ -2006,7 +2008,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             userRecord.IsFave = contract.IsFave;
             RepoFactory.AnimeGroup_User.Save(userRecord);
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             contractout.Result = groupService.GetV1Contract(group, userID);
 
             return contractout;
@@ -2332,7 +2333,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.MainSeries = ser;
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            groupService.SetMainSeries(grp, ser);
         }
         catch (Exception ex)
         {
@@ -2351,7 +2353,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.MainSeries = null;
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            groupService.SetMainSeries(grp, null);
         }
         catch (Exception ex)
         {

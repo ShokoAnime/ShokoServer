@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
@@ -54,6 +55,46 @@ public class AnimeGroupService
         }
     }
 
+    public void SetMainSeries(SVR_AnimeGroup group, [CanBeNull] SVR_AnimeSeries series)
+    {
+        // Set the id before potentially resetting the fields, so the getter uses
+        // the new id instead of the old.
+        group.DefaultAnimeSeriesID = series?.AnimeSeriesID;
+
+        ValidateMainSeries(group);
+
+        // Reset the name/description if the group is not manually named.
+        var current = series ?? (group.MainAniDBAnimeID.HasValue
+            ? RepoFactory.AnimeSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
+            : group.AllSeries.FirstOrDefault());
+        if (group.IsManuallyNamed == 0 && current != null)
+            group.GroupName = current!.SeriesName;
+        if (group.OverrideDescription == 0 && current != null)
+            group.Description = current!.AniDB_Anime.Description;
+
+        // Save the changes for this group only.
+        group.DateTimeUpdated = DateTime.Now;
+        _groups.Save(group, false);
+    }
+
+    public void ValidateMainSeries(SVR_AnimeGroup group)
+    {
+        if (group.MainAniDBAnimeID == null && group.DefaultAnimeSeriesID == null) return;
+        var allSeries = group.AllSeries;
+
+        // User overridden main series.
+        if (group.DefaultAnimeSeriesID.HasValue && !allSeries.Any(series => series.AnimeSeriesID == group.DefaultAnimeSeriesID.Value))
+        {
+            throw new InvalidOperationException("Cannot set default series to a series that does not exist in the group");
+        }
+
+        // Auto selected main series.
+        if (group.MainAniDBAnimeID.HasValue && !allSeries.Any(series => series.AniDB_ID == group.MainAniDBAnimeID.Value))
+        {
+            throw new InvalidOperationException("Cannot set default series to a series that does not exist in the group");
+        }
+    }
+
     public CL_AnimeGroup_User GetV1Contract(SVR_AnimeGroup group, int userid)
     {
         if (group == null) return null;
@@ -86,7 +127,7 @@ public class AnimeGroupService
             if (grp.IsManuallyNamed == 1 && grp.OverrideDescription == 1)
                 continue;
 
-            var series = grp.MainSeries;
+            var series = grp.MainSeries ?? grp.AllSeries.FirstOrDefault();
             if (series != null)
             {
                 // Reset the name/description as needed.
@@ -141,7 +182,7 @@ public class AnimeGroupService
         var seriesList = group.AllSeries;
 
         // Reset the name/description for the group if needed.
-        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries : null;
+        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries ?? group.AllSeries.FirstOrDefault() : null;
         if (mainSeries is not null)
         {
             if (group.IsManuallyNamed == 0)

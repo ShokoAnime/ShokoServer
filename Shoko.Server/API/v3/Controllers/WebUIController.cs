@@ -233,7 +233,7 @@ public class WebUIController : BaseController
                     return null;
                 }
 
-                var series = group.MainSeries;
+                var series = group.MainSeries ?? group.AllSeries.FirstOrDefault();
                 var anime = series?.AniDB_Anime;
                 if (series == null || anime == null)
                 {

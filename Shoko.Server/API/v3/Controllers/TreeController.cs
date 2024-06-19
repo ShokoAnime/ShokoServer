@@ -551,7 +551,7 @@ public class TreeController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
         }
 
-        var mainSeries = group.MainSeries;
+        var mainSeries = group.MainSeries ?? group.AllSeries.FirstOrDefault();
         if (mainSeries == null)
         {
             return InternalError("Unable to find main series for group.");

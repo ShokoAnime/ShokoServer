@@ -101,51 +101,8 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                     return series;
             }
 
-            // Earliest airing series.
-            return AllSeries.FirstOrDefault();
+            return null;
         }
-
-        set
-        {
-            // Set the id before potentially reseting the fields, so the getter uses
-            // the new id instead of the old.
-            DefaultAnimeSeriesID = value?.AnimeSeriesID;
-
-            ValidateMainSeries();
-
-            // Reset the name/description if the group is not manually named.
-            var series = value ?? (MainAniDBAnimeID.HasValue ? RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value) : AllSeries.FirstOrDefault());
-            if (IsManuallyNamed == 0 && series != null)
-                GroupName = series!.SeriesName;
-            if (OverrideDescription == 0 && series != null)
-                Description = series!.AniDB_Anime.Description;
-
-            // Save the changes for this group only.
-            DateTimeUpdated = DateTime.Now;
-            RepoFactory.AnimeGroup.Save(this, false);
-        }
-    }
-
-    public bool ValidateMainSeries()
-    {
-        var changed = false;
-        var allSeries = AllSeries;
-
-        // User overridden main series.
-        if (DefaultAnimeSeriesID.HasValue && !allSeries.Any(series => series.AnimeSeriesID == DefaultAnimeSeriesID.Value))
-        {
-            DefaultAnimeSeriesID = null;
-            changed = true;
-        }
-
-        // Auto selected main series.
-        if (MainAniDBAnimeID.HasValue && !allSeries.Any(series => series.AniDB_ID == MainAniDBAnimeID.Value))
-        {
-            MainAniDBAnimeID = null;
-            changed = true;
-        }
-
-        return changed;
     }
 
     public List<SVR_AnimeSeries> Series
@@ -162,6 +119,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             if (!DefaultAnimeSeriesID.HasValue && !MainAniDBAnimeID.HasValue) return seriesList;
 
             var mainSeries = MainSeries;
+            if (mainSeries == null) return seriesList;
             if (seriesList.Remove(mainSeries)) seriesList.Insert(0, mainSeries);
 
             return seriesList;
@@ -325,7 +283,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     }
 
     string IGroup.Name => GroupName;
-    IAnime IGroup.MainSeries => MainSeries.AniDB_Anime;
+    IAnime IGroup.MainSeries => (MainSeries ?? AllSeries.First()).AniDB_Anime;
 
     IReadOnlyList<IAnime> IGroup.Series => AllSeries
         .Select(a => a.AniDB_Anime)

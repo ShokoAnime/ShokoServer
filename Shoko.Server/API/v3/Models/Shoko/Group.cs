@@ -324,10 +324,11 @@ public class Group : BaseModel
                 foreach (var series in seriesList)
                     seriesService.MoveSeries(series, group, updateGroupStats: false, updateEvent: false);
 
+                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
                 // Set the main series and maybe update the group
                 // name/description.
                 if (PreferredSeriesID.HasValue)
-                    group.MainSeries = preferredSeries;
+                    groupService.SetMainSeries(group, preferredSeries);
 
                 // Check if the names have changed if we omit the value, or if
                 // we set it to true.
@@ -349,7 +350,7 @@ public class Group : BaseModel
                 else
                 {
                     group.IsManuallyNamed = 0;
-                    group.GroupName = (preferredSeries ?? group.MainSeries).SeriesName;
+                    group.GroupName = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.SeriesName ?? group.GroupName;
                 }
 
                 // Same as above, but for the description.
@@ -370,11 +371,10 @@ public class Group : BaseModel
                 else
                 {
                     group.OverrideDescription = 0;
-                    group.Description = (preferredSeries ?? group.MainSeries).AniDB_Anime.Description;
+                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.AniDB_Anime.Description ?? group.Description;
                 }
 
-                // Update stats for all groups in the chain.
-                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                // Update stats for all groups in the chain
                 groupService.UpdateStatsFromTopLevel(group.TopLevelAnimeGroup, true, true);
 
                 // Emit the updated events now, after the groups and series states have been properly updated.
