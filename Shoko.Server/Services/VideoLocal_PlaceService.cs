@@ -492,8 +492,10 @@ public class VideoLocal_PlaceService
         var correctFolder = Path.GetDirectoryName(moveResult.RelativePath);
         var correctRelativePath = !string.IsNullOrEmpty(correctFolder) ? Path.Combine(correctFolder, correctFileName) : correctFileName;
         var correctFullPath = Path.Combine(moveResult.ImportFolder!.ImportFolderLocation, correctRelativePath);
-        _logger.LogTrace(request.Preview ? "Resolved to move from {PreviousPath} to {NextPath}." : "Moved from {PreviousPath} to {NextPath}.", oldFullPath,
-            correctFullPath);
+        if (request.Preview)
+            _logger.LogTrace("Resolved to move from {PreviousPath} to {NextPath}.", oldFullPath, correctFullPath);
+        else
+            _logger.LogTrace("Moved from {PreviousPath} to {NextPath}.", oldFullPath, correctFullPath);
         return new()
         {
             Success = true,
