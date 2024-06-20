@@ -443,6 +443,7 @@ public class TmdbController : BaseController
     /// <param name="query">Query to search for.</param>
     /// <param name="includeRestricted">Include restriced movies.</param>
     /// <param name="year">First aired year.</param>
+    /// <param name="pageSize">The page size. Set to 0 to only grab the total.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -451,10 +452,14 @@ public class TmdbController : BaseController
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
+        [FromQuery, Range(0, 100)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalMovies) = TmdbHelper.SearchMovies(query, includeRestricted, year, page);
+        var (pageView, totalMovies) = TmdbHelper.SearchMovies(query, includeRestricted, year, page, pageSize)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
 
         return new ListResult<SearchMovie>(totalMovies, pageView);
     }
@@ -1044,6 +1049,7 @@ public class TmdbController : BaseController
     /// <param name="query">Query to search for.</param>
     /// <param name="includeRestricted">Include restriced shows.</param>
     /// <param name="year">First aired year.</param>
+    /// <param name="pageSize">The page size. Set to 0 to only grab the total.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -1052,10 +1058,14 @@ public class TmdbController : BaseController
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
+        [FromQuery, Range(0, 100)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalShows) = TmdbHelper.SearchShows(query, includeRestricted, year, page);
+        var (pageView, totalShows) = TmdbHelper.SearchShows(query, includeRestricted, year, page, pageSize)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
 
         return new ListResult<SearchTv>(totalShows, pageView);
     }

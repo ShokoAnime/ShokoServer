@@ -115,7 +115,10 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
 
     private bool SearchForMovie(AniDB_Episode episode, string query, int? year, bool isRestricted)
     {
-        var (results, _) = _helper.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0);
+        var (results, _) = _helper.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
         if (results.Count == 0)
             return false;
 
@@ -165,7 +168,10 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         }
 
         // Brute force attempt #1: With the original title and first aired year.
-        var (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1, year: airDate?.Year ?? 0);
+        var (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1, year: airDate?.Year ?? 0)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
         if (results.Count > 0)
         {
             Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
@@ -178,7 +184,10 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         // Brute force attempt #2: With the original title but without the first aired year.
         if (airDate.HasValue)
         {
-            (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1);
+            (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
             if (results.Count > 0)
             {
                 Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);

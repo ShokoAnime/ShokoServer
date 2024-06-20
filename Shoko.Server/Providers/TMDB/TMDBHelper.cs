@@ -27,6 +27,10 @@ using TMDbLib.Objects.TvShows;
 using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
 using MovieCredits = TMDbLib.Objects.Movies.Credits;
 
+// Suggestions we don't need in this file.
+#pragma warning disable CA1822
+#pragma warning disable CA1826
+
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
@@ -40,10 +44,7 @@ public class TMDBHelper
 
     private readonly TMDbClient _client;
 
-    private static string? _imageServerUrl = null;
-
-    public static string? ImageServerUrl =>
-        _imageServerUrl;
+    public static string? ImageServerUrl { get; private set; } = null;
 
     private const string APIKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
@@ -54,10 +55,10 @@ public class TMDBHelper
         _settingsProvider = settingsProvider;
         _client = new(APIKey);
 
-        if (string.IsNullOrEmpty(_imageServerUrl))
+        if (string.IsNullOrEmpty(ImageServerUrl))
         {
             var config = _client.GetAPIConfiguration().Result;
-            _imageServerUrl = config.Images.SecureBaseUrl;
+            ImageServerUrl = config.Images.SecureBaseUrl;
         }
     }
 
@@ -96,15 +97,38 @@ public class TMDBHelper
 
     #region Search
 
-    public (List<SearchMovie> Page, int TotalCount) SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1)
+    public async Task<(List<SearchMovie> Page, int TotalCount)> SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 20)
     {
-        var results = _client.SearchMovieAsync(query, page, includeRestricted, year)
-            .ConfigureAwait(false)
-            .GetAwaiter()
-            .GetResult();
+        var results = new List<SearchMovie>();
+        var firstPage = await _client.SearchMovieAsync(query, 1, includeRestricted, year).ConfigureAwait(false);
+        var total = firstPage.TotalResults;
+        if (total == 0)
+            return (results, total);
 
-        _logger.LogInformation("Got {Count} of {Results} results", results?.Results.Count ?? 0, results?.TotalResults ?? 0);
-        return (results?.Results ?? new(), results?.TotalResults ?? 0);
+        var lastPage = firstPage.TotalPages;
+        var actualPageSize = firstPage.Results.Count;
+        var startIndex = (page - 1) * pageSize;
+        var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
+        var endIndex = Math.Min(startIndex + pageSize, total);
+        var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
+        for (var i = startPage; i <= endPage; i++)
+        {
+            var actualPage = await _client.SearchMovieAsync(query, i, includeRestricted, year).ConfigureAwait(false);
+            results.AddRange(actualPage.Results);
+        }
+
+        var skipCount = startIndex - (startPage - 1) * actualPageSize;
+        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
+
+        _logger.LogTrace(
+            "Got {Count} movies from {Results} total movies at {IndexRange} across {PageRange}.",
+            pagedResults.Count,
+            total,
+            startIndex == endIndex ? $"index {startIndex}" : $"indexes {startIndex}-{endIndex}",
+            startPage == endPage ? $"{startPage} actual page" : $"{startPage}-{endPage} actual pages"
+        );
+
+        return (pagedResults, total);
     }
 
     #endregion
@@ -655,15 +679,38 @@ public class TMDBHelper
 
     #region Search
 
-    public (List<SearchTv> Page, int TotalCount) SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1)
+    public async Task<(List<SearchTv> Page, int TotalCount)> SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 20)
     {
-        var results = _client.SearchTvShowAsync(query, page, includeRestricted, year)
-            .ConfigureAwait(false)
-            .GetAwaiter()
-            .GetResult();
+        var results = new List<SearchTv>();
+        var firstPage = await _client.SearchTvShowAsync(query, 1, includeRestricted, year).ConfigureAwait(false);
+        var total = firstPage.TotalResults;
+        if (total == 0)
+            return (results, total);
 
-        _logger.LogInformation("Got {Count} of {Results} results", results?.Results.Count ?? 0, results?.TotalResults ?? 0);
-        return (results?.Results ?? new(), results?.TotalResults ?? 0);
+        var lastPage = firstPage.TotalPages;
+        var actualPageSize = firstPage.Results.Count;
+        var startIndex = (page - 1) * pageSize;
+        var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
+        var endIndex = Math.Min(startIndex + pageSize, total);
+        var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
+        for (var i = startPage; i <= endPage; i++)
+        {
+            var actualPage = await _client.SearchTvShowAsync(query, i, includeRestricted, year).ConfigureAwait(false);
+            results.AddRange(actualPage.Results);
+        }
+
+        var skipCount = startIndex - (startPage - 1) * actualPageSize;
+        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
+
+        _logger.LogTrace(
+            "Got {Count} shows from {Results} total shows at {IndexRange} across {PageRange}.",
+            pagedResults.Count,
+            total,
+            startIndex == endIndex ? $"index {startIndex}" : $"indexes {startIndex}-{endIndex}",
+            startPage == endPage ? $"{startPage} actual page" : $"{startPage}-{endPage} actual pages"
+        );
+
+        return (pagedResults, total);
     }
 
     #endregion
@@ -1402,7 +1449,7 @@ public class TMDBHelper
             .OrderBy(episode => episode.SeasonNumber)
             .ThenBy(episode => episode.EpisodeNumber)
             .ToList();
-        var tmdbSpeicalEpisodes = tmdbEpisodes
+        var tmdbSpecialEpisodes = tmdbEpisodes
             .Where(episode => episode.SeasonNumber == 0)
             .OrderBy(episode => episode.EpisodeNumber)
             .ToList();
@@ -1425,7 +1472,7 @@ public class TMDBHelper
             else
             {
                 var isSpecial = episode.EpisodeType is (int)EpisodeType.Special;
-                var episodeList = isSpecial ? tmdbSpeicalEpisodes : tmdbNormalEpisodes;
+                var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(episode, episodeList, isSpecial);
                 if (crossRef.TmdbEpisodeID != 0)
                 {
@@ -1469,9 +1516,9 @@ public class TMDBHelper
             .ToList();
 
         var airdateProbability = tmdbEpisodes
-            .Select(episode => (episode, probablility: CalculateAirDateProbability(anidbDate, episode.AiredAt)))
-            .Where(result => result.probablility != 0)
-            .OrderByDescending(result => result.probablility)
+            .Select(episode => (episode, probability: CalculateAirDateProbability(anidbDate, episode.AiredAt)))
+            .Where(result => result.probability != 0)
+            .OrderByDescending(result => result.probability)
             .ToList();
         var titleSearchResults = anidbTitles.Count > 0 ? tmdbEpisodes
             .Select(episode => anidbTitles.Search(episode.EnglishTitle, title => new string[] { title.Title }, true, 1).FirstOrDefault()?.Map(episode))
