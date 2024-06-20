@@ -484,7 +484,7 @@ public class FileController : BaseController
             if (script == null)
                 return BadRequest($"Unknown script with id \"{body.ScriptID.Value}\"! Omit `ScriptID` or set it to 0 to use the default script!");
 
-            if (string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
+            if (!body.Preview && string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
                 return BadRequest("Do not attempt to use a temp file to rename.");
         }
 

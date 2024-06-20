@@ -336,7 +336,7 @@ public partial class ShokoServiceImplementation
             VideoLocal = null,
             Success = false,
         };
-        if (scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+        if (!preview && scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
         {
             ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
             return ret;
