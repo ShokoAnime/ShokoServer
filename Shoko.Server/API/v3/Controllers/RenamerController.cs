@@ -1,16 +1,22 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.Repositories;
+using Shoko.Server.Renamer;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using System.Collections.Generic;
-using System.Linq;
 
 using ApiRenamer = Shoko.Server.API.v3.Models.Shoko.Renamer;
 using RenameFileHelper = Shoko.Server.Renamer.RenameFileHelper;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -19,8 +25,17 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class RenamerController : BaseController
 {
-    public RenamerController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    private readonly VideoLocal_PlaceService _vlpService;
+
+    private readonly VideoLocalRepository _vlRepository;
+
+    private readonly RenameScriptRepository _rsRepository;
+
+    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenameScriptRepository rsRepository) : base(settingsProvider)
     {
+        _vlpService = vlpService;
+        _vlRepository = vlRepository;
+        _rsRepository = rsRepository;
     }
 
     /// <summary>
@@ -33,6 +48,26 @@ public class RenamerController : BaseController
         return RenameFileHelper.Renamers
             .Select(p => new ApiRenamer(p.Key, p.Value))
             .ToList();
+    }
+
+    /// <summary>
+    /// Preview batch changes to files.
+    /// </summary>
+    /// <param name="body">Contains the files, renamer and script to use for the preview.</param>
+    /// <returns>A stream of relocate results.</returns>
+    [Authorize("admin")]
+    [HttpPost("Preview")]
+    public ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>> BatchPreviewRelocateFiles([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.BatchPreviewAutoRelocateWithRenamerBody body)
+    {
+        if (!RenameFileHelper.Renamers.ContainsKey(body.RenamerName))
+            ModelState.AddModelError(nameof(body.RenamerName), "Renamer not found.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        return new ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>>(
+            InternalBatchRelocateFiles(body.FileIDs, new() { RenamerName = body.RenamerName, ScriptBody = body.ScriptBody, Preview = true, Rename = true, Move = body.Move })
+        );
     }
 
     /// <summary>
@@ -113,23 +148,24 @@ public class RenamerController : BaseController
     /// <param name="renamerName">Renamer ID</param>
     /// <returns>The scripts.</returns>
     [HttpGet("Script")]
-    public ActionResult<List<ApiRenamer.Script>> GetAllRenamerScripts([FromQuery] string renamerName = null)
+    public ActionResult<List<ApiRenamer.Script>> GetAllRenamerScripts([FromQuery] string? renamerName = null)
     {
         if (!string.IsNullOrEmpty(renamerName))
         {
             if (!RenameFileHelper.Renamers.ContainsKey(renamerName))
                 return new List<ApiRenamer.Script>();
-            var renamer = RenameFileHelper.Renamers[renamerName];
 
-            return RepoFactory.RenameScript.GetByRenamerType(renamerName)
+            return _rsRepository.GetByRenamerType(renamerName)
                 .Where(s => s.ScriptName != Shoko.Models.Constants.Renamer.TempFileName)
                 .Select(s => new ApiRenamer.Script(s))
+                .OrderBy(s => s.ID)
                 .ToList();
         }
 
-        return RepoFactory.RenameScript.GetAll()
+        return _rsRepository.GetAll()
             .Where(s => s.ScriptName != Shoko.Models.Constants.Renamer.TempFileName)
             .Select(s => new ApiRenamer.Script(s))
+            .OrderBy(s => s.ID)
             .ToList();
     }
 
@@ -143,11 +179,14 @@ public class RenamerController : BaseController
     public ActionResult<ApiRenamer.Script> AddRenamerScript([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.NewScriptBody body)
     {
         if (string.IsNullOrWhiteSpace(body.Name))
-            return BadRequest("Script name cannot be empty.");
+            return ValidationProblem("Script name cannot be empty.", nameof(body.Name));
 
-        var script = RepoFactory.RenameScript.GetByName(body.Name);
-        if (script != null)
-            return BadRequest("A script with the given name already exists!");
+        if (string.Equals(body.Name, Shoko.Models.Constants.Renamer.TempFileName))
+            return ValidationProblem("Script name cannot be the same as the v1 temp script file.", nameof(body.Name));
+
+        var script = _rsRepository.GetByName(body.Name);
+        if (script is not null)
+            return ValidationProblem("A script with the given name already exists!", nameof(body.Name));
 
         script = new Shoko.Models.Server.RenameScript
         {
@@ -157,7 +196,7 @@ public class RenamerController : BaseController
             Script = body.Body,
             ExtraData = null,
         };
-        RepoFactory.RenameScript.Save(script);
+        _rsRepository.Save(script);
 
         return Created($"/api/v3/Renamer/Script/{script.RenameScriptID}", new ApiRenamer.Script(script));
     }
@@ -170,8 +209,8 @@ public class RenamerController : BaseController
     [HttpGet("Script/{scriptID}")]
     public ActionResult<ApiRenamer.Script> GetRenamerScriptByScriptID([FromRoute] int scriptID)
     {
-        var script = RepoFactory.RenameScript.GetByID(scriptID);
-        if (script == null)
+        var script = scriptID is > 0 ? _rsRepository.GetByID(scriptID) : null;
+        if (script is null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
             return NotFound("Renamer.Script not found.");
 
         return new ApiRenamer.Script(script);
@@ -187,19 +226,19 @@ public class RenamerController : BaseController
     [HttpPut("Script/{scriptID}")]
     public ActionResult<ApiRenamer.Script> PutRenamerScriptByScriptID([FromRoute] int scriptID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.ModifyScriptBody modifyScript)
     {
-        var script = RepoFactory.RenameScript.GetByID(scriptID);
-        if (script == null)
+        var script = scriptID is > 0 ? _rsRepository.GetByID(scriptID) : null;
+        if (script is null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
             return NotFound("Renamer.Script not found.");
 
         if (string.IsNullOrWhiteSpace(modifyScript.Name))
-            return BadRequest("Script name cannot be empty.");
+            return ValidationProblem("Script name cannot be empty.", nameof(modifyScript.Name));
 
         // Guard against rename-collisions.
         if (modifyScript.Name != script.ScriptName)
         {
-            var anotherScript = RepoFactory.RenameScript.GetByName(modifyScript.Name);
+            var anotherScript = _rsRepository.GetByName(modifyScript.Name);
             if (anotherScript != null)
-                return BadRequest("Another script with the given name already exists!");
+                return ValidationProblem("Another script with the given name already exists!", nameof(modifyScript.Name));
         }
 
         return modifyScript.MergeWithExisting(script);
@@ -210,15 +249,15 @@ public class RenamerController : BaseController
     /// <paramref name="scriptID"/>.
     /// </summary>
     /// <param name="scriptID">Script ID</param>
-    /// <param name="patchDocument">Thejson patch document to update the script
+    /// <param name="patchDocument">The json patch document to update the script
     /// with.</param>
     /// <returns>The updated <see cref="ApiRenamer.Script"/></returns>
     [Authorize("admin")]
     [HttpPatch("Script/{scriptID}")]
     public ActionResult<ApiRenamer.Script> PatchRenamerScriptByScriptID([FromRoute] int scriptID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ApiRenamer.Input.ModifyScriptBody> patchDocument)
     {
-        var script = RepoFactory.RenameScript.GetByID(scriptID);
-        if (script == null)
+        var script = scriptID is > 0 ? _rsRepository.GetByID(scriptID) : null;
+        if (script is null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
             return NotFound("Renamer.Script not found.");
 
         // Patch the script in the v3 model and merge it back into the database
@@ -226,17 +265,17 @@ public class RenamerController : BaseController
         var modifyScript = new ApiRenamer.Input.ModifyScriptBody(script);
         patchDocument.ApplyTo(modifyScript, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         if (string.IsNullOrWhiteSpace(modifyScript.Name))
-            return BadRequest("Script name cannot be empty.");
+            return ValidationProblem("Script name cannot be empty.", nameof(modifyScript.Name));
 
         // Guard against rename-collisions.
         if (modifyScript.Name != script.ScriptName)
         {
-            var anotherScript = RepoFactory.RenameScript.GetByName(modifyScript.Name);
+            var anotherScript = _rsRepository.GetByName(modifyScript.Name);
             if (anotherScript != null)
-                return BadRequest("Another script with the given name already exists!");
+                return ValidationProblem("Another script with the given name already exists!", nameof(modifyScript.Name));
         }
 
         return modifyScript.MergeWithExisting(script);
@@ -251,12 +290,129 @@ public class RenamerController : BaseController
     [HttpDelete("Script/{scriptID}")]
     public ActionResult DeleteRenamerScriptByScriptID([FromRoute] int scriptID)
     {
-        var script = RepoFactory.RenameScript.GetByID(scriptID);
-        if (script == null)
+        var script = scriptID is > 0 ? _rsRepository.GetByID(scriptID) : null;
+        if (script is null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
             return NotFound("Renamer.Script not found.");
 
-        RepoFactory.RenameScript.Delete(script);
+        _rsRepository.Delete(script);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Execute the script and either preview the changes or commit the changes
+    /// on a batch of files.
+    /// </summary>
+    /// <param name="scriptID">Script ID</param>
+    /// <param name="body">Contains the files, renamer and script to use for the preview.</param>
+    /// <returns>A stream of relocate results.</returns>
+    [Authorize("admin")]
+    [HttpPost("Script/{scriptID}/Execute")]
+    public ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>> BatchRelocateFilesByScriptID([FromRoute] int scriptID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.BatchAutoRelocateBody body)
+    {
+        var script = scriptID is > 0 ? _rsRepository.GetByID(scriptID) : null;
+        if (script is null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
+            return NotFound("Renamer.Script not found.");
+
+        if (!RenameFileHelper.Renamers.ContainsKey(script.RenamerType))
+            return BadRequest("Renamer for Renamer.Script not found.");
+
+        return new ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>>(
+            InternalBatchRelocateFiles(body.FileIDs, new() { DeleteEmptyDirectories = body.DeleteEmptyDirectories, Move = body.Move, Preview = body.Preview, Rename = true, ScriptID = scriptID })
+        );
+    }
+
+    [NonAction]
+    private async IAsyncEnumerable<ApiRenamer.RelocateResult> InternalBatchRelocateFiles(IEnumerable<int> fileIDs, AutoRelocateRequest request)
+    {
+        foreach (var vlID in fileIDs)
+        {
+            var vl = vlID is > 0 ? _vlRepository.GetByID(vlID) : null;
+            if (vl is null)
+            {
+                yield return new()
+                {
+                    ID = 0,
+                    FileID = vlID,
+                    ErrorMessage = $"Unable to find File with ID {vlID}",
+                    IsSuccess = false,
+                };
+                continue;
+            }
+
+            var vlp = vl.FirstResolvedPlace;
+            if (vlp is null)
+            {
+                yield return new()
+                {
+                    ID = 0,
+                    FileID = vlID,
+                    ErrorMessage = $"Unable to find any valid File.Location for File with ID {vlID}",
+                    IsSuccess = false,
+                };
+                continue;
+            }
+
+            var result = await _vlpService.AutoRelocateFile(vlp, request);
+            if (!result.Success)
+            {
+                yield return new()
+                {
+                    ID = vlp.VideoLocal_Place_ID,
+                    FileID = vlp.VideoLocalID,
+                    ErrorMessage = result.ErrorMessage,
+                    IsSuccess = false,
+                };
+                continue;
+            }
+
+            if (!request.Preview)
+            {
+                RelocationResult? otherResult = null;
+                foreach (var otherVlp in vl.Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath) && System.IO.File.Exists(p.FullServerPath)))
+                {
+                    if (otherVlp.VideoLocal_Place_ID == vlp.VideoLocal_Place_ID)
+                        continue;
+
+                    otherResult = await _vlpService.AutoRelocateFile(otherVlp, request);
+                    if (!otherResult.Success)
+                    {
+                        yield return new()
+                        {
+                            ID = vlp.VideoLocal_Place_ID,
+                            FileID = vlp.VideoLocalID,
+                            ErrorMessage = result.ErrorMessage,
+                            IsSuccess = false,
+                        };
+                        break;
+                    }
+                }
+                if (otherResult is not null && !otherResult.Success)
+                {
+                    yield return new()
+                    {
+                        ID = vlp.VideoLocal_Place_ID,
+                        FileID = vlp.VideoLocalID,
+                        ErrorMessage = result.ErrorMessage,
+                        IsSuccess = false,
+                    };
+                    continue;
+                }
+            }
+
+            // Check if it was actually relocated, or if we landed on the same location as earlier.
+            var relocated = !string.Equals(vlp.FilePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || vlp.ImportFolderID != result.ImportFolder.ImportFolderID;
+            yield return new()
+            {
+                ID = vlp.VideoLocal_Place_ID,
+                FileID = vlp.VideoLocalID,
+                ImportFolderID = result.ImportFolder.ImportFolderID,
+                RelativePath = result.RelativePath,
+                AbsolutePath = result.AbsolutePath,
+                IsSuccess = true,
+                IsRelocated = relocated,
+                IsPreview = request.Preview,
+            };
+        }
     }
 }

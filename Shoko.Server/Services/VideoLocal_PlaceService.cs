@@ -11,6 +11,7 @@ using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
@@ -398,15 +399,13 @@ public class VideoLocal_PlaceService
         // Allows calling the method without any parameters.
         request ??= new();
 
-        if (!request.Preview && string.Equals(request.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
-        {
+        if (!request.Preview && request.ContainsBody)
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = "Do not attempt to use a temp file to rename or move.",
+                ErrorMessage = "Do not attempt to use an unsaved script to rename or move.",
             };
-        }
 
         // Make sure the import folder is reachable.
         var dropFolder = place.ImportFolder;
@@ -530,7 +529,10 @@ public class VideoLocal_PlaceService
         string? newFileName;
         try
         {
-            newFileName = RenameFileHelper.GetFilename(place, request.ScriptName);
+            if (request.ContainsBody)
+                newFileName = RenameFileHelper.GetFilename(place, new RenameScriptImpl() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
+            else
+                newFileName = RenameFileHelper.GetFilename(place, request.ScriptID);
         }
         // The renamer may throw an error
         catch (Exception ex)
@@ -609,8 +611,10 @@ public class VideoLocal_PlaceService
         string? newFolderPath;
         try
         {
-            // Find the new destination.
-            (importFolder, newFolderPath) = RenameFileHelper.GetDestination(place, request.ScriptName);
+            if (request.ContainsBody)
+                (importFolder, newFolderPath) = RenameFileHelper.GetDestination(place, new RenameScriptImpl() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
+            else
+                (importFolder, newFolderPath) = RenameFileHelper.GetDestination(place, request.ScriptID);
         }
         // The renamer may throw an error
         catch (Exception ex)

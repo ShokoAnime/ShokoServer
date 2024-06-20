@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Shoko.Server.Models;
 
@@ -24,45 +25,47 @@ public record RelocationResult
     /// <see cref="RelativePath"/> should be set to valid values, otherwise
     /// if false then the <see cref="ErrorMessage"/> should be set.
     /// </summary>
-    public bool Success = false;
+    [MemberNotNullWhen(true, nameof(ImportFolder), nameof(RelativePath))]
+    [MemberNotNullWhen(false, nameof(ErrorMessage))]
+    public bool Success { get; set; } = false;
 
     /// <summary>
     /// True if the operation should be retried. This is more of an internal
     /// detail.
     /// </summary>
-    internal bool ShouldRetry = false;
+    internal bool ShouldRetry { get; set; } = false;
 
     /// <summary>
     /// Error message if the operation was not successful.
     /// </summary>
-    public string? ErrorMessage = null;
+    public string? ErrorMessage { get; set; } = null;
 
     /// <summary>
     /// Exception thrown when it erred out.
     /// </summary>
-    public Exception? Exception = null;
+    public Exception? Exception { get; set; } = null;
 
     /// <summary>
     /// Indicates the file was moved.
     /// </summary>
-    public bool Moved = false;
+    public bool Moved { get; set; } = false;
 
     /// <summary>
     /// Indicates the file was renamed.
     /// </summary>
-    public bool Renamed = false;
+    public bool Renamed { get; set; } = false;
 
     /// <summary>
     /// The destination import folder if the relocation result were
     /// successful.
     /// </summary>
-    public SVR_ImportFolder? ImportFolder = null;
+    public SVR_ImportFolder? ImportFolder { get; set; } = null;
 
     /// <summary>
     /// The relative path from the <see cref="ImportFolder"/> to where
     /// the file resides.
     /// </summary>
-    public string? RelativePath = null;
+    public string? RelativePath { get; set; } = null;
 
     /// <summary>
     /// Helper to get the full server path if the relative path and import
@@ -70,5 +73,5 @@ public record RelocationResult
     /// </summary>
     /// <returns>The combined path.</returns>
     internal string? AbsolutePath
-        => ImportFolder != null && !string.IsNullOrEmpty(RelativePath) ? Path.Combine(ImportFolder.ImportFolderLocation, RelativePath) : null;
+        => Success && !string.IsNullOrEmpty(RelativePath) ? Path.Combine(ImportFolder.ImportFolderLocation, RelativePath) : null;
 }

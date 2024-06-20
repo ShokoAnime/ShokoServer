@@ -343,6 +343,13 @@ public partial class ShokoServiceImplementation
         }
         try
         {
+            var script = RepoFactory.RenameScript.GetByName(scriptName);
+            if (script is null)
+            {
+                ret.NewFileName = "ERROR: Could not find script.";
+                return ret;
+            }
+
             var file = RepoFactory.VideoLocal.GetByID(videoLocalID);
             if (file == null)
             {
@@ -360,7 +367,7 @@ public partial class ShokoServiceImplementation
             // First do a dry-run on the best location.
             var bestLocation = file.FirstValidPlace;
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
-            var previewResult = await service.AutoRelocateFile(bestLocation, new() { Preview = true, ScriptName = scriptName, Move = move });
+            var previewResult = await service.AutoRelocateFile(bestLocation, new() { Preview = true, ScriptID = script.RenameScriptID, Move = move });
             if (!previewResult.Success)
             {
                 ret.NewFileName = $"ERROR: {previewResult.ErrorMessage}";
@@ -372,7 +379,7 @@ public partial class ShokoServiceImplementation
             var errorString = string.Empty;
             foreach (var place in allLocations)
             {
-                var result = await service.AutoRelocateFile(place, new() { Preview = preview, ScriptName = scriptName, Move = move });
+                var result = await service.AutoRelocateFile(place, new() { Preview = preview, ScriptID = script.RenameScriptID, Move = move });
                 if (result.Success)
                     fullPath = result.AbsolutePath;
                 else

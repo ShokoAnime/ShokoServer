@@ -12,10 +12,10 @@ public record AutoMoveRequest : AutoRenameRequest
     /// Indicates whether empty directories should be deleted after
     /// relocating the file.
     /// </summary>
-    public bool DeleteEmptyDirectories = true;
+    public bool DeleteEmptyDirectories { get; set; } = true;
 
     /// <summary>
     /// Skip the move operation.
     /// </summary>
-    public bool Move = false;
+    public bool Move { get; set; } = false;
 }

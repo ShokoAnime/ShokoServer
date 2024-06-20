@@ -26,14 +26,15 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
-using File = Shoko.Server.API.v3.Models.Shoko.File;
-using Path = System.IO.Path;
-using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
+using File = Shoko.Server.API.v3.Models.Shoko.File;
+using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
+using Path = System.IO.Path;
+using RelocateResult = Shoko.Server.API.v3.Models.Shoko.Renamer.RelocateResult;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -399,7 +400,7 @@ public class FileController : BaseController
     /// <returns>A result object containing information about the relocation process.</returns>
     [Authorize("admin")]
     [HttpPost("Location/{locationID}/Relocate")]
-    public async Task<ActionResult<File.Location.RelocateResult>> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.NewLocationBody body)
+    public async Task<ActionResult<RelocateResult>> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.NewLocationBody body)
     {
         if (locationID is <= 0)
             return NotFound(FileLocationNotFoundWithLocationID);
@@ -432,7 +433,7 @@ public class FileController : BaseController
             }
         );
         if (!result.Success)
-            return new File.Location.RelocateResult
+            return new RelocateResult
             {
                 ID = fileLocation.VideoLocal_Place_ID,
                 FileID = fileLocation.VideoLocalID,
@@ -442,7 +443,7 @@ public class FileController : BaseController
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
         var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
-        return new File.Location.RelocateResult
+        return new RelocateResult
         {
             ID = fileLocation.VideoLocal_Place_ID,
             FileID = fileLocation.VideoLocalID,
@@ -462,7 +463,7 @@ public class FileController : BaseController
     /// <returns>A result object containing information about the relocation process.</returns>
     [Authorize("admin")]
     [HttpPost("Location/{locationID}/AutoRelocate")]
-    public async Task<ActionResult<File.Location.RelocateResult>> AutomaticallyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.AutoRelocateBody body)
+    public async Task<ActionResult<RelocateResult>> AutomaticallyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.AutoRelocateBody body)
     {
         if (locationID is <= 0)
             return NotFound(FileLocationNotFoundWithLocationID);
@@ -481,11 +482,8 @@ public class FileController : BaseController
         else
         {
             script = RepoFactory.RenameScript.GetByID(body.ScriptID.Value);
-            if (script == null)
+            if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
                 return BadRequest($"Unknown script with id \"{body.ScriptID.Value}\"! Omit `ScriptID` or set it to 0 to use the default script!");
-
-            if (!body.Preview && string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
-                return BadRequest("Do not attempt to use a temp file to rename.");
         }
 
         // Store the old import folder id and relative path for comparison.
@@ -498,15 +496,15 @@ public class FileController : BaseController
             fileLocation,
             new()
             {
-                Preview = body.Preview,
                 DeleteEmptyDirectories = body.DeleteEmptyDirectories,
-                ScriptName = script.ScriptName,
                 Move = body.Move ?? settings.Import.MoveOnImport,
+                Preview = body.Preview,
                 Rename = body.Rename ?? settings.Import.RenameOnImport,
+                ScriptID = script.RenameScriptID,
             }
         );
         if (!result.Success)
-            return new File.Location.RelocateResult
+            return new RelocateResult
             {
                 ID = fileLocation.VideoLocal_Place_ID,
                 FileID = fileLocation.VideoLocalID,
@@ -516,7 +514,7 @@ public class FileController : BaseController
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
         var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
-        return new File.Location.RelocateResult
+        return new RelocateResult
         {
             ID = fileLocation.VideoLocal_Place_ID,
             FileID = fileLocation.VideoLocalID,

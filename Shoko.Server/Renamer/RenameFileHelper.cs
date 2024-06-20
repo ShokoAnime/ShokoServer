@@ -24,23 +24,26 @@ public static class RenameFileHelper
 
     public static IReadOnlyDictionary<string, (Type type, string description, string version)> Renamers => s_internalRenamers;
 
-    private static RenameScriptImpl GetRenameScript(string? name)
+    private static RenameScriptImpl GetRenameScript(int? scriptID)
     {
-        var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
+        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenameScript.GetByID(scriptID.Value) : null) ?? RepoFactory.RenameScript.GetDefaultScript();
         if (script is null)
-            return new() { Script = string.Empty, Type = string.Empty, ExtraData = null };
+            return new() { Script = string.Empty, Type = string.Empty, ExtraData = string.Empty };
         return new() { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
     }
 
-    private static RenameScriptImpl GetRenameScriptWithFallback(string? name)
+    private static RenameScriptImpl GetRenameScriptWithFallback(int? scriptID)
     {
-        var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenameScript.GetByID(scriptID.Value) : null) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
         if (script is null)
-            return new() { Script = string.Empty, Type = string.Empty, ExtraData = null };
+            return new() { Script = string.Empty, Type = string.Empty, ExtraData = string.Empty };
         return new() { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
     }
 
-    public static string? GetFilename(SVR_VideoLocal_Place place, string? scriptName)
+    public static string? GetFilename(SVR_VideoLocal_Place place, int? scriptID)
+        => GetFilename(place, GetRenameScript(scriptID));
+
+    public static string? GetFilename(SVR_VideoLocal_Place place, RenameScriptImpl script)
     {
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
@@ -54,7 +57,6 @@ public static class RenameFileHelper
         if (xrefs.Count != episodes.Count)
             return "*Error: Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.";
 
-        var script = GetRenameScript(scriptName);
         var renamers = GetPluginRenamersSorted(script.Type, xrefs.Count is 0);
         // We don't have a renamer we can use for the file.
         if (renamers.Count is 0)
@@ -108,7 +110,10 @@ public static class RenameFileHelper
         return null;
     }
 
-    public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, string? scriptName)
+    public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, int? scriptID)
+        => GetDestination(place, GetRenameScriptWithFallback(scriptID));
+
+    public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, RenameScriptImpl script)
     {
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
@@ -122,7 +127,6 @@ public static class RenameFileHelper
         if (xrefs.Count != episodes.Count)
             return (null, $"*Error: Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes.");
 
-        var script = GetRenameScriptWithFallback(scriptName);
         var renamers = GetPluginRenamersSorted(script.Type, xrefs.Count is 0);
         // We don't have a renamer we can use for the file.
         if (renamers.Count is 0)
