@@ -44,5 +44,5 @@ public record AutoRenameRequest
     /// <summary>
     /// Do the rename operation.
     /// </summary>
-    public bool Rename { get; set; } = false;
+    public bool Rename { get; set; } = true;
 }

@@ -66,7 +66,7 @@ public class RenamerController : BaseController
             return ValidationProblem(ModelState);
 
         return new ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>>(
-            InternalBatchRelocateFiles(body.FileIDs, new() { RenamerName = body.RenamerName, ScriptBody = body.ScriptBody, Preview = true, Rename = true, Move = body.Move })
+            InternalBatchRelocateFiles(body.FileIDs, new() { RenamerName = body.RenamerName, ScriptBody = body.ScriptBody, Preview = true, Move = body.Move })
         );
     }
 
@@ -318,7 +318,7 @@ public class RenamerController : BaseController
             return BadRequest("Renamer for Renamer.Script not found.");
 
         return new ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>>(
-            InternalBatchRelocateFiles(body.FileIDs, new() { DeleteEmptyDirectories = body.DeleteEmptyDirectories, Move = body.Move, Preview = body.Preview, Rename = true, ScriptID = scriptID })
+            InternalBatchRelocateFiles(body.FileIDs, new() { DeleteEmptyDirectories = body.DeleteEmptyDirectories, Move = body.Move, Preview = body.Preview, ScriptID = scriptID })
         );
     }
 
