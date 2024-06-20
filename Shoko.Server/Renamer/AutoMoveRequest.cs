@@ -15,7 +15,7 @@ public record AutoMoveRequest : AutoRenameRequest
     public bool DeleteEmptyDirectories = true;
 
     /// <summary>
-    /// Skip the move operation.
+    /// Do the move operation.
     /// </summary>
-    public bool Move = false;
+    public bool Move = true;
 }

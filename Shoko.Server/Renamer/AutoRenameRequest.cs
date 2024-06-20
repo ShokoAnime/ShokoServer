@@ -22,5 +22,5 @@ public record AutoRenameRequest
     /// <summary>
     /// Do the rename operation.
     /// </summary>
-    public bool Rename = false;
+    public bool Rename = true;
 }
