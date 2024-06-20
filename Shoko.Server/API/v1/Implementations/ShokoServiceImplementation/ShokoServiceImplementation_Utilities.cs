@@ -360,7 +360,7 @@ public partial class ShokoServiceImplementation
             // First do a dry-run on the best location.
             var bestLocation = file.FirstValidPlace;
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
-            var previewResult = await service.AutoRelocateFile(bestLocation, new() { Preview = true, ScriptName = scriptName, SkipMove = !move });
+            var previewResult = await service.AutoRelocateFile(bestLocation, new() { Preview = true, ScriptName = scriptName, Move = move });
             if (!previewResult.Success)
             {
                 ret.NewFileName = $"ERROR: {previewResult.ErrorMessage}";
@@ -372,7 +372,7 @@ public partial class ShokoServiceImplementation
             var errorString = string.Empty;
             foreach (var place in allLocations)
             {
-                var result = await service.AutoRelocateFile(place, new() { Preview = preview, ScriptName = scriptName, SkipMove = !move });
+                var result = await service.AutoRelocateFile(place, new() { Preview = preview, ScriptName = scriptName, Move = move });
                 if (result.Success)
                     fullPath = result.AbsolutePath;
                 else

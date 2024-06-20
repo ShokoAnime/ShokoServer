@@ -501,8 +501,8 @@ public class FileController : BaseController
                 Preview = body.Preview,
                 DeleteEmptyDirectories = body.DeleteEmptyDirectories,
                 ScriptName = script.ScriptName,
-                SkipMove = body.SkipMove ?? settings.Import.MoveOnImport,
-                SkipRename = body.SkipRename ?? settings.Import.RenameOnImport,
+                Move = body.Move ?? settings.Import.MoveOnImport,
+                Rename = body.Rename ?? settings.Import.RenameOnImport,
             }
         );
         if (!result.Success)

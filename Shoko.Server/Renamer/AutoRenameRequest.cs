@@ -20,7 +20,7 @@ public record AutoRenameRequest
     public string? ScriptName = null;
 
     /// <summary>
-    /// Skip the rename operation.
+    /// Do the rename operation.
     /// </summary>
-    public bool SkipRename = false;
+    public bool Rename = false;
 }

@@ -293,16 +293,16 @@ public class File
             public bool Preview { get; set; } = false;
 
             /// <summary>
-            /// Skip moving the file. Leave as `null` to use the default
+            /// Move the file. Leave as `null` to use the default
             /// setting for move on import.
             /// </summary>
-            public bool? SkipMove { get; set; } = null;
+            public bool? Move { get; set; } = null;
 
             /// <summary>
-            /// Skip renaming the file. Leave as `null` to use the default
+            /// Rename the file. Leave as `null` to use the default
             /// setting for rename on import.
             /// </summary>
-            public bool? SkipRename { get; set; } = null;
+            public bool? Rename { get; set; } = null;
 
             /// <summary>
             /// Indicates whether empty directories should be deleted after

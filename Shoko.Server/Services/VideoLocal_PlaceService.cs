@@ -80,8 +80,8 @@ public class VideoLocal_PlaceService
 
         await AutoRelocateFile(place, new AutoRelocateRequest()
         {
-            SkipRename = !settings.Import.RenameOnImport,
-            SkipMove = !settings.Import.MoveOnImport,
+            Rename = settings.Import.RenameOnImport,
+            Move = settings.Import.MoveOnImport,
         });
     }
 
@@ -518,7 +518,7 @@ public class VideoLocal_PlaceService
     private async Task<RelocationResult> RenameFile(SVR_VideoLocal_Place place, AutoRenameRequest request)
     {
         // Just return the existing values if we're going to skip the operation.
-        if (request.SkipRename)
+        if (!request.Rename)
             return new()
             {
                 Success = true,
@@ -596,7 +596,7 @@ public class VideoLocal_PlaceService
     private async Task<RelocationResult> MoveFile(SVR_VideoLocal_Place place, AutoMoveRequest request)
     {
         // Just return the existing values if we're going to skip the operation.
-        if (request.SkipMove)
+        if (!request.Move)
             return new()
             {
                 Success = true,

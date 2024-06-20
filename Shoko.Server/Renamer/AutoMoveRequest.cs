@@ -17,5 +17,5 @@ public record AutoMoveRequest : AutoRenameRequest
     /// <summary>
     /// Skip the move operation.
     /// </summary>
-    public bool SkipMove = false;
+    public bool Move = false;
 }
