@@ -55,7 +55,7 @@ public static class RenameFileHelper
 
         // We don't have all the data yet, so don't try to rename yet.
         if (xrefs.Count != episodes.Count)
-            return "*Error: Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.";
+            return $"*Error: Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.";
 
         var renamers = GetPluginRenamersSorted(script.Type, xrefs.Count is 0);
         // We don't have a renamer we can use for the file.
