@@ -332,10 +332,9 @@ public class RenamerController : BaseController
             {
                 yield return new()
                 {
-                    ID = 0,
                     FileID = vlID,
-                    ErrorMessage = $"Unable to find File with ID {vlID}",
                     IsSuccess = false,
+                    ErrorMessage = $"Unable to find File with ID {vlID}",
                 };
                 continue;
             }
@@ -343,25 +342,30 @@ public class RenamerController : BaseController
             var vlp = vl.FirstResolvedPlace;
             if (vlp is null)
             {
+                vlp = vl.FirstValidPlace;
                 yield return new()
                 {
-                    ID = 0,
                     FileID = vlID,
-                    ErrorMessage = $"Unable to find any valid File.Location for File with ID {vlID}",
                     IsSuccess = false,
+                    ErrorMessage = vlp is not null
+                        ? $"Unable to find any resolvable File.Location for File with ID {vlID}. Found valid but non-resolvable File.Location \"{vlp.FullServerPath}\" with ID {vlp.VideoLocal_Place_ID}."
+                        : $"Unable to find any resolvable File.Location for File with ID {vlID}.",
                 };
                 continue;
             }
 
+            // Store the old import folder id and relative path for comparison.
+            var oldImportFolderId = vlp.ImportFolderID;
+            var oldRelativePath = vlp.FilePath;
             var result = await _vlpService.AutoRelocateFile(vlp, request);
             if (!result.Success)
             {
                 yield return new()
                 {
-                    ID = vlp.VideoLocal_Place_ID,
                     FileID = vlp.VideoLocalID,
-                    ErrorMessage = result.ErrorMessage,
+                    FileLocationID = vlp.VideoLocal_Place_ID,
                     IsSuccess = false,
+                    ErrorMessage = result.ErrorMessage,
                 };
                 continue;
             }
@@ -376,42 +380,34 @@ public class RenamerController : BaseController
 
                     otherResult = await _vlpService.AutoRelocateFile(otherVlp, request);
                     if (!otherResult.Success)
-                    {
-                        yield return new()
-                        {
-                            ID = vlp.VideoLocal_Place_ID,
-                            FileID = vlp.VideoLocalID,
-                            ErrorMessage = result.ErrorMessage,
-                            IsSuccess = false,
-                        };
                         break;
-                    }
                 }
                 if (otherResult is not null && !otherResult.Success)
                 {
                     yield return new()
                     {
-                        ID = vlp.VideoLocal_Place_ID,
                         FileID = vlp.VideoLocalID,
-                        ErrorMessage = result.ErrorMessage,
+                        FileLocationID = vlp.VideoLocal_Place_ID,
                         IsSuccess = false,
+                        ErrorMessage = result.ErrorMessage,
                     };
                     continue;
                 }
             }
 
             // Check if it was actually relocated, or if we landed on the same location as earlier.
-            var relocated = !string.Equals(vlp.FilePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || vlp.ImportFolderID != result.ImportFolder.ImportFolderID;
+            var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
             yield return new()
             {
-                ID = vlp.VideoLocal_Place_ID,
                 FileID = vlp.VideoLocalID,
+                FileLocationID = vlp.VideoLocal_Place_ID,
                 ImportFolderID = result.ImportFolder.ImportFolderID,
-                RelativePath = result.RelativePath,
-                AbsolutePath = result.AbsolutePath,
+                ScriptID = request.ScriptID,
                 IsSuccess = true,
                 IsRelocated = relocated,
                 IsPreview = request.Preview,
+                RelativePath = result.RelativePath,
+                AbsolutePath = result.AbsolutePath,
             };
         }
     }

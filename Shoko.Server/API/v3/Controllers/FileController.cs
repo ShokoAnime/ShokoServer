@@ -435,23 +435,23 @@ public class FileController : BaseController
         if (!result.Success)
             return new RelocateResult
             {
-                ID = fileLocation.VideoLocal_Place_ID,
                 FileID = fileLocation.VideoLocalID,
-                ErrorMessage = result.ErrorMessage,
+                FileLocationID = fileLocation.VideoLocal_Place_ID,
                 IsSuccess = false,
+                ErrorMessage = result.ErrorMessage,
             };
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
         var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
         return new RelocateResult
         {
-            ID = fileLocation.VideoLocal_Place_ID,
             FileID = fileLocation.VideoLocalID,
+            FileLocationID = fileLocation.VideoLocal_Place_ID,
             ImportFolderID = result.ImportFolder.ImportFolderID,
-            RelativePath = result.RelativePath,
-            AbsolutePath = result.AbsolutePath,
             IsSuccess = true,
             IsRelocated = relocated,
+            RelativePath = result.RelativePath,
+            AbsolutePath = result.AbsolutePath,
         };
     }
 
@@ -476,7 +476,7 @@ public class FileController : BaseController
         if (!body.ScriptID.HasValue || body.ScriptID.Value <= 0)
         {
             script = RepoFactory.RenameScript.GetDefaultOrFirst();
-            if (script == null)
+            if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
                 return BadRequest($"No default script have been selected! Select one before continuing.");
         }
         else
@@ -506,25 +506,25 @@ public class FileController : BaseController
         if (!result.Success)
             return new RelocateResult
             {
-                ID = fileLocation.VideoLocal_Place_ID,
                 FileID = fileLocation.VideoLocalID,
-                ErrorMessage = result.ErrorMessage,
+                FileLocationID = fileLocation.VideoLocal_Place_ID,
                 IsSuccess = false,
+                ErrorMessage = result.ErrorMessage,
             };
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
         var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
         return new RelocateResult
         {
-            ID = fileLocation.VideoLocal_Place_ID,
             FileID = fileLocation.VideoLocalID,
+            FileLocationID = fileLocation.VideoLocal_Place_ID,
             ScriptID = script.RenameScriptID,
             ImportFolderID = result.ImportFolder.ImportFolderID,
-            RelativePath = result.RelativePath,
-            AbsolutePath = result.AbsolutePath,
             IsSuccess = true,
             IsRelocated = relocated,
             IsPreview = body.Preview,
+            RelativePath = result.RelativePath,
+            AbsolutePath = result.AbsolutePath,
         };
     }
 
