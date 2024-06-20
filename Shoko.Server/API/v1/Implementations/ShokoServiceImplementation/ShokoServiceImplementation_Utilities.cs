@@ -317,7 +317,7 @@ public partial class ShokoServiceImplementation
 
     [HttpGet("File/Rename/Preview/{videoLocalID}")]
     public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID)
-        => RenameAndMoveFile(videoLocalID, null, false, true).ConfigureAwait(false).GetAwaiter().GetResult();
+        => RenameAndMoveFile(videoLocalID, Shoko.Models.Constants.Renamer.TempFileName, false, true).ConfigureAwait(false).GetAwaiter().GetResult();
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}")]
     public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
