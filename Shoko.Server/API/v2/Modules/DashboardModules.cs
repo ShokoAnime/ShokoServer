@@ -66,7 +66,7 @@ public class DashboardModules : BaseController
 
             hours = Math.Round((decimal)watched.Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID))
                     .Where(a => a != null)
-                    .Sum(a => a.Media?.GeneralStream?.Duration ?? 0) / 3600, 1,
+                    .Sum(a => a.MediaInfo?.GeneralStream?.Duration ?? 0) / 3600, 1,
                 MidpointRounding.AwayFromZero); // 60s * 60m = ?h
 
             tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)

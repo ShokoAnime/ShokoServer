@@ -154,7 +154,7 @@ public class File
 
         if (includeMediaInfo)
         {
-            var mediaContainer = file?.Media ??
+            var mediaContainer = file?.MediaInfo ??
                 throw new Exception("Unable to find media container for File");
             MediaInfo = new MediaInfo(file, mediaContainer);
         }

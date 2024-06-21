@@ -161,7 +161,7 @@ public class RawFile : BaseDirectory
 
         recognized = e != null || vl.EpisodeCrossRefs.Count != 0;
 
-        if (vl.Media?.GeneralStream == null || level < 0)
+        if (vl.MediaInfo?.GeneralStream == null || level < 0)
         {
             return;
         }
@@ -170,7 +170,7 @@ public class RawFile : BaseDirectory
 
         try
         {
-            var legacy = new Media(vl.VideoLocalID, vl.Media);
+            var legacy = new Media(vl.VideoLocalID, vl.MediaInfo);
 
             new_media.AddGeneral(MediaInfo.General.format, legacy.Container);
             new_media.AddGeneral(MediaInfo.General.duration, legacy.Duration);

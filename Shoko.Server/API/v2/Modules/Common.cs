@@ -841,12 +841,12 @@ public class Common : BaseController
     {
         JMMUser user = HttpContext.GetUser();
 
-        var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+        var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
             .ToDictionary(a => a, a => a.AniDBFile);
         return allvids.Keys.Select(vid => new { vid, anidb = allvids[vid] })
             .Where(tuple => tuple.anidb != null)
             .Where(tuple => !tuple.anidb.IsDeprecated)
-            .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
+            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Any() != tuple.anidb.IsChaptered)
             .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
 
@@ -861,7 +861,7 @@ public class Common : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             return BadRequest("Missing AVDump API key");
 
-        var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+        var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
             .ToDictionary(a => a, a => a.AniDBFile);
         var logger = LogManager.GetCurrentClassLogger();
 
@@ -871,7 +871,7 @@ public class Common : BaseController
             })
             .Where(tuple => tuple.anidb != null)
             .Where(tuple => !tuple.anidb.IsDeprecated)
-            .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
+            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Any() != tuple.anidb.IsChaptered)
             .Select(_tuple => new
             {
                 Path = _tuple.vid.FirstResolvedPlace?.FullServerPath, Video = _tuple.vid

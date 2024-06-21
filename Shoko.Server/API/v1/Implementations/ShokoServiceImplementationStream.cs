@@ -43,7 +43,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent) return StatusCode((int)r.Status, r.StatusDescription);
         if (!string.IsNullOrEmpty(fakename)) return StreamFromIFile(r, autowatch);
 
-        var subs = r.VideoLocal.Media.TextStreams.Where(a => a.External).ToList();
+        var subs = r.VideoLocal.MediaInfo.TextStreams.Where(a => a.External).ToList();
         if (!subs.Any()) return StatusCode(404);
 
         return "<table>" + string.Join(string.Empty, subs.Select(a => "<tr><td><a href=\"" + a.Filename + "\"/></td></tr>")) + "</table>";

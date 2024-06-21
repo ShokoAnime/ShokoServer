@@ -842,7 +842,8 @@ public class VideoLocal_PlaceService
                     m.media.track.AddRange(subs);
                 }
 
-                info.Media = m;
+                info.MediaInfo = m;
+                info.MediaVersion = SVR_VideoLocal.MEDIA_VERSION;
                 return true;
             }
 

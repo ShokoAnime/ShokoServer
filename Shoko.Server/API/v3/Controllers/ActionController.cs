@@ -215,9 +215,9 @@ public class ActionController : BaseController
             return ValidationProblem("Missing AVDump API key.", "Settings");
 
         var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
-            .Where(file => !file.IsEmpty() && file.Media != null)
+            .Where(file => !file.IsEmpty() && file.MediaInfo != null)
             .Select(file => (Video: file, AniDB: file.AniDBFile))
-            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.Media?.MenuStreams.Any() != tuple.AniDB.IsChaptered)
+            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.MediaInfo?.MenuStreams.Any() != tuple.AniDB.IsChaptered)
             .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);

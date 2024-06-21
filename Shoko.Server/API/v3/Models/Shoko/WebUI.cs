@@ -208,14 +208,14 @@ public class WebUI
 
                     return (file, xref, location);
                 })
-                .Where(t => t.file?.Media != null && t.location != null)
+                .Where(t => t.file?.MediaInfo != null && t.location != null)
                 .Cast<(SVR_VideoLocal file, SVR_CrossRef_File_Episode xref, SVR_VideoLocal_Place location)>()
                 .ToList();
             var files = filesWithXrefAndLocation
                 .Select(tuple =>
                 {
                     var (file, xref, location) = tuple;
-                    var media = new MediaInfo(file, file.Media);
+                    var media = new MediaInfo(file, file.MediaInfo);
                     var episode = episodes[xref.EpisodeID];
                     var isAutoLinked = (CrossRefSource)xref.CrossRefSource == CrossRefSource.AniDB;
                     var anidbFile = isAutoLinked && anidbFiles.TryGetValue(xref.Hash, out var aniFi) ? aniFi : null;

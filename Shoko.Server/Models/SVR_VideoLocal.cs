@@ -26,8 +26,6 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     public new bool IsVariation { get; set; }
 
     public int MediaVersion { get; set; }
-    public byte[] MediaBlob { get; set; }
-    public int MediaSize { get; set; }
 
     /// <summary>
     /// Last time we did a successful AVDump.
@@ -53,7 +51,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     /// <remarks>
     /// MediaInfo model has it in seconds, with milliseconds after the decimal point.
     /// </remarks>
-    public long Duration => (long) (Media?.GeneralStream?.Duration * 1000 ?? 0);
+    public long Duration => (long) (MediaInfo?.GeneralStream?.Duration * 1000 ?? 0);
 
     /// <summary>
     /// Playback duration as a <see cref="TimeSpan"/>.
@@ -62,47 +60,20 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     {
         get
         {
-            var duration = Media?.GeneralStream?.Duration ?? 0;
+            var duration = MediaInfo?.GeneralStream?.Duration ?? 0;
             var seconds = Math.Truncate(duration);
             var milliseconds = (duration - seconds) * 1000;
             return new TimeSpan(0, 0, 0, (int)seconds, (int)milliseconds);
         }
     }
 
-    public string VideoResolution => Media?.VideoStream == null ? "0x0" : $"{Media.VideoStream.Width}x{Media.VideoStream.Height}";
+    public string VideoResolution => MediaInfo?.VideoStream == null ? "0x0" : $"{MediaInfo.VideoStream.Width}x{MediaInfo.VideoStream.Height}";
 
     public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
     public const int MEDIA_VERSION = 5;
 
-    private MediaContainer _media { get; set; }
-
-    public virtual MediaContainer Media
-    {
-        get
-        {
-            if (MediaVersion == MEDIA_VERSION && (_media?.GeneralStream?.Duration ?? 0) == 0 && MediaBlob != null &&
-                MediaBlob.Length > 0 && MediaSize > 0)
-            {
-                try
-                {
-                    _media = MessagePackSerializer.Deserialize<MediaContainer>(MediaBlob, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e, "Unable to Deserialize MediaContainer as MessagePack: {Ex}", e);
-                }
-            }
-            return _media;
-        }
-        set
-        {
-            _media = value;
-            MediaBlob = MessagePackSerializer.Serialize(_media, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
-            MediaSize = MediaBlob.Length;
-            MediaVersion = MEDIA_VERSION;
-        }
-    }
+    public MediaContainer MediaInfo { get; set; }
 
 
     public List<SVR_VideoLocal_Place> Places => VideoLocalID == 0 ? new List<SVR_VideoLocal_Place>() : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
@@ -189,7 +160,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     IHashes IVideo.Hashes => this;
 
-    IMediaContainer IVideo.MediaInfo => Media;
+    IMediaContainer IVideo.MediaInfo => MediaInfo;
 
     IReadOnlyList<IVideoCrossReference> IVideo.CrossReferences => EpisodeCrossRefs;
 

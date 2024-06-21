@@ -1,4 +1,6 @@
 ﻿using FluentNHibernate.Mapping;
+using Shoko.Models.MediaInfo;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings;
@@ -23,8 +25,7 @@ public class VideoLocalMap : ClassMap<SVR_VideoLocal>
         Map(x => x.IsIgnored).Not.Nullable();
         Map(x => x.IsVariation).Not.Nullable();
         Map(x => x.MediaVersion).Not.Nullable();
-        Map(x => x.MediaBlob).Nullable().CustomType("BinaryBlob");
-        Map(x => x.MediaSize).Not.Nullable();
+        Map(x => x.MediaInfo).Nullable().Column("MediaBlob").CustomType<MessagePackConverter<MediaContainer>>();
         Map(x => x.MyListID).Not.Nullable();
         Map(x => x.LastAVDumped);
         Map(x => x.LastAVDumpVersion);

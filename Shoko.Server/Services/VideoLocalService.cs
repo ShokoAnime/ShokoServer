@@ -59,7 +59,7 @@ public class VideoLocalService
             HashSource = vl.HashSource,
             IsIgnored = vl.IsIgnored ? 1 : 0,
             IsVariation = vl.IsVariation ? 1 : 0,
-            Duration = (long) (vl.Media?.GeneralStream.Duration ?? 0),
+            Duration = (long) (vl.MediaInfo?.GeneralStream.Duration ?? 0),
             MD5 = vl.MD5,
             SHA1 = vl.SHA1,
             VideoLocalID = vl.VideoLocalID,
@@ -82,7 +82,7 @@ public class VideoLocalService
         try
         {
 
-            if (vl.Media?.GeneralStream != null) cl.Media = new Media(vl.VideoLocalID, vl.Media);
+            if (vl.MediaInfo?.GeneralStream != null) cl.Media = new Media(vl.VideoLocalID, vl.MediaInfo);
         }
         catch (Exception e)
         {
@@ -116,24 +116,24 @@ public class VideoLocalService
             VideoLocal_IsWatched = userRecord?.WatchedDate == null ? 0 : 1,
             VideoLocal_WatchedDate = userRecord?.WatchedDate,
             VideoLocal_ResumePosition = userRecord?.ResumePosition ?? 0,
-            VideoInfo_AudioBitrate = vl.Media?.AudioStreams.FirstOrDefault()?.BitRate.ToString(),
-            VideoInfo_AudioCodec = LegacyMediaUtils.TranslateCodec(vl.Media?.AudioStreams.FirstOrDefault()),
+            VideoInfo_AudioBitrate = vl.MediaInfo?.AudioStreams.FirstOrDefault()?.BitRate.ToString(),
+            VideoInfo_AudioCodec = LegacyMediaUtils.TranslateCodec(vl.MediaInfo?.AudioStreams.FirstOrDefault()),
             VideoInfo_Duration = vl.Duration,
-            VideoInfo_VideoBitrate = (vl.Media?.VideoStream?.BitRate ?? 0).ToString(),
-            VideoInfo_VideoBitDepth = (vl.Media?.VideoStream?.BitDepth ?? 0).ToString(),
-            VideoInfo_VideoCodec = LegacyMediaUtils.TranslateCodec(vl.Media?.VideoStream),
-            VideoInfo_VideoFrameRate = vl.Media?.VideoStream?.FrameRate.ToString(),
+            VideoInfo_VideoBitrate = (vl.MediaInfo?.VideoStream?.BitRate ?? 0).ToString(),
+            VideoInfo_VideoBitDepth = (vl.MediaInfo?.VideoStream?.BitDepth ?? 0).ToString(),
+            VideoInfo_VideoCodec = LegacyMediaUtils.TranslateCodec(vl.MediaInfo?.VideoStream),
+            VideoInfo_VideoFrameRate = vl.MediaInfo?.VideoStream?.FrameRate.ToString(),
             VideoInfo_VideoResolution = vl.VideoResolution,
             AniDB_File_FileExtension = Path.GetExtension(aniFile?.FileName) ?? string.Empty,
-            AniDB_File_LengthSeconds = (int?) vl.Media?.General?.Duration ?? 0,
+            AniDB_File_LengthSeconds = (int?) vl.MediaInfo?.General?.Duration ?? 0,
             AniDB_AnimeID = xrefs.FirstOrDefault()?.AnimeID,
             AniDB_CRC = vl.CRC32,
             AniDB_MD5 = vl.MD5,
             AniDB_SHA1 = vl.SHA1,
             AniDB_Episode_Rating = 0,
             AniDB_Episode_Votes = 0,
-            AniDB_File_AudioCodec = LegacyMediaUtils.TranslateCodec(vl.Media?.AudioStreams.FirstOrDefault()) ?? string.Empty,
-            AniDB_File_VideoCodec = LegacyMediaUtils.TranslateCodec(vl.Media?.VideoStream) ?? string.Empty,
+            AniDB_File_AudioCodec = LegacyMediaUtils.TranslateCodec(vl.MediaInfo?.AudioStreams.FirstOrDefault()) ?? string.Empty,
+            AniDB_File_VideoCodec = LegacyMediaUtils.TranslateCodec(vl.MediaInfo?.VideoStream) ?? string.Empty,
             AniDB_File_VideoResolution = vl.VideoResolution,
             AniDB_Anime_GroupName = aniFile?.Anime_GroupName ?? string.Empty,
             AniDB_Anime_GroupNameShort = aniFile?.Anime_GroupNameShort ?? string.Empty,
@@ -150,7 +150,7 @@ public class VideoLocalService
             LanguagesAudio = aniFile?.LanguagesRAW ?? string.Empty,
             LanguagesSubtitle = aniFile?.SubtitlesRAW ?? string.Empty,
             ReleaseGroup = relGroup,
-            Media = vl.Media == null ? null : new Media(vl.VideoLocalID, vl.Media),
+            Media = vl.MediaInfo == null ? null : new Media(vl.VideoLocalID, vl.MediaInfo),
         };
 
         return cl;

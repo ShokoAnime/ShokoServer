@@ -105,7 +105,7 @@ public class HashFileJob : BaseJob
 
         SaveFileNameHash(filename, vlocal);
 
-        if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
+        if ((vlocal.MediaInfo?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
         {
             if (_vlPlaceService.RefreshMediaInfo(vlocalplace))
             {

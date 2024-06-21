@@ -702,7 +702,7 @@ public class FileController : BaseController
 
         var routeTemplate = Request.Scheme + "://" + Request.Host + "/api/v3/File/" + fileID + "/StreamDirectory/ExternalSub/";
         return new ObjectResult("<table>" + string.Join(string.Empty,
-            file.Media.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>")) + "</table>");
+            file.MediaInfo.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>")) + "</table>");
     }
 
     /// <summary>
@@ -745,7 +745,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var mediaContainer = file.Media;
+        var mediaContainer = file.MediaInfo;
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
 

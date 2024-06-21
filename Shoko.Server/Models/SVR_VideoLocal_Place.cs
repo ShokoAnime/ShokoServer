@@ -75,7 +75,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     public IHashes Hashes => VideoLocal;
 
-    public IMediaContainer MediaInfo => VideoLocal?.Media;
+    public IMediaContainer MediaInfo => VideoLocal?.MediaInfo;
 
     #endregion
 }

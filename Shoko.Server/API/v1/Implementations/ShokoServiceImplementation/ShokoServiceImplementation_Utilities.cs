@@ -1190,7 +1190,7 @@ public partial class ShokoServiceImplementation
             {
                 var thisBitDepth = 8;
 
-                if (vid.Media?.VideoStream?.BitDepth != null) thisBitDepth = vid.Media.VideoStream.BitDepth;
+                if (vid.MediaInfo?.VideoStream?.BitDepth != null) thisBitDepth = vid.MediaInfo.VideoStream.BitDepth;
                 
                 // Sometimes, especially with older files, the info doesn't quite match for resolution
                 var vidResInfo = vid.VideoResolution;
@@ -1330,9 +1330,9 @@ public partial class ShokoServiceImplementation
             var eps = videoLocals.Select(a => (a?.AnimeEpisodes).FirstOrDefault()).Where(a => a != null).ToList();
             var ani = videoLocals.First().AniDBFile;
             contract.AudioStreamCount = videoLocals.First()
-                .Media?.AudioStreams.Count ?? 0;
+                .MediaInfo?.AudioStreams.Count ?? 0;
             contract.IsChaptered =
-                ani?.IsChaptered ?? (videoLocals.First()?.Media?.MenuStreams.Any() ?? false);
+                ani?.IsChaptered ?? (videoLocals.First()?.MediaInfo?.MenuStreams.Any() ?? false);
             contract.FileCountNormal = eps.Count(a => a?.EpisodeTypeEnum == EpisodeType.Episode);
             contract.FileCountSpecials = eps.Count(a => a?.EpisodeTypeEnum == EpisodeType.Special);
             contract.GroupName = key.Key.GroupName;
@@ -1345,7 +1345,7 @@ public partial class ShokoServiceImplementation
             contract.TotalFileSize = videoLocals.Sum(a => a?.FileSize ?? 0);
             contract.TotalRunningTime = videoLocals.Sum(a => a?.Duration ?? 0);
             contract.VideoSource = key.Key.File_Source;
-            var bitDepth = videoLocals.First().Media?.VideoStream?.BitDepth;
+            var bitDepth = videoLocals.First().MediaInfo?.VideoStream?.BitDepth;
             if (bitDepth != null)
             {
                 contract.VideoBitDepth = bitDepth.Value;

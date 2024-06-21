@@ -133,7 +133,7 @@ public static class FileQualityFilter
     private static bool CheckAudioCodec(SVR_VideoLocal aniFile)
     {
         var codecs =
-            aniFile?.Media?.AudioStreams.Select(LegacyMediaUtils.TranslateCodec).OrderBy(a => a)
+            aniFile?.MediaInfo?.AudioStreams.Select(LegacyMediaUtils.TranslateCodec).OrderBy(a => a)
                 .ToArray() ?? Array.Empty<string>();
         if (codecs.Length == 0)
         {
@@ -151,7 +151,7 @@ public static class FileQualityFilter
 
     private static bool CheckAudioStreamCount(SVR_VideoLocal aniFile)
     {
-        var streamCount = aniFile?.Media?.AudioStreams.Count ?? -1;
+        var streamCount = aniFile?.MediaInfo?.AudioStreams.Count ?? -1;
         if (streamCount == -1)
         {
             return true;
@@ -169,7 +169,7 @@ public static class FileQualityFilter
 
     private static bool CheckChaptered(SVR_VideoLocal aniFile)
     {
-        return aniFile?.AniDBFile?.IsChaptered ?? (aniFile?.Media?.MenuStreams.Any() ?? false);
+        return aniFile?.AniDBFile?.IsChaptered ?? (aniFile?.MediaInfo?.MenuStreams.Any() ?? false);
     }
 
     private static bool CheckDeprecated(AniDB_File aniFile)
@@ -290,7 +290,7 @@ public static class FileQualityFilter
 
     private static bool CheckSubStreamCount(SVR_VideoLocal file)
     {
-        var streamCount = file?.Media?.TextStreams.Count ?? -1;
+        var streamCount = file?.MediaInfo?.TextStreams.Count ?? -1;
         if (streamCount == -1)
         {
             return true;
@@ -309,7 +309,7 @@ public static class FileQualityFilter
     private static bool CheckVideoCodec(SVR_VideoLocal aniFile)
     {
         var codecs =
-            aniFile?.Media?.media.track.Where(a => a.type == StreamType.Video)
+            aniFile?.MediaInfo?.media.track.Where(a => a.type == StreamType.Video)
                 .Select(LegacyMediaUtils.TranslateCodec)
                 .OrderBy(a => a).ToArray() ?? Array.Empty<string>();
 
@@ -430,9 +430,9 @@ public static class FileQualityFilter
 
     private static int CompareAudioCodecTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
     {
-        var newCodecs = newFile?.Media?.AudioStreams?.Select(LegacyMediaUtils.TranslateCodec)
+        var newCodecs = newFile?.MediaInfo?.AudioStreams?.Select(LegacyMediaUtils.TranslateCodec)
             .Where(a => a != null).OrderBy(a => a).ToArray() ?? Array.Empty<string>();
-        var oldCodecs = oldFile?.Media?.AudioStreams?.Select(LegacyMediaUtils.TranslateCodec)
+        var oldCodecs = oldFile?.MediaInfo?.AudioStreams?.Select(LegacyMediaUtils.TranslateCodec)
             .Where(a => a != null).OrderBy(a => a).ToArray() ?? Array.Empty<string>();
         // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks
         if (newCodecs.Length != oldCodecs.Length)
@@ -463,28 +463,28 @@ public static class FileQualityFilter
 
     private static int CompareAudioStreamCountTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
     {
-        var newStreamCount = newFile?.Media?.AudioStreams.Count ?? 0;
-        var oldStreamCount = oldFile?.Media?.AudioStreams.Count ?? 0;
+        var newStreamCount = newFile?.MediaInfo?.AudioStreams.Count ?? 0;
+        var oldStreamCount = oldFile?.MediaInfo?.AudioStreams.Count ?? 0;
         return oldStreamCount.CompareTo(newStreamCount);
     }
 
     private static int CompareChapterTo(SVR_VideoLocal newFile, AniDB_File newAniFile, SVR_VideoLocal oldFile,
         AniDB_File oldAniFile)
     {
-        if ((newAniFile?.IsChaptered ?? (newFile?.Media?.MenuStreams.Any() ?? false)) &&
-            !(oldAniFile?.IsChaptered ?? (oldFile?.Media?.MenuStreams.Any() ?? false)))
+        if ((newAniFile?.IsChaptered ?? (newFile?.MediaInfo?.MenuStreams.Any() ?? false)) &&
+            !(oldAniFile?.IsChaptered ?? (oldFile?.MediaInfo?.MenuStreams.Any() ?? false)))
         {
             return -1;
         }
 
-        if (!(newAniFile?.IsChaptered ?? (newFile?.Media?.MenuStreams.Any() ?? false)) &&
-            (oldAniFile?.IsChaptered ?? (oldFile?.Media?.MenuStreams.Any() ?? false)))
+        if (!(newAniFile?.IsChaptered ?? (newFile?.MediaInfo?.MenuStreams.Any() ?? false)) &&
+            (oldAniFile?.IsChaptered ?? (oldFile?.MediaInfo?.MenuStreams.Any() ?? false)))
         {
             return 1;
         }
 
-        return (oldAniFile?.IsChaptered ?? (oldFile?.Media?.MenuStreams.Any() ?? false)).CompareTo(
-            newAniFile?.IsChaptered ?? (newFile?.Media?.MenuStreams.Any() ?? false));
+        return (oldAniFile?.IsChaptered ?? (oldFile?.MediaInfo?.MenuStreams.Any() ?? false)).CompareTo(
+            newAniFile?.IsChaptered ?? (newFile?.MediaInfo?.MenuStreams.Any() ?? false));
     }
 
     private static int CompareResolutionTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
@@ -580,8 +580,8 @@ public static class FileQualityFilter
 
     private static int CompareSubStreamCountTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
     {
-        var newStreamCount = newFile?.Media?.TextStreams?.Count ?? 0;
-        var oldStreamCount = oldFile?.Media?.TextStreams?.Count ?? 0;
+        var newStreamCount = newFile?.MediaInfo?.TextStreams?.Count ?? 0;
+        var oldStreamCount = oldFile?.MediaInfo?.TextStreams?.Count ?? 0;
         return oldStreamCount.CompareTo(newStreamCount);
     }
 
@@ -591,8 +591,8 @@ public static class FileQualityFilter
         var oldAni = oldFile?.AniDBFile;
         if (IsNullOrUnknown(newAni) || IsNullOrUnknown(oldAni))return 0;
         if (!newAni.Anime_GroupName.Equals(oldAni.Anime_GroupName))return 0;
-        if (!(newFile.Media?.VideoStream?.BitDepth).Equals(oldFile.Media?.VideoStream?.BitDepth))return 0;
-        if (!string.Equals(newFile.Media?.VideoStream?.CodecID, oldFile.Media?.VideoStream?.CodecID))return 0;
+        if (!(newFile.MediaInfo?.VideoStream?.BitDepth).Equals(oldFile.MediaInfo?.VideoStream?.BitDepth))return 0;
+        if (!string.Equals(newFile.MediaInfo?.VideoStream?.CodecID, oldFile.MediaInfo?.VideoStream?.CodecID))return 0;
 
         return oldAni.FileVersion.CompareTo(newAni.FileVersion);
     }
@@ -600,11 +600,11 @@ public static class FileQualityFilter
     private static int CompareVideoCodecTo(SVR_VideoLocal newLocal, SVR_VideoLocal oldLocal)
     {
         var newCodecs =
-            newLocal?.Media?.media?.track?.Where(a => a?.type == StreamType.Video)
+            newLocal?.MediaInfo?.media?.track?.Where(a => a?.type == StreamType.Video)
                 .Select(LegacyMediaUtils.TranslateCodec).Where(a => a != null).OrderBy(a => a).ToArray() ??
             Array.Empty<string>();
         var oldCodecs =
-            oldLocal?.Media?.media?.track?.Where(a => a?.type == StreamType.Video)
+            oldLocal?.MediaInfo?.media?.track?.Where(a => a?.type == StreamType.Video)
                 .Select(LegacyMediaUtils.TranslateCodec).Where(a => a != null).OrderBy(a => a).ToArray() ??
             Array.Empty<string>();
         // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks
@@ -630,17 +630,17 @@ public static class FileQualityFilter
                 return result;
             }
 
-            if (newLocal?.Media?.VideoStream?.BitDepth == null ||
-                oldLocal?.Media?.VideoStream?.BitDepth == null)
+            if (newLocal?.MediaInfo?.VideoStream?.BitDepth == null ||
+                oldLocal?.MediaInfo?.VideoStream?.BitDepth == null)
             {
                 continue;
             }
 
-            switch (newLocal.Media.VideoStream.BitDepth)
+            switch (newLocal.MediaInfo.VideoStream.BitDepth)
             {
-                case 8 when oldLocal.Media.VideoStream.BitDepth == 10:
+                case 8 when oldLocal.MediaInfo.VideoStream.BitDepth == 10:
                     return Settings.Prefer8BitVideo ? -1 : 1;
-                case 10 when oldLocal.Media.VideoStream.BitDepth == 8:
+                case 10 when oldLocal.MediaInfo.VideoStream.BitDepth == 8:
                     return Settings.Prefer8BitVideo ? 1 : -1;
             }
         }
@@ -687,7 +687,7 @@ public static class FileQualityFilter
     {
         var oldHeight = 0;
         var oldWidth = 0;
-        var stream = videoLocal?.Media?.VideoStream;
+        var stream = videoLocal?.MediaInfo?.VideoStream;
         if (stream != null)
         {
             oldWidth = stream.Width;

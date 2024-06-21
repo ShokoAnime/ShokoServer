@@ -394,7 +394,7 @@ public class LegacyRenamer : IRenamer
                 return false;
             }
 
-            if (vid.Media?.VideoStream == null)
+            if (vid.MediaInfo?.VideoStream == null)
             {
                 return false;
             }
@@ -405,28 +405,28 @@ public class LegacyRenamer : IRenamer
             {
                 if (!notCondition)
                 {
-                    return testBitDepth == vid.Media?.VideoStream?.BitDepth;
+                    return testBitDepth == vid.MediaInfo?.VideoStream?.BitDepth;
                 }
 
-                return testBitDepth != vid.Media?.VideoStream?.BitDepth;
+                return testBitDepth != vid.MediaInfo?.VideoStream?.BitDepth;
             }
 
             if (greaterThan)
             {
-                return vid.Media?.VideoStream?.BitDepth > testBitDepth;
+                return vid.MediaInfo?.VideoStream?.BitDepth > testBitDepth;
             }
 
             if (greaterThanEqual)
             {
-                return vid.Media?.VideoStream?.BitDepth >= testBitDepth;
+                return vid.MediaInfo?.VideoStream?.BitDepth >= testBitDepth;
             }
 
             if (lessThan)
             {
-                return vid.Media?.VideoStream?.BitDepth < testBitDepth;
+                return vid.MediaInfo?.VideoStream?.BitDepth < testBitDepth;
             }
 
-            return vid.Media?.VideoStream?.BitDepth <= testBitDepth;
+            return vid.MediaInfo?.VideoStream?.BitDepth <= testBitDepth;
         }
         catch (Exception ex)
         {
@@ -1284,7 +1284,7 @@ public class LegacyRenamer : IRenamer
                 Constants.FileRenameTag.VideoBitDepth.Length - 1); // remove % at the front
             if (test.Trim().Equals(tagVideoBitDepth, StringComparison.InvariantCultureIgnoreCase))
             {
-                var bitDepthExists = vid?.Media?.VideoStream != null && vid.Media?.VideoStream?.BitDepth != 0;
+                var bitDepthExists = vid?.MediaInfo?.VideoStream != null && vid.MediaInfo?.VideoStream?.BitDepth != 0;
                 if (!bitDepthExists)
                 {
                     return notCondition;
@@ -1843,7 +1843,7 @@ public class LegacyRenamer : IRenamer
 
         if (action.Trim().Contains(Constants.FileRenameTag.VideoCodec))
         {
-            newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, vid?.Media?.VideoStream?.CodecID);
+            newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, vid?.MediaInfo?.VideoStream?.CodecID);
         }
 
         #endregion
@@ -1853,7 +1853,7 @@ public class LegacyRenamer : IRenamer
         if (action.Trim().Contains(Constants.FileRenameTag.AudioCodec))
         {
             newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec,
-                vid?.Media?.AudioStreams.FirstOrDefault()?.CodecID);
+                vid?.MediaInfo?.AudioStreams.FirstOrDefault()?.CodecID);
         }
 
         #endregion
@@ -1863,7 +1863,7 @@ public class LegacyRenamer : IRenamer
         if (action.Trim().Contains(Constants.FileRenameTag.VideoBitDepth))
         {
             newFileName = newFileName.Replace(Constants.FileRenameTag.VideoBitDepth,
-                (vid?.Media?.VideoStream?.BitDepth).ToString());
+                (vid?.MediaInfo?.VideoStream?.BitDepth).ToString());
         }
 
         #endregion

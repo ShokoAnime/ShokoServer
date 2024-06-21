@@ -4,24 +4,20 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using NutzCode.InMemoryIndex;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
-using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
-using Shoko.Server.Utilities.MediaInfoLib;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -76,37 +72,11 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         );
         var count = 0;
         int max;
+        List<SVR_VideoLocal> list;
 
-        var list = Cache.Values.Where(a => a is { MediaVersion: 4, MediaBlob: { Length: > 0 } }).ToList();
-        max = list.Count;
-
-        foreach (var batch in list.Batch(50))
-        {
-            using var session2 = _databaseFactory.SessionFactory.OpenSession();
-            using var transaction = session2.BeginTransaction();
-            foreach (var a in batch)
-            {
-                var media = CompressionHelper.DeserializeObject<MediaContainer>(a.MediaBlob, a.MediaSize,
-                    new JsonConverter[] { new StreamJsonConverter() });
-                a.Media = media;
-                RepoFactory.VideoLocal.SaveWithOpenTransaction(session2, a);
-                count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Converting MediaInfo to MessagePack - " + count + "/" + max
-                );
-            }
-
-            transaction.Commit();
-        }
-
-        count = 0;
         try
         {
-            list = Cache.Values.Where(a =>
-                    (a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION &&
-                     !(SVR_VideoLocal.MEDIA_VERSION == 5 && a.MediaVersion == 4)) || a.MediaBlob == null)
-                .ToList();
+            list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaInfo == null).ToList();
             max = list.Count;
 
             var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
@@ -219,7 +189,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     private void UpdateMediaContracts(SVR_VideoLocal obj)
     {
-        if (obj.Media != null && obj.MediaVersion >= SVR_VideoLocal.MEDIA_VERSION)
+        if (obj.MediaInfo != null && obj.MediaVersion >= SVR_VideoLocal.MEDIA_VERSION)
         {
             return;
         }
@@ -244,7 +214,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         if (obj.VideoLocalID == 0)
         {
-            obj.Media = null;
+            obj.MediaInfo = null;
             base.Save(obj);
         }
 

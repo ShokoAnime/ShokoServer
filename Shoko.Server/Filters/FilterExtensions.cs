@@ -105,8 +105,8 @@ public static class FilterExtensions
                 return subtitles;
             },
             ResolutionsDelegate = () =>
-                series.VideoLocals.Where(a => a.Media?.VideoStream != null).Select(a =>
-                    MediaInfoUtils.GetStandardResolution(Tuple.Create(a.Media.VideoStream.Width, a.Media.VideoStream.Height))).ToHashSet(),
+                series.VideoLocals.Where(a => a.MediaInfo?.VideoStream != null).Select(a =>
+                    MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo.VideoStream.Width, a.MediaInfo.VideoStream.Height))).ToHashSet(),
             FilePathsDelegate = () => series.VideoLocals.Select(a => a.FirstValidPlace.FilePath).ToHashSet()
         };
 
@@ -267,8 +267,8 @@ public static class FilterExtensions
                 return subtitles;
             },
             ResolutionsDelegate =
-                () => series.SelectMany(a => a.VideoLocals).Where(a => a.Media?.VideoStream != null).Select(a =>
-                    MediaInfoUtils.GetStandardResolution(Tuple.Create(a.Media.VideoStream.Width, a.Media.VideoStream.Height))).ToHashSet(),
+                () => series.SelectMany(a => a.VideoLocals).Where(a => a.MediaInfo?.VideoStream != null).Select(a =>
+                    MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo.VideoStream.Width, a.MediaInfo.VideoStream.Height))).ToHashSet(),
             FilePathsDelegate = () => series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace.FilePath)).ToHashSet()
         };
 
