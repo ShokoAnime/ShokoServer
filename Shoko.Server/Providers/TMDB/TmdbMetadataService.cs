@@ -84,7 +84,7 @@ public class TmdbMetadataService
     public void ScanForMatches()
     {
         var settings = _settingsProvider.GetSettings();
-        if (!settings.TvDB.AutoLink)
+        if (!settings.TMDB.AutoLink)
             return;
 
         var allSeries = RepoFactory.AnimeSeries.GetAll();
