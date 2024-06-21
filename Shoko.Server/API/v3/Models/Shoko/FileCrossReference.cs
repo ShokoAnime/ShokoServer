@@ -6,6 +6,7 @@ using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>
@@ -216,7 +217,7 @@ public class FileCrossReference
                         {
                             ID = shokoSeries?.AnimeSeriesID,
                             AniDB = tuples.Key,
-                            TvDB = (shokoSeries?.TvDBSeries).Select(b => b.SeriesID).ToList() ?? [],
+                            TvDB = (shokoSeries?.TvDBSeries)?.Select(b => b.SeriesID).ToList() ?? [],
                         },
                         EpisodeIDs = tuples.Select(tuple => tuple.dto).ToList(),
                     };
