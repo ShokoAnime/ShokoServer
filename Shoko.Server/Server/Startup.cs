@@ -52,7 +52,7 @@ public class Startup
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
-            services.AddSingleton<TMDBHelper>();
+            services.AddSingleton<TmdbMetadataService>();
             services.AddScoped<CommonImplementation>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();

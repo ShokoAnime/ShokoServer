@@ -47,12 +47,12 @@ public class TmdbController : BaseController
 {
     private readonly ILogger<TmdbController> Logger;
 
-    private readonly TMDBHelper TmdbHelper;
+    private readonly TmdbMetadataService _tmdbService;
 
-    public TmdbController(ISettingsProvider settingsProvider, ILogger<TmdbController> logger, TMDBHelper tmdbHelper) : base(settingsProvider)
+    public TmdbController(ISettingsProvider settingsProvider, ILogger<TmdbController> logger, TmdbMetadataService tmdbService) : base(settingsProvider)
     {
         Logger = logger;
-        TmdbHelper = tmdbHelper;
+        _tmdbService = tmdbService;
     }
 
     #region Movies
@@ -172,7 +172,7 @@ public class TmdbController : BaseController
         [FromQuery] bool removeImageFiles = true
     )
     {
-        TmdbHelper.SchedulePurgeOfMovie(movieID, removeImageFiles);
+        _tmdbService.SchedulePurgeOfMovie(movieID, removeImageFiles);
 
         return NoContent();
     }
@@ -428,7 +428,7 @@ public class TmdbController : BaseController
         [FromQuery] bool? downloadCollections = null
     )
     {
-        TmdbHelper.ScheduleUpdateOfMovie(movieID, force, downloadImages, downloadCrewAndCast, downloadCollections);
+        _tmdbService.ScheduleUpdateOfMovie(movieID, force, downloadImages, downloadCrewAndCast, downloadCollections);
 
         return Ok();
     }
@@ -456,7 +456,7 @@ public class TmdbController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalMovies) = TmdbHelper.SearchMovies(query, includeRestricted, year, page, pageSize)
+        var (pageView, totalMovies) = _tmdbService.SearchMovies(query, includeRestricted, year, page, pageSize)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -719,7 +719,7 @@ public class TmdbController : BaseController
         [FromQuery] bool removeImageFiles = true
     )
     {
-        TmdbHelper.SchedulePurgeOfShow(showID, removeImageFiles);
+        _tmdbService.SchedulePurgeOfShow(showID, removeImageFiles);
 
         return NoContent();
     }
@@ -1034,7 +1034,7 @@ public class TmdbController : BaseController
         [FromQuery] bool? downloadAlternateOrdering = null
     )
     {
-        TmdbHelper.ScheduleUpdateOfShow(showID, force, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
+        _tmdbService.ScheduleUpdateOfShow(showID, force, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
 
         return Ok();
     }
@@ -1062,7 +1062,7 @@ public class TmdbController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalShows) = TmdbHelper.SearchShows(query, includeRestricted, year, page, pageSize)
+        var (pageView, totalShows) = _tmdbService.SearchShows(query, includeRestricted, year, page, pageSize)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -2067,7 +2067,7 @@ public class TmdbController : BaseController
             RepoFactory.CrossRef_AniDB_TMDB_Movie.Save(movieXrefsToSave);
 
             foreach (var movieId in moviesToUpdate)
-                TmdbHelper.SchedulePurgeOfMovie(movieId);
+                _tmdbService.SchedulePurgeOfMovie(movieId);
         }
 
         if (episodeXrefsToSave.Count > 0 || showXrefsToSave.Count > 0 || showsToUpdate.Count > 0)
@@ -2085,7 +2085,7 @@ public class TmdbController : BaseController
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(episodeXrefsToSave);
 
             foreach (var showId in showsToUpdate)
-                TmdbHelper.SchedulePurgeOfShow(showId);
+                _tmdbService.SchedulePurgeOfShow(showId);
         }
 
         return NoContent();

@@ -21,7 +21,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TMDB_Show_Update : CommandRequestImplementation
 {
     [XmlIgnore, JsonIgnore]
-    private readonly TMDBHelper _helper;
+    private readonly TmdbMetadataService _tmdbService;
 
     [XmlIgnore, JsonIgnore]
     private readonly ISettingsProvider _settingsProvider;
@@ -63,7 +63,7 @@ public class CommandRequest_TMDB_Show_Update : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Show_Update: {TmdbShowId}", TmdbShowID);
         var settings = _settingsProvider.GetSettings();
-        Task.Run(async () => await _helper.UpdateShow(TmdbShowID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering))
+        Task.Run(async () => await _tmdbService.UpdateShow(TmdbShowID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering))
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -94,9 +94,9 @@ public class CommandRequest_TMDB_Show_Update : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_TMDB_Show_Update(ILoggerFactory loggerFactory, TMDBHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
+    public CommandRequest_TMDB_Show_Update(ILoggerFactory loggerFactory, TmdbMetadataService tmdbService, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
-        _helper = helper;
+        _tmdbService = tmdbService;
         _settingsProvider = settingsProvider;
     }
 

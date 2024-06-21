@@ -868,8 +868,8 @@ public static class Importer
 
     public static void RunImport_ScanTMDB()
     {
-        var tmdbHelper = Utils.ServiceContainer.GetRequiredService<TMDBHelper>();
-        tmdbHelper.ScanForMatches();
+        var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+        service.ScanForMatches();
     }
 
     public static void RunImport_UpdateTvDB(bool forced)

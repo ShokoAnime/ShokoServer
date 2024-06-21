@@ -45,13 +45,13 @@ public class SeriesController : BaseController
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IHttpConnectionHandler _httpHandler;
-    private readonly TMDBHelper _tmdbHelper;
+    private readonly TmdbMetadataService _tmdbService;
 
-    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider, TMDBHelper tmdbHelper) : base(settingsProvider)
+    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider, TmdbMetadataService tmdbService) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
         _httpHandler = httpHandler;
-        _tmdbHelper = tmdbHelper;
+        _tmdbService = tmdbService;
     }
 
     #region Return messages
@@ -1081,11 +1081,11 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        _tmdbHelper.AddMovieLink(series.AniDB_ID, body.ProviderID, body.EpisodeID, additiveLink: !body.Replace);
+        _tmdbService.AddMovieLink(series.AniDB_ID, body.ProviderID, body.EpisodeID, additiveLink: !body.Replace);
 
         var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ProviderID) != null || body.Refresh;
         if (needRefresh)
-            _tmdbHelper.ScheduleUpdateOfMovie(body.ProviderID, forceRefresh: body.Refresh, downloadImages: true);
+            _tmdbService.ScheduleUpdateOfMovie(body.ProviderID, forceRefresh: body.Refresh, downloadImages: true);
 
         return NoContent();
     }
@@ -1111,9 +1111,9 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         if (body != null && body.ProviderID > 0)
-            _tmdbHelper.RemoveMovieLink(series.AniDB_ID, body.ProviderID, body.Purge);
+            _tmdbService.RemoveMovieLink(series.AniDB_ID, body.ProviderID, body.Purge);
         else
-            _tmdbHelper.RemoveAllMovieLinks(series.AniDB_ID, body.Purge);
+            _tmdbService.RemoveAllMovieLinks(series.AniDB_ID, body.Purge);
 
         return NoContent();
     }
@@ -1238,11 +1238,11 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        _tmdbHelper.AddShowLink(series.AniDB_ID, body.ProviderID, additiveLink: !body.Replace);
+        _tmdbService.AddShowLink(series.AniDB_ID, body.ProviderID, additiveLink: !body.Replace);
 
         var needRefresh = RepoFactory.TMDB_Show.GetByTmdbShowID(body.ProviderID) != null || body.Refresh;
         if (needRefresh)
-            _tmdbHelper.ScheduleUpdateOfShow(body.ProviderID, forceRefresh: body.Refresh, downloadImages: true);
+            _tmdbService.ScheduleUpdateOfShow(body.ProviderID, forceRefresh: body.Refresh, downloadImages: true);
 
         return NoContent();
     }
@@ -1268,9 +1268,9 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         if (body != null && body.ProviderID > 0)
-            _tmdbHelper.RemoveShowLink(series.AniDB_ID, body.ProviderID, body.Purge);
+            _tmdbService.RemoveShowLink(series.AniDB_ID, body.ProviderID, body.Purge);
         else
-            _tmdbHelper.RemoveAllShowLinks(series.AniDB_ID, body.Purge);
+            _tmdbService.RemoveAllShowLinks(series.AniDB_ID, body.Purge);
 
         return NoContent();
     }
@@ -1436,15 +1436,15 @@ public class SeriesController : BaseController
 
         // Add any missing links if needed.
         foreach (var showId in missingIDs)
-            _tmdbHelper.AddShowLink(series.AniDB_ID, showId, additiveLink: true);
+            _tmdbService.AddShowLink(series.AniDB_ID, showId, additiveLink: true);
 
         // Reset the existing links if we wanted to replace all.
         if (body.ResetAll)
-            _tmdbHelper.ResetAllEpisodeLinks(series.AniDB_ID);
+            _tmdbService.ResetAllEpisodeLinks(series.AniDB_ID);
 
         // Do the actual linking.
         foreach (var link in body.Mapping)
-            _tmdbHelper.SetEpisodeLink(link.AnidbID, link.TmdbID, !link.Replace);
+            _tmdbService.SetEpisodeLink(link.AnidbID, link.TmdbID, !link.Replace);
 
         return NoContent();
     }
@@ -1501,7 +1501,7 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
-        return _tmdbHelper.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: false)
+        return _tmdbService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: false)
             .ToListResult(x => new TmdbEpisode.CrossReference(x), page, pageSize);
     }
 
@@ -1554,7 +1554,7 @@ public class SeriesController : BaseController
 
         // Add the missing link if needed.
         if (isMissing)
-            _tmdbHelper.AddShowLink(series.AniDB_ID, tmdbShowID.Value, additiveLink: true);
+            _tmdbService.AddShowLink(series.AniDB_ID, tmdbShowID.Value, additiveLink: true);
 
         if (tmdbSeasonID.HasValue)
         {
@@ -1566,7 +1566,7 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
-        _tmdbHelper.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: true);
+        _tmdbService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: true);
 
         return NoContent();
     }
@@ -1589,7 +1589,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TvdbForbiddenForUser);
 
-        _tmdbHelper.ResetAllEpisodeLinks(series.AniDB_ID);
+        _tmdbService.ResetAllEpisodeLinks(series.AniDB_ID);
 
         return NoContent();
     }

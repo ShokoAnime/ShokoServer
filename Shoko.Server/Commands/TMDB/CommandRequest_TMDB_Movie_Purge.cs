@@ -20,7 +20,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TMDB_Movie_Purge : CommandRequestImplementation
 {
     [XmlIgnore, JsonIgnore]
-    private readonly TMDBHelper _helper;
+    private readonly TmdbMetadataService _tmdbService;
 
     public virtual int TmdbMovieID { get; set; }
 
@@ -46,7 +46,7 @@ public class CommandRequest_TMDB_Movie_Purge : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Movie_Purge: {TmdbMovieId}", TmdbMovieID);
-        Task.Run(() => _helper.PurgeMovie(TmdbMovieID, RemoveImageFiles))
+        Task.Run(() => _tmdbService.PurgeMovie(TmdbMovieID, RemoveImageFiles))
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -73,9 +73,9 @@ public class CommandRequest_TMDB_Movie_Purge : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_TMDB_Movie_Purge(ILoggerFactory loggerFactory, TMDBHelper helper) : base(loggerFactory)
+    public CommandRequest_TMDB_Movie_Purge(ILoggerFactory loggerFactory, TmdbMetadataService tmdbService) : base(loggerFactory)
     {
-        _helper = helper;
+        _tmdbService = tmdbService;
     }
 
     protected CommandRequest_TMDB_Movie_Purge()

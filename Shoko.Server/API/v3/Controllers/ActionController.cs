@@ -35,17 +35,17 @@ public class ActionController : BaseController
     private readonly ILogger<ActionController> _logger;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly TraktTVHelper _traktHelper;
-    private readonly TMDBHelper _tmdbHelper;
+    private readonly TmdbMetadataService _tmdbService;
     private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISchedulerFactory _schedulerFactory;
 
     public ActionController(ILogger<ActionController> logger, ICommandRequestFactory commandFactory,
-        TraktTVHelper traktHelper, TMDBHelper tmdbHelper, IHttpConnectionHandler httpHandler, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+        TraktTVHelper traktHelper, TmdbMetadataService tmdbService, IHttpConnectionHandler httpHandler, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
-        _tmdbHelper = tmdbHelper;
+        _tmdbService = tmdbService;
         _httpHandler = httpHandler;
         _schedulerFactory = schedulerFactory;
     }
@@ -156,7 +156,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllMovieDBInfo")]
     public ActionResult UpdateAllMovieDBInfo()
     {
-        Task.Factory.StartNew(() => _tmdbHelper.UpdateAllMovies(true, true));
+        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
         return Ok();
     }
 
@@ -167,7 +167,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllTmdbMovies")]
     public ActionResult UpdateAllTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbHelper.UpdateAllMovies(true, true));
+        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
         return Ok();
     }
 
@@ -178,7 +178,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbMovies")]
     public ActionResult PurgeAllUnusedTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbHelper.PurgeAllUnusedMovies());
+        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedMovies());
         return Ok();
     }
 
@@ -189,7 +189,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllTmdbShows")]
     public ActionResult UpdateAllTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbHelper.UpdateAllShows(true, true));
+        Task.Factory.StartNew(() => _tmdbService.UpdateAllShows(true, true));
         return Ok();
     }
 
@@ -200,7 +200,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbShows")]
     public ActionResult PurgeAllUnusedTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbHelper.PurgeAllUnusedShows());
+        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedShows());
         return Ok();
     }
 

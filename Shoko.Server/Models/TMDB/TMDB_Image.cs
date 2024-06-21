@@ -129,7 +129,7 @@ public class TMDB_Image : IImageMetadata
 
     /// <inheritdoc/>
     public string? RemoteURL
-        => string.IsNullOrEmpty(RemoteFileName) || string.IsNullOrEmpty(TMDBHelper.ImageServerUrl) ? null : $"{TMDBHelper.ImageServerUrl}/original/{RemoteFileName}";
+        => string.IsNullOrEmpty(RemoteFileName) || string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl) ? null : $"{TmdbMetadataService.ImageServerUrl}/original/{RemoteFileName}";
 
     /// <summary>
     /// Relative path to the image stored locally.

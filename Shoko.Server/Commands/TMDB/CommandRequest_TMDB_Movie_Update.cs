@@ -21,7 +21,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TMDB_Movie_Update : CommandRequestImplementation
 {
     [XmlIgnore, JsonIgnore]
-    private readonly TMDBHelper _helper;
+    private readonly TmdbMetadataService _tmdbService;
 
     [XmlIgnore, JsonIgnore]
     private readonly ISettingsProvider _settingsProvider;
@@ -63,7 +63,7 @@ public class CommandRequest_TMDB_Movie_Update : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Movie_Update: {TmdbMovieId}", TmdbMovieID);
         var settings = _settingsProvider.GetSettings();
-        Task.Run(() => _helper.UpdateMovie(TmdbMovieID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadCollections ?? settings.TMDB.AutoDownloadCollections))
+        Task.Run(() => _tmdbService.UpdateMovie(TmdbMovieID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadCollections ?? settings.TMDB.AutoDownloadCollections))
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -93,9 +93,9 @@ public class CommandRequest_TMDB_Movie_Update : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_TMDB_Movie_Update(ILoggerFactory loggerFactory, TMDBHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
+    public CommandRequest_TMDB_Movie_Update(ILoggerFactory loggerFactory, TmdbMetadataService tmdbService, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
-        _helper = helper;
+        _tmdbService = tmdbService;
         _settingsProvider = settingsProvider;
     }
 

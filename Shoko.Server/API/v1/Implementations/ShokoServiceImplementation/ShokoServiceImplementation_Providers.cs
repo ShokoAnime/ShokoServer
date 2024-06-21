@@ -1034,8 +1034,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-                    _tmdbHelper.AddMovieLink(animeID, id);
-                    _tmdbHelper.ScheduleUpdateOfMovie(id, downloadImages: true);
+                    _tmdbService.AddMovieLink(animeID, id);
+                    _tmdbService.ScheduleUpdateOfMovie(id, downloadImages: true);
                     break;
             }
 
@@ -1064,7 +1064,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-                    _tmdbHelper.RemoveAllMovieLinks(animeID);
+                    _tmdbService.RemoveAllMovieLinks(animeID);
                     break;
             }
 
@@ -1087,7 +1087,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var (movieResults, _) = _tmdbHelper.SearchMovies(HttpUtility.UrlDecode(criteria));
+            var (movieResults, _) = _tmdbService.SearchMovies(HttpUtility.UrlDecode(criteria));
 
             foreach (var res in movieResults)
             {

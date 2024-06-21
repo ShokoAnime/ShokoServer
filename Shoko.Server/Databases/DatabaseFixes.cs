@@ -1132,7 +1132,7 @@ public class DatabaseFixes
 
     public static void CleanupAfterAddingTMDB()
     {
-        var helper = Utils.ServiceContainer.GetRequiredService<TMDBHelper>();
+        var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
 
         // Remove the "MovieDB" directory in the image directory, since it's no longer used,
         var dir = new DirectoryInfo(Path.Join(ImageUtils.GetBaseImagesPath(), "MovieDB"));
@@ -1140,9 +1140,9 @@ public class DatabaseFixes
             dir.Delete(true);
 
         // Schedule commands to get the new movie info for existing cross-reference
-        helper.UpdateAllMovies(true, true);
+        service.UpdateAllMovies(true, true);
 
         // Schedule tmdb searches if we have auto linking enabled.
-        helper.ScanForMatches();
+        service.ScanForMatches();
     }
 }

@@ -44,17 +44,17 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private static Logger logger = LogManager.GetCurrentClassLogger();
     private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
-    private readonly TMDBHelper _tmdbHelper;
+    private readonly TmdbMetadataService _tmdbService;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
 
-    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, TMDBHelper tmdbHelper,
+    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, TmdbMetadataService tmdbService,
         ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
-        _tmdbHelper = tmdbHelper;
+        _tmdbService = tmdbService;
         _commandFactory = commandFactory;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;

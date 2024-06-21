@@ -21,7 +21,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TMDB_Show_DownloadImages : CommandRequestImplementation
 {
     [XmlIgnore, JsonIgnore]
-    private readonly TMDBHelper _helper;
+    private readonly TmdbMetadataService _tmdbService;
 
     public virtual int TmdbShowID { get; set; }
 
@@ -47,7 +47,7 @@ public class CommandRequest_TMDB_Show_DownloadImages : CommandRequestImplementat
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Show_DownloadImages: {TmdbShowId}", TmdbShowID);
-        Task.Run(() => _helper.DownloadShowImages(TmdbShowID, ForceDownload))
+        Task.Run(() => _tmdbService.DownloadShowImages(TmdbShowID, ForceDownload))
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -74,9 +74,9 @@ public class CommandRequest_TMDB_Show_DownloadImages : CommandRequestImplementat
         return true;
     }
 
-    public CommandRequest_TMDB_Show_DownloadImages(ILoggerFactory loggerFactory, TMDBHelper helper) : base(loggerFactory)
+    public CommandRequest_TMDB_Show_DownloadImages(ILoggerFactory loggerFactory, TmdbMetadataService tmdbService) : base(loggerFactory)
     {
-        _helper = helper;
+        _tmdbService = tmdbService;
     }
 
     protected CommandRequest_TMDB_Show_DownloadImages()

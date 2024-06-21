@@ -34,9 +34,9 @@ using MovieCredits = TMDbLib.Objects.Movies.Credits;
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
-public class TMDBHelper
+public class TmdbMetadataService
 {
-    private static TMDBHelper? _instance = null;
+    private static TmdbMetadataService? _instance = null;
 
     private static string? _imageServerUrl = null;
 
@@ -62,7 +62,7 @@ public class TMDBHelper
         }
     }
 
-    private readonly ILogger<TMDBHelper> _logger;
+    private readonly ILogger<TmdbMetadataService> _logger;
 
     private readonly ICommandRequestFactory _commandFactory;
 
@@ -72,9 +72,9 @@ public class TMDBHelper
 
     private const string APIKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
-    public TMDBHelper(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
+    public TmdbMetadataService(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
     {
-        _logger = loggerFactory.CreateLogger<TMDBHelper>();
+        _logger = loggerFactory.CreateLogger<TmdbMetadataService>();
         _commandFactory = commandFactory;
         _settingsProvider = settingsProvider;
         _client = new(APIKey);

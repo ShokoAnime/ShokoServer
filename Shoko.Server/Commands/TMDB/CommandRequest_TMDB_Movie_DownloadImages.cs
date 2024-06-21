@@ -20,7 +20,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TMDB_Movie_DownloadImages : CommandRequestImplementation
 {
     [XmlIgnore, JsonIgnore]
-    private readonly TMDBHelper _helper;
+    private readonly TmdbMetadataService _tmdbService;
 
     public virtual int TmdbMovieID { get; set; }
 
@@ -46,7 +46,7 @@ public class CommandRequest_TMDB_Movie_DownloadImages : CommandRequestImplementa
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Movie_DownloadImages: {TmdbMovieId}", TmdbMovieID);
-        Task.Run(() => _helper.DownloadMovieImages(TmdbMovieID, ForceDownload))
+        Task.Run(() => _tmdbService.DownloadMovieImages(TmdbMovieID, ForceDownload))
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -73,9 +73,9 @@ public class CommandRequest_TMDB_Movie_DownloadImages : CommandRequestImplementa
         return true;
     }
 
-    public CommandRequest_TMDB_Movie_DownloadImages(ILoggerFactory loggerFactory, TMDBHelper helper) : base(loggerFactory)
+    public CommandRequest_TMDB_Movie_DownloadImages(ILoggerFactory loggerFactory, TmdbMetadataService tmdbService) : base(loggerFactory)
     {
-        _helper = helper;
+        _tmdbService = tmdbService;
     }
 
     protected CommandRequest_TMDB_Movie_DownloadImages()

@@ -22,7 +22,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.TMDB_Search)]
 public class CommandRequest_TMDB_Search : CommandRequestImplementation
 {
-    private readonly TMDBHelper _helper;
+    private readonly TmdbMetadataService _tmdbService;
 
     public virtual int AnimeID { get; set; }
 
@@ -115,7 +115,7 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
 
     private bool SearchForMovie(AniDB_Episode episode, string query, int? year, bool isRestricted)
     {
-        var (results, _) = _helper.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0)
+        var (results, _) = _tmdbService.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -124,8 +124,8 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
 
         Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].OriginalTitle, results[0].Id);
 
-        _helper.AddMovieLink(AnimeID, results[0].Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
-        _helper.ScheduleUpdateOfMovie(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+        _tmdbService.AddMovieLink(AnimeID, results[0].Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
+        _tmdbService.ScheduleUpdateOfMovie(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
 
         return true;
     }
@@ -168,7 +168,7 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         }
 
         // Brute force attempt #1: With the original title and first aired year.
-        var (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1, year: airDate?.Year ?? 0)
+        var (results, _) = _tmdbService.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1, year: airDate?.Year ?? 0)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -176,15 +176,15 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         {
             Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
 
-            _helper.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
-            _helper.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+            _tmdbService.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
+            _tmdbService.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
             return;
         }
 
         // Brute force attempt #2: With the original title but without the first aired year.
         if (airDate.HasValue)
         {
-            (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1)
+            (results, _) = _tmdbService.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1)
                 .ConfigureAwait(false)
                 .GetAwaiter()
                 .GetResult();
@@ -192,8 +192,8 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
             {
                 Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
 
-                _helper.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
-                _helper.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+                _tmdbService.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
+                _tmdbService.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
                 return;
             }
         }
@@ -221,9 +221,9 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_TMDB_Search(ILoggerFactory loggerFactory, TMDBHelper helper) : base(loggerFactory)
+    public CommandRequest_TMDB_Search(ILoggerFactory loggerFactory, TmdbMetadataService tmdbService) : base(loggerFactory)
     {
-        _helper = helper;
+        _tmdbService = tmdbService;
     }
 
     protected CommandRequest_TMDB_Search()
