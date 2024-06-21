@@ -150,7 +150,7 @@ public class AnimeGroupService
     /// </summary>
     public void UpdateStatsFromTopLevel(SVR_AnimeGroup group, bool watchedStats, bool missingEpsStats)
     {
-        if (group.AnimeGroupParentID.HasValue)
+        if (group?.AnimeGroupParentID == null)
         {
             return;
         }

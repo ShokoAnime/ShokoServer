@@ -73,7 +73,10 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
         get
         {
             var stack = new Stack<SVR_AnimeGroup>();
-            stack.Push(this);
+            foreach (var child in Children)
+            {
+                stack.Push(child);
+            }
 
             while (stack.Count > 0)
             {
@@ -84,7 +87,6 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
         }
     }
 
-    // TODO probably figure out a different way to do this, for example, have this only have a getter, and the setter exists in the service
     public SVR_AnimeSeries? MainSeries
     {
         get
@@ -114,7 +116,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
         {
             var seriesList = RepoFactory.AnimeSeries
                 .GetByGroupID(AnimeGroupID)
-                .OrderBy(a => a.AirDate)
+                .OrderBy(a => a.AirDate ?? DateTime.MaxValue)
                 .ToList();
 
             // Make sure the default/main series is the first, if it's directly
@@ -122,8 +124,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
             if (!DefaultAnimeSeriesID.HasValue && !MainAniDBAnimeID.HasValue) return seriesList;
 
             var mainSeries = MainSeries;
-            if (mainSeries == null) return seriesList;
-            if (seriesList.Remove(mainSeries)) seriesList.Insert(0, mainSeries);
+            if (mainSeries != null && seriesList.Remove(mainSeries)) seriesList.Insert(0, mainSeries);
 
             return seriesList;
         }
@@ -152,7 +153,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
             }
 
             seriesList = seriesList
-                .OrderBy(a => a.AirDate)
+                .OrderBy(a => a.AirDate ?? DateTime.MaxValue)
                 .ToList();
 
             // Make sure the default/main series is the first if it's somewhere
@@ -164,13 +165,9 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
                     mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
 
                 if (mainSeries == null && MainAniDBAnimeID.HasValue)
-                    mainSeries = seriesList.FirstOrDefault(सर => सर.AniDB_ID == MainAniDBAnimeID.Value);
+                    mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
 
-                if (mainSeries != null)
-                {
-                    seriesList.Remove(mainSeries);
-                    seriesList.Insert(0, mainSeries);
-                }
+                if (mainSeries != null && seriesList.Remove(mainSeries)) seriesList.Insert(0, mainSeries);
             }
 
             return seriesList;
