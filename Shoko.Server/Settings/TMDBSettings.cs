@@ -6,9 +6,16 @@ namespace Shoko.Server.Settings;
 public class TMDBSettings
 {
     /// <summary>
-    /// Automagically link AniDB Series to TMDB Shows and Movies.
+    /// Automagically link AniDB anime to TMDB shows and movies.
     /// </summary>
     public bool AutoLink { get; set; } = false;
+
+    /// <summary>
+    /// Automagically link restricted AniDB anime to TMDB shows and movies.
+    /// <see cref="AutoLink"/> also needs to be set for this setting to take
+    /// effect.
+    /// </summary>
+    public bool AutoLinkRestricted { get; set; } = false;
 
     /// <summary>
     /// Automagically download crew and cast for movies and tv shows in the

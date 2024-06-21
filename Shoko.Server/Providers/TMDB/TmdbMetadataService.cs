@@ -97,7 +97,7 @@ public class TmdbMetadataService
             if (anime == null)
                 continue;
 
-            if (anime.Restricted > 0)
+            if (anime.Restricted > 0 && !settings.TMDB.AutoLinkRestricted)
                 continue;
 
             if (anime.GetCrossRefTmdbMovies().Count > 0)
