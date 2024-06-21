@@ -255,11 +255,11 @@ public static class ModelHelper
                 if (isLocal)
                 {
                     sizes.Local.Unknown++;
-                }
 
-                if (isWatched)
-                {
-                    sizes.Watched.Unknown++;
+                    if (isWatched)
+                    {
+                        sizes.Watched.Unknown++;
+                    }
                 }
 
                 continue;
@@ -272,15 +272,15 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Episodes++;
+
+                        if (isWatched)
+                        {
+                            sizes.Watched.Episodes++;
+                        }
                     }
                     else if (airDate.HasValue && airDate.Value < now)
                     {
                         sizes.Missing.Episodes++;
-                    }
-
-                    if (isWatched)
-                    {
-                        sizes.Watched.Episodes++;
                     }
 
                     break;
@@ -289,11 +289,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Credits++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Credits++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Credits++;
+                        }
                     }
 
                     break;
@@ -302,15 +302,15 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Specials++;
+
+                        if (isWatched)
+                        {
+                            sizes.Watched.Specials++;
+                        }
                     }
                     else if (airDate.HasValue && airDate.Value < now)
                     {
                         sizes.Missing.Specials++;
-                    }
-
-                    if (isWatched)
-                    {
-                        sizes.Watched.Specials++;
                     }
 
                     break;
@@ -319,11 +319,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Trailers++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Trailers++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Trailers++;
+                        }
                     }
 
                     break;
@@ -332,11 +332,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Parodies++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Parodies++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Parodies++;
+                        }
                     }
 
                     break;
@@ -345,11 +345,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Others++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Others++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Others++;
+                        }
                     }
 
                     break;
