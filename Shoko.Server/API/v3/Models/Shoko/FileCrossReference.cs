@@ -217,7 +217,7 @@ public class FileCrossReference
                         {
                             ID = shokoSeries?.AnimeSeriesID,
                             AniDB = tuples.Key,
-                            TvDB = (shokoSeries?.TvDBSeries)?.Select(b => b.SeriesID).ToList() ?? [],
+                            TvDB = shokoSeries?.TvDBSeries.Select(b => b.SeriesID).ToList() ?? [],
                         },
                         EpisodeIDs = tuples.Select(tuple => tuple.dto).ToList(),
                     };
