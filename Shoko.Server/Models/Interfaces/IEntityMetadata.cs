@@ -63,7 +63,7 @@ public interface IEntityMetadata
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// When the metadata was last syncronized with the remote.
+    /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 }

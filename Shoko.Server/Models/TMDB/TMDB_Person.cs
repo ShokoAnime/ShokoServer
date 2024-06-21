@@ -33,7 +33,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     public int TMDB_PersonID { get; set; }
 
     /// <summary>
-    /// TMDB Person ID for the cast memeber.
+    /// TMDB Person ID for the cast member.
     /// </summary>
     public int TmdbPersonID { get; set; }
 
@@ -86,7 +86,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// When the metadata was last syncronized with the remote.
+    /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
@@ -168,7 +168,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     /// Cached reference to all biographies for the person, so we won't have to hit
     /// the database twice to get all biographies _and_ the preferred biography.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allBiographies = null;
+    private IReadOnlyList<TMDB_Overview>? AllBiographies = null;
 
     /// <summary>
     /// Get all biographies for the person.
@@ -177,8 +177,8 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     /// already cached from a previous call.</param>
     /// <returns>All biographies for the person.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllBiographies(bool force = false) => force
-        ? _allBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID)
-        : _allBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID);
+        ? AllBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID)
+        : AllBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID);
 
     /// <summary>
     /// Get all images for the person, or all images for the given
@@ -186,7 +186,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     /// </summary>
     /// <param name="entityType">If set, will restrict the returned list to only
     /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the epiosde.
+    /// <returns>A read-only list of images that are linked to the person.
     /// </returns>
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
         ? RepoFactory.TMDB_Image.GetByTmdbPersonIDAndType(TmdbPersonID, entityType.Value)

@@ -12,7 +12,7 @@ public class TMDB_Cast
     #region Properties
 
     /// <summary>
-    /// TMDB Person ID for the cast memeber.
+    /// TMDB Person ID for the cast member.
     /// </summary>
     public int TmdbPersonID { get; set; }
 

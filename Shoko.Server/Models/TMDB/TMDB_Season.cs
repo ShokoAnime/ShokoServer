@@ -69,7 +69,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// When the metadata was last syncronized with the remote.
+    /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
@@ -122,7 +122,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     }
 
     /// <summary>
-    /// Get the preferred title using the preferred series title preferrence
+    /// Get the preferred title using the preferred series title preference
     /// from the application settings.
     /// </summary>
     /// <param name="useFallback">Use a fallback title if no title was found in
@@ -150,7 +150,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// Cached reference to all titles for the season, so we won't have to hit
     /// the database twice to get all titles _and_ the preferred title.
     /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles = null;
+    private IReadOnlyList<TMDB_Title>? AllTitles = null;
 
     /// <summary>
     /// Get all titles for the season.
@@ -159,8 +159,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// already cached from a previous call. </param>
     /// <returns>All titles for the season.</returns>
     public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
+        ? AllTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
+        : AllTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
 
     public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
     {
@@ -181,7 +181,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// hit the database twice to get all overviews _and_ the preferred
     /// overview.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews = null;
+    private IReadOnlyList<TMDB_Overview>? AllOverviews = null;
 
     /// <summary>
     /// Get all overviews for the season.
@@ -190,8 +190,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// already cached from a previous call.</param>
     /// <returns>All overviews for the season.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
+        ? AllOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
+        : AllOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
 
     /// <summary>
     /// Get all images for the season, or all images for the given
@@ -199,7 +199,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// </summary>
     /// <param name="entityType">If set, will restrict the returned list to only
     /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the epiosde.
+    /// <returns>A read-only list of images that are linked to the season.
     /// </returns>
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
         ? RepoFactory.TMDB_Image.GetByTmdbSeasonIDAndType(TmdbSeasonID, entityType.Value)
@@ -258,7 +258,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
             .ToList();
 
     /// <summary>
-    /// Get the TMDB show assosiated with the season, or null if the show have
+    /// Get the TMDB show associated with the season, or null if the show have
     /// been purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB show, or null.</returns>
@@ -266,7 +266,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
     /// <summary>
-    /// Get all local TMDB episodes assosiated with the season, or an empty list
+    /// Get all local TMDB episodes associated with the season, or an empty list
     /// if the season have been purged from the local database for whatever
     /// reason.
     /// </summary>

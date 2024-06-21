@@ -145,7 +145,7 @@ public class TMDB_Image : IImageMetadata
     /// Average user rating across all user votes.
     /// </summary>
     /// <remarks>
-    /// May be used for ordering when aquiring and/or descarding images.
+    /// May be used for ordering when acquiring and/or discarding images.
     /// </remarks>
     public double UserRating { get; set; } = 0.0;
 
@@ -153,7 +153,7 @@ public class TMDB_Image : IImageMetadata
     /// User votes.
     /// </summary>
     /// <remarks>
-    /// May be used for ordering when aquiring and/or descarding images.
+    /// May be used for ordering when acquiring and/or discarding images.
     /// </remarks>
     public int UserVotes { get; set; } = 0;
 

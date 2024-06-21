@@ -126,7 +126,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// When the metadata was last syncronized with the remote.
+    /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
@@ -162,8 +162,8 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// <returns>True if any of the fields have been updated.</returns>
     public bool Populate(TvShow show)
     {
-        // Don't trust 'show.Name' for the engrish title since it will fall-back
-        // to the original language if there is no title in engrish.
+        // Don't trust 'show.Name' for the English title since it will fall-back
+        // to the original language if there is no title in English.
         var translation = show.Translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
 
         var updates = new[]
@@ -198,7 +198,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     }
 
     /// <summary>
-    /// Get the preferred title using the preferred series title preferrence
+    /// Get the preferred title using the preferred series title preference
     /// from the application settings.
     /// </summary>
     /// <param name="useFallback">Use a fallback title if no title was found in
@@ -226,7 +226,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// Cached reference to all titles for the show, so we won't have to hit the
     /// database twice to get all titles _and_ the preferred title.
     /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles = null;
+    private IReadOnlyList<TMDB_Title>? AllTitles = null;
 
     /// <summary>
     /// Get all titles for the show.
@@ -235,11 +235,11 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// already cached from a previous call.</param>
     /// <returns>All titles for the show.</returns>
     public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID);
+        ? AllTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID)
+        : AllTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID);
 
     /// <summary>
-    /// Get the preferred overview using the preferred episode title preferrence
+    /// Get the preferred overview using the preferred episode title preference
     /// from the application settings.
     /// </summary>
     /// <param name="useFallback">Use a fallback overview if no overview was
@@ -269,7 +269,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// hit the database twice to get all overviews _and_ the preferred
     /// overview.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews = null;
+    private IReadOnlyList<TMDB_Overview>? AllOverviews = null;
 
     /// <summary>
     /// Get all overviews for the show.
@@ -278,8 +278,8 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// already cached from a previous call. </param>
     /// <returns>All overviews for the show.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID);
+        ? AllOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID)
+        : AllOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID);
 
     /// <summary>
     /// Get all images for the show, or all images for the given
@@ -287,7 +287,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// </summary>
     /// <param name="entityType">If set, will restrict the returned list to only
     /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the epiosde.
+    /// <returns>A read-only list of images that are linked to the show.
     /// </returns>
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
         ? RepoFactory.TMDB_Image.GetByTmdbShowIDAndType(TmdbShowID, entityType.Value)
@@ -381,7 +381,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
             .ToList();
 
     /// <summary>
-    /// Get all TMDB alternate ordering schemes assosiated with the show in the
+    /// Get all TMDB alternate ordering schemes associated with the show in the
     /// local database. You need alternate ordering to be enabled in the
     /// settings file for these to be populated.
     /// </summary>
@@ -390,7 +390,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
         RepoFactory.TMDB_AlternateOrdering.GetByTmdbShowID(TmdbShowID);
 
     /// <summary>
-    /// Get all TMDB seasons assosiated with the show in the local database. Or
+    /// Get all TMDB seasons associated with the show in the local database. Or
     /// an empty list if the show data have not been downloaded yet or have been
     /// purged from the local database for whatever reason.
     /// </summary>
@@ -399,7 +399,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
         RepoFactory.TMDB_Season.GetByTmdbShowID(TmdbShowID);
 
     /// <summary>
-    /// Get all TMDB episodes assosiated with the show in the local database. Or
+    /// Get all TMDB episodes associated with the show in the local database. Or
     /// an empty list if the show data have not been downloaded yet or have been
     /// purged from the local database for whatever reason.
     /// </summary>

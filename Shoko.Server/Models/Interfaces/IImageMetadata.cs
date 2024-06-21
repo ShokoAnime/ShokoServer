@@ -13,7 +13,7 @@ public interface IImageMetadata
 
     /// <summary>
     /// Indicates the image is enabled for use. Disabled images should not be
-    /// used except for administritive purposes.
+    /// used except for administrative purposes.
     /// </summary>
     public bool IsEnabled { get; }
 
@@ -22,7 +22,7 @@ public interface IImageMetadata
     /// still be disabled though.
     /// </summary>
     public bool IsLocked { get; }
-    
+
     /// <summary>
     /// Indicates the image is readily available.
     /// </summary>
@@ -46,14 +46,14 @@ public interface IImageMetadata
 
     /// <summary>
     /// Language code for the language used for the text in the image, if any.
-    /// Or null if the image doesn't contain any language spesifics.
+    /// Or null if the image doesn't contain any language specifics.
     /// </summary>
     string? LanguageCode { get; }
 
     /// <summary>
     /// The language used for any text in the image, if any.
     /// Or <see cref="TitleLanguage.None"/> if the image doesn't contain any
-    /// language spesifics.
+    /// language specifics.
     /// </summary>
     TitleLanguage Language { get; }
 
@@ -68,7 +68,7 @@ public interface IImageMetadata
     /// image is currently not locally available.
     /// </summary>
     string? LocalPath { get; }
-    
+
     /// <summary>
     /// Get a stream that reads the image contents from the local copy or remote
     /// copy of the image. Returns null if the image is currently unavailable.

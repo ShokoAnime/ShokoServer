@@ -57,7 +57,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// When the metadata was last syncronized with the remote.
+    /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
@@ -105,7 +105,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     }
 
     /// <summary>
-    /// Get the preferred title using the preferred episode title preferrence
+    /// Get the preferred title using the preferred episode title preference
     /// from the application settings.
     /// </summary>
     /// <param name="useFallback">Use a fallback title if no title was found in
@@ -135,7 +135,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     /// have to hit the database twice to get all titles _and_ the preferred
     /// title.
     /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles = null;
+    private IReadOnlyList<TMDB_Title>? AllTitles = null;
 
     /// <summary>
     /// Get all titles for the movie collection.
@@ -144,11 +144,11 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     /// they're already cached from a previous call.</param>
     /// <returns>All titles for the movie collection.</returns>
     public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
+        ? AllTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID)
+        : AllTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
 
     /// <summary>
-    /// Get the preferred overview using the preferred episode title preferrence
+    /// Get the preferred overview using the preferred episode title preference
     /// from the application settings.
     /// </summary>
     /// <param name="useFallback">Use a fallback overview if no overview was
@@ -177,7 +177,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     /// Cached reference to all overviews for the movie collection, so we won't have to hit
     /// the database twice to get all overviews _and_ the preferred overview.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews = null;
+    private IReadOnlyList<TMDB_Overview>? AllOverviews = null;
 
     /// <summary>
     /// Get all overviews for the movie collection.
@@ -186,8 +186,8 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     /// if they're already cached from a previous call.</param>
     /// <returns>All overviews for the movie collection.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
+        ? AllOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID)
+        : AllOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
 
     /// <summary>
     /// Get all images for the movie collection, or all images for the given
@@ -195,7 +195,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     /// </summary>
     /// <param name="entityType">If set, will restrict the returned list to only
     /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the epiosde.
+    /// <returns>A read-only list of images that are linked to the movie collection.
     /// </returns>
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
         ? RepoFactory.TMDB_Image.GetByTmdbCollectionIDAndType(TmdbCollectionID, entityType.Value)
