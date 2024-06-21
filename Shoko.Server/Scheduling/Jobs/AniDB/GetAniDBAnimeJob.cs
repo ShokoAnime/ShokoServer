@@ -173,7 +173,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         {
             var videos = episodesToMove.SelectMany(RepoFactory.CrossRef_File_Episode.GetByEpisodeID)
                 .WhereNotNull()
-                .Select(a => a.GetVideo())
+                .Select(a => a.VideoLocal)
                 .WhereNotNull()
                 .DistinctBy(a => a.VideoLocalID)
                 .ToList();

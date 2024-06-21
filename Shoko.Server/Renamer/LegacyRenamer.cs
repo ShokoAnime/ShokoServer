@@ -2266,7 +2266,7 @@ public class LegacyRenamer : IRenamer
                 continue;
             }
 
-            foreach (var vid in ep.GetVideoLocals()
+            foreach (var vid in ep.VideoLocals
                          .Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
             {
                 if (vid.Hash == args.VideoInfo.Hashes.ED2K)

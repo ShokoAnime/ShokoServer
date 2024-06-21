@@ -1019,7 +1019,7 @@ public class VideoLocal_PlaceService
                         v
                             .AnimeEpisodes
                             .DistinctBy(a => a.AnimeSeriesID)
-                            .Select(a => a.GetAnimeSeries())
+                            .Select(a => a.AnimeSeries)
                             .WhereNotNull()
                     );
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, v);
@@ -1094,7 +1094,7 @@ public class VideoLocal_PlaceService
             }
 
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
-            eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
+            eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.AnimeSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
 
             try
             {

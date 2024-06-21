@@ -191,7 +191,7 @@ public static class ModelHelper
         foreach (var episode in episodeList)
         {
             var anidbEpisode = episode.AniDB_Episode;
-            var fileList = episode.GetVideoLocals();
+            var fileList = episode.VideoLocals;
             var isLocal = fileList.Count > 0;
             var isWatched = episode.GetUserRecord(userID)?.WatchedDate.HasValue ?? false;
             foreach (var file in fileList)
@@ -412,7 +412,7 @@ public static class ModelHelper
                 Video: video,
                 BestLocation: video.FirstValidPlace,
                 Locations: includeLocations ? video.Places : null,
-                UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
+                UserRecord: includeUserRecord ? RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(user.JMMUserID, video.VideoLocalID) : null
             ))
             .Where(tuple =>
             {

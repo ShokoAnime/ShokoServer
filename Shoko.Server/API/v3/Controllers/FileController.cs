@@ -20,6 +20,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -56,12 +57,18 @@ public class FileController : BaseController
 
     private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly WatchedStatusService _watchedService;
 
-    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService) : base(settingsProvider)
+    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService, VideoLocalService vlService) : base(settingsProvider)
     {
         _traktHelper = traktHelper;
         _vlPlaceService = vlPlaceService;
+        _vlUsers = vlUsers;
+        _watchedService = watchedService;
+        _vlService = vlService;
         _schedulerFactory = schedulerFactory;
     }
 
@@ -758,7 +765,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         var user = HttpContext.GetUser();
-        var userStats = file.GetUserRecord(user.JMMUserID);
+        var userStats = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
 
         if (userStats == null)
             return NotFound(FileUserStatsNotFoundWithFileID);
@@ -782,7 +789,7 @@ public class FileController : BaseController
 
         // Get the user data.
         var user = HttpContext.GetUser();
-        var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
+        var userStats = _vlService.GetOrCreateUserRecord(file, user.JMMUserID);
 
         // Merge with the existing entry and return an updated version of the stats.
         return fileUserStats.MergeWithExisting(userStats, file);
@@ -795,13 +802,13 @@ public class FileController : BaseController
     /// <param name="watched">Is it watched?</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Watched/{watched?}")]
-    public ActionResult SetWatchedStatusOnFile([FromRoute] int fileID, [FromRoute] bool watched = true)
+    public async Task<ActionResult> SetWatchedStatusOnFile([FromRoute] int fileID, [FromRoute] bool watched = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        file.SetWatchedStatus(watched, User.JMMUserID);
+        await _watchedService.SetWatchedStatus(file, watched, User.JMMUserID);
 
         return Ok();
     }
@@ -816,7 +823,7 @@ public class FileController : BaseController
     /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
     /// <returns></returns>
     [HttpPatch("{fileID}/Scrobble")]
-    public ActionResult ScrobbleFileAndEpisode([FromRoute] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+    public async Task<ActionResult> ScrobbleFileAndEpisode([FromRoute] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
     {
 
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -826,7 +833,7 @@ public class FileController : BaseController
         // Handle legacy scrobble events.
         if (string.IsNullOrEmpty(eventName))
         {
-            return ScrobbleStatusOnFile(file, watched, resumePosition);
+            return await ScrobbleStatusOnFile(file, watched, resumePosition);
         }
 
         var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.AnimeEpisodes?.FirstOrDefault();
@@ -865,8 +872,8 @@ public class FileController : BaseController
         }
 
         if (watched.HasValue)
-            file.SetWatchedStatus(watched.Value, User.JMMUserID);
-        file.SetResumePosition(playbackPositionTicks, User.JMMUserID);
+            await _watchedService.SetWatchedStatus(file, watched.Value, User.JMMUserID);
+        _watchedService.SetResumePosition(file, playbackPositionTicks, User.JMMUserID);
 
         return NoContent();
     }
@@ -878,7 +885,7 @@ public class FileController : BaseController
             return;
 
         var percentage = 100 * ((float)position / file.Duration);
-        var scrobbleType = episode.GetAnimeSeries()?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
+        var scrobbleType = episode.AnimeSeries?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
             ? ScrobblePlayingType.movie
             : ScrobblePlayingType.episode;
 
@@ -886,7 +893,7 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private OkResult ScrobbleStatusOnFile(SVR_VideoLocal file, bool? watched, long? resumePosition)
+    private async Task<OkResult> ScrobbleStatusOnFile(SVR_VideoLocal file, bool? watched, long? resumePosition)
     {
         if (!(watched ?? false) && resumePosition != null)
         {
@@ -896,15 +903,15 @@ public class FileController : BaseController
             if (safeRP >= file.Duration)
                 watched = true;
             else
-                file.SetResumePosition(safeRP, User.JMMUserID);
+                _watchedService.SetResumePosition(file, safeRP, User.JMMUserID);
         }
 
         if (watched != null)
         {
             var safeWatched = watched.Value;
-            file.SetWatchedStatus(safeWatched, User.JMMUserID);
+            await _watchedService.SetWatchedStatus(file, safeWatched, User.JMMUserID);
             if (safeWatched)
-                file.SetResumePosition(0, User.JMMUserID);
+                _watchedService.SetResumePosition(file, 0, User.JMMUserID);
 
         }
 
@@ -1545,7 +1552,7 @@ public class FileController : BaseController
             .Distinct()
             .Where(a =>
             {
-                var ser = a?.AnimeEpisodes.FirstOrDefault()?.GetAnimeSeries();
+                var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
@@ -1579,7 +1586,7 @@ public class FileController : BaseController
             .Distinct()
             .Where(a =>
             {
-                var ser = a?.AnimeEpisodes.FirstOrDefault()?.GetAnimeSeries();
+                var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;

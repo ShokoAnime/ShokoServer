@@ -118,7 +118,8 @@ public static class FilterExtensions
         var anime = series.AniDB_Anime;
         var user = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
         var vote = anime?.UserVote;
-        var watchedDates = series.VideoLocals.Select(a => a.GetUserRecord(userID)?.WatchedDate).Where(a => a != null).OrderBy(a => a).ToList();
+        var watchedDates = series.VideoLocals.Select(a => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate)
+            .Where(a => a != null).OrderBy(a => a).ToList();
 
         var filterable = new FilterableUserInfo
         {
@@ -281,7 +282,8 @@ public static class FilterExtensions
         var user = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(userID, group.AnimeGroupID);
         var vote = anime.Select(a => a.UserVote).Where(a => a is { VoteType: (int)VoteType.AnimePermanent or (int)VoteType.AnimeTemporary })
             .Select(a => a.VoteValue).OrderBy(a => a).ToList();
-        var watchedDates = series.SelectMany(a => a.VideoLocals).Select(a => a.GetUserRecord(userID)?.WatchedDate).Where(a => a != null).OrderBy(a => a)
+        var watchedDates = series.SelectMany(a => a.VideoLocals)
+            .Select(a => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate).Where(a => a != null).OrderBy(a => a)
             .ToList();
 
         var filterable = new FilterableUserInfo

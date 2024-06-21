@@ -55,7 +55,7 @@ public class Serie : BaseDirectory, IComparable
             return sr;
         }
 
-        var ser = vl.AnimeEpisodes.FirstOrDefault()?.GetAnimeSeries();
+        var ser = vl.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
         if (ser == null)
         {
             return sr;
@@ -242,7 +242,7 @@ public class Serie : BaseDirectory, IComparable
                 sr.eps = new List<Episode>();
                 foreach (var ae in ael)
                 {
-                    if (!all && (ae?.GetVideoLocals()?.Count ?? 0) == 0)
+                    if (!all && (ae?.VideoLocals?.Count ?? 0) == 0)
                     {
                         continue;
                     }
@@ -304,7 +304,7 @@ public class Serie : BaseDirectory, IComparable
                 continue;
             }
 
-            var local = ep.GetVideoLocals().Any();
+            var local = ep.VideoLocals.Any();
             var watched = ep.GetUserRecord(uid)?.WatchedDate != null;
             switch (ep.EpisodeTypeEnum)
             {

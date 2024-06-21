@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
@@ -56,7 +57,7 @@ public class PlexWebhook : BaseController
     //The second one is to just make sure
     [HttpPost]
     [HttpPost("/plex.json")]
-    public ActionResult WebhookPost([FromForm] [ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
+    public async Task<ActionResult> WebhookPost([FromForm] [ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
     {
         /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
             new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
@@ -70,7 +71,7 @@ public class PlexWebhook : BaseController
         switch (payload.Event)
         {
             case "media.scrobble":
-                Scrobble(payload, User);
+                await Scrobble(payload, User);
                 break;
             case "media.resume":
             case "media.play":
@@ -105,7 +106,7 @@ public class PlexWebhook : BaseController
                   (metadata.ViewOffset /
                    (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
-        var scrobbleType = episode.GetAnimeSeries()?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
+        var scrobbleType = episode.AnimeSeries?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
             ? ScrobblePlayingType.movie
             : ScrobblePlayingType.episode;
 
@@ -113,7 +114,7 @@ public class PlexWebhook : BaseController
     }
 
     [NonAction]
-    private void Scrobble(PlexEvent data, SVR_JMMUser user)
+    private async Task Scrobble(PlexEvent data, SVR_JMMUser user)
     {
         var metadata = data.Metadata;
         var (episode, anime) = GetEpisode(metadata);
@@ -133,7 +134,8 @@ public class PlexWebhook : BaseController
             return; //At this point in time, we don't want to scrobble for unknown users
         }
 
-        episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
+        var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
+        await watchedService.SetWatchedStatus(episode, true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
             true);
         _seriesService.UpdateStats(anime, true, false);
         _groupService.UpdateStatsFromTopLevel(anime.AnimeGroup?.TopLevelAnimeGroup, true, true);

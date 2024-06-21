@@ -156,7 +156,7 @@ public class TreeController : BaseController
                         return false;
 
                     return includeEmpty || group.AllSeries
-                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                        .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
                 })
                 .OrderBy(group => group.SortName);
         }
@@ -183,7 +183,7 @@ public class TreeController : BaseController
                         return false;
 
                     return includeEmpty || group.AllSeries
-                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                        .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
                 });
         }
 
@@ -231,7 +231,7 @@ public class TreeController : BaseController
                         return false;
 
                     return includeEmpty || group.AllSeries
-                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                        .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
                 })
                 .GroupBy(group => group.SortName[0])
                 .OrderBy(groupList => groupList.Key)
@@ -248,7 +248,7 @@ public class TreeController : BaseController
                     return false;
 
                 return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
             .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)
@@ -362,7 +362,7 @@ public class TreeController : BaseController
                     return false;
 
                 if (!includeEmpty && !subGroup.AllSeries
-                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0)))
+                        .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
                     return false;
 
                 return groups.Contains(subGroup.AnimeGroupID);
@@ -479,7 +479,7 @@ public class TreeController : BaseController
                 }
 
                 return includeEmpty || subGroup.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
             .OrderBy(g => g.GroupName)
             .Select(g => new Group(HttpContext, g, randomImages))
@@ -631,7 +631,7 @@ public class TreeController : BaseController
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
         }
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series == null)
         {
             return InternalError("No Series entry for given Episode");
@@ -642,7 +642,7 @@ public class TreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        return ModelHelper.FilterFiles(episode.GetVideoLocals(), User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+        return ModelHelper.FilterFiles(episode.VideoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
 
     #endregion

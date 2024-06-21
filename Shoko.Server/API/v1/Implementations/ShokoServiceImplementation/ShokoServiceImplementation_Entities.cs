@@ -69,7 +69,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anieps[0].EpisodeID);
-            return ep?.GetUserContract(userID);
+            return _episodeService.GetV1Contract(ep, userID);
         }
         catch (Exception ex)
         {
@@ -96,7 +96,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return null;
             }
 
-            return episode.GetUserContract(userID);
+            return _episodeService.GetV1Contract(episode, userID);
         }
         catch (Exception ex)
         {
@@ -115,7 +115,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             return
                 RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
                     .Where(a => a != null && !a.IsHidden)
-                    .Select(a => a.GetUserContract(userID))
+                    .Select(a => _episodeService.GetV1Contract(a, userID))
                     .Where(a => a != null)
                     .Where(a => a.WatchedCount == 0)
                     .OrderBy(a => a.EpisodeType)
@@ -288,7 +288,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             return
                 RepoFactory.AnimeEpisode_User.GetMostRecentlyWatched(userID, maxRecords)
-                    .Select(a => RepoFactory.AnimeEpisode.GetByID(a.AnimeEpisodeID).GetUserContract(userID))
+                    .Select(a => _episodeService.GetV1Contract(RepoFactory.AnimeEpisode.GetByID(a.AnimeEpisodeID), userID))
                     .ToList();
         }
         catch (Exception ex)
@@ -319,8 +319,8 @@ public partial class ShokoServiceImplementation : IShokoServer
 
                 foreach (var ep in vid.AnimeEpisodes)
                 {
-                    var epContract = ep.GetUserContract(userID);
-                    if (!user.AllowedSeries(ep.GetAnimeSeries())) continue;
+                    var epContract = _episodeService.GetV1Contract(ep, userID);
+                    if (!user.AllowedSeries(ep.AnimeSeries)) continue;
                     retEps.Add(epContract);
 
                     // Let's only return the specified amount
@@ -384,7 +384,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     continue;
                 }
 
-                var epContract = eps[0].GetUserContract(userID);
+                var epContract = _episodeService.GetV1Contract(eps[0], userID);
                 if (epContract != null)
                 {
                     retEps.Add(epContract);
@@ -439,8 +439,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)
-                ?.GetAnimeEpisode()?.GetUserContract(jmmuserID);
+            return _episodeService.GetV1Contract(RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)
+                ?.GetAnimeEpisode(),jmmuserID);
         }
         catch (Exception ex)
         {
@@ -455,7 +455,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeEpisode.GetByID(animeEpisodeID)?.GetUserContract(userID);
+            return _episodeService.GetV1Contract(RepoFactory.AnimeEpisode.GetByID(animeEpisodeID), userID);
         }
         catch (Exception ex)
         {
@@ -483,7 +483,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID)?.GetUserContract(userID);
+            return _episodeService.GetV1Contract(RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID), userID);
         }
         catch (Exception ex)
         {
@@ -985,7 +985,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find video local record";
             }
 
-            vid.SetResumePosition(resumeposition, userID);
+            _watchedService.SetResumePosition(vid, resumeposition, userID);
             return string.Empty;
         }
         catch (Exception ex)
@@ -1006,7 +1006,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
                 .ToList();
             list.Sort(FileQualityFilter.CompareTo);
-            return list.Select(a => a.ToClient(userID)).ToList();
+            return list.Select(a => _videoLocalService.GetV1Contract(a, userID)).ToList();
         }
         catch (Exception ex)
         {
@@ -1017,7 +1017,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 var list = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
                         a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath != null)
                     .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
-                    .Select(a => a.ToClient(userID))
+                    .Select(a => _videoLocalService.GetV1Contract(a, userID))
                     .ToList();
                 return list;
             }
@@ -1079,7 +1079,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             RepoFactory.AnimeEpisode_User.Save(epUserRecord);
 
-            var ser = ep.GetAnimeSeries();
+            var ser = ep.AnimeSeries;
             if (ser == null)
             {
                 return;
@@ -1169,7 +1169,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             return
                 RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
                     .Where(a => a != null && !a.IsHidden)
-                    .Select(a => a.GetUserContract(userID))
+                    .Select(a => _episodeService.GetV1Contract(a, userID))
                     .Where(a => a != null)
                     .ToList();
         }
@@ -1211,9 +1211,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep != null)
             {
-                var files = ep.GetVideoLocals();
+                var files = ep.VideoLocals;
                 files.Sort(FileQualityFilter.CompareTo);
-                return files.Select(a => a.ToClientDetailed(userID)).ToList();
+                return files.Select(a => _videoLocalService.GetV1DetailedContract(a, userID)).ToList();
             }
 
             return new List<CL_VideoDetailed>();
@@ -1235,9 +1235,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep != null)
             {
-                foreach (var vid in ep.GetVideoLocals())
+                foreach (var vid in ep.VideoLocals)
                 {
-                    contracts.Add(vid.ToClient(userID));
+                    contracts.Add(_videoLocalService.GetV1Contract(vid, userID));
                 }
             }
         }
@@ -1260,7 +1260,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find video local record";
             }
 
-            vid.SetWatchedStatus(watchedStatus, true, DateTime.Now, true, userID, true, true);
+            _watchedService.SetWatchedStatus(vid, watchedStatus, true, DateTime.Now, true, userID, true, true).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
@@ -1284,8 +1284,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return response;
             }
 
-            ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
-            var series = ep.GetAnimeSeries();
+            _watchedService.SetWatchedStatus(ep, watchedStatus, true, DateTime.Now, false, userID, true).GetAwaiter().GetResult();
+            var series = ep.AnimeSeries;
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             seriesService.UpdateStats(series, true, false);
             var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
@@ -1293,7 +1293,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             // refresh from db
 
-            response.Result = ep.GetUserContract(userID);
+            response.Result = _episodeService.GetV1Contract(ep, userID);
 
             return response;
         }
@@ -1316,7 +1316,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return null;
             }
 
-            return vid.ToClientDetailed(userID);
+            return _videoLocalService.GetV1DetailedContract(vid, userID);
         }
         catch (Exception ex)
         {
@@ -1339,7 +1339,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             foreach (var ep in vid.AnimeEpisodes)
             {
-                var eps = ep.GetUserContract(userID);
+                var eps = _episodeService.GetV1Contract(ep, userID);
                 if (eps != null)
                 {
                     contracts.Add(eps);
@@ -1390,7 +1390,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var userReleaseGroups = new Dictionary<int, int>();
             foreach (var ep in series.AllAnimeEpisodes)
             {
-                var vids = ep.GetVideoLocals();
+                var vids = ep.VideoLocals;
                 var hashes = vids.Select(a => a.Hash).Distinct().ToList();
                 foreach (var s in hashes)
                 {
@@ -1608,12 +1608,12 @@ public partial class ShokoServiceImplementation : IShokoServer
                     if (currentStatus != watchedStatus)
                     {
                         _logger.LogInformation("Updating episode: {Num} to {Watched}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
-                        ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, false);
+                        _watchedService.SetWatchedStatus(ep, watchedStatus, true, DateTime.Now, false, userID, false).GetAwaiter().GetResult();
                     }
                 }
 
 
-                ser = ep.GetAnimeSeries();
+                ser = ep.AnimeSeries;
             }
 
             // now update the stats
@@ -2545,7 +2545,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             foreach (var ep in ser.AllAnimeEpisodes)
             {
-                foreach (var vid in ep.GetVideoLocals())
+                foreach (var vid in ep.VideoLocals)
                 {
                     var places = vid.Places;
                     for (var index = 0; index < places.Count; index++)

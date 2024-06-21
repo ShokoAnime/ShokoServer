@@ -10,12 +10,14 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -30,6 +32,8 @@ public class AddFileToMyListJob : BaseJob
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
+    private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly WatchedStatusService _watchedService;
     private SVR_VideoLocal _videoLocal;
 
     public string Hash { get; set; }
@@ -71,7 +75,7 @@ public class AddFileToMyListJob : BaseJob
         DateTime? originalWatchedDate = null;
         if (juser != null)
         {
-            originalWatchedDate = _videoLocal.GetUserRecord(juser.JMMUserID)?.WatchedDate?.ToUniversalTime();
+            originalWatchedDate = _vlUsers.GetByUserIDAndVideoLocalID(juser.JMMUserID, _videoLocal.VideoLocalID)?.WatchedDate?.ToUniversalTime();
         }
 
         UDPResponse<ResponseMyListFile> response = null;
@@ -170,12 +174,12 @@ public class AddFileToMyListJob : BaseJob
                 // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                 if (settings.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                 {
-                    _videoLocal.SetWatchedStatus(true, false, newWatchedDate?.ToLocalTime(), false, juser.JMMUserID,
+                    await _watchedService.SetWatchedStatus(_videoLocal, true, false, newWatchedDate?.ToLocalTime(), false, juser.JMMUserID,
                         false, false);
                 }
                 else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                 {
-                    _videoLocal.SetWatchedStatus(false, false, null, false, juser.JMMUserID,
+                    await _watchedService.SetWatchedStatus(_videoLocal, false, false, null, false, juser.JMMUserID,
                         false, false);
                 }
             }
@@ -207,11 +211,13 @@ public class AddFileToMyListJob : BaseJob
         }
     }
     
-    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
+    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService)
     {
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _vlUsers = vlUsers;
+        _watchedService = watchedService;
     }
 
     protected AddFileToMyListJob() { }

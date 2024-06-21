@@ -4,14 +4,15 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -122,7 +123,7 @@ public class File
     public MediaInfo MediaInfo { get; set; }
 
     public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
-        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths)
+        this(RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths)
     { }
 
     public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
@@ -400,7 +401,9 @@ public class File
             file ??= existing.GetVideoLocal();
 
             // Sync the watch date and aggregate the data up to the episode if needed.
-            file.SetWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true, LastUpdatedAt.ToLocalTime());
+            var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
+            watchedService.SetWatchedStatus(file, LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true,
+                LastUpdatedAt.ToLocalTime()).GetAwaiter().GetResult();
 
             // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
             existing.WatchedCount = WatchedCount;

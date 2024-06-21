@@ -170,13 +170,13 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
                     return false;
                 }
 
-                return a.GetVideoLocals().Count == 0;
+                return a.VideoLocals.Count == 0;
             })
             .ToList();
         all.Sort((a1, a2) =>
         {
-            var name1 = a1.GetAnimeSeries()?.SeriesName;
-            var name2 = a2.GetAnimeSeries()?.SeriesName;
+            var name1 = a1.AnimeSeries?.SeriesName;
+            var name2 = a2.AnimeSeries?.SeriesName;
 
             if (!string.IsNullOrEmpty(name1) && !string.IsNullOrEmpty(name2))
             {

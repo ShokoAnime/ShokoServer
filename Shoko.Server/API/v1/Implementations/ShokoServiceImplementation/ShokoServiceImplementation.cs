@@ -48,8 +48,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
+    private readonly AnimeSeriesService _seriesService;
+    private readonly AnimeEpisodeService _episodeService;
+    private readonly VideoLocalService _videoLocalService;
+    private readonly WatchedStatusService _watchedService;
     
-    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ILogger<ShokoServiceImplementation> logger, ActionService actionService, AnimeGroupCreator groupCreator, JobFactory jobFactory)
+    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ILogger<ShokoServiceImplementation> logger, ActionService actionService, AnimeGroupCreator groupCreator, JobFactory jobFactory, AnimeSeriesService seriesService, AnimeEpisodeService episodeService, WatchedStatusService watchedService, VideoLocalService videoLocalService)
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
@@ -60,6 +64,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _actionService = actionService;
         _groupCreator = groupCreator;
         _jobFactory = jobFactory;
+        _seriesService = seriesService;
+        _episodeService = episodeService;
+        _watchedService = watchedService;
+        _videoLocalService = videoLocalService;
     }
 
     #region Bookmarks
@@ -1307,7 +1315,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             var userReleaseGroups = new Dictionary<int, int>();
             foreach (var ep in series.AllAnimeEpisodes)
             {
-                var vids = ep.GetVideoLocals();
+                var vids = ep.VideoLocals;
                 var hashes = vids.Where(a => !string.IsNullOrEmpty(a.Hash)).Select(a => a.Hash).ToList();
                 foreach (var h in hashes)
                 {

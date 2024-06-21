@@ -58,7 +58,7 @@ public class ManualLinkJob : BaseJob
         _episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
         if (_episode == null) throw new JobExecutionException($"Episode not Found: {EpisodeID}");
-        if (_episode.GetAnimeSeries() == null) throw new JobExecutionException($"Series not Found: {_episode.AnimeSeriesID}");
+        if (_episode.AnimeSeries == null) throw new JobExecutionException($"Series not Found: {_episode.AnimeSeriesID}");
     }
 
 #pragma warning disable CS0618
@@ -90,7 +90,7 @@ public class ManualLinkJob : BaseJob
         _vlocal.DateTimeImported = DateTime.Now;
         RepoFactory.VideoLocal.Save(_vlocal);
 
-        var ser = _episode.GetAnimeSeries();
+        var ser = _episode.AnimeSeries;
         ser.EpisodeAddedDate = DateTime.Now;
         RepoFactory.AnimeSeries.Save(ser, false, true);
 
@@ -121,7 +121,7 @@ public class ManualLinkJob : BaseJob
     {
         if (!_settings.FileQualityFilterEnabled) return;
 
-        var videoLocals = _episode.GetVideoLocals();
+        var videoLocals = _episode.VideoLocals;
         if (videoLocals == null) return;
 
         videoLocals.Sort(FileQualityFilter.CompareTo);

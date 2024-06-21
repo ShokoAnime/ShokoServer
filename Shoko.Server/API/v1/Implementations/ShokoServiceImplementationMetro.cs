@@ -37,16 +37,21 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     private readonly ShokoServiceImplementation _service;
     private readonly ISettingsProvider _settingsProvider;
     private readonly JobFactory _jobFactory;
+    private readonly WatchedStatusService _watchedService;
+    private readonly AnimeEpisodeService _epService;
     public HttpContext HttpContext { get; set; }
 
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    public ShokoServiceImplementationMetro(TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ShokoServiceImplementation service, JobFactory jobFactory)
+    public ShokoServiceImplementationMetro(TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ShokoServiceImplementation service,
+        JobFactory jobFactory, WatchedStatusService watchedService, AnimeEpisodeService epService)
     {
         _traktHelper = traktHelper;
         _settingsProvider = settingsProvider;
         _service = service;
         _jobFactory = jobFactory;
+        _watchedService = watchedService;
+        _epService = epService;
     }
 
     [HttpGet("Server/Status")]
@@ -260,7 +265,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         continue;
                     }
 
-                    var epContract = eps[0].GetUserContract(jmmuserID);
+                    var epContract = _epService.GetV1Contract(eps[0], jmmuserID);
                     if (epContract != null)
                     {
                         retEps.Add(epContract);
@@ -329,7 +334,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         continue;
                     }
 
-                    var epContract = eps[0].GetUserContract(jmmuserID);
+                    var epContract = _epService.GetV1Contract(eps[0], jmmuserID);
                     if (epContract != null)
                     {
                         var anidb_anime = ser.AniDB_Anime;
@@ -816,7 +821,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         {
                             // The episode list have already been filtered to only episodes with a user record
                             // So just add the candidate to the list.
-                            candidateEps.Add(ep.GetUserContract(jmmuserID));
+                            candidateEps.Add(_epService.GetV1Contract(ep, jmmuserID));
                         }
                     }
                 }
@@ -847,7 +852,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                             // now refresh from the database to get file count
                             var epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
 
-                            var fileCount = epFresh.GetVideoLocals().Count;
+                            var fileCount = epFresh.VideoLocals.Count;
                             if (fileCount > 0)
                             {
                                 var contract = new Metro_Anime_Episode
@@ -1215,7 +1220,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         {
             var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             return ep != null
-                ? ep.GetVideoDetailedContracts(userID)
+                ? _epService.GetV1VideoDetailedContracts(ep, userID)
                 : new List<CL_VideoDetailed>();
         }
         catch (Exception ex)
@@ -1241,9 +1246,9 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 return response;
             }
 
-            ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
+            _watchedService.SetWatchedStatus(ep, watchedStatus, true, DateTime.Now, false, userID, true).GetAwaiter().GetResult();
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
-            var series = ep.GetAnimeSeries();
+            var series = ep.AnimeSeries;
             seriesService.UpdateStats(series, true, false);
             var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
@@ -1251,7 +1256,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             // refresh from db
             ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
 
-            response.Result = ep.GetUserContract(userID);
+            response.Result = _epService.GetV1Contract(ep, userID);
 
             return response;
         }

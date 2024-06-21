@@ -851,7 +851,7 @@ public class TraktTVHelper
 
             // get the the first file that was added to this episode
             DateTime? thisDate = null;
-            foreach (var vid in ep.GetVideoLocals())
+            foreach (var vid in ep.VideoLocals)
             {
                 thisDate ??= vid.DateTimeCreated;
 
@@ -1891,7 +1891,7 @@ public class TraktTVHelper
             var localWatched = false;
 
             // If we have local files check for watched count
-            if (ep.GetVideoLocals().Count > 0)
+            if (ep.VideoLocals.Count > 0)
             {
                 localCollection = true;
 

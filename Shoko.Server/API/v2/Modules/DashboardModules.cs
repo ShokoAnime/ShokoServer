@@ -47,7 +47,7 @@ public class DashboardModules : BaseController
                 !a.AniDB_Anime?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false).ToList();
             series_count = series.Count;
 
-            var files = series.SelectMany(a => a.AllAnimeEpisodes).SelectMany(a => a.GetVideoLocals())
+            var files = series.SelectMany(a => a.AllAnimeEpisodes).SelectMany(a => a.VideoLocals)
                 .DistinctBy(a => a.VideoLocalID).ToList();
             file_count = files.Count;
             size = SizeSuffix(files.Sum(a => a.FileSize));
@@ -81,7 +81,7 @@ public class DashboardModules : BaseController
             var series = RepoFactory.AnimeSeries.GetAll();
             series_count = series.Count;
 
-            var files = series.SelectMany(a => a.AllAnimeEpisodes).SelectMany(a => a.GetVideoLocals())
+            var files = series.SelectMany(a => a.AllAnimeEpisodes).SelectMany(a => a.VideoLocals)
                 .DistinctBy(a => a.VideoLocalID).ToList();
             file_count = files.Count;
             size = SizeSuffix(files.Sum(a => a.FileSize));

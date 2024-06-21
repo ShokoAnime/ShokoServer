@@ -344,7 +344,7 @@ public class FilterController : BaseController
                     return false;
 
                 return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             });
         return groups
             .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
@@ -380,7 +380,7 @@ public class FilterController : BaseController
                     return false;
 
                 return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
             .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)
@@ -468,7 +468,7 @@ public class FilterController : BaseController
                     return false;
 
                 if (!includeEmpty && !subGroup.AllSeries
-                        .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0)))
+                        .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
                     return false;
 
                 return groups.Contains(subGroup.AnimeGroupID);

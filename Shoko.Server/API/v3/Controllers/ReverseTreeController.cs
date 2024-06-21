@@ -156,7 +156,7 @@ public class ReverseTreeController : BaseController
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
         }
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series == null)
         {
             return InternalError("No Series entry for the Episode");
@@ -196,7 +196,7 @@ public class ReverseTreeController : BaseController
         }
 
         var episodes = file.AnimeEpisodes;
-        if (!episodes.All(episode => User.AllowedSeries(episode.GetAnimeSeries())))
+        if (!episodes.All(episode => User.AllowedSeries(episode.AnimeSeries)))
         {
             return Forbid(FileController.FileForbiddenForUser);
         }

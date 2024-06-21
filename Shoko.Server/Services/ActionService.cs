@@ -693,7 +693,7 @@ public class ActionService
                     foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
                     {
                         _logger.LogInformation("RemoveRecordsWithOrphanedImportFolder : {Filename}", v.FileName);
-                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.GetAnimeSeries())
+                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                             .DistinctBy(a => a.AnimeSeriesID));
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
                     }
@@ -725,7 +725,7 @@ public class ActionService
 
             // delete video local record
             _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
-            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.GetAnimeSeries())
+            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                 .DistinctBy(a => a.AnimeSeriesID));
 
             if (removeMyList)
@@ -772,7 +772,7 @@ public class ActionService
         var list = RepoFactory.VideoLocal.GetAll()
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
             .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                        a.GetEpisode() == null).ToArray();
+                        a.AniDBEpisode == null).ToArray();
         BaseRepository.Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();

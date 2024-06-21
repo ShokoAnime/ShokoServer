@@ -625,7 +625,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
     IReadOnlyList<IVideo> ISeries.VideoList =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
             .DistinctBy(xref => xref.Hash)
-            .Select(xref => xref.GetVideo())
+            .Select(xref => xref.VideoLocal)
             .WhereNotNull()
             .ToList();
 

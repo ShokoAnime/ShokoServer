@@ -32,17 +32,19 @@ public class AnimeSeriesService
 {
     private readonly ILogger<AnimeSeriesService> _logger;
     private readonly AnimeSeries_UserRepository _seriesUsers;
+    private readonly VideoLocal_UserRepository _vlUsers;
     private readonly AniDB_AnimeService _animeService;
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, AniDB_AnimeService animeService, AnimeGroupService groupService)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
     {
         _logger = logger;
         _seriesUsers = seriesUsers;
         _schedulerFactory = schedulerFactory;
         _animeService = animeService;
         _groupService = groupService;
+        _vlUsers = vlUsers;
     }
 
     public async Task<bool> CreateAnimeEpisodes(SVR_AnimeSeries series)
@@ -59,7 +61,7 @@ public class AnimeSeriesService
             .SelectMany(a => a.FileCrossRefs)
             .ToList();
         var vlIDsToUpdate = filesToUpdate
-            .Select(a => a.GetVideo()?.VideoLocalID)
+            .Select(a => a.VideoLocal?.VideoLocalID)
             .Where(a => a != null)
             .Select(a => a.Value)
             .ToList();
@@ -131,7 +133,7 @@ public class AnimeSeriesService
             RepoFactory.AnimeEpisode.Save(existingEp);
 
         // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
-        var vlUsers = existingEp.GetVideoLocals()
+        var vlUsers = existingEp.VideoLocals
             .SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID)).ToList();
 
         // get the list of unique users
@@ -485,7 +487,7 @@ public class AnimeSeriesService
                 var userReleaseGroups = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(
                     a =>
                     {
-                        var vls = a.GetVideoLocals();
+                        var vls = a.VideoLocals;
                         if (!vls.Any())
                         {
                             return Array.Empty<int>();
@@ -502,7 +504,7 @@ public class AnimeSeriesService
                 ).ToList();
 
                 var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
-                        a.GetVideoLocals().Select(b => new
+                        a.VideoLocals.Select(b => new
                         {
                             a.AniDB_EpisodeID,
                             VideoLocal = b
@@ -816,7 +818,7 @@ label0:;
             .ToList();
         // Look for active watch sessions and return the episode for the most recent session if found.
         var (episode, _) = episodes
-            .SelectMany(episode => episode.GetVideoLocals().Select(file => (episode, file.GetUserRecord(userID))))
+            .SelectMany(episode => episode.VideoLocals.Select(file => (episode, _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
             .Where(tuple => tuple.Item2 != null)
             .OrderByDescending(tuple => tuple.Item2.LastUpdated)
             .FirstOrDefault(tuple => tuple.Item2.ResumePosition > 0);
@@ -906,7 +908,7 @@ label0:;
         if (options.IncludeCurrentlyWatching)
         {
             var (currentlyWatchingEpisode, _) = episodeList
-                .SelectMany(tuple => tuple.episode.GetVideoLocals().Select(file => (tuple.episode, fileUR: file.GetUserRecord(userID))))
+                .SelectMany(tuple => tuple.episode.VideoLocals.Select(file => (tuple.episode, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
                 .Where(tuple => tuple.fileUR != null)
                 .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
                 .FirstOrDefault(tuple => tuple.fileUR.ResumePosition > 0);
@@ -918,7 +920,7 @@ label0:;
         }
         // Skip check if there is an active watch session for the series, and we
         // don't allow active watch sessions.
-        else if (episodeList.Any(tuple => tuple.episode.GetVideoLocals().Any(file => (file.GetUserRecord(userID)?.ResumePosition ?? 0) > 0)))
+        else if (episodeList.Any(tuple => tuple.episode.VideoLocals.Any(file => (_vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID)?.ResumePosition ?? 0) > 0)))
         {
             return null;
         }
@@ -928,7 +930,7 @@ label0:;
         if (options.IncludeRewatching)
         {
             var (lastWatchedEpisode, _) = episodeList
-                .SelectMany(tuple => tuple.episode.GetVideoLocals().Select(file => (tuple.episode, fileUR: file.GetUserRecord(userID))))
+                .SelectMany(tuple => tuple.episode.VideoLocals.Select(file => (tuple.episode, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
                 .Where(tuple => tuple.fileUR is { WatchedDate: not null })
                 .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
                 .FirstOrDefault();
@@ -943,7 +945,7 @@ label0:;
                     return null;
 
                 var (nextEpisode, _) = episodeList.Skip(nextIndex)
-                    .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.GetVideoLocals().Count > 0);
+                    .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.VideoLocals.Count > 0);
                 return nextEpisode;
             }
         }
@@ -960,7 +962,7 @@ label0:;
 
                 return !episodeUserRecord.WatchedDate.HasValue;
             })
-            .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.GetVideoLocals().Count > 0);
+            .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.VideoLocals.Count > 0);
 
         // Disable first episode from showing up in the search.
         if (options.DisableFirstEpisode && anidbEpisode != null && anidbEpisode.EpisodeType == (int)EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)

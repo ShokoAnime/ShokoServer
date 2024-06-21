@@ -7,11 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Models.Interfaces;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Mime = MimeMapping.MimeUtility;
 
@@ -148,7 +150,11 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
                 outstream.CrossPositionCrossed +=
                     a =>
                     {
-                        Task.Factory.StartNew(() => { r.VideoLocal.SetWatchedStatus(true, r.User.JMMUserID); },
+                        Task.Factory.StartNew(async () =>
+                            {
+                                var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
+                                await watchedService.SetWatchedStatus(r.VideoLocal, true, r.User.JMMUserID);
+                            },
                             new CancellationToken(),
                             TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     };

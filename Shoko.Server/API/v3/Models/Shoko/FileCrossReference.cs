@@ -154,8 +154,8 @@ public class FileCrossReference
                             .Select(xref2 => (
                                 xref: xref2,
                                 episode: RepoFactory.CrossRef_File_Episode.GetByHash(xref2.Hash)
-                                    .FirstOrDefault(xref3 => xref3.Percentage == 100 && (xref3.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref3.Hash, xref3.FileSize)?.GroupID ?? -1 : null) == releaseGroup)?
-                                    .GetEpisode()
+                                    .FirstOrDefault(xref3 => xref3.Percentage == 100 && (xref3.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref3.Hash, xref3.FileSize)?.GroupID ?? -1 : null) == releaseGroup)
+                                    ?.AniDBEpisode
                             ))
                             .OrderBy(tuple => tuple.episode?.EpisodeTypeEnum)
                             .ThenBy(tuple => tuple.episode?.EpisodeNumber)
@@ -182,7 +182,7 @@ public class FileCrossReference
                         }
                     }
 
-                    var shokoEpisode = xref.GetAnimeEpisode();
+                    var shokoEpisode = xref.AnimeEpisode;
                     return (
                         xref,
                         dto: new EpisodeCrossReferenceIDs

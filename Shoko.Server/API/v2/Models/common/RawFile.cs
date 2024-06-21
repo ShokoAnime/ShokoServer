@@ -9,6 +9,7 @@ using NLog;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.API.v2.Models.common;
@@ -143,7 +144,7 @@ public class RawFile : BaseDirectory
         hash_source = vl.HashSource;
 
         is_ignored = vl.IsIgnored ? 1 : 0;
-        var vl_user = vl.GetUserRecord(uid);
+        var vl_user = RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(uid, vl.VideoLocalID);
         offset = vl_user?.ResumePosition ?? 0;
 
         var place = vl.FirstValidPlace;

@@ -82,7 +82,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         {
             // we have a manual link, so get the xrefs and add the episodes instead as generic files
             var xrefs = vid.EpisodeCrossRefs;
-            foreach (var episode in xrefs.Select(xref => xref.GetEpisode()).Where(episode => episode != null))
+            foreach (var episode in xrefs.Select(xref => xref.AniDBEpisode).Where(episode => episode != null))
             {
                 _logger.LogInformation("Updating Episode MyList Status: AnimeID: {AnimeID}, Episode Type: {Type}, Episode No: {EP}", episode.AnimeID,
                     episode.EpisodeTypeEnum, episode.EpisodeNumber);
@@ -109,7 +109,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         var eps = RepoFactory.AnimeEpisode.GetByHash(vid.Hash);
         if (eps.Count > 0)
         {
-            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => _seriesService.QueueUpdateStats(a.GetAnimeSeries()));
+            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => _seriesService.QueueUpdateStats(a.AnimeSeries));
         }
 
         return Task.CompletedTask;

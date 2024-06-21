@@ -20,6 +20,7 @@ using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Services;
@@ -34,6 +35,7 @@ public class EpisodeController : BaseController
 {
     private readonly AnimeSeriesService _seriesService;
     private readonly AnimeGroupService _groupService;
+    private readonly WatchedStatusService _watchedService;
 
     internal const string EpisodeWithZeroID = "episodeID must be greater than 0";
 
@@ -93,7 +95,7 @@ public class EpisodeController : BaseController
             {
                 // Only show episodes the user is allowed to view.
                 if (!allowedSeriesDict.TryGetValue(episode.AnimeSeriesID, out var isAllowed))
-                    allowedSeriesDict.TryAdd(episode.AnimeSeriesID, isAllowed = user.AllowedSeries(episode.GetAnimeSeries()));
+                    allowedSeriesDict.TryAdd(episode.AnimeSeriesID, isAllowed = user.AllowedSeries(episode.AnimeSeries));
                 return isAllowed;
             })
             .Select(episode => new { Shoko = episode, AniDB = episode?.AniDB_Episode })
@@ -130,7 +132,7 @@ public class EpisodeController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var noFiles = shoko.GetVideoLocals().Count == 0;
+                    var noFiles = shoko.VideoLocals.Count == 0;
                     if (shouldHideMissing == noFiles)
                         return false;
                 }
@@ -313,7 +315,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
@@ -341,7 +343,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
@@ -378,7 +380,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
@@ -486,7 +488,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
@@ -516,7 +518,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
@@ -535,7 +537,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="watched"></param>
     /// <returns></returns>
     [HttpPost("{episodeID}/Watched/{watched}")]
-    public ActionResult SetWatchedStatusOnEpisode([FromRoute] int episodeID, [FromRoute] bool watched)
+    public async Task<ActionResult> SetWatchedStatusOnEpisode([FromRoute] int episodeID, [FromRoute] bool watched)
     {
         if (episodeID == 0)
             return BadRequest(EpisodeWithZeroID);
@@ -544,14 +546,14 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.GetAnimeSeries();
+        var series = episode.AnimeSeries;
         if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        episode.ToggleWatchedStatus(watched, true, DateTime.Now, true, User.JMMUserID, true);
+        await _watchedService.SetWatchedStatus(episode, watched, true, DateTime.Now, true, User.JMMUserID, true);
 
         return Ok();
     }
@@ -586,9 +588,10 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
             .ToListResult(episode => new Episode(HttpContext, episode, withXRefs: includeXRefs), page, pageSize);
     }
 
-    public EpisodeController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
+    public EpisodeController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeGroupService groupService, WatchedStatusService watchedService) : base(settingsProvider)
     {
         _seriesService = seriesService;
         _groupService = groupService;
+        _watchedService = watchedService;
     }
 }

@@ -78,7 +78,7 @@ public class GroupController : BaseController
                 }
 
                 return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
             .OrderBy(group => group.SortName)
             .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
@@ -107,7 +107,7 @@ public class GroupController : BaseController
                     return false;
 
                 return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.GetVideoLocals().Count > 0));
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
             .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)

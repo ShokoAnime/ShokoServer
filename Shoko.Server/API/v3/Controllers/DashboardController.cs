@@ -31,6 +31,7 @@ public class DashboardController : BaseController
     private readonly QueueHandler _queueHandler;
     private readonly AnimeSeriesService _seriesService;
     private readonly AnimeSeries_UserRepository _seriesUser;
+    private readonly VideoLocal_UserRepository _vlUsers;
 
     /// <summary>
     /// Get the counters of various collection stats
@@ -51,7 +52,7 @@ public class DashboardController : BaseController
             .SelectMany(episodeList => episodeList)
             .ToList();
         var files = episodes
-            .SelectMany(a => a.GetVideoLocals())
+            .SelectMany(a => a.VideoLocals)
             .DistinctBy(a => a.VideoLocalID)
             .ToList();
         var totalFileSize = files
@@ -92,7 +93,7 @@ public class DashboardController : BaseController
         });
         // Calculate watched hours for both local episodes and non-local episodes.
         var hoursWatched = Math.Round(
-            (decimal)watchedEpisodes.Sum(a => a.GetVideoLocals().FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
+            (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
             1, MidpointRounding.AwayFromZero);
         var places = files
             // We cache the video local here since it may be gone later if the files are actively being removed.
@@ -108,7 +109,7 @@ public class DashboardController : BaseController
             : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
         var missingEpisodes = allSeries.Sum(a => a.MissingEpisodeCount);
         var missingEpisodesCollecting = allSeries.Sum(a => a.MissingEpisodeCountGroups);
-        var multipleEpisodes = episodes.Count(a => a.GetVideoLocals().Count(b => !b.IsVariation) > 1);
+        var multipleEpisodes = episodes.Count(a => a.VideoLocals.Count(b => !b.IsVariation) > 1);
         var unrecognizedFiles = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
         var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
         var seriesWithMissingLinks = allSeries.Count(MissingBothTvDBAndMovieDBLink);
@@ -243,7 +244,7 @@ public class DashboardController : BaseController
             .SelectMany(file => file.AnimeEpisodes.Select(episode => (file, episode)));
         var seriesDict = episodeList
             .DistinctBy(tuple => tuple.episode.AnimeSeriesID)
-            .Select(tuple => tuple.episode.GetAnimeSeries())
+            .Select(tuple => tuple.episode.AnimeSeries)
             .Where(series => series != null && user.AllowedSeries(series))
             .ToDictionary(series => series.AnimeSeriesID);
         var animeDict = seriesDict.Values
@@ -396,21 +397,18 @@ public class DashboardController : BaseController
     public Dashboard.EpisodeDetails GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode,
         SVR_AnimeSeries series, SVR_AniDB_Anime anime = null, SVR_VideoLocal file = null)
     {
-        SVR_VideoLocal_User userRecord = null;
+        SVR_VideoLocal_User userRecord;
         var animeEpisode = episode.AniDB_Episode;
-        if (anime == null)
-        {
-            anime = series.AniDB_Anime;
-        }
+        anime ??= series.AniDB_Anime;
 
         if (file != null)
         {
-            userRecord = file.GetUserRecord(user.JMMUserID);
+            userRecord = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
         }
         else
         {
-            (file, userRecord) = episode.GetVideoLocals()
-                .Select(file => (file, userRecord: file.GetUserRecord(user.JMMUserID)))
+            (file, userRecord) = episode.VideoLocals
+                .Select(f => (file: f, userRecord: _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, f.VideoLocalID)))
                 .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
                 .ThenByDescending(tuple => tuple.file.DateTimeCreated)
                 .FirstOrDefault();
@@ -463,11 +461,12 @@ public class DashboardController : BaseController
             .ToList();
     }
 
-    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, QueueHandler queueHandler, AnimeSeriesService seriesService, AnimeSeries_UserRepository seriesUser) : base(settingsProvider)
+    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, QueueHandler queueHandler, AnimeSeriesService seriesService, AnimeSeries_UserRepository seriesUser, VideoLocal_UserRepository vlUsers) : base(settingsProvider)
     {
         _seriesFactory = seriesFactory;
         _queueHandler = queueHandler;
         _seriesService = seriesService;
         _seriesUser = seriesUser;
+        _vlUsers = vlUsers;
     }
 }

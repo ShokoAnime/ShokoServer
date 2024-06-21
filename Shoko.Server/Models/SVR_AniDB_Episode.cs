@@ -139,7 +139,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
     IReadOnlyList<IVideo> IEpisode.VideoList =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID)
             .DistinctBy(xref => xref.Hash)
-            .Select(xref => xref.GetVideo())
+            .Select(xref => xref.VideoLocal)
             .OfType<SVR_VideoLocal>()
             .ToList();
 

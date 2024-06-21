@@ -668,7 +668,7 @@ public class DatabaseFixes
         // Fetch every episode user record stored to both remove orphaned records and to make sure the watch date is correct.
         var userDict = RepoFactory.JMMUser.GetAll().ToDictionary(user => user.JMMUserID);
         var fileListDict = RepoFactory.AnimeEpisode.GetAll()
-            .ToDictionary(episode => episode.AnimeEpisodeID, episode => episode.GetVideoLocals());
+            .ToDictionary(episode => episode.AnimeEpisodeID, episode => episode.VideoLocals);
         var episodesURsToSave = new List<SVR_AnimeEpisode_User>();
         var episodeURsToRemove = new List<SVR_AnimeEpisode_User>();
         foreach (var episodeUserRecord in RepoFactory.AnimeEpisode_User.GetAll())
@@ -683,7 +683,7 @@ public class DatabaseFixes
 
             // Fetch the file user record for when a file for the episode was last watched.
             var fileUserRecord = fileListDict[episodeUserRecord.AnimeEpisodeID]
-                .Select(file => file.GetUserRecord(episodeUserRecord.JMMUserID))
+                .Select(file => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(episodeUserRecord.JMMUserID, file.VideoLocalID))
                 .Where(record => record != null)
                 .OrderByDescending(record => record.LastUpdated)
                 .FirstOrDefault(record => record.WatchedDate.HasValue);

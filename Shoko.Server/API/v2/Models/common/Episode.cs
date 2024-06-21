@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common;
 
@@ -79,7 +82,8 @@ public class Episode : BaseDirectory
             }
         }
 
-        var cae = aep.GetUserContract(uid);
+        var epService = Utils.ServiceContainer.GetRequiredService<AnimeEpisodeService>();
+        var cae = epService.GetV1Contract(aep, uid);
         if (cae != null)
         {
             ep.name = cae.AniDB_EnglishName;
@@ -117,7 +121,7 @@ public class Episode : BaseDirectory
                     });
                 }
 
-                var fanarts = aep.GetAnimeSeries()?.AniDB_Anime?.AllFanarts;
+                var fanarts = aep.AnimeSeries?.AniDB_Anime?.AllFanarts;
                 if (fanarts is { Count: > 0 })
                 {
                     var cont_image =
@@ -173,12 +177,12 @@ public class Episode : BaseDirectory
 
         if (string.IsNullOrEmpty(ep.year))
         {
-            ep.year = aep.GetAnimeSeries().AirDate?.Year.ToString(CultureInfo.InvariantCulture) ?? "1";
+            ep.year = aep.AnimeSeries.AirDate?.Year.ToString(CultureInfo.InvariantCulture) ?? "1";
         }
 
         if (level > 0)
         {
-            var vls = aep.GetVideoLocals();
+            var vls = aep.VideoLocals;
             if (vls.Count > 0)
             {
                 ep.files = new List<RawFile>();

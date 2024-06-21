@@ -144,7 +144,7 @@ public class ReleaseManagementController : BaseController
         return enumerable
             .SelectMany(episode =>
             {
-                var files = episode.GetVideoLocals();
+                var files = episode.VideoLocals;
                 files.Sort(FileQualityFilter.CompareTo);
                 return files
                     .Skip(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -171,7 +171,7 @@ public class ReleaseManagementController : BaseController
         return enumerable
             .SelectMany(episode =>
             {
-                var files = episode.GetVideoLocals();
+                var files = episode.VideoLocals;
                 files.Sort(FileQualityFilter.CompareTo);
                 return files
                     .Skip(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)

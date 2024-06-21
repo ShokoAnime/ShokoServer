@@ -10,10 +10,12 @@ using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Trakt;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.Plex;
@@ -25,6 +27,8 @@ namespace Shoko.Server.Scheduling.Jobs.Plex;
 public class SyncPlexWatchedStatesJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
+    private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly WatchedStatusService _watchedService;
     public JMMUser User { get; set; }
 
     public override string TypeName => "Sync Plex States for User";
@@ -35,7 +39,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
         { "User", User.Username }
     };
 
-    public override Task Process()
+    public override async Task Process()
     {
         _logger.LogInformation("Processing {Job} -> User: {Name}", nameof(SyncTraktCollectionSeriesJob), User.Username);
         var settings = _settingsProvider.GetSettings();
@@ -72,11 +76,11 @@ public class SyncPlexWatchedStatesJob : BaseJob
                         _logger.LogTrace("Last watched date is {LastWatched}", lastWatched);
                     }
 
-                    var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
+                    var video = animeEpisode.VideoLocals?.FirstOrDefault();
                     if (video == null) continue;
 
-                    var alreadyWatched = animeEpisode.GetVideoLocals()
-                        .Select(a => a.GetUserRecord(User.JMMUserID))
+                    var alreadyWatched = animeEpisode.VideoLocals
+                        .Select(a => _vlUsers.GetByUserIDAndVideoLocalID(User.JMMUserID, a.VideoLocalID))
                         .Where(a => a != null)
                         .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
 
@@ -96,13 +100,11 @@ public class SyncPlexWatchedStatesJob : BaseJob
                     if (isWatched && !alreadyWatched)
                     {
                         _logger.LogInformation("Marking episode watched in Shoko");
-                        video.SetWatchedStatus(true, true, lastWatched ?? DateTime.Now, true, User.JMMUserID, true, true);
+                        await _watchedService.SetWatchedStatus(video, true, true, lastWatched ?? DateTime.Now, true, User.JMMUserID, true, true);
                     }
                 }
             }
         }
-
-        return Task.CompletedTask;
     }
 
     private DateTime FromUnixTime(long unixTime)
@@ -111,9 +113,11 @@ public class SyncPlexWatchedStatesJob : BaseJob
             .AddSeconds(unixTime);
     }
 
-    public SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider)
+    public SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService)
     {
         _settingsProvider = settingsProvider;
+        _vlUsers = vlUsers;
+        _watchedService = watchedService;
     }
 
     protected SyncPlexWatchedStatesJob() { }

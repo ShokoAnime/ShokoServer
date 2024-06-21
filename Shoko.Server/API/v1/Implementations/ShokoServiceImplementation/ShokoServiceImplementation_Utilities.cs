@@ -144,7 +144,7 @@ public partial class ShokoServiceImplementation
 
             foreach (var ep in eps)
             {
-                var videoLocals = ep.GetVideoLocals();
+                var videoLocals = ep.VideoLocals;
                 videoLocals.Sort(FileQualityFilter.CompareTo);
                 var keep = videoLocals
                     .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -194,7 +194,7 @@ public partial class ShokoServiceImplementation
 
         foreach (var ep in eps)
         {
-            var videoLocals = ep.GetVideoLocals();
+            var videoLocals = ep.VideoLocals;
             videoLocals.Sort(FileQualityFilter.CompareTo);
             var keep = videoLocals
                 .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -204,7 +204,7 @@ public partial class ShokoServiceImplementation
 
             videosToDelete.AddRange(videoLocals);
         }
-        return videosToDelete.Select(a => a.ToClient(userID)).ToList();
+        return videosToDelete.Select(a => _videoLocalService.GetV1Contract(a, userID)).ToList();
     }
 
     [HttpGet("File/GetMultipleFilesForDeletionByPreferences/{userID}")]
@@ -220,7 +220,7 @@ public partial class ShokoServiceImplementation
 
         foreach (var ep in eps)
         {
-            var videoLocals = ep.GetVideoLocals();
+            var videoLocals = ep.VideoLocals;
             videoLocals.Sort(FileQualityFilter.CompareTo);
             var keep = videoLocals
                 .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -230,7 +230,7 @@ public partial class ShokoServiceImplementation
 
             videosToDelete.AddRange(videoLocals);
         }
-        return videosToDelete.Select(a => a.ToClientDetailed(userID))
+        return videosToDelete.Select(a => _videoLocalService.GetV1DetailedContract(a, userID))
             .OrderByNatural(a => a.VideoLocal_FileName)
             .ToList();
     }
@@ -267,15 +267,15 @@ public partial class ShokoServiceImplementation
             {
                 case FileSearchCriteria.Name:
                     var results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Trim());
-                    vids.AddRange(results1.Select(vid => vid.ToClient(userID)));
+                    vids.AddRange(results1.Select(vid => _videoLocalService.GetV1Contract(vid, userID)));
                     results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Replace('+', ' ').Trim());
-                    vids.AddRange(results1.Select(vid => vid.ToClient(userID)));
+                    vids.AddRange(results1.Select(vid => _videoLocalService.GetV1Contract(vid, userID)));
                     break;
 
                 case FileSearchCriteria.ED2KHash:
                     var vidl = RepoFactory.VideoLocal.GetByHash(searchCriteria.Trim());
                     if (vidl != null)
-                        vids.Add(vidl.ToClient(userID));
+                        vids.Add(_videoLocalService.GetV1Contract(vidl, userID));
                     break;
 
                 case FileSearchCriteria.Size:
@@ -288,7 +288,7 @@ public partial class ShokoServiceImplementation
                         if (int.TryParse(searchCriteria, out var temp)) number = temp;
                     }
                     var results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number, userID);
-                    vids.AddRange(results2.Select(vid => vid.ToClient(userID)));
+                    vids.AddRange(results2.Select(vid => _videoLocalService.GetV1Contract(vid, userID)));
                     break;
             }
 
@@ -306,7 +306,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            return RepoFactory.VideoLocal.GetRandomFiles(maxResults).Select(a => a.ToClient(userID)).ToList();
+            return RepoFactory.VideoLocal.GetRandomFiles(maxResults).Select(a => _videoLocalService.GetV1Contract(a, userID)).ToList();
         }
         catch (Exception ex)
         {
@@ -690,7 +690,7 @@ public partial class ShokoServiceImplementation
                 var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
                 return ser.AllAnimeEpisodes
                     .Where(aep =>
-                        aep.AniDB_Episode != null && aep.GetVideoLocals().Count == 0 &&
+                        aep.AniDB_Episode != null && aep.VideoLocals.Count == 0 &&
                         (!regularEpisodesOnly || aep.EpisodeTypeEnum == EpisodeType.Episode))
                     .Select(aep => aep.AniDB_Episode)
                     .Where(aniep => !aniep.GetFutureDated())
@@ -911,7 +911,7 @@ public partial class ShokoServiceImplementation
         {
             foreach (var vid in RepoFactory.VideoLocal.GetIgnoredVideos())
             {
-                contracts.Add(vid.ToClient(userID));
+                contracts.Add(_videoLocalService.GetV1Contract(vid, userID));
             }
         }
         catch (Exception ex)
@@ -930,7 +930,7 @@ public partial class ShokoServiceImplementation
         {
             foreach (var vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
             {
-                contracts.Add(vid.ToClient(userID));
+                contracts.Add(_videoLocalService.GetV1Contract(vid, userID));
             }
         }
         catch (Exception ex)
@@ -946,7 +946,7 @@ public partial class ShokoServiceImplementation
         var contracts = new List<CL_VideoLocal>();
         try
         {
-            contracts.AddRange(RepoFactory.VideoLocal.GetVideosWithoutEpisode(true).Select(vid => vid.ToClient(userID)));
+            contracts.AddRange(RepoFactory.VideoLocal.GetVideosWithoutEpisode(true).Select(vid => _videoLocalService.GetV1Contract(vid, userID)));
         }
         catch (Exception ex)
         {
@@ -1092,7 +1092,7 @@ public partial class ShokoServiceImplementation
         {
             foreach (var vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
             {
-                manualFiles.Add(vid.ToClient(userID));
+                manualFiles.Add(_videoLocalService.GetV1Contract(vid, userID));
             }
 
             return manualFiles;
@@ -1142,7 +1142,7 @@ public partial class ShokoServiceImplementation
 
                     if (!finishedAiring) continue;
                 }
-                var cep = ep.GetUserContract(userID);
+                var cep = _episodeService.GetV1Contract(ep, userID);
                 if (cep != null)
                     eps.Add(cep);
             }
@@ -1241,7 +1241,7 @@ public partial class ShokoServiceImplementation
                     string.Equals(resolution, vidResInfo, StringComparison.InvariantCultureIgnoreCase))
                 {
                     _logger.LogTrace("GetFilesByGroupAndResolution -- File Matched: {FileName}", vid.FileName);
-                    vids.Add(vid.ToClientDetailed(userID));
+                    vids.Add(_videoLocalService.GetV1DetailedContract(vid, userID));
                 }
             }
             return vids;
@@ -1280,7 +1280,7 @@ public partial class ShokoServiceImplementation
                     // match based on group / video source / video res
                     if (groupMatches)
                     {
-                        vids.Add(vid.ToClientDetailed(userID));
+                        vids.Add(_videoLocalService.GetV1DetailedContract(vid, userID));
                     }
                 }
                 else
@@ -1288,7 +1288,7 @@ public partial class ShokoServiceImplementation
                     if (string.Equals(grpName, Constants.NO_GROUP_INFO, StringComparison.InvariantCultureIgnoreCase) ||
                         string.Equals(grpName, "unknown"))
                     {
-                        vids.Add(vid.ToClientDetailed(userID));
+                        vids.Add(_videoLocalService.GetV1DetailedContract(vid, userID));
                     }
                 }
             }

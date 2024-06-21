@@ -49,7 +49,7 @@ public static class RenameFileHelper
             throw new NullReferenceException(nameof(place.VideoLocal));
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
 
@@ -64,12 +64,12 @@ public static class RenameFileHelper
 
         var anime = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var groups = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
@@ -119,7 +119,7 @@ public static class RenameFileHelper
             throw new NullReferenceException(nameof(place.VideoLocal));
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
 
@@ -134,12 +134,12 @@ public static class RenameFileHelper
 
         var anime = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var groups = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)

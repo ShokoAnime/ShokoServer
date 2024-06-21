@@ -35,7 +35,7 @@ public class EpisodeInfoUpdatedEventSignalRModel
                 {
                     ShokoEpisodeIDs = [shokoEpisode.AnimeEpisodeID];
                     ShokoSeriesIDs = [shokoEpisode.AnimeSeriesID];
-                    if (shokoEpisode.GetAnimeSeries() is SVR_AnimeSeries series)
+                    if (shokoEpisode.AnimeSeries is SVR_AnimeSeries series)
                         ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
                 }
                 break;

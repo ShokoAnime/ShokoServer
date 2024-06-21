@@ -475,7 +475,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     IReadOnlyList<IVideo> ISeries.VideoList =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID)
             .DistinctBy(xref => xref.Hash)
-            .Select(xref => xref.GetVideo())
+            .Select(xref => xref.VideoLocal)
             .WhereNotNull()
             .ToList();
 

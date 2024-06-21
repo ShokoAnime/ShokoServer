@@ -319,7 +319,7 @@ public class Group : BaseDirectory
                 continue;
             }
 
-            var local = ep.GetVideoLocals()?.Any() ?? false;
+            var local = ep.VideoLocals?.Any() ?? false;
             switch (ep.EpisodeTypeEnum)
             {
                 case EpisodeType.Episode:
