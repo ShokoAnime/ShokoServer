@@ -36,6 +36,32 @@ namespace Shoko.Server.Providers.TMDB;
 
 public class TMDBHelper
 {
+    private static TMDBHelper? _instance = null;
+
+    private static string? _imageServerUrl = null;
+
+    public static string? ImageServerUrl
+    {
+        get
+        {
+            // Return cached version if possible.
+            if (_imageServerUrl is not null)
+                return _imageServerUrl;
+            if (_instance is null)
+                return null;
+            try
+            {
+                var config = _instance._client.GetAPIConfiguration().Result;
+                return _imageServerUrl = config.Images.SecureBaseUrl;
+            }
+            catch (Exception ex)
+            {
+                _instance._logger.LogError(ex, "Encountered an exception while trying to find the image server url to use; {ErrorMessage}", ex.Message);
+                return null;
+            }
+        }
+    }
+
     private readonly ILogger<TMDBHelper> _logger;
 
     private readonly ICommandRequestFactory _commandFactory;
@@ -43,8 +69,6 @@ public class TMDBHelper
     private readonly ISettingsProvider _settingsProvider;
 
     private readonly TMDbClient _client;
-
-    public static string? ImageServerUrl { get; private set; } = null;
 
     private const string APIKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
@@ -54,12 +78,7 @@ public class TMDBHelper
         _commandFactory = commandFactory;
         _settingsProvider = settingsProvider;
         _client = new(APIKey);
-
-        if (string.IsNullOrEmpty(ImageServerUrl))
-        {
-            var config = _client.GetAPIConfiguration().Result;
-            ImageServerUrl = config.Images.SecureBaseUrl;
-        }
+        _instance ??= this;
     }
 
     public void ScanForMatches()
