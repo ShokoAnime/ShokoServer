@@ -482,13 +482,13 @@ public class FileController : BaseController
         RenameScript script;
         if (!body.ScriptID.HasValue || body.ScriptID.Value <= 0)
         {
-            script = RepoFactory.RenameScript.GetDefaultOrFirst();
+            script = RepoFactory.RenamerInstance.GetDefaultOrFirst();
             if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
                 return BadRequest($"No default script have been selected! Select one before continuing.");
         }
         else
         {
-            script = RepoFactory.RenameScript.GetByID(body.ScriptID.Value);
+            script = RepoFactory.RenamerInstance.GetByID(body.ScriptID.Value);
             if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
                 return BadRequest($"Unknown script with id \"{body.ScriptID.Value}\"! Omit `ScriptID` or set it to 0 to use the default script!");
         }

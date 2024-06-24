@@ -343,7 +343,7 @@ public partial class ShokoServiceImplementation
         }
         try
         {
-            var script = RepoFactory.RenameScript.GetByName(scriptName);
+            var script = RepoFactory.RenamerInstance.GetByName(scriptName);
             if (script is null)
             {
                 ret.NewFileName = "ERROR: Could not find script.";
@@ -409,7 +409,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            return RepoFactory.RenameScript.GetAll().Where(a =>
+            return RepoFactory.RenamerInstance.GetAll().Where(a =>
                     !a.ScriptName.EqualsInvariantIgnoreCase(Shoko.Models.Constants.Renamer.TempFileName))
                 .ToList();
         }
@@ -433,13 +433,13 @@ public partial class ShokoServiceImplementation
             RenameScript script;
             if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
             {
-                script = RepoFactory.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
+                script = RepoFactory.RenamerInstance.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
                          new RenameScript();
             }
             else if (contract.RenameScriptID != 0)
             {
                 // update
-                script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID);
+                script = RepoFactory.RenamerInstance.GetByID(contract.RenameScriptID);
                 if (script == null)
                 {
                     response.ErrorMessage = "Could not find Rename Script ID: " + contract.RenameScriptID;
@@ -464,7 +464,7 @@ public partial class ShokoServiceImplementation
             {
 
                 // check to make sure we multiple scripts enable on import (only one can be selected)
-                var allScripts = RepoFactory.RenameScript.GetAll();
+                var allScripts = RepoFactory.RenamerInstance.GetAll();
 
                 foreach (var rs in allScripts)
                 {
@@ -472,7 +472,7 @@ public partial class ShokoServiceImplementation
                         (contract.RenameScriptID == 0 || (contract.RenameScriptID != rs.RenameScriptID)))
                     {
                         rs.IsEnabledOnImport = 0;
-                        RepoFactory.RenameScript.Save(rs);
+                        RepoFactory.RenamerInstance.Save(rs);
                     }
                 }
             }
@@ -482,7 +482,7 @@ public partial class ShokoServiceImplementation
             script.ScriptName = contract.ScriptName;
             script.RenamerType = contract.RenamerType;
             script.ExtraData = contract.ExtraData;
-            RepoFactory.RenameScript.Save(script);
+            RepoFactory.RenamerInstance.Save(script);
 
             response.Result = script;
 
@@ -501,9 +501,9 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var df = RepoFactory.RenameScript.GetByID(renameScriptID);
+            var df = RepoFactory.RenamerInstance.GetByID(renameScriptID);
             if (df == null) return "Database entry does not exist";
-            RepoFactory.RenameScript.Delete(renameScriptID);
+            RepoFactory.RenamerInstance.Delete(renameScriptID);
             return string.Empty;
         }
         catch (Exception ex)
@@ -516,7 +516,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("RenameScript/Types")]
     public IDictionary<string, string> GetScriptTypes()
     {
-        return RenameFileHelper.Renamers
+        return RenameFileService.Renamers
             .Select(s => new KeyValuePair<string, string>(s.Key, s.Value.description))
             .ToDictionary(x => x.Key, x => x.Value);
     }

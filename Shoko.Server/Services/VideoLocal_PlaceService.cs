@@ -530,9 +530,9 @@ public class VideoLocal_PlaceService
         try
         {
             if (request.ContainsBody)
-                newFileName = RenameFileHelper.GetFilename(place, new RenameScriptImpl() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
+                newFileName = RenameFileService.GetFilename(place, new RenamerInstance() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
             else
-                newFileName = RenameFileHelper.GetFilename(place, request.ScriptID);
+                newFileName = RenameFileService.GetFilename(place, request.ScriptID);
         }
         // The renamer may throw an error
         catch (Exception ex)
@@ -612,9 +612,9 @@ public class VideoLocal_PlaceService
         try
         {
             if (request.ContainsBody)
-                (importFolder, newFolderPath) = RenameFileHelper.GetDestination(place, new RenameScriptImpl() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
+                (importFolder, newFolderPath) = RenameFileService.GetDestination(place, new RenamerInstance() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
             else
-                (importFolder, newFolderPath) = RenameFileHelper.GetDestination(place, request.ScriptID);
+                (importFolder, newFolderPath) = RenameFileService.GetDestination(place, request.ScriptID);
         }
         // The renamer may throw an error
         catch (Exception ex)

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
@@ -16,25 +17,30 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Renamer;
 
-public static class RenameFileHelper
+public class RenameFileService
 {
-    private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<RenameFileService> _logger;
+    private readonly ISettingsProvider _settingsProvider;
+    private readonly Dictionary<string, (Type type, string description, string version)> _internalRenamers = [];
+    public IReadOnlyDictionary<string, (Type type, string description, string version)> Renamers => _internalRenamers;
 
-    private static readonly Dictionary<string, (Type type, string description, string version)> s_internalRenamers = [];
-
-    public static IReadOnlyDictionary<string, (Type type, string description, string version)> Renamers => s_internalRenamers;
-
-    private static RenameScriptImpl GetRenameScript(int? scriptID)
+    public RenameFileService(ILogger<RenameFileService> logger, ISettingsProvider settingsProvider)
     {
-        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenameScript.GetByID(scriptID.Value) : null) ?? RepoFactory.RenameScript.GetDefaultScript();
+        _logger = logger;
+        _settingsProvider = settingsProvider;
+    }
+
+    private RenamerInstance GetRenameScript(int? scriptID)
+    {
+        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenamerInstance.GetByID(scriptID.Value) : null) ?? RepoFactory.RenamerInstance.GetDefaultScript();
         if (script is null)
             return new() { Script = string.Empty, Type = string.Empty, ExtraData = string.Empty };
         return new() { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
     }
 
-    private static RenameScriptImpl GetRenameScriptWithFallback(int? scriptID)
+    private RenamerInstance GetRenameScriptWithFallback(int? scriptID)
     {
-        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenameScript.GetByID(scriptID.Value) : null) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenamerInstance.GetByID(scriptID.Value) : null) ?? RepoFactory.RenamerInstance.GetDefaultOrFirst();
         if (script is null)
             return new() { Script = string.Empty, Type = string.Empty, ExtraData = string.Empty };
         return new() { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
@@ -43,7 +49,7 @@ public static class RenameFileHelper
     public static string? GetFilename(SVR_VideoLocal_Place place, int? scriptID)
         => GetFilename(place, GetRenameScript(scriptID));
 
-    public static string? GetFilename(SVR_VideoLocal_Place place, RenameScriptImpl script)
+    public static string? GetFilename(SVR_VideoLocal_Place place, RenamerInstance script)
     {
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
@@ -79,7 +85,17 @@ public static class RenameFileHelper
             .Cast<IImportFolder>()
             .Where(a => a.DropFolderType != DropFolderType.Excluded)
             .ToList();
-        var args = new RenameEventArgs(script, availableFolders, place, videoLocal, episodes, anime, groups);
+
+        
+        var args = new MoveRenameEventArgs
+        {
+            AnimeInfo = anime,
+            FileInfo = place,
+            EpisodeInfo = episodes,
+            GroupInfo = groups,
+            AvailableFolders = availableFolders,
+            MoveEnabled = 
+        };
         foreach (var renamer in renamers)
         {
             try
@@ -103,7 +119,7 @@ public static class RenameFileHelper
                     throw;
                 }
 
-                s_logger.Warn(e, $"Renamer {renamer.GetType().Name} threw an error while trying to determine a new file name, deferring to next renamer. File: \"{place.FullServerPath}\" Error message: \"{e.Message}\"");
+                _logger.Warn(e, $"Renamer {renamer.GetType().Name} threw an error while trying to determine a new file name, deferring to next renamer. File: \"{place.FullServerPath}\" Error message: \"{e.Message}\"");
             }
         }
 
@@ -113,7 +129,7 @@ public static class RenameFileHelper
     public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, int? scriptID)
         => GetDestination(place, GetRenameScriptWithFallback(scriptID));
 
-    public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, RenameScriptImpl script)
+    public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, RenamerInstance script)
     {
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
@@ -172,7 +188,7 @@ public static class RenameFileHelper
                 var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Path);
                 if (importFolder is null)
                 {
-                    s_logger.Warn($"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was \"{renamer.GetType().GetAssemblyName()}\" with renamer \"{renamer.GetType().Name}\"");
+                    _logger.Warn($"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was \"{renamer.GetType().GetAssemblyName()}\" with renamer \"{renamer.GetType().Name}\"");
                     continue;
                 }
 
@@ -183,7 +199,7 @@ public static class RenameFileHelper
                 if (!Utils.SettingsProvider.GetSettings().Plugins.DeferOnError || args.Cancel)
                     throw;
 
-                s_logger.Warn($"Renamer: {renamer.GetType().Name} threw an error while finding a destination, deferring to next renamer. Path: \"{place.FullServerPath}\" Error message: \"{e.Message}\"");
+                _logger.Warn($"Renamer: {renamer.GetType().Name} threw an error while finding a destination, deferring to next renamer. Path: \"{place.FullServerPath}\" Error message: \"{e.Message}\"");
             }
         }
 
@@ -231,12 +247,12 @@ public static class RenameFileHelper
                 var version = Utils.GetApplicationVersion(implementation.Assembly);
                 if (Renamers.TryGetValue(key, out var value))
                 {
-                    s_logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{value.type.Assembly.Location} (v{value.version})");
+                    _logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{value.type.Assembly.Location} (v{value.version})");
                     continue;
                 }
 
-                s_logger.Info($"Added Renamer: {key} (v{version}) - {desc}");
-                s_internalRenamers.Add(key, (implementation, desc, version));
+                _logger.Info($"Added Renamer: {key} (v{version}) - {desc}");
+                _internalRenamers.Add(key, (implementation, desc, version));
             }
         }
     }
@@ -257,8 +273,8 @@ public static class RenameFileHelper
     private static IEnumerable<KeyValuePair<string, (Type type, string description, string version)>> GetEnabledRenamers(string? renamerName)
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        if (string.IsNullOrEmpty(renamerName)) return s_internalRenamers;
-        return s_internalRenamers
+        if (string.IsNullOrEmpty(renamerName)) return _internalRenamers;
+        return _internalRenamers
             .Where(kvp => kvp.Key == renamerName && (!settings.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out var isEnabled) || isEnabled));
     }
 }

@@ -4,10 +4,9 @@ using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
-
-using RenameFileHelper = Shoko.Server.Renamer.RenameFileHelper;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -36,7 +35,7 @@ public class Renamer : BaseModel
     public Renamer(string name, (Type type, string description, string version) value)
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        var scripts = RepoFactory.RenameScript.GetByRenamerType(name);
+        var scripts = RepoFactory.RenamerInstance.GetByRenamerType(name);
         Name = name;
         Size = scripts.Count;
         Version = value.version;
@@ -83,7 +82,7 @@ public class Renamer : BaseModel
             ID = script.RenameScriptID;
             Name = script.ScriptName;
             RenamerName = script.RenamerType;
-            RenamerIsAvailable = RenameFileHelper.Renamers.ContainsKey(script.RenamerType);
+            RenamerIsAvailable = RenameFileService.Renamers.ContainsKey(script.RenamerType);
             EnabledOnImport = script.IsEnabledOnImport == 1;
             Body = !string.IsNullOrWhiteSpace(script.Script) ? script.Script : null;
         }
@@ -265,19 +264,19 @@ public class Renamer : BaseModel
                 // only one can be selected.
                 if (EnabledOnImport)
                 {
-                    var allScripts = RepoFactory.RenameScript.GetAll();
+                    var allScripts = RepoFactory.RenamerInstance.GetAll();
                     foreach (var s in allScripts)
                     {
                         if (s.IsEnabledOnImport == 1 &&
                             (script.RenameScriptID == 0 || (script.RenameScriptID != s.RenameScriptID)))
                         {
                             s.IsEnabledOnImport = 0;
-                            RepoFactory.RenameScript.Save(s);
+                            RepoFactory.RenamerInstance.Save(s);
                         }
                     }
                 }
 
-                RepoFactory.RenameScript.Save(script);
+                RepoFactory.RenamerInstance.Save(script);
                 return new Script(script);
             }
         }

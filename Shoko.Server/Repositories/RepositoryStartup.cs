@@ -25,7 +25,7 @@ public static class RepositoryStartup
         services.AddDirectRepository<MovieDB_PosterRepository>();
         services.AddDirectRepository<MovieDb_MovieRepository>();
         services.AddDirectRepository<PlaylistRepository>();
-        services.AddDirectRepository<RenameScriptRepository>();
+        services.AddDirectRepository<RenamerInstanceRepository>();
         services.AddDirectRepository<ScanFileRepository>();
         services.AddDirectRepository<ScanRepository>();
         services.AddDirectRepository<ScheduledUpdateRepository>();

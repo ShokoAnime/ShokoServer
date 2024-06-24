@@ -65,7 +65,7 @@ public static class Loader
             }
         }
 
-        RenameFileHelper.FindRenamers(assemblies);
+        RenameFileService.FindRenamers(assemblies);
         LoadPlugins(assemblies, serviceCollection);
 
         return serviceCollection;

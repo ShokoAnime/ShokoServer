@@ -40,8 +40,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     int IVideoFile.ID => VideoLocal_Place_ID;
 
-    int IVideoFile.ImportFolderID => ImportFolderID;
-
     int IVideoFile.VideoID => VideoLocalID;
 
     IVideo IVideoFile.VideoInfo => VideoLocal;
@@ -53,7 +51,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         get
         {
             var path = FilePath.Replace('\\', '/');
-            if (path.Length > 0 && path[0] != '/')
+            // Windows compat. home/folder -> /home/folder, but not C:/folder -> /C:/folder
+            if (path.Length > 0 && path[0] != '/' && (path.Length < 2 || path[1] != ':'))
                 path = '/' + path;
             return path;
         }
@@ -62,16 +61,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     long IVideoFile.Size => VideoLocal?.FileSize ?? 0;
 
     IImportFolder IVideoFile.ImportFolder => ImportFolder;
-
-    int IVideoFile.VideoFileID => VideoLocalID;
-
-    string IVideoFile.Filename => Path.GetFileName(FilePath);
-
-    string IVideoFile.FilePath => FullServerPath;
-
-    long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
-
-    IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.AniDBFile;
 
     public IHashes Hashes => VideoLocal;
 

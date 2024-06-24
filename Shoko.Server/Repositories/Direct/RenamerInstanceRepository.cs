@@ -7,7 +7,7 @@ using Shoko.Server.Databases;
 #nullable enable
 namespace Shoko.Server.Repositories.Direct;
 
-public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
+public class RenamerInstanceRepository : BaseDirectRepository<RenameScript, int>
 {
     public RenameScript? GetDefaultScript()
     {
@@ -63,7 +63,7 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
         return cr;
     }
 
-    public RenameScriptRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    public RenamerInstanceRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
     }
 }

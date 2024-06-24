@@ -8,7 +8,7 @@ using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
 
-namespace Shoko.Server.Databases.NHIbernate;
+namespace Shoko.Server.Databases.NHibernate;
 
 public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
 {

@@ -14,7 +14,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using ApiRenamer = Shoko.Server.API.v3.Models.Shoko.Renamer;
-using RenameFileHelper = Shoko.Server.Renamer.RenameFileHelper;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -29,9 +28,9 @@ public class RenamerController : BaseController
 
     private readonly VideoLocalRepository _vlRepository;
 
-    private readonly RenameScriptRepository _rsRepository;
+    private readonly RenamerInstanceRepository _rsRepository;
 
-    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenameScriptRepository rsRepository) : base(settingsProvider)
+    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerInstanceRepository rsRepository) : base(settingsProvider)
     {
         _vlpService = vlpService;
         _vlRepository = vlRepository;
@@ -45,7 +44,7 @@ public class RenamerController : BaseController
     [HttpGet]
     public ActionResult<List<ApiRenamer>> GetAllRenamers()
     {
-        return RenameFileHelper.Renamers
+        return RenameFileService.Renamers
             .Select(p => new ApiRenamer(p.Key, p.Value))
             .ToList();
     }
@@ -59,7 +58,7 @@ public class RenamerController : BaseController
     [HttpPost("Preview")]
     public ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>> BatchPreviewRelocateFiles([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.BatchPreviewAutoRelocateWithRenamerBody body)
     {
-        if (!RenameFileHelper.Renamers.ContainsKey(body.RenamerName))
+        if (!RenameFileService.Renamers.ContainsKey(body.RenamerName))
             ModelState.AddModelError(nameof(body.RenamerName), "Renamer not found.");
 
         if (!ModelState.IsValid)
@@ -78,7 +77,7 @@ public class RenamerController : BaseController
     [HttpGet("{renamerName}")]
     public ActionResult<ApiRenamer> GetRenamer([FromRoute] string renamerName)
     {
-        if (!RenameFileHelper.Renamers.TryGetValue(renamerName, out var value))
+        if (!RenameFileService.Renamers.TryGetValue(renamerName, out var value))
             return NotFound("Renamer not found.");
 
         return new ApiRenamer(renamerName, value);
@@ -102,7 +101,7 @@ public class RenamerController : BaseController
     [HttpPut("{renamerName}")]
     public ActionResult<ApiRenamer> PutRenamer([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.ModifyRenamerBody body)
     {
-        if (!RenameFileHelper.Renamers.TryGetValue(renamerName, out var value))
+        if (!RenameFileService.Renamers.TryGetValue(renamerName, out var value))
             return NotFound("Renamer not found.");
 
         return body.MergeWithExisting(renamerName, value);
@@ -129,7 +128,7 @@ public class RenamerController : BaseController
     [HttpPatch("{renamerName}")]
     public ActionResult<ApiRenamer> PatchRenamer([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ApiRenamer.Input.ModifyRenamerBody> patchDocument)
     {
-        if (!RenameFileHelper.Renamers.TryGetValue(renamerName, out var value))
+        if (!RenameFileService.Renamers.TryGetValue(renamerName, out var value))
             return NotFound("Renamer not found.");
 
         // Patch the renamer in the v3 model and merge it back into the
@@ -152,7 +151,7 @@ public class RenamerController : BaseController
     {
         if (!string.IsNullOrEmpty(renamerName))
         {
-            if (!RenameFileHelper.Renamers.ContainsKey(renamerName))
+            if (!RenameFileService.Renamers.ContainsKey(renamerName))
                 return new List<ApiRenamer.Script>();
 
             return _rsRepository.GetByRenamerType(renamerName)
@@ -314,7 +313,7 @@ public class RenamerController : BaseController
         if (script is null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
             return NotFound("Renamer.Script not found.");
 
-        if (!RenameFileHelper.Renamers.ContainsKey(script.RenamerType))
+        if (!RenameFileService.Renamers.ContainsKey(script.RenamerType))
             return BadRequest("Renamer for Renamer.Script not found.");
 
         return new ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>>(

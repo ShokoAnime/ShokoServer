@@ -319,7 +319,7 @@ public abstract class BaseDatabase<T> : IDatabase
 
     private void CreateInitialRenameScript()
     {
-        if (RepoFactory.RenameScript.GetAll().Any())
+        if (RepoFactory.RenamerInstance.GetAll().Any())
         {
             return;
         }
@@ -371,7 +371,7 @@ public abstract class BaseDatabase<T> : IDatabase
             "DO REPLACE '?' '_'" + Environment.NewLine +
             "DO REPLACE '*' '_'" + Environment.NewLine;
 
-        RepoFactory.RenameScript.Save(initialScript);
+        RepoFactory.RenamerInstance.Save(initialScript);
     }
 
     public void CreateInitialCustomTags()

@@ -21,7 +21,7 @@ public class RepoFactory
     public static Trakt_SeasonRepository Trakt_Season;
     public static Trakt_EpisodeRepository Trakt_Episode;
     public static ScheduledUpdateRepository ScheduledUpdate;
-    public static RenameScriptRepository RenameScript;
+    public static RenamerInstanceRepository RenamerInstance;
     public static PlaylistRepository Playlist;
     public static MovieDB_PosterRepository MovieDB_Poster;
     public static MovieDB_FanartRepository MovieDB_Fanart;
@@ -87,7 +87,7 @@ public class RepoFactory
 
     public RepoFactory(ILogger<RepoFactory> logger, IEnumerable<ICachedRepository> repositories, VersionsRepository versions, Trakt_ShowRepository traktShow,
         Trakt_SeasonRepository traktSeason, Trakt_EpisodeRepository traktEpisode, ScheduledUpdateRepository scheduledUpdate,
-        RenameScriptRepository renameScript, PlaylistRepository playlist, MovieDB_PosterRepository movieDBPoster, MovieDB_FanartRepository movieDBFanart,
+        RenamerInstanceRepository renamerInstance, PlaylistRepository playlist, MovieDB_PosterRepository movieDBPoster, MovieDB_FanartRepository movieDBFanart,
         MovieDb_MovieRepository movieDbMovie, IgnoreAnimeRepository ignoreAnime, FileNameHashRepository fileNameHash,
         AniDB_AnimeUpdateRepository aniDBAnimeUpdate, AniDB_FileUpdateRepository aniDBFileUpdate,
         CrossRef_Subtitles_AniDB_FileRepository crossRefSubtitlesAniDBFile, CrossRef_Languages_AniDB_FileRepository crossRefLanguagesAniDBFile,
@@ -116,7 +116,7 @@ public class RepoFactory
         Trakt_Season = traktSeason;
         Trakt_Episode = traktEpisode;
         ScheduledUpdate = scheduledUpdate;
-        RenameScript = renameScript;
+        RenamerInstance = renamerInstance;
         Playlist = playlist;
         MovieDB_Poster = movieDBPoster;
         MovieDB_Fanart = movieDBFanart;
