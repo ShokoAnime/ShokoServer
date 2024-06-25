@@ -40,7 +40,7 @@ public class RenameFileService
         var shouldRename = rename ?? settings.Import.RenameOnImport;
 
         var videoLocal = place.VideoLocal ??
-            throw new NullReferenceException(nameof(place.VideoLocal));
+                         throw new NullReferenceException(nameof(place.VideoLocal));
         var xrefs = videoLocal.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.AniDBEpisode)
@@ -58,15 +58,31 @@ public class RenameFileService
         if (renamerInstance == null)
         {
             var defaultRenamerName = settings.Import.DefaultRenamer;
-            if (string.IsNullOrWhiteSpace(defaultRenamerName)) return new MoveRenameResult { Error = new MoveRenameError("No default renamer configured and no renamer instance given") };
+            if (string.IsNullOrWhiteSpace(defaultRenamerName))
+                return new MoveRenameResult
+                {
+                    Error = new MoveRenameError("No default renamer configured and no renamer instance given")
+                };
             var defaultRenamer = _renamers.GetByName(defaultRenamerName);
-            if (defaultRenamer == null) return new MoveRenameResult { Error = new MoveRenameError("The specified default renamer does not exist") };
+            if (defaultRenamer == null)
+                return new MoveRenameResult
+                {
+                    Error = new MoveRenameError("The specified default renamer does not exist")
+                };
             renamerInstance = defaultRenamer;
         }
 
-        if (!RenamersByType.TryGetValue(renamerInstance.Type, out var renamer)) return new MoveRenameResult { Error = new MoveRenameError($"No renamers configured for {renamerInstance.Type}") };
+        if (!RenamersByType.TryGetValue(renamerInstance.Type, out var renamer))
+            return new MoveRenameResult
+            {
+                Error = new MoveRenameError($"No renamers configured for {renamerInstance.Type}")
+            };
         // check if it's unrecognized
-        if (xrefs.Count == 0 && renamer is not IUnrecognizedRenamer) return new MoveRenameResult { Error = new MoveRenameError("Configured renamer does not support unrecognized files, and the file is unrecognized") };
+        if (xrefs.Count == 0 && renamer is not IUnrecognizedRenamer)
+            return new MoveRenameResult
+            {
+                Error = new MoveRenameError("Configured renamer does not support unrecognized files, and the file is unrecognized")
+            };
 
         var anime = xrefs
             .DistinctBy(x => x.AnimeID)
@@ -87,7 +103,7 @@ public class RenameFileService
             .ToList();
 
         MoveRenameEventArgs args;
-        var renamerInterface = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType() && a == typeof(IRenamer<>))!;
+        var renamerInterface = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))!;
         if (renamerInterface.GetGenericArguments()[0].IsGenericType)
         {
             var settingsType = renamerInterface.GetGenericArguments()[0].GetGenericArguments()[0];
@@ -190,7 +206,8 @@ public class RenameFileService
                 if (RenamersByKey.TryGetValue(key, out var value))
                 {
                     var info = value.GetType();
-                    _logger.LogWarning($"Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{info.Assembly.Location} (v{info.Assembly.GetName().Version})");
+                    _logger.LogWarning(
+                        $"Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{info.Assembly.Location} (v{info.Assembly.GetName().Version})");
                     continue;
                 }
 
