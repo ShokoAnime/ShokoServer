@@ -154,7 +154,9 @@ public class WatchedStatusService
                 var epPercentWatched = 0;
                 foreach (var filexref in ep.FileCrossRefs)
                 {
-                    var vidUser = _vlUsers.GetByUserIDAndVideoLocalID(userID, filexref.VideoLocal.VideoLocalID);
+                    var xrefVideoLocal = filexref.VideoLocal;
+                    if (xrefVideoLocal == null) continue;
+                    var vidUser = _vlUsers.GetByUserIDAndVideoLocalID(userID, xrefVideoLocal.VideoLocalID);
                     if (vidUser?.WatchedDate != null)
                         epPercentWatched += filexref.Percentage <= 0 ? 100 : filexref.Percentage;
 
