@@ -154,7 +154,7 @@ public class RenamerController : BaseController
             if (!RenameFileService.Renamers.ContainsKey(renamerName))
                 return new List<ApiRenamer.Script>();
 
-            return _rsRepository.GetByRenamerType(renamerName)
+            return _rsRepository.GetByType(renamerName)
                 .Where(s => s.ScriptName != Shoko.Models.Constants.Renamer.TempFileName)
                 .Select(s => new ApiRenamer.Script(s))
                 .OrderBy(s => s.ID)

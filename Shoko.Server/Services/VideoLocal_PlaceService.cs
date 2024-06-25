@@ -530,9 +530,9 @@ public class VideoLocal_PlaceService
         try
         {
             if (request.ContainsBody)
-                newFileName = RenameFileService.GetFilename(place, new RenamerInstance() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
+                newFileName = RenameFileService.GetNewPath(place, new RenamerInstance() { Type = request.RenamerName, Script = request.ScriptBody ?? string.Empty });
             else
-                newFileName = RenameFileService.GetFilename(place, request.ScriptID);
+                newFileName = RenameFileService.GetNewPath(place, request.ScriptID);
         }
         // The renamer may throw an error
         catch (Exception ex)

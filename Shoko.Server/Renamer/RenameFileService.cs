@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Plugin.Abstractions.Attributes;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Utilities;
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
 namespace Shoko.Server.Renamer;
@@ -21,36 +21,24 @@ public class RenameFileService
 {
     private readonly ILogger<RenameFileService> _logger;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly Dictionary<string, (Type type, string description, string version)> _internalRenamers = [];
-    public IReadOnlyDictionary<string, (Type type, string description, string version)> Renamers => _internalRenamers;
+    private readonly RenamerInstanceRepository _renamers;
+    public Dictionary<string, IRenamer<MoveRenameEventArgs>> RenamersByKey { get; } = [];
+    public Dictionary<Type, IRenamer<MoveRenameEventArgs>> RenamersByType { get; } = [];
 
-    public RenameFileService(ILogger<RenameFileService> logger, ISettingsProvider settingsProvider)
+    public RenameFileService(ILogger<RenameFileService> logger, ISettingsProvider settingsProvider, RenamerInstanceRepository renamers)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
+        _renamers = renamers;
+        LoadRenamers(AppDomain.CurrentDomain.GetAssemblies());
     }
 
-    private RenamerInstance GetRenameScript(int? scriptID)
+    public MoveRenameResult GetNewPath(SVR_VideoLocal_Place place, RenamerInstance? renamerInstance = null, bool? move = null, bool? rename = null)
     {
-        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenamerInstance.GetByID(scriptID.Value) : null) ?? RepoFactory.RenamerInstance.GetDefaultScript();
-        if (script is null)
-            return new() { Script = string.Empty, Type = string.Empty, ExtraData = string.Empty };
-        return new() { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
-    }
+        var settings = _settingsProvider.GetSettings();
+        var shouldMove = move ?? settings.Import.MoveOnImport;
+        var shouldRename = rename ?? settings.Import.RenameOnImport;
 
-    private RenamerInstance GetRenameScriptWithFallback(int? scriptID)
-    {
-        var script = (scriptID.HasValue && scriptID.Value is > 0 ? RepoFactory.RenamerInstance.GetByID(scriptID.Value) : null) ?? RepoFactory.RenamerInstance.GetDefaultOrFirst();
-        if (script is null)
-            return new() { Script = string.Empty, Type = string.Empty, ExtraData = string.Empty };
-        return new() { Script = script.Script, Type = script.RenamerType, ExtraData = script.ExtraData };
-    }
-
-    public static string? GetFilename(SVR_VideoLocal_Place place, int? scriptID)
-        => GetFilename(place, GetRenameScript(scriptID));
-
-    public static string? GetFilename(SVR_VideoLocal_Place place, RenamerInstance script)
-    {
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
         var xrefs = videoLocal.EpisodeCrossRefs;
@@ -61,12 +49,24 @@ public class RenameFileService
 
         // We don't have all the data yet, so don't try to rename yet.
         if (xrefs.Count != episodes.Count)
-            return $"*Error: Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.";
+            return new MoveRenameResult
+            {
+                Error = new MoveRenameError(
+                    $"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.")
+            };
 
-        var renamers = GetPluginRenamersSorted(script.Type, xrefs.Count is 0);
-        // We don't have a renamer we can use for the file.
-        if (renamers.Count is 0)
-            return $"*Error: No renamers configured for {(xrefs.Count is 0 ? "unrecognized" : "all")} files. Aborting.";
+        if (renamerInstance == null)
+        {
+            var defaultRenamerName = settings.Import.DefaultRenamer;
+            if (string.IsNullOrWhiteSpace(defaultRenamerName)) return new MoveRenameResult { Error = new MoveRenameError("No default renamer configured and no renamer instance given") };
+            var defaultRenamer = _renamers.GetByName(defaultRenamerName);
+            if (defaultRenamer == null) return new MoveRenameResult { Error = new MoveRenameError("The specified default renamer does not exist") };
+            renamerInstance = defaultRenamer;
+        }
+
+        if (!RenamersByType.TryGetValue(renamerInstance.Type, out var renamer)) return new MoveRenameResult { Error = new MoveRenameError($"No renamers configured for {renamerInstance.Type}") };
+        // check if it's unrecognized
+        if (xrefs.Count == 0 && renamer is not IUnrecognizedRenamer) return new MoveRenameResult { Error = new MoveRenameError("Configured renamer does not support unrecognized files, and the file is unrecognized") };
 
         var anime = xrefs
             .DistinctBy(x => x.AnimeID)
@@ -86,141 +86,82 @@ public class RenameFileService
             .Where(a => a.DropFolderType != DropFolderType.Excluded)
             .ToList();
 
-        
-        var args = new MoveRenameEventArgs
+        MoveRenameEventArgs args;
+        var renamerInterface = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType() && a == typeof(IRenamer<>))!;
+        if (renamerInterface.GetGenericArguments()[0].IsGenericType)
         {
-            AnimeInfo = anime,
-            FileInfo = place,
-            EpisodeInfo = episodes,
-            GroupInfo = groups,
-            AvailableFolders = availableFolders,
-            MoveEnabled = 
-        };
-        foreach (var renamer in renamers)
-        {
-            try
-            {
-                // get filename from plugin
-                var res = renamer.GetFilename(args);
-                // if the plugin said to cancel, then do so
-                if (args.Cancel)
-                    return $"*Error: Operation canceled by renamer {renamer.GetType().Name}.";
-
-                // if the renamer returned no name, then defer to the next renamer.
-                if (string.IsNullOrEmpty(res))
-                    continue;
-
-                return res;
-            }
-            catch (Exception e)
-            {
-                if (!Utils.SettingsProvider.GetSettings().Plugins.DeferOnError || args.Cancel)
+            var settingsType = renamerInterface.GetGenericArguments()[0].GetGenericArguments()[0];
+            if (settingsType != renamerInstance.Settings.GetType())
+                return new MoveRenameResult
                 {
-                    throw;
-                }
+                    Error = new MoveRenameError(
+                        $"Configured renamer has settings of type {settingsType} but the renamer instance has settings of type {renamerInstance.Settings.GetType()}")
+                };
 
-                _logger.Warn(e, $"Renamer {renamer.GetType().Name} threw an error while trying to determine a new file name, deferring to next renamer. File: \"{place.FullServerPath}\" Error message: \"{e.Message}\"");
-            }
+            var argsType = typeof(MoveRenameEventArgs<>).MakeGenericType();
+            args = (MoveRenameEventArgs)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, argsType);
+            args.AnimeInfo = anime;
+            args.FileInfo = place;
+            args.EpisodeInfo = episodes;
+            args.GroupInfo = groups;
+            args.AvailableFolders = availableFolders;
+            args.MoveEnabled = shouldMove;
+            args.RenameEnabled = shouldRename;
+            argsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(a => a.Name == "Settings")!.SetValue(args,
+                renamerInstance.Settings);
+        }
+        else
+        {
+            args = new MoveRenameEventArgs
+            {
+                AnimeInfo = anime,
+                FileInfo = place,
+                EpisodeInfo = episodes,
+                GroupInfo = groups,
+                AvailableFolders = availableFolders,
+                MoveEnabled = move ?? settings.Import.MoveOnImport,
+                RenameEnabled = rename ?? settings.Import.RenameOnImport,
+            };
         }
 
-        return null;
-    }
-
-    public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, int? scriptID)
-        => GetDestination(place, GetRenameScriptWithFallback(scriptID));
-
-    public static (SVR_ImportFolder? importFolder, string? fileName) GetDestination(SVR_VideoLocal_Place place, RenamerInstance script)
-    {
-        var videoLocal = place.VideoLocal ??
-            throw new NullReferenceException(nameof(place.VideoLocal));
-        var xrefs = videoLocal.EpisodeCrossRefs;
-        var episodes = xrefs
-            .Select(x => x.AniDBEpisode)
-            .WhereNotNull()
-            .ToList();
-
-        // We don't have all the data yet, so don't try to rename yet.
-        if (xrefs.Count != episodes.Count)
-            return (null, $"*Error: Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes.");
-
-        var renamers = GetPluginRenamersSorted(script.Type, xrefs.Count is 0);
-        // We don't have a renamer we can use for the file.
-        if (renamers.Count is 0)
-            return (null, $"*Error: No renamers configured for {(xrefs.Count is 0 ? "unrecognized" : "all")} files. Aborting.");
-
-        var anime = xrefs
-            .DistinctBy(x => x.AnimeID)
-            .Select(x => x.AniDBAnime)
-            .WhereNotNull()
-            .ToList();
-        var groups = xrefs
-            .DistinctBy(x => x.AnimeID)
-            .Select(x => x.AnimeSeries)
-            .WhereNotNull()
-            .DistinctBy(a => a.AnimeGroupID)
-            .Select(a => a.AnimeGroup)
-            .WhereNotNull()
-            .ToList();
-        var availableFolders = RepoFactory.ImportFolder.GetAll()
-            .Cast<IImportFolder>()
-            .Where(a => a.DropFolderType != DropFolderType.Excluded)
-            .ToList();
-        var args = new MoveEventArgs(script, availableFolders, place, videoLocal, episodes, anime, groups);
-        foreach (var renamer in renamers)
+        try
         {
-            try
-            {
-                // get destination from renamer
-                var (destFolder, destPath) = renamer.GetDestination(args);
-                // if the renamer has said to cancel, then return null
-                if (args.Cancel)
-                    return (null, $"*Error: Operation canceled by renamer {renamer.GetType().Name}.");
+            // get filename from plugin
+            var res = renamer.GetNewPath(args);
+            if (res.Error != null) return res;
 
-                // if no path was specified, then defer
-                if (string.IsNullOrEmpty(destPath) || destFolder is null)
-                    continue;
-
-                if (Path.AltDirectorySeparatorChar != Path.DirectorySeparatorChar)
-                    destPath = destPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-                destPath = RemoveFilename(place.FilePath, destPath);
-
-                var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Path);
-                if (importFolder is null)
+            // if the plugin said to cancel, then do so
+            if (args.Cancel)
+                return new MoveRenameResult
                 {
-                    _logger.Warn($"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was \"{renamer.GetType().GetAssemblyName()}\" with renamer \"{renamer.GetType().Name}\"");
-                    continue;
-                }
+                    Error = new MoveRenameError($"Operation canceled by renamer {renamer.GetType().Name}.")
+                };
 
-                return (importFolder, destPath);
-            }
-            catch (Exception e)
-            {
-                if (!Utils.SettingsProvider.GetSettings().Plugins.DeferOnError || args.Cancel)
-                    throw;
+            // TODO check fallback renamer 
+            if (shouldRename && string.IsNullOrEmpty(res.FileName))
+                return new MoveRenameResult
+                {
+                    Error = new MoveRenameError($"Set to rename, but renamer {renamer.GetType().Name} did not return a new file name")
+                };
 
-                _logger.Warn($"Renamer: {renamer.GetType().Name} threw an error while finding a destination, deferring to next renamer. Path: \"{place.FullServerPath}\" Error message: \"{e.Message}\"");
-            }
+            if (shouldMove && (string.IsNullOrEmpty(res.Path) || res.DestinationImportFolder == null))
+                return new MoveRenameResult
+                {
+                    Error = new MoveRenameError($"Renamer {renamer.GetType().Name} did not return a file path")
+                };
+
+            return res;
         }
-
-        return (null, null);
+        catch (Exception e)
+        {
+            return new MoveRenameResult
+            {
+                Error = new MoveRenameError(e.Message, e)
+            };
+        }
     }
 
-    private static string RemoveFilename(string filePath, string destPath)
-    {
-        var name = Path.DirectorySeparatorChar + Path.GetFileName(filePath);
-        var last = destPath.LastIndexOf(Path.DirectorySeparatorChar);
-        if (last <= -1 || last >= destPath.Length - 1)
-            return destPath;
-
-        var end = destPath[last..];
-        if (end.Equals(name, StringComparison.Ordinal))
-            destPath = destPath[..last];
-
-        return destPath;
-    }
-
-    internal static void FindRenamers(IList<Assembly> assemblies)
+    private void LoadRenamers(IList<Assembly> assemblies)
     {
         var allTypes = assemblies
             .SelectMany(a =>
@@ -234,8 +175,9 @@ public class RenameFileService
                     return Type.EmptyTypes;
                 }
             })
-            .Where(a => a.GetInterfaces().Contains(typeof(IRenamer)))
+            .Where(a => a.GetInterfaces().Any(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>)))
             .ToList();
+
         foreach (var implementation in allTypes)
         {
             var attributes = implementation.GetCustomAttributes<RenamerAttribute>();
@@ -244,37 +186,30 @@ public class RenameFileService
                 if (key is null)
                     continue;
 
-                var version = Utils.GetApplicationVersion(implementation.Assembly);
-                if (Renamers.TryGetValue(key, out var value))
+                var version = implementation.Assembly.GetName().Version;
+                if (RenamersByKey.TryGetValue(key, out var value))
                 {
-                    _logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{value.type.Assembly.Location} (v{value.version})");
+                    var info = value.GetType();
+                    _logger.LogWarning($"Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{info.Assembly.Location} (v{info.Assembly.GetName().Version})");
                     continue;
                 }
 
-                _logger.Info($"Added Renamer: {key} (v{version}) - {desc}");
-                _internalRenamers.Add(key, (implementation, desc, version));
+                var renamer = CreateRenamer<MoveRenameEventArgs>(implementation);
+                if (renamer is null)
+                {
+                    _logger.LogWarning($"Could not create renamer of type: {implementation}@{implementation.Assembly.Location} (v{version})");
+                    continue;
+                }
+
+                _logger.LogInformation($"Added Renamer: {key} (v{version}) - {desc}");
+                RenamersByKey.Add(key, renamer);
+                RenamersByType.Add(implementation, renamer);
             }
         }
     }
 
-    private static List<IRenamer> GetPluginRenamersSorted(string? renamerName, bool isUnrecognized)
+    public IRenamer<T> CreateRenamer<T>(Type type) where T : MoveRenameEventArgs
     {
-        var settings = Utils.SettingsProvider.GetSettings();
-        var renamers = GetEnabledRenamers(renamerName)
-            .OrderByDescending(a => renamerName == a.Key)
-            .ThenBy(a => settings.Plugins.RenamerPriorities.GetValueOrDefault(a.Key, int.MaxValue))
-            .ThenBy(a => a.Key, StringComparer.InvariantCulture)
-            .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, a.Value.type));
-        if (isUnrecognized)
-            renamers = renamers.Where(renamer => renamer is IUnrecognizedRenamer);
-        return renamers.ToList();
-    }
-
-    private static IEnumerable<KeyValuePair<string, (Type type, string description, string version)>> GetEnabledRenamers(string? renamerName)
-    {
-        var settings = Utils.SettingsProvider.GetSettings();
-        if (string.IsNullOrEmpty(renamerName)) return _internalRenamers;
-        return _internalRenamers
-            .Where(kvp => kvp.Key == renamerName && (!settings.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out var isEnabled) || isEnabled));
+        return (IRenamer<T>)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, type);
     }
 }
