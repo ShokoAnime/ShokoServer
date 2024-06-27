@@ -35,7 +35,7 @@ public class Renamer : BaseModel
     public Renamer(string name, (Type type, string description, string version) value)
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        var scripts = RepoFactory.RenamerInstance.GetByType(name);
+        var scripts = RepoFactory.RenamerInstance.GetByName(name);
         Name = name;
         Size = scripts.Count;
         Version = value.version;
