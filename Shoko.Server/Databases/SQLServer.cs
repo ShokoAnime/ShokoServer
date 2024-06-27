@@ -689,11 +689,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(116, 1, "DROP TABLE CommandRequest"),
         new DatabaseCommand(117, 1, "ALTER TABLE AnimeEpisode ADD EpisodeNameOverride nvarchar(500) NULL"),
         new DatabaseCommand(118, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
-        new DatabaseCommand(119, 1, "ALTER TABLE AniDB_Anime DROP COLUMN ContractVersion;ALTER TABLE AniDB_Anime DROP COLUMN ContractBlob;ALTER TABLE AniDB_Anime DROP COLUMN ContractSize;"),
-        new DatabaseCommand(119, 2, "ALTER TABLE AnimeSeries DROP COLUMN ContractVersion;ALTER TABLE AnimeSeries DROP COLUMN ContractBlob;ALTER TABLE AnimeSeries DROP COLUMN ContractSize;"),
-        new DatabaseCommand(119, 3, "ALTER TABLE AnimeGroup DROP COLUMN ContractVersion;ALTER TABLE AnimeGroup DROP COLUMN ContractBlob;ALTER TABLE AnimeGroup DROP COLUMN ContractSize;"),
-        new DatabaseCommand(120, 1, "ALTER TABLE VideoLocal DROP COLUMN MediaSize;"),
+        new DatabaseCommand(119, 1, DropContracts),
+        new DatabaseCommand(120, 1, DropVideoLocalMediaSize),
     };
+
+    
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
     {
@@ -717,6 +717,18 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(
             "CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
     };
+
+    private static void DropVideoLocalMediaSize()
+    {
+        DropColumnWithDefaultConstraint("VideoLocal", "MediaSize");
+    }
+
+    private static void DropContracts()
+    {
+        string[] tables = ["AniDB_Anime", "AnimeSeries", "AnimeGroup"];
+        string[] columns = ["ContractSize", "ContractVersion", "ContractBlob"];
+        tables.ForEach(t => columns.ForEach(a => DropColumnWithDefaultConstraint(t, a)));
+    }
 
     private static void DropPlexContractColumns()
     {
@@ -753,8 +765,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
                             WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')
                             )";
         var name = session.CreateSQLQuery(query).UniqueResult<string>();
-        query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
-        session.CreateSQLQuery(query).ExecuteUpdate();
+        if (name != null)
+        {
+            query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
+            session.CreateSQLQuery(query).ExecuteUpdate();
+        }
 
         query = $@"ALTER TABLE {table} DROP COLUMN {column}";
         session.CreateSQLQuery(query).ExecuteUpdate();
