@@ -10,24 +10,23 @@ using NHibernate.UserTypes;
 
 namespace Shoko.Server.Databases.NHibernate;
 
-public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
+public class TypelessMessagePackConverter : TypeConverter, IUserType
 {
     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
     {
-        return typeof(T).IsAssignableFrom(sourceType);
+        return true;
     }
 
     public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
     {
-        return destinationType == typeof(byte[]) || destinationType == typeof(MessagePackConverter<T>);
+        return destinationType == typeof(byte[]) || destinationType == typeof(TypelessMessagePackConverter);
     }
 
     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture,
         object value)
     {
         var s = value as byte[] ?? throw new ArgumentException("Can only convert from byte[]");
-        if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Deserialize(s);
-        return MessagePackSerializer.Deserialize<T>(s);
+        return MessagePackSerializer.Typeless.Deserialize(s);
     }
 
     /// <summary>
@@ -46,8 +45,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
         object value, Type destinationType)
     {
         if (value == null) return null;
-        if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Serialize(value);
-        return MessagePackSerializer.Serialize(value);
+        return MessagePackSerializer.Typeless.Serialize(value);
     }
 
 

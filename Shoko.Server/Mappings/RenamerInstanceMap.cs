@@ -12,7 +12,7 @@ public class RenamerInstanceMap : ClassMap<RenamerInstance>
         Id(x => x.ID);
 
         Map(x => x.Name);
-        Map(x => x.Type).Not.Nullable();
-        Map(x => x.Settings).Nullable().CustomType<MessagePackConverter<object>>();
+        Map(x => x.Type).CustomType<TypeStringConverter>().Not.Nullable();
+        Map(x => x.Settings).Nullable().CustomType<TypelessMessagePackConverter>();
     }
 }

@@ -8,7 +8,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 6;
+    public const int Version = 7;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -40,7 +40,8 @@ public static class SettingsMigrations
         { 3, MigrateAutoGroupRelations },
         { 4, MigrateHostnameToHost },
         { 5, MigrateAutoGroupRelationsAlternateToAlternative },
-        { 6, MigrateAniDBServerAddresses }
+        { 6, MigrateAniDBServerAddresses },
+        { 7, MigrateRenamerFromImportToPluginsSettings }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -103,6 +104,27 @@ public static class SettingsMigrations
         currentSettings["AniDb"]["HTTPServerUrl"] = $"http://{serverAddress}:{serverPort + 1}";
         currentSettings["AniDb"]["UDPServerAddress"] = serverAddress;
         currentSettings["AniDb"]["UDPServerPort"] = serverPort;
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateRenamerFromImportToPluginsSettings(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        var importSettings = currentSettings["Import"];
+        if (importSettings is null)
+            return settings;
+
+        var renameOnImport = importSettings["RenameOnImport"]?.Value<bool>() ?? false;
+        var moveOnImport = importSettings["MoveOnImport"]?.Value<bool>() ?? false;
+        var pluginsSettings = currentSettings["Plugins"] ?? (currentSettings["Plugins"] = new JObject());
+        var renamerSettings = pluginsSettings["Renamer"] ?? (pluginsSettings["Renamer"] = new JObject());
+        renamerSettings["RenameOnImport"] = renameOnImport;
+        renamerSettings["MoveOnImport"] = moveOnImport;
+
+        var enabledRenamers = pluginsSettings["EnabledRenamers"]?.ToObject<Dictionary<string, bool>>();
+        if (enabledRenamers != null) renamerSettings["EnabledRenamers"] = new JObject(enabledRenamers);
 
         return currentSettings.ToString();
     }

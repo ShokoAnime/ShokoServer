@@ -10,24 +10,23 @@ using NHibernate.UserTypes;
 
 namespace Shoko.Server.Databases.NHibernate;
 
-public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
+public class TypeStringConverter : TypeConverter, IUserType
 {
     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
     {
-        return typeof(T).IsAssignableFrom(sourceType);
+        return typeof(Type).IsAssignableFrom(sourceType);
     }
 
     public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
     {
-        return destinationType == typeof(byte[]) || destinationType == typeof(MessagePackConverter<T>);
+        return destinationType == typeof(string) || destinationType == typeof(Type);
     }
 
     public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture,
         object value)
     {
-        var s = value as byte[] ?? throw new ArgumentException("Can only convert from byte[]");
-        if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Deserialize(s);
-        return MessagePackSerializer.Deserialize<T>(s);
+        var s = value as string ?? throw new ArgumentException("Can only convert from string");
+        return Type.GetType(s);
     }
 
     /// <summary>
@@ -46,8 +45,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
         object value, Type destinationType)
     {
         if (value == null) return null;
-        if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Serialize(value);
-        return MessagePackSerializer.Serialize(value);
+        return value.ToString();
     }
 
 
@@ -133,7 +131,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
     /// <exception cref="T:NHibernate.HibernateException">HibernateException</exception>
     public object NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
     {
-        var rawValue = NHibernateUtil.BinaryBlob.NullSafeGet(rs, names[0], impl);
+        var rawValue = NHibernateUtil.String.NullSafeGet(rs, names[0], impl);
         return rawValue == null ? null : ConvertFrom(null!, null!, rawValue);
     }
 
@@ -150,7 +148,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
     public void NullSafeSet(DbCommand cmd, object value, int index, ISessionImplementor session)
     {
         ((IDataParameter)cmd.Parameters[index]).Value =
-            value == null ? DBNull.Value : ConvertTo(null, null, value, typeof(byte[]));
+            value == null ? DBNull.Value : ConvertTo(null, null, value, typeof(string));
     }
 
     /// <summary>
@@ -173,13 +171,13 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
     /// <summary>
     /// The type returned by <c>NullSafeGet()</c>
     /// </summary>
-    public Type ReturnedType => typeof(byte[]);
+    public Type ReturnedType => typeof(string);
 
     /// <summary>
     /// The SQL types for the columns mapped by this type.
     /// </summary>
     /// <value></value>
-    public SqlType[] SqlTypes => new[] { NHibernateUtil.BinaryBlob.SqlType };
+    public SqlType[] SqlTypes => new[] { NHibernateUtil.String.SqlType };
 
     /// <summary>
     /// Determines whether the specified <see cref="System.Object"/> is equal to this instance.

@@ -1,5 +1,8 @@
 using System;
 using System.Threading.Tasks;
+using MessagePack;
+using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -95,6 +98,12 @@ public class Startup
     {
         try
         {
+            // Set default options for MessagePack
+            MessagePackSerializer.DefaultOptions = MessagePackSerializer.DefaultOptions.WithAllowAssemblyVersionMismatch(true)
+                .WithCompression(MessagePackCompression.Lz4BlockArray);
+            MessagePackSerializer.Typeless.DefaultOptions = MessagePackSerializer.Typeless.DefaultOptions.WithAllowAssemblyVersionMismatch(true)
+                .WithCompression(MessagePackCompression.Lz4BlockArray);
+
             _logger.LogInformation("Initializing Web Hosts...");
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingHosts;
             if (!await StartWebHost(_settingsProvider)) return;

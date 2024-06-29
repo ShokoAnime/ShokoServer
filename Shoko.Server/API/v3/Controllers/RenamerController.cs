@@ -29,22 +29,24 @@ public class RenamerController : BaseController
     private readonly VideoLocalRepository _vlRepository;
 
     private readonly RenamerInstanceRepository _rsRepository;
+    private readonly RenameFileService _renameFileService;
 
-    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerInstanceRepository rsRepository) : base(settingsProvider)
+    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerInstanceRepository rsRepository, RenameFileService renameFileService) : base(settingsProvider)
     {
         _vlpService = vlpService;
         _vlRepository = vlRepository;
         _rsRepository = rsRepository;
+        _renameFileService = renameFileService;
     }
 
     /// <summary>
     /// Get a list of all <see cref="ApiRenamer"/>s.
     /// </summary>
     /// <returns></returns>
-    [HttpGet]
+    /*[HttpGet]
     public ActionResult<List<ApiRenamer>> GetAllRenamers()
     {
-        return RenameFileService.Renamers
+        return _renameFileService.Renamers
             .Select(p => new ApiRenamer(p.Key, p.Value))
             .ToList();
     }
@@ -409,5 +411,5 @@ public class RenamerController : BaseController
                 AbsolutePath = result.AbsolutePath,
             };
         }
-    }
+    }*/
 }

@@ -479,7 +479,7 @@ public class FileController : BaseController
             return NotFound(FileLocationNotFoundWithLocationID);
 
         // Make sure we have a valid script to use.
-        RenameScript script;
+        /*RenameScript script;
         if (!body.ScriptID.HasValue || body.ScriptID.Value <= 0)
         {
             script = RepoFactory.RenamerInstance.GetDefaultOrFirst();
@@ -532,7 +532,8 @@ public class FileController : BaseController
             IsPreview = body.Preview,
             RelativePath = result.RelativePath,
             AbsolutePath = result.AbsolutePath,
-        };
+        };*/
+        return BadRequest("Not implemented"); 
     }
 
     /// <summary>

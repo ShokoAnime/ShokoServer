@@ -1,15 +1,22 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Databases.SqliteFixes;
+using Shoko.Server.Models;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -22,7 +29,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 113;
+    public override int RequiredVersion => 114;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -687,7 +694,103 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(112, 2, "ALTER TABLE AnimeSeries DROP COLUMN ContractVersion;ALTER TABLE AnimeSeries DROP COLUMN ContractBlob;ALTER TABLE AnimeSeries DROP COLUMN ContractSize;"),
         new(112, 3, "ALTER TABLE AnimeGroup DROP COLUMN ContractVersion;ALTER TABLE AnimeGroup DROP COLUMN ContractBlob;ALTER TABLE AnimeGroup DROP COLUMN ContractSize;"),
         new DatabaseCommand(113, 1, "ALTER TABLE VideoLocal DROP COLUMN MediaSize;"),
+        new(114, 1, MigrateRenamers),
     };
+
+    private static Tuple<bool, string> MigrateRenamers(object connection)
+    {
+        try
+        {
+            var myConn = (SqliteConnection)connection;
+            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
+            var settingsProvider = Utils.SettingsProvider;
+
+            const string createCommand = """
+                                         CREATE TABLE IF NOT EXISTS RenamerInstance (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name text NOT NULL, Type text NOT NULL, Settings BLOB);
+                                         CREATE INDEX IX_RenamerInstance_Name ON RenamerInstance(Name);
+                                         CREATE INDEX IX_RenamerInstance_Type ON RenamerInstance(Type);
+                                         """;
+
+            factory.Execute(myConn, createCommand);
+
+            const string addCommand = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
+            var reader = factory.ExecuteReader(myConn, addCommand);
+            string defaultName = null;
+            var renamerInstances = reader.Select(a =>
+            {
+                var type = ((string)a[1]).Equals("Legacy")
+                    ? typeof(WebAOMRenamer)
+                    : renamerService.RenamersByKey.ContainsKey((string)a[1])
+                        ? renamerService.RenamersByKey[(string)a[1]].GetType()
+                        : Type.GetType((string)a[1]);
+                if (type == null)
+                {
+                    if ((string)a[1] == "GroupAwareRenamer")
+                        return (Renamer: new RenamerInstance
+                        {
+                            Name = (string)a[0],
+                            Type = typeof(WebAOMRenamer),
+                            Settings = new WebAOMSettings
+                            {
+                                Script = (string)a[3], GroupAwareSorting = true
+                            }
+                        }, IsDefault: (long)a[2] == 1);
+
+                    Logger.Warn("A renamer could not be converted. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] + " Script: " + (string)a[3]);
+                    return default;
+                }
+
+                var settingsType = type.GetInterfaces().FirstOrDefault(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>))
+                    ?.GetGenericArguments().FirstOrDefault();
+                object settings = null;
+                if (settingsType != null)
+                {
+                    settings = ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
+                    settingsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
+                        ?.SetValue(settings, (string)a[3]);
+                }
+
+                return (Renamer: new RenamerInstance
+                {
+                    Name = (string)a[0], Type = type, Settings = settings
+                }, IsDefault: (long)a[2] == 1);
+            }).WhereNotNull().GroupBy(a => a.Renamer.Name).SelectMany(a => a.Select((b, i) =>
+            {
+                // Names are distinct
+                var renamer = b.Renamer;
+                if (i > 0) renamer.Name = renamer.Name + "_" + (i + 1);
+                if (b.IsDefault) defaultName = renamer.Name;
+                return renamer;
+            }));
+
+            if (defaultName != null)
+            {
+                var settings = settingsProvider.GetSettings();
+                settings.Plugins.Renamer.DefaultRenamer = defaultName;
+                settingsProvider.SaveSettings(settings);
+            }
+
+            const string insertCommand = "INSERT INTO RenamerInstance (Name, Type, Settings) VALUES (@Name, @Type, @Settings);";
+            foreach (var renamer in renamerInstances)
+            {
+                var command = new SqliteCommand(insertCommand, myConn);
+                command.Parameters.AddWithValue("@Name", renamer.Name);
+                command.Parameters.AddWithValue("@Type", renamer.Type.ToString());
+                command.Parameters.AddWithValue("@Settings", renamer.Settings == null ? null : MessagePackSerializer.Typeless.Serialize(renamer.Settings));
+                command.ExecuteNonQuery();
+            }
+
+            const string dropCommand = "DROP TABLE RenameScript;";
+            factory.Execute(myConn, dropCommand);
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string>(true, null);
+    }
 
     private static Tuple<bool, string> DropLanguage(object connection)
     {
@@ -1187,10 +1290,10 @@ public class SQLite : BaseDatabase<SqliteConnection>
         return long.Parse(sqCommand.ExecuteScalar().ToString());
     }
 
-    protected override List<object> ExecuteReader(SqliteConnection connection, string command)
+    protected override List<object[]> ExecuteReader(SqliteConnection connection, string command)
     {
         using var sqCommand = new SqliteCommand(command, connection);
-        var rows = new List<object>();
+        var rows = new List<object[]>();
         sqCommand.CommandTimeout = 0;
         using var reader = sqCommand.ExecuteReader();
         while (reader.Read())

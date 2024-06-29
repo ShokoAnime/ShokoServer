@@ -15,8 +15,8 @@ using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Renamer;
 
-[Renamer(RENAMER_ID, Description = "The legacy renamer, based on WebAOM's renamer. You can find information for it at https://wiki.anidb.net/WebAOM#Scripting")]
-public class WebAOMRenamer : IRenamer<MoveRenameEventArgs<WebAOMSettings>>
+[RenamerID(RENAMER_ID)]
+public class WebAOMRenamer : IRenamer<WebAOMSettings>
 {
     private const string RENAMER_ID = "WebAOM";
     private readonly ILogger<WebAOMRenamer> _logger;
@@ -25,6 +25,9 @@ public class WebAOMRenamer : IRenamer<MoveRenameEventArgs<WebAOMSettings>>
     {
         _logger = logger;
     }
+
+    public string Name => "WebAOM Renamer";
+    public string Description => "The legacy renamer, based on WebAOM's renamer. You can find information for it at https://wiki.anidb.net/WebAOM#Scripting";
 
     public MoveRenameResult GetNewPath(MoveRenameEventArgs<WebAOMSettings> args)
     {
@@ -44,7 +47,11 @@ public class WebAOMRenamer : IRenamer<MoveRenameEventArgs<WebAOMSettings>>
         try
         {
             if (args.RenameEnabled) (success, newFilename) = GetNewFileName(args, script);
-            if (args.MoveEnabled) destination = GetDestinationFolder(args);
+            if (args.MoveEnabled)
+            {
+                destination = GetDestinationFolder(args);
+                if (destination == default) success = false;
+            }
         }
         catch (Exception e)
         {
@@ -55,7 +62,7 @@ public class WebAOMRenamer : IRenamer<MoveRenameEventArgs<WebAOMSettings>>
         {
             return new MoveRenameResult
             {
-                Error = ex == null ? null : new MoveRenameError(newFilename)
+                Error = ex == null ? null : new MoveRenameError(ex.Message, ex)
             };
         }
 
@@ -2158,6 +2165,7 @@ public class WebAOMRenamer : IRenamer<MoveRenameEventArgs<WebAOMSettings>>
         var settings = Utils.SettingsProvider.GetSettings();
         foreach (var fldr in args.AvailableFolders)
         {
+            if (!fldr.DropFolderType.HasFlag(DropFolderType.Destination)) continue;
             if (!Directory.Exists(fldr.Path)) continue;
 
             // Continue if on a separate drive and there's no space

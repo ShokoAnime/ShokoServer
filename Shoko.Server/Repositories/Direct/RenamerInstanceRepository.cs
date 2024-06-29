@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Direct;
 
-public class RenamerInstanceRepository : BaseDirectRepository<RenameScript, int>
+public class RenamerInstanceRepository : BaseDirectRepository<RenamerInstance, int>
 {
 
     public RenamerInstance? GetByName(string? scriptName)
