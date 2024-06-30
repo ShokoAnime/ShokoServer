@@ -38,7 +38,7 @@ public class RenamerController : BaseController
         _rsRepository = rsRepository;
         _renameFileService = renameFileService;
     }
-
+    
     /// <summary>
     /// Get a list of all <see cref="ApiRenamer"/>s.
     /// </summary>

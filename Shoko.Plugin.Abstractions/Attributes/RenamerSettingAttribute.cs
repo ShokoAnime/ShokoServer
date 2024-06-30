@@ -17,6 +17,11 @@ public class RenamerSettingAttribute : Attribute
     public RenamerSettingType Type { get; set; }
 
     /// <summary>
+    /// The language to use for text highlighting in the editor
+    /// </summary>
+    public CodeLanguage Language { get; set; }
+
+    /// <summary>
     /// The description of the setting and what it controls
     /// </summary>
     public string? Description { get; set; }

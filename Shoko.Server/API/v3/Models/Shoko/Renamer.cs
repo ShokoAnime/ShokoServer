@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v3.Models.Common;
 
 #nullable enable
@@ -23,9 +24,20 @@ public class Renamer : BaseModel
     public bool Enabled { get; set; }
 
     /// <summary>
-    /// The name of the renamer.
+    /// The name of the renamer. This is a unique ID!
     /// </summary>
     public string Name { get; set; }
+
+    public List<RenamerSetting> Settings { get; set; }
+    
+    public class RenamerSetting
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public CodeLanguage? Language { get; set; }
+        public RenamerSettingType Type { get; set; }
+        public object Value { get; set; }
+    }
 
     /// <summary>
     /// Represents the result of a file relocation process.

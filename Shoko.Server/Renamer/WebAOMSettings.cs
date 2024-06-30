@@ -8,6 +8,6 @@ public class WebAOMSettings
     [RenamerSetting(Name = "Group Aware Sorting", Description = "Whether to place files in a folder structure based on the Shoko group structure")]
     public bool GroupAwareSorting { get; set; }
 
-    [RenamerSetting(Type = RenamerSettingType.Code)]
+    [RenamerSetting(Type = RenamerSettingType.Code, Language = CodeLanguage.PlainText)]
     public string Script { get; set; }
 }
