@@ -10,7 +10,7 @@ public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdat
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             var cats = session.Query<AniDB_AnimeUpdate>()
                 .Where(a => a.AnimeID == id)
                 .OrderByDescending(a => a.UpdatedAt).ToList();
@@ -24,5 +24,9 @@ public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdat
 
             return cat;
         });
+    }
+
+    public AniDB_AnimeUpdateRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -9,23 +10,30 @@ using Shoko.Server.Databases;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Filters;
 
 public class FilterEvaluator
 {
+    private readonly DatabaseFactory _databaseFactory;
     private readonly AnimeGroupRepository _groups;
     private readonly AnimeSeriesRepository _series;
+    private readonly CrossRef_AniDB_OtherRepository _crossRefAniDBOther; 
+    private readonly JMMUserRepository _user;
     private readonly ILogger<FilterEvaluator> _logger;
 
-    public FilterEvaluator(ILogger<FilterEvaluator> logger)
+    public FilterEvaluator(ILogger<FilterEvaluator> logger, AnimeGroupRepository groups, AnimeSeriesRepository series, JMMUserRepository user,
+        DatabaseFactory databaseFactory, CrossRef_AniDB_OtherRepository crossRefAniDBOther)
     {
-        _groups = RepoFactory.AnimeGroup;
-        _series = RepoFactory.AnimeSeries;
         _logger = logger;
+        _groups = groups;
+        _series = series;
+        _user = user;
+        _databaseFactory = databaseFactory;
+        _crossRefAniDBOther = crossRefAniDBOther;
     }
 
     /// <summary>
@@ -41,7 +49,7 @@ public class FilterEvaluator
         var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
         if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
 
-        var user = userID != null ? RepoFactory.JMMUser.GetByID(userID.Value) : null;
+        var user = userID != null ? _user.GetByID(userID.Value) : null;
 
         var filterables = filter.ApplyAtSeriesLevel switch
         {
@@ -120,10 +128,10 @@ public class FilterEvaluator
         var needsUser = seriesNeedsUser || groupsNeedUser;
         if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
 
-        var user = userID != null ? RepoFactory.JMMUser.GetByID(userID.Value) : null;
+        var user = userID != null ? _user.GetByID(userID.Value) : null;
         ILookup<int, CrossRef_AniDB_Other> movieDBMappings;
-        using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-            movieDBMappings = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDsAndType(session.Wrap(), null, CrossRefType.MovieDB);
+        using (var session = _databaseFactory.SessionFactory.OpenStatelessSession())
+            movieDBMappings = _crossRefAniDBOther.GetByAnimeIDsAndType(session.Wrap(), null, CrossRefType.MovieDB);
 
         FilterableWithID[] series = null;
         if (hasSeries)
@@ -194,11 +202,13 @@ public class FilterEvaluator
 
     private record Grouping(int GroupID, IEnumerable<int> SeriesIDs) : IGrouping<int, int>
     {
+        [MustDisposeResource]
         public IEnumerator<int> GetEnumerator()
         {
             return SeriesIDs.GetEnumerator();
         }
 
+        [MustDisposeResource]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();

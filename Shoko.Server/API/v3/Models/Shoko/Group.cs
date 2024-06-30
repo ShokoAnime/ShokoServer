@@ -1,15 +1,17 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
+using Shoko.Server.Utilities;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -66,11 +68,11 @@ public class Group : BaseModel
 
     public Group(HttpContext ctx, SVR_AnimeGroup group, bool randomiseImages = false)
     {
-        var subGroupCount = group.GetChildGroups().Count;
+        var subGroupCount = group.Children.Count;
         var userID = ctx.GetUser()?.JMMUserID ?? 0;
-        var allSeries = group.GetAllSeries();
+        var allSeries = group.AllSeries;
         var mainSeries = allSeries.FirstOrDefault();
-        var episodes = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
+        var episodes = allSeries.SelectMany(a => a.AnimeEpisodes).ToList();
 
         IDs = new GroupIDs { ID = group.AnimeGroupID };
         if (group.DefaultAnimeSeriesID != null)
@@ -91,7 +93,7 @@ public class Group : BaseModel
         IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
 
         Name = group.GroupName;
-        SortName = group.GetSortName();
+        SortName = group.SortName;
         Description = group.Description;
         Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
         Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
@@ -221,8 +223,8 @@ public class Group : BaseModel
                 Name = group.GroupName;
                 ParentGroupID = group.AnimeGroupParentID;
                 PreferredSeriesID = group.DefaultAnimeSeriesID;
-                SeriesIDs = group.GetSeries().Select(series => series.AnimeSeriesID).ToList();
-                GroupIDs = group.GetChildGroups().Select(group => group.AnimeGroupID).ToList();
+                SeriesIDs = group.Series.Select(series => series.AnimeSeriesID).ToList();
+                GroupIDs = group.Children.Select(group => group.AnimeGroupID).ToList();
             }
 
             public Group? MergeWithExisting(HttpContext ctx, SVR_AnimeGroup group, ModelStateDictionary modelState)
@@ -261,7 +263,7 @@ public class Group : BaseModel
                 // Get the series and validate the series ids.
                 var seriesList = SeriesIDs == null ? new() : SeriesIDs
                     .Select(id => id > 0 ? RepoFactory.AnimeSeries.GetByID(id) : null)
-                    .OfType<SVR_AnimeSeries>()
+                    .WhereNotNull()
                     .ToList();
                 if (seriesList.Count != (SeriesIDs?.Count ?? 0))
                 {
@@ -273,8 +275,8 @@ public class Group : BaseModel
 
                 // Get a list of all the series across the new inputs and the existing group.
                 var allSeriesList = seriesList
-                        .Concat(childGroups.SelectMany(childGroup => childGroup.GetAllSeries()))
-                        .Concat(group.GetAllSeries())
+                        .Concat(childGroups.SelectMany(childGroup => childGroup.AllSeries))
+                        .Concat(group.AllSeries)
                         .DistinctBy(series => series.AnimeSeriesID)
                         .ToList();
                 if (allSeriesList.Count == 0)
@@ -314,17 +316,19 @@ public class Group : BaseModel
                         continue;
 
                     childGroup.AnimeGroupParentID = group.AnimeGroupID;
-                    RepoFactory.AnimeGroup.Save(childGroup, false, false);
+                    RepoFactory.AnimeGroup.Save(childGroup, false);
                 }
 
                 // Move the series over to the new group.
+                var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
                 foreach (var series in seriesList)
-                    series.MoveSeries(group, updateGroupStats: false, updateEvent: false);
+                    seriesService.MoveSeries(series, group, updateGroupStats: false, updateEvent: false);
 
+                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
                 // Set the main series and maybe update the group
                 // name/description.
                 if (PreferredSeriesID.HasValue)
-                    group.SetMainSeries(preferredSeries);
+                    groupService.SetMainSeries(group, preferredSeries);
 
                 // Check if the names have changed if we omit the value, or if
                 // we set it to true.
@@ -346,7 +350,7 @@ public class Group : BaseModel
                 else
                 {
                     group.IsManuallyNamed = 0;
-                    group.GroupName = (preferredSeries ?? group.GetMainSeries()).GetSeriesName();
+                    group.GroupName = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.SeriesName ?? group.GroupName;
                 }
 
                 // Same as above, but for the description.
@@ -367,11 +371,11 @@ public class Group : BaseModel
                 else
                 {
                     group.OverrideDescription = 0;
-                    group.Description = (preferredSeries ?? group.GetMainSeries()).GetAnime().Description;
+                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.AniDB_Anime.Description ?? group.Description;
                 }
 
-                // Update stats for all groups in the chain.
-                group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
+                // Update stats for all groups in the chain
+                groupService.UpdateStatsFromTopLevel(group.TopLevelAnimeGroup, true, true);
 
                 // Emit the updated events now, after the groups and series states have been properly updated.
                 foreach (var series in seriesList)

@@ -14,7 +14,7 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return GetByOnlineID(session, url);
         });
     }
@@ -32,7 +32,7 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return GetByMovieID(session.Wrap(), id);
         });
     }
@@ -51,7 +51,7 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             var objs = session
                 .CreateCriteria(typeof(MovieDB_Poster))
                 .Add(Restrictions.Eq("ImageSize", Shoko.Models.Constants.MovieDBImageSize.Original))
@@ -59,5 +59,9 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
 
             return new List<MovieDB_Poster>(objs);
         });
+    }
+
+    public MovieDB_PosterRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

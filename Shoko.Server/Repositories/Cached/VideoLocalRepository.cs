@@ -4,24 +4,20 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using NutzCode.InMemoryIndex;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
-using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
-using Shoko.Server.Utilities.MediaInfoLib;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -33,7 +29,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     private PocoIndex<int, SVR_VideoLocal, string> _crc32;
     private PocoIndex<int, SVR_VideoLocal, bool> _ignored;
 
-    public VideoLocalRepository()
+    public VideoLocalRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         DeleteWithOpenTransactionCallback = (ses, obj) =>
         {
@@ -76,37 +72,11 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         );
         var count = 0;
         int max;
+        List<SVR_VideoLocal> list;
 
-        var list = Cache.Values.Where(a => a is { MediaVersion: 4, MediaBlob: { Length: > 0 } }).ToList();
-        max = list.Count;
-
-        foreach (var batch in list.Batch(50))
-        {
-            using var session2 = DatabaseFactory.SessionFactory.OpenSession();
-            using var transaction = session2.BeginTransaction();
-            foreach (var a in batch)
-            {
-                var media = CompressionHelper.DeserializeObject<MediaContainer>(a.MediaBlob, a.MediaSize,
-                    new JsonConverter[] { new StreamJsonConverter() });
-                a.Media = media;
-                RepoFactory.VideoLocal.SaveWithOpenTransaction(session2, a);
-                count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Converting MediaInfo to MessagePack - " + count + "/" + max
-                );
-            }
-
-            transaction.Commit();
-        }
-
-        count = 0;
         try
         {
-            list = Cache.Values.Where(a =>
-                    (a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION &&
-                     !(SVR_VideoLocal.MEDIA_VERSION == 5 && a.MediaVersion == 4)) || a.MediaBlob == null)
-                .ToList();
+            list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaInfo == null).ToList();
             max = list.Count;
 
             var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
@@ -135,7 +105,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             Resources.Database_Validating, nameof(VideoLocal),
             " Cleaning Empty Records"
         );
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         using (var transaction = session.BeginTransaction())
         {
             list = Cache.Values.Where(a => a.IsEmpty()).ToList();
@@ -219,18 +189,18 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     private void UpdateMediaContracts(SVR_VideoLocal obj)
     {
-        if (obj.Media != null && obj.MediaVersion >= SVR_VideoLocal.MEDIA_VERSION)
+        if (obj.MediaInfo != null && obj.MediaVersion >= SVR_VideoLocal.MEDIA_VERSION)
         {
             return;
         }
 
-        var place = obj.GetBestVideoLocalPlace(true);
+        var place = obj.FirstResolvedPlace;
         if (place != null) Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>().RefreshMediaInfo(place);
     }
 
     public override void Delete(SVR_VideoLocal obj)
     {
-        var list = obj.GetAnimeEpisodes();
+        var list = obj.AnimeEpisodes;
         base.Delete(obj);
         list.Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
     }
@@ -244,7 +214,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         if (obj.VideoLocalID == 0)
         {
-            obj.Media = null;
+            obj.MediaInfo = null;
             base.Save(obj);
         }
 
@@ -253,7 +223,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
         if (updateEpisodes)
         {
-            RepoFactory.AnimeEpisode.Save(obj.GetAnimeEpisodes());
+            RepoFactory.AnimeEpisode.Save(obj.AnimeEpisodes);
         }
     }
 
@@ -336,7 +306,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             return ReadLock(
                 () => Cache.Values
                     .Where(
-                        a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                        a => a.AnimeEpisodes.Select(b => b.AnimeSeries).Where(b => b != null)
                             .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)
                     ).OrderByDescending(a => a.DateTimeCreated)
                     .ToList()
@@ -345,7 +315,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
         return ReadLock(
             () => Cache.Values
-                .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                .Where(a => a.AnimeEpisodes.Select(b => b.AnimeSeries).Where(b => b != null)
                     .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)).OrderByDescending(a => a.DateTimeCreated)
                 .Take(maxResults).ToList()
         );
@@ -375,13 +345,13 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return ReadLock(
             () => take == -1
                 ? Cache.Values
-                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                    .Where(a => a.AnimeEpisodes.Select(b => b.AnimeSeries).Where(b => b != null)
                         .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
                     .OrderByDescending(a => a.DateTimeCreated)
                     .Skip(skip)
                     .ToList()
                 : Cache.Values
-                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                    .Where(a => a.AnimeEpisodes.Select(b => b.AnimeSeries).Where(b => b != null)
                         .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
                     .OrderByDescending(a => a.DateTimeCreated)
                     .Skip(skip)
@@ -442,20 +412,10 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     /// returns all the VideoLocal records associate with an AnimeEpisode Record
     /// </summary>
     /// <param name="episodeID">AniDB Episode ID</param>
-    /// <param name="xrefSource">Include to select only files from the selected
-    /// cross-reference source.</param>
     /// <returns></returns>
     /// 
-    public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID, CrossRefSource? xrefSource = null)
+    public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID)
     {
-        if (xrefSource.HasValue)
-            return
-                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
-                    .Where(xref => xref.CrossRefSource == (int)xrefSource.Value)
-                    .Select(xref => GetByHash(xref.Hash))
-                    .Where(file => file != null)
-                    .ToList();
-
         return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
             .Select(a => GetByHash(a.Hash))
             .Where(a => a != null)
@@ -496,13 +456,13 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
                     .Where(xref => xref.CrossRefSource == (int)xrefSource.Value)
                     .Select(xref => GetByHash(xref.Hash))
-                    .Where(file => file != null)
+                    .WhereNotNull()
                     .ToList();
 
         return
             RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
                 .Select(a => GetByHash(a.Hash))
-                .Where(a => a != null)
+                .WhereNotNull()
                 .ToList();
     }
 
@@ -531,7 +491,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 })
                 .OrderByNatural(local =>
                 {
-                    var place = local?.GetBestVideoLocalPlace();
+                    var place = local?.FirstValidPlace;
                     if (place == null) return null;
                     return place.FullServerPath ?? place.FilePath;
                 })
@@ -557,7 +517,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 })
                 .OrderByNatural(local =>
                 {
-                    var place = local?.GetBestVideoLocalPlace();
+                    var place = local?.FirstValidPlace;
                     if (place == null) return null;
                     return place.FullServerPath ?? place.FilePath;
                 })
@@ -571,7 +531,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
         if (ep?.AniDB_Episode == null) return false;
         var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-        return anime?.GetAnime() != null;
+        return anime?.AniDB_Anime != null;
     }
 
     public List<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()

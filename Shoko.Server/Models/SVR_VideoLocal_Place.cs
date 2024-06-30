@@ -71,11 +71,11 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
 
-    IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.GetAniDBFile();
+    IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.AniDBFile;
 
     public IHashes Hashes => VideoLocal;
 
-    public IMediaContainer MediaInfo => VideoLocal?.Media;
+    public IMediaContainer MediaInfo => VideoLocal?.MediaInfo;
 
     #endregion
 }

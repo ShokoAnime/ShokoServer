@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -105,4 +106,7 @@ public class AuthTokensRepository : BaseCachedRepository<AuthTokens, int>
     }
 
 
+    public AuthTokensRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
+    }
 }

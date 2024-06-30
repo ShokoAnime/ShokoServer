@@ -7,11 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Models.Interfaces;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Mime = MimeMapping.MimeUtility;
 
@@ -41,7 +43,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent) return StatusCode((int)r.Status, r.StatusDescription);
         if (!string.IsNullOrEmpty(fakename)) return StreamFromIFile(r, autowatch);
 
-        var subs = r.VideoLocal.Media.TextStreams.Where(a => a.External).ToList();
+        var subs = r.VideoLocal.MediaInfo.TextStreams.Where(a => a.External).ToList();
         if (!subs.Any()) return StatusCode(404);
 
         return "<table>" + string.Join(string.Empty, subs.Select(a => "<tr><td><a href=\"" + a.Filename + "\"/></td></tr>")) + "</table>";
@@ -148,7 +150,11 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
                 outstream.CrossPositionCrossed +=
                     a =>
                     {
-                        Task.Factory.StartNew(() => { r.VideoLocal.ToggleWatchedStatus(true, r.User.JMMUserID); },
+                        Task.Factory.StartNew(async () =>
+                            {
+                                var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
+                                await watchedService.SetWatchedStatus(r.VideoLocal, true, r.User.JMMUserID);
+                            },
                             new CancellationToken(),
                             TaskCreationOptions.LongRunning, TaskScheduler.Default);
                     };
@@ -221,7 +227,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         }
 
         r.VideoLocal = loc;
-        r.File = loc.GetBestVideoLocalPlace(true)?.GetFile();
+        r.File = loc.FirstResolvedPlace?.GetFile();
         return FinishResolve(r, userId, autowatch);
     }
 

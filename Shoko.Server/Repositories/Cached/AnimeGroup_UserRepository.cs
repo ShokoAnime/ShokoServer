@@ -3,20 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_User, int>
+public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, int>
 {
-    private PocoIndex<int, SVR_AnimeGroup_User, int> Groups;
-    private PocoIndex<int, SVR_AnimeGroup_User, int> Users;
-    private PocoIndex<int, SVR_AnimeGroup_User, int, int> UsersGroups;
+    private PocoIndex<int, AnimeGroup_User, int> Groups;
+    private PocoIndex<int, AnimeGroup_User, int> Users;
+    private PocoIndex<int, AnimeGroup_User, int, int> UsersGroups;
     private Dictionary<int, ChangeTracker<int>> Changes = new();
 
 
-    public AnimeGroup_UserRepository()
+    public AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         EndDeleteCallback = cr =>
         {
@@ -25,7 +26,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         };
     }
 
-    protected override int SelectKey(SVR_AnimeGroup_User entity)
+    protected override int SelectKey(AnimeGroup_User entity)
     {
         return entity.AnimeGroup_UserID;
     }
@@ -47,7 +48,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     {
     }
 
-    public override void Save(SVR_AnimeGroup_User obj)
+    public override void Save(AnimeGroup_User obj)
     {
         base.Save(obj);
         Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
@@ -56,7 +57,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     }
 
     /// <summary>
-    /// Inserts a batch of <see cref="SVR_AnimeGroup_User"/> into the database.
+    /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
     /// </summary>
     /// <remarks>
     /// <para>This method should NOT be used for updating existing entities.</para>
@@ -64,9 +65,9 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     /// <para>Group Filters, etc. will not be updated by this method.</para>
     /// </remarks>
     /// <param name="session">The NHibernate session.</param>
-    /// <param name="groupUsers">The batch of <see cref="SVR_AnimeGroup_User"/> to insert into the database.</param>
+    /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-    public async Task InsertBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
+    public async Task InsertBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
     {
         if (session == null)
         {
@@ -96,16 +97,16 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     }
 
     /// <summary>
-    /// Inserts a batch of <see cref="SVR_AnimeGroup_User"/> into the database.
+    /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
     /// </summary>
     /// <remarks>
     /// <para>It is up to the caller of this method to manage transactions, etc.</para>
     /// <para>Group Filters, etc. will not be updated by this method.</para>
     /// </remarks>
     /// <param name="session">The NHibernate session.</param>
-    /// <param name="groupUsers">The batch of <see cref="SVR_AnimeGroup_User"/> to insert into the database.</param>
+    /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-    public async Task UpdateBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
+    public async Task UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
     {
         if (session == null)
         {
@@ -173,17 +174,17 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         ClearCache();
     }
 
-    public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
+    public AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
     {
         return ReadLock(() => UsersGroups.GetOne(userid, groupid));
     }
 
-    public List<SVR_AnimeGroup_User> GetByUserID(int userid)
+    public List<AnimeGroup_User> GetByUserID(int userid)
     {
         return ReadLock(() => Users.GetMultiple(userid));
     }
 
-    public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
+    public List<AnimeGroup_User> GetByGroupID(int groupid)
     {
         return ReadLock(() => Groups.GetMultiple(groupid));
     }

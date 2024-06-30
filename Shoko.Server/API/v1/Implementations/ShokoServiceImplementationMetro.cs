@@ -21,7 +21,9 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server;
@@ -35,16 +37,21 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     private readonly ShokoServiceImplementation _service;
     private readonly ISettingsProvider _settingsProvider;
     private readonly JobFactory _jobFactory;
+    private readonly WatchedStatusService _watchedService;
+    private readonly AnimeEpisodeService _epService;
     public HttpContext HttpContext { get; set; }
 
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    public ShokoServiceImplementationMetro(TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ShokoServiceImplementation service, JobFactory jobFactory)
+    public ShokoServiceImplementationMetro(TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ShokoServiceImplementation service,
+        JobFactory jobFactory, WatchedStatusService watchedService, AnimeEpisodeService epService)
     {
         _traktHelper = traktHelper;
         _settingsProvider = settingsProvider;
         _service = service;
         _jobFactory = jobFactory;
+        _watchedService = watchedService;
+        _epService = epService;
     }
 
     [HttpGet("Server/Status")]
@@ -192,10 +199,10 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     {
         try
         {
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             return RepoFactory.AnimeGroup.GetAll()
-                .Select(a => a.GetUserContract(userID))
-                .OrderBy(a => a.SortName)
-                .ToList();
+                .Select(a => groupService.GetV1Contract(a, userID))
+                .OrderBy(a => a.SortName).ToList();
         }
         catch (Exception ex)
         {
@@ -227,7 +234,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 */
 
                 var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, jmmuserID)
-                    .SelectMany(a => a.GetAnimeEpisodes()).GroupBy(a => a.AnimeSeriesID)
+                    .SelectMany(a => a.AnimeEpisodes).GroupBy(a => a.AnimeSeriesID)
                     .Select(a => (a.Key, a.Max(b => b.DateTimeUpdated)));
 
                 var numEps = 0;
@@ -252,13 +259,13 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         continue;
                     }
 
-                    var eps = vids[0].GetAnimeEpisodes();
+                    var eps = vids[0].AnimeEpisodes;
                     if (eps.Count == 0)
                     {
                         continue;
                     }
 
-                    var epContract = eps[0].GetUserContract(jmmuserID);
+                    var epContract = _epService.GetV1Contract(eps[0], jmmuserID);
                     if (epContract != null)
                     {
                         retEps.Add(epContract);
@@ -295,7 +302,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 }
 
                 var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, jmmuserID)
-                    .SelectMany(a => a.GetAnimeEpisodes()).GroupBy(a => a.AnimeSeriesID)
+                    .SelectMany(a => a.AnimeEpisodes).GroupBy(a => a.AnimeSeriesID)
                     .Select(a => (a.Key, a.Max(b => b.DateTimeUpdated)));
 
                 var numEps = 0;
@@ -312,7 +319,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         continue;
                     }
 
-                    var serUser = ser.GetUserRecord(jmmuserID);
+                    var serUser = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(jmmuserID, ser.AnimeSeriesID);
 
                     var vids =
                         RepoFactory.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
@@ -321,21 +328,21 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         continue;
                     }
 
-                    var eps = vids[0].GetAnimeEpisodes();
+                    var eps = vids[0].AnimeEpisodes;
                     if (eps.Count == 0)
                     {
                         continue;
                     }
 
-                    var epContract = eps[0].GetUserContract(jmmuserID);
+                    var epContract = _epService.GetV1Contract(eps[0], jmmuserID);
                     if (epContract != null)
                     {
-                        var anidb_anime = ser.GetAnime();
+                        var anidb_anime = ser.AniDB_Anime;
 
                         var summ = new Metro_Anime_Summary
                         {
                             AnimeID = ser.AniDB_ID,
-                            AnimeName = ser.GetSeriesName(),
+                            AnimeName = ser.SeriesName,
                             AnimeSeriesID = ser.AnimeSeriesID,
                             BeginYear = anidb_anime.BeginYear,
                             EndYear = anidb_anime.EndYear
@@ -413,18 +420,18 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         continue;
                     }
 
-                    var serUser = series.GetUserRecord(jmmuserID);
+                    var serUser = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(jmmuserID, series.AnimeSeriesID);
 
                     var ep = _service.GetNextUnwatchedEpisode(userRecord.AnimeSeriesID,
                         jmmuserID);
                     if (ep != null)
                     {
-                        var anidb_anime = series.GetAnime();
+                        var anidb_anime = series.AniDB_Anime;
 
                         var summ = new Metro_Anime_Summary
                         {
                             AnimeID = series.AniDB_ID,
-                            AnimeName = series.GetSeriesName(),
+                            AnimeName = series.SeriesName,
                             AnimeSeriesID = series.AnimeSeriesID,
                             BeginYear = anidb_anime.BeginYear,
                             EndYear = anidb_anime.EndYear
@@ -502,7 +509,9 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
             var results = evaluator.EvaluateFilter(gf, user.JMMUserID);
 
-            var comboGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null).Select(a => a.GetUserContract(jmmuserID));
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var comboGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null)
+                .Select(a => groupService.GetV1Contract(a, jmmuserID));
 
             foreach (var grp in comboGroups)
             {
@@ -510,17 +519,17 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 {
                     if (!user.AllowedSeries(ser)) continue;
 
-                    var serUser = ser.GetUserRecord(jmmuserID);
+                    var serUser = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(jmmuserID, ser.AnimeSeriesID);
 
                     var ep = _service.GetNextUnwatchedEpisode(ser.AnimeSeriesID, jmmuserID);
                     if (ep != null)
                     {
-                        var anidb_anime = ser.GetAnime();
+                        var anidb_anime = ser.AniDB_Anime;
 
                         var summ = new Metro_Anime_Summary
                         {
                             AnimeID = ser.AniDB_ID,
-                            AnimeName = ser.GetSeriesName(),
+                            AnimeName = ser.SeriesName,
                             AnimeSeriesID = ser.AnimeSeriesID,
                             BeginYear = anidb_anime.BeginYear,
                             EndYear = anidb_anime.EndYear
@@ -597,7 +606,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 };
                 if (ser != null)
                 {
-                    summ.AnimeName = ser.GetSeriesName();
+                    summ.AnimeName = ser.SeriesName;
                     summ.AnimeSeriesID = ser.AnimeSeriesID;
                 }
                 else
@@ -658,7 +667,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 };
                 if (ser != null)
                 {
-                    summ.AnimeName = ser.GetSeriesName();
+                    summ.AnimeName = ser.SeriesName;
                     summ.AnimeSeriesID = ser.AnimeSeriesID;
                 }
                 else
@@ -706,7 +715,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             var ret = new Metro_Anime_Detail { AnimeID = anime.AnimeID };
             if (ser != null)
             {
-                ret.AnimeName = ser.GetSeriesName();
+                ret.AnimeName = ser.SeriesName;
             }
             else
             {
@@ -757,7 +766,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             ret.NextEpisodesToWatch = new List<Metro_Anime_Episode>();
             if (ser != null)
             {
-                var serUserRec = ser.GetUserRecord(jmmuserID);
+                var serUserRec = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(jmmuserID, ser.AnimeSeriesID);
                 if (ser != null)
                 {
                     ret.UnwatchedEpisodeCount = serUserRec.UnwatchedEpisodeCount;
@@ -812,7 +821,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         {
                             // The episode list have already been filtered to only episodes with a user record
                             // So just add the candidate to the list.
-                            candidateEps.Add(ep.GetUserContract(jmmuserID));
+                            candidateEps.Add(_epService.GetV1Contract(ep, jmmuserID));
                         }
                     }
                 }
@@ -843,7 +852,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                             // now refresh from the database to get file count
                             var epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
 
-                            var fileCount = epFresh.GetVideoLocals().Count;
+                            var fileCount = epFresh.VideoLocals.Count;
                             if (fileCount > 0)
                             {
                                 var contract = new Metro_Anime_Episode
@@ -921,7 +930,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
             if (ser != null)
             {
-                summ.AnimeName = ser.GetSeriesName();
+                summ.AnimeName = ser.SeriesName;
                 summ.AnimeSeriesID = ser.AnimeSeriesID;
             }
 
@@ -1080,7 +1089,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
 
             // first get the related anime
-            foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
+            foreach (AniDB_Anime_Relation link in anime.RelatedAnime)
             {
                 var animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
 
@@ -1126,7 +1135,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
                 if (ser != null)
                 {
-                    summ.AnimeName = ser.GetSeriesName();
+                    summ.AnimeName = ser.SeriesName;
                     summ.AnimeSeriesID = ser.AnimeSeriesID;
                 }
 
@@ -1134,7 +1143,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             }
 
             // now get similar anime
-            foreach (var link in anime.GetSimilarAnime())
+            foreach (var link in anime.SimilarAnime)
             {
                 var animeLink =
                     RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
@@ -1184,7 +1193,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
                 if (ser != null)
                 {
-                    summ.AnimeName = ser.GetSeriesName();
+                    summ.AnimeName = ser.SeriesName;
                     summ.AnimeSeriesID = ser.AnimeSeriesID;
                 }
 
@@ -1211,7 +1220,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         {
             var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             return ep != null
-                ? ep.GetVideoDetailedContracts(userID)
+                ? _epService.GetV1VideoDetailedContracts(ep, userID)
                 : new List<CL_VideoDetailed>();
         }
         catch (Exception ex)
@@ -1237,15 +1246,17 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 return response;
             }
 
-            ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
-            var series = ep.GetAnimeSeries();
-            series?.UpdateStats(true, false);
-            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+            _watchedService.SetWatchedStatus(ep, watchedStatus, true, DateTime.Now, false, userID, true).GetAwaiter().GetResult();
+            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var series = ep.AnimeSeries;
+            seriesService.UpdateStats(series, true, false);
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
 
             // refresh from db
             ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
 
-            response.Result = ep.GetUserContract(userID);
+            response.Result = _epService.GetV1Contract(ep, userID);
 
             return response;
         }

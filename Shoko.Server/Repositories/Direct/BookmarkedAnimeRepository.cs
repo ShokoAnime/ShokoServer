@@ -13,10 +13,10 @@ public class BookmarkedAnimeRepository : BaseDirectRepository<BookmarkedAnime, i
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
-            return session.Query<BookmarkedAnime>()
-                .Where(a => a.AnimeID == animeID)
-                .SingleOrDefault();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+            return session
+                .Query<BookmarkedAnime>()
+                .SingleOrDefault(a => a.AnimeID == animeID);
         });
     }
 
@@ -33,5 +33,9 @@ public class BookmarkedAnimeRepository : BaseDirectRepository<BookmarkedAnime, i
     public override IReadOnlyList<BookmarkedAnime> GetAll(ISessionWrapper session)
     {
         return base.GetAll(session).OrderBy(a => a.Priority).ToList();
+    }
+
+    public BookmarkedAnimeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

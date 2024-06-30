@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -32,5 +33,9 @@ public class TvDB_ImagePosterRepository : BaseCachedRepository<TvDB_ImagePoster,
     public List<TvDB_ImagePoster> GetBySeriesID(int seriesID)
     {
         return ReadLock(() => SeriesIDs.GetMultiple(seriesID));
+    }
+
+    public TvDB_ImagePosterRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

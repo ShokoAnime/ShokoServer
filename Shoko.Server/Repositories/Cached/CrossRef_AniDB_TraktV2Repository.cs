@@ -48,7 +48,7 @@ public class CrossRef_AniDB_TraktV2Repository : BaseCachedRepository<CrossRef_An
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return GetByTraktID(session, id, season, episodeNumber, animeID, aniEpType, aniEpisodeNumber);
         });
     }
@@ -57,7 +57,7 @@ public class CrossRef_AniDB_TraktV2Repository : BaseCachedRepository<CrossRef_An
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             var xrefs = session
                 .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
                 .Add(Restrictions.Eq("TraktID", traktID))
@@ -94,6 +94,10 @@ public class CrossRef_AniDB_TraktV2Repository : BaseCachedRepository<CrossRef_An
     }
 
     public override void RegenerateDb()
+    {
+    }
+
+    public CrossRef_AniDB_TraktV2Repository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
     }
 }

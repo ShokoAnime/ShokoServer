@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using NHibernate;
 using NHibernate.Driver.MySqlConnector;
@@ -20,8 +21,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 126;
-
+    public override int RequiredVersion { get; } = 128;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -756,8 +756,12 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(123, 1, "DROP TABLE CommandRequest"),
         new(124, 1, "ALTER TABLE `AnimeEpisode` ADD `EpisodeNameOverride` text NULL;"),
         new(125, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
-        new(126, 1, "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `AddedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
-        new(126, 2, "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `SentAt` datetime NOT NULL, `FetchedAt` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL DEFAULT 0, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
+        new(126, 1, "ALTER TABLE AniDB_Anime DROP COLUMN ContractVersion;ALTER TABLE AniDB_Anime DROP COLUMN ContractBlob;ALTER TABLE AniDB_Anime DROP COLUMN ContractSize;"),
+        new(126, 2, "ALTER TABLE AnimeSeries DROP COLUMN ContractVersion;ALTER TABLE AnimeSeries DROP COLUMN ContractBlob;ALTER TABLE AnimeSeries DROP COLUMN ContractSize;"),
+        new(126, 3, "ALTER TABLE AnimeGroup DROP COLUMN ContractVersion;ALTER TABLE AnimeGroup DROP COLUMN ContractBlob;ALTER TABLE AnimeGroup DROP COLUMN ContractSize;"),
+        new (127, 1, "ALTER TABLE VideoLocal DROP COLUMN MediaSize;"),
+        new(128, 1, "CREATE TABLE `AniDB_NotifyQueue` ( `AniDB_NotifyQueueID` INT NOT NULL AUTO_INCREMENT, `Type` int NOT NULL, `ID` int NOT NULL, `AddedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_NotifyQueueID`) ) ; "),
+        new(128, 2, "CREATE TABLE `AniDB_Message` ( `AniDB_MessageID` INT NOT NULL AUTO_INCREMENT, `MessageID` int NOT NULL, `FromUserID` int NOT NULL, `FromUserName` varchar(100) character set utf8 NOT NULL, `SentAt` datetime NOT NULL, `FetchedAt` datetime NOT NULL, `Type` int NOT NULL, `Title` text character set utf8 NOT NULL, `Body` text character set utf8 NOT NULL, `Flags` int NOT NULL DEFAULT 0, PRIMARY KEY (`AniDB_MessageID`) ) ;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -1158,7 +1162,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         using (var conn = new MySqlConnection(
                    $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
         {
-            var mySQL = (MySQL)DatabaseFactory.Instance;
+            var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             conn.Open();
             var rows = mySQL.ExecuteReader(conn, sql);
             if (rows.Count > 0)

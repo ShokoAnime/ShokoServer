@@ -29,7 +29,7 @@ public class MediaInfoJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal.FirstValidPlace?.FullServerPath);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
@@ -38,7 +38,7 @@ public class MediaInfoJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {FileName}", nameof(MediaInfoJob), _fileName);
 
-        var place = _vlocal?.GetBestVideoLocalPlace(true);
+        var place = _vlocal?.FirstResolvedPlace;
         if (place == null)
         {
             _logger.LogWarning("Could not find file for Video: {VideoLocalID}", VideoLocalID);

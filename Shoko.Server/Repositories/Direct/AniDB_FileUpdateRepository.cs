@@ -11,11 +11,15 @@ public class AniDB_FileUpdateRepository : BaseDirectRepository<AniDB_FileUpdate,
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             return session.Query<AniDB_FileUpdate>()
                 .Where(a => a.Hash == hash && a.FileSize == fileSize)
                 .OrderByDescending(a => a.UpdatedAt)
                 .ToList();
         });
+    }
+
+    public AniDB_FileUpdateRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

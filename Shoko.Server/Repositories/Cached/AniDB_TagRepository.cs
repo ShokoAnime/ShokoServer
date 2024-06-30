@@ -7,10 +7,11 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Server;
 using Shoko.Server.API;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Utilities;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
 {
@@ -108,5 +109,9 @@ public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
             .Where(a => a != null)
             .DistinctBy(a => a.TagID)
             .ToList();
+    }
+
+    public AniDB_TagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

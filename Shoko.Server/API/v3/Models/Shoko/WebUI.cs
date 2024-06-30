@@ -164,7 +164,7 @@ public class WebUI
             var crossRefs = RepoFactory.CrossRef_File_Episode
                 .GetByAnimeID(series.AniDB_ID);
             // The episodes we want to look at. We filter it down to only normal and special episodes.
-            var episodes = series.GetAnimeEpisodes()
+            var episodes = series.AllAnimeEpisodes
                 .Select(shoko =>
                 {
                     var anidb = shoko.AniDB_Episode;
@@ -204,18 +204,18 @@ public class WebUI
                 .Select(xref =>
                 {
                     var file = RepoFactory.VideoLocal.GetByHash(xref.Hash);
-                    var location = file?.GetBestVideoLocalPlace();
+                    var location = file?.FirstValidPlace;
 
                     return (file, xref, location);
                 })
-                .Where(t => t.file?.Media != null && t.location != null)
+                .Where(t => t.file?.MediaInfo != null && t.location != null)
                 .Cast<(SVR_VideoLocal file, SVR_CrossRef_File_Episode xref, SVR_VideoLocal_Place location)>()
                 .ToList();
             var files = filesWithXrefAndLocation
                 .Select(tuple =>
                 {
                     var (file, xref, location) = tuple;
-                    var media = new MediaInfo(file, file.Media);
+                    var media = new MediaInfo(file, file.MediaInfo);
                     var episode = episodes[xref.EpisodeID];
                     var isAutoLinked = (CrossRefSource)xref.CrossRefSource == CrossRefSource.AniDB;
                     var anidbFile = isAutoLinked && anidbFiles.TryGetValue(xref.Hash, out var aniFi) ? aniFi : null;

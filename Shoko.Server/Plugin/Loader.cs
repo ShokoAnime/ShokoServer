@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
+using Shoko.Server.Renamer;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;

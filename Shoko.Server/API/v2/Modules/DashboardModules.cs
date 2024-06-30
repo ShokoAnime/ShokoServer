@@ -7,7 +7,8 @@ using Shoko.Commons.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v2.Modules;
@@ -19,7 +20,7 @@ namespace Shoko.Server.API.v2.Modules;
 [ApiVersion("2.0")]
 public class DashboardModules : BaseController
 {
-    // class will be found automagically thanks to inherits also class need to be public (or it will 404)  
+    private readonly AnimeSeries_UserRepository _seriesUsers;
 
     /// <summary>
     /// Return Dictionary with necessary items for Dashboard inside Webui
@@ -43,10 +44,10 @@ public class DashboardModules : BaseController
         if (user != null)
         {
             var series = RepoFactory.AnimeSeries.GetAll().Where(a =>
-                !a.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false).ToList();
+                !a.AniDB_Anime?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false).ToList();
             series_count = series.Count;
 
-            var files = series.SelectMany(a => a.GetAnimeEpisodes()).SelectMany(a => a.GetVideoLocals())
+            var files = series.SelectMany(a => a.AllAnimeEpisodes).SelectMany(a => a.VideoLocals)
                 .DistinctBy(a => a.VideoLocalID).ToList();
             file_count = files.Count;
             size = SizeSuffix(files.Sum(a => a.FileSize));
@@ -58,18 +59,14 @@ public class DashboardModules : BaseController
 
             watched_series = RepoFactory.AnimeSeries.GetAll().Count(a =>
             {
-                var contract = a.GetUserContract(user.JMMUserID);
-                if (contract?.MissingEpisodeCount > 0)
-                {
-                    return false;
-                }
-
+                var contract = _seriesUsers.GetByUserAndSeriesID(user.JMMUserID, a.AnimeSeriesID);
+                if (a.MissingEpisodeCount > 0) return false;
                 return contract?.UnwatchedEpisodeCount == 0;
             });
 
             hours = Math.Round((decimal)watched.Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID))
                     .Where(a => a != null)
-                    .Sum(a => a.Media?.GeneralStream?.Duration ?? 0) / 3600, 1,
+                    .Sum(a => a.MediaInfo?.GeneralStream?.Duration ?? 0) / 3600, 1,
                 MidpointRounding.AwayFromZero); // 60s * 60m = ?h
 
             tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
@@ -84,7 +81,7 @@ public class DashboardModules : BaseController
             var series = RepoFactory.AnimeSeries.GetAll();
             series_count = series.Count;
 
-            var files = series.SelectMany(a => a.GetAnimeEpisodes()).SelectMany(a => a.GetVideoLocals())
+            var files = series.SelectMany(a => a.AllAnimeEpisodes).SelectMany(a => a.VideoLocals)
                 .DistinctBy(a => a.VideoLocalID).ToList();
             file_count = files.Count;
             size = SizeSuffix(files.Sum(a => a.FileSize));
@@ -148,7 +145,8 @@ public class DashboardModules : BaseController
         return string.Format("{0:n" + decimalPlaces + "} {1}", adjustedSize, SizeSuffixes[mag]);
     }
 
-    public DashboardModules(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public DashboardModules(ISettingsProvider settingsProvider, AnimeSeries_UserRepository seriesUsers) : base(settingsProvider)
     {
+        _seriesUsers = seriesUsers;
     }
 }

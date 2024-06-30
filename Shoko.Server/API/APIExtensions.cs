@@ -64,7 +64,7 @@ public static class APIExtensions
                 policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
             auth.AddPolicy("init",
                 policy => policy.Requirements.Add(new UserHandler(user =>
-                    user.JMMUserID == 0 && user.UserName == "init")));
+                    user.JMMUserID == 0 && user.Username == "init")));
         });
 
         services.AddSwaggerGen(

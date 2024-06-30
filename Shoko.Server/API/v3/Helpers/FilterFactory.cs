@@ -361,7 +361,7 @@ public class FilterFactory
         if (type != AnimeType.TVSeries && type != AnimeType.Web)
             return null;
 
-        var (year, season) = anime.GetSeasons()
+        var (year, season) = anime.Seasons
             .FirstOrDefault();
         if (year == 0)
             return null;

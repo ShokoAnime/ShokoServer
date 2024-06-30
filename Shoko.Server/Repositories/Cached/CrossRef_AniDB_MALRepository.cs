@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Collections;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -18,36 +15,6 @@ public class CrossRef_AniDB_MALRepository : BaseCachedRepository<CrossRef_AniDB_
     {
         return ReadLock(() =>
             _animeIDs.GetMultiple(id).OrderBy(a => a.StartEpisodeType).ThenBy(a => a.StartEpisodeNumber).ToList());
-    }
-
-    public ILookup<int, CrossRef_AniDB_MAL> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
-    {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
-        if (animeIds == null)
-        {
-            throw new ArgumentNullException(nameof(animeIds));
-        }
-
-        if (animeIds.Length == 0)
-        {
-            return EmptyLookup<int, CrossRef_AniDB_MAL>.Instance;
-        }
-
-        return Lock(() =>
-        {
-            var xrefByAnime = session.CreateCriteria<CrossRef_AniDB_MAL>()
-                .Add(Restrictions.In(nameof(CrossRef_AniDB_MAL.AnimeID), animeIds))
-                .AddOrder(Order.Asc(nameof(CrossRef_AniDB_MAL.StartEpisodeType)))
-                .AddOrder(Order.Asc(nameof(CrossRef_AniDB_MAL.StartEpisodeNumber)))
-                .List<CrossRef_AniDB_MAL>()
-                .ToLookup(cr => cr.AnimeID);
-
-            return xrefByAnime;
-        });
     }
 
     public List<CrossRef_AniDB_MAL> GetByMALID(int id)
@@ -67,6 +34,10 @@ public class CrossRef_AniDB_MALRepository : BaseCachedRepository<CrossRef_AniDB_
     }
 
     public override void RegenerateDb()
+    {
+    }
+
+    public CrossRef_AniDB_MALRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
     }
 }

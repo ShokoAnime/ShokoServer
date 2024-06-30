@@ -21,8 +21,8 @@ public class WebUIFactory
 
     public Models.Shoko.WebUI.WebUISeriesExtra GetWebUISeriesExtra(SVR_AnimeSeries series)
     {
-        var anime = series.GetAnime();
-        var animeEpisodes = anime.GetAniDBEpisodes();
+        var anime = series.AniDB_Anime;
+        var animeEpisodes = anime.AniDBEpisodes;
         var runtimeLength = GuessCorrectRuntimeLength(animeEpisodes);
         var cast = _seriesFactory.GetCast(anime.AnimeID, new () { Role.CreatorRoleType.Studio, Role.CreatorRoleType.Producer });
 

@@ -10,9 +10,11 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -27,17 +29,14 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 public class ProcessFileJob : BaseJob
 {
     private readonly ISchedulerFactory _schedulerFactory;
-
     private readonly JobFactory _jobFactory;
-
     private readonly IServerSettings _settings;
-
     private readonly IUDPConnectionHandler _udpConnectionHandler;
-
+    private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly VideoLocal_UserRepository _vlUsers;
 
     private SVR_VideoLocal _vlocal;
-
     private string _fileName;
 
     public int VideoLocalID { get; set; }
@@ -59,7 +58,7 @@ public class ProcessFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.GetBestVideoLocalPlace()?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.FullServerPath);
     }
     public override async Task Process()
     {
@@ -94,7 +93,7 @@ public class ProcessFileJob : BaseJob
             RepoFactory.VideoLocal.Save(_vlocal);
 
             // Dispatch the on file matched event.
-            ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal);
+            ShokoEventHandler.Instance.OnFileMatched(_vlocal.FirstValidPlace, _vlocal);
         }
         // Fire the file not matched event if we didn't update the cross-references.
         else
@@ -102,7 +101,7 @@ public class ProcessFileJob : BaseJob
             var autoMatchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(_vlocal.FileSize, _vlocal.Hash).Count;
             var hasXRefs = !string.IsNullOrEmpty(newXRefs) && xRefsMatch;
             var isUDPBanned = _udpConnectionHandler.IsBanned;
-            ShokoEventHandler.Instance.OnFileNotMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
+            ShokoEventHandler.Instance.OnFileNotMatched(_vlocal.FirstValidPlace, _vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
         }
 
         // Rename and/or move the physical file(s) if needed.
@@ -135,7 +134,7 @@ public class ProcessFileJob : BaseJob
         GetWatchedStateIfNeeded(_vlocal, videoLocals);
 
         // update stats for groups and series. The series are not saved until here, so it's absolutely necessary!!
-        animeIDs.Keys.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
+        await Task.WhenAll(animeIDs.Keys.Select(a => _jobFactory.CreateJob<RefreshAnimeStatsJob>(b => b.AnimeID = a).Process()));
 
         if (_settings.FileQualityFilterEnabled)
         {
@@ -195,16 +194,16 @@ public class ProcessFileJob : BaseJob
         // Copy over watched states
         foreach (var user in RepoFactory.JMMUser.GetAll())
         {
-            var watchedVideo = videoLocals.FirstOrDefault(a =>
-                a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
+            var watchedVideo = videoLocals.WhereNotNull()
+                .FirstOrDefault(a => _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, a.VideoLocalID)?.WatchedDate != null);
             // No files that are watched
             if (watchedVideo == null)
             {
                 continue;
             }
 
-            var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
-            var userRecord = vidLocal.GetOrCreateUserRecord(user.JMMUserID);
+            var watchedRecord = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, watchedVideo.VideoLocalID);
+            var userRecord = _vlService.GetOrCreateUserRecord(vidLocal, user.JMMUserID);
 
             userRecord.WatchedDate = watchedRecord.WatchedDate;
             userRecord.WatchedCount = watchedRecord.WatchedCount;
@@ -367,13 +366,15 @@ public class ProcessFileJob : BaseJob
     }
 
     public ProcessFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService,
-        IUDPConnectionHandler udpConnectionHandler, JobFactory jobFactory)
+        IUDPConnectionHandler udpConnectionHandler, JobFactory jobFactory, VideoLocal_UserRepository vlUsers, VideoLocalService vlService)
     {
         _schedulerFactory = schedulerFactory;
         _settings = settingsProvider.GetSettings();
         _vlPlaceService = vlPlaceService;
         _udpConnectionHandler = udpConnectionHandler;
         _jobFactory = jobFactory;
+        _vlUsers = vlUsers;
+        _vlService = vlService;
     }
 
     protected ProcessFileJob() { }

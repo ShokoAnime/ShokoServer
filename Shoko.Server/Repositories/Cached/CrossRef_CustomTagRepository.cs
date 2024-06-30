@@ -3,8 +3,9 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_CustomTagRepository : BaseCachedRepository<CrossRef_CustomTag, int>
 {
@@ -40,5 +41,9 @@ public class CrossRef_CustomTagRepository : BaseCachedRepository<CrossRef_Custom
     {
         return ReadLock(() =>
             Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList());
+    }
+
+    public CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

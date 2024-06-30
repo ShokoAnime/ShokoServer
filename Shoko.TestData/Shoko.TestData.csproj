@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Configurations>Debug;Release;Benchmarks</Configurations>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="AniDB_Anime.json" />
+      <EmbeddedResource Include="AniDB_Anime.json"/>
+      <None Remove="AniDB_File.json" />
+      <EmbeddedResource Include="AniDB_File.json" />
+      <None Remove="CrossRef_File_Episode.json" />
+      <EmbeddedResource Include="CrossRef_File_Episode.json" />
+    </ItemGroup>
+
+</Project>

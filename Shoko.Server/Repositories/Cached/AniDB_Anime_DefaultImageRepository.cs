@@ -3,6 +3,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -43,6 +44,10 @@ public class AniDB_Anime_DefaultImageRepository : BaseCachedRepository<AniDB_Ani
     }
 
     public override void RegenerateDb()
+    {
+    }
+
+    public AniDB_Anime_DefaultImageRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
     }
 }

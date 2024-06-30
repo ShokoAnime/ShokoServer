@@ -5,6 +5,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -55,7 +56,7 @@ public class CrossRef_AniDB_TvDBRepository : BaseCachedRepository<CrossRef_AniDB
     {
         return RepoFactory.AnimeSeries.GetAll().Where(a =>
         {
-            var anime = a.GetAnime();
+            var anime = a.AniDB_Anime;
             if (anime == null)
             {
                 return false;
@@ -154,5 +155,9 @@ public class CrossRef_AniDB_TvDBRepository : BaseCachedRepository<CrossRef_AniDB
             TvDBStartEpisodeNumber = a.TvDBNumber,
             TvDBTitle = RepoFactory.TvDB_Series.GetByTvDBID(a.TvDBSeries)?.SeriesName
         }).ToList();
+    }
+
+    public CrossRef_AniDB_TvDBRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

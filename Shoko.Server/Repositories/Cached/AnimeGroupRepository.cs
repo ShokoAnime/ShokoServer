@@ -4,12 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Properties;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -21,7 +18,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
 
     private ChangeTracker<int> Changes = new();
 
-    public AnimeGroupRepository()
+    public AnimeGroupRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         BeginDeleteCallback = cr =>
         {
@@ -36,7 +33,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
                 var ngrp = GetByID(cr.AnimeGroupParentID.Value);
                 if (ngrp != null)
                 {
-                    Save(ngrp, false, true);
+                    Save(ngrp, true);
                 }
             }
         };
@@ -55,52 +52,21 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
 
     public override void RegenerateDb()
     {
-        var grps = Cache.Values.Where(a => a.ContractVersion < SVR_AnimeGroup.CONTRACT_VERSION)
-            .ToList();
-        var max = grps.Count;
-        var cnt = 0;
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
-            typeof(AnimeGroup).Name, " DbRegen");
-        if (max <= 0)
-        {
-            return;
-        }
-
-        foreach (var g in grps)
-        {
-            g.Description = g.Description?.Replace('`', '\'');
-            g.GroupName = g.GroupName?.Replace('`', '\'');
-            Save(g, true, false, false);
-            cnt++;
-            if (cnt % 10 == 0)
-            {
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, typeof(AnimeGroup).Name,
-                    " DbRegen - " + cnt + "/" + max);
-            }
-        }
-
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
-            typeof(AnimeGroup).Name,
-            " DbRegen - " + max + "/" + max);
     }
 
     public override void Save(SVR_AnimeGroup obj)
     {
-        Save(obj, true, true);
+        Save(obj, true);
     }
 
-    public void Save(SVR_AnimeGroup grp, bool updategrpcontractstats, bool recursive,
-        bool verifylockedFilters = true)
+    public void Save(SVR_AnimeGroup grp, bool recursive)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
-        var sessionWrapper = session.Wrap();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         Lock(session, s =>
         {
             //We are creating one, and we need the AnimeGroupID before Update the contracts
             if (grp.AnimeGroupID == 0)
             {
-                grp.Contract = null;
                 using var transaction = s.BeginTransaction();
                 s.SaveOrUpdate(grp);
                 transaction.Commit();
@@ -108,7 +74,6 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         });
 
         UpdateCache(grp);
-        grp.UpdateContract(sessionWrapper, updategrpcontractstats);
         Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();
@@ -125,7 +90,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
             // the least of the issues
             if (pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
             {
-                Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
+                Save(pgroup, true);
             }
         }
     }

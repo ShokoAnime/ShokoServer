@@ -11,7 +11,7 @@ public class Trakt_ShowRepository : BaseDirectRepository<Trakt_Show, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return GetByTraktSlugUnsafe(session, slug);
         });
     }
@@ -27,5 +27,9 @@ public class Trakt_ShowRepository : BaseDirectRepository<Trakt_Show, int>
         return session.Query<Trakt_Show>()
             .Where(a => a.TraktID == slug)
             .Take(1).SingleOrDefault();
+    }
+
+    public Trakt_ShowRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

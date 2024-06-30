@@ -12,6 +12,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
@@ -24,6 +25,8 @@ namespace Shoko.Server.API.v3.Controllers;
 public class GroupController : BaseController
 {
     private readonly AnimeGroupCreator _groupCreator;
+    private readonly AnimeSeriesService _seriesService;
+    private readonly AnimeGroupService _groupService;
 
     #region Return messages
 
@@ -74,10 +77,10 @@ public class GroupController : BaseController
                     return false;
                 }
 
-                return includeEmpty || group.GetAllSeries()
-                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                return includeEmpty || group.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
-            .OrderBy(group => group.GetSortName())
+            .OrderBy(group => group.SortName)
             .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
     }
 
@@ -103,10 +106,10 @@ public class GroupController : BaseController
                 if (!user.AllowedGroup(group))
                     return false;
 
-                return includeEmpty || group.GetAllSeries()
-                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                return includeEmpty || group.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
-            .GroupBy(group => group.GetSortName()[0])
+            .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)
             .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
     }
@@ -281,7 +284,7 @@ public class GroupController : BaseController
             return Forbid(GroupForbiddenForUser);
         }
 
-        var seriesDict = (recursive ? group.GetAllSeries() : group.GetSeries())
+        var seriesDict = (recursive ? group.AllSeries : group.Series)
             .ToDictionary(series => series.AniDB_ID);
         var animeIds = seriesDict.Values
             .Select(series => series.AniDB_ID)
@@ -321,7 +324,7 @@ public class GroupController : BaseController
             return NotFound(GroupNotFound);
         }
 
-        var seriesList = group.GetAllSeries();
+        var seriesList = group.AllSeries;
         if (!deleteSeries && seriesList.Count != 0)
         {
             return BadRequest(
@@ -330,10 +333,10 @@ public class GroupController : BaseController
 
         foreach (var series in seriesList)
         {
-            await series.DeleteSeries(deleteFiles, false);
+            await _seriesService.DeleteSeries(series, deleteFiles, false);
         }
 
-        group.DeleteGroup();
+        _groupService.DeleteGroup(group);
 
         return NoContent();
     }
@@ -380,8 +383,10 @@ public class GroupController : BaseController
 
     #endregion
 
-    public GroupController(ISettingsProvider settingsProvider, AnimeGroupCreator groupCreator) : base(settingsProvider)
+    public GroupController(ISettingsProvider settingsProvider, AnimeGroupCreator groupCreator, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
     {
         _groupCreator = groupCreator;
+        _seriesService = seriesService;
+        _groupService = groupService;
     }
 }

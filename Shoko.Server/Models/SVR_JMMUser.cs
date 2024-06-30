@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.IO;
 using System.Linq;
 using System.Security.Principal;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
@@ -17,10 +14,6 @@ namespace Shoko.Server.Models;
 
 public class SVR_JMMUser : JMMUser, IIdentity
 {
-    public SVR_JMMUser()
-    {
-    }
-
     #region Image
 
     public class UserImageMetadata
@@ -113,9 +106,9 @@ public class SVR_JMMUser : JMMUser, IIdentity
     public bool AllowedSeries(SVR_AnimeSeries ser)
     {
         if (this.GetHideCategories().Count == 0) return true;
-        var anime = ser?.GetAnime();
+        var anime = ser?.AniDB_Anime;
         if (anime == null) return false;
-        return !this.GetHideCategories().FindInEnumerable(anime.GetTags().Select(a => a.TagName));
+        return !this.GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
     }
 
     /// <summary>
@@ -126,14 +119,13 @@ public class SVR_JMMUser : JMMUser, IIdentity
     public bool AllowedAnime(SVR_AniDB_Anime anime)
     {
         if (this.GetHideCategories().Count == 0) return true;
-        return !this.GetHideCategories().FindInEnumerable(anime.GetTags().Select(a => a.TagName));
+        return !this.GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
     }
 
     public bool AllowedGroup(SVR_AnimeGroup grp)
     {
         if (this.GetHideCategories().Count == 0) return true;
-        if (grp.Contract == null) return false;
-        return !this.GetHideCategories().FindInEnumerable(grp.Contract.Stat_AllTags);
+        return !this.GetHideCategories().FindInEnumerable(grp.Tags.Select(a => a.TagName));
     }
 
     public bool AllowedTag(AniDB_Tag tag)
@@ -141,47 +133,9 @@ public class SVR_JMMUser : JMMUser, IIdentity
         return !this.GetHideCategories().Contains(tag.TagName);
     }
 
-    public static bool CompareUser(JMMUser olduser, JMMUser newuser)
-    {
-        if (olduser == null || olduser.HideCategories == newuser.HideCategories)
-            return true;
-        return false;
-    }
-
-    // IUserIdentity implementation
-    public string UserName
-    {
-        get { return Username; }
-    }
-
-    //[JsonIgnore]
-    [NotMapped] public IEnumerable<string> Claims { get; set; }
-
     [NotMapped] string IIdentity.AuthenticationType => "API";
 
     [NotMapped] bool IIdentity.IsAuthenticated => true;
 
     [NotMapped] string IIdentity.Name => Username;
-
-
-    public SVR_JMMUser(string username)
-    {
-        foreach (SVR_JMMUser us in RepoFactory.JMMUser.GetAll())
-        {
-            if (us.Username.ToLower() == username.ToLower())
-            {
-                JMMUserID = us.JMMUserID;
-                Username = us.Username;
-                Password = us.Password;
-                IsAdmin = us.IsAdmin;
-                IsAniDBUser = us.IsAniDBUser;
-                IsTraktUser = us.IsTraktUser;
-                HideCategories = us.HideCategories;
-                CanEditServerSettings = us.CanEditServerSettings;
-                PlexUsers = us.PlexUsers;
-                Claims = us.Claims;
-                break;
-            }
-        }
-    }
 }

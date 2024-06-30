@@ -11,7 +11,7 @@ public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<FileNameHash>()
                 .Where(a => a.Hash == hash)
@@ -23,11 +23,15 @@ public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<FileNameHash>()
                 .Where(a => a.FileName == filename && a.FileSize == filesize)
                 .ToList();
         });
+    }
+
+    public FileNameHashRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

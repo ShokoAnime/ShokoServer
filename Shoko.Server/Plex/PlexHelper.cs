@@ -9,14 +9,18 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;
+using Quartz;
 using Shoko.Models.Plex;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Login;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
@@ -228,6 +232,7 @@ public class PlexHelper
     {
         try
         {
+            var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().GetAwaiter().GetResult();
             var existingUser = false;
             var updateStats = false;
             SVR_JMMUser jmmUser;
@@ -313,10 +318,8 @@ public class PlexHelper
                 return;
             }
 
-            foreach (var ser in RepoFactory.AnimeSeries.GetAll())
-            {
-                ser.QueueUpdateStats();
-            }
+            Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(ser => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = ser.AniDB_ID))).GetAwaiter()
+                .GetResult();
         }
         catch
         {

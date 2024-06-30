@@ -1,27 +1,23 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate.Criterion;
+using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
-namespace Shoko.Server.Repositories.Direct;
+namespace Shoko.Server.Repositories.Cached;
 
-public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniDB_Other, int>
+public class CrossRef_AniDB_OtherRepository : BaseCachedRepository<CrossRef_AniDB_Other, int>
 {
+    private PocoIndex<int, CrossRef_AniDB_Other, (int, CrossRefType)> _animeIDTypes;
+
     public CrossRef_AniDB_Other GetByAnimeIDAndType(int animeID, CrossRefType xrefType)
     {
-        return Lock(() =>
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session.Query<CrossRef_AniDB_Other>()
-                .Where(a => a.AnimeID == animeID && a.CrossRefType == (int)xrefType)
-                .SingleOrDefault();
-            return cr;
-        });
+        return ReadLock(() => _animeIDTypes.GetOne((animeID, xrefType)));
     }
 
     /// <summary>
@@ -48,5 +44,24 @@ public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniD
             var crossRefs = criteria.List<CrossRef_AniDB_Other>().ToLookup(cr => cr.AnimeID);
             return crossRefs;
         });
+    }
+
+    public override void PopulateIndexes()
+    {
+        _animeIDTypes = new PocoIndex<int, CrossRef_AniDB_Other, (int, CrossRefType)>(Cache, a => (a.AnimeID, (CrossRefType)a.CrossRefType));
+    }
+
+    public override void RegenerateDb()
+    {
+        
+    }
+
+    protected override int SelectKey(CrossRef_AniDB_Other entity)
+    {
+        return entity.CrossRef_AniDB_OtherID;
+    }
+
+    public CrossRef_AniDB_OtherRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

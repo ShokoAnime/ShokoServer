@@ -51,8 +51,5 @@ public class AniDB_AnimeMap : ClassMap<SVR_AniDB_Anime>
         Map(x => x.TempVoteCount).Not.Nullable();
         Map(x => x.URL);
         Map(x => x.VoteCount).Not.Nullable();
-        Map(x => x.ContractVersion).Not.Nullable();
-        Map(x => x.ContractBlob).Nullable().CustomType("BinaryBlob");
-        Map(x => x.ContractSize).Not.Nullable();
     }
 }

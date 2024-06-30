@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,19 +11,15 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
-using Shoko.Server.FileHelper;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Plex;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using Shoko.Server.Utilities.FileSystemWatcher;
 using Trinet.Core.IO.Ntfs;
 using Timer = System.Timers.Timer;
 
@@ -35,8 +29,11 @@ public class ShokoServer
 {
     //private static bool doneFirstTrakTinfo = false;
     private readonly ILogger<ShokoServer> logger;
+    private readonly DatabaseFactory _databaseFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly RepoFactory _repoFactory;
+    private readonly FileWatcherService _fileWatcherService;
 
     private static DateTime? StartTime;
 
@@ -48,16 +45,17 @@ public class ShokoServer
     private static Timer autoUpdateTimer;
     private static Timer autoUpdateTimerShort;
 
-    private List<RecoveringFileSystemWatcher> _fileWatchers;
-
     private BackgroundWorker downloadImagesWorker = new();
 
 
-    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
+    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, DatabaseFactory databaseFactory, RepoFactory repoFactory, FileWatcherService fileWatcherService)
     {
         this.logger = logger;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _databaseFactory = databaseFactory;
+        _repoFactory = repoFactory;
+        _fileWatcherService = fileWatcherService;
 
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
@@ -208,7 +206,7 @@ public class ShokoServer
             ServerState.Instance.StartupFailedMessage = string.Empty;
             ServerState.Instance.ServerStartingStatus = Resources.Server_Cleaning;
 
-            StopWatchingFiles();
+            _fileWatcherService.StopWatchingFiles();
 
             if (autoUpdateTimer != null)
             {
@@ -220,7 +218,7 @@ public class ShokoServer
                 autoUpdateTimerShort.Enabled = false;
             }
 
-            DatabaseFactory.CloseSessionFactory();
+            _databaseFactory.CloseSessionFactory();
 
             ServerState.Instance.ServerStartingStatus = Resources.Server_Initializing;
             Thread.Sleep(1000);
@@ -228,7 +226,7 @@ public class ShokoServer
             ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseSetup;
 
             logger.LogInformation("Setting up database...");
-            if (!DatabaseFactory.InitDB(out var errorMessage))
+            if (!InitDB(out var errorMessage))
             {
                 ServerState.Instance.DatabaseAvailable = false;
 
@@ -247,7 +245,7 @@ public class ShokoServer
             logger.LogInformation("Initializing Session Factory...");
             //init session factory
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingSession;
-            var _ = DatabaseFactory.SessionFactory;
+            var _ = _databaseFactory.SessionFactory;
             ServerState.Instance.DatabaseAvailable = true;
 
 
@@ -269,7 +267,7 @@ public class ShokoServer
 
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingFile;
 
-            StartWatchingFiles();
+            _fileWatcherService.StartWatchingFiles();
 
             var scheduler = _schedulerFactory.GetScheduler().Result;
             if (settings.Import.ScanDropFoldersOnStart) scheduler.StartJob<ScanDropFoldersJob>().GetAwaiter().GetResult();
@@ -289,6 +287,109 @@ public class ShokoServer
             ServerState.Instance.StartupFailed = true;
             ServerState.Instance.StartupFailedMessage = $"Startup Failed: {ex}";
             e.Result = false;
+        }
+    }
+
+    public bool InitDB(out string errorMessage)
+    {
+        try
+        {
+            _databaseFactory.Instance = null;
+            var instance = _databaseFactory.Instance;
+            if (instance == null)
+            {
+                errorMessage = "Could not initialize database factory instance";
+                return false;
+            }
+
+            for (var i = 0; i < 60; i++)
+            {
+                if (instance.TestConnection())
+                {
+                    logger.LogInformation("Database Connection OK!");
+                    break;
+                }
+
+                if (i == 59)
+                {
+                    logger.LogError(errorMessage = "Unable to connect to database!");
+                    return false;
+                }
+
+                logger.LogInformation("Waiting for database connection...");
+                Thread.Sleep(1000);
+            }
+
+            if (!instance.DatabaseAlreadyExists())
+            {
+                instance.CreateDatabase();
+                Thread.Sleep(3000);
+            }
+
+            _databaseFactory.CloseSessionFactory();
+
+            var message = Resources.Database_Initializing;
+            logger.LogInformation("Starting Server: {Message}", message);
+            ServerState.Instance.ServerStartingStatus = message;
+
+            instance.Init();
+            var version = instance.GetDatabaseVersion();
+            if (version > instance.RequiredVersion)
+            {
+                message = Resources.Database_NotSupportedVersion;
+                logger.LogInformation("Starting Server: {Message}", message);
+                ServerState.Instance.ServerStartingStatus = message;
+                errorMessage = Resources.Database_NotSupportedVersion;
+                return false;
+            }
+
+            if (version != 0 && version < instance.RequiredVersion)
+            {
+                message = Resources.Database_Backup;
+                logger.LogInformation("Starting Server: {Message}", message);
+                ServerState.Instance.ServerStartingStatus = message;
+                instance.BackupDatabase(instance.GetDatabaseBackupName(version));
+            }
+
+            try
+            {
+                logger.LogInformation("Starting Server: {Type} - CreateAndUpdateSchema()", instance.GetType());
+                instance.CreateAndUpdateSchema();
+
+                logger.LogInformation("Starting Server: RepoFactory.Init()");
+                _repoFactory.Init();
+                instance.ExecuteDatabaseFixes();
+                instance.PopulateInitialData();
+                _repoFactory.PostInit();
+            }
+            catch (DatabaseCommandException ex)
+            {
+                logger.LogError(ex, ex.ToString());
+                Utils.ShowErrorMessage("Database Error :\n\r " + ex +
+                                       "\n\rNotify developers about this error, it will be logged in your logs",
+                    "Database Error");
+                ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
+                errorMessage = "Database Error :\n\r " + ex +
+                               "\n\rNotify developers about this error, it will be logged in your logs";
+                return false;
+            }
+            catch (TimeoutException ex)
+            {
+                logger.LogError(ex, $"Database Timeout: {ex}");
+                ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseTimeOut;
+                errorMessage = Resources.Server_DatabaseTimeOut + "\n\r" + ex;
+                return false;
+            }
+
+            errorMessage = string.Empty;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not init database: {ex}";
+            logger.LogError(ex, errorMessage);
+            ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
+            return false;
         }
     }
 
@@ -331,7 +432,7 @@ public class ShokoServer
 
     private void ShutDown()
     {
-        StopWatchingFiles();
+        _fileWatcherService.StopWatchingFiles();
         AniDBDispose();
     }
 
@@ -348,121 +449,6 @@ public class ShokoServer
         actionService.CheckForTraktAllSeriesUpdate(false).GetAwaiter().GetResult();
         actionService.CheckForTraktTokenUpdate(false);
         actionService.CheckForAniDBFileUpdate(false).GetAwaiter().GetResult();
-    }
-
-    public void StartWatchingFiles()
-    {
-        _fileWatchers = new List<RecoveringFileSystemWatcher>();
-        var settings = _settingsProvider.GetSettings();
-
-        foreach (var share in RepoFactory.ImportFolder.GetAll())
-        {
-            try
-            {
-                if (share.FolderIsWatched)
-                {
-                    logger.LogInformation("Watching ImportFolder: {ImportFolderName} || {ImportFolderLocation}", share.ImportFolderName, share.ImportFolderLocation);
-                }
-
-                if (Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
-                {
-                    
-                    logger.LogInformation("Parsed ImportFolderLocation: {ImportFolderLocation}", share.ImportFolderLocation);
-
-                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation,
-                        filters: settings.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')),
-                        pathExclusions: settings.Import.Exclude);
-                    fsw.Options = new FileSystemWatcherLockOptions
-                    {
-                        Enabled = settings.Import.FileLockChecking,
-                        Aggressive = settings.Import.AggressiveFileLockChecking,
-                        WaitTimeMilliseconds = settings.Import.FileLockWaitTimeMS,
-                        FileAccessMode = share.IsDropSource == 1 ? FileAccess.ReadWrite : FileAccess.Read,
-                        AggressiveWaitTimeSeconds = settings.Import.AggressiveFileLockWaitTimeSeconds
-                    };
-                    fsw.FileAdded += FileAdded;
-                    fsw.Start();
-                    _fileWatchers.Add(fsw);
-                }
-                else if (!share.FolderIsWatched)
-                {
-                    logger.LogInformation("ImportFolder found but not watching: {Name} || {Location}", share.ImportFolderName,
-                        share.ImportFolderLocation);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An error occurred initializing the Filesystem Watchers: {Ex}", ex.ToString());
-            }
-        }
-    }
-
-    private void FileAdded(object sender, string path)
-    {
-        if (!File.Exists(path)) return;
-        if (!FileHashHelper.IsVideo(path)) return;
-
-        logger.LogInformation("Found file {Path}", path);
-        var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
-        if (tup == default)
-        {
-            logger.LogWarning("File path could not be parsed into an import folder location: {Path}", path);
-            return;
-        }
-
-        Task.Run(async () =>
-        {
-            try
-            {
-                ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Unable to run File Detected Event for File: {File}", path);
-            }
-
-            try
-            {
-                var scheduler = await _schedulerFactory.GetScheduler();
-                await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = path).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Unable to Schedule DiscoverFileJob for new file: {File}", path);
-            }
-        });
-    }
-
-    public void AddFileWatcherExclusion(string path)
-    {
-        if (_fileWatchers == null || !_fileWatchers.Any()) return;
-        var watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
-        watcher?.AddExclusion(path);
-        logger.LogTrace("Added {Path} to filesystem watcher exclusions", path);
-    }
-
-    public void RemoveFileWatcherExclusion(string path)
-    {
-        if (_fileWatchers == null || !_fileWatchers.Any()) return;
-        var watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
-        watcher?.RemoveExclusion(path);
-        logger.LogTrace("Removed {Path} from filesystem watcher exclusions", path);
-    }
-
-    public void StopWatchingFiles()
-    {
-        if (_fileWatchers == null || !_fileWatchers.Any())
-        {
-            return;
-        }
-
-        foreach (var fsw in _fileWatchers)
-        {
-            fsw.Stop();
-            fsw.Dispose();
-        }
-
-        _fileWatchers.Clear();
     }
 
     private static void AniDBDispose()

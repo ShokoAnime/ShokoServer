@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
@@ -19,7 +17,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
     private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
     private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
 
-    public VideoLocal_PlaceRepository()
+    public VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         BeginSaveCallback = place =>
@@ -50,7 +48,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
         var list = Cache.Values.Where(a => a is { VideoLocalID: 0 }).ToList();
         max = list.Count;
 
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         foreach (var batch in list.Batch(50))
         {
             using var transaction = session.BeginTransaction();
@@ -77,32 +75,6 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
         if (string.IsNullOrEmpty(filePath)) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an empty File Path");
         if (importFolderID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
         return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == importFolderID));
-    }
-
-    public static (SVR_ImportFolder folder, string relativePath) GetFromFullPath(string fullPath)
-    {
-        if (string.IsNullOrEmpty(fullPath)) return default;
-        var shares = RepoFactory.ImportFolder.GetAll();
-
-        // TODO make sure that import folders are not sub folders of each other
-        foreach (var ifolder in shares)
-        {
-            var importLocation = ifolder.ImportFolderLocation;
-            var importLocationFull = importLocation.TrimEnd(Path.DirectorySeparatorChar);
-
-            // add back the trailing back slashes
-            importLocationFull += $"{Path.DirectorySeparatorChar}";
-
-            importLocation = importLocation.TrimEnd(Path.DirectorySeparatorChar);
-            if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
-            {
-                var filePath = fullPath.Replace(importLocation, string.Empty);
-                filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
-                return (ifolder, filePath);
-            }
-        }
-
-        return default;
     }
 
     public List<SVR_VideoLocal_Place> GetByVideoLocal(int videoLocalID)

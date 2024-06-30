@@ -29,7 +29,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
     private ChangeTracker<int> Changes = new();
 
-    public AnimeSeriesRepository()
+    public AnimeSeriesRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         BeginDeleteCallback = cr =>
         {
@@ -48,7 +48,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             var oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
             if (oldGroup != null)
             {
-                RepoFactory.AnimeGroup.Save(oldGroup, true, true);
+                RepoFactory.AnimeGroup.Save(oldGroup, true);
             }
         };
     }
@@ -69,46 +69,9 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     {
         try
         {
-            var sers =
-                Cache.Values.Where(
-                        a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION ||
-                             a.Contract?.AniDBAnime?.AniDBAnime == null)
-                    .ToList();
+            var sers = Cache.Values.Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
             var max = sers.Count;
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Validating Contracts");
-
-            for (var i = 0; i < max; i++)
-            {
-                var s = sers[i];
-                try
-                {
-                    Save(s, false, false);
-                }
-                catch
-                {
-                    // ignore
-                }
-
-                if (i % 10 == 0)
-                {
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, nameof(AnimeSeries),
-                        " DbRegen - Validating Contracts - " + i + "/" + max
-                    );
-                }
-            }
-
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, nameof(AnimeSeries),
-                " DbRegen - Validating Contracts - " + max + "/" + max);
-            
-            sers =
-                Cache.Values.Where(
-                        a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
-            max = sers.Count;
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Ensuring Groups Exist");
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Ensuring Groups Exist");
 
             var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
             for (var i = 0; i < max; i++)
@@ -125,17 +88,12 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                     // ignore
                 }
 
-                if (i % 10 == 0)
-                {
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, nameof(AnimeSeries),
-                        " DbRegen - Ensuring Groups Exist - " + i + "/" + max
-                    );
-                }
+                if (i % 10 != 0) continue;
+                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries),
+                    " DbRegen - Ensuring Groups Exist - " + i + "/" + max);
             }
 
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, nameof(AnimeSeries),
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries),
                 " DbRegen - Ensuring Groups Exist - " + max + "/" + max);
         }
         catch (Exception e)
@@ -162,7 +120,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
     public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
     {
-        var animeID = obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString();
+        var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID.ToString();
         logger.Trace($"Saving Series {animeID}");
         var totalSw = Stopwatch.StartNew();
         var sw = Stopwatch.StartNew();
@@ -184,7 +142,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 s.Stop();
                 logger.Trace($"Saving Series {id} | Got Database Lock in {s.Elapsed.TotalSeconds:0.00###}s");
                 s.Restart();
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                using var session = _databaseFactory.SessionFactory.OpenSession();
                 var series = session.Get<SVR_AnimeSeries>(animeSeriesID);
                 s.Stop();
                 logger.Trace($"Saving Series {id} | Got Series from Database in {s.Elapsed.TotalSeconds:0.00###}s");
@@ -222,24 +180,18 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             sw.Stop();
             logger.Trace($"Saving Series {animeID} | New Series added. Need to save first to get an ID");
             sw.Restart();
-            obj.Contract = null;
             base.Save(obj);
             sw.Stop();
             logger.Trace($"Saving Series {animeID} | Saved new series in {sw.Elapsed.TotalSeconds:0.00###}s");
             sw.Restart();
         }
 
-        var seasons = obj.GetAnime()?.Contract?.Stat_AllSeasons;
-        if (seasons == null || seasons.Count == 0) RegenerateSeasons(obj, sw, animeID);
+        var seasons = obj.AniDB_Anime?.Seasons;
+        if (seasons == null || !seasons.Any()) RegenerateSeasons(obj, sw, animeID);
 
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updating Series Contract");
-        sw.Restart();
-        obj.UpdateContract(onlyupdatestats);
-        sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updated Series Contract in {sw.Elapsed.TotalSeconds:0.00###}s");
-        sw.Restart();
         logger.Trace($"Saving Series {animeID} | Saving Series to Database");
+        sw.Restart();
         base.Save(obj);
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Saved Series to Database in {sw.Elapsed.TotalSeconds:0.00###}s");
@@ -262,7 +214,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         logger.Trace(
             $"Saving Series {animeID} | AniDB_Anime Contract is invalid or Seasons not generated. Regenerating");
         sw.Restart();
-        var anime = obj.GetAnime();
+        var anime = obj.AniDB_Anime;
         if (anime != null)
         {
             RepoFactory.AniDB_Anime.Save(anime, true);
@@ -291,7 +243,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         var grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
         if (grp != null)
         {
-            RepoFactory.AnimeGroup.Save(grp, true, true);
+            RepoFactory.AnimeGroup.Save(grp, true);
         }
         else
             logger.Trace($"Saving Series {animeID} | Group {obj.AnimeGroupID} was not found. Not Updating");
@@ -304,7 +256,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         if (oldGroup != null && grp?.AnimeGroupID != oldGroup.AnimeGroupID)
         {
             logger.Trace($"Saving Series {animeID} | Also Updating previous group {oldGroup.AnimeGroupID}");
-            RepoFactory.AnimeGroup.Save(oldGroup, true, true);
+            RepoFactory.AnimeGroup.Save(oldGroup, true);
             sw.Stop();
             logger.Trace(
                 $"Saving Series {animeID} | Updated old group {oldGroup.AnimeGroupID} in {sw.Elapsed.TotalSeconds:0.00###}s");
@@ -372,7 +324,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     {
         var ids = Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
 
             var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
             return session.CreateSQLQuery(query)

@@ -65,7 +65,7 @@ public class SearchTMDBSeriesJob : BaseJob
             return;
         }
 
-        foreach (var title in anime.GetTitles())
+        foreach (var title in anime.Titles)
         {
             if (title.TitleType != TitleType.Official)
             {

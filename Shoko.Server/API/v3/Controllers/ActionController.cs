@@ -10,7 +10,6 @@ using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
@@ -36,6 +35,7 @@ public class ActionController : BaseController
     private readonly ILogger<ActionController> _logger;
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
+    private readonly AnimeGroupService _groupService;
     private readonly TraktTVHelper _traktHelper;
     private readonly MovieDBHelper _movieDBHelper;
     private readonly ISchedulerFactory _schedulerFactory;
@@ -43,7 +43,7 @@ public class ActionController : BaseController
     private readonly SeriesFactory _seriesFactory;
 
     public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory,
-        ISettingsProvider settingsProvider, JobFactory jobFactory, ActionService actionService, SeriesFactory seriesFactory, AnimeGroupCreator groupCreator) : base(settingsProvider)
+        ISettingsProvider settingsProvider, JobFactory jobFactory, ActionService actionService, SeriesFactory seriesFactory, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
     {
         _logger = logger;
         _traktHelper = traktHelper;
@@ -53,6 +53,7 @@ public class ActionController : BaseController
         _actionService = actionService;
         _seriesFactory = seriesFactory;
         _groupCreator = groupCreator;
+        _groupService = groupService;
     }
 
     #region Common Actions
@@ -214,10 +215,10 @@ public class ActionController : BaseController
             return ValidationProblem("Missing AVDump API key.", "Settings");
 
         var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
-            .Where(file => !file.IsEmpty() && file.Media != null)
-            .Select(file => (Video: file, AniDB: file.GetAniDBFile()))
-            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.Media?.MenuStreams.Any() != tuple.AniDB.IsChaptered)
-            .Select(tuple => (Path: tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, tuple.Video))
+            .Where(file => !file.IsEmpty() && file.MediaInfo != null)
+            .Select(file => (Video: file, AniDB: file.AniDBFile))
+            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.MediaInfo?.MenuStreams.Any() != tuple.AniDB.IsChaptered)
+            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -416,7 +417,7 @@ public class ActionController : BaseController
     [HttpGet("RenameAllGroups")]
     public ActionResult RenameAllGroups()
     {
-        Task.Factory.StartNew(SVR_AnimeGroup.RenameAllGroups).ConfigureAwait(false);
+        Task.Factory.StartNew(_groupService.RenameAllGroups).ConfigureAwait(false);
         return Ok();
     }
 

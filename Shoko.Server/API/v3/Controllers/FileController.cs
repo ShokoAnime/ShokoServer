@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
 using Quartz;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -19,19 +20,22 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
-using File = Shoko.Server.API.v3.Models.Shoko.File;
-using Path = System.IO.Path;
-using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
+using File = Shoko.Server.API.v3.Models.Shoko.File;
+using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
+using Path = System.IO.Path;
+using RelocateResult = Shoko.Server.API.v3.Models.Shoko.Renamer.RelocateResult;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -49,14 +53,22 @@ public class FileController : BaseController
 
     internal const string FileNotFoundWithHash = "No File entry for the given hash and file size.";
 
+    internal const string FileLocationNotFoundWithLocationID = "No File.Location entry for the given locationID.";
+
     private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly WatchedStatusService _watchedService;
 
-    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService) : base(settingsProvider)
+    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService, VideoLocalService vlService) : base(settingsProvider)
     {
         _traktHelper = traktHelper;
         _vlPlaceService = vlPlaceService;
+        _vlUsers = vlUsers;
+        _watchedService = watchedService;
+        _vlService = vlService;
         _schedulerFactory = schedulerFactory;
     }
 
@@ -284,6 +296,8 @@ public class FileController : BaseController
     public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
+        if (fileID is <= 0)
+            return NotFound(FileNotFoundWithFileID);
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
@@ -306,6 +320,8 @@ public class FileController : BaseController
     [HttpDelete("{fileID}")]
     public async Task<ActionResult> DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
     {
+        if (fileID is <= 0)
+            return NotFound(FileNotFoundWithFileID);
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
@@ -316,6 +332,207 @@ public class FileController : BaseController
             else
                 await _vlPlaceService.RemoveRecord(place);
         return Ok();
+    }
+
+    /// <summary>
+    /// Retrieves all file locations associated with a given file ID.
+    /// </summary>
+    /// <param name="fileID">File ID</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <returns>A list of file locations associated with the specified file ID.</returns>
+    [HttpGet("{fileID}/Location")]
+    public ActionResult<List<File.Location>> GetFileLocations([FromRoute] int fileID, [FromQuery] bool includeAbsolutePaths = false)
+    {
+        if (fileID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        return file.Places
+            .Select(location => new File.Location(location, includeAbsolutePaths))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Retrieves information about a specific file location.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be retrieved.
+    /// </param>
+    /// <returns>Returns the file location information.</returns>
+    [HttpGet("Location/{locationID}")]
+    public ActionResult<File.Location> GetFileLocation([FromRoute] int locationID)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        return new File.Location(fileLocation, true);
+    }
+
+    /// <summary>
+    /// Deletes a file location, optionally also deleting the physical file.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be deleted.
+    /// </param>
+    /// <param name="deleteFile">Whether to delete the physical file.</param>
+    /// <param name="deleteFolder">Whether to delete any empty folders after removing the file.</param>
+    /// <returns>Returns a result indicating if the deletion was successful.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpDelete("Location/{locationID}")]
+    public async Task<ActionResult> DeleteFileLocation([FromRoute] int locationID, [FromQuery] bool deleteFile = true, [FromQuery] bool deleteFolder = true)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        if (deleteFile)
+            await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(fileLocation, deleteFolder);
+        else
+            await _vlPlaceService.RemoveRecord(fileLocation);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Directly relocates a file to a new location specified by the user.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be relocated.</param>
+    /// <param name="body">New location information.</param>
+    /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
+    [HttpPost("Location/{locationID}/Relocate")]
+    public async Task<ActionResult<RelocateResult>> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.NewLocationBody body)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        var importFolder = RepoFactory.ImportFolder.GetByID(body.ImportFolderID);
+        if (importFolder == null)
+            return BadRequest($"Unknown import folder with the given id `{body.ImportFolderID}`.");
+
+        // Sanitize relative path and reject paths leading to outside the import folder.
+        var fullPath = Path.GetFullPath(Path.Combine(importFolder.ImportFolderLocation, body.RelativePath));
+        if (!fullPath.StartsWith(importFolder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("The provided relative path leads outside the import folder.");
+        var sanitizedRelativePath = Path.GetRelativePath(importFolder.ImportFolderLocation, fullPath);
+
+        // Store the old import folder id and relative path for comparison.
+        var oldImportFolderId = fileLocation.ImportFolderID;
+        var oldRelativePath = fileLocation.FilePath;
+
+        // Rename and move the file.
+        var result = await _vlPlaceService.DirectlyRelocateFile(
+            fileLocation,
+            new()
+            {
+                ImportFolder = importFolder,
+                RelativePath = sanitizedRelativePath,
+                DeleteEmptyDirectories = body.DeleteEmptyDirectories
+            }
+        );
+        if (!result.Success)
+            return new RelocateResult
+            {
+                FileID = fileLocation.VideoLocalID,
+                FileLocationID = fileLocation.VideoLocal_Place_ID,
+                IsSuccess = false,
+                ErrorMessage = result.ErrorMessage,
+            };
+
+        // Check if it was actually relocated, or if we landed on the same location as earlier.
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
+        return new RelocateResult
+        {
+            FileID = fileLocation.VideoLocalID,
+            FileLocationID = fileLocation.VideoLocal_Place_ID,
+            ImportFolderID = result.ImportFolder.ImportFolderID,
+            IsSuccess = true,
+            IsRelocated = relocated,
+            RelativePath = result.RelativePath,
+            AbsolutePath = result.AbsolutePath,
+        };
+    }
+
+    /// <summary>
+    /// Automatically relocates a file to a new location based on predefined rules.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be relocated.</param>
+    /// <param name="body">Parameters for the automatic relocation process.</param>
+    /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
+    [HttpPost("Location/{locationID}/AutoRelocate")]
+    public async Task<ActionResult<RelocateResult>> AutomaticallyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.AutoRelocateBody body)
+    {
+        if (locationID is <= 0)
+            return NotFound(FileLocationNotFoundWithLocationID);
+        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        if (fileLocation == null)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        // Make sure we have a valid script to use.
+        RenameScript script;
+        if (!body.ScriptID.HasValue || body.ScriptID.Value <= 0)
+        {
+            script = RepoFactory.RenameScript.GetDefaultOrFirst();
+            if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
+                return BadRequest($"No default script have been selected! Select one before continuing.");
+        }
+        else
+        {
+            script = RepoFactory.RenameScript.GetByID(body.ScriptID.Value);
+            if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
+                return BadRequest($"Unknown script with id \"{body.ScriptID.Value}\"! Omit `ScriptID` or set it to 0 to use the default script!");
+        }
+
+        // Store the old import folder id and relative path for comparison.
+        var oldImportFolderId = fileLocation.ImportFolderID;
+        var oldRelativePath = fileLocation.FilePath;
+        var settings = SettingsProvider.GetSettings();
+
+        // Rename and move the file, or preview where it would land if we did.
+        var result = await _vlPlaceService.AutoRelocateFile(
+            fileLocation,
+            new()
+            {
+                DeleteEmptyDirectories = body.DeleteEmptyDirectories,
+                Move = body.Move ?? settings.Import.MoveOnImport,
+                Preview = body.Preview,
+                Rename = body.Rename ?? settings.Import.RenameOnImport,
+                ScriptID = script.RenameScriptID,
+            }
+        );
+        if (!result.Success)
+            return new RelocateResult
+            {
+                FileID = fileLocation.VideoLocalID,
+                FileLocationID = fileLocation.VideoLocal_Place_ID,
+                IsSuccess = false,
+                ErrorMessage = result.ErrorMessage,
+            };
+
+        // Check if it was actually relocated, or if we landed on the same location as earlier.
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
+        return new RelocateResult
+        {
+            FileID = fileLocation.VideoLocalID,
+            FileLocationID = fileLocation.VideoLocal_Place_ID,
+            ScriptID = script.RenameScriptID,
+            ImportFolderID = result.ImportFolder.ImportFolderID,
+            IsSuccess = true,
+            IsRelocated = relocated,
+            IsPreview = body.Preview,
+            RelativePath = result.RelativePath,
+            AbsolutePath = result.AbsolutePath,
+        };
     }
 
     /// <summary>
@@ -333,7 +550,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var anidb = file.GetAniDBFile();
+        var anidb = file.AniDBFile;
         if (anidb == null)
             return NotFound(AnidbNotFoundForFileID);
 
@@ -403,7 +620,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -446,7 +663,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         var bestLocation = file.Places.FirstOrDefault(a => a.FileName.Equals(filename));
-        bestLocation ??= file.GetBestVideoLocalPlace();
+        bestLocation ??= file.FirstValidPlace;
 
         var fileInfo = bestLocation.GetFile();
         if (fileInfo == null)
@@ -485,7 +702,7 @@ public class FileController : BaseController
 
         var routeTemplate = Request.Scheme + "://" + Request.Host + "/api/v3/File/" + fileID + "/StreamDirectory/ExternalSub/";
         return new ObjectResult("<table>" + string.Join(string.Empty,
-            file.Media.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>")) + "</table>");
+            file.MediaInfo.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>")) + "</table>");
     }
 
     /// <summary>
@@ -528,7 +745,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var mediaContainer = file.Media;
+        var mediaContainer = file.MediaInfo;
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
 
@@ -548,7 +765,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         var user = HttpContext.GetUser();
-        var userStats = file.GetUserRecord(user.JMMUserID);
+        var userStats = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
 
         if (userStats == null)
             return NotFound(FileUserStatsNotFoundWithFileID);
@@ -572,7 +789,7 @@ public class FileController : BaseController
 
         // Get the user data.
         var user = HttpContext.GetUser();
-        var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
+        var userStats = _vlService.GetOrCreateUserRecord(file, user.JMMUserID);
 
         // Merge with the existing entry and return an updated version of the stats.
         return fileUserStats.MergeWithExisting(userStats, file);
@@ -585,13 +802,13 @@ public class FileController : BaseController
     /// <param name="watched">Is it watched?</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Watched/{watched?}")]
-    public ActionResult SetWatchedStatusOnFile([FromRoute] int fileID, [FromRoute] bool watched = true)
+    public async Task<ActionResult> SetWatchedStatusOnFile([FromRoute] int fileID, [FromRoute] bool watched = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        file.ToggleWatchedStatus(watched, User.JMMUserID);
+        await _watchedService.SetWatchedStatus(file, watched, User.JMMUserID);
 
         return Ok();
     }
@@ -606,7 +823,7 @@ public class FileController : BaseController
     /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
     /// <returns></returns>
     [HttpPatch("{fileID}/Scrobble")]
-    public ActionResult ScrobbleFileAndEpisode([FromRoute] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+    public async Task<ActionResult> ScrobbleFileAndEpisode([FromRoute] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
     {
 
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -616,10 +833,10 @@ public class FileController : BaseController
         // Handle legacy scrobble events.
         if (string.IsNullOrEmpty(eventName))
         {
-            return ScrobbleStatusOnFile(file, watched, resumePosition);
+            return await ScrobbleStatusOnFile(file, watched, resumePosition);
         }
 
-        var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.GetAnimeEpisodes()?.FirstOrDefault();
+        var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.AnimeEpisodes?.FirstOrDefault();
         if (episode == null)
             return ValidationProblem($"Could not get Episode with ID: {episodeID}", nameof(episodeID));
 
@@ -655,8 +872,8 @@ public class FileController : BaseController
         }
 
         if (watched.HasValue)
-            file.ToggleWatchedStatus(watched.Value, User.JMMUserID);
-        file.SetResumePosition(playbackPositionTicks, User.JMMUserID);
+            await _watchedService.SetWatchedStatus(file, watched.Value, User.JMMUserID);
+        _watchedService.SetResumePosition(file, playbackPositionTicks, User.JMMUserID);
 
         return NoContent();
     }
@@ -668,7 +885,7 @@ public class FileController : BaseController
             return;
 
         var percentage = 100 * ((float)position / file.Duration);
-        var scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int)AnimeType.Movie
+        var scrobbleType = episode.AnimeSeries?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
             ? ScrobblePlayingType.movie
             : ScrobblePlayingType.episode;
 
@@ -676,7 +893,7 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private OkResult ScrobbleStatusOnFile(SVR_VideoLocal file, bool? watched, long? resumePosition)
+    private async Task<OkResult> ScrobbleStatusOnFile(SVR_VideoLocal file, bool? watched, long? resumePosition)
     {
         if (!(watched ?? false) && resumePosition != null)
         {
@@ -686,15 +903,15 @@ public class FileController : BaseController
             if (safeRP >= file.Duration)
                 watched = true;
             else
-                file.SetResumePosition(safeRP, User.JMMUserID);
+                _watchedService.SetResumePosition(file, safeRP, User.JMMUserID);
         }
 
         if (watched != null)
         {
             var safeWatched = watched.Value;
-            file.ToggleWatchedStatus(safeWatched, User.JMMUserID);
+            await _watchedService.SetWatchedStatus(file, safeWatched, User.JMMUserID);
             if (safeWatched)
-                file.SetResumePosition(0, User.JMMUserID);
+                _watchedService.SetResumePosition(file, 0, User.JMMUserID);
 
         }
 
@@ -758,7 +975,7 @@ public class FileController : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             ModelState.AddModelError("Settings", "Missing AVDump API key");
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             ModelState.AddModelError("File", FileNoPath);
 
@@ -793,7 +1010,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -828,7 +1045,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -938,7 +1155,7 @@ public class FileController : BaseController
 
         // Validate that the ranges are valid for the series.
         var episodeType = startType ?? EpisodeType.Episode;
-        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.GetAnimeEpisodes(), episodeType);
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.AllAnimeEpisodes, episodeType);
         if (rangeStart < 1)
             ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
 
@@ -1001,7 +1218,7 @@ public class FileController : BaseController
     /// <param name="body">Optional. The body.</param>
     /// <returns></returns>
     [HttpDelete("{fileID}/Link")]
-    public ActionResult UnlinkMultipleEpisodesFromFile([FromRoute] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
+    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -1011,7 +1228,7 @@ public class FileController : BaseController
         var all = body == null;
         var episodeIdSet = body?.EpisodeIDs?.ToHashSet() ?? [];
         var seriesIDs = new HashSet<int>();
-        var episodeList = file.GetAnimeEpisodes()
+        var episodeList = file.AnimeEpisodes
             .Where(episode => all || episodeIdSet.Contains(episode.AniDB_EpisodeID))
             .Select(episode => (Episode: episode, XRef: RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(file.Hash, episode.AniDB_EpisodeID)))
             .Where(obj => obj.XRef != null)
@@ -1039,10 +1256,11 @@ public class FileController : BaseController
         }
 
         // Update any series affected by this unlinking.
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var seriesID in seriesIDs)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            series?.QueueUpdateStats();
+            await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
         }
 
         return Ok();
@@ -1087,7 +1305,7 @@ public class FileController : BaseController
         // Validate the range.
         var episodeType = startType ?? EpisodeType.Episode;
         var rangeEnd = rangeStart + files.Count - 1;
-        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.GetAnimeEpisodes(), episodeType);
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.AllAnimeEpisodes, episodeType);
         if (rangeStart < 1)
             ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
 
@@ -1334,7 +1552,7 @@ public class FileController : BaseController
             .Distinct()
             .Where(a =>
             {
-                var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
@@ -1368,7 +1586,7 @@ public class FileController : BaseController
             .Distinct()
             .Where(a =>
             {
-                var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;

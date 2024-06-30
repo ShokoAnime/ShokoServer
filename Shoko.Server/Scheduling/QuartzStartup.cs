@@ -8,7 +8,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
-using Quartz.Impl;
 using Quartz.Spi;
 using Quartz.Util;
 using Shoko.Server.Scheduling.Acquisition.Filters;

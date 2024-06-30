@@ -16,10 +16,12 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -35,6 +37,9 @@ public class SyncAniDBMyListJob : BaseJob
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IServerSettings _settings;
+    private readonly AnimeSeriesService _seriesService;
+    private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly WatchedStatusService _watchedService;
 
     public bool ForceRefresh { get; set; }
 
@@ -134,7 +139,7 @@ public class SyncAniDBMyListJob : BaseJob
             _logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
                 filesToRemove.Count);
 
-        modifiedSeries.ForEach(a => a.QueueUpdateStats());
+        modifiedSeries.ForEach(a => _seriesService.QueueUpdateStats(a));
 
         _logger.LogInformation(
             "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
@@ -181,7 +186,7 @@ public class SyncAniDBMyListJob : BaseJob
         // aggregate and assume if one AniDB User has watched it, it should be marked
         // if multiple have, then take the latest
         // compare the states and update if needed
-        var localWatchedDate = aniDBUsers.Select(a => vl.GetUserRecord(a.JMMUserID)).Where(a => a?.WatchedDate != null)
+        var localWatchedDate = aniDBUsers.Select(a => _vlUsers.GetByUserIDAndVideoLocalID(a.JMMUserID, vl.VideoLocalID)).Where(a => a?.WatchedDate != null)
             .Max(a => a.WatchedDate);
         if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
             localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
@@ -197,8 +202,8 @@ public class SyncAniDBMyListJob : BaseJob
             {
                 var watchedDate = myitem.ViewedAt;
                 modifiedItems++;
-                vl.ToggleWatchedStatus(true, false, watchedDate, false, juser.JMMUserID, false, true);
-                vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
+                await _watchedService.SetWatchedStatus(vl, true, false, watchedDate, false, juser.JMMUserID, false, true);
+                vl.AnimeEpisodes.Select(a => a.AnimeSeries).Where(a => a != null)
                     .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
             }
         }
@@ -208,8 +213,8 @@ public class SyncAniDBMyListJob : BaseJob
             foreach (var juser in aniDBUsers)
             {
                 modifiedItems++;
-                vl.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID, false, true);
-                vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
+                await _watchedService.SetWatchedStatus(vl, false, false, null, false, juser.JMMUserID, false, true);
+                vl.AnimeEpisodes.Select(a => a.AnimeSeries).Where(a => a != null)
                     .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
             }
         }
@@ -308,14 +313,15 @@ public class SyncAniDBMyListJob : BaseJob
         return true;
     }
 
-    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
+    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
+        _seriesService = seriesService;
+        _vlUsers = vlUsers;
+        _watchedService = watchedService;
         _settings = settingsProvider.GetSettings();
     }
 
-    protected SyncAniDBMyListJob()
-    {
-    }
+    protected SyncAniDBMyListJob() { }
 }

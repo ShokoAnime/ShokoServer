@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Tasks;
@@ -100,7 +100,7 @@ public class AutoAnimeGroupCalculator
         AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
         MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         var relationshipList = BaseRepository.Lock(session, s => s.CreateSQLQuery(@"
                 SELECT    fromAnime.AnimeID AS fromAnimeId
                         , toAnime.AnimeID AS toAnimeId

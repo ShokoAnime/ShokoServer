@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -26,8 +27,10 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -43,17 +46,21 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class SeriesController : BaseController
 {
+    private readonly AnimeSeriesService _seriesService;
     private readonly AniDBTitleHelper _titleHelper;
     private readonly SeriesFactory _seriesFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly JobFactory _jobFactory;
 
-    public SeriesController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDBTitleHelper titleHelper) : base(settingsProvider)
+    public SeriesController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDBTitleHelper titleHelper, CrossRef_File_EpisodeRepository crossRefFileEpisode, AnimeSeriesService seriesService, WatchedStatusService watchedService) : base(settingsProvider)
     {
         _seriesFactory = seriesFactory;
         _schedulerFactory = schedulerFactory;
         _jobFactory = jobFactory;
         _titleHelper = titleHelper;
+        _crossRefFileEpisode = crossRefFileEpisode;
+        _seriesService = seriesService;
+        _watchedService = watchedService;
     }
 
     #region Return messages
@@ -98,7 +105,7 @@ public class SeriesController : BaseController
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
-            .Select(series => (series, seriesName: series.GetSeriesName().ToLowerInvariant()))
+            .Select(series => (series, seriesName: series.SeriesName.ToLowerInvariant()))
             .Where(tuple =>
             {
                 var (series, seriesName) = tuple;
@@ -157,7 +164,7 @@ public class SeriesController : BaseController
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
-        await series.DeleteSeries(deleteFiles, true, completelyRemove);
+        await _seriesService.DeleteSeries(series, deleteFiles, true, completelyRemove);
 
         return Ok();
     }
@@ -306,8 +313,8 @@ public class SeriesController : BaseController
     {
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && series.GetVideoLocals().Count == 0)
-            .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+            .Where(series => user.AllowedSeries(series) && series.VideoLocals.Count == 0)
+            .OrderBy(series => series.SeriesName.ToLowerInvariant())
             .ToListResult(series => _seriesFactory.GetSeries(series), page, pageSize);
     }
 
@@ -323,8 +330,9 @@ public class SeriesController : BaseController
     {
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && series.GetVideoLocals(CrossRefSource.User).Count() != 0)
-            .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+            .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Where(a => a.VideoLocal != null)
+                .Any(a => a.CrossRefSource == (int)CrossRefSource.User))
+            .OrderBy(series => series.SeriesName.ToLowerInvariant())
             .ToListResult(series => _seriesFactory.GetSeries(series), page, pageSize);
     }
 
@@ -397,7 +405,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var anidb = series.GetAnime();
+        var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
             return InternalError(AnidbNotFoundForSeriesID);
@@ -426,7 +434,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var anidb = series.GetAnime();
+        var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
             return InternalError(AnidbNotFoundForSeriesID);
@@ -457,7 +465,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var anidb = series.GetAnime();
+        var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
             return InternalError(AnidbNotFoundForSeriesID);
@@ -488,7 +496,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var anidb = series.GetAnime();
+        var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
             return InternalError(AnidbNotFoundForSeriesID);
@@ -552,12 +560,12 @@ public class SeriesController : BaseController
             {
                 if (approval.HasValue)
                 {
-                    return anime.GetSimilarAnime().Where(similar =>
+                    return anime.SimilarAnime.Where(similar =>
                         unwatchedAnimeDict.ContainsKey(similar.SimilarAnimeID) &&
                         (double)similar.Approval / similar.Total >= approval.Value);
                 }
 
-                return anime.GetSimilarAnime()
+                return anime.SimilarAnime
                     .Where(similar => unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID));
             })
             .GroupBy(anime => anime.SimilarAnimeID)
@@ -616,7 +624,7 @@ public class SeriesController : BaseController
             .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
             .Where(episode => episode != null)
             .DistinctBy(episode => episode.AnimeSeriesID)
-            .Select(episode => episode.GetAnimeSeries().GetAnime())
+            .Select(episode => episode.AnimeSeries.AniDB_Anime)
             .Where(anime => user.AllowedAnime(anime) && (includeRestricted || anime.Restricted != 1))
             .ToList();
     }
@@ -651,7 +659,7 @@ public class SeriesController : BaseController
 
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
-            .Select(series => (anime: series.GetAnime(), series))
+            .Select(series => (anime: series.AniDB_Anime, series))
             .Where(tuple => includeRestricted || tuple.anime.Restricted != 1)
             .ToDictionary(tuple => tuple.anime.AnimeID);
     }
@@ -844,7 +852,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var anidb = series.GetAnime();
+        var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
             return InternalError(AnidbNotFoundForSeriesID);
@@ -1123,7 +1131,7 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns></returns>
     [HttpPost("{seriesID}/Episode/Watched")]
-    public ActionResult MarkSeriesWatched(
+    public async Task<ActionResult> MarkSeriesWatched(
         [FromRoute] int seriesID,
         [FromQuery] bool value = true,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
@@ -1143,10 +1151,11 @@ public class SeriesController : BaseController
 
         var userId = User.JMMUserID;
         var now = DateTime.Now;
-        GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, type, search, fuzzy)
-            .ForAll(episode => episode.ToggleWatchedStatus(value, true, now, false, userId, true));
+        // this has a parallel query to evaluate filters and data in parallel, but that makes awaiting the SetWatchedStatus calls more difficult, so we ToList() it
+        await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, type, search, fuzzy).ToList()
+            .Select(episode => _watchedService.SetWatchedStatus(episode, value, true, now, false, userId, true)));
 
-        series.UpdateStats(true, false);
+        _seriesService.UpdateStats(series, true, false);
 
         return Ok();
     }
@@ -1163,7 +1172,7 @@ public class SeriesController : BaseController
     {
         var user = User;
         var hasSearch = !string.IsNullOrWhiteSpace(search);
-        var episodes = series.GetAnimeEpisodes()
+        var episodes = series.AllAnimeEpisodes
             .AsParallel()
             .Select(episode => new { Shoko = episode, AniDB = episode?.AniDB_Episode })
             .Where(both =>
@@ -1199,7 +1208,7 @@ public class SeriesController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var noFiles = shoko.GetVideoLocals().Count == 0;
+                    var noFiles = shoko.VideoLocals.Count == 0;
                     if (shouldHideMissing == noFiles)
                         return false;
                 }
@@ -1282,7 +1291,7 @@ public class SeriesController : BaseController
 
         var user = User;
         var hasSearch = !string.IsNullOrWhiteSpace(search);
-        var episodes = anidbSeries.GetAniDBEpisodes()
+        var episodes = anidbSeries.AniDBEpisodes
             .AsParallel()
             .Select(episode => new { Shoko = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID), AniDB = episode })
             .Where(both =>
@@ -1319,7 +1328,7 @@ public class SeriesController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var files = shoko?.GetVideoLocals().Count ?? 0;
+                    var files = shoko?.VideoLocals.Count ?? 0;
                     var noFiles = files == 0;
                     if (shouldHideMissing == noFiles)
                         return false;
@@ -1399,7 +1408,7 @@ public class SeriesController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1407,7 +1416,7 @@ public class SeriesController : BaseController
         if (!user.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var episode = series.GetNextEpisode(user.JMMUserID, new()
+        var episode = _seriesService.GetNextEpisode(series, user.JMMUserID, new()
         {
             IncludeCurrentlyWatching = !onlyUnwatched,
             IncludeHidden = includeHidden,
@@ -1443,7 +1452,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var file in series.GetVideoLocals())
+        foreach (var file in series.VideoLocals)
         {
             if (priority)
                 await scheduler.StartJobNow<ProcessFileJob>(c =>
@@ -1482,9 +1491,9 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var file in series.GetVideoLocals())
+        foreach (var file in series.VideoLocals)
         {
-            var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.FullServerPath;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
@@ -1536,6 +1545,9 @@ public class SeriesController : BaseController
 
     private static HashSet<Image.ImageType> AllowedImageTypes =
         new() { Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Fanart };
+
+    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
+    private readonly WatchedStatusService _watchedService;
 
     private const string InvalidIDForSource = "Invalid image id for selected source.";
 
@@ -1817,7 +1829,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var anidb = series.GetAnime();
+        var anidb = series.AniDB_Anime;
         if (anidb == null)
         {
             return new List<Tag>();
@@ -1903,7 +1915,7 @@ public class SeriesController : BaseController
         if (group == null)
             return ValidationProblem("No Group entry for the given groupID", "groupID");
 
-        series.MoveSeries(group);
+        _seriesService.MoveSeries(series, group);
 
         return Ok();
     }
@@ -2111,7 +2123,7 @@ public class SeriesController : BaseController
                 var dir = Path.GetDirectoryName(a.FullServerPath);
                 return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
             })
-            .SelectMany(a => a.VideoLocal?.GetAnimeEpisodes() ?? Enumerable.Empty<SVR_AnimeEpisode>()).Select(a => a.GetAnimeSeries())
+            .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<SVR_AnimeEpisode>()).Select(a => a.AnimeSeries)
             .Distinct()
             .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => _seriesFactory.GetSeries(a)).ToList();
     }
@@ -2127,13 +2139,14 @@ public class SeriesController : BaseController
             return;
         }
 
-        if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null)
+        var titles = a.AniDB_Anime.GetAllTitles();
+        if ((titles?.Count ?? 0) == 0)
         {
             return;
         }
 
         var match = string.Empty;
-        foreach (var title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
+        foreach (var title in titles)
         {
             if (string.IsNullOrEmpty(title))
             {

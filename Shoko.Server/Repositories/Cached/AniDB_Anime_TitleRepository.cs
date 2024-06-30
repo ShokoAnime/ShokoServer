@@ -5,11 +5,12 @@ using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Commons.Properties;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_Anime_TitleRepository : BaseCachedRepository<SVR_AniDB_Anime_Title, int>
 {
@@ -69,5 +70,9 @@ public class AniDB_Anime_TitleRepository : BaseCachedRepository<SVR_AniDB_Anime_
 
             return titles;
         });
+    }
+
+    public AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

@@ -90,7 +90,7 @@ public class Dev : BaseController
             return BadRequest("Not found");
         }
 
-        return video.Media == null ? null : new Media(id, video.Media);
+        return video.MediaInfo == null ? null : new Media(id, video.MediaInfo);
     }
 
     public Dev(ISettingsProvider settingsProvider) : base(settingsProvider)

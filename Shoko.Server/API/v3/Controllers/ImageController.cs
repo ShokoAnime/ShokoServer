@@ -146,7 +146,7 @@ public class ImageController : BaseController
             var image = new Image(id.Value, sourceType, false, false);
             var series = Image.GetFirstSeriesForImage(sourceType, id.Value);
             if (series != null)
-                image.Series = new(series.AnimeSeriesID, series.GetSeriesName());
+                image.Series = new(series.AnimeSeriesID, series.SeriesName);
 
             return image;
         } while (tries++ < 5);

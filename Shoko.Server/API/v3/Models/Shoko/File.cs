@@ -4,14 +4,15 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -122,7 +123,7 @@ public class File
     public MediaInfo MediaInfo { get; set; }
 
     public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
-        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths)
+        this(RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths)
     { }
 
     public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
@@ -132,13 +133,7 @@ public class File
         IsVariation = file.IsVariation;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
         Resolution = FileQualityFilter.GetResolution(file);
-        Locations = file.Places.Select(a => new Location
-        {
-            ImportFolderID = a.ImportFolderID,
-            RelativePath = a.FilePath,
-            AbsolutePath = includeAbsolutePaths ? a.FullServerPath : null,
-            IsAccessible = a.GetFile() != null,
-        }).ToList();
+        Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
@@ -152,21 +147,37 @@ public class File
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
         {
-            var anidbFile = file.GetAniDBFile();
+            var anidbFile = file.AniDBFile;
             if (anidbFile != null)
                 _AniDB = new AniDB(anidbFile);
         }
 
         if (includeMediaInfo)
         {
-            var mediaContainer = file?.Media ??
+            var mediaContainer = file?.MediaInfo ??
                 throw new Exception("Unable to find media container for File");
             MediaInfo = new MediaInfo(file, mediaContainer);
         }
     }
 
+#nullable enable
+    /// <summary>
+    /// Represents a file location.
+    /// </summary>
     public class Location
     {
+        /// <summary>
+        /// The file location id.
+        /// </summary>
+        [Required]
+        public int ID { get; set; }
+
+        /// <summary>
+        /// The id of the <see cref="File"/> this location belong to.
+        /// </summary>
+        [Required]
+        public int FileID { get; set; }
+
         /// <summary>
         /// The Import Folder that this file resides in 
         /// </summary>
@@ -181,14 +192,88 @@ public class File
         /// The absolute path for the file on the server.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string AbsolutePath { get; set; }
+        public string? AbsolutePath { get; set; }
 
         /// <summary>
         /// Can the server access the file right now
         /// </summary>
         [JsonRequired]
         public bool IsAccessible { get; set; }
+
+        public Location(SVR_VideoLocal_Place location, bool includeAbsolutePaths)
+        {
+            ID = location.VideoLocal_Place_ID;
+            FileID = location.VideoLocalID;
+            ImportFolderID = location.ImportFolderID;
+            RelativePath = location.FilePath;
+            AbsolutePath = includeAbsolutePaths ? location.FullServerPath : null;
+            IsAccessible = location.GetFile() != null;
+        }
+
+        /// <summary>
+        /// Represents the parameters for the automatic relocation process.
+        /// </summary>
+        public class AutoRelocateBody
+        {
+            /// <summary>
+            /// Optional. Id of the script to use instead of the default
+            /// script.
+            /// </summary>
+            public int? ScriptID { get; set; }
+
+            /// <summary>
+            /// Indicates whether the result should be a preview of the
+            /// relocation.
+            /// </summary>
+            public bool Preview { get; set; } = false;
+
+            /// <summary>
+            /// Move the file. Leave as `null` to use the default
+            /// setting for move on import.
+            /// </summary>
+            public bool? Move { get; set; } = null;
+
+            /// <summary>
+            /// Rename the file. Leave as `null` to use the default
+            /// setting for rename on import.
+            /// </summary>
+            public bool? Rename { get; set; } = null;
+
+            /// <summary>
+            /// Indicates whether empty directories should be deleted after
+            /// relocating the file.
+            /// </summary>
+            public bool DeleteEmptyDirectories { get; set; } = true;
+        }
+
+        /// <summary>
+        /// Represents the information required to create or move to a new file
+        /// location.
+        /// </summary>
+        public class NewLocationBody
+        {
+            /// <summary>
+            /// The id of the <see cref="ImportFolder"/> where this file should
+            /// be relocated to.
+            /// </summary>
+            [Required]
+            public int ImportFolderID { get; set; }
+
+            /// <summary>
+            /// The new relative path from the <see cref="ImportFolder"/>'s path
+            /// on the server.
+            /// </summary>
+            [Required]
+            public string RelativePath { get; set; } = string.Empty;
+
+            /// <summary>
+            /// Indicates whether empty directories should be deleted after
+            /// relocating the file.
+            /// </summary>
+            public bool DeleteEmptyDirectories { get; set; } = true;
+        }
     }
+#nullable disable
 
     /// <summary>
     /// AniDB_File info
@@ -316,7 +401,9 @@ public class File
             file ??= existing.GetVideoLocal();
 
             // Sync the watch date and aggregate the data up to the episode if needed.
-            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true, LastUpdatedAt.ToLocalTime());
+            var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
+            watchedService.SetWatchedStatus(file, LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true,
+                LastUpdatedAt.ToLocalTime()).GetAwaiter().GetResult();
 
             // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
             existing.WatchedCount = WatchedCount;

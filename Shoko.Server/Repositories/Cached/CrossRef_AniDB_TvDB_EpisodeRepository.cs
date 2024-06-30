@@ -61,7 +61,7 @@ public class CrossRef_AniDB_TvDB_EpisodeRepository : BaseCachedRepository<CrossR
 
         Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             // I'm aware that this is stupid, but it's MySQL's fault
             // see https://stackoverflow.com/questions/45494/mysql-error-1093-cant-specify-target-table-for-update-in-from-clause
@@ -116,12 +116,16 @@ WHERE AniDB_Episode.AnimeID = :animeid
 
         Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             session.CreateSQLQuery("DELETE FROM CrossRef_AniDB_TvDB_Episode WHERE MatchRating != :rating;")
                 .SetInt32("rating", (int)MatchRating.UserVerified)
                 .ExecuteUpdate();
             transaction.Commit();
         });
+    }
+
+    public CrossRef_AniDB_TvDB_EpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

@@ -7,17 +7,21 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.Authentication;
 
 public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 {
-    public CustomAuthHandler(IOptionsMonitor<CustomAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder,
-        ISystemClock clock)
-        : base(options, logger, encoder, clock)
+    private readonly AuthTokensRepository _authTokens;
+    private readonly JMMUserRepository _users;
+
+    public CustomAuthHandler(IOptionsMonitor<CustomAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder, AuthTokensRepository authTokens, JMMUserRepository users)
+        : base(options, logger, encoder)
     {
+        _authTokens = authTokens;
+        _users = users;
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -74,7 +78,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    private static SVR_JMMUser GetUserForKey(string ctx)
+    private SVR_JMMUser GetUserForKey(string ctx)
     {
         if (!(ServerState.Instance?.ServerOnline ?? false))
         {
@@ -87,7 +91,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
             return null;
         }
 
-        var auth = RepoFactory.AuthTokens.GetByToken(apikey);
-        return auth != null ? RepoFactory.JMMUser.GetByID(auth.UserID) : null;
+        var auth = _authTokens.GetByToken(apikey);
+        return auth != null ? _users.GetByID(auth.UserID) : null;
     }
 }

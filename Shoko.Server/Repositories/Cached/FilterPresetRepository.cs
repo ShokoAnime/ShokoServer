@@ -5,6 +5,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
+using Shoko.Server.Databases;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
@@ -344,5 +345,9 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         result = GetAllYearFilters(offset);
         filters.AddRange(result);
         return filters;
+    }
+
+    public FilterPresetRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

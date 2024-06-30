@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -41,15 +40,9 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     /// <summary>
     /// Gets the AnimeSeries this episode belongs to
     /// </summary>
-    public SVR_AnimeSeries? GetAnimeSeries()
-    {
-        return RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
-    }
+    public SVR_AnimeSeries? AnimeSeries => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
 
-    public List<SVR_VideoLocal> GetVideoLocals(CrossRefSource? xrefSource = null)
-    {
-        return RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID, xrefSource);
-    }
+    public List<SVR_VideoLocal> VideoLocals => RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
 
     public List<SVR_CrossRef_File_Episode> FileCrossRefs => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
@@ -89,88 +82,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
             AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(AnimeEpisodeID, AniDBVoteType.Episode);
             if (vote != null) return vote.VoteValue / 100D;
             return -1;
-        }
-    }
-
-    public void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
-    {
-
-        var epUserRecord = GetUserRecord(userID);
-
-        if (watched)
-        {
-            // let's check if an update is actually required
-            if (epUserRecord?.WatchedDate != null && watchedDate.HasValue &&
-                epUserRecord.WatchedDate.Equals(watchedDate.Value) ||
-                (epUserRecord?.WatchedDate == null && !watchedDate.HasValue))
-                return;
-
-            epUserRecord ??= new SVR_AnimeEpisode_User(userID, AnimeEpisodeID, AnimeSeriesID);
-            epUserRecord.WatchedCount++;
-
-            if (epUserRecord.WatchedDate.HasValue && updateWatchedDate || !epUserRecord.WatchedDate.HasValue)
-                epUserRecord.WatchedDate = watchedDate ?? DateTime.Now;
-
-            RepoFactory.AnimeEpisode_User.Save(epUserRecord);
-        }
-        else if (epUserRecord != null && updateWatchedDate)
-        {
-            epUserRecord.WatchedDate = null;
-            RepoFactory.AnimeEpisode_User.Save(epUserRecord);
-        }
-    }
-
-
-    public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID)
-    {
-        // get all the cross refs
-        return FileCrossRefs.Select(xref => RepoFactory.VideoLocal.GetByHash(xref.Hash))
-            .Where(v => v != null)
-            .Select(v => v.ToClientDetailed(userID)).ToList();
-    }
-
-    public CL_AnimeEpisode_User GetUserContract(int userID)
-    {
-        var anidbEpisode = AniDB_Episode
-            ?? throw new NullReferenceException($"Unable to find AniDB Episode with id {AniDB_EpisodeID} locally while generating user contract for shoko episode.");
-        var seriesUserRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
-        var episodeUserRecord = GetUserRecord(userID);
-        var contract = new CL_AnimeEpisode_User
-        {
-            AniDB_EpisodeID = AniDB_EpisodeID,
-            AnimeEpisodeID = AnimeEpisodeID,
-            AnimeSeriesID = AnimeSeriesID,
-            DateTimeCreated = DateTimeCreated,
-            DateTimeUpdated = DateTimeUpdated,
-            PlayedCount = episodeUserRecord?.PlayedCount ?? 0,
-            StoppedCount = episodeUserRecord?.StoppedCount ?? 0,
-            WatchedCount = episodeUserRecord?.WatchedCount ?? 0,
-            WatchedDate = episodeUserRecord?.WatchedDate,
-            AniDB_EnglishName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
-                .FirstOrDefault()?.Title,
-            AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.Romaji)
-                .FirstOrDefault()?.Title,
-            AniDB_AirDate = anidbEpisode.GetAirDateAsDate(),
-            AniDB_LengthSeconds = anidbEpisode.LengthSeconds,
-            AniDB_Rating = anidbEpisode.Rating,
-            AniDB_Votes = anidbEpisode.Votes,
-            EpisodeNumber = anidbEpisode.EpisodeNumber,
-            Description = anidbEpisode.Description,
-            EpisodeType = anidbEpisode.EpisodeType,
-            UnwatchedEpCountSeries = seriesUserRecord?.UnwatchedEpisodeCount ?? 0,
-            LocalFileCount = GetVideoLocals().Count,
-        };
-        return contract;
-    }
-
-    public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats,
-        int userID, bool syncTrakt)
-    {
-        foreach (var vid in GetVideoLocals())
-        {
-            vid.ToggleWatchedStatus(watched, updateOnline, watchedDate, updateStats, userID,
-                syncTrakt, true);
-            vid.SetResumePosition(0, userID);
         }
     }
 
@@ -299,6 +210,43 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
 
     #endregion
 
+    #region IWithDescription Implementation
+
+    string IWithDescriptions.DefaultDescription => AniDB_Episode?.Description ?? string.Empty;
+
+    string IWithDescriptions.PreferredDescription => AniDB_Episode?.Description ?? string.Empty;
+
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions
+    {
+        get
+        {
+            var titles = new List<TextDescription>();
+
+            var episode = AniDB_Episode;
+            if (episode is not null && episode is IEpisode anidbEpisode)
+            {
+                var episodetitles = anidbEpisode.Descriptions;
+                titles.AddRange(episodetitles);
+            }
+
+            // TODO: Add other sources here.
+
+            // Fallback in the off-chance that the AniDB data is unavailable for whatever reason. It should never reach this code.
+            if (titles.Count is 0)
+                titles.Add(new()
+                {
+                    Source = DataSourceEnum.AniDB,
+                    Language = TitleLanguage.English,
+                    LanguageCode = "en",
+                    Value = string.Empty,
+                });
+
+            return titles;
+        }
+    }
+
+    #endregion
+
     #region IEpisode Implementation
 
     int IEpisode.SeriesID => AnimeSeriesID;
@@ -313,7 +261,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
 
     DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
 
-    ISeries? IEpisode.SeriesInfo => GetAnimeSeries();
+    ISeries? IEpisode.SeriesInfo => AnimeSeries;
 
     IReadOnlyList<IEpisode> IEpisode.LinkedEpisodes
     {
@@ -337,7 +285,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     IReadOnlyList<IVideo> IEpisode.VideoList =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID)
             .DistinctBy(xref => xref.Hash)
-            .Select(xref => xref.GetVideo())
+            .Select(xref => xref.VideoLocal)
             .OfType<SVR_VideoLocal>()
             .ToList();
 

@@ -201,7 +201,7 @@ public static class SeriesSearch
         if (searchById && int.TryParse(query, out var animeID))
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            var anime = series?.GetAnime();
+            var anime = series?.AniDB_Anime;
             var tags = anime?.GetAllTags();
             if (anime != null && !tags.FindInEnumerable(forbiddenTags))
                 return new List<SearchResult<SVR_AnimeSeries>>
@@ -219,7 +219,7 @@ public static class SeriesSearch
             .AsParallel()
             .Where(series =>
             {
-                var anime = series.GetAnime();
+                var anime = series.AniDB_Anime;
                 var tags = anime?.GetAllTags();
                 return anime != null && (tags.Count == 0 || !tags.FindInEnumerable(forbiddenTags));
             });
@@ -283,7 +283,7 @@ public static class SeriesSearch
                         return null;
 
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
-                    var anime = series?.GetAnime();
+                    var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
@@ -297,7 +297,7 @@ public static class SeriesSearch
                 })
                 .Where(a => a != null)
             )
-            .OrderBy(a => a.Result.GetSeriesName())
+            .OrderBy(a => a.Result.SeriesName)
             .Take(limit)
         );
 
@@ -309,7 +309,7 @@ public static class SeriesSearch
                 .Select(xref =>
                 {
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                    var anime = series?.GetAnime();
+                    var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
@@ -325,7 +325,7 @@ public static class SeriesSearch
                 .Where(a => a != null)
             )
             .OrderBy(a => a)
-            .ThenBy(a => a.Result.GetSeriesName())
+            .ThenBy(a => a.Result.SeriesName)
             .Take(limit)
         );
         return seriesList;
@@ -357,7 +357,7 @@ public static class SeriesSearch
                         return null;
 
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
-                    var anime = series?.GetAnime();
+                    var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
@@ -375,7 +375,7 @@ public static class SeriesSearch
                 .Where(b => b != null)
             )
             .OrderBy(a => a)
-            .ThenBy(b => b.Result.GetSeriesName())
+            .ThenBy(b => b.Result.SeriesName)
             .Take(limit));
 
         limit -= seriesList.Count;
@@ -395,7 +395,7 @@ public static class SeriesSearch
                 .Select(xref =>
                 {
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                    var anime = series?.GetAnime();
+                    var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
@@ -413,7 +413,7 @@ public static class SeriesSearch
                 .Where(a => a != null)
             )
             .OrderBy(a => a)
-            .ThenBy(a => a.Result.GetSeriesName())
+            .ThenBy(a => a.Result.SeriesName)
             .Take(limit)
         );
         return seriesList;
@@ -427,7 +427,7 @@ public static class SeriesSearch
         return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
             .Where(title => title.TitleType == TitleType.Main || languages.Contains(title.LanguageCode))
             .Select(title => title.Title)
-            .Append(series.GetSeriesName())
+            .Append(series.SeriesName)
             .Distinct();
     }
 

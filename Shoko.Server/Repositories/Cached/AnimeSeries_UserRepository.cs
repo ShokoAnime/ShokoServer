@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -12,7 +13,7 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
     private PocoIndex<int, AnimeSeries_User, (int UserID, int SeriesID)> UsersSeries;
     private Dictionary<int, ChangeTracker<int>> Changes = new();
 
-    public AnimeSeries_UserRepository()
+    public AnimeSeries_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         EndDeleteCallback = cr =>
         {

@@ -224,10 +224,10 @@ public static class ModelProviders
 
     public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series, DateTime now)
     {
-        var anime = series.GetAnime();
+        var anime = series.AniDB_Anime;
 
         agroup.Description = anime.Description;
-        var name = series.GetSeriesName();
+        var name = series.SeriesName;
         agroup.GroupName = name;
         agroup.MainAniDBAnimeID = series.AniDB_ID;
         agroup.DateTimeUpdated = now;

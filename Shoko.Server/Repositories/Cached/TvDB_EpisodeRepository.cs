@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -83,5 +84,9 @@ public class TvDB_EpisodeRepository : BaseCachedRepository<TvDB_Episode, int>
     protected override int SelectKey(TvDB_Episode entity)
     {
         return entity.TvDB_EpisodeID;
+    }
+
+    public TvDB_EpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

@@ -130,7 +130,7 @@ public static class ModelHelper
         return (episodeNumber, episodeType, null);
     }
 
-    public static int GetTotalEpisodesForType(List<SVR_AnimeEpisode> episodeList, EpisodeType episodeType)
+    public static int GetTotalEpisodesForType(IEnumerable<SVR_AnimeEpisode> episodeList, EpisodeType episodeType)
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
@@ -183,7 +183,7 @@ public static class ModelHelper
         }
     }
 
-    public static SeriesSizes GenerateSeriesSizes(List<SVR_AnimeEpisode> episodeList, int userID)
+    public static SeriesSizes GenerateSeriesSizes(IEnumerable<SVR_AnimeEpisode> episodeList, int userID)
     {
         var now = DateTime.Now;
         var sizes = new SeriesSizes();
@@ -191,7 +191,7 @@ public static class ModelHelper
         foreach (var episode in episodeList)
         {
             var anidbEpisode = episode.AniDB_Episode;
-            var fileList = episode.GetVideoLocals();
+            var fileList = episode.VideoLocals;
             var isLocal = fileList.Count > 0;
             var isWatched = episode.GetUserRecord(userID)?.WatchedDate.HasValue ?? false;
             foreach (var file in fileList)
@@ -200,7 +200,7 @@ public static class ModelHelper
                 if (!fileSet.Add(file.VideoLocalID))
                     continue;
 
-                var anidbFile = file.GetAniDBFile();
+                var anidbFile = file.AniDBFile;
                 if (anidbFile == null)
                 {
                     sizes.FileSources.Unknown++;
@@ -255,11 +255,11 @@ public static class ModelHelper
                 if (isLocal)
                 {
                     sizes.Local.Unknown++;
-                }
 
-                if (isWatched)
-                {
-                    sizes.Watched.Unknown++;
+                    if (isWatched)
+                    {
+                        sizes.Watched.Unknown++;
+                    }
                 }
 
                 continue;
@@ -272,15 +272,15 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Episodes++;
+
+                        if (isWatched)
+                        {
+                            sizes.Watched.Episodes++;
+                        }
                     }
                     else if (airDate.HasValue && airDate.Value < now)
                     {
                         sizes.Missing.Episodes++;
-                    }
-
-                    if (isWatched)
-                    {
-                        sizes.Watched.Episodes++;
                     }
 
                     break;
@@ -289,11 +289,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Credits++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Credits++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Credits++;
+                        }
                     }
 
                     break;
@@ -302,15 +302,15 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Specials++;
+
+                        if (isWatched)
+                        {
+                            sizes.Watched.Specials++;
+                        }
                     }
                     else if (airDate.HasValue && airDate.Value < now)
                     {
                         sizes.Missing.Specials++;
-                    }
-
-                    if (isWatched)
-                    {
-                        sizes.Watched.Specials++;
                     }
 
                     break;
@@ -319,11 +319,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Trailers++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Trailers++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Trailers++;
+                        }
                     }
 
                     break;
@@ -332,11 +332,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Parodies++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Parodies++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Parodies++;
+                        }
                     }
 
                     break;
@@ -345,11 +345,11 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Others++;
-                    }
 
-                    if (isWatched)
-                    {
-                        sizes.Watched.Others++;
+                        if (isWatched)
+                        {
+                            sizes.Watched.Others++;
+                        }
                     }
 
                     break;
@@ -359,13 +359,13 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static GroupSizes GenerateGroupSizes(List<SVR_AnimeSeries> seriesList, List<SVR_AnimeEpisode> episodeList,
+    public static GroupSizes GenerateGroupSizes(IEnumerable<SVR_AnimeSeries> seriesList, IEnumerable<SVR_AnimeEpisode> episodeList,
         int subGroups, int userID)
     {
         var sizes = new GroupSizes(GenerateSeriesSizes(episodeList, userID));
         foreach (var series in seriesList)
         {
-            var anime = series.GetAnime();
+            var anime = series.AniDB_Anime;
             switch (SeriesFactory.GetAniDBSeriesType(anime?.AnimeType))
             {
                 case SeriesType.Unknown:
@@ -410,9 +410,9 @@ public static class ModelHelper
         var enumerable = input
             .Select(video => (
                 Video: video,
-                BestLocation: video.GetBestVideoLocalPlace(),
+                BestLocation: video.FirstValidPlace,
                 Locations: includeLocations ? video.Places : null,
-                UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
+                UserRecord: includeUserRecord ? RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(user.JMMUserID, video.VideoLocalID) : null
             ))
             .Where(tuple =>
             {
@@ -422,7 +422,7 @@ public static class ModelHelper
                     .Select(xref => xref.AnimeID)
                     .Distinct()
                     .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
-                    .Where(anime => anime != null)
+                    .WhereNotNull()
                     .All(user.AllowedAnime);
                 if (!isAnimeAllowed)
                     return false;
@@ -440,9 +440,9 @@ public static class ModelHelper
                         RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(x.EpisodeID) != null)) return false;
 
                 if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
-                    xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
+                    xrefs.All(xref => xref.CrossRefSource == (int)CrossRefSource.User)) return false;
                 if (include_only.Contains(FileIncludeOnlyType.ManualLinks) &&
-                    (xrefs.Count == 0 || xrefs.Any(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB))) return false;
+                    (xrefs.Count == 0 || xrefs.All(xref => xref.CrossRefSource != (int)CrossRefSource.User))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;

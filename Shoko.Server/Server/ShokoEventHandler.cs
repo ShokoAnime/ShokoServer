@@ -58,19 +58,19 @@ public class ShokoEventHandler : IShokoEventHandler
         var relativePath = vlp.FilePath;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
         var animeInfo = series.Cast<IAnime>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
@@ -85,19 +85,19 @@ public class ShokoEventHandler : IShokoEventHandler
         var path = vlp.FilePath;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
         var animeInfo = series.Cast<IAnime>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
@@ -112,19 +112,19 @@ public class ShokoEventHandler : IShokoEventHandler
         var path = vlp.FilePath;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
         var animeInfo = series.Cast<IAnime>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
@@ -139,19 +139,19 @@ public class ShokoEventHandler : IShokoEventHandler
         var path = vlp.FilePath;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
         var animeInfo = series.Cast<IAnime>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
@@ -166,19 +166,19 @@ public class ShokoEventHandler : IShokoEventHandler
         var vl = vlp.VideoLocal;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
         var animeInfo = series.Cast<IAnime>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)
@@ -194,19 +194,19 @@ public class ShokoEventHandler : IShokoEventHandler
         var vl = vlp.VideoLocal;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
-            .Select(x => x.GetEpisode())
+            .Select(x => x.AniDBEpisode)
             .WhereNotNull()
             .ToList();
         var series = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnime())
+            .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
         var animeInfo = series.Cast<IAnime>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.GetAnimeSeries())
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)

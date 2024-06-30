@@ -1,5 +1,7 @@
 ﻿using System;
+using Microsoft.Extensions.DependencyInjection;
 using Mono.Unix;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Utilities;
 
@@ -38,7 +40,8 @@ public static class LinuxFS
         // if we didn't change anything, then return
         if (!shouldChangeOwner && !shouldChangePermissions) return;
 
-        Utils.ShokoServer.AddFileWatcherExclusion(path);
+        var fileWatcherService = Utils.ServiceContainer.GetRequiredService<FileWatcherService>();
+        fileWatcherService.AddFileWatcherExclusion(path);
         try
         {
             if (shouldChangeOwner) file.SetOwner(uid, gid);
@@ -49,7 +52,7 @@ public static class LinuxFS
         }
         finally
         {
-            Utils.ShokoServer.RemoveFileWatcherExclusion(path);
+            fileWatcherService.RemoveFileWatcherExclusion(path);
         }
     }
 }

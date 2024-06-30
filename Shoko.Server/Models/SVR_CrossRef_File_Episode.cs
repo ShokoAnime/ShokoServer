@@ -9,23 +9,16 @@ namespace Shoko.Server.Models;
 
 public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossReference
 {
-    public SVR_VideoLocal? GetVideo()
-        => RepoFactory.VideoLocal.GetByHash(Hash);
 
-    public SVR_AniDB_Episode? GetEpisode()
-        => RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
+    public SVR_VideoLocal? VideoLocal => RepoFactory.VideoLocal.GetByHash(Hash);
 
-    public SVR_AnimeEpisode? GetAnimeEpisode()
-        => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
+    public SVR_AniDB_Episode? AniDBEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
 
-    public SVR_AniDB_Anime? GetAnime()
-        => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+    public SVR_AnimeEpisode? AnimeEpisode => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
 
-    public SVR_AnimeSeries? GetAnimeSeries()
-        => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+    public SVR_AniDB_Anime? AniDBAnime => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
-    public SVR_VideoLocal_User? GetVideoLocalUserRecord(int userID)
-        => RepoFactory.VideoLocal.GetByHash(Hash)?.GetUserRecord(userID);
+    public SVR_AnimeSeries? AnimeSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
 
     public override string ToString() =>
         $"CrossRef_File_Episode (Anime={AnimeID},Episode={EpisodeID},Hash={Hash},FileSize={FileSize},EpisodeOrder={EpisodeOrder},Percentage={Percentage})";
@@ -52,11 +45,11 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
 
     int IVideoCrossReference.Percentage => Percentage;
 
-    IVideo? IVideoCrossReference.Video => GetVideo();
+    IVideo? IVideoCrossReference.Video => VideoLocal;
 
-    IEpisode? IVideoCrossReference.AnidbEpisode => GetEpisode();
+    IEpisode? IVideoCrossReference.AnidbEpisode => AniDBEpisode;
 
-    ISeries? IVideoCrossReference.AnidbAnime => GetAnime();
+    ISeries? IVideoCrossReference.AnidbAnime => AniDBAnime;
 
     #endregion
 }

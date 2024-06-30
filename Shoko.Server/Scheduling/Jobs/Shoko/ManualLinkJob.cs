@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -22,10 +21,9 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 public class ManualLinkJob : BaseJob
 {
     private readonly IServerSettings _settings;
-
     private readonly ISchedulerFactory _schedulerFactory;
-
     private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly AnimeSeriesService _seriesService;
 
     private SVR_AnimeEpisode _episode;
 
@@ -44,7 +42,7 @@ public class ManualLinkJob : BaseJob
     public override Dictionary<string, object> Details => _episode != null ?
         new()
         {
-            { "File Path", Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath) },
+            { "File Path", Utils.GetDistinctPath(_vlocal.FirstValidPlace?.FullServerPath) },
             { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AniDB_Episode.AnimeID)?.PreferredTitle },
             { "Episode Type", _episode.AniDB_Episode.EpisodeType.ToString() },
             { "Episode Number", _episode.AniDB_Episode.EpisodeNumber }
@@ -60,7 +58,7 @@ public class ManualLinkJob : BaseJob
         _episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
         if (_episode == null) throw new JobExecutionException($"Episode not Found: {EpisodeID}");
-        if (_episode.GetAnimeSeries() == null) throw new JobExecutionException($"Series not Found: {_episode.AnimeSeriesID}");
+        if (_episode.AnimeSeries == null) throw new JobExecutionException($"Series not Found: {_episode.AnimeSeriesID}");
     }
 
 #pragma warning disable CS0618
@@ -88,26 +86,25 @@ public class ManualLinkJob : BaseJob
 
         await ProcessFileQualityFilter();
 
-
         // Set the import date.
         _vlocal.DateTimeImported = DateTime.Now;
         RepoFactory.VideoLocal.Save(_vlocal);
 
-        var ser = _episode.GetAnimeSeries();
+        var ser = _episode.AnimeSeries;
         ser.EpisodeAddedDate = DateTime.Now;
         RepoFactory.AnimeSeries.Save(ser, false, true);
 
         //Update will re-save
-        ser.QueueUpdateStats();
+        _seriesService.QueueUpdateStats(ser);
 
         foreach (var grp in ser.AllGroupsAbove)
         {
             grp.EpisodeAddedDate = DateTime.Now;
-            RepoFactory.AnimeGroup.Save(grp, false, false);
+            RepoFactory.AnimeGroup.Save(grp, false);
         }
 
         // Dispatch the on file matched event.
-        ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal);
+        ShokoEventHandler.Instance.OnFileMatched(_vlocal.FirstValidPlace, _vlocal);
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (_settings.AniDb.MyList_AddFiles)
@@ -124,7 +121,7 @@ public class ManualLinkJob : BaseJob
     {
         if (!_settings.FileQualityFilterEnabled) return;
 
-        var videoLocals = _episode.GetVideoLocals();
+        var videoLocals = _episode.VideoLocals;
         if (videoLocals == null) return;
 
         videoLocals.Sort(FileQualityFilter.CompareTo);
@@ -138,11 +135,12 @@ public class ManualLinkJob : BaseJob
         foreach (var toDelete in videoLocals.SelectMany(a => a.Places)) await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(toDelete);
     }
 
-    public ManualLinkJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService)
+    public ManualLinkJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService, AnimeSeriesService seriesService)
     {
         _settings = settingsProvider.GetSettings();
         _schedulerFactory = schedulerFactory;
         _vlPlaceService = vlPlaceService;
+        _seriesService = seriesService;
     }
 
     protected ManualLinkJob() { }

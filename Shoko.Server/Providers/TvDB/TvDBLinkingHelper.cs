@@ -436,7 +436,7 @@ public static class TvDBLinkingHelper
     public static bool HasNumberedTitles(List<SVR_AniDB_Episode> eps)
     {
         return eps.Zip(eps.Skip(1), Tuple.Create).All(a =>
-            IsTitleNumberedAndConsecutive(a.Item1.GetDefaultTitle(), a.Item2.GetDefaultTitle()));
+            IsTitleNumberedAndConsecutive(a.Item1.DefaultTitle, a.Item2.DefaultTitle));
     }
 
     public static bool HasNumberedTitles(List<TvDB_Episode> eps)
@@ -559,7 +559,7 @@ public static class TvDBLinkingHelper
                     // since it's a prequel, we'll assume it's finished airing
                     foreach (var prequelAnime in prequelAnimes)
                     {
-                        var prequelEps = prequelAnime.GetAniDBEpisodes()
+                        var prequelEps = prequelAnime.AniDBEpisodes
                             .Where(a => a.EpisodeType == (int)EpisodeType.Episode).OrderBy(a => a.EpisodeNumber)
                             .ToList();
 
@@ -627,7 +627,7 @@ public static class TvDBLinkingHelper
                     // we check if the season matches any of the sequels
                     foreach (var sequelAnime in sequelAnimes)
                     {
-                        var sequelEps = sequelAnime.GetAniDBEpisodes()
+                        var sequelEps = sequelAnime.AniDBEpisodes
                             .Where(a => a.EpisodeType == (int)EpisodeType.Episode).OrderBy(a => a.EpisodeNumber)
                             .ToList();
 
@@ -710,7 +710,7 @@ public static class TvDBLinkingHelper
 
         // first ep
         var aniepstart = aniepsNormal.FirstOrDefault();
-        var anistart = aniepstart?.GetDefaultTitle();
+        var anistart = aniepstart?.DefaultTitle;
         if (string.IsNullOrEmpty(anistart))
         {
             return;
@@ -718,7 +718,7 @@ public static class TvDBLinkingHelper
 
         // last ep
         var aniepend = aniepsNormal.FirstOrDefault();
-        var aniend = aniepend?.GetDefaultTitle();
+        var aniend = aniepend?.DefaultTitle;
         if (string.IsNullOrEmpty(aniend))
         {
             return;
@@ -796,7 +796,7 @@ public static class TvDBLinkingHelper
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
-            var anititle = aniep.GetDefaultTitle();
+            var anititle = aniep.DefaultTitle;
             if (string.IsNullOrEmpty(anititle))
             {
                 continue;
@@ -862,7 +862,7 @@ public static class TvDBLinkingHelper
 
             // if the dates match, then they would have filled with Good, so the fuzzy search is only being done once
 
-            var aniTitle = match.Item1.GetDefaultTitle();
+            var aniTitle = match.Item1.DefaultTitle;
             var tvTitle = match.Item2.EpisodeName;
             // this method returns false if either is null
             var titlesMatch = aniTitle.FuzzyMatch(tvTitle);
@@ -1012,7 +1012,7 @@ public static class TvDBLinkingHelper
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
-            var anititle = aniep.GetDefaultTitle();
+            var anititle = aniep.DefaultTitle;
             if (string.IsNullOrEmpty(anititle))
             {
                 continue;

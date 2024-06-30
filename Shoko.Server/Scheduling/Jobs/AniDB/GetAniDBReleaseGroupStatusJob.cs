@@ -13,6 +13,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
@@ -119,7 +120,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             }
 
             // update the missing episode stats on groups and children
-            series.QueueUpdateStats();
+            await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
         }
 
         if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })

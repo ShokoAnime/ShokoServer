@@ -2,18 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
-using NLog;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;
 
 public class SVR_AniDB_File : AniDB_File, IAniDBFile
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
-
     [XmlIgnore]
     public List<CrossRef_Languages_AniDB_File> Languages =>
         RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(FileID).ToList();
@@ -28,7 +24,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     [XmlIgnore]
     public List<SVR_AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash)
-        .Select(crossref => crossref.GetEpisode()).Where(ep => ep != null).ToList();
+        .Select(crossref => crossref.AniDBEpisode).Where(ep => ep != null).ToList();
 
     [XmlIgnore]
     public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);

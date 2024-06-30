@@ -17,6 +17,9 @@ public class EpisodeInfoUpdatedEventSignalRModel
         Reason = eventArgs.Reason;
         EpisodeID = eventArgs.EpisodeInfo.ID;
         SeriesID = eventArgs.SeriesInfo.ID;
+        ShokoEpisodeIDs = [];
+        ShokoSeriesIDs = [];
+        ShokoGroupIDs = [];
         // TODO: Add support for more metadata sources when they're hooked up internally.
         switch (Source)
         {
@@ -28,11 +31,11 @@ public class EpisodeInfoUpdatedEventSignalRModel
                         ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
                 }
                 break;
-            case DataSourceEnum.AniDB when eventArgs.EpisodeInfo is SVR_AniDB_Episode anidbEpisode && anidbEpisode.GetShokoEpisode() is SVR_AnimeEpisode shokoEpisode:
+            case DataSourceEnum.AniDB when eventArgs.EpisodeInfo is SVR_AniDB_Episode anidbEpisode && anidbEpisode.AnimeEpisode is SVR_AnimeEpisode shokoEpisode:
                 {
                     ShokoEpisodeIDs = [shokoEpisode.AnimeEpisodeID];
                     ShokoSeriesIDs = [shokoEpisode.AnimeSeriesID];
-                    if (shokoEpisode.GetAnimeSeries() is SVR_AnimeSeries series)
+                    if (shokoEpisode.AnimeSeries is SVR_AnimeSeries series)
                         ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
                 }
                 break;
@@ -64,18 +67,15 @@ public class EpisodeInfoUpdatedEventSignalRModel
     /// <summary>
     /// Shoko episode ids affected by this update.
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IReadOnlyList<int>? ShokoEpisodeIDs { get; }
+    public IReadOnlyList<int> ShokoEpisodeIDs { get; }
 
     /// <summary>
     /// Shoko series ids affected by this update.
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IReadOnlyList<int>? ShokoSeriesIDs { get; }
+    public IReadOnlyList<int> ShokoSeriesIDs { get; }
 
     /// <summary>
     /// Shoko group ids affected by this update.
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IReadOnlyList<int>? ShokoGroupIDs { get; }
+    public IReadOnlyList<int> ShokoGroupIDs { get; }
 }

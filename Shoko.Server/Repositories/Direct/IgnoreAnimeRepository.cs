@@ -11,11 +11,10 @@ public class IgnoreAnimeRepository : BaseDirectRepository<IgnoreAnime, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<IgnoreAnime>()
-                .Where(a => a.AnimeID == animeID && a.JMMUserID == userID && a.IgnoreType == ignoreType)
-                .SingleOrDefault();
+                .SingleOrDefault(a => a.AnimeID == animeID && a.JMMUserID == userID && a.IgnoreType == ignoreType);
         });
     }
 
@@ -23,7 +22,7 @@ public class IgnoreAnimeRepository : BaseDirectRepository<IgnoreAnime, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<IgnoreAnime>()
                 .Where(a => a.JMMUserID == userID && a.IgnoreType == ignoreType)
@@ -35,11 +34,15 @@ public class IgnoreAnimeRepository : BaseDirectRepository<IgnoreAnime, int>
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             return session
                 .Query<IgnoreAnime>()
                 .Where(a => a.JMMUserID == userID)
                 .ToList();
         });
+    }
+
+    public IgnoreAnimeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

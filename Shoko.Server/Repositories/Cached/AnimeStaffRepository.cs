@@ -1,7 +1,8 @@
 ﻿using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
-namespace Shoko.Server.Repositories;
+namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeStaffRepository : BaseCachedRepository<AnimeStaff, int>
 {
@@ -25,5 +26,9 @@ public class AnimeStaffRepository : BaseCachedRepository<AnimeStaff, int>
     public AnimeStaff GetByAniDBID(int id)
     {
         return ReadLock(() => AniDBIDs.GetOne(id));
+    }
+
+    public AnimeStaffRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }

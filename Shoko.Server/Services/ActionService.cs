@@ -20,6 +20,7 @@ using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
@@ -40,8 +41,10 @@ public class ActionService
     private readonly MovieDBHelper _movieDBHelper;
     private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
+    private readonly ImportFolderRepository _importFolders;
+    private readonly DatabaseFactory _databaseFactory;
 
-    public ActionService(ILogger<ActionService> logger, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService placeService, TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper)
+    public ActionService(ILogger<ActionService> logger, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService placeService, TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ImportFolderRepository importFolders, DatabaseFactory databaseFactory)
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
@@ -50,6 +53,8 @@ public class ActionService
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
+        _importFolders = importFolders;
+        _databaseFactory = databaseFactory;
     }
 
     public async Task RunImport_IntegrityCheck()
@@ -62,7 +67,7 @@ public class ActionService
         foreach (var vl in filesToHash)
         {
             dictFilesToHash[vl.VideoLocalID] = vl;
-            var p = vl.GetBestVideoLocalPlace(true);
+            var p = vl.FirstResolvedPlace;
             if (p == null) continue;
 
             await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
@@ -75,7 +80,7 @@ public class ActionService
 
             try
             {
-                var p = vl.GetBestVideoLocalPlace(true);
+                var p = vl.FirstResolvedPlace;
                 if (p == null) continue;
 
                 await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
@@ -163,7 +168,8 @@ public class ActionService
             {
                 i++;
 
-                if (dictFilesExisting.TryGetValue(fileName, out var value) && fldr.IsDropSource == 1) _placeService.RenameAndMoveAsRequired(value);
+                if (dictFilesExisting.TryGetValue(fileName, out var value) && fldr.IsDropSource == 1)
+                    await _placeService.RenameAndMoveAsRequired(value);
 
                 if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
                 {
@@ -314,7 +320,7 @@ public class ActionService
             if (!FileHashHelper.IsVideo(fileName)) continue;
             videosFound++;
 
-            var tup = VideoLocal_PlaceRepository.GetFromFullPath(fileName);
+            var tup = _importFolders.GetFromFullPath(fileName);
             ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(fileName));
 
             await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
@@ -607,7 +613,7 @@ public class ActionService
         var scheduler = await _schedulerFactory.GetScheduler();
         _logger.LogInformation("Remove Missing Files: Start");
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
 
         // remove missing files in valid import folders
         var filesAll = RepoFactory.VideoLocalPlace.GetAll()
@@ -687,7 +693,7 @@ public class ActionService
                     foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
                     {
                         _logger.LogInformation("RemoveRecordsWithOrphanedImportFolder : {Filename}", v.FileName);
-                        seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
+                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                             .DistinctBy(a => a.AnimeSeriesID));
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
                     }
@@ -719,7 +725,7 @@ public class ActionService
 
             // delete video local record
             _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
-            seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
+            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                 .DistinctBy(a => a.AnimeSeriesID));
 
             if (removeMyList)
@@ -766,7 +772,7 @@ public class ActionService
         var list = RepoFactory.VideoLocal.GetAll()
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
             .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                        a.GetEpisode() == null).ToArray();
+                        a.AniDBEpisode == null).ToArray();
         BaseRepository.Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();
@@ -794,10 +800,7 @@ public class ActionService
         });
 
         // update everything we modified
-        foreach (var ser in seriesToUpdate)
-        {
-            ser.QueueUpdateStats();
-        }
+        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
 
         _logger.LogInformation("Remove Missing Files: Finished");
     }
@@ -809,7 +812,7 @@ public class ActionService
             var affectedSeries = new HashSet<SVR_AnimeSeries>();
             var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
             _logger.LogInformation("Deleting {VidsCount} video local records", vids.Count);
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
             foreach (var vid in vids)
             {
                 await _placeService.RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeFromMyList);
@@ -818,8 +821,9 @@ public class ActionService
             // delete the import folder
             RepoFactory.ImportFolder.Delete(importFolderID);
 
-            foreach (var ser in affectedSeries)
-                ser.QueueUpdateStats();
+            var scheduler = await _schedulerFactory.GetScheduler();
+            await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+                
 
             return string.Empty;
         }
@@ -832,10 +836,9 @@ public class ActionService
 
     public void UpdateAllStats()
     {
-        foreach (var ser in RepoFactory.AnimeSeries.GetAll())
-        {
-            ser.QueueUpdateStats();
-        }
+        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter()
+            .GetResult();
     }
 
     public async Task<int> UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)

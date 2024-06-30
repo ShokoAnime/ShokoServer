@@ -8,13 +8,10 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
-
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
@@ -99,9 +96,9 @@ public class Episode : BaseModel
         var episodeUserRecord = episode.GetUserRecord(userID);
         var anidbEpisode = episode.AniDB_Episode;
         var tvdbEpisodes = episode.TvDBEpisodes;
-        var files = episode.GetVideoLocals();
+        var files = episode.VideoLocals;
         var (file, fileUserRecord) = files
-            .Select(file => (file, userRecord: file.GetUserRecord(userID)))
+            .Select(file => (file, userRecord: RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID)))
             .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
             .FirstOrDefault();
         IDs = new EpisodeIDs
@@ -171,8 +168,8 @@ public class Episode : BaseModel
                 votes = 0;
             }
 
-            var defaultTitle = ep.GetDefaultTitle();
-            var mainTitle = ep.GetPreferredTitle();
+            var defaultTitle = ep.DefaultTitle;
+            var mainTitle = ep.PreferredTitle;
             var titles = ep.GetTitles();
             ID = ep.EpisodeID;
             Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());

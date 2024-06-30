@@ -343,8 +343,8 @@ public class FilterController : BaseController
                 if (group == null || group.AnimeGroupParentID.HasValue)
                     return false;
 
-                return includeEmpty || group.GetAllSeries()
-                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                return includeEmpty || group.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             });
         return groups
             .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
@@ -379,10 +379,10 @@ public class FilterController : BaseController
                 if (group is not { AnimeGroupParentID: null })
                     return false;
 
-                return includeEmpty || group.GetAllSeries()
-                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                return includeEmpty || group.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
-            .GroupBy(group => group.GetSortName()[0])
+            .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)
             .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
     }
@@ -415,8 +415,8 @@ public class FilterController : BaseController
 
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
         return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
-            .Where(series => series != null && (includeMissing || series.GetVideoLocals().Count > 0))
-            .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+            .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
+            .OrderBy(series => series.SeriesName.ToLowerInvariant())
             .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
     }
 
@@ -455,10 +455,10 @@ public class FilterController : BaseController
 
         // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
         // This should maintain the order of results, but have every group in the tree for those results
-        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.GetAllChildGroups().Select(b => b.AnimeGroupID)).ToArray();
+        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.AnimeGroupID)).ToArray();
         var groups = orderedGroups.ToHashSet();
 
-        return group.GetChildGroups()
+        return group.Children
             .Where(subGroup =>
             {
                 if (subGroup == null)
@@ -467,8 +467,8 @@ public class FilterController : BaseController
                 if (!User.AllowedGroup(subGroup))
                     return false;
 
-                if (!includeEmpty && !subGroup.GetAllSeries()
-                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0)))
+                if (!includeEmpty && !subGroup.AllSeries
+                        .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
                     return false;
 
                 return groups.Contains(subGroup.AnimeGroupID);
@@ -510,9 +510,9 @@ public class FilterController : BaseController
             return new List<Series>();
 
         if (!filterPreset.ApplyAtSeriesLevel)
-            return (recursive ? group.GetAllSeries() : group.GetSeries())
+            return (recursive ? group.AllSeries : group.Series)
                 .Where(a => User.AllowedSeries(a))
-                .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
+                .OrderBy(series => series.AniDB_Anime?.AirDate ?? DateTime.MaxValue)
                 .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
                 .Where(series => series.Size > 0 || includeMissing)
                 .ToList();
@@ -524,10 +524,10 @@ public class FilterController : BaseController
 
         var seriesIDs = results.FirstOrDefault(a => a.Key == groupID)?.ToList();
         seriesIDs ??= recursive
-            ? group.GetAllChildGroups().SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID)?.ToList() ?? []).ToList()
+            ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID)?.ToList() ?? []).ToList()
             : results.FirstOrDefault(a => a.Key == groupID)?.ToList();
 
-        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => (a?.GetVideoLocals().Any() ?? false) || includeMissing) ??
+        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => (a?.VideoLocals.Any() ?? false) || includeMissing) ??
                      Array.Empty<SVR_AnimeSeries>();
 
         return series

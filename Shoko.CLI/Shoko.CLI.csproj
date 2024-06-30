@@ -9,7 +9,7 @@
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <LangVersion>latest</LangVersion>
-    <Configurations>Debug;Release;ApiLogging</Configurations>
+    <Configurations>Debug;Release;ApiLogging;Benchmarks</Configurations>
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     <Nullable>enable</Nullable>
   </PropertyGroup>

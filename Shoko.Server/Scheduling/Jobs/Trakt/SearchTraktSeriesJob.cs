@@ -27,7 +27,9 @@ public class SearchTraktSeriesJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     private readonly AniDBTitleHelper _titleHelper;
     private readonly TraktTVHelper _helper;
+    private readonly DatabaseFactory _databaseFactory;
     private string _anime;
+
     public int AnimeID { get; set; }
 
     public override string TypeName => "Search for Trakt Series";
@@ -42,7 +44,7 @@ public class SearchTraktSeriesJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} -> ID: {ID}", nameof(SearchTraktSeriesJob), AnimeID);
         var settings = _settingsProvider.GetSettings();
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        using var session = _databaseFactory.SessionFactory.OpenSession();
         var sessionWrapper = session.Wrap();
         var doReturn = false;
 
@@ -114,7 +116,7 @@ public class SearchTraktSeriesJob : BaseJob
 
         if (results.Count != 0) return Task.CompletedTask;
 
-        foreach (var title in anime.GetTitles())
+        foreach (var title in anime.Titles)
         {
             if (title.TitleType != TitleType.Official) continue;
 
@@ -152,11 +154,12 @@ public class SearchTraktSeriesJob : BaseJob
         return false;
     }
 
-    public SearchTraktSeriesJob(TraktTVHelper helper, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
+    public SearchTraktSeriesJob(TraktTVHelper helper, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, DatabaseFactory databaseFactory)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
         _titleHelper = titleHelper;
+        _databaseFactory = databaseFactory;
     }
 
     protected SearchTraktSeriesJob() { }

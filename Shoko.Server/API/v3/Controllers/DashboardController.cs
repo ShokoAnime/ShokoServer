@@ -13,8 +13,9 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
@@ -28,7 +29,10 @@ public class DashboardController : BaseController
 {
     private readonly SeriesFactory _seriesFactory;
     private readonly QueueHandler _queueHandler;
-    
+    private readonly AnimeSeriesService _seriesService;
+    private readonly AnimeSeries_UserRepository _seriesUser;
+    private readonly VideoLocal_UserRepository _vlUsers;
+
     /// <summary>
     /// Get the counters of various collection stats
     /// </summary>
@@ -43,12 +47,12 @@ public class DashboardController : BaseController
             .DistinctBy(a => a.AnimeGroupID)
             .Count();
         var episodeDict = allSeries
-            .ToDictionary(s => s, s => s.GetAnimeEpisodes());
+            .ToDictionary(s => s, s => s.AllAnimeEpisodes);
         var episodes = episodeDict.Values
             .SelectMany(episodeList => episodeList)
             .ToList();
         var files = episodes
-            .SelectMany(a => a.GetVideoLocals())
+            .SelectMany(a => a.VideoLocals)
             .DistinctBy(a => a.VideoLocalID)
             .ToList();
         var totalFileSize = files
@@ -61,7 +65,7 @@ public class DashboardController : BaseController
         {
             // If we don't have an anime entry then something is very wrong, but
             // we don't care about that right now, so just skip it.
-            var anime = series.GetAnime();
+            var anime = series.AniDB_Anime;
             if (anime == null)
                 return false;
 
@@ -75,7 +79,7 @@ public class DashboardController : BaseController
                 return false;
 
             // If we don't have a user record for the series, then skip it.
-            var record = series.GetUserRecord(User.JMMUserID);
+            var record = _seriesUser.GetByUserAndSeriesID(User.JMMUserID, series.AnimeSeriesID);
             if (record == null)
                 return false;
 
@@ -89,7 +93,7 @@ public class DashboardController : BaseController
         });
         // Calculate watched hours for both local episodes and non-local episodes.
         var hoursWatched = Math.Round(
-            (decimal)watchedEpisodes.Sum(a => a.GetVideoLocals().FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
+            (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
             1, MidpointRounding.AwayFromZero);
         var places = files
             // We cache the video local here since it may be gone later if the files are actively being removed.
@@ -105,7 +109,7 @@ public class DashboardController : BaseController
             : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
         var missingEpisodes = allSeries.Sum(a => a.MissingEpisodeCount);
         var missingEpisodesCollecting = allSeries.Sum(a => a.MissingEpisodeCountGroups);
-        var multipleEpisodes = episodes.Count(a => a.GetVideoLocals().Count(b => !b.IsVariation) > 1);
+        var multipleEpisodes = episodes.Count(a => a.VideoLocals.Count(b => !b.IsVariation) > 1);
         var unrecognizedFiles = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
         var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
         var seriesWithMissingLinks = allSeries.Count(MissingBothTvDBAndMovieDBLink);
@@ -130,20 +134,14 @@ public class DashboardController : BaseController
 
     private static bool MissingBothTvDBAndMovieDBLink(SVR_AnimeSeries ser)
     {
-        if (ser?.Contract == null || ser?.GetAnime() == null)
+        if (ser.AniDB_Anime.Restricted > 0)
         {
             return false;
         }
 
-        if (ser?.GetAnime()?.Restricted > 0)
-        {
-            return false;
-        }
-
-        // MovieDB is in AniDB_Other, and that's a Direct repository, so we don't want to call it on API
-        var movieLinkMissing = ser?.Contract.CrossRefAniDBMovieDB == null;
-        var tvlinkMissing =
-            RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
+        // this is fast now
+        var movieLinkMissing = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(ser.AniDB_ID, CrossRefType.MovieDB) == null;
+        var tvlinkMissing = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
         return movieLinkMissing && tvlinkMissing;
     }
 
@@ -213,53 +211,18 @@ public class DashboardController : BaseController
     public Dashboard.SeriesSummary GetSeriesSummary()
     {
         var series = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a))
-            .GroupBy(a => (AnimeType)(a.GetAnime()?.AnimeType ?? -1))
+            .GroupBy(a => (AnimeType)(a.AniDB_Anime?.AnimeType ?? -1))
             .ToDictionary(a => a.Key, a => a.Count());
-
-        if (!series.TryGetValue(AnimeType.TVSeries, out var seriesCount))
-        {
-            seriesCount = 0;
-        }
-
-        if (!series.TryGetValue(AnimeType.TVSpecial, out var specialCount))
-        {
-            specialCount = 0;
-        }
-
-        if (!series.TryGetValue(AnimeType.Movie, out var movieCount))
-        {
-            movieCount = 0;
-        }
-
-        if (!series.TryGetValue(AnimeType.OVA, out var ovaCount))
-        {
-            ovaCount = 0;
-        }
-
-        if (!series.TryGetValue(AnimeType.Web, out var webCount))
-        {
-            webCount = 0;
-        }
-
-        if (!series.TryGetValue(AnimeType.Other, out var otherCount))
-        {
-            otherCount = 0;
-        }
-
-        if (!series.TryGetValue(AnimeType.None, out var noneCount))
-        {
-            noneCount = 0;
-        }
 
         return new Dashboard.SeriesSummary
         {
-            Series = seriesCount,
-            Special = specialCount,
-            Movie = movieCount,
-            OVA = ovaCount,
-            Web = webCount,
-            Other = otherCount,
-            None = noneCount
+            Series = series.GetValueOrDefault(AnimeType.TVSeries, 0),
+            Special = series.GetValueOrDefault(AnimeType.TVSpecial, 0),
+            Movie = series.GetValueOrDefault(AnimeType.Movie, 0),
+            OVA = series.GetValueOrDefault(AnimeType.OVA, 0),
+            Web = series.GetValueOrDefault(AnimeType.Web, 0),
+            Other = series.GetValueOrDefault(AnimeType.Other, 0),
+            None = series.GetValueOrDefault(AnimeType.None, 0)
         };
     }
 
@@ -278,14 +241,14 @@ public class DashboardController : BaseController
         var episodeList = RepoFactory.VideoLocal.GetAll()
             .Where(f => f.DateTimeImported.HasValue)
             .OrderByDescending(f => f.DateTimeImported)
-            .SelectMany(file => file.GetAnimeEpisodes().Select(episode => (file, episode)));
+            .SelectMany(file => file.AnimeEpisodes.Select(episode => (file, episode)));
         var seriesDict = episodeList
             .DistinctBy(tuple => tuple.episode.AnimeSeriesID)
-            .Select(tuple => tuple.episode.GetAnimeSeries())
+            .Select(tuple => tuple.episode.AnimeSeries)
             .Where(series => series != null && user.AllowedSeries(series))
             .ToDictionary(series => series.AnimeSeriesID);
         var animeDict = seriesDict.Values
-            .ToDictionary(series => series.AnimeSeriesID, series => series.GetAnime());
+            .ToDictionary(series => series.AnimeSeriesID, series => series.AniDB_Anime);
 
         if (pageSize <= 0)
         {
@@ -322,11 +285,11 @@ public class DashboardController : BaseController
         var seriesList = RepoFactory.VideoLocal.GetAll()
             .Where(f => f.DateTimeImported.HasValue)
             .OrderByDescending(f => f.DateTimeImported)
-            .SelectMany(file => file.GetAnimeEpisodes().Select(episode => episode.AnimeSeriesID))
+            .SelectMany(file => file.AnimeEpisodes.Select(episode => episode.AnimeSeriesID))
             .Distinct()
             .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
             .Where(series => series != null && user.AllowedSeries(series) &&
-                (includeRestricted || series.GetAnime().Restricted != 1));
+                (includeRestricted || series.AniDB_Anime.Restricted != 1));
 
         if (pageSize <= 0)
         {
@@ -361,8 +324,8 @@ public class DashboardController : BaseController
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => user.AllowedSeries(series) &&
-                (includeRestricted || series.GetAnime().Restricted != 1))
-            .Select(series => (series, episode: series.GetActiveEpisode(user.JMMUserID, includeSpecials)))
+                (includeRestricted || series.AniDB_Anime.Restricted != 1))
+            .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials)))
             .Where(tuple => tuple.episode != null);
         if (pageSize <= 0)
         {
@@ -405,8 +368,8 @@ public class DashboardController : BaseController
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => user.AllowedSeries(series) &&
-                (includeRestricted || series.GetAnime().Restricted != 1))
-            .Select(series => (series, episode: series.GetNextEpisode(user.JMMUserID, new()
+                (includeRestricted || series.AniDB_Anime.Restricted != 1))
+            .Select(series => (series, episode: _seriesService.GetNextEpisode(series, user.JMMUserID, new()
                 {
                     DisableFirstEpisode = true,
                     IncludeCurrentlyWatching = !onlyUnwatched,
@@ -434,21 +397,18 @@ public class DashboardController : BaseController
     public Dashboard.EpisodeDetails GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode,
         SVR_AnimeSeries series, SVR_AniDB_Anime anime = null, SVR_VideoLocal file = null)
     {
-        SVR_VideoLocal_User userRecord = null;
+        SVR_VideoLocal_User userRecord;
         var animeEpisode = episode.AniDB_Episode;
-        if (anime == null)
-        {
-            anime = series.GetAnime();
-        }
+        anime ??= series.AniDB_Anime;
 
         if (file != null)
         {
-            userRecord = file.GetUserRecord(user.JMMUserID);
+            userRecord = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
         }
         else
         {
-            (file, userRecord) = episode.GetVideoLocals()
-                .Select(file => (file, userRecord: file.GetUserRecord(user.JMMUserID)))
+            (file, userRecord) = episode.VideoLocals
+                .Select(f => (file: f, userRecord: _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, f.VideoLocalID)))
                 .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
                 .ThenByDescending(tuple => tuple.file.DateTimeCreated)
                 .FirstOrDefault();
@@ -491,9 +451,7 @@ public class DashboardController : BaseController
                 var anime = animeDict[episode.AnimeID];
                 if (seriesDict.TryGetValue(episode.AnimeID, out var series))
                 {
-                    var xref = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID)
-                        .OrderBy(xref => xref.Percentage)
-                        .FirstOrDefault();
+                    var xref = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID).MinBy(xref => xref.Percentage);
                     var file = xref != null ? RepoFactory.VideoLocal.GetByHash(xref.Hash) : null;
                     return new Dashboard.EpisodeDetails(episode, anime, series, file);
                 }
@@ -503,9 +461,12 @@ public class DashboardController : BaseController
             .ToList();
     }
 
-    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, QueueHandler queueHandler) : base(settingsProvider)
+    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, QueueHandler queueHandler, AnimeSeriesService seriesService, AnimeSeries_UserRepository seriesUser, VideoLocal_UserRepository vlUsers) : base(settingsProvider)
     {
         _seriesFactory = seriesFactory;
         _queueHandler = queueHandler;
+        _seriesService = seriesService;
+        _seriesUser = seriesUser;
+        _vlUsers = vlUsers;
     }
 }
