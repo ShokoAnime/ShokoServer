@@ -51,7 +51,6 @@ public static class Program
     
     private static void AddEventHandlers(IServiceProvider provider)
     {
-        Utils.YesNoRequired += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
         var queueStateEventHandler = provider.GetRequiredService<QueueStateEventHandler>();
         queueStateEventHandler.QueueItemAdded += QueueStateEventHandlerOnQueueItemAdded;

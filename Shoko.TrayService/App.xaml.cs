@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using Quartz;
 using Shoko.Server;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -56,7 +57,7 @@ public partial class App
             Utils.SettingsProvider = settingsProvider;
             var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
             startup.AboutToStart += (_, _) => AddEventHandlers();
-            startup.Start().GetAwaiter().GetResult();
+            startup.Start();
         }
         catch (Exception exception)
         {
@@ -68,7 +69,6 @@ public partial class App
     private void AddEventHandlers()
     {
         ShokoEventHandler.Instance.Shutdown += (_, _) => DispatchShutdown();
-        Utils.YesNoRequired += (_, args) => args.Cancel = true;
     }
 
     private void InitialiseTaskbarIcon()
@@ -119,7 +119,7 @@ public partial class App
 
     private async Task ShutdownQuartz()
     {
-        var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a.GetType().Name == "QuartzHostedService");
+        var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
         if (quartz == null)
         {
             _logger.LogError("Could not get QuartzHostedService");
