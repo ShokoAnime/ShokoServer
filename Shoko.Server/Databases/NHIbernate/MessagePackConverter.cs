@@ -3,12 +3,16 @@ using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
 using MessagePack;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
+using Shoko.Server.Utilities;
 
-namespace Shoko.Server.Databases.NHIbernate;
+namespace Shoko.Server.Databases.NHibernate;
 
 public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
 {
@@ -26,7 +30,18 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
         object value)
     {
         var s = value as byte[] ?? throw new ArgumentException("Can only convert from byte[]");
-        return MessagePackSerializer.Deserialize<T>(s, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
+        try
+        {
+            if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Deserialize(s);
+            return MessagePackSerializer.Deserialize<T>(s);
+        }
+        catch(Exception ex)
+        {
+
+            Utils.ServiceContainer.GetRequiredService<ILogger<MessagePackConverter<T>>>().LogError(ex, "Failed to deserialize {Type} from {Value}",
+                value.GetType(), Convert.ToBase64String((byte[])value));
+            return null;
+        }
     }
 
     /// <summary>
@@ -45,7 +60,17 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
         object value, Type destinationType)
     {
         if (value == null) return null;
-        return MessagePackSerializer.Serialize(value, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
+        try
+        {
+            if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Serialize(value);
+            return MessagePackSerializer.Serialize(value);
+        }
+        catch (Exception ex)
+        {
+            Utils.ServiceContainer.GetRequiredService<ILogger<MessagePackConverter<T>>>()
+                .LogError(ex, "Failed to serialize {Type} from {Value}", value.GetType(), JsonConvert.SerializeObject(value));
+            return null;
+        }
     }
 
 
