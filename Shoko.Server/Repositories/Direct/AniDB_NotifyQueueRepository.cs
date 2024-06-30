@@ -13,7 +13,7 @@ public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueu
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             return session.Query<AniDB_NotifyQueue>()
                 .Where(a => a.Type == type && a.ID == id)
                 .Take(1)
@@ -25,7 +25,7 @@ public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueu
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             return session.Query<AniDB_NotifyQueue>()
                 .Where(a => a.Type == type)
                 .ToList();
@@ -36,9 +36,13 @@ public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueu
     {
         Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             // Query can't batch delete, while Query can
             session.Query<AniDB_NotifyQueue>().Where(a => a.Type == type && a.ID == id).Delete();
         });
+    }
+
+    public AniDB_NotifyQueueRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    {
     }
 }
