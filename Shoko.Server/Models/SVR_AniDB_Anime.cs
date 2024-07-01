@@ -629,24 +629,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
             .WhereNotNull()
             .ToList();
 
-    IReadOnlyDictionary<AbstractEpisodeType, int> ISeries.EpisodeCountDict
-    {
-        get
-        {
-            var episodes = (this as ISeries).EpisodeList;
-            return Enum.GetValues<AbstractEpisodeType>()
-                .ToDictionary(a => a, a => episodes.Count(e => e.Type == a));
-        }
-    }
-
-    #endregion
-
-    #region IAnime Implementation
-
-    IReadOnlyList<IRelatedAnime> IAnime.Relations =>
-        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
-
-    EpisodeCounts IAnime.EpisodeCounts => new()
+    EpisodeCounts ISeries.EpisodeCounts => new()
     {
         Episodes = AniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Episode),
         Credits = AniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Credits),
@@ -655,6 +638,15 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
         Specials = AniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Special),
         Trailers = AniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Trailer)
     };
+
+    #endregion
+
+    #region IAnime Implementation
+
+    IReadOnlyList<IRelatedAnime> IAnime.Relations =>
+        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
+
+    EpisodeCounts IAnime.EpisodeCounts => ((ISeries)this).EpisodeCounts;
 
     int IAnime.AnimeID => AnimeID;
 

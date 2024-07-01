@@ -14,9 +14,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
-using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
-using Range = System.Range;
 
 namespace Shoko.Server.Models;
 
@@ -479,13 +477,20 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             .WhereNotNull()
             .ToList();
 
-    IReadOnlyDictionary<AbstractEpisodeType, int> ISeries.EpisodeCountDict
+    EpisodeCounts ISeries.EpisodeCounts
     {
         get
         {
-            var episodes = (this as ISeries).EpisodeList;
-            return Enum.GetValues<AbstractEpisodeType>()
-                .ToDictionary(a => a, a => episodes.Count(e => e.Type == a));
+            var aniDBEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(AniDB_ID).ToList();
+            return new EpisodeCounts
+            {
+                Episodes = aniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Episode),
+                Credits = aniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Credits),
+                Others = aniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Other),
+                Parodies = aniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Parody),
+                Specials = aniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Special),
+                Trailers = aniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Trailer)
+            };
         }
     }
 

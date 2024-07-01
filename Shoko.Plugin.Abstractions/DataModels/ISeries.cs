@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface ISeries : IWithTitles, IWithDescriptions, IMetadata<int>
@@ -76,7 +75,7 @@ public interface ISeries : IWithTitles, IWithDescriptions, IMetadata<int>
     /// <summary>
     /// Episode counts for every episode type.
     /// </summary>
-    IReadOnlyDictionary<EpisodeType, int> EpisodeCountDict { get; }
+    EpisodeCounts EpisodeCounts { get; }
 
     /// <summary>
     /// Get all videos linked to the series, if any.
