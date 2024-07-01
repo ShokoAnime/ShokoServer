@@ -540,7 +540,7 @@ public class AnimeSeriesService
             var airdate = ep.AniDB_Episode.GetAirDateAsDate();
 
             // Only count episodes that have already aired
-            if (!aniEp.GetFutureDated())
+            if (aniEp.HasAired)
             {
                 // Only convert if we have time info
                 DateTime airdateLocal;
@@ -558,12 +558,8 @@ public class AnimeSeriesService
 
                 lock (daysofweekcounter)
                 {
-                    if (!daysofweekcounter.ContainsKey(airdateLocal.DayOfWeek))
-                    {
-                        daysofweekcounter.Add(airdateLocal.DayOfWeek, 0);
-                    }
-
-                    daysofweekcounter[airdateLocal.DayOfWeek]++;
+                    daysofweekcounter.TryAdd(airdateLocal.DayOfWeek, 0);
+                            daysofweekcounter[airdateLocal.DayOfWeek]++;
                 }
 
                 if (lastEpAirDate == null || lastEpAirDate < airdate)
@@ -685,11 +681,7 @@ public class AnimeSeriesService
                         }
                     }
 
-                    if (!results.ContainsKey(series))
-                    {
-                        results.Add(series, animeStaff.Item1);
-                    }
-                    else
+                    if (!results.TryAdd(series, animeStaff.Item1))
                     {
                         if (!Enum.TryParse(results[series].Role, out CharacterAppearanceType type1))
                         {

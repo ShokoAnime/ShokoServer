@@ -153,7 +153,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
         var all = GetAll().Where(a =>
             {
                 var aniep = a.AniDB_Episode;
-                if (aniep?.GetFutureDated() != false)
+                if (aniep?.HasAired ?? false)
                 {
                     return false;
                 }
