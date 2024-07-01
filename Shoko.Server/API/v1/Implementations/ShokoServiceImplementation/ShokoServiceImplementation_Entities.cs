@@ -543,7 +543,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID.Value);
                 if (ser != null)
                 {
-                    seriesService.QueueUpdateStats(ser);
+                    seriesService.QueueUpdateStats(ser).GetAwaiter().GetResult();
                 }
             }
 
