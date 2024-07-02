@@ -1,19 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Attributes;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Services;
-using Shoko.Server.Settings;
-
 using ApiRenamer = Shoko.Server.API.v3.Models.Shoko.Renamer;
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -28,27 +32,109 @@ public class RenamerController : BaseController
 
     private readonly VideoLocalRepository _vlRepository;
 
-    private readonly RenamerInstanceRepository _rsRepository;
+    private readonly RenamerInstanceRepository _renamerInstanceRepository;
     private readonly RenameFileService _renameFileService;
 
-    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerInstanceRepository rsRepository, RenameFileService renameFileService) : base(settingsProvider)
+    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerInstanceRepository renamerInstanceRepository, RenameFileService renameFileService) : base(settingsProvider)
     {
         _vlpService = vlpService;
         _vlRepository = vlRepository;
-        _rsRepository = rsRepository;
+        _renamerInstanceRepository = renamerInstanceRepository;
         _renameFileService = renameFileService;
+    }
+
+    /// <summary>
+    /// Get a list of all <see cref="Shoko.Server.API.v3.Models.Shoko.Renamer"/>s.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet]
+    public ActionResult<List<ApiRenamer>> GetAllRenamers()
+    {
+        return _renameFileService.AllRenamers.Select(p =>
+        {
+            // we can suppress nullability, because we check this when loading
+            var attribute = p.Key.GetType().GetCustomAttributes<RenamerIDAttribute>().FirstOrDefault()!;
+            var settingsType = p.Key.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
+                ?.GetGenericArguments().FirstOrDefault();
+            var settings = new List<ApiRenamer.RenamerSetting>();
+            if (settingsType == null)
+                return new ApiRenamer { RenamerID = attribute.RenamerId, Name = p.Key.Name };
+
+            // settings
+            var properties = settingsType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var property in properties)
+            {
+                var renamerSettingAttribute = property.GetCustomAttribute<RenamerSettingAttribute>();
+                var settingType = renamerSettingAttribute?.Type ?? RenamerSettingType.Auto;
+                if (settingType == RenamerSettingType.Auto)
+                {
+                    // we can't use a switch statement, because typeof() is not supported as a constant
+                    if (property.PropertyType == typeof(bool) || property.PropertyType == typeof(bool?))
+                        settingType = RenamerSettingType.Boolean;
+                    else if (property.PropertyType == typeof(int) || property.PropertyType == typeof(int?))
+                        settingType = RenamerSettingType.Integer;
+                    else if (property.PropertyType == typeof(string))
+                        settingType = RenamerSettingType.Text;
+                    else if (property.PropertyType == typeof(double) || property.PropertyType == typeof(double?))
+                        settingType = RenamerSettingType.Decimal;
+                }
+
+                settings.Add(new ApiRenamer.RenamerSetting
+                {
+                    Name = renamerSettingAttribute?.Name ?? property.Name,
+                    Type = property.PropertyType.Name,
+                    Description = renamerSettingAttribute?.Description,
+                    Language = renamerSettingAttribute?.Language,
+                    SettingType = settingType
+                });
+            }
+
+            return new ApiRenamer
+            {
+                RenamerID = attribute.RenamerId,
+                Name = p.Key.Name,
+                Description = p.Key.Description,
+                Version = p.Key.GetType().Assembly.GetName().Version?.ToString(),
+                Settings = settings
+            };
+        }).ToList();
     }
     
     /// <summary>
-    /// Get a list of all <see cref="ApiRenamer"/>s.
+    /// Get a list of all <see cref="RenamerInstance"/>s.
     /// </summary>
     /// <returns></returns>
-    /*[HttpGet]
-    public ActionResult<List<ApiRenamer>> GetAllRenamers()
+    [HttpGet("Instances")]
+    public ActionResult<List<RenamerInstance>> GetAllRenamerInstances()
     {
-        return _renameFileService.Renamers
-            .Select(p => new ApiRenamer(p.Key, p.Value))
-            .ToList();
+        return _renamerInstanceRepository.GetAll().Select(p =>
+        {
+            // we can suppress nullability, because we check this when loading
+            var attribute = p.Type.GetCustomAttributes<RenamerIDAttribute>().FirstOrDefault()!;
+            var settingsType = p.Type.GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
+                ?.GetGenericArguments().FirstOrDefault();
+            var settings = new List<RenamerInstance.RenamerSetting>();
+            if (settingsType == null)
+                return new RenamerInstance { RenamerID = attribute.RenamerId, Name = p.Name, Settings = settings };
+
+            // settings
+            var properties = settingsType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var property in properties)
+            {
+                var renamerSettingAttribute = property.GetCustomAttribute<RenamerSettingAttribute>();
+                settings.Add(new RenamerInstance.RenamerSetting
+                {
+                    Name = renamerSettingAttribute?.Name ?? property.Name,
+                    Type = property.PropertyType.Name,
+                    Value = property.GetValue(p.Settings)
+                });
+            }
+
+            return new RenamerInstance
+            {
+                RenamerID = attribute.RenamerId, Name = p.Name, Settings = settings
+            };
+        }).ToList();
     }
 
     /// <summary>
@@ -56,7 +142,7 @@ public class RenamerController : BaseController
     /// </summary>
     /// <param name="body">Contains the files, renamer and script to use for the preview.</param>
     /// <returns>A stream of relocate results.</returns>
-    [Authorize("admin")]
+    /*[Authorize("admin")]
     [HttpPost("Preview")]
     public ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>> BatchPreviewRelocateFiles([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.BatchPreviewAutoRelocateWithRenamerBody body)
     {
