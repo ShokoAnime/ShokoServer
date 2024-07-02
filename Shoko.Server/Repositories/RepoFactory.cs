@@ -84,6 +84,8 @@ public class RepoFactory
     public static AnimeStaffRepository AnimeStaff;
     public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff;
     public static FilterPresetRepository FilterPreset;
+    public static AniDB_MessageRepository AniDB_Message;
+    public static AniDB_NotifyQueueRepository AniDB_NotifyQueue;
 
     public RepoFactory(ILogger<RepoFactory> logger, IEnumerable<ICachedRepository> repositories, VersionsRepository versions, Trakt_ShowRepository traktShow,
         Trakt_SeasonRepository traktSeason, Trakt_EpisodeRepository traktEpisode, ScheduledUpdateRepository scheduledUpdate,
@@ -107,7 +109,7 @@ public class RepoFactory
         CrossRef_AniDB_TvDB_Episode_OverrideRepository crossRefAniDBTvDBEpisodeOverride, TvDB_ImagePosterRepository tvDBImagePoster,
         TvDB_ImageFanartRepository tvDBImageFanart, TvDB_ImageWideBannerRepository tvDBImageWideBanner, CrossRef_AniDB_TraktV2Repository crossRefAniDBTraktV2,
         AnimeCharacterRepository animeCharacter, AnimeStaffRepository animeStaff, CrossRef_Anime_StaffRepository crossRefAnimeStaff,
-        FilterPresetRepository filterPreset)
+        FilterPresetRepository filterPreset, AniDB_MessageRepository aniDBMessage, AniDB_NotifyQueueRepository aniDBNotifyQueue)
     {
         this.logger = logger;
         CachedRepositories = repositories.ToArray();
@@ -178,6 +180,8 @@ public class RepoFactory
         AnimeStaff = animeStaff;
         CrossRef_Anime_Staff = crossRefAnimeStaff;
         FilterPreset = filterPreset;
+        AniDB_Message = aniDBMessage;
+        AniDB_NotifyQueue = aniDBNotifyQueue;
     }
 
     public void Init()

@@ -451,5 +451,29 @@ public class ActionController : BaseController
         return Ok($"Saved {files.Count} AddToMyList Commands");
     }
 
+    /// <summary>
+    /// Fetch unread notifications and messages from AniDB
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("GetAniDBNotifications")]
+    public async Task<ActionResult> GetAniDBNotifications()
+    {
+        await _actionService.CheckForUnreadNotifications(true);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Process file moved messages from AniDB. This will force an update on the affected files.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("RefreshAniDBMovedFiles")]
+    public async Task<ActionResult> RefreshAniDBMovedFiles()
+    {
+        await _actionService.RefreshAniDBMovedFiles(true);
+        return Ok();
+    }
+
     #endregion
 }

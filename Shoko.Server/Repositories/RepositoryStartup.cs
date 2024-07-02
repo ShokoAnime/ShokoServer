@@ -33,6 +33,8 @@ public static class RepositoryStartup
         services.AddDirectRepository<Trakt_SeasonRepository>();
         services.AddDirectRepository<Trakt_ShowRepository>();
         services.AddDirectRepository<VersionsRepository>();
+        services.AddDirectRepository<AniDB_MessageRepository>();
+        services.AddDirectRepository<AniDB_NotifyQueueRepository>();
 
         services.AddCachedRepository<AniDB_AnimeRepository>();
         services.AddCachedRepository<AniDB_Anime_CharacterRepository>();

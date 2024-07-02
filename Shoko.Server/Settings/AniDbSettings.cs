@@ -59,6 +59,12 @@ public class AniDbSettings
 
     public ScheduledUpdateFrequency File_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
 
+    public ScheduledUpdateFrequency Notification_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
+
+    public bool Notification_Acknowledge { get; set; } = false;
+
+    public bool Notification_HandleMovedFiles { get; set; } = false;
+
     public bool DownloadCharacters { get; set; } = true;
 
     public bool DownloadCreators { get; set; } = true;
