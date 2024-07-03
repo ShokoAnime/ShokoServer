@@ -22,7 +22,7 @@ using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
+public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 {
     #region Properties and fields
 
@@ -638,17 +638,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
         Specials = AniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Special),
         Trailers = AniDBEpisodes.Count(a => a.EpisodeType == (int)EpisodeType.Trailer)
     };
-
-    #endregion
-
-    #region IAnime Implementation
-
-    IReadOnlyList<IRelatedAnime> IAnime.Relations =>
-        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
-
-    EpisodeCounts IAnime.EpisodeCounts => ((ISeries)this).EpisodeCounts;
-
-    int IAnime.AnimeID => AnimeID;
 
     #endregion
 }

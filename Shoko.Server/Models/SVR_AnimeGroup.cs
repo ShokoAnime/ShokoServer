@@ -248,15 +248,15 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
     #region IGroup Implementation
 
     string IGroup.Name => GroupName;
-    IAnime IGroup.MainSeries => (MainSeries ?? AllSeries.First()).AniDB_Anime;
+    ISeries IGroup.MainSeries => (MainSeries ?? AllSeries.First()).AniDB_Anime;
 
-    IReadOnlyList<IAnime> IGroup.Series => AllSeries
+    IReadOnlyList<ISeries> IGroup.Series => AllSeries
         .Select(a => a.AniDB_Anime)
         .Where(a => a != null)
         .OrderBy(a => a.BeginYear)
         .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
         .ThenBy(a => a.MainTitle)
-        .Cast<IAnime>()
+        .Cast<ISeries>()
         .ToList();
 
     #endregion

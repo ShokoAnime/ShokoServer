@@ -176,7 +176,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
             .Select(x => x.AniDBAnime)
             .WhereNotNull()
             .OrderBy(a => a.MainTitle)
-            .Cast<IAnime>()
+            .Cast<ISeries>()
             .ToArray();
 
     IReadOnlyList<IGroup> IVideo.GroupInfo =>

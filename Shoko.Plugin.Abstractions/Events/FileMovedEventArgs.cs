@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using Shoko.Plugin.Abstractions.DataModels;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions;
 
 public class FileMovedEventArgs : FileEventArgs
@@ -35,7 +34,7 @@ public class FileMovedEventArgs : FileEventArgs
 
     #endregion
 
-    public FileMovedEventArgs(string relativePath, IImportFolder importFolder, string previousRelativePath, IImportFolder previousImportFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
+    public FileMovedEventArgs(string relativePath, IImportFolder importFolder, string previousRelativePath, IImportFolder previousImportFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<ISeries> animeInfo, IEnumerable<IGroup> groupInfo)
         : base(relativePath, importFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo)
     {
         previousRelativePath = previousRelativePath

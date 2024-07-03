@@ -35,7 +35,7 @@ public class MoveRenameEventArgs : CancelEventArgs
     /// <summary>
     /// Information about the Anime, such as titles
     /// </summary>
-    public IReadOnlyList<IAnime> AnimeInfo { get; set; }
+    public IReadOnlyList<ISeries> AnimeInfo { get; set; }
 
     /// <summary>
     /// Information about the group

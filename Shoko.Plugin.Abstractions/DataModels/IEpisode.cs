@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IEpisode : IWithTitles, IWithDescriptions, IMetadata<int>
@@ -55,32 +54,4 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IMetadata<int>
     /// Get all videos linked to the episode, if any.
     /// </summary>
     IReadOnlyList<IVideo> VideoList { get; }
-
-    #region To-be-removed
-
-    /// <summary>
-    /// The AniDB Episode ID.
-    /// </summary>
-    [Obsolete("Use ID instead.")]
-    int EpisodeID { get; }
-
-    /// <summary>
-    /// The AniDB Anime ID.
-    /// </summary>
-    [Obsolete("Use ShowID instead.")]
-    int AnimeID { get; }
-
-    /// <summary>
-    /// The runtime of the episode, in seconds.
-    /// </summary>
-    [Obsolete("Use Runtime instead.")]
-    int Duration { get; }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    [Obsolete("Use EpisodeNumber instead.")]
-    int Number { get; }
-
-    #endregion
 }

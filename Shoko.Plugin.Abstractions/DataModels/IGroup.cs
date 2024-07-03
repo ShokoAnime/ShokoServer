@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IGroup
@@ -13,10 +12,10 @@ public interface IGroup
     /// <summary>
     /// The series that is used for the name. May be null. Just use Series.FirstOrDefault() at that point.
     /// </summary>
-    IAnime MainSeries { get; }
+    ISeries MainSeries { get; }
 
     /// <summary>
     /// The series in a group, ordered by AirDate
     /// </summary>
-    IReadOnlyList<IAnime> Series { get; }
+    IReadOnlyList<ISeries> Series { get; }
 }

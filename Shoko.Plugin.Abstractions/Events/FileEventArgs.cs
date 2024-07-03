@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions;
 
 public class FileEventArgs : EventArgs
@@ -25,15 +24,15 @@ public class FileEventArgs : EventArgs
         VideoInfo = videoInfo;
         EpisodeInfo = VideoInfo.EpisodeInfo;
         AnimeInfo = VideoInfo.SeriesInfo
-                        .OfType<IAnime>()
+                        .OfType<ISeries>()
                         .ToArray();
         GroupInfo = VideoInfo.GroupInfo;
     }
 
-    public FileEventArgs(IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
+    public FileEventArgs(IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<ISeries> animeInfo, IEnumerable<IGroup> groupInfo)
         : this(fileInfo.Path.Substring(importFolder.Path.Length), importFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo) { }
 
-    public FileEventArgs(string relativePath, IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
+    public FileEventArgs(string relativePath, IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<ISeries> animeInfo, IEnumerable<IGroup> groupInfo)
     {
         relativePath = relativePath
             .Replace('/', Path.DirectorySeparatorChar)
@@ -77,7 +76,7 @@ public class FileEventArgs : EventArgs
     /// <summary>
     /// Information about the Anime, such as titles
     /// </summary>
-    public IReadOnlyList<IAnime> AnimeInfo { get; }
+    public IReadOnlyList<ISeries> AnimeInfo { get; }
 
     /// <summary>
     /// Information about the group

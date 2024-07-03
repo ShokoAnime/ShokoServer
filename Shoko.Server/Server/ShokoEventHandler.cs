@@ -67,7 +67,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var animeInfo = series.Cast<ISeries>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
@@ -94,7 +94,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var animeInfo = series.Cast<ISeries>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
@@ -121,7 +121,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var animeInfo = series.Cast<ISeries>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
@@ -148,7 +148,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var animeInfo = series.Cast<ISeries>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
@@ -175,7 +175,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var animeInfo = series.Cast<ISeries>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
@@ -203,7 +203,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Cast<IAnime>().ToList();
+        var animeInfo = series.Cast<ISeries>().ToList();
         var groupInfo = xrefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)

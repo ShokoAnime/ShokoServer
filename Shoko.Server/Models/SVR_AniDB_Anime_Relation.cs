@@ -48,7 +48,7 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedAnime, IRe
 
     #region IRelatedAnime implementation
 
-    IAnime? IRelatedAnime.RelatedAnime =>
+    ISeries? IRelatedAnime.RelatedAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
 
     RType IRelatedAnime.RelationType => (this as IRelatedMetadata).RelationType;
