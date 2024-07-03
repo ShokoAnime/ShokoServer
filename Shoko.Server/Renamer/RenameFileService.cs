@@ -21,7 +21,7 @@ public class RenameFileService
 {
     private readonly ILogger<RenameFileService> _logger;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly RenamerInstanceRepository _renamers;
+    private readonly RenamerConfigRepository _renamers;
     private readonly Dictionary<Type, MethodInfo?> _settingsSetters = new();
     private readonly Dictionary<Type, MethodInfo?> _genericGetNewPaths = new();
 
@@ -29,7 +29,7 @@ public class RenameFileService
     public Dictionary<Type, IBaseRenamer> RenamersByType { get; } = [];
     public Dictionary<IBaseRenamer, bool> AllRenamers { get; } = [];
 
-    public RenameFileService(ILogger<RenameFileService> logger, ISettingsProvider settingsProvider, RenamerInstanceRepository renamers)
+    public RenameFileService(ILogger<RenameFileService> logger, ISettingsProvider settingsProvider, RenamerConfigRepository renamers)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
@@ -37,7 +37,7 @@ public class RenameFileService
         LoadRenamers(AppDomain.CurrentDomain.GetAssemblies());
     }
 
-    public MoveRenameResult GetNewPath(SVR_VideoLocal_Place place, RenamerInstance? renamerInstance = null, bool? move = null, bool? rename = null)
+    public MoveRenameResult GetNewPath(SVR_VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null)
     {
         var settings = _settingsProvider.GetSettings();
         var shouldMove = move ?? settings.Plugins.Renamer.MoveOnImport;
@@ -59,13 +59,13 @@ public class RenameFileService
                     $"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.")
             };
 
-        if (renamerInstance == null)
+        if (renamerConfig == null)
         {
             var defaultRenamerName = settings.Plugins.Renamer.DefaultRenamer;
             if (string.IsNullOrWhiteSpace(defaultRenamerName))
                 return new MoveRenameResult
                 {
-                    Error = new MoveRenameError("No default renamer configured and no renamer instance given")
+                    Error = new MoveRenameError("No default renamer configured and no renamer config given")
                 };
             var defaultRenamer = _renamers.GetByName(defaultRenamerName);
             if (defaultRenamer == null)
@@ -73,13 +73,13 @@ public class RenameFileService
                 {
                     Error = new MoveRenameError("The specified default renamer does not exist")
                 };
-            renamerInstance = defaultRenamer;
+            renamerConfig = defaultRenamer;
         }
 
-        if (!RenamersByType.TryGetValue(renamerInstance.Type, out var renamer))
+        if (!RenamersByType.TryGetValue(renamerConfig.Type, out var renamer))
             return new MoveRenameResult
             {
-                Error = new MoveRenameError($"No renamers configured for {renamerInstance.Type}")
+                Error = new MoveRenameError($"No renamers configured for {renamerConfig.Type}")
             };
         // check if it's unrecognized
         if (xrefs.Count == 0 && renamer.GetType().GetInterfaces().Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IUnrecognizedRenamer<>)))
@@ -111,11 +111,11 @@ public class RenameFileService
         if (renamerInterface != null)
         {
             var settingsType = renamerInterface.GetGenericArguments()[0];
-            if (settingsType != renamerInstance.Settings.GetType())
+            if (settingsType != renamerConfig.Settings.GetType())
                 return new MoveRenameResult
                 {
                     Error = new MoveRenameError(
-                        $"Configured renamer has settings of type {settingsType} but the renamer instance has settings of type {renamerInstance.Settings.GetType()}")
+                        $"Configured renamer has settings of type {settingsType} but the renamer config has settings of type {renamerConfig.Settings.GetType()}")
                 };
 
             var argsType = typeof(MoveRenameEventArgs<>).MakeGenericType(settingsType);
@@ -133,7 +133,7 @@ public class RenameFileService
                 _settingsSetters.TryAdd(argsType,
                     settingsSetter = argsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(a => a.Name == "Settings")?.SetMethod);
             if (settingsSetter == null) return new MoveRenameResult {Error = new MoveRenameError($"Cannot find Settings setter on {renamerInterface}")};
-            settingsSetter.Invoke(args, [renamerInstance.Settings]);
+            settingsSetter.Invoke(args, [renamerConfig.Settings]);
 
             if (!_genericGetNewPaths.TryGetValue(renamerInterface, out var method))
                 _genericGetNewPaths.TryAdd(renamerInterface,

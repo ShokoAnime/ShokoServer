@@ -4,10 +4,12 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings;
 
-public class RenamerInstanceMap : ClassMap<RenamerInstance>
+public class RenamerConfigMap : ClassMap<RenamerConfig>
 {
-    public RenamerInstanceMap()
+    public RenamerConfigMap()
     {
+        // We could rename this, but it already exists in test databases....
+        Table("RenamerInstance");
         Not.LazyLoad();
         Id(x => x.ID);
 

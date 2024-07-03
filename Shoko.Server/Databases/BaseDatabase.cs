@@ -320,12 +320,12 @@ public abstract class BaseDatabase<T> : IDatabase
 
     private void CreateInitialRenameScript()
     {
-        if (RepoFactory.RenamerInstance.GetAll().Any())
+        if (RepoFactory.RenamerConfig.GetAll().Any())
         {
             return;
         }
 
-        var initialScript = new RenamerInstance();
+        var initialScript = new RenamerConfig();
 
         initialScript.Name = Resources.Rename_Default;
         initialScript.Type = typeof(WebAOMRenamer);
@@ -374,7 +374,7 @@ public abstract class BaseDatabase<T> : IDatabase
                 "DO REPLACE '*' '_'" + Environment.NewLine,
         };
 
-        RepoFactory.RenamerInstance.Save(initialScript);
+        RepoFactory.RenamerConfig.Save(initialScript);
     }
 
     public void CreateInitialCustomTags()

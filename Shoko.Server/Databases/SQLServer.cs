@@ -731,7 +731,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
                 if (type == null)
                 {
                     if ((string)a[1] == "GroupAwareRenamer")
-                        return (Renamer: new RenamerInstance
+                        return (Renamer: new RenamerConfig
                         {
                             Name = (string)a[0],
                             Type = typeof(WebAOMRenamer),
@@ -741,7 +741,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
                             }
                         }, IsDefault: (long)a[2] == 1);
 
-                    Logger.Warn("A renamer could not be converted. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] + " Script: " + (string)a[3]);
+                    Logger.Warn("A RenameScipt could not be converted to RenamerConfig. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] + " Script: " + (string)a[3]);
                     return default;
                 }
 
@@ -755,7 +755,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
                         ?.SetValue(settings, (string)a[3]);
                 }
 
-                return (Renamer: new RenamerInstance
+                return (Renamer: new RenamerConfig
                 {
                     Name = (string)a[0], Type = type, Settings = settings
                 }, IsDefault: (long)a[2] == 1);

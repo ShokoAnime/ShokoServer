@@ -2,7 +2,7 @@
 
 namespace Shoko.Plugin.Abstractions
 {
-    public interface IRenamerInstance
+    public interface IRenamerConfig
     {
         /// <summary>
         /// The ID of the renamer instance
@@ -20,7 +20,7 @@ namespace Shoko.Plugin.Abstractions
         public Type Type { get; }
     }
 
-    public interface IRenamerInstance<T> : IRenamerInstance where T : class
+    public interface IRenamerConfig<T> : IRenamerConfig where T : class
     {
         /// <summary>
         /// The settings for the renamer

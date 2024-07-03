@@ -388,7 +388,7 @@ public class VideoLocal_PlaceService
             Move = settings.Plugins.Renamer.MoveOnImport,
             Rename = settings.Plugins.Renamer.RenameOnImport,
             DeleteEmptyDirectories = settings.Plugins.Renamer.MoveOnImport,
-            Renamer = RepoFactory.RenamerInstance.GetByName(settings.Plugins.Renamer.DefaultRenamer),
+            Renamer = RepoFactory.RenamerConfig.GetByName(settings.Plugins.Renamer.DefaultRenamer),
         };
 
         if (request is { Preview: true, Renamer: null })

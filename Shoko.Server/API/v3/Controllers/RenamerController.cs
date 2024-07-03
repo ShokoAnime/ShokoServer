@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Force.DeepCloner;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.Enums;
@@ -15,6 +17,7 @@ using Shoko.Server.Renamer;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Services;
+using Shoko.Server.Utilities;
 using ApiRenamer = Shoko.Server.API.v3.Models.Shoko.Renamer;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
@@ -30,19 +33,19 @@ public class RenamerController : BaseController
     private readonly VideoLocal_PlaceService _vlpService;
     private readonly VideoLocalRepository _vlRepository;
 
-    private readonly RenamerInstanceRepository _renamerInstanceRepository;
+    private readonly RenamerConfigRepository _renamerConfigRepository;
     private readonly RenameFileService _renameFileService;
 
-    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerInstanceRepository renamerInstanceRepository, RenameFileService renameFileService) : base(settingsProvider)
+    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerConfigRepository renamerConfigRepository, RenameFileService renameFileService) : base(settingsProvider)
     {
         _vlpService = vlpService;
         _vlRepository = vlRepository;
-        _renamerInstanceRepository = renamerInstanceRepository;
+        _renamerConfigRepository = renamerConfigRepository;
         _renameFileService = renameFileService;
     }
 
     /// <summary>
-    /// Get a list of all <see cref="Shoko.Server.API.v3.Models.Shoko.Renamer"/>s.
+    /// Get a list of all Renamers.
     /// </summary>
     /// <returns></returns>
     [HttpGet]
@@ -51,13 +54,27 @@ public class RenamerController : BaseController
         return _renameFileService.AllRenamers.Select(a => GetRenamer(a.Key, a.Value)).ToList();
     }
 
+    /// <summary>
+    /// Get the Renamer by the given RenamerID
+    /// </summary>
+    /// <param name="renamerID">RenamerID</param>
+    /// <returns></returns>
+    [HttpGet("{renamerID}")]
+    public ActionResult<ApiRenamer> GetRenamer([FromRoute] string renamerID)
+    {
+        if (!_renameFileService.RenamersByKey.TryGetValue(renamerID, out var value))
+            return NotFound("Renamer not found");
+
+        return GetRenamer(value, true);
+    }
+
     private static ApiRenamer GetRenamer(IBaseRenamer renamer, bool enabled)
     {
         // we can suppress nullability, because we check this when loading
         var attribute = renamer.GetType().GetCustomAttributes<RenamerIDAttribute>().FirstOrDefault()!;
         var settingsType = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
             ?.GetGenericArguments().FirstOrDefault();
-        var settings = new List<ApiRenamer.RenamerSetting>();
+        var settings = new List<ApiRenamer.Setting>();
         if (settingsType == null)
             return new ApiRenamer
             {
@@ -88,7 +105,7 @@ public class RenamerController : BaseController
                     settingType = RenamerSettingType.Decimal;
             }
 
-            settings.Add(new ApiRenamer.RenamerSetting
+            settings.Add(new ApiRenamer.Setting
             {
                 Name = renamerSettingAttribute?.Name ?? property.Name,
                 Type = property.PropertyType.Name,
@@ -110,31 +127,31 @@ public class RenamerController : BaseController
     }
 
     /// <summary>
-    /// Get a list of all <see cref="RenamerInstance"/>s.
+    /// Get a list of all Configs
     /// </summary>
     /// <returns></returns>
-    [HttpGet("Instance")]
-    public ActionResult<List<RenamerInstance>> GetAllRenamerInstances()
+    [HttpGet("Config")]
+    public ActionResult<List<RenamerConfig>> GetAllRenamerConfigs()
     {
-        return _renamerInstanceRepository.GetAll().Select(GetRenamerInstance).ToList();
+        return _renamerConfigRepository.GetAll().Select(GetRenamerConfig).ToList();
     }
 
-    private static RenamerInstance GetRenamerInstance(Shoko.Server.Models.RenamerInstance p)
+    private static RenamerConfig GetRenamerConfig(Shoko.Server.Models.RenamerConfig p)
     {
         // we can suppress nullability, because we check this when loading
         var attribute = p.Type.GetCustomAttributes<RenamerIDAttribute>().FirstOrDefault()!;
         var settingsType = p.Type.GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
             ?.GetGenericArguments().FirstOrDefault();
-        var settings = new List<RenamerInstance.RenamerSetting>();
+        var settings = new List<RenamerConfig.RenamerSetting>();
         if (settingsType == null)
-            return new RenamerInstance { RenamerID = attribute.RenamerId, Name = p.Name, Settings = settings };
+            return new RenamerConfig { RenamerID = attribute.RenamerId, Name = p.Name, Settings = settings };
 
         // settings
         var properties = settingsType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         foreach (var property in properties)
         {
             var renamerSettingAttribute = property.GetCustomAttribute<RenamerSettingAttribute>();
-            settings.Add(new RenamerInstance.RenamerSetting
+            settings.Add(new RenamerConfig.RenamerSetting
             {
                 Name = renamerSettingAttribute?.Name ?? property.Name,
                 Type = property.PropertyType.Name,
@@ -142,115 +159,115 @@ public class RenamerController : BaseController
             });
         }
 
-        return new RenamerInstance
+        return new RenamerConfig
         {
             RenamerID = attribute.RenamerId, Name = p.Name, Settings = settings
         };
     }
 
     /// <summary>
-    /// Get the <see cref="ApiRenamer"/> by the given <see cref="Shoko.Server.API.v3.Models.Shoko.RenamerInstance"/>.<see cref="Shoko.Server.API.v3.Models.Shoko.RenamerInstance.Name"/>
+    /// Get the Renamer by the given Config Name
     /// </summary>
-    /// <param name="renamerName">RenamerInstance Name</param>
+    /// <param name="renamerName">Config Name</param>
     /// <returns></returns>
-    [HttpGet("Instance/{renamerName}/Renamer")]
-    public ActionResult<ApiRenamer> GetRenamerFromInstance([FromRoute] string renamerName)
+    [HttpGet("Config/{renamerName}/Renamer")]
+    public ActionResult<ApiRenamer> GetRenamerFromConfig([FromRoute] string renamerName)
     {
-        var renamerInstance = _renamerInstanceRepository.GetByName(renamerName);
-        if (renamerInstance == null)
-            return NotFound("RenamerInstance not found");
-        if (!_renameFileService.RenamersByType.TryGetValue(renamerInstance.Type, out var value))
+        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        if (renamerConfig == null)
+            return NotFound("Config not found");
+        if (!_renameFileService.RenamersByType.TryGetValue(renamerConfig.Type, out var value))
             return NotFound("Renamer not found");
 
         return GetRenamer(value, true);
     }
 
     /// <summary>
-    /// Get the <see cref="ApiRenamer"/> by the given <see cref="Shoko.Server.API.v3.Models.Shoko.Renamer"/>.<see cref="Renamer.RenamerID"/>
+    /// Get the Config by the given Name
     /// </summary>
-    /// <param name="renamerID">RenamerID</param>
+    /// <param name="renamerName">Config Name</param>
     /// <returns></returns>
-    [HttpGet("{renamerID}")]
-    public ActionResult<ApiRenamer> GetRenamer([FromRoute] string renamerID)
+    [HttpGet("Config/{renamerName}")]
+    public ActionResult<RenamerConfig> GetRenamerConfig([FromRoute] string renamerName)
     {
-        if (!_renameFileService.RenamersByKey.TryGetValue(renamerID, out var value))
-            return NotFound("Renamer not found");
+        var config = _renamerConfigRepository.GetByName(renamerName);
+        if (config == null)
+            return NotFound("Config not found");
 
-        return GetRenamer(value, true);
+        return GetRenamerConfig(config);
     }
 
     /// <summary>
-    /// Get the <see cref="RenamerInstance"/> by the given <see cref="RenamerInstance"/>.<see cref="RenamerInstance.Name"/>
+    /// Create a new Config
     /// </summary>
-    /// <param name="renamerName">RenamerInstance Name</param>
-    /// <returns></returns>
-    [HttpGet("Instance/{renamerName}")]
-    public ActionResult<RenamerInstance> GetRenamerInstance([FromRoute] string renamerName)
-    {
-        var instance = _renamerInstanceRepository.GetByName(renamerName);
-        if (instance == null)
-            return NotFound("RenamerInstance not found");
-
-        return GetRenamerInstance(instance);
-    }
-
-    /// <summary>
-    /// Create a new <see cref="Shoko.Server.API.v3.Models.Shoko.RenamerInstance"/>.
-    /// </summary>
-    /// <param name="body">RenamerInstance</param>
+    /// <param name="body">Config</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPost("Instance")]
-    public ActionResult<RenamerInstance> PostRenamerInstance([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RenamerInstance body)
+    [HttpPost("Config")]
+    public ActionResult<RenamerConfig> PostRenamerConfig([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RenamerConfig body)
     {
         if (string.IsNullOrWhiteSpace(body.Name)) return BadRequest("Name is required");
         if (!_renameFileService.RenamersByKey.TryGetValue(body.RenamerID, out var renamer))
             return NotFound("Renamer not found");
 
-        var existingRenamer = _renamerInstanceRepository.GetByName(body.Name);
+        var existingRenamer = _renamerConfigRepository.GetByName(body.Name);
         if (existingRenamer != null)
-            return Conflict($"RenamerInstance with name {body.Name} already exists");
+            return Conflict($"Config with name {body.Name} already exists");
 
-        var renamerInstance = new Shoko.Server.Models.RenamerInstance
+        var config = new Shoko.Server.Models.RenamerConfig
         {
             Name = body.Name,
             Type = renamer.GetType(),
         };
 
-        ApplyRenamerInstanceSettings(body, renamerInstance);
-        _renamerInstanceRepository.Save(renamerInstance);
+        if (!ApplyRenamerConfigSettings(body, config))
+            return ValidationProblem(ModelState);
 
-        return GetRenamerInstance(renamerInstance);
+        _renamerConfigRepository.Save(config);
+
+        return GetRenamerConfig(config);
     }
 
     /// <summary>
-    /// Update the <see cref="RenamerInstance"/> by the given <see cref="RenamerInstance"/>.<see cref="RenamerInstance.Name"/>
+    /// Update the Config by the given Name
     /// </summary>
-    /// <param name="renamerName">RenamerInstance Name</param>
-    /// <param name="body">RenamerInstance</param>
+    /// <param name="renamerName">Config Name</param>
+    /// <param name="body">Config</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPut("Instance/{renamerName}")]
-    public ActionResult<RenamerInstance> PutRenamerInstance([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RenamerInstance body)
+    [HttpPut("Config/{renamerName}")]
+    public ActionResult<RenamerConfig> PutRenamerConfig([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RenamerConfig body)
     {
-        var renamerInstance = _renamerInstanceRepository.GetByName(renamerName);
-        if (renamerInstance == null)
-            return NotFound("RenamerInstance not found");
+        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        if (renamerConfig == null)
+            return NotFound("Config not found");
 
         if (!_renameFileService.RenamersByKey.TryGetValue(body.RenamerID, out var renamer))
             return NotFound("Renamer not found");
 
-        renamerInstance.Type = renamer.GetType();
-        ApplyRenamerInstanceSettings(body, renamerInstance);
-        _renamerInstanceRepository.Save(renamerInstance);
+        var temp = renamerConfig.DeepClone();
 
-        return GetRenamerInstance(renamerInstance);
+        temp.Type = renamer.GetType();
+        if (!ApplyRenamerConfigSettings(body, temp))
+            return ValidationProblem(ModelState);
+
+        temp.DeepCloneTo(renamerConfig);
+        _renamerConfigRepository.Save(renamerConfig);
+
+        return GetRenamerConfig(renamerConfig);
     }
 
-    private static void ApplyRenamerInstanceSettings(RenamerInstance body, Shoko.Server.Models.RenamerInstance renamerInstance)
+    private bool ApplyRenamerConfigSettings(RenamerConfig body, Shoko.Server.Models.RenamerConfig renamerConfig)
     {
-        if (body.Settings == null) return;
-        var properties = renamerInstance.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        if (body.Settings == null) return true;
+        var result = true;
+        var settingsType = renamerConfig.Type.GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
+            ?.GetGenericArguments().FirstOrDefault();
+        if (settingsType == null) return true;
+
+        renamerConfig.Settings ??= ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
+
+        var properties = settingsType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
         foreach (var setting in body.Settings)
         {
@@ -259,57 +276,85 @@ public class RenamerController : BaseController
             if (property == null)
                 continue;
 
-            property.SetValue(renamerInstance.Settings, Convert.ChangeType(setting.Value, property.PropertyType));
+            if (setting.Value?.GetType() != property.PropertyType)
+            {
+                ModelState.AddModelError("Settings[" + setting.Name + "].Value", "Value must be of type " + property.PropertyType.Name);
+                result = false;
+                continue;
+            }
+            property.SetValue(renamerConfig.Settings, Convert.ChangeType(setting.Value, property.PropertyType));
         }
+
+        return result;
     }
 
     /// <summary>
-    /// Applies a JSON patch document to modify the settings of the
-    /// <see cref="ApiRenamer"/> with the given
-    /// <paramref name="renamerName"/>.
+    /// Applies a JSON patch document to modify the Config with the given Name
     /// </summary>
     /// <param name="renamerName">
-    /// The name of the renamer to be patched.
+    /// The name of the config to be patched.
     /// </param>
     /// <param name="patchDocument">
-    /// A JSON Patch document containing the modifications to be applied to the
-    /// renamer.
+    /// A JSON Patch document containing the modifications to be applied to the config.
     /// </param>
     /// <returns>
-    /// The modified renamer if the operation is successful, or an error
-    /// response if the renamer is not found, the patch document is invalid, or
+    /// The modified config if the operation is successful, or an error
+    /// response if the config is not found, the patch document is invalid, or
     /// the modifications fail.
     /// </returns>
     [Authorize("admin")]
-    [HttpPatch("Instance/{renamerName}")]
-    public ActionResult<RenamerInstance> PatchRenamer([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<RenamerInstance> patchDocument)
+    [HttpPatch("Config/{renamerName}")]
+    public ActionResult<RenamerConfig> PatchRenamer([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<RenamerConfig> patchDocument)
     {
-        var renamerInstance = _renamerInstanceRepository.GetByName(renamerName);
-        if (renamerInstance == null)
-            return NotFound("RenamerInstance not found.");
+        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        if (renamerConfig == null)
+            return NotFound("Config not found.");
 
         // Patch the renamer in the v3 model and merge it back into the
         // settings.
-        var modifyRenamer = GetRenamerInstance(renamerInstance);
+        var modifyRenamer = GetRenamerConfig(renamerConfig);
         patchDocument.ApplyTo(modifyRenamer, ModelState);
 
         // validate
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        var existingRenamer = _renamerInstanceRepository.GetByName(modifyRenamer.Name);
-        if (existingRenamer != null && existingRenamer.ID != renamerInstance.ID)
+        var existingRenamer = _renamerConfigRepository.GetByName(modifyRenamer.Name);
+        if (existingRenamer != null && existingRenamer.ID != renamerConfig.ID)
             return Conflict($"Renamer with name {modifyRenamer.Name} already exists.");
 
         if (!_renameFileService.RenamersByKey.TryGetValue(modifyRenamer.RenamerID, out var renamer))
             return NotFound("Renamer not found");
 
         // apply
-        renamerInstance.Name = modifyRenamer.Name;
-        renamerInstance.Type = renamer.GetType();
-        
-        ApplyRenamerInstanceSettings(modifyRenamer, renamerInstance);
-        _renamerInstanceRepository.Save(renamerInstance);
+        var temp = renamerConfig.DeepClone();
+        temp.Name = modifyRenamer.Name;
+        temp.Type = renamer.GetType();
 
-        return GetRenamerInstance(renamerInstance);
+        if (!ApplyRenamerConfigSettings(modifyRenamer, temp))
+            return ValidationProblem(ModelState);
+
+        temp.DeepCloneTo(renamerConfig);
+
+        _renamerConfigRepository.Save(renamerConfig);
+
+        return GetRenamerConfig(renamerConfig);
+    }
+
+    /// <summary>
+    /// Update the Config by the given Name
+    /// </summary>
+    /// <param name="renamerName">Config Name</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("Config/{renamerName}")]
+    public ActionResult DeleteRenamerConfig([FromRoute] string renamerName)
+    {
+        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        if (renamerConfig == null)
+            return NotFound("Config not found");
+
+        _renamerConfigRepository.Delete(renamerConfig);
+
+        return Ok();
     }
 
     /*

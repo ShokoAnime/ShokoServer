@@ -3,7 +3,7 @@
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
-public class RenamerInstance
+public class RenamerConfig
 {
     /// <summary>
     /// The ID of the renamer
@@ -25,9 +25,9 @@ public class RenamerInstance
         public string Name { get; set; }
 
         /// <summary>
-        /// The CLR type of the setting
+        /// The CLR type of the setting. Not necessary to provide it in mutations
         /// </summary>
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         /// <summary>
         /// Value of the setting

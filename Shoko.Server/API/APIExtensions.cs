@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
@@ -121,6 +122,8 @@ public static class APIExtensions
 
                 options.SchemaFilter<EnumSchemaFilter<EpisodeType>>();
                 options.SchemaFilter<EnumSchemaFilter<SeriesType>>();
+                options.SchemaFilter<EnumSchemaFilter<RenamerSettingType>>();
+                options.SchemaFilter<EnumSchemaFilter<CodeLanguage>>();
                 options.SchemaFilter<EnumSchemaFilter<Filter.FilterExpressionHelp.FilterExpressionParameterType>>();
 
                 options.CustomSchemaIds(GetTypeName);

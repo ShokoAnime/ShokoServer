@@ -20,7 +20,7 @@ public record AutoRelocateRequest
     /// The name of the renamer to use. If not provided, the default will be used.
     /// If <see cref="Preview"/> is set to true, this will be ignored.
     /// </summary>
-    public RenamerInstance? Renamer { get; set; } = null;
+    public RenamerConfig? Renamer { get; set; } = null;
 
     /// <summary>
     /// Do the rename operation.

@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.API.v3.Models.Common;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -11,7 +9,7 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 public class Renamer
 {
     /// <summary>
-    /// The ID of the renamer
+    /// The ID of the renamer. Not used anywhere in the API, but could be useful as a list key
     /// </summary>
     public string RenamerID { get; set; }
 
@@ -38,9 +36,9 @@ public class Renamer
     /// <summary>
     /// The setting type definitions for the renamer.
     /// </summary>
-    public List<RenamerSetting> Settings { get; set; }
+    public List<Setting> Settings { get; set; }
 
-    public class RenamerSetting
+    public class Setting
     {
         public string Name { get; set; }
         public string Type { get; set; }
