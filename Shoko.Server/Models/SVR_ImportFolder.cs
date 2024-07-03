@@ -73,8 +73,6 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
 
     string IImportFolder.Path => ImportFolderLocation;
 
-    string IImportFolder.Location => ImportFolderLocation;
-
     DropFolderType IImportFolder.DropFolderType
     {
         get

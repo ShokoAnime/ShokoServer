@@ -289,13 +289,5 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
             .OfType<SVR_VideoLocal>()
             .ToList();
 
-    int IEpisode.EpisodeID => AnimeEpisodeID;
-
-    int IEpisode.AnimeID => AnimeSeriesID;
-
-    int IEpisode.Number => AniDB_Episode?.EpisodeNumber ?? 1;
-
-    int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;
-
     #endregion
 }

@@ -449,12 +449,12 @@ public class FileController : BaseController
             };
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
-        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ID;
         return new RelocateResult
         {
             FileID = fileLocation.VideoLocalID,
             FileLocationID = fileLocation.VideoLocal_Place_ID,
-            ImportFolderID = result.ImportFolder.ImportFolderID,
+            ImportFolderID = result.ImportFolder.ID,
             IsSuccess = true,
             IsRelocated = relocated,
             RelativePath = result.RelativePath,

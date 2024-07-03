@@ -189,7 +189,7 @@ public class VideoLocal_PlaceService
             // A file with the same name exists at the destination.
             _logger.LogTrace("A file already exists at the new location, checking it for duplicate…");
             var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath,
-                request.ImportFolder.ImportFolderID);
+                request.ImportFolder.ID);
             var destVideoLocal = destVideoLocalPlace?.VideoLocal;
             if (destVideoLocalPlace is null || destVideoLocal is null)
             {
@@ -285,7 +285,7 @@ public class VideoLocal_PlaceService
                     };
                 }
 
-                place.ImportFolderID = request.ImportFolder.ImportFolderID;
+                place.ImportFolderID = request.ImportFolder.ID;
                 place.FilePath = newRelativePath;
                 RepoFactory.VideoLocalPlace.Save(place);
 
@@ -319,7 +319,7 @@ public class VideoLocal_PlaceService
                 };
             }
 
-            place.ImportFolderID = request.ImportFolder.ImportFolderID;
+            place.ImportFolderID = request.ImportFolder.ID;
             place.FilePath = newRelativePath;
             RepoFactory.VideoLocalPlace.Save(place);
 
