@@ -15,7 +15,7 @@ public class RenamerInstance
     /// </summary>
     public string Name { get; set; }
 
-    public List<RenamerSetting> Settings { get; set; }
+    public List<RenamerSetting>? Settings { get; set; }
 
     public class RenamerSetting
     {
