@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -29,7 +28,6 @@ namespace Shoko.Server.API.v3.Controllers;
 public class RenamerController : BaseController
 {
     private readonly VideoLocal_PlaceService _vlpService;
-
     private readonly VideoLocalRepository _vlRepository;
 
     private readonly RenamerInstanceRepository _renamerInstanceRepository;
@@ -209,27 +207,17 @@ public class RenamerController : BaseController
         if (!_renameFileService.RenamersByKey.TryGetValue(body.RenamerID, out var renamer))
             return NotFound("Renamer not found");
 
+        var existingRenamer = _renamerInstanceRepository.GetByName(body.Name);
+        if (existingRenamer != null)
+            return Conflict($"RenamerInstance with name {body.Name} already exists");
+
         var renamerInstance = new Shoko.Server.Models.RenamerInstance
         {
             Name = body.Name,
             Type = renamer.GetType(),
         };
 
-        if (body.Settings != null)
-        {
-            var properties = renamerInstance.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var setting in body.Settings)
-            {
-                var property = properties.FirstOrDefault(x => x.Name == setting.Name) ?? properties.FirstOrDefault(x => x.GetCustomAttribute<RenamerSettingAttribute>()?.Name == setting.Name);
-
-                if (property == null)
-                    continue;
-
-                property.SetValue(renamerInstance.Settings, Convert.ChangeType(setting.Value, property.PropertyType));
-            }
-        }
-
+        ApplyRenamerInstanceSettings(body, renamerInstance);
         _renamerInstanceRepository.Save(renamerInstance);
 
         return GetRenamerInstance(renamerInstance);
@@ -253,28 +241,28 @@ public class RenamerController : BaseController
             return NotFound("Renamer not found");
 
         renamerInstance.Type = renamer.GetType();
-
-        if (body.Settings != null)
-        {
-            var properties = renamerInstance.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var setting in body.Settings)
-            {
-                var property = properties.FirstOrDefault(x => x.Name == setting.Name) ?? properties.FirstOrDefault(x => x.GetCustomAttribute<RenamerSettingAttribute>()?.Name == setting.Name);
-
-                if (property == null)
-                    continue;
-
-                property.SetValue(renamerInstance.Settings, Convert.ChangeType(setting.Value, property.PropertyType));
-            }
-        }
-
+        ApplyRenamerInstanceSettings(body, renamerInstance);
         _renamerInstanceRepository.Save(renamerInstance);
 
         return GetRenamerInstance(renamerInstance);
     }
 
-    /*
+    private static void ApplyRenamerInstanceSettings(RenamerInstance body, Shoko.Server.Models.RenamerInstance renamerInstance)
+    {
+        if (body.Settings == null) return;
+        var properties = renamerInstance.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        foreach (var setting in body.Settings)
+        {
+            var property = properties.FirstOrDefault(x => x.Name == setting.Name) ?? properties.FirstOrDefault(x => x.GetCustomAttribute<RenamerSettingAttribute>()?.Name == setting.Name);
+
+            if (property == null)
+                continue;
+
+            property.SetValue(renamerInstance.Settings, Convert.ChangeType(setting.Value, property.PropertyType));
+        }
+    }
+
     /// <summary>
     /// Applies a JSON patch document to modify the settings of the
     /// <see cref="ApiRenamer"/> with the given
@@ -293,22 +281,38 @@ public class RenamerController : BaseController
     /// the modifications fail.
     /// </returns>
     [Authorize("admin")]
-    [HttpPatch("{renamerName}")]
-    public ActionResult<ApiRenamer> PatchRenamer([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ApiRenamer.Input.ModifyRenamerBody> patchDocument)
+    [HttpPatch("Instance/{renamerName}")]
+    public ActionResult<RenamerInstance> PatchRenamer([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<RenamerInstance> patchDocument)
     {
-        if (!RenameFileService.Renamer.TryGetValue(renamerName, out var value))
-            return NotFound("Renamer not found.");
+        var renamerInstance = _renamerInstanceRepository.GetByName(renamerName);
+        if (renamerInstance == null)
+            return NotFound("RenamerInstance not found.");
 
         // Patch the renamer in the v3 model and merge it back into the
         // settings.
-        var modifyRenamer = new ApiRenamer.Input.ModifyRenamerBody(renamerName);
+        var modifyRenamer = GetRenamerInstance(renamerInstance);
         patchDocument.ApplyTo(modifyRenamer, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
 
-        return modifyRenamer.MergeWithExisting(renamerName, value);
+        // validate
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        var existingRenamer = _renamerInstanceRepository.GetByName(modifyRenamer.Name);
+        if (existingRenamer != null && existingRenamer.ID != renamerInstance.ID)
+            return Conflict($"Renamer with name {modifyRenamer.Name} already exists.");
+
+        if (!_renameFileService.RenamersByKey.TryGetValue(modifyRenamer.RenamerID, out var renamer))
+            return NotFound("Renamer not found");
+
+        // apply
+        renamerInstance.Name = modifyRenamer.Name;
+        renamerInstance.Type = renamer.GetType();
+        
+        ApplyRenamerInstanceSettings(modifyRenamer, renamerInstance);
+        _renamerInstanceRepository.Save(renamerInstance);
+
+        return GetRenamerInstance(renamerInstance);
     }
 
+    /*
     /// <summary>
     /// Preview batch changes to files.
     /// </summary>
