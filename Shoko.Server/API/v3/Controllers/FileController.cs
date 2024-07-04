@@ -17,6 +17,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.Shoko.Relocation;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -35,7 +36,6 @@ using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using Path = System.IO.Path;
-using RelocateResult = Shoko.Server.API.v3.Models.Shoko.Renamer.RelocateResult;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -397,143 +397,6 @@ public class FileController : BaseController
             await _vlPlaceService.RemoveRecord(fileLocation);
 
         return Ok();
-    }
-
-    /// <summary>
-    /// Directly relocates a file to a new location specified by the user.
-    /// </summary>
-    /// <param name="locationID">The ID of the file location to be relocated.</param>
-    /// <param name="body">New location information.</param>
-    /// <returns>A result object containing information about the relocation process.</returns>
-    [Authorize("admin")]
-    [HttpPost("Location/{locationID}/Relocate")]
-    public async Task<ActionResult<RelocateResult>> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.NewLocationBody body)
-    {
-        if (locationID is <= 0)
-            return NotFound(FileLocationNotFoundWithLocationID);
-        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
-        if (fileLocation == null)
-            return NotFound(FileLocationNotFoundWithLocationID);
-
-        var importFolder = RepoFactory.ImportFolder.GetByID(body.ImportFolderID);
-        if (importFolder == null)
-            return BadRequest($"Unknown import folder with the given id `{body.ImportFolderID}`.");
-
-        // Sanitize relative path and reject paths leading to outside the import folder.
-        var fullPath = Path.GetFullPath(Path.Combine(importFolder.ImportFolderLocation, body.RelativePath));
-        if (!fullPath.StartsWith(importFolder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase))
-            return BadRequest("The provided relative path leads outside the import folder.");
-        var sanitizedRelativePath = Path.GetRelativePath(importFolder.ImportFolderLocation, fullPath);
-
-        // Store the old import folder id and relative path for comparison.
-        var oldImportFolderId = fileLocation.ImportFolderID;
-        var oldRelativePath = fileLocation.FilePath;
-
-        // Rename and move the file.
-        var result = await _vlPlaceService.DirectlyRelocateFile(
-            fileLocation,
-            new()
-            {
-                ImportFolder = importFolder,
-                RelativePath = sanitizedRelativePath,
-                DeleteEmptyDirectories = body.DeleteEmptyDirectories
-            }
-        );
-        if (!result.Success)
-            return new RelocateResult
-            {
-                FileID = fileLocation.VideoLocalID,
-                FileLocationID = fileLocation.VideoLocal_Place_ID,
-                IsSuccess = false,
-                ErrorMessage = result.ErrorMessage,
-            };
-
-        // Check if it was actually relocated, or if we landed on the same location as earlier.
-        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ID;
-        return new RelocateResult
-        {
-            FileID = fileLocation.VideoLocalID,
-            FileLocationID = fileLocation.VideoLocal_Place_ID,
-            ImportFolderID = result.ImportFolder.ID,
-            IsSuccess = true,
-            IsRelocated = relocated,
-            RelativePath = result.RelativePath,
-            AbsolutePath = result.AbsolutePath,
-        };
-    }
-
-    /// <summary>
-    /// Automatically relocates a file to a new location based on predefined rules.
-    /// </summary>
-    /// <param name="locationID">The ID of the file location to be relocated.</param>
-    /// <param name="body">Parameters for the automatic relocation process.</param>
-    /// <returns>A result object containing information about the relocation process.</returns>
-    [Authorize("admin")]
-    [HttpPost("Location/{locationID}/AutoRelocate")]
-    public async Task<ActionResult<RelocateResult>> AutomaticallyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Location.AutoRelocateBody body)
-    {
-        if (locationID is <= 0)
-            return NotFound(FileLocationNotFoundWithLocationID);
-        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
-        if (fileLocation == null)
-            return NotFound(FileLocationNotFoundWithLocationID);
-
-        // Make sure we have a valid script to use.
-        /*RenameScript script;
-        if (!body.ScriptID.HasValue || body.ScriptID.Value <= 0)
-        {
-            script = RepoFactory.RenamerInstance.GetDefaultOrFirst();
-            if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
-                return BadRequest($"No default script have been selected! Select one before continuing.");
-        }
-        else
-        {
-            script = RepoFactory.RenamerInstance.GetByID(body.ScriptID.Value);
-            if (script == null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
-                return BadRequest($"Unknown script with id \"{body.ScriptID.Value}\"! Omit `ScriptID` or set it to 0 to use the default script!");
-        }
-
-        // Store the old import folder id and relative path for comparison.
-        var oldImportFolderId = fileLocation.ImportFolderID;
-        var oldRelativePath = fileLocation.FilePath;
-        var settings = SettingsProvider.GetSettings();
-
-        // Rename and move the file, or preview where it would land if we did.
-        var result = await _vlPlaceService.AutoRelocateFile(
-            fileLocation,
-            new()
-            {
-                DeleteEmptyDirectories = body.DeleteEmptyDirectories,
-                Move = body.Move ?? settings.Import.MoveOnImport,
-                Preview = body.Preview,
-                Rename = body.Rename ?? settings.Import.RenameOnImport,
-                ScriptID = script.RenameScriptID,
-            }
-        );
-        if (!result.Success)
-            return new RelocateResult
-            {
-                FileID = fileLocation.VideoLocalID,
-                FileLocationID = fileLocation.VideoLocal_Place_ID,
-                IsSuccess = false,
-                ErrorMessage = result.ErrorMessage,
-            };
-
-        // Check if it was actually relocated, or if we landed on the same location as earlier.
-        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
-        return new RelocateResult
-        {
-            FileID = fileLocation.VideoLocalID,
-            FileLocationID = fileLocation.VideoLocal_Place_ID,
-            ScriptID = script.RenameScriptID,
-            ImportFolderID = result.ImportFolder.ImportFolderID,
-            IsSuccess = true,
-            IsRelocated = relocated,
-            IsPreview = body.Preview,
-            RelativePath = result.RelativePath,
-            AbsolutePath = result.AbsolutePath,
-        };*/
-        return BadRequest("Not implemented"); 
     }
 
     /// <summary>

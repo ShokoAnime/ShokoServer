@@ -44,6 +44,11 @@ public interface IRenamer : IBaseRenamer
 public interface IRenamer<T> : IBaseRenamer where T : class
 {
     /// <summary>
+    /// Allows the IRenamer to return a default settings model.
+    /// </summary>
+    T? DefaultSettings { get; }
+
+    /// <summary>
     /// Get the new path for moving and/or renaming. See <see cref="MoveRenameResult"/> and its <see cref="MoveRenameResult.Error"/> for details on the return value.
     /// </summary>
     /// <param name="args"></param>

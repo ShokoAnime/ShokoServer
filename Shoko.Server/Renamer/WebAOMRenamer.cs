@@ -2277,4 +2277,50 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.SeriesName));
     }
+
+    public WebAOMSettings DefaultSettings => new()
+    {
+        GroupAwareSorting = false,
+        Script = """
+// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv
+// Sub group name
+DO ADD '[%grp] '
+// Anime Name, use english name if it exists, otherwise use the Romaji name
+IF I(eng) DO ADD '%eng '
+IF I(ann);I(!eng) DO ADD '%ann '
+// Episode Number, don't use episode number for movies
+IF T(!Movie) DO ADD '- %enr'
+// If the file version is v2 or higher add it here
+IF F(!1) DO ADD 'v%ver'
+// Video Resolution
+DO ADD ' (%res'
+// Video Source (only if blu-ray or DVD)
+IF R(DVD),R(Blu-ray) DO ADD ' %src'
+// Video Codec
+DO ADD ' %vid'
+// Video Bit Depth (only if 10bit)
+IF Z(10) DO ADD ' %bitbit'
+DO ADD ') '
+DO ADD '[%CRC]'
+
+// Replacement rules (cleanup)
+DO REPLACE ' ' '_' // replace spaces with underscores
+DO REPLACE 'H264/AVC' 'H264'
+DO REPLACE '0x0' ''
+DO REPLACE '__' '_'
+DO REPLACE '__' '_'
+
+// Replace all illegal file name characters
+DO REPLACE '<' '('
+DO REPLACE '>' ')'
+DO REPLACE ':' '-'
+DO REPLACE '" + (char)34 +' '`'
+DO REPLACE '/' '_'
+DO REPLACE '/' '_'
+DO REPLACE '\\' '_'
+DO REPLACE '|' '_'
+DO REPLACE '?' '_'
+DO REPLACE '*' '_'
+"""
+    };
 }
