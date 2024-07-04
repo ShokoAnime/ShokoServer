@@ -35,9 +35,11 @@ public class RenamerController : BaseController
 
     private readonly RenamerConfigRepository _renamerConfigRepository;
     private readonly RenameFileService _renameFileService;
+    private ISettingsProvider _settingsProvider;
 
     public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerConfigRepository renamerConfigRepository, RenameFileService renameFileService) : base(settingsProvider)
     {
+        _settingsProvider = settingsProvider;
         _vlpService = vlpService;
         _vlRepository = vlRepository;
         _renamerConfigRepository = renamerConfigRepository;
@@ -357,37 +359,125 @@ public class RenamerController : BaseController
         return Ok();
     }
 
-    /*
     /// <summary>
-    /// Preview batch changes to files.
+    /// Execute the script and either preview the changes or commit the changes
+    /// on a batch of files.
     /// </summary>
-    /// <param name="body">Contains the files, renamer and script to use for the preview.</param>
+    /// <param name="args">A model for the arguments</param>
+    /// <param name="move">Whether or not to get the destination of the files. If `null`, defaults to `Settings.Import.MoveOnImport`</param>
+    /// <param name="rename">Whether or not to get the new name of the files. If `null`, defaults to `Settings.Import.RenameOnImport`</param>
     /// <returns>A stream of relocate results.</returns>
     [Authorize("admin")]
     [HttpPost("Preview")]
-    public ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>> BatchPreviewRelocateFiles([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.BatchPreviewAutoRelocateWithRenamerBody body)
+    public ActionResult<IEnumerable<ApiRenamer.RelocateResult>> BatchRelocateFilesByScriptID([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchRelocateArgs args, bool? move = null, bool? rename = null)
     {
-        if (!RenameFileService.Renamers.ContainsKey(body.RenamerName))
-            ModelState.AddModelError(nameof(body.RenamerName), "Renamer not found.");
+        Shoko.Server.Models.RenamerConfig? config = null;
+        if (args.Config != null)
+        {
+            config = new Shoko.Server.Models.RenamerConfig { Name = args.Config.Name };
+            if (!_renameFileService.RenamersByKey.TryGetValue(args.Config.RenamerID, out var renamer))
+                return NotFound("Renamer not found");
 
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+            config.Type = renamer.GetType();
 
-        return new ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>>(
-            InternalBatchRelocateFiles(body.FileIDs, new() { RenamerName = body.RenamerName, Settings = body.ScriptBody, Preview = true, Move = body.Move })
-        );
+            if (!ApplyRenamerConfigSettings(args.Config, config))
+                return ValidationProblem(ModelState);
+        }
+
+        var settings = _settingsProvider.GetSettings();
+        var configName = settings.Plugins.Renamer.DefaultRenamer;
+        config ??= _renamerConfigRepository.GetByName(configName);
+        if (config is null)
+            return NotFound("Default Config not found");
+
+        if (!_renameFileService.RenamersByType.ContainsKey(config.Type))
+            return BadRequest("Renamer for Default Config not found");
+
+        var results = GetNewLocationsForFiles(args.FileIDs, config, move ?? settings.Plugins.Renamer.MoveOnImport,
+            rename ?? settings.Plugins.Renamer.RenameOnImport);
+        return Ok(results);
     }
 
     /// <summary>
     /// Execute the script and either preview the changes or commit the changes
     /// on a batch of files.
     /// </summary>
-    /// <param name="scriptID">Script ID</param>
+    /// <param name="configName">Config Name</param>
+    /// <param name="fileIDs">The file IDs to preview</param>
+    /// <param name="move">Whether or not to get the destination of the files. If `null`, defaults to `Settings.Import.MoveOnImport`</param>
+    /// <param name="rename">Whether or not to get the new name of the files. If `null`, defaults to `Settings.Import.RenameOnImport`</param>
+    /// <returns>A stream of relocate results.</returns>
+    [Authorize("admin")]
+    [HttpPost("Config/{configName}/Preview")]
+    public ActionResult<IEnumerable<ApiRenamer.RelocateResult>> BatchRelocateFilesByScriptID([FromRoute] string configName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs, bool? move = null, bool? rename = null)
+    {
+        var config = _renamerConfigRepository.GetByName(configName);
+        if (config is null)
+            return NotFound("Config not found");
+
+        if (!_renameFileService.RenamersByType.ContainsKey(config.Type))
+            return BadRequest("Renamer for Config not found");
+
+        var settings = _settingsProvider.GetSettings();
+        var results = GetNewLocationsForFiles(fileIDs, config, move ?? settings.Plugins.Renamer.MoveOnImport,
+            rename ?? settings.Plugins.Renamer.RenameOnImport);
+        return Ok(results);
+    }
+
+    [NonAction]
+    private IEnumerable<ApiRenamer.RelocateResult> GetNewLocationsForFiles(IEnumerable<int> fileIDs, Shoko.Server.Models.RenamerConfig config, bool move, bool rename)
+    {
+        foreach (var vlID in fileIDs)
+        {
+            var vl = vlID > 0 ? _vlRepository.GetByID(vlID) : null;
+            if (vl is null)
+            {
+                yield return new ApiRenamer.RelocateResult
+                {
+                    FileID = vlID,
+                    IsSuccess = false,
+                    ErrorMessage = $"Unable to find File with ID {vlID}",
+                };
+                continue;
+            }
+
+            var vlp = vl.FirstResolvedPlace;
+            if (vlp is null)
+            {
+                vlp = vl.FirstValidPlace;
+                yield return new ApiRenamer.RelocateResult
+                {
+                    FileID = vlID,
+                    IsSuccess = false,
+                    ErrorMessage = vlp is not null
+                        ? $"Unable to find any resolvable File.Location for File with ID {vlID}. Found valid but non-resolvable File.Location \"{vlp.FullServerPath}\" with ID {vlp.VideoLocal_Place_ID}."
+                        : $"Unable to find any resolvable File.Location for File with ID {vlID}.",
+                };
+                continue;
+            }
+
+            var result = _renameFileService.GetNewPath(vlp, config, move, rename);
+            yield return new ApiRenamer.RelocateResult
+            {
+                FileID = vlID,
+                IsSuccess = result.Error is null,
+                ErrorMessage = result.Error?.Message,
+                FileLocationID = vlp.VideoLocal_Place_ID
+            };
+        }
+    }
+
+    /*
+    /// <summary>
+    /// Execute the script and either preview the changes or commit the changes
+    /// on a batch of files.
+    /// </summary>
+    /// <param name="configName">Config Name</param>
     /// <param name="body">Contains the files, renamer and script to use for the preview.</param>
     /// <returns>A stream of relocate results.</returns>
     [Authorize("admin")]
-    [HttpPost("Script/{scriptID}/Execute")]
-    public ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>> BatchRelocateFilesByScriptID([FromRoute] int scriptID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.BatchAutoRelocateBody body)
+    [HttpPost("Config/{configName}/Execute")]
+    public ActionResult<IAsyncEnumerable<ApiRenamer.RelocateResult>> BatchRelocateFilesByScriptID([FromRoute] string configName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ApiRenamer.Input.BatchAutoRelocateBody body)
     {
         var script = scriptID is > 0 ? _rsRepository.GetByID(scriptID) : null;
         if (script is null || string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
