@@ -13,6 +13,7 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -111,6 +112,7 @@ public class ShokoServer
 
         // for log readability, this will simply init the singleton
         Task.Run(async () => await Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>().Init());
+        Task.Run(() => Utils.ServiceContainer.GetRequiredService<RenameFileService>().AllRenamers);
         return true;
     }
 
