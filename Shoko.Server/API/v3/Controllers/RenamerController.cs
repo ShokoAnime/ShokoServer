@@ -192,12 +192,12 @@ public class RenamerController : BaseController
     /// <summary>
     /// Get the Renamer by the given Config Name
     /// </summary>
-    /// <param name="renamerName">Config Name</param>
+    /// <param name="configName">Config Name</param>
     /// <returns></returns>
-    [HttpGet("Config/{renamerName}/Renamer")]
-    public ActionResult<ApiRenamer> GetRenamerFromConfig([FromRoute] string renamerName)
+    [HttpGet("Config/{configName}/Renamer")]
+    public ActionResult<ApiRenamer> GetRenamerFromConfig([FromRoute] string configName)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        var renamerConfig = _renamerConfigRepository.GetByName(configName);
         if (renamerConfig == null)
             return NotFound("Config not found");
         if (!_renameFileService.RenamersByType.TryGetValue(renamerConfig.Type, out var value))
@@ -209,12 +209,12 @@ public class RenamerController : BaseController
     /// <summary>
     /// Get the Config by the given Name
     /// </summary>
-    /// <param name="renamerName">Config Name</param>
+    /// <param name="configName">Config Name</param>
     /// <returns></returns>
-    [HttpGet("Config/{renamerName}")]
-    public ActionResult<RenamerConfig> GetRenamerConfig([FromRoute] string renamerName)
+    [HttpGet("Config/{configName}")]
+    public ActionResult<RenamerConfig> GetRenamerConfig([FromRoute] string configName)
     {
-        var config = _renamerConfigRepository.GetByName(renamerName);
+        var config = _renamerConfigRepository.GetByName(configName);
         if (config == null)
             return NotFound("Config not found");
 
@@ -255,14 +255,14 @@ public class RenamerController : BaseController
     /// <summary>
     /// Update the Config by the given Name
     /// </summary>
-    /// <param name="renamerName">Config Name</param>
+    /// <param name="configName">Config Name</param>
     /// <param name="body">Config</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPut("Config/{renamerName}")]
-    public ActionResult<RenamerConfig> PutRenamerConfig([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RenamerConfig body)
+    [HttpPut("Config/{configName}")]
+    public ActionResult<RenamerConfig> PutRenamerConfig([FromRoute] string configName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RenamerConfig body)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        var renamerConfig = _renamerConfigRepository.GetByName(configName);
         if (renamerConfig == null)
             return NotFound("Config not found");
 
@@ -315,7 +315,7 @@ public class RenamerController : BaseController
     /// <summary>
     /// Applies a JSON patch document to modify the Config with the given Name
     /// </summary>
-    /// <param name="renamerName">
+    /// <param name="configName">
     /// The name of the config to be patched.
     /// </param>
     /// <param name="patchDocument">
@@ -327,10 +327,10 @@ public class RenamerController : BaseController
     /// the modifications fail.
     /// </returns>
     [Authorize("admin")]
-    [HttpPatch("Config/{renamerName}")]
-    public ActionResult<RenamerConfig> PatchRenamer([FromRoute] string renamerName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<RenamerConfig> patchDocument)
+    [HttpPatch("Config/{configName}")]
+    public ActionResult<RenamerConfig> PatchRenamer([FromRoute] string configName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<RenamerConfig> patchDocument)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        var renamerConfig = _renamerConfigRepository.GetByName(configName);
         if (renamerConfig == null)
             return NotFound("Config not found.");
 
@@ -366,13 +366,13 @@ public class RenamerController : BaseController
     /// <summary>
     /// Delete the Config by the given Name
     /// </summary>
-    /// <param name="renamerName">Config Name</param>
+    /// <param name="configName">Config Name</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpDelete("Config/{renamerName}")]
-    public ActionResult DeleteRenamerConfig([FromRoute] string renamerName)
+    [HttpDelete("Config/{configName}")]
+    public ActionResult DeleteRenamerConfig([FromRoute] string configName)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(renamerName);
+        var renamerConfig = _renamerConfigRepository.GetByName(configName);
         if (renamerConfig == null)
             return NotFound("Config not found");
 
