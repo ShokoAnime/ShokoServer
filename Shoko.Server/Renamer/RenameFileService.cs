@@ -221,13 +221,16 @@ public class RenameFileService
                     return Type.EmptyTypes;
                 }
             })
-            .Where(a => a.GetInterfaces().Any(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>)))
+            .Where(a => a.IsClass && a is { IsAbstract: false, IsGenericType: false } && a.GetInterfaces().Any(b =>
+                b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>) || b == typeof(IRenamer)))
             .ToList();
 
         var enabledSetting = _settingsProvider.GetSettings().Plugins.Renamer.EnabledRenamers;
         foreach (var implementation in allTypes)
         {
             var attributes = implementation.GetCustomAttributes<RenamerIDAttribute>();
+            if (!attributes.Any())
+                _logger.LogWarning($"Warning {implementation.Name} has no RenamerIDAttribute and cannot be loaded");
             foreach (var id in attributes.Select(a => a.RenamerId))
             {
                 var version = implementation.Assembly.GetName().Version;

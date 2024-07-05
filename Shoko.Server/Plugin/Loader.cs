@@ -54,14 +54,11 @@ public static class Loader
                 settings.Plugins.EnabledPlugins.TryAdd(name, true);
                 if (!settings.Plugins.Priority.Contains(name)) settings.Plugins.Priority.Add(name);
                 Utils.SettingsProvider.SaveSettings();
+                s_logger.Info($"Loaded Assemblies from {dll}");
             }
-            catch (FileLoadException)
+            catch (Exception ex)
             {
-                s_logger.Debug("BadImageFormatException");
-            }
-            catch (BadImageFormatException)
-            {
-                s_logger.Debug("BadImageFormatException");
+                s_logger.Warn(ex, "Failed to load plugin {Name}", Path.GetFileNameWithoutExtension(dll));
             }
         }
 
@@ -105,6 +102,7 @@ public static class Loader
 
     private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
     {
+        s_logger.Trace("Scanning for IPlugin implementations");
         var implementations = assemblies.SelectMany(a =>
         {
             try
@@ -124,10 +122,12 @@ public static class Loader
                 BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
             if (mtd != null)
             {
+                s_logger.Trace("Configuring Services for {0}", implementation.Name);
                 mtd.Invoke(null, new object[] { serviceCollection });
             }
 
             _pluginTypes.Add(implementation);
+            s_logger.Trace("Loaded IPlugin implementation: {0}", implementation.Name);
         }
     }
 
