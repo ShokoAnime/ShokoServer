@@ -29,12 +29,12 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     public string Name => "WebAOM Renamer";
     public string Description => "The legacy renamer, based on WebAOM's renamer. You can find information for it at https://wiki.anidb.net/WebAOM#Scripting";
 
-    public MoveRenameResult GetNewPath(MoveRenameEventArgs<WebAOMSettings> args)
+    public Shoko.Plugin.Abstractions.RelocationResult GetNewPath(RelocationEventArgs<WebAOMSettings> args)
     {
         var script = args.Settings.Script;
         if (script == null)
         {
-            return new MoveRenameResult
+            return new Shoko.Plugin.Abstractions.RelocationResult
             {
                 Error = new MoveRenameError("No script available for renamer")
             };
@@ -60,13 +60,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (!success)
         {
-            return new MoveRenameResult
+            return new Shoko.Plugin.Abstractions.RelocationResult
             {
                 Error = ex == null ? null : new MoveRenameError(ex.Message, ex)
             };
         }
 
-        return new MoveRenameResult
+        return new Shoko.Plugin.Abstractions.RelocationResult
         {
             FileName = newFilename,
             DestinationImportFolder = destination.dest,
@@ -1379,7 +1379,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    public (bool success, string name) GetNewFileName(MoveRenameEventArgs args, string script)
+    public (bool success, string name) GetNewFileName(RelocationEventArgs args, string script)
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
         var sourceFolder = RepoFactory.ImportFolder.GetAll()
@@ -2093,7 +2093,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    public (IImportFolder dest, string folder) GetDestinationFolder(MoveRenameEventArgs<WebAOMSettings> args)
+    public (IImportFolder dest, string folder) GetDestinationFolder(RelocationEventArgs<WebAOMSettings> args)
     {
         if (args.Settings.GroupAwareSorting)
             return GetGroupAwareDestination(args);
@@ -2101,7 +2101,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return GetFlatFolderDestination(args);
     }
 
-    private (IImportFolder dest, string folder) GetGroupAwareDestination(MoveRenameEventArgs<WebAOMSettings> args)
+    private (IImportFolder dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
     {
         if (args?.EpisodeInfo == null)
         {
@@ -2158,7 +2158,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return dest.DropFolderType.HasFlag(DropFolderType.Destination);
     }
 
-    private (IImportFolder dest, string folder) GetFlatFolderDestination(MoveRenameEventArgs args)
+    private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
         // TODO make this only dependent on PluginAbstractions
         IImportFolder destFolder = null;

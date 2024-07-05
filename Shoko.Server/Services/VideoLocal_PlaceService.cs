@@ -25,6 +25,7 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Utilities;
 using DirectoryInfo = System.IO.DirectoryInfo;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
+using RelocationResult = Shoko.Plugin.Abstractions.RelocationResult;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -80,9 +81,9 @@ public class VideoLocal_PlaceService
     /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to relocate.</param>
     /// <param name="request">The <see cref="DirectRelocateRequest"/> containing
     /// the details for the relocation operation.</param>
-    /// <returns>A <see cref="RelocationResult"/> representing the outcome of
+    /// <returns>A <see cref="Renamer.RelocationResult"/> representing the outcome of
     /// the relocation operation.</returns>
-    public async Task<RelocationResult> DirectlyRelocateFile(SVR_VideoLocal_Place place, DirectRelocateRequest request)
+    public async Task<Renamer.RelocationResult> DirectlyRelocateFile(SVR_VideoLocal_Place place, DirectRelocateRequest request)
     {
         if (request.ImportFolder is null || string.IsNullOrWhiteSpace(request.RelativePath))
             return new()
@@ -376,9 +377,9 @@ public class VideoLocal_PlaceService
     /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to relocate.</param>
     /// <param name="request">The <see cref="AutoRelocateRequest"/> containing
     /// the details for the relocation operation, or null for default settings.</param>
-    /// <returns>A <see cref="RelocationResult"/> representing the outcome of
+    /// <returns>A <see cref="Renamer.RelocationResult"/> representing the outcome of
     /// the relocation operation.</returns>
-    public async Task<RelocationResult> AutoRelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest? request = null)
+    public async Task<Renamer.RelocationResult> AutoRelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest? request = null)
     {
         // Allows calling the method without any parameters.
         var settings = _settingsProvider.GetSettings();
@@ -416,7 +417,7 @@ public class VideoLocal_PlaceService
         }
 
         var retryPolicy = Policy
-            .HandleResult<RelocationResult>(a => a.ShouldRetry)
+            .HandleResult<Renamer.RelocationResult>(a => a.ShouldRetry)
             .Or<Exception>(e =>
             {
                 _logger.LogError(e, "Error Renaming/Moving File");
@@ -475,9 +476,9 @@ public class VideoLocal_PlaceService
     /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to rename.</param>
     /// <param name="request">The <see cref="AutoRelocateRequest"/> containing the
     ///     details for the rename operation.</param>
-    /// <returns>A <see cref="RelocationResult"/> representing the outcome of
+    /// <returns>A <see cref="Renamer.RelocationResult"/> representing the outcome of
     /// the rename operation.</returns>
-    private async Task<RelocationResult> RelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest request)
+    private async Task<Renamer.RelocationResult> RelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest request)
     {
         // Just return the existing values if we're going to skip the operation.
         if (!request.Rename && !request.Move)
@@ -489,7 +490,7 @@ public class VideoLocal_PlaceService
                 RelativePath = place.FilePath,
             };
 
-        MoveRenameResult result;
+        RelocationResult result;
         // run the renamer and process the result
         try
         {
@@ -509,7 +510,7 @@ public class VideoLocal_PlaceService
             };
         }
 
-        if (result.Error != null) return new RelocationResult() { Success = false, ShouldRetry = false, ErrorMessage = result.Error.Message, Exception = result.Error.Exception };
+        if (result.Error != null) return new Renamer.RelocationResult() { Success = false, ShouldRetry = false, ErrorMessage = result.Error.Message, Exception = result.Error.Exception };
 
         if (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:"))
         {
@@ -548,7 +549,7 @@ public class VideoLocal_PlaceService
         });
     }
 
-    private static string GetResultFullPath(SVR_VideoLocal_Place place, MoveRenameResult result)
+    private static string GetResultFullPath(SVR_VideoLocal_Place place, RelocationResult result)
     {
         var segments = new List<string>();
         // handle import folder and relative path if the renamer doesn't support moving

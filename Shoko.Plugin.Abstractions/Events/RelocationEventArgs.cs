@@ -4,7 +4,7 @@ using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions;
 
-public class MoveRenameEventArgs : CancelEventArgs
+public class RelocationEventArgs : CancelEventArgs
 {
     /// <summary>
     /// If the settings have moving enabled
@@ -17,7 +17,7 @@ public class MoveRenameEventArgs : CancelEventArgs
     public bool RenameEnabled { get; set; }
 
     /// <summary>
-    /// The available import folders to choose as a destination. You can set the <see cref="MoveRenameResult.DestinationImportFolder"/> to one of these.
+    /// The available import folders to choose as a destination. You can set the <see cref="RelocationResult.DestinationImportFolder"/> to one of these.
     /// If a Folder has <see cref="DropFolderType.Excluded"/> set, then it won't be in this list.
     /// </summary>
     public IReadOnlyList<IImportFolder> AvailableFolders { get; set; }
@@ -43,7 +43,7 @@ public class MoveRenameEventArgs : CancelEventArgs
     public IReadOnlyList<IGroup> GroupInfo { get; set; }
 }
 
-public class MoveRenameEventArgs<T> : MoveRenameEventArgs where T : class
+public class RelocationEventArgs<T> : RelocationEventArgs where T : class
 {
     /// <summary>
     /// The settings for an <see cref="IRenamer{T}"/>

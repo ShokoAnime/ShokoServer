@@ -31,11 +31,11 @@ public interface IBaseRenamer
 public interface IRenamer : IBaseRenamer
 {
     /// <summary>
-    /// Get the new path for moving and/or renaming. See <see cref="MoveRenameResult"/> and its <see cref="MoveRenameResult.Error"/> for details on the return value.
+    /// Get the new path for moving and/or renaming. See <see cref="RelocationResult"/> and its <see cref="RelocationResult.Error"/> for details on the return value.
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    MoveRenameResult GetNewPath(MoveRenameEventArgs args);
+    RelocationResult GetNewPath(RelocationEventArgs args);
 }
 /// <summary>
 /// A renamer with a settings model. <see cref="T"/> is the type of the settings model.
@@ -49,11 +49,11 @@ public interface IRenamer<T> : IBaseRenamer where T : class
     T? DefaultSettings { get; }
 
     /// <summary>
-    /// Get the new path for moving and/or renaming. See <see cref="MoveRenameResult"/> and its <see cref="MoveRenameResult.Error"/> for details on the return value.
+    /// Get the new path for moving and/or renaming. See <see cref="RelocationResult"/> and its <see cref="RelocationResult.Error"/> for details on the return value.
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    MoveRenameResult GetNewPath(MoveRenameEventArgs<T> args);
+    RelocationResult GetNewPath(RelocationEventArgs<T> args);
 }
 
 /// <summary>

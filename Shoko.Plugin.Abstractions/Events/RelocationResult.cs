@@ -2,7 +2,7 @@ using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions;
 
-public class MoveRenameResult
+public class RelocationResult
 {
     /// <summary>
     /// The new filename, without any path. This shouldn't be null unless there was an <see cref="Error"/> or the renamer doesn't support renaming.
@@ -15,7 +15,7 @@ public class MoveRenameResult
     public string? Path { get; set; }
 
     /// <summary>
-    /// The new Import Folder for the file to moved to. This should be set from <see cref="MoveRenameEventArgs.AvailableFolders"/>. This shouldn't be null unless there was an <see cref="Error"/> or the renamer doesn't support moving.
+    /// The new Import Folder for the file to moved to. This should be set from <see cref="RelocationEventArgs.AvailableFolders"/>. This shouldn't be null unless there was an <see cref="Error"/> or the renamer doesn't support moving.
     /// </summary>
     public IImportFolder? DestinationImportFolder { get; set; }
 
