@@ -17,7 +17,7 @@ namespace Shoko.Server.Plugin;
 public static class Loader
 {
     private static readonly IList<Type> _pluginTypes = new List<Type>();
-    private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
     private static IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
 
     internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection)
@@ -44,24 +44,20 @@ public static class Loader
                 var name = Path.GetFileNameWithoutExtension(dll);
                 if (settings.Plugins.EnabledPlugins.ContainsKey(name) && !settings.Plugins.EnabledPlugins[name])
                 {
-                    s_logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
+                    _logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                     continue;
                 }
 
-                s_logger.Info($"Trying to load {dll}");
+                _logger.Info($"Trying to load {dll}");
                 assemblies.Add(Assembly.LoadFrom(dll));
                 // TryAdd, because if it made it this far, then it's missing or true.
                 settings.Plugins.EnabledPlugins.TryAdd(name, true);
                 if (!settings.Plugins.Priority.Contains(name)) settings.Plugins.Priority.Add(name);
                 Utils.SettingsProvider.SaveSettings();
             }
-            catch (FileLoadException)
+            catch (Exception e) when (e is BadImageFormatException or FileLoadException)
             {
-                s_logger.Debug("BadImageFormatException");
-            }
-            catch (BadImageFormatException)
-            {
-                s_logger.Debug("BadImageFormatException");
+                _logger.Error(e);
             }
         }
 
@@ -114,7 +110,7 @@ public static class Loader
             }
             catch (Exception e)
             {
-                s_logger.Debug(e);
+                _logger.Debug(e);
                 return new Type[0];
             }
         }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
@@ -134,14 +130,14 @@ public static class Loader
 
     internal static void InitPlugins(IServiceProvider provider)
     {
-        s_logger.Info("Loading {0} plugins", _pluginTypes.Count);
+        _logger.Info("Loading {0} plugins", _pluginTypes.Count);
 
         foreach (var pluginType in _pluginTypes)
         {
             var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
             Plugins.Add(pluginType, plugin);
             LoadSettings(pluginType, plugin);
-            s_logger.Info($"Loaded: {plugin.Name}");
+            _logger.Info($"Loaded: {plugin.Name}");
             plugin.Load();
         }
 
@@ -175,7 +171,7 @@ public static class Loader
         }
         catch (Exception e)
         {
-            s_logger.Error(e, $"Unable to initialize Settings for {name}");
+            _logger.Error(e, $"Unable to initialize Settings for {name}");
         }
     }
 
@@ -193,7 +189,7 @@ public static class Loader
         }
         catch (Exception e)
         {
-            s_logger.Error(e, $"Unable to Save Settings for {name}");
+            _logger.Error(e, $"Unable to Save Settings for {name}");
         }
     }
 }
