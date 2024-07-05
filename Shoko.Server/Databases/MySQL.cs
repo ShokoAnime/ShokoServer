@@ -882,63 +882,88 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
     {
+        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
+        var settingsProvider = Utils.SettingsProvider;
+
+        var sessionFactory = factory.CreateSessionFactory();
+        using var session = sessionFactory.OpenSession();
+        using var transaction = session.BeginTransaction();
         try
         {
-            var myConn = (MySqlConnection)connection;
-            var factory = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-            var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-            var settingsProvider = Utils.SettingsProvider;
-
             const string createCommand = """
                                          CREATE TABLE IF NOT EXISTS RenamerInstance (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name text NOT NULL, Type text NOT NULL, Settings BLOB);
                                          ALTER TABLE RenamerInstance CREATE INDEX IX_RenamerInstance_Name ON RenamerInstance(Name);
                                          ALTER TABLE RenamerInstance CREATE INDEX IX_RenamerInstance_Type ON RenamerInstance(Type);
                                          """;
 
-            factory.Execute(myConn, createCommand);
+            session.CreateSQLQuery(createCommand).ExecuteUpdate();
 
-            const string addCommand = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
-            var reader = factory.ExecuteReader(myConn, addCommand);
+            const string selectCommand = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
+            var reader = session.CreateSQLQuery(selectCommand)
+                .AddScalar("ScriptName", NHibernateUtil.String)
+                .AddScalar("RenamerType", NHibernateUtil.String)
+                .AddScalar("IsEnabledOnImport", NHibernateUtil.Int32)
+                .AddScalar("Script", NHibernateUtil.String)
+                .List<object[]>();
             string defaultName = null;
             var renamerInstances = reader.Select(a =>
             {
-                var type = ((string)a[1]).Equals("Legacy")
-                    ? typeof(WebAOMRenamer)
-                    : renamerService.RenamersByKey.ContainsKey((string)a[1])
-                        ? renamerService.RenamersByKey[(string)a[1]].GetType()
-                        : Type.GetType((string)a[1]);
-                if (type == null)
+                try
                 {
-                    if ((string)a[1] == "GroupAwareRenamer")
-                        return (Renamer: new RenamerConfig
-                        {
-                            Name = (string)a[0],
-                            Type = typeof(WebAOMRenamer),
-                            Settings = new WebAOMSettings
+                    var type = ((string)a[1]).Equals("Legacy")
+                        ? typeof(WebAOMRenamer)
+                        : renamerService.RenamersByKey.ContainsKey((string)a[1])
+                            ? renamerService.RenamersByKey[(string)a[1]].GetType()
+                            : Type.GetType((string)a[1]);
+                    if (type == null)
+                    {
+                        if ((string)a[1] == "GroupAwareRenamer")
+                            return (Renamer: new RenamerConfig
                             {
-                                Script = (string)a[3], GroupAwareSorting = true
-                            }
-                        }, IsDefault: (long)a[2] == 1);
+                                Name = (string)a[0],
+                                Type = typeof(WebAOMRenamer),
+                                Settings = new WebAOMSettings
+                                {
+                                    Script = (string)a[3], GroupAwareSorting = true
+                                }
+                            }, IsDefault: (int)a[2] == 1);
 
-                    Logger.Warn("A RenameScipt could not be converted to RenamerConfig. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] + " Script: " + (string)a[3]);
+                        Logger.Warn("A RenameScipt could not be converted to RenamerConfig. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] +
+                                    " Script: " + (string)a[3]);
+                        return default;
+                    }
+
+                    var settingsType = type.GetInterfaces().FirstOrDefault(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>))
+                        ?.GetGenericArguments().FirstOrDefault();
+                    object settings = null;
+                    if (settingsType != null)
+                    {
+                        settings = ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
+                        settingsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
+                            ?.SetValue(settings, (string)a[3]);
+                    }
+
+                    return (Renamer: new RenamerConfig
+                    {
+                        Name = (string)a[0], Type = type, Settings = settings
+                    }, IsDefault: (int)a[2] == 1);
+                }
+                catch (Exception ex)
+                {
+                    if (a is { Length: >= 4 })
+                    {
+                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig. Renamer name: " + a[0] + " Renamer type: " + a[1] +
+                                        " Script: " + a[3]);
+                    }
+                    else
+                    {
+                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig, but there wasn't enough data to log");
+                    }
+
                     return default;
                 }
-
-                var settingsType = type.GetInterfaces().FirstOrDefault(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>))
-                    ?.GetGenericArguments().FirstOrDefault();
-                object settings = null;
-                if (settingsType != null)
-                {
-                    settings = ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
-                    settingsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
-                        ?.SetValue(settings, (string)a[3]);
-                }
-
-                return (Renamer: new RenamerConfig
-                {
-                    Name = (string)a[0], Type = type, Settings = settings
-                }, IsDefault: (long)a[2] == 1);
-            }).WhereNotNull().GroupBy(a => a.Renamer.Name).SelectMany(a => a.Select((b, i) =>
+            }).WhereNotDefault().GroupBy(a => a.Renamer.Name).SelectMany(a => a.Select((b, i) =>
             {
                 // Names are distinct
                 var renamer = b.Renamer;
@@ -954,21 +979,23 @@ public class MySQL : BaseDatabase<MySqlConnection>
                 settingsProvider.SaveSettings(settings);
             }
 
-            const string insertCommand = "INSERT INTO RenamerInstance (Name, Type, Settings) VALUES (@Name, @Type, @Settings);";
+            const string insertCommand = "INSERT INTO RenamerInstance (Name, Type, Settings) VALUES (:Name, :Type, :Settings);";
             foreach (var renamer in renamerInstances)
             {
-                var command = new MySqlCommand(insertCommand, myConn);
-                command.Parameters.AddWithValue("@Name", renamer.Name);
-                command.Parameters.AddWithValue("@Type", renamer.Type.ToString());
-                command.Parameters.AddWithValue("@Settings", renamer.Settings == null ? null : MessagePackSerializer.Typeless.Serialize(renamer.Settings));
-                command.ExecuteNonQuery();
+                var command = session.CreateSQLQuery(insertCommand);
+                command.SetParameter("Name", renamer.Name);
+                command.SetParameter("Type", renamer.Type.ToString());
+                command.SetParameter("Settings", renamer.Settings == null ? null : MessagePackSerializer.Typeless.Serialize(renamer.Settings));
+                command.ExecuteUpdate();
             }
 
             const string dropCommand = "DROP TABLE RenameScript;";
-            factory.Execute(myConn, dropCommand);
+            session.CreateSQLQuery(dropCommand).ExecuteUpdate();
+            transaction.Commit();
         }
         catch (Exception e)
         {
+            transaction.Rollback();
             return new Tuple<bool, string>(false, e.ToString());
         }
 
