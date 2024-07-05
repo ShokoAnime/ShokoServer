@@ -364,7 +364,7 @@ public class RenamerController : BaseController
     }
 
     /// <summary>
-    /// Update the Config by the given Name
+    /// Delete the Config by the given Name
     /// </summary>
     /// <param name="renamerName">Config Name</param>
     /// <returns></returns>
@@ -382,8 +382,7 @@ public class RenamerController : BaseController
     }
 
     /// <summary>
-    /// Execute the script and either preview the changes or commit the changes
-    /// on a batch of files.
+    /// Preview the changes made by a provided Config
     /// </summary>
     /// <param name="args">A model for the arguments</param>
     /// <param name="move">Whether or not to get the destination of the files. If `null`, defaults to `Settings.Import.MoveOnImport`</param>
@@ -421,8 +420,7 @@ public class RenamerController : BaseController
     }
 
     /// <summary>
-    /// Execute the script and either preview the changes or commit the changes
-    /// on a batch of files.
+    /// Preview the changes made by an existing Config, by the given Config Name
     /// </summary>
     /// <param name="configName">Config Name</param>
     /// <param name="fileIDs">The file IDs to preview</param>
@@ -446,7 +444,6 @@ public class RenamerController : BaseController
         return Ok(results);
     }
 
-    [NonAction]
     private IEnumerable<RelocationResult> GetNewLocationsForFiles(IEnumerable<int> fileIDs, Shoko.Server.Models.RenamerConfig config, bool move, bool rename)
     {
         foreach (var vlID in fileIDs)
@@ -567,7 +564,7 @@ public class RenamerController : BaseController
     }
 
     /// <summary>
-    /// Relocate a batch of files using Config
+    /// Relocate a batch of files using a Config of the given name
     /// </summary>
     /// <param name="configName">Config Name</param>
     /// <param name="fileIDs">The files to relocate</param>
@@ -601,7 +598,7 @@ public class RenamerController : BaseController
     }
 
     /// <summary>
-    /// Relocate a batch of files using Config
+    /// Relocate a batch of files using the default Config
     /// </summary>
     /// <param name="fileIDs">The files to relocate</param>
     /// <param name="deleteEmptyDirectories">Whether or not to delete empty directories</param>
@@ -634,7 +631,6 @@ public class RenamerController : BaseController
         );
     }
 
-    [NonAction]
     private async IAsyncEnumerable<RelocationResult> InternalBatchRelocateFiles(IEnumerable<int> fileIDs, AutoRelocateRequest request)
     {
         var defaultConfig = _settingsProvider.GetSettings().Plugins.Renamer.DefaultRenamer;
