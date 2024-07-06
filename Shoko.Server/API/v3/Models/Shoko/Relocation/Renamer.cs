@@ -35,20 +35,11 @@ public class Renamer
     /// <summary>
     /// The setting type definitions for the renamer.
     /// </summary>
-    public List<Setting>? Settings { get; set; }
+    public List<SettingDefinition>? Settings { get; set; }
 
     /// <summary>
     /// The default settings for the renamer, if any were provided
     /// </summary>
     public List<DefaultSetting>? DefaultSettings { get; set; }
-
-    public class Setting
-    {
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public string? Description { get; set; }
-        public CodeLanguage? Language { get; set; }
-        public RenamerSettingType SettingType { get; set; }
-    }
 
 }

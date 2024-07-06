@@ -8,5 +8,9 @@ public enum CodeLanguage
     JavaScript,
     TypeScript,
     Lua,
-    Python
+    Python,
+    Ini,
+    Json,
+    Yaml,
+    Xml
 }

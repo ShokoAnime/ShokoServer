@@ -82,7 +82,7 @@ public class RenamerController : BaseController
         var attribute = renamer.GetType().GetCustomAttributes<RenamerIDAttribute>().FirstOrDefault()!;
         var settingsType = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
             ?.GetGenericArguments().FirstOrDefault();
-        var settings = new List<ApiRenamer.Setting>();
+        var settings = new List<SettingDefinition>();
         if (settingsType == null)
             return new ApiRenamer
             {
@@ -113,10 +113,9 @@ public class RenamerController : BaseController
                     settingType = RenamerSettingType.Decimal;
             }
 
-            settings.Add(new ApiRenamer.Setting
+            settings.Add(new SettingDefinition
             {
                 Name = renamerSettingAttribute?.Name ?? property.Name,
-                Type = property.PropertyType.Name,
                 Description = renamerSettingAttribute?.Description,
                 Language = renamerSettingAttribute?.Language,
                 SettingType = settingType
@@ -134,7 +133,6 @@ public class RenamerController : BaseController
             defaultSettings.Add(new Setting
             {
                 Name = renamerSettingAttribute?.Name ?? property.Name,
-                Type = property.PropertyType.Name,
                 Value = property.GetValue(defaultSettingsObject)
             });
         }
@@ -178,7 +176,6 @@ public class RenamerController : BaseController
             settings.Add(new Setting
             {
                 Name = renamerSettingAttribute?.Name ?? property.Name,
-                Type = property.PropertyType.Name,
                 Value = property.GetValue(p.Settings)
             });
         }
