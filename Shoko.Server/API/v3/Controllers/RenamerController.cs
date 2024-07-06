@@ -125,7 +125,7 @@ public class RenamerController : BaseController
         var defaultSettings = new List<Setting>();
         properties = settingsType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         var defaultSettingsObject = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
-            ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault()?.GetMethod?.Invoke(renamer, null);
+            ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault(a => a.Name == "DefaultSettings")?.GetMethod?.Invoke(renamer, null);
 
         foreach (var property in properties)
         {
@@ -244,6 +244,13 @@ public class RenamerController : BaseController
         if (!ApplyRenamerConfigSettings(body, config))
             return ValidationProblem(ModelState);
 
+        if (body.Settings == null || body.Settings.Count == 0)
+        {
+            var defaultSettingsObject = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
+                ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault(a => a.Name == "DefaultSettings")?.GetMethod?.Invoke(renamer, null);
+            config.Settings = defaultSettingsObject;
+        }
+
         _renamerConfigRepository.Save(config);
 
         return GetRenamerConfig(config);
@@ -269,6 +276,8 @@ public class RenamerController : BaseController
         var temp = renamerConfig.DeepClone();
 
         temp.Type = renamer.GetType();
+        if (body.Settings == null || body.Settings.Count == 0)
+            return BadRequest("Settings are required for a put request");
         if (!ApplyRenamerConfigSettings(body, temp))
             return ValidationProblem(ModelState);
 
@@ -280,7 +289,7 @@ public class RenamerController : BaseController
 
     private bool ApplyRenamerConfigSettings(RenamerConfig body, Shoko.Server.Models.RenamerConfig renamerConfig)
     {
-        if (body.Settings == null) return true;
+        if (body.Settings == null || body.Settings.Count == 0) return true;
         var result = true;
         var settingsType = renamerConfig.Type.GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
             ?.GetGenericArguments().FirstOrDefault();

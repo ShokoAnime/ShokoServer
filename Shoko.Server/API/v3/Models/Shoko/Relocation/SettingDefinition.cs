@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.Enums;
 
 #nullable enable
@@ -19,9 +21,11 @@ public class SettingDefinition
     /// <summary>
     /// Language for the editor to use for highlighting and intellisense
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public CodeLanguage? Language { get; set; }
     /// <summary>
     /// The type of the setting. This is both for the webui to display and an easy lookup for what type to send and receive as a value
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public RenamerSettingType SettingType { get; set; }
 }
