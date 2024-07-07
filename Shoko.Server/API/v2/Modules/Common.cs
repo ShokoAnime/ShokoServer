@@ -2738,7 +2738,7 @@ public class Common : BaseController
         var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
         var user = HttpContext.GetUser();
         var hideCategories = user.GetHideCategories();
-        var allFPs = level > 1
+        var allFPs = level > 0
             ? RepoFactory.FilterPreset.GetAllFiltersForLegacy().Where(a => !a.Hidden && ((a.FilterType & GroupFilterType.Tag) == 0 || !hideCategories.Contains(a.Name))).ToList()
             : RepoFactory.FilterPreset.GetAllFiltersForLegacy(true).Where(a => !a.Hidden).ToList();
         var result = evaluator.BatchEvaluateFilters(allFPs, user.JMMUserID, true);
