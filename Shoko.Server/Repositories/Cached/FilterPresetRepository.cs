@@ -331,7 +331,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
     public IReadOnlyList<FilterPreset> GetAllFiltersForLegacy(bool topLevel = false)
     {
         if (topLevel)
-            return GetTopLevel().Where(a => !a.IsDirectory()).Concat(DirectoryFilters).ToList();
+            return GetTopLevel().Concat(DirectoryFilters).ToList();
 
         var filters = GetAll().ToList();
         filters.AddRange(DirectoryFilters);
