@@ -207,7 +207,12 @@ public class FileCrossReference
                 })
                 .OrderBy(tuple => tuple.dto.Percentage.Start)
                 .ThenByDescending(tuple => tuple.dto.Percentage.End)
-                .GroupBy(tuple => tuple.xref.AnimeID)
+                // Temp solution because xref.AnimeID cannot be fully trusted because the
+                // episode may belong to a different anime. Until this is resolved then
+                // we will attempt to lookup the episode to grab it's id but fallback
+                // to the cross-reference anime id if the episode is not locally available
+                // yet.
+                .GroupBy(tuple => tuple.xref.AniDBEpisode?.AnimeID ?? tuple.xref.AnimeID)
                 .Select(tuples =>
                 {
                     var shokoSeries = RepoFactory.AnimeSeries.GetByAnimeID(tuples.Key);
