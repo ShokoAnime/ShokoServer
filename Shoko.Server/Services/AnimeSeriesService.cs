@@ -539,13 +539,17 @@ public class AnimeSeriesService
 
             var airdate = ep.AniDB_Episode.GetAirDateAsDate();
 
+            // If episode air date is unknown, air date of the anime is used instead
+            airdate ??= ep.AniDB_Episode.AniDB_Anime.AirDate;
+
             // Only count episodes that have already aired
-            if (aniEp.HasAired)
+            // airdate could, in theory, only be null here if AniDB neither has information on the episode
+            // air date, nor on the anime air date. luckily, as of 2024-07-09, no such case exists.
+            if (aniEp.HasAired && airdate != null)
             {
                 // Only convert if we have time info
                 DateTime airdateLocal;
-                // ignore the possible null on airdate, it's checked in GetFutureDated
-                if (airdate!.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
+                if (airdate.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
                 {
                     airdateLocal = airdate.Value;
                 }
