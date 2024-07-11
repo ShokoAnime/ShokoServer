@@ -148,8 +148,8 @@ public class VideoLocal_PlaceService
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
         var newFullPath = Path.Combine(request.ImportFolder.ImportFolderLocation, newRelativePath);
         var newFileName = Path.GetFileName(newRelativePath);
-        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.InvariantCultureIgnoreCase);
-        var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.InvariantCultureIgnoreCase);
+        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.OrdinalIgnoreCase);
+        var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
 
         // Don't relocate files not in a drop source or drop destination.
         if (dropFolder.IsDropSource == 0 && dropFolder.IsDropDestination == 0)
@@ -164,7 +164,7 @@ public class VideoLocal_PlaceService
         }
 
         // Last ditch effort to ensure we aren't moving a file unto itself
-        if (string.Equals(newFullPath, oldFullPath, StringComparison.InvariantCultureIgnoreCase))
+        if (string.Equals(newFullPath, oldFullPath, StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogTrace("Resolved to move {FilePath} unto itself. Not moving.", newFullPath);
             return new()
@@ -676,31 +676,40 @@ public class VideoLocal_PlaceService
     #endregion Methods
     #region Helpers
 
-    private void MoveExternalSubtitles(string newFullServerPath, string originalFileName)
+    private void MoveExternalSubtitles(string newFullServerPath, string oldFullServerPath)
     {
         try
         {
-            var srcParent = Path.GetDirectoryName(originalFileName);
+            var oldParent = Path.GetDirectoryName(oldFullServerPath);
             var newParent = Path.GetDirectoryName(newFullServerPath);
-            if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(srcParent))
+            var oldFileName = Path.GetFileNameWithoutExtension(oldFullServerPath);
+            var newFileName = Path.GetFileNameWithoutExtension(newFullServerPath);
+            if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(oldParent) ||
+                string.IsNullOrEmpty(oldFileName) || string.IsNullOrEmpty(newFileName))
                 return;
 
-            var textStreams = SubtitleHelper.GetSubtitleStreams(originalFileName);
+            var textStreams = SubtitleHelper.GetSubtitleStreams(oldFullServerPath);
             // move any subtitle files
             foreach (var subtitleFile in textStreams)
             {
                 if (string.IsNullOrEmpty(subtitleFile.Filename))
                     continue;
 
-                var subPath = Path.Combine(srcParent, subtitleFile.Filename);
-                if (!File.Exists(subPath))
+                var subPath = Path.Combine(oldParent, subtitleFile.Filename);
+                var subFile = new FileInfo(subPath);
+                if (!subFile.Exists)
                 {
-                    _logger.LogError("Unable to rename external subtitle file {SubtitleFile}. Cannot access the file.", subtitleFile.Filename);
+                    _logger.LogError("Unable to rename external subtitle file {SubtitleFile}. Cannot access the file.", subPath);
                     continue;
                 }
 
-                var subFile = new FileInfo(subPath);
-                var newSubPath = Path.Combine(newParent, subFile.Name);
+                var newSubPath = Path.Combine(newParent, newFileName + subtitleFile.Filename[oldFileName.Length..]);
+                if (string.Equals(subPath, newSubPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug("Attempting to move subtitle file onto itself. Skipping. Path: {FilePath} to {FilePath}", subPath, newSubPath);
+                    continue;
+                }
+
                 if (File.Exists(newSubPath))
                 {
                     try
@@ -709,7 +718,7 @@ public class VideoLocal_PlaceService
                     }
                     catch (Exception e)
                     {
-                        _logger.LogWarning(e, "Unable to DELETE file: {SubtitleFile}\n{ErrorMessage}", subtitleFile, e.Message);
+                        _logger.LogWarning(e, "Unable to DELETE file: {SubtitleFile}\n{ErrorMessage}", subPath, e.Message);
                     }
                 }
 
@@ -719,13 +728,13 @@ public class VideoLocal_PlaceService
                 }
                 catch (Exception e)
                 {
-                    _logger.LogWarning(e, "Unable to DELETE file: {PreviousFile} to {NextPath}\n{ErrorMessage}", subtitleFile, newSubPath, e.Message);
+                    _logger.LogWarning(e, "Unable to MOVE file: {PreviousFile} to {NextPath}\n{ErrorMessage}", subPath, newSubPath, e.Message);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error occurred while trying to move an external subtitle file for {FilePath}\n{ErrorMessage}", originalFileName, ex.Message);
+            _logger.LogError(ex, "An unexpected error occurred while trying to move an external subtitle file for {FilePath}\n{ErrorMessage}", oldFullServerPath, ex.Message);
         }
     }
 
