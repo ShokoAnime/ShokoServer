@@ -43,7 +43,7 @@ public class UserController : BaseController
     [HttpPost]
     public ActionResult<User> AddNewUser(User.Input.CreateUserBody body)
     {
-        var user = body.Save(ModelState);
+        var user = body.Save(ModelState, true);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
