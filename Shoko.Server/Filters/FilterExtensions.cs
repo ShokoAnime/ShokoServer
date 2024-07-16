@@ -285,12 +285,14 @@ public static class FilterExtensions
         var watchedDates = series.SelectMany(a => a.VideoLocals)
             .Select(a => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate).Where(a => a != null).OrderBy(a => a)
             .ToList();
+        var episodes = series.SelectMany(se => se.AnimeEpisodes).ToList();
+        var watchedEpisodesDelegate = () => user != null ? episodes.Count(ep => ep.GetUserRecord(userID)?.IsWatched() ?? false) : 0;
 
         var filterable = new FilterableUserInfo
         {
             IsFavoriteDelegate = () => user?.IsFave == 1,
-            WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
-            UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
+            WatchedEpisodesDelegate = watchedEpisodesDelegate,
+            UnwatchedEpisodesDelegate = () => user != null ? episodes.Count - watchedEpisodesDelegate() : 0,
             LowestUserRatingDelegate = () => vote.FirstOrDefault(),
             HighestUserRatingDelegate = () => vote.LastOrDefault(),
             HasVotesDelegate = () => vote.Any(),
