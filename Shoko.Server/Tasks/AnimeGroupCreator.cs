@@ -498,13 +498,6 @@ public class AnimeGroupCreator
 
             await UpdateAnimeSeriesContractsAndSave(session, animeSeries);
 
-            await BaseRepository.Lock(async () =>
-            {
-                using var trans = session.BeginTransaction();
-                await session.DeleteAsync(tempGroup); // We should no longer need the temporary group we created earlier
-                await trans.CommitAsync();
-            });
-
             // We need groups and series cached for updating of AnimeGroup contracts to work
             _animeGroupRepo.Populate(session, false);
             _animeSeriesRepo.Populate(session, false);
