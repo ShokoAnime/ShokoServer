@@ -9,13 +9,14 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using AnimeType = Shoko.Models.Enums.AnimeType;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Filters;
 
 public static class FilterExtensions
 {
     public static bool IsDirectory(this FilterPreset filter) => (filter.FilterType & GroupFilterType.Directory) != 0;
-    
+
     public static Filterable ToFilterable(this SVR_AnimeSeries series, ILookup<int, CrossRef_AniDB_Other> movieDBLookup = null)
     {
         var filterable = new Filterable
@@ -285,14 +286,38 @@ public static class FilterExtensions
         var watchedDates = series.SelectMany(a => a.VideoLocals)
             .Select(a => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate).Where(a => a != null).OrderBy(a => a)
             .ToList();
-        var episodes = series.SelectMany(se => se.AnimeEpisodes).ToList();
-        var watchedEpisodesDelegate = () => user != null ? episodes.Count(ep => ep.GetUserRecord(userID)?.IsWatched() ?? false && ep.VideoLocals.Count > 0) : 0;
+
+        // we only want to filter by watched states from files that we actually have and exclude trailers/credits, etc
+        var watchedEpisodesDelegate = () =>
+        {
+            var count = 0;
+            foreach (var ep in series.SelectMany(s => s.AnimeEpisodes))
+            {
+                var vls = ep.VideoLocals;
+                if (vls.Count == 0 || ep.IsHidden || (ep.EpisodeTypeEnum != EpisodeType.Episode && ep.EpisodeTypeEnum != EpisodeType.Special) || vls.All(vl => vl.IsIgnored)) continue;
+                if (!(ep.GetUserRecord(userID)?.IsWatched() ?? false)) continue;
+                count++;
+            }
+            return count;
+        };
+        var unwatchedEpisodesDelegate = () =>
+        {
+            var count = 0;
+            foreach (var ep in series.SelectMany(s => s.AnimeEpisodes))
+            {
+                var vls = ep.VideoLocals;
+                if (vls.Count == 0 || ep.IsHidden || (ep.EpisodeTypeEnum != EpisodeType.Episode && ep.EpisodeTypeEnum != EpisodeType.Special) || vls.All(vl => vl.IsIgnored)) continue;
+                if (ep.GetUserRecord(userID)?.IsWatched() ?? false) continue;
+                count++;
+            }
+            return count;
+        };
 
         var filterable = new FilterableUserInfo
         {
             IsFavoriteDelegate = () => user?.IsFave == 1,
             WatchedEpisodesDelegate = watchedEpisodesDelegate,
-            UnwatchedEpisodesDelegate = () => series.Aggregate(0, (a, se) => a + se.VideoLocals.Count) - watchedEpisodesDelegate(),
+            UnwatchedEpisodesDelegate = unwatchedEpisodesDelegate,
             LowestUserRatingDelegate = () => vote.FirstOrDefault(),
             HighestUserRatingDelegate = () => vote.LastOrDefault(),
             HasVotesDelegate = () => vote.Any(),
