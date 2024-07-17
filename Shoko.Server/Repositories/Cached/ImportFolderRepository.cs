@@ -73,15 +73,9 @@ public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int
             throw new Exception("Cannot find Import Folder location");
         }
 
-        if (folder.ImportFolderID == 0)
-        {
-            var nsTemp =
-                GetByImportLocation(folder.ImportFolderLocation);
-            if (nsTemp != null)
-            {
-                throw new Exception("Another entry already exists for the specified Import Folder location");
-            }
-        }
+        if (GetAll().ExceptBy([folder.ImportFolderID], iF => iF.ImportFolderID).Any(iF => folder.ImportFolderLocation.StartsWith(iF.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) || iF.ImportFolderLocation.StartsWith(folder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase)))
+            throw new Exception("Unable to nest an import folder within another import folder.");
+
 
         ns.ImportFolderName = folder.ImportFolderName;
         ns.ImportFolderLocation = folder.ImportFolderLocation;
