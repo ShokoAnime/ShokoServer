@@ -292,7 +292,7 @@ public static class FilterExtensions
         {
             IsFavoriteDelegate = () => user?.IsFave == 1,
             WatchedEpisodesDelegate = watchedEpisodesDelegate,
-            UnwatchedEpisodesDelegate = () => user != null ? episodes.Count - watchedEpisodesDelegate() : 0,
+            UnwatchedEpisodesDelegate = () => episodes.Count - watchedEpisodesDelegate(),
             LowestUserRatingDelegate = () => vote.FirstOrDefault(),
             HighestUserRatingDelegate = () => vote.LastOrDefault(),
             HasVotesDelegate = () => vote.Any(),
