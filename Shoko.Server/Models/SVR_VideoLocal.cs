@@ -154,7 +154,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     long IVideo.Size => FileSize;
 
-    IReadOnlyList<IVideoFile> IVideo.Locations => throw new NotImplementedException();
+    IReadOnlyList<IVideoFile> IVideo.Locations => Places;
 
     IAniDBFile IVideo.AniDB => AniDBFile;
 
