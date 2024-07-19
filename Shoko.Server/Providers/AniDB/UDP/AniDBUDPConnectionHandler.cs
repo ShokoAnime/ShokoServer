@@ -20,6 +20,7 @@ using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
+#nullable enable
 public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
 {
     // 10 minutes
@@ -305,6 +306,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         if (result.FinalException != null)
         {
             Logger.LogError(result.FinalException, "Failed to send AniDB message");
+            throw result.FinalException;
         }
 
         return result.Result;
