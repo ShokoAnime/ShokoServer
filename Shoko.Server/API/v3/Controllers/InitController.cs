@@ -199,6 +199,7 @@ public class InitController : BaseController
         return settings.Database.Type switch
         {
             Constants.DatabaseType.MySQL when new MySQL().TestConnection() => Ok(),
+            Constants.DatabaseType.PostgreSQL when new PostgreSQL().TestConnection() => Ok(),
             Constants.DatabaseType.SqlServer when new SQLServer().TestConnection() => Ok(),
             Constants.DatabaseType.Sqlite => Ok(),
             _ => BadRequest("Failed to Connect")

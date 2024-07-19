@@ -419,7 +419,8 @@ public class Init : BaseController
 
         if (_settings.Database.Type == Constants.DatabaseType.SqlServer  && new SQLServer().TestConnection())
             return APIStatus.OK();
-
+        if (_settings.Database.Type == Constants.DatabaseType.PostgreSQL && new PostgreSQL().TestConnection())
+            return APIStatus.OK();
         if (_settings.Database.Type == Constants.DatabaseType.Sqlite)
             return APIStatus.OK();
 
