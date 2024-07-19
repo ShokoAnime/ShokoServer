@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -28,7 +28,7 @@ public static partial class AVDumpHelper
 
     private static readonly string ArchivePath = Path.Combine(Utils.ApplicationPath, "avdump.zip");
 
-    private const string AVDumpURL = @"AVD3_URL_GOES_HERE";
+    private const string AVDumpURL = @"https://cdn.anidb.net/client/avdump3/avdump3_8293_stable.zip";
 
     private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory, Utils.IsRunningOnLinuxOrMac() ? "AVDump3CL.dll" : "AVDump3CL.exe");
 
@@ -195,6 +195,7 @@ public static partial class AVDumpHelper
                     $"--Concurrent={settings.AniDb.AVDump.MaxConcurrency}",
                     "--HideBuffers=true",
                     "--HideFileProgress=true",
+                    "--ForwardConsoleCursorOnly",
                     "--DisableFileMove=true",
                     "--DisableFileRename=true",
                     "--Consumers=ED2K",
@@ -444,12 +445,19 @@ public static partial class AVDumpHelper
     {
         try
         {
+            //mpiva: DO NOT, this cause the client, generate an error when connecting
+            //
+            //   !Format Error: Could not parse Id: Check for program updates. !
+            //
+            //
+            /*
             if (File.Exists(RuntimeConfigPath))
             {
                 var current = File.ReadAllText(RuntimeConfigPath);
                 var replaced = current.Replace("6.0", "8.0");
                 File.WriteAllText(RuntimeConfigPath, replaced);
-            }
+
+            }*/
         }
         catch (Exception e)
         {

@@ -21,6 +21,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Services.Ogg;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -252,8 +253,8 @@ public class VideoLocal_PlaceService
                 _logger.LogWarning("The existing file at the new location does not have AniDB info. Not moving.");
                 return new()
                 {
-                    Success = false,
-                    ShouldRetry = false,
+                    Success = false, 
+                    ShouldRetry = false, 
                     ErrorMessage = "The existing file at the new location does not have AniDB info. Not moving.",
                 };
             }
@@ -264,8 +265,8 @@ public class VideoLocal_PlaceService
                 _logger.LogWarning("The file does not have AniDB info. Not moving.");
                 return new()
                 {
-                    Success = false,
-                    ShouldRetry = false,
+                    Success = false, 
+                    ShouldRetry = false, 
                     ErrorMessage = "The file does not have AniDB info. Not moving.",
                 };
             }
@@ -307,9 +308,15 @@ public class VideoLocal_PlaceService
 
                 if (request.DeleteEmptyDirectories)
                 {
+                    //mpiva: For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
+                    //IDK: why, Shoko get totally frozen, but it seems a .NET issue.
+                    //https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
+                    /*
                     var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
-                        .Select(dirInfo => dirInfo.FullName);
+                   .Select(dirInfo => dirInfo.FullName);
                     RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
+                    */
+                    RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.ImportFolderLocation);
                 }
             }
         }
@@ -341,9 +348,15 @@ public class VideoLocal_PlaceService
 
             if (request.DeleteEmptyDirectories)
             {
+                //mpiva: For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
+                //IDK: why, Shoko get totally frozen, but it seems a .NET issue.
+                //https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
+                /*
                 var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
                     .Select(dirInfo => dirInfo.FullName);
                 RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
+                */
+                RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.ImportFolderLocation);
             }
         }
 
@@ -812,6 +825,20 @@ public class VideoLocal_PlaceService
     #endregion Helpers
     #endregion Relocation (Move & Rename)
 
+    double CalculateDurationOggFile(string filename)
+    {
+        try
+        {
+            OggFile of = OggFile.ParseFile(filename);
+            return of.Duration;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Unable to parse duration from Ogg-Vorbis file {filename}.");
+            return 0;
+        }
+    }
+
     public bool RefreshMediaInfo(SVR_VideoLocal_Place place)
     {
         try
@@ -834,6 +861,10 @@ public class VideoLocal_PlaceService
 
                 var name = place.FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
                 m = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(name); // MediaInfo should have libcurl.dll for http
+                if (m?.GeneralStream!=null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format!=null && m.GeneralStream.Format.ToLowerInvariant()=="ogg")
+                {
+                    m.GeneralStream.Duration = CalculateDurationOggFile(name);
+                }
                 var duration = m?.GeneralStream?.Duration ?? 0;
                 if (duration == 0)
                 {
