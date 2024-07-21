@@ -288,30 +288,22 @@ public static class FilterExtensions
             .ToList();
 
         // we only want to filter by watched states from files that we actually have and exclude trailers/credits, etc
-        var watchedEpisodesDelegate = () =>
+
+        int GetEpCount(bool getWatched)
         {
             var count = 0;
             foreach (var ep in series.SelectMany(s => s.AnimeEpisodes))
             {
                 var vls = ep.VideoLocals;
                 if (vls.Count == 0 || ep.IsHidden || (ep.EpisodeTypeEnum != EpisodeType.Episode && ep.EpisodeTypeEnum != EpisodeType.Special) || vls.All(vl => vl.IsIgnored)) continue;
-                if (!(ep.GetUserRecord(userID)?.IsWatched() ?? false)) continue;
-                count++;
+                var isWatched = ep.GetUserRecord(userID)?.IsWatched() ?? false;
+                if (isWatched == getWatched)
+                    count++;
             }
             return count;
-        };
-        var unwatchedEpisodesDelegate = () =>
-        {
-            var count = 0;
-            foreach (var ep in series.SelectMany(s => s.AnimeEpisodes))
-            {
-                var vls = ep.VideoLocals;
-                if (vls.Count == 0 || ep.IsHidden || (ep.EpisodeTypeEnum != EpisodeType.Episode && ep.EpisodeTypeEnum != EpisodeType.Special) || vls.All(vl => vl.IsIgnored)) continue;
-                if (ep.GetUserRecord(userID)?.IsWatched() ?? false) continue;
-                count++;
-            }
-            return count;
-        };
+        }
+        var watchedEpisodesDelegate = () => GetEpCount(true);
+        var unwatchedEpisodesDelegate = () => GetEpCount(false);
 
         var filterable = new FilterableUserInfo
         {
