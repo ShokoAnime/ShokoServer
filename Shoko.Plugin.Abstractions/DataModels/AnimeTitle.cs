@@ -9,9 +9,9 @@ namespace Shoko.Plugin.Abstractions.DataModels
 
         public TitleLanguage Language { get; set; }
 
-        public string LanguageCode { get; set; }
+        public string LanguageCode { get; set; } = string.Empty;
 
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         public TitleType Type { get; set; }
     }

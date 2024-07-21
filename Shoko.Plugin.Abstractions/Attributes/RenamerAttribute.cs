@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Shoko.Plugin.Abstractions.Attributes
 {
@@ -8,6 +8,7 @@ namespace Shoko.Plugin.Abstractions.Attributes
         public RenamerAttribute(string renamerId)
         {
             RenamerId = renamerId;
+            _desc = renamerId;
         }
 
         public string RenamerId { get; }
