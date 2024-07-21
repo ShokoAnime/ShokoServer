@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -1115,8 +1115,9 @@ public class Common : BaseController
     /// Internal function returning files
     /// </summary>
     /// <param name="limit">number of return items</param>
-    /// <param name="offset">offset to start from</param>
-    /// <returns>List<RawFile></returns>
+    /// <param name="level"></param>
+    /// <param name="uid"></param>
+    /// <returns>List%lt;RawFile%gt;</returns>
     internal object GetAllFiles(int limit, int level, int uid)
     {
         var list = new List<RawFile>();
@@ -1199,7 +1200,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep
     /// </summary>
-    /// <returns>List<Episode> or Episode</returns>
+    /// <returns>List&lt;Episode&gt; or Episode</returns>
     [HttpGet("ep")]
     public object GetEpisode([FromQuery] API_Call_Parameters para)
     {
@@ -1279,7 +1280,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep/recent
     /// </summary>
-    /// <returns>List<Episode></returns>
+    /// <returns>List&lt;Episode&gt;</returns>
     [HttpGet("ep/recent")]
     public List<Episode> GetRecentEpisodes([FromQuery] API_Call_Parameters para)
     {
@@ -1320,7 +1321,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep/missing
     /// </summary>
-    /// <returns>List<Serie></returns>
+    /// <returns>List&lt;Serie&gt;</returns>
     [HttpGet("ep/missing")]
     public List<Serie> GetMissingEpisodes(bool all, int pic, TagFilter.Filter tagfilter)
     {
@@ -1458,7 +1459,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep/last_watched
     /// </summary>
-    /// <returns>List<></returns>
+    /// <returns>List&lt;&gt;</returns>
     [HttpGet("ep/last_watched")]
     public List<Episode> ListWatchedEpisodes(string query, int pic, int level, int limit, int offset)
     {
@@ -1535,7 +1536,7 @@ public class Common : BaseController
     /// <summary>
     /// Return All known Episodes for current user
     /// </summary>
-    /// <returns>List<Episode></returns>
+    /// <returns>List&lt;Episode&gt;</returns>
     internal object GetAllEpisodes(int uid, int limit, int offset, int level, bool all, int pic)
     {
         var eps = new List<Episode>();
@@ -1573,6 +1574,8 @@ public class Common : BaseController
     /// </summary>
     /// <param name="id">episode id</param>
     /// <param name="uid">user id</param>
+    /// <param name="level"></param>
+    /// <param name="pic"></param>
     /// <returns>Episode or APIStatus</returns>
     internal object GetEpisodeById(int id, int uid, int level, int pic)
     {
@@ -1656,7 +1659,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie
     /// </summary>
-    /// <returns>List<Serie> or Serie</returns>
+    /// <returns>List&lt;Serie&gt; or Serie</returns>
     [HttpGet("serie")]
     public object GetSerie([FromQuery] API_Call_Parameters para)
     {
@@ -1683,7 +1686,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/today
     /// </summary>
-    /// <returns>List<Serie> or Serie</returns>
+    /// <returns>List&lt;Serie&gt; or Serie</returns>
     [HttpGet("serie/today")]
     public ActionResult<Group> SeriesToday([FromQuery] API_Call_Parameters para)
     {
@@ -1729,7 +1732,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/bookmark
     /// </summary>
-    /// <returns>List<Serie></returns>
+    /// <returns>List&lt;Serie&gt;</returns>
     [HttpGet("serie/bookmark")]
     public ActionResult<Group> SeriesBookmark([FromQuery] API_Call_Parameters para)
     {
@@ -1881,7 +1884,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/byfolder
     /// </summary>
-    /// <returns>List<Serie> or APIStatus</returns>
+    /// <returns>List&lt;Serie&gt; or APIStatus</returns>
     [HttpGet("serie/byfolder")]
     public ActionResult<IEnumerable<Serie>> GetSeriesByFolderId([FromQuery] API_Call_Parameters para)
     {
@@ -1899,7 +1902,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/infobyfolder
     /// </summary>
-    /// <returns>List<ObjectList> or APIStatus</returns>
+    /// <returns>List&lt;ObjectList&gt; or APIStatus</returns>
     [HttpGet("serie/infobyfolder")]
     public object GetSeriesInfoByFolderId(int id)
     {
@@ -1916,7 +1919,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/recent
     /// </summary>
-    /// <returns>List<Serie></returns>
+    /// <returns>List&lt;Serie&gt;</returns>
     [HttpGet("serie/recent")]
     public ActionResult<IEnumerable<Serie>> GetSeriesRecent([FromQuery] API_Call_Parameters para)
     {
@@ -1998,7 +2001,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/search
     /// </summary>
-    /// <returns>List<Serie> or APIStatus</returns>
+    /// <returns>List&lt;Serie&gt; or APIStatus</returns>
     [HttpGet("serie/search")]
     public ActionResult<IEnumerable<Serie>> SearchForSerie([FromQuery] API_Call_Parameters para)
     {
@@ -2024,7 +2027,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/tag
     /// </summary>
-    /// <returns>List<Serie> or APIStatus</returns>
+    /// <returns>List&lt;Serie&gt; or APIStatus</returns>
     [HttpGet("serie/tag")]
     public ActionResult<IEnumerable<Serie>> SearchForTag([FromQuery] API_Call_Parameters para)
     {
@@ -2121,7 +2124,10 @@ public class Common : BaseController
     /// <param name="level">deep level</param>
     /// <param name="all"></param>
     /// <param name="limit"></param>
-    /// <returns>List<Serie></returns>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Serie&gt;</returns>
     internal List<Serie> GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit,
         bool allpic, int pic, TagFilter.Filter tagfilter)
     {
@@ -2257,7 +2263,8 @@ public class Common : BaseController
     /// <param name="id">import folder id</param>
     /// <param name="uid">user id</param>
     /// <param name="limit"></param>
-    /// <returns>List<ObjectList></returns>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;ObjectList&gt;</returns>
     internal object GetSeriesInfoByFolder(int id, int uid, int limit, TagFilter.Filter tagfilter)
     {
         var tmp_list = new Dictionary<string, long>();
@@ -2317,6 +2324,9 @@ public class Common : BaseController
     /// <param name="notag">disable tag</param>
     /// <param name="level">deep level</param>
     /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns></returns>
     internal ActionResult<Serie> GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all,
         bool allpic, int pic, TagFilter.Filter tagfilter)
@@ -2331,15 +2341,16 @@ public class Common : BaseController
         return NotFound("serie not found");
     }
 
-    // <summary>
+    /// <summary>
     /// Return Serie for given aid (AniDB ID)
     /// </summary>
     /// <param name="id">AniDB ID</param>
-    /// <param name="uid">user id</param>
     /// <param name="nocast">disable cast</param>
     /// <param name="notag">disable tag</param>
-    /// <param name="level">deep level</param>
     /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns></returns>
     internal ActionResult<Serie> GetSerieFromAniDBID(int id, bool nocast, bool notag, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
@@ -2359,7 +2370,13 @@ public class Common : BaseController
     /// <param name="nocast">disable cast</param>
     /// <param name="limit">number of return items</param>
     /// <param name="offset">offset to start from</param>
-    /// <returns>List<Serie></returns>
+    /// <param name="notag"></param>
+    /// <param name="level"></param>
+    /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Serie&gt;</returns>
     internal List<Serie> GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic,
         int pic, TagFilter.Filter tagfilter)
     {
@@ -2392,6 +2409,12 @@ public class Common : BaseController
     /// </summary>
     /// <param name="series_id">serie id</param>
     /// <param name="nocast">disable cast</param>
+    /// <param name="notag"></param>
+    /// <param name="level"></param>
+    /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns></returns>
     internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
@@ -2471,7 +2494,10 @@ public class Common : BaseController
     /// <param name="level">deep level</param>
     /// <param name="all"></param>
     /// <param name="fuzzy">Disable searching for invalid path characters</param>
-    /// <returns>List<Serie></returns>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Serie&gt;</returns>
     internal ActionResult<IEnumerable<Serie>> Search(string query, int limit, int limit_tag, int offset, int tagSearch,
         int uid, bool nocast,
         bool notag, int level, bool all, bool fuzzy, bool allpic, int pic, TagFilter.Filter tagfilter)
@@ -2725,7 +2751,11 @@ public class Common : BaseController
     /// <param name="nocast">disable cast</param>
     /// <param name="notag">disable tag</param>
     /// <param name="level">deep level</param>
-    /// <returns>List<Filter></returns>
+    /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Filter&gt;</returns>
     internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
@@ -2791,6 +2821,9 @@ public class Common : BaseController
     /// <param name="notag">disable tag</param>
     /// <param name="level">deep level</param>
     /// <param name="all">include missing episodes</param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns>Filter or Filters</returns>
     internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
@@ -2892,7 +2925,10 @@ public class Common : BaseController
     /// <param name="notag"></param>
     /// <param name="level"></param>
     /// <param name="all"></param>
-    /// <returns>List<Group></returns>
+    /// <param name="allpics"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Group&gt;</returns>
     internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic,
         TagFilter.Filter tagfilter)
     {
@@ -2919,6 +2955,9 @@ public class Common : BaseController
     /// <param name="level">deep level</param>
     /// <param name="all">add all known episodes</param>
     /// <param name="filterid"></param>
+    /// <param name="allpics"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns>Group or APIStatus</returns>
     internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics,
         int pic, TagFilter.Filter tagfilter)
