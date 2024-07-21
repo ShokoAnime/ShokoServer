@@ -23,7 +23,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 120;
+    public override int RequiredVersion { get; } = 121;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -691,6 +691,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(118, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
         new DatabaseCommand(119, 1, DropContracts),
         new DatabaseCommand(120, 1, DropVideoLocalMediaSize),
+        new(121, 1, "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID int IDENTITY(1,1) NOT NULL, Type int NOT NULL, ID int NOT NULL, AddedAt datetime NOT NULL ); "),
+        new(121, 2, "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), SentAt datetime NOT NULL, FetchedAt datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL DEFAULT(0) ); "),
     };
 
     
