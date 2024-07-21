@@ -95,7 +95,7 @@ public class ManualLinkJob : BaseJob
         RepoFactory.AnimeSeries.Save(ser, false, true);
 
         //Update will re-save
-        _seriesService.QueueUpdateStats(ser);
+        await _seriesService.QueueUpdateStats(ser);
 
         foreach (var grp in ser.AllGroupsAbove)
         {

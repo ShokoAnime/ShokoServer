@@ -193,6 +193,8 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
             await trans.CommitAsync();
         });
 
+        _logger.LogInformation("Found {Count} episodes for file", response.EpisodeIDs.Count);
+
         fileEps = response.EpisodeIDs
             .Select(
                 (ep, x) => new SVR_CrossRef_File_Episode

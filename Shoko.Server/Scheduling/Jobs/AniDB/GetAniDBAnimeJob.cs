@@ -157,7 +157,11 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = AnimeID).Process();
 
         // Request an image download
-        var imagesJob = _jobFactory.CreateJob<GetAniDBImagesJob>(job => job.AnimeID = AnimeID);
+        var imagesJob = _jobFactory.CreateJob<GetAniDBImagesJob>(job =>
+        {
+            job.AnimeID = AnimeID;
+            job.OnlyPosters = series == null;
+        });
         await imagesJob.Process();
 
         // Emit anidb anime updated event.
@@ -334,7 +338,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             if (anime != null)
             {
                 // Check when the anime was last updated online if we are
-                // forcing a refresh and we're not banned, otherwise check when
+                // forcing a refresh, and we're not banned, otherwise check when
                 // the local anime record was last updated (be it from a fresh
                 // online xml file or from a cached xml file).
                 var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(relation.RelatedAnimeID);

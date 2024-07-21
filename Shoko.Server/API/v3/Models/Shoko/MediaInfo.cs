@@ -111,11 +111,13 @@ public class MediaInfo
             {
                 if (string.IsNullOrEmpty(key))
                     continue;
-                var (hours, minutes, seconds, milliseconds, _rest) = key.Substring(1).Split('_');
+                var (hours, minutes, seconds, milliseconds, _rest) = key[1..].Split('_');
                 if (!TimeSpan.TryParse($"{hours}:{minutes}:{seconds}.{milliseconds}", out var timestamp))
                     continue;
-                var title = string.IsNullOrEmpty(value) ? "" : value[0] == ':' ? value.Substring(1).Trim() : value.Trim();
-                var chapterInfo = new ChapterInfo(title, timestamp);
+                var index = value.IndexOf(':');
+                var title = string.IsNullOrEmpty(value) ? string.Empty : index != -1 ? value[(index + 1)..].Trim() : value.Trim();
+                var language = index == -1 || index == 0 ? TitleLanguage.Unknown : value[..index].GetTitleLanguage();
+                var chapterInfo = new ChapterInfo(title, language, timestamp);
                 Chapters.Add(chapterInfo);
             }
         }
@@ -517,13 +519,20 @@ public class MediaInfo
         public string Title { get; }
 
         /// <summary>
+        /// Chapter title language, if specified.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public TitleLanguage Language { get; }
+
+        /// <summary>
         /// Chapter timestamp.
         /// </summary>
         public TimeSpan Timestamp { get; }
 
-        public ChapterInfo (string title, TimeSpan timestamp)
+        public ChapterInfo(string title, TitleLanguage language, TimeSpan timestamp)
         {
             Title = title;
+            Language = language;
             Timestamp = timestamp;
         }
     }

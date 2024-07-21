@@ -476,7 +476,6 @@ public static class Utils
     }
 
     public static event EventHandler<ErrorEventArgs> ErrorMessage;
-    public static event EventHandler<CancelReasonEventArgs> YesNoRequired;
 
     public static event EventHandler OnEvents;
 
@@ -501,13 +500,6 @@ public static class Utils
         }
     }
 
-    public static bool ShowYesNo(string title, string msg)
-    {
-        var args = new CancelReasonEventArgs(msg, title);
-        YesNoRequired?.Invoke(null, args);
-        return !args.Cancel;
-    }
-
     public static void ShowErrorMessage(Exception ex, string message = null)
     {
         //MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -528,14 +520,7 @@ public static class Utils
         ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg, Title = title });
         logger.Error(msg);
     }
-
-    public static void ShowMessage(string title, string msg)
-    {
-        //MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg, Title = title, IsError = false });
-        logger.Error(msg);
-    }
-
+    
     public static string GetApplicationVersion(Assembly a = null)
     {
         a ??= Assembly.GetExecutingAssembly();
@@ -553,14 +538,6 @@ public static class Utils
                 .Select(raw => raw.Split("="))
                 .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
                 .ToDictionary(pair => pair[0], pair => pair[1]);
-    }
-    
-
-    public static long GetCurrentUTCTime()
-    {
-        var dt = DateTime.Now.ToUniversalTime();
-        var sp = dt.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
-        return (long)sp.TotalSeconds;
     }
 
     private static string[] escapes = { "SOURCE", "TAKEN", "FROM", "HTTP", "ANN", "ANIMENFO", "ANIDB", "ANIMESUKI" };

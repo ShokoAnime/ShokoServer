@@ -154,7 +154,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
         var usrGrpMap = GetAll().GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
 
         // Then, actually delete the AnimeGroup_Users
-        await Lock(async () => await session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdateAsync());
+        await Lock(async () => await session.CreateSQLQuery("DELETE FROM AnimeGroup_User WHERE AnimeGroup_UserID > 0").ExecuteUpdateAsync());
 
         // Now, update the change trackers with all removed records
         foreach (var grp in usrGrpMap)

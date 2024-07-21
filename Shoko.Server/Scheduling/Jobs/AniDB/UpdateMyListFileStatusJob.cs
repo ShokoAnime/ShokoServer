@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
@@ -52,14 +51,14 @@ public class UpdateMyListFileStatusJob : BaseJob
         { "Date", WatchedDate }
     } ;
 
-    public override Task Process()
+    public override async Task Process()
     {
         _logger.LogInformation("Processing {Job} for {Filename} | {Watched} | {WatchedDate}", nameof(UpdateMyListFileStatusJob), FullFileName, Watched, WatchedDate);
 
         var settings = _settingsProvider.GetSettings();
         // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
         var vid = RepoFactory.VideoLocal.GetByHash(Hash);
-        if (vid == null) return Task.CompletedTask;
+        if (vid == null) return;
 
         if (vid.AniDBFile != null)
         {
@@ -103,16 +102,11 @@ public class UpdateMyListFileStatusJob : BaseJob
             }
         }
 
-        if (!UpdateSeriesStats) return Task.CompletedTask;
+        if (!UpdateSeriesStats) return;
 
         // update watched stats
         var eps = RepoFactory.AnimeEpisode.GetByHash(vid.Hash);
-        if (eps.Count > 0)
-        {
-            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => _seriesService.QueueUpdateStats(a.AnimeSeries));
-        }
-
-        return Task.CompletedTask;
+        if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => _seriesService.QueueUpdateStats(a.AnimeSeries)));
     }
     
     public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService)

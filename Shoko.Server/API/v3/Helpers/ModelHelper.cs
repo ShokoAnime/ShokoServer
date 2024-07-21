@@ -185,7 +185,6 @@ public static class ModelHelper
 
     public static SeriesSizes GenerateSeriesSizes(IEnumerable<SVR_AnimeEpisode> episodeList, int userID)
     {
-        var now = DateTime.Now;
         var sizes = new SeriesSizes();
         var fileSet = new HashSet<int>();
         foreach (var episode in episodeList)
@@ -248,7 +247,6 @@ public static class ModelHelper
                 continue;
             }
 
-            var airDate = anidbEpisode.GetAirDateAsDate();
             if (anidbEpisode == null)
             {
                 sizes.Total.Unknown++;
@@ -278,7 +276,7 @@ public static class ModelHelper
                             sizes.Watched.Episodes++;
                         }
                     }
-                    else if (airDate.HasValue && airDate.Value < now)
+                    else if (anidbEpisode.HasAired)
                     {
                         sizes.Missing.Episodes++;
                     }
@@ -308,7 +306,7 @@ public static class ModelHelper
                             sizes.Watched.Specials++;
                         }
                     }
-                    else if (airDate.HasValue && airDate.Value < now)
+                    else if (anidbEpisode.HasAired)
                     {
                         sizes.Missing.Specials++;
                     }

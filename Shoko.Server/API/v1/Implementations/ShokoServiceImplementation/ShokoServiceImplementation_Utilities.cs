@@ -693,7 +693,7 @@ public partial class ShokoServiceImplementation
                         aep.AniDB_Episode != null && aep.VideoLocals.Count == 0 &&
                         (!regularEpisodesOnly || aep.EpisodeTypeEnum == EpisodeType.Episode))
                     .Select(aep => aep.AniDB_Episode)
-                    .Where(aniep => !aniep.GetFutureDated())
+                    .Where(aniep => aniep.HasAired)
                     .Select(aniep => new CL_MissingEpisode
                     {
                         AnimeID = ser.AniDB_ID,

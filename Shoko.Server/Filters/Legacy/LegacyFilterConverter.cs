@@ -160,7 +160,6 @@ public class LegacyFilterConverter
     /// </summary>
     /// <param name="userID">if this is specified, it only calculates one user</param>
     /// <param name="userFilters"></param>
-    /// <param name="result"></param>
     private List<CL_GroupFilter> SetUserFilters(int? userID, List<FilterPreset> userFilters)
     {
 

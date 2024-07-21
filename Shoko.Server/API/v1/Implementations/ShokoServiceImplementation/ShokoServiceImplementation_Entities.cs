@@ -543,7 +543,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID.Value);
                 if (ser != null)
                 {
-                    seriesService.QueueUpdateStats(ser);
+                    seriesService.QueueUpdateStats(ser).GetAwaiter().GetResult();
                 }
             }
 
@@ -2528,6 +2528,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     /// </summary>
     /// <param name="animeSeriesID"></param>
     /// <param name="deleteFiles">also delete the physical files</param>
+    /// <param name="deleteParentGroup"></param>
     /// <returns></returns>
     [HttpDelete("Series/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}")]
     public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)

@@ -45,4 +45,9 @@
             <Link>db.ico</Link>
         </Resource>
     </ItemGroup>
+    <ItemGroup>
+      <Reference Include="Quartz">
+        <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
+      </Reference>
+    </ItemGroup>
 </Project>

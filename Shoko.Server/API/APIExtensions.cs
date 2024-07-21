@@ -263,7 +263,10 @@ public static class APIExtensions
 
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new WebUiFileProvider(webUIDir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true,
+            FileProvider = new WebUiFileProvider(webUIDir.FullName),
+            RequestPath = "/webui",
+            ServeUnknownFileTypes = true,
+            DefaultContentType = "text/html",
             OnPrepareResponse = ctx =>
             {
                 ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");

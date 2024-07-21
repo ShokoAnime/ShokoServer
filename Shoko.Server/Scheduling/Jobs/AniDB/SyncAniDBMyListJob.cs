@@ -139,7 +139,7 @@ public class SyncAniDBMyListJob : BaseJob
             _logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
                 filesToRemove.Count);
 
-        modifiedSeries.ForEach(a => _seriesService.QueueUpdateStats(a));
+        await Task.WhenAll(modifiedSeries.Select(a => _seriesService.QueueUpdateStats(a)));
 
         _logger.LogInformation(
             "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
