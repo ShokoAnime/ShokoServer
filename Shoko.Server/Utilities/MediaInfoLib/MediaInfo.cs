@@ -62,7 +62,7 @@ public static class MediaInfo
 
             // assuming json, as it starts with {
             var m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
-            if (m == null || m.media==null)
+            if (m == null || m.media == null)
             {
                 throw new Exception($"Unable to deserialize MediaInfo response: {output}");
             }
