@@ -861,10 +861,12 @@ public class VideoLocal_PlaceService
 
                 var name = place.FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
                 m = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(name); // MediaInfo should have libcurl.dll for http
-                if (m?.GeneralStream!=null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format!=null && m.GeneralStream.Format.ToLowerInvariant()=="ogg")
+
+                if (m?.GeneralStream != null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format != null && m.GeneralStream.Format.ToLowerInvariant() == "ogg")
                 {
                     m.GeneralStream.Duration = CalculateDurationOggFile(name);
                 }
+
                 var duration = m?.GeneralStream?.Duration ?? 0;
                 if (duration == 0)
                 {
