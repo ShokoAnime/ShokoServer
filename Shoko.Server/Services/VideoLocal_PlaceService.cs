@@ -265,8 +265,8 @@ public class VideoLocal_PlaceService
                 _logger.LogWarning("The file does not have AniDB info. Not moving.");
                 return new()
                 {
-                    Success = false, 
-                    ShouldRetry = false, 
+                    Success = false,
+                    ShouldRetry = false,
                     ErrorMessage = "The file does not have AniDB info. Not moving.",
                 };
             }
