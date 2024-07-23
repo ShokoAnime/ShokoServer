@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using NLog;
@@ -15,8 +15,11 @@ public class FileHashHelper
     /// Get all the hash info and video/audio info for a video file
     /// </summary>
     /// <param name="fileName"></param>
-    /// <param name="hashInfo"></param>
-    /// <param name="vidInfo"></param>
+    /// <param name="forceRefresh"></param>
+    /// <param name="hashProgress"></param>
+    /// <param name="getCRC32"></param>
+    /// <param name="getMD5"></param>
+    /// <param name="getSHA1"></param>
     public static Hashes GetHashInfo(string fileName, bool forceRefresh, Hasher.OnHashProgress hashProgress,
         bool getCRC32, bool getMD5, bool getSHA1)
     {

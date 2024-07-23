@@ -143,7 +143,7 @@ public class Webui : BaseController
     /// <summary>
     /// List all available themes to use inside webui
     /// </summary>
-    /// <returns>List<OSFile> with 'name' of css files</returns>
+    /// <returns>List&lt;OSFile&gt; with 'name' of css files</returns>
     private object GetWebUIThemes()
     {
         var files = new List<OSFile>();
