@@ -5,7 +5,8 @@ namespace Shoko.Plugin.Abstractions.Attributes
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class RenamerAttribute : Attribute
     {
-        public RenamerAttribute(string renamerId, string description = "")
+        public RenamerAttribute(string renamerId) : this(renamerId, string.Empty) { }
+        public RenamerAttribute(string renamerId, string description)
         {
             RenamerId = renamerId;
             Description = description;
