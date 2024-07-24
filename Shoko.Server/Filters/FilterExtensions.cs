@@ -293,7 +293,7 @@ public static class FilterExtensions
             var count = 0;
             foreach (var ep in series.SelectMany(s => s.AnimeEpisodes))
             {
-                if (ep.IsHidden || (ep.EpisodeTypeEnum != EpisodeType.Episode && ep.EpisodeTypeEnum != EpisodeType.Special)) continue;
+                if (ep.EpisodeTypeEnum is not (EpisodeType.Episode or EpisodeType.Special)) continue;
                 var vls = ep.VideoLocals;
                 if (vls.Count == 0 || vls.All(vl => vl.IsIgnored)) continue;
 
