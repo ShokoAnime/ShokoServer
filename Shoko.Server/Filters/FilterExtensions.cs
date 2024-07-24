@@ -9,13 +9,14 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using AnimeType = Shoko.Models.Enums.AnimeType;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Filters;
 
 public static class FilterExtensions
 {
     public static bool IsDirectory(this FilterPreset filter) => (filter.FilterType & GroupFilterType.Directory) != 0;
-    
+
     public static Filterable ToFilterable(this SVR_AnimeSeries series, ILookup<int, CrossRef_AniDB_Other> movieDBLookup = null)
     {
         var filterable = new Filterable
@@ -286,11 +287,28 @@ public static class FilterExtensions
             .Select(a => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate).Where(a => a != null).OrderBy(a => a)
             .ToList();
 
+        // we only want to filter by watched states from files that we actually have and exclude trailers/credits, etc
+        int GetEpCount(bool getWatched)
+        {
+            var count = 0;
+            foreach (var ep in series.SelectMany(s => s.AnimeEpisodes))
+            {
+                if (ep.EpisodeTypeEnum is not (EpisodeType.Episode or EpisodeType.Special)) continue;
+                var vls = ep.VideoLocals;
+                if (vls.Count == 0 || vls.All(vl => vl.IsIgnored)) continue;
+
+                var isWatched = ep.GetUserRecord(userID)?.IsWatched() ?? false;
+                if (isWatched == getWatched)
+                    count++;
+            }
+            return count;
+        }
+
         var filterable = new FilterableUserInfo
         {
             IsFavoriteDelegate = () => user?.IsFave == 1,
-            WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
-            UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
+            WatchedEpisodesDelegate = () => GetEpCount(true),
+            UnwatchedEpisodesDelegate = () => GetEpCount(false),
             LowestUserRatingDelegate = () => vote.FirstOrDefault(),
             HighestUserRatingDelegate = () => vote.LastOrDefault(),
             HasVotesDelegate = () => vote.Any(),
