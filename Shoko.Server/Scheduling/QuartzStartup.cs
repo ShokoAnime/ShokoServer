@@ -30,7 +30,7 @@ public static class QuartzStartup
         // Also give it a high priority, since it affects Acquisition Filters
         // StartJobNow gives a priority of 10. We'll give it 20 to be even higher priority
         await ScheduleRecurringJob<CheckNetworkAvailabilityJob>(
-            triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
+            triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(30).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
 
         // TODO the other schedule-based jobs that are on timers
     }
