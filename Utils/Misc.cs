@@ -758,20 +758,31 @@ namespace Shoko.Commons.Utils
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
 
-        #nullable enable
+#nullable enable
         public static bool IsImageValid(string path)
         {
             if (string.IsNullOrEmpty(path)) return false;
 
             try
             {
-                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
-                {
-                    byte[] bytes = new byte[12];
-                    if (fs.Length < 12) return false;
-                    fs.Read(bytes, 0, 12);
-                    return GetImageFormat(bytes) != null;
-                }
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                var bytes = new byte[12];
+                if (fs.Length < 12) return false;
+                fs.Read(bytes, 0, 12);
+                return GetImageFormat(bytes) != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool IsImageValid(byte[] bytes)
+        {
+            try
+            {
+                if (bytes.Length < 12) return false;
+                return GetImageFormat(bytes) != null;
             }
             catch
             {
@@ -818,7 +829,7 @@ namespace Shoko.Commons.Utils
 
             return null;
         }
-        #nullable disable
+#nullable disable
 
         public static void Deconstruct<T, T1>(this KeyValuePair<T, T1> kvp, out T key, out T1 value)
         {
