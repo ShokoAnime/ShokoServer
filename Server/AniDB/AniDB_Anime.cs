@@ -77,7 +77,9 @@ namespace Shoko.Models.Server
                 TempVoteCount = TempVoteCount,
                 AvgReviewRating = AvgReviewRating,
                 ReviewCount = ReviewCount,
+#pragma warning disable CS0618
                 DateTimeUpdated = DateTimeUpdated,
+#pragma warning restore CS0618
                 DateTimeDescUpdated = DateTimeDescUpdated,
                 ImageEnabled = ImageEnabled,
                 Restricted = Restricted,

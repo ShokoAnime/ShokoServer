@@ -44,7 +44,9 @@ namespace Shoko.Models.Client
             TempVoteCount = obj.TempVoteCount;
             AvgReviewRating = obj.AvgReviewRating;
             ReviewCount = obj.ReviewCount;
+#pragma warning disable CS0618
             DateTimeUpdated = obj.DateTimeUpdated;
+#pragma warning restore CS0618
             DateTimeDescUpdated = obj.DateTimeDescUpdated;
             ImageEnabled = obj.ImageEnabled;
             Restricted = obj.Restricted;
@@ -63,9 +65,9 @@ namespace Shoko.Models.Client
         {
             var anime = new CL_AniDB_Anime(this)
             {
-                DefaultImagePoster = (CL_AniDB_Anime_DefaultImage) DefaultImagePoster?.Clone(),
-                DefaultImageFanart = (CL_AniDB_Anime_DefaultImage) DefaultImageFanart?.Clone(),
-                DefaultImageWideBanner = (CL_AniDB_Anime_DefaultImage) DefaultImageWideBanner?.Clone(),
+                DefaultImagePoster = (CL_AniDB_Anime_DefaultImage)DefaultImagePoster?.Clone(),
+                DefaultImageFanart = (CL_AniDB_Anime_DefaultImage)DefaultImageFanart?.Clone(),
+                DefaultImageWideBanner = (CL_AniDB_Anime_DefaultImage)DefaultImageWideBanner?.Clone(),
                 Characters = Characters?.Select(a => a.Clone()).Cast<CL_AniDB_Character>().ToList(),
                 Fanarts = Fanarts?.Select(a => a.Clone()).Cast<CL_AniDB_Anime_DefaultImage>().ToList(),
                 Banners = Banners?.Select(a => a.Clone()).Cast<CL_AniDB_Anime_DefaultImage>().ToList(),
