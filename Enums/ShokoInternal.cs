@@ -264,17 +264,7 @@ namespace Shoko.Models.Enums
         UserAvatar = 17,
     }
 
-    public enum ImageFormatEnum
-    {
-        bmp,
-        jpeg,
-        gif,
-        tiff,
-        png,
-        unknown
-    }
-
-    public enum ImageSizeType
+    public enum CL_ImageSizeType
     {
         Poster = 1,
         Fanart = 2,
