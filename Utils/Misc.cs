@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Net;
-using System.Security.AccessControl;
 using System.Text;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 
@@ -65,10 +61,6 @@ namespace Shoko.Commons.Utils
             return readable.ToString("0.# ") + suffix;
         }
 
-        public static string DownloadWebPage(string url)
-        {
-            return DownloadWebPage(url, null, false);
-        }
         public static string ToName<T,U>(this Expression<Func<T, U>> expr)
         {
             var member = expr.Body as MemberExpression;
@@ -222,78 +214,6 @@ namespace Shoko.Commons.Utils
             return new KeyValuePair<string, bool>(sortColumn,srt);
         }
 
-        public static Stream DownloadWebBinary(string url)
-        {
-            try
-            {
-                HttpWebResponse response = null;
-                HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(url);
-                // Note: some network proxies require the useragent string to be set or they will deny the http request
-                // this is true for instance for EVERY thailand internet connection (also needs to be set for banners/episodethumbs and any other http request we send)
-                webReq.UserAgent = "Anime2MP";
-                webReq.Timeout = 20000; // 20 seconds
-                response = (HttpWebResponse)webReq.GetResponse();
-
-                return response.GetResponseStream();
-            }
-            catch
-            {
-                //BaseConfig.MyAnimeLog.Write(ex.ToString());
-                return null;
-            }
-        }
-
-        public static string DownloadWebPage(string url, string cookieHeader, bool setUserAgent)
-        {
-            try
-            {
-                HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(url);
-                webReq.Timeout = 30000; // 30 seconds
-                webReq.Proxy = null;
-                webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-
-                if (!String.IsNullOrEmpty(cookieHeader))
-                    webReq.Headers.Add("Cookie", cookieHeader);
-                if (setUserAgent)
-                    webReq.UserAgent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)";
-
-                webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-
-                HttpWebResponse WebResponse = (HttpWebResponse)webReq.GetResponse();
-
-                Stream responseStream = WebResponse.GetResponseStream();
-                String enco = WebResponse.CharacterSet;
-                Encoding encoding = null;
-                if (!String.IsNullOrEmpty(enco))
-                    encoding = Encoding.GetEncoding(WebResponse.CharacterSet);
-                if (encoding == null)
-                    encoding = Encoding.Default;
-                StreamReader Reader = new StreamReader(responseStream, encoding);
-
-                string output = Reader.ReadToEnd();
-
-                WebResponse.Close();
-                responseStream.Close();
-
-                //logger.Trace("DownloadWebPage Response: {0}", output);
-
-                return output;
-            }
-            catch (Exception ex)
-            {
-                string msg = "---------- ERROR IN DOWNLOAD WEB PAGE ---------" + Environment.NewLine +
-                             url + Environment.NewLine +
-                             ex.ToString() + Environment.NewLine + "------------------------------------";
-
-                // if the error is a 404 error it may mean that there is a bad series association
-                // so lets log it to the web cache so we can investigate
-                if (ex.ToString().Contains("(404) Not Found"))
-                {
-                }
-
-                return "";
-            }
-        }
         public static int LevenshteinDistance(string s, string t)
         {
             int n = s.Length; //length of s
@@ -328,34 +248,6 @@ namespace Shoko.Commons.Utils
 
             // Step 7
             return d[n, m];
-        }
-        public static void DownloadFile(string url, string destFile, string cookieHeader, bool setUserAgent)
-        {
-            try
-            {
-                using (WebClient client = new WebClient())
-                {
-                    if (!String.IsNullOrEmpty(cookieHeader))
-                        client.Headers.Add("Cookie", cookieHeader);
-                    if (setUserAgent)
-                        client.Headers.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)");
-
-                    client.DownloadFile(url, destFile);
-                }
-
-            }
-            catch (Exception ex)
-            {
-                string msg = "---------- ERROR IN DOWNLOAD WEB PAGE ---------" + Environment.NewLine +
-                             url + Environment.NewLine +
-                             ex.ToString() + Environment.NewLine + "------------------------------------";
-
-                // if the error is a 404 error it may mean that there is a bad series association
-                // so lets log it to the web cache so we can investigate
-                if (ex.ToString().Contains("(404) Not Found"))
-                {
-                }
-            }
         }
 
         private static readonly IStringDistance DiceSearch = new SorensenDice();

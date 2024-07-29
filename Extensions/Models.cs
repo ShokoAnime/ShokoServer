@@ -26,7 +26,7 @@ namespace Shoko.Commons.Extensions
 
         public static List<T> CastList<T>(this IEnumerable<dynamic> list) => list?.Cast<T>().ToList();
 
-        public static DateTime GetMessageDateAsDate(this Azure_AdminMessage message) => TimeZone.CurrentTimeZone.ToLocalTime(AniDB.GetAniDBDateAsDate((int) message.MessageDate).Value);
+        public static DateTime GetMessageDateAsDate(this Azure_AdminMessage message) => AniDB.GetAniDBDateAsDate((int)message.MessageDate).Value.ToLocalTime();
 
 
         public static string ToStringEx(this Azure_AdminMessage message) => $"{message.AdminMessageId} - {message.GetMessageDateAsDate()} - {message.Message}";
