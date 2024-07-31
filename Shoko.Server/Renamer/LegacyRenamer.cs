@@ -22,7 +22,7 @@ public class LegacyRenamer : IRenamer
     private const string RENAMER_ID = "Legacy";
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    public string GetFilename(RenameEventArgs args)
+    public string GetFilename(MoveEventArgs args)
     {
         if (args.Script == null)
         {
@@ -1348,18 +1348,18 @@ public class LegacyRenamer : IRenamer
         }
     }
 
-    public static string GetNewFileName(RenameEventArgs args, string script)
+    public static string GetNewFileName(MoveEventArgs args, string script)
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
         var sourceFolder = RepoFactory.ImportFolder.GetAll()
-            .FirstOrDefault(a => args.FileInfo.Path.StartsWith(a.ImportFolderLocation));
+            .FirstOrDefault(a => args.File.Path.StartsWith(a.ImportFolderLocation));
         if (sourceFolder == null)
         {
             throw new Exception("*Unable to get import folder");
         }
 
         var place = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(
-            args.FileInfo.Path.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
+            args.File.Path.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
         var vid = place?.VideoLocal;
         var lines = script.Split(Environment.NewLine.ToCharArray());
 
@@ -2192,7 +2192,7 @@ public class LegacyRenamer : IRenamer
 
             // Continue if on a separate drive and there's no space
             if (!settings.Import.SkipDiskSpaceChecks &&
-                !args.FileInfo.Path.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                !args.File.Path.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
             {
                 var available = 0L;
                 try
@@ -2204,7 +2204,7 @@ public class LegacyRenamer : IRenamer
                     logger.Error(e);
                 }
 
-                if (available < args.FileInfo.Size)
+                if (available < args.File.Size)
                 {
                     continue;
                 }
@@ -2214,7 +2214,7 @@ public class LegacyRenamer : IRenamer
             break;
         }
 
-        var xrefs = args.EpisodeInfo;
+        var xrefs = args.Episodes;
         if (xrefs.Count == 0)
         {
             return (null, "No xrefs");
@@ -2269,7 +2269,7 @@ public class LegacyRenamer : IRenamer
             foreach (var vid in ep.VideoLocals
                          .Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
             {
-                if (vid.Hash == args.VideoInfo.Hashes.ED2K)
+                if (vid.Hash == args.Video.Hashes.ED2K)
                 {
                     continue;
                 }
@@ -2290,7 +2290,7 @@ public class LegacyRenamer : IRenamer
                 }
 
                 // check space
-                if (!args.FileInfo.Path.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) &&
+                if (!args.File.Path.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) &&
                     !settings.Import.SkipDiskSpaceChecks)
                 {
                     var available = 0L;
@@ -2316,7 +2316,7 @@ public class LegacyRenamer : IRenamer
 
                 // ensure we aren't moving to the current directory
                 if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(
-                        Path.GetDirectoryName(args.FileInfo.Path), StringComparison.InvariantCultureIgnoreCase))
+                        Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
                 {
                     continue;
                 }
@@ -2332,6 +2332,6 @@ public class LegacyRenamer : IRenamer
             return (null, "Unable to resolve a destination");
         }
 
-        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.SeriesName));
+        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.PreferredTitle));
     }
 }

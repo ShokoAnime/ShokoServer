@@ -1,5 +1,6 @@
 ﻿using System;
 
+#nullable enable
 namespace Shoko.Server.Scheduling.Attributes;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class)]

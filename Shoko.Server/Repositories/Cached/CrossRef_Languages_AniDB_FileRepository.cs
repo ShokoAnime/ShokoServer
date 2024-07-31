@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
@@ -12,14 +11,13 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_Languages_AniDB_FileRepository : BaseCachedRepository<CrossRef_Languages_AniDB_File, int>
 {
-    private PocoIndex<int, CrossRef_Languages_AniDB_File, int> FileIDs;
-    private PocoIndex<int, CrossRef_Languages_AniDB_File, int> AnimeIDs;
+    private PocoIndex<int, CrossRef_Languages_AniDB_File, int> _fileIDs;
 
     public List<CrossRef_Languages_AniDB_File> GetByFileID(int id)
     {
-        return ReadLock(() => FileIDs.GetMultiple(id));
+        return ReadLock(() => _fileIDs.GetMultiple(id));
     }
-    
+
     public HashSet<string> GetLanguagesForGroup(SVR_AnimeGroup group)
     {
         return ReadLock(() =>
@@ -29,7 +27,7 @@ public class CrossRef_Languages_AniDB_FileRepository : BaseCachedRepository<Cros
                 .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         });
     }
-    
+
     public HashSet<string> GetLanguagesForAnime(int animeID)
     {
         return ReadLock(() =>
@@ -41,7 +39,7 @@ public class CrossRef_Languages_AniDB_FileRepository : BaseCachedRepository<Cros
 
     public override void PopulateIndexes()
     {
-        FileIDs = Cache.CreateIndex(a => a.FileID);
+        _fileIDs = Cache.CreateIndex(a => a.FileID);
     }
 
     public override void RegenerateDb() { }

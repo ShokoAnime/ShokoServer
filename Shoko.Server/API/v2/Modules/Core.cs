@@ -539,7 +539,7 @@ public class Core : BaseController
                     {
                         AniDBEpisodeType = a.AniDB.EpisodeType,
                         AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
-                        AniDBEpisodeName = a.AniDB.DefaultTitle
+                        AniDBEpisodeName = a.AniDB.DefaultTitle.Title,
                     },
                     TvDB: a.TvDB == null
                         ? null
@@ -547,7 +547,7 @@ public class Core : BaseController
                         {
                             TvDBSeason = a.TvDB.SeasonNumber,
                             TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
-                            TvDBEpisodeName = a.TvDB.EpisodeName
+                            TvDBEpisodeName = a.TvDB.EpisodeName,
                         })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
                 var currentMatches = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
                     .Select(a =>
@@ -559,7 +559,7 @@ public class Core : BaseController
                             {
                                 AniDBEpisodeType = AniDB.EpisodeType,
                                 AniDBEpisodeNumber = AniDB.EpisodeNumber,
-                                AniDBEpisodeName = AniDB.DefaultTitle
+                                AniDBEpisodeName = AniDB.DefaultTitle.Title,
                             },
                             TvDB: TvDB == null
                                 ? null
@@ -567,7 +567,7 @@ public class Core : BaseController
                                 {
                                     TvDBSeason = TvDB.SeasonNumber,
                                     TvDBEpisodeNumber = TvDB.EpisodeNumber,
-                                    TvDBEpisodeName = TvDB.EpisodeName
+                                    TvDBEpisodeName = TvDB.EpisodeName,
                                 });
                     }).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
                 if (!currentMatches.SequenceEqual(matches))
@@ -600,9 +600,9 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("moviedb/update")]
-    public async Task<ActionResult> ScanMovieDB()
+    public async Task<ActionResult> ScanTMDB()
     {
-        await _actionService.RunImport_ScanMovieDB();
+        await _actionService.RunImport_ScanTMDB();
         return APIStatus.OK();
     }
 

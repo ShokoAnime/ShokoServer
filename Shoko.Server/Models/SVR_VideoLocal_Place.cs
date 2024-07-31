@@ -44,7 +44,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     int IVideoFile.VideoID => VideoLocalID;
 
-    IVideo IVideoFile.VideoInfo => VideoLocal;
+    IVideo IVideoFile.Video => VideoLocal;
 
     string IVideoFile.Path => FullServerPath;
 
@@ -62,16 +62,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     long IVideoFile.Size => VideoLocal?.FileSize ?? 0;
 
     IImportFolder IVideoFile.ImportFolder => ImportFolder;
-
-    int IVideoFile.VideoFileID => VideoLocalID;
-
-    string IVideoFile.Filename => Path.GetFileName(FilePath);
-
-    string IVideoFile.FilePath => FullServerPath;
-
-    long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
-
-    IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.AniDBFile;
 
     public IHashes Hashes => VideoLocal;
 

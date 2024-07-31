@@ -31,9 +31,12 @@ public class EmitEmptyEnumerableInsteadOfNullAttribute : ActionFilterAttribute
         }
 
         // It would be nice if we could cache this somehow, but IDK
-        objectResult.Formatters.Add(new NewtonsoftJsonOutputFormatter(SerializerSettings,
+        objectResult.Formatters.Add(new NewtonsoftJsonOutputFormatter(
+            SerializerSettings,
             ctx.HttpContext.RequestServices.GetRequiredService<ArrayPool<char>>(),
-            MvcOptions));
+            MvcOptions,
+            null
+        ));
     }
 }
 

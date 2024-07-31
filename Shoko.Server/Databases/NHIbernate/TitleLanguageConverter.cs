@@ -9,7 +9,7 @@ using NHibernate.UserTypes;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 
-namespace Shoko.Server.Databases.NHIbernate;
+namespace Shoko.Server.Databases.NHibernate;
 
 public class TitleLanguageConverter : TypeConverter, IUserType
 {

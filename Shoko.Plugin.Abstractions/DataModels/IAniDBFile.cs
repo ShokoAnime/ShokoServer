@@ -13,7 +13,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// </summary>
         IReleaseGroup ReleaseGroup { get; }
         /// <summary>
-        /// Where the file was ripped from, bluray, dvd, etc
+        /// Where the file was ripped from, blu-ray, dvd, etc
         /// </summary>
         string Source { get; }
         /// <summary>

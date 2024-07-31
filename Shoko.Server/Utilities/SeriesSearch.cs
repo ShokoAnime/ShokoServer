@@ -297,7 +297,7 @@ public static class SeriesSearch
                 })
                 .Where(a => a != null)
             )
-            .OrderBy(a => a.Result.SeriesName)
+            .OrderBy(a => a.Result.PreferredTitle)
             .Take(limit)
         );
 
@@ -325,7 +325,7 @@ public static class SeriesSearch
                 .Where(a => a != null)
             )
             .OrderBy(a => a)
-            .ThenBy(a => a.Result.SeriesName)
+            .ThenBy(a => a.Result.PreferredTitle)
             .Take(limit)
         );
         return seriesList;
@@ -375,7 +375,7 @@ public static class SeriesSearch
                 .Where(b => b != null)
             )
             .OrderBy(a => a)
-            .ThenBy(b => b.Result.SeriesName)
+            .ThenBy(b => b.Result.PreferredTitle)
             .Take(limit));
 
         limit -= seriesList.Count;
@@ -413,7 +413,7 @@ public static class SeriesSearch
                 .Where(a => a != null)
             )
             .OrderBy(a => a)
-            .ThenBy(a => a.Result.SeriesName)
+            .ThenBy(a => a.Result.PreferredTitle)
             .Take(limit)
         );
         return seriesList;
@@ -423,11 +423,11 @@ public static class SeriesSearch
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var languages = new HashSet<string> { "en", "x-jat" };
-        languages.UnionWith(settings.LanguagePreference);
+        languages.UnionWith(settings.Language.SeriesTitleLanguageOrder);
         return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
             .Where(title => title.TitleType == TitleType.Main || languages.Contains(title.LanguageCode))
             .Select(title => title.Title)
-            .Append(series.SeriesName)
+            .Append(series.PreferredTitle)
             .Distinct();
     }
 
@@ -511,5 +511,16 @@ public static class SeriesSearch
 
             return string.Compare(Match, other.Match);
         }
+
+        public SearchResult<Y> Map<Y>(Y result)
+            => new()
+            {
+                ExactMatch = ExactMatch,
+                Index = Index,
+                Distance = Distance,
+                LengthDifference = LengthDifference,
+                Match = Match,
+                Result = result,
+            };
     }
 }

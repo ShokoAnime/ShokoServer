@@ -19,7 +19,7 @@ public class Filter : BaseModel
     /// <summary>
     /// The Filter ID.
     /// </summary>
-    public FilterIDs IDs { get; set; }
+    public FilterIDs IDs { get; set; } = new();
 
     /// <summary>
     /// Indicates the filter cannot be edited by a user.
@@ -75,7 +75,7 @@ public class Filter : BaseModel
         /// ex. And, Or, Not, HasAudioLanguage
         /// </summary>
         [Required]
-        public string Type { get; set; }
+        public string Type { get; set; } = string.Empty;
 
         /// <summary>
         /// The first, or left, child expression.<br/>
@@ -116,13 +116,13 @@ public class Filter : BaseModel
         /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression)
         /// </summary>
         [Required]
-        public string Expression { get; init; }
+        public string Expression { get; init; } = string.Empty;
 
         /// <summary>
         /// The human readable name of the Expression
         /// </summary>
         [Required]
-        public string Name { get; init; }
+        public string Name { get; init; } = string.Empty;
 
         /// <summary>
         /// The group that this filter expression belongs to. This can help with filtering the expression types
@@ -134,7 +134,7 @@ public class Filter : BaseModel
         /// A description of what the expression is doing, comparing, etc
         /// </summary>
         [Required]
-        public string Description { get; init; }
+        public string Description { get; init; } = string.Empty;
 
         /// <summary>
         /// This is what the expression would be considered for parameters, for example, Air Date is a Date Selector
@@ -228,7 +228,7 @@ public class Filter : BaseModel
             Date,
             Number,
             String,
-            TimeSpan
+            TimeSpan,
         }
     }
 
@@ -239,19 +239,19 @@ public class Filter : BaseModel
         /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression)
         /// </summary>
         [Required]
-        public string Type { get; init; }
+        public string Type { get; init; } = string.Empty;
 
         /// <summary>
         /// Human readable name
         /// </summary>
         [Required]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// A description of what the expression is doing, comparing, etc
         /// </summary>
         [Required]
-        public string Description { get; init; }
+        public string Description { get; init; } = string.Empty;
     }
 
     /// <summary>
@@ -267,7 +267,7 @@ public class Filter : BaseModel
         /// ex. And, Or, Not, HasAudioLanguage<br/>
         /// </summary>
         [Required]
-        public string Type { get; set; }
+        public string Type { get; set; } = string.Empty;
 
         /// <summary>
         /// The next expression to fall back on when the SortingExpression is equal or invalid, for example, sort by Episode Count descending then by Name
@@ -311,12 +311,12 @@ public class Filter : BaseModel
             public bool IsDirectory { get; set; }
 
             /// <summary>
-            /// Indicates the filter should be hidden unless explictly requested. This will hide the filter from the normal UIs.
+            /// Indicates the filter should be hidden unless explicitly requested. This will hide the filter from the normal UIs.
             /// </summary>
             public bool IsHidden { get; set; }
 
             /// <summary>
-            /// Inidcates the filter should be applied at the series level.
+            /// Indicates the filter should be applied at the series level.
             /// Filter conditions like like Seasons, Years, Tags, etc only count series individually, rather than by group.
             /// </summary>
             public bool ApplyAtSeriesLevel { get; set; }

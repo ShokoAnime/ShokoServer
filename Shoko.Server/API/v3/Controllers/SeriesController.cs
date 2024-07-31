@@ -23,8 +23,11 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -37,6 +40,10 @@ using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
+using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
+using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
+using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
+using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -48,18 +55,18 @@ public class SeriesController : BaseController
 {
     private readonly AnimeSeriesService _seriesService;
     private readonly AniDBTitleHelper _titleHelper;
-    private readonly SeriesFactory _seriesFactory;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly JobFactory _jobFactory;
+    private readonly TmdbMetadataService _tmdbService;
+    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
+    private readonly WatchedStatusService _watchedService;
 
-    public SeriesController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDBTitleHelper titleHelper, CrossRef_File_EpisodeRepository crossRefFileEpisode, AnimeSeriesService seriesService, WatchedStatusService watchedService) : base(settingsProvider)
+    public SeriesController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AniDBTitleHelper titleHelper, ISchedulerFactory schedulerFactory, TmdbMetadataService tmdbService, CrossRef_File_EpisodeRepository crossRefFileEpisode, WatchedStatusService watchedService) : base(settingsProvider)
     {
-        _seriesFactory = seriesFactory;
-        _schedulerFactory = schedulerFactory;
-        _jobFactory = jobFactory;
-        _titleHelper = titleHelper;
-        _crossRefFileEpisode = crossRefFileEpisode;
         _seriesService = seriesService;
+        _titleHelper = titleHelper;
+        _schedulerFactory = schedulerFactory;
+        _tmdbService = tmdbService;
+        _crossRefFileEpisode = crossRefFileEpisode;
         _watchedService = watchedService;
     }
 
@@ -99,13 +106,15 @@ public class SeriesController : BaseController
     /// <param name="startsWith">Search only for series with a main title that start with the given query.</param>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<ListResult<Series>> GetAllSeries([FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
+    public ActionResult<ListResult<Series>> GetAllSeries(
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] string startsWith = "")
     {
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
-            .Select(series => (series, seriesName: series.SeriesName.ToLowerInvariant()))
+            .Select(series => (series, seriesName: series.PreferredTitle.ToLowerInvariant()))
             .Where(tuple =>
             {
                 var (series, seriesName) = tuple;
@@ -117,14 +126,14 @@ public class SeriesController : BaseController
                 return user.AllowedSeries(series);
             })
             .OrderBy(a => a.seriesName)
-            .ToListResult(tuple => _seriesFactory.GetSeries(tuple.series), page, pageSize);
+            .ToListResult(tuple => new Series(tuple.series, user.JMMUserID), page, pageSize);
     }
 
     /// <summary>
     /// Get the series with ID
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}")]
@@ -143,7 +152,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return _seriesFactory.GetSeries(series, randomImages, includeDataFrom);
+        return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -177,7 +186,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/OverrideTitle")]
-    public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeriesTitleOverride body)
+    public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.TitleOverrideBody body)
     {
         if (seriesID == 0)
             return BadRequest(SeriesWithZeroID);
@@ -308,14 +317,14 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("WithoutFiles")]
-    public ActionResult<ListResult<Series>> GetSeriesWithoutFiles([FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<Series>> GetSeriesWithoutFiles([FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && series.VideoLocals.Count == 0)
-            .OrderBy(series => series.SeriesName.ToLowerInvariant())
-            .ToListResult(series => _seriesFactory.GetSeries(series), page, pageSize);
+            .OrderBy(series => series.PreferredTitle.ToLowerInvariant())
+            .ToListResult(series => new Series(series, User.JMMUserID), page, pageSize);
     }
 
     /// <summary>
@@ -325,15 +334,15 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("WithManuallyLinkedFiles")]
-    public ActionResult<ListResult<Series>> GetSeriesWithManuallyLinkedFiles([FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<Series>> GetSeriesWithManuallyLinkedFiles([FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Where(a => a.VideoLocal != null)
                 .Any(a => a.CrossRefSource == (int)CrossRefSource.User))
-            .OrderBy(series => series.SeriesName.ToLowerInvariant())
-            .ToListResult(series => _seriesFactory.GetSeries(series), page, pageSize);
+            .OrderBy(series => series.PreferredTitle.ToLowerInvariant())
+            .ToListResult(series => new Series(series, User.JMMUserID), page, pageSize);
     }
 
     #endregion
@@ -348,8 +357,8 @@ public class SeriesController : BaseController
     /// <param name="startsWith">Search only for anime with a main title that start with the given query.</param>
     /// <returns></returns>
     [HttpGet("AniDB")]
-    public ActionResult<ListResult<Series.AniDB>> GetAllAnime([FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
+    public ActionResult<ListResult<Series.AniDB>> GetAllAnime([FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
     {
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
@@ -366,7 +375,7 @@ public class SeriesController : BaseController
                 return user.AllowedAnime(anime);
             })
             .OrderBy(a => a.animeTitle)
-            .ToListResult(tuple => _seriesFactory.GetAniDB(tuple.anime), page, pageSize);
+            .ToListResult(tuple => new Series.AniDB(tuple.anime), page, pageSize);
     }
 
     /// <summary>
@@ -376,8 +385,8 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("AniDB/Relations")]
-    public ActionResult<ListResult<SeriesRelation>> GetAnidbRelations([FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<SeriesRelation>> GetAnidbRelations([FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         return RepoFactory.AniDB_Anime_Relation.GetAll()
             .OrderBy(a => a.AnimeID)
@@ -411,7 +420,7 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return _seriesFactory.GetAniDB(anidb, series);
+        return new Series.AniDB(anidb, series);
     }
 
     /// <summary>
@@ -441,7 +450,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidb.AnimeID)
-            .Select(similar => _seriesFactory.GetAniDB(similar))
+            .Select(similar => new Series.AniDB(similar))
             .ToList();
     }
 
@@ -472,7 +481,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID)
-            .Select(relation => _seriesFactory.GetAniDB(relation))
+            .Select(relation => new Series.AniDB(relation))
             .ToList();
     }
 
@@ -518,7 +527,7 @@ public class SeriesController : BaseController
     /// <param name="includeRestricted">Include restricted (H) series.</param>
     /// <param name="startDate">Start date to use if recommending for a watch period. Only setting the <paramref name="startDate"/> and not <paramref name="endDate"/> will result in using the watch history from the start date to the present date.</param>
     /// <param name="endDate">End date to use if recommending for a watch period.</param>
-    /// <param name="approval">Minumum approval percentage for similar animes.</param>
+    /// <param name="approval">Minimum approval percentage for similar anime.</param>
     /// <returns></returns>
     [HttpGet("AniDB/RecommendedForYou")]
     public ActionResult<ListResult<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
@@ -566,17 +575,14 @@ public class SeriesController : BaseController
                 }
 
                 return anime.SimilarAnime
-                    .Where(similar => unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID));
+                    .Where(similar => unwatchedAnimeDict.ContainsKey(similar.SimilarAnimeID));
             })
             .GroupBy(anime => anime.SimilarAnimeID)
             .Select(similarTo =>
             {
                 var (anime, series) = unwatchedAnimeDict[similarTo.Key];
                 var similarToCount = similarTo.Count();
-                return new Series.AniDBRecommendedForYou()
-                {
-                    Anime = _seriesFactory.GetAniDB(anime, series), SimilarTo = similarToCount
-                };
+                return new Series.AniDBRecommendedForYou(new Series.AniDB(anime, series), similarToCount);
             })
             .OrderByDescending(e => e.SimilarTo)
             .ToListResult(page, pageSize);
@@ -593,7 +599,7 @@ public class SeriesController : BaseController
     /// <param name="endDate">The end date of the period.</param>
     /// <returns>The watched anime for the user.</returns>
     [NonAction]
-    private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(
+    private static List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(
         SVR_JMMUser user,
         bool includeRestricted = false,
         DateTime? startDate = null,
@@ -638,7 +644,7 @@ public class SeriesController : BaseController
     /// <param name="watchedAnime">Optional. Re-use an existing list of the watched anime.</param>
     /// <returns>The unwatched anime for the user.</returns>
     [NonAction]
-    private Dictionary<int, (SVR_AniDB_Anime, SVR_AnimeSeries)> GetUnwatchedAnime(
+    private static Dictionary<int, (SVR_AniDB_Anime, SVR_AnimeSeries)> GetUnwatchedAnime(
         SVR_JMMUser user,
         bool showAll,
         bool includeRestricted = false,
@@ -685,7 +691,7 @@ public class SeriesController : BaseController
             return Forbid(AnidbForbiddenForUser);
         }
 
-        return _seriesFactory.GetAniDB(anidb);
+        return new Series.AniDB(anidb);
     }
 
     /// <summary>
@@ -708,7 +714,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidbID)
-            .Select(similar => _seriesFactory.GetAniDB(similar))
+            .Select(similar => new Series.AniDB(similar))
             .ToList();
     }
 
@@ -732,7 +738,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidbID)
-            .Select(relation => _seriesFactory.GetAniDB(relation))
+            .Select(relation => new Series.AniDB(relation))
             .ToList();
     }
 
@@ -764,7 +770,7 @@ public class SeriesController : BaseController
     /// Get a Series from the AniDB ID
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Series")]
@@ -782,14 +788,14 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return _seriesFactory.GetSeries(series, randomImages, includeDataFrom);
+        return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
     }
 
     /// <summary>
     /// Queue a refresh of the AniDB Info for series with AniDB ID
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
-    /// <param name="force">Try to forcefully retrive updated data from AniDB if
+    /// <param name="force">Try to forcefully retrieve updated data from AniDB if
     /// we're not banned and if the the last update is outside the no-update
     /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
@@ -811,7 +817,7 @@ public class SeriesController : BaseController
         }
 
         // TODO No
-        return await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, anidbID, force, downloadRelations,
+        return await _seriesService.QueueAniDBRefresh(anidbID, force, downloadRelations,
             createSeriesEntry.Value, immediate, cacheOnly);
     }
 
@@ -819,7 +825,7 @@ public class SeriesController : BaseController
     /// Queue a refresh of the AniDB Info for series with ID
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
-    /// <param name="force">Try to forcefully retrive updated data from AniDB if
+    /// <param name="force">Try to forcefully retrieve updated data from AniDB if
     /// we're not banned and if the the last update is outside the no-update
     /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
@@ -859,7 +865,7 @@ public class SeriesController : BaseController
         }
 
         // TODO No
-        return await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, anidb.AnimeID, force, downloadRelations,
+        return await _seriesService.QueueAniDBRefresh(anidb.AnimeID, force, downloadRelations,
             createSeriesEntry.Value, immediate, cacheOnly);
     }
 
@@ -869,7 +875,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
-    [Obsolete]
+    [Obsolete("Use Refresh with cacheOnly set to true")]
     public async Task<ActionResult<bool>> RefreshAniDBFromXML([FromRoute] int seriesID)
         => await RefreshAniDBBySeriesID(seriesID, false, false, true, true, true);
 
@@ -897,7 +903,10 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
         }
 
-        return _seriesFactory.GetTvDBInfo(series);
+        var allEpisodes = series.AllAnimeEpisodes;
+        return series.TvDBSeries
+            .Select(tvdb => new Series.TvDB(tvdb, allEpisodes))
+            .ToList();
     }
 
     /// <summary>
@@ -957,7 +966,7 @@ public class SeriesController : BaseController
     /// <see cref="Series"/> using the <paramref name="seriesID"/>.
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
-    /// <param name="force">Forcefully retrive updated data from TvDB</param>
+    /// <param name="force">Forcefully retrieve updated data from TvDB</param>
     /// <returns></returns>
     [HttpPost("{seriesID}/TvDB/Refresh")]
     public async Task<ActionResult> RefreshSeriesTvdbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false)
@@ -977,7 +986,7 @@ public class SeriesController : BaseController
         var tvSeriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID);
         // TODO No
         foreach (var crossRef in tvSeriesList)
-            await _seriesFactory.QueueTvDBRefresh(crossRef.TvDBID, force);
+            await _seriesService.QueueTvDBRefresh(crossRef.TvDBID, force);
 
         return Ok();
     }
@@ -1013,7 +1022,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
         }
 
-        return _seriesFactory.GetTvDB(tvdb, series);
+        return new Series.TvDB(tvdb, series.AllAnimeEpisodes);
     }
 
     /// <summary>
@@ -1021,14 +1030,13 @@ public class SeriesController : BaseController
     /// the <paramref name="tvdbID"/>.
     /// </summary>
     /// <param name="tvdbID">TvDB ID</param>
-    /// <param name="force">Forcefully retrive updated data from TvDB</param>
+    /// <param name="force">Forcefully retrieve updated data from TvDB</param>
     /// <param name="immediate">Try to immediately refresh the data.</param>
     /// <returns></returns>
     [HttpPost("TvDB/{tvdbID}/Refresh")]
     public async Task<ActionResult<bool>> RefreshSeriesTvdbByTvdbId([FromRoute] int tvdbID, [FromQuery] bool force = false, [FromQuery] bool immediate = false)
     {
-        // TODO No
-        return await _seriesFactory.QueueTvDBRefresh(tvdbID,force, immediate);
+        return await _seriesService.QueueTvDBRefresh(tvdbID, force, immediate);
     }
 
     /// <summary>
@@ -1057,9 +1065,633 @@ public class SeriesController : BaseController
         }
 
         return seriesList
-            .Select(series => _seriesFactory.GetSeries(series))
+            .Select(series => new Series(series, User.JMMUserID))
             .ToList();
     }
+
+    #endregion
+
+    #region TMDB
+
+    /// <summary>
+    /// Automagically search for one or more matches for the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="force">Forcefully update the metadata of the matched entities.</param>
+    /// <returns>Void.</returns>
+    [HttpPost("{seriesID}/TMDB/Action/AutoSearch")]
+    public async Task<ActionResult> AutoMatchTMDBMoviesBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery] bool force = false
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        await _tmdbService.ScheduleSearchForMatch(series.AniDB_ID, force);
+
+        return NoContent();
+    }
+
+    #region Movie
+
+    /// <summary>
+    /// Get all TMDB Movies linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <param name="language">Language to fetch some details in. Omitting will fetch all languages.</param>
+    /// <returns>All TMDB Movies linked to the Shoko Series.</returns>
+    [HttpGet("{seriesID}/TMDB/Movie")]
+    public ActionResult<List<TmdbMovie>> GetTMDBMoviesBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return series.TmdbMovieCrossReferences
+            .Select(o => o.TmdbMovie)
+            .OfType<TMDB_Movie>()
+            .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Add a new TMDB Movie cross-reference to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing the information about the new cross-reference to be made.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Movie")]
+    public async Task<ActionResult> AddLinkToTMDBMoviesBySeriesID(
+        [FromRoute] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkMovieBody body
+    )
+    {
+        if (body.ID <= 0)
+        {
+            ModelState.AddModelError(nameof(body.ID), "The provider ID cannot be zero or a negative value.");
+            return ValidationProblem(ModelState);
+        }
+
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        await _tmdbService.AddMovieLink(series.AniDB_ID, body.ID, body.EpisodeID, additiveLink: !body.Replace);
+
+        var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) != null || body.Refresh;
+        if (needRefresh)
+            await _tmdbService.ScheduleUpdateOfMovie(body.ID, forceRefresh: body.Refresh, downloadImages: true);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Remove one or all TMDB Movie links from the series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Optional. Body containing information about the link to be removed.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/TMDB/Movie")]
+    public async Task<ActionResult> RemoveLinkToTMDBMoviesBySeriesID(
+        [FromRoute] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        if (body != null && body.ID > 0)
+            await _tmdbService.RemoveMovieLink(series.AniDB_ID, body.ID, body.Purge);
+        else
+            await _tmdbService.RemoveAllMovieLinks(series.AniDB_ID, body.Purge);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Refresh all TMDB Movies linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="force">Forcefully download an update even if we updated recently.</param>
+    /// <param name="downloadImages">Also download images.</param>
+    /// <param name="downloadCrewAndCast">Also download crew and cast. Will respect global option if not set.</param>
+    /// <param name="downloadCollections">Also download movie collections. Will respect the global option if not set.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Movie/Action/Refresh")]
+    public async Task<ActionResult> RefreshTMDBMoviesBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery] bool force = false,
+        [FromQuery] bool downloadImages = true,
+        [FromQuery] bool? downloadCrewAndCast = null,
+        [FromQuery] bool? downloadCollections = null
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+            await _tmdbService.ScheduleUpdateOfMovie(xref.TmdbMovieID, force, downloadImages, downloadCrewAndCast, downloadCollections);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Get all TMDB Movie cross-references for the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <returns>All TMDB Movie cross-references for the Shoko Series.</returns>
+    [HttpGet("{seriesID}/TMDB/Movie/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbMovie.CrossReference>> GetTMDBMovieCrossReferenceBySeriesID(
+        [FromRoute] int seriesID
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return series.TmdbMovieCrossReferences
+            .Select(xref => new TmdbMovie.CrossReference(xref))
+            .OrderBy(xref => xref.TmdbMovieID)
+            .ToList();
+    }
+
+    #endregion
+
+    #region Show
+
+    /// <summary>
+    /// Get all TMDB Shows linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <param name="language">Language to fetch some details in. Omitting will fetch all languages.</param>
+    /// <returns></returns>
+    [HttpGet("{seriesID}/TMDB/Show")]
+    public ActionResult<List<TmdbShow>> GetTMDBShowsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return series.TmdbShowCrossReferences
+            .Select(o => o.TmdbShow)
+            .OfType<TMDB_Show>()
+            .Select(o => new TmdbShow(o, include?.CombineFlags(), language))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Add a new TMDB Show cross-reference to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing the information about the new cross-reference to be made.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Show")]
+    public async Task<ActionResult> AddLinkToTMDBShowsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkShowBody body
+    )
+    {
+        if (body.ID <= 0)
+        {
+            ModelState.AddModelError(nameof(body.ID), "The provider ID cannot be zero or a negative value.");
+            return ValidationProblem(ModelState);
+        }
+
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        await _tmdbService.AddShowLink(series.AniDB_ID, body.ID, additiveLink: !body.Replace);
+
+        var needRefresh = RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) != null || body.Refresh;
+        if (needRefresh)
+            await _tmdbService.ScheduleUpdateOfShow(body.ID, forceRefresh: body.Refresh, downloadImages: true);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Remove one or all TMDB Show cross-reference(s) for the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Optional. The unlink body with the details about the TMDB Show to remove.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/TMDB/Show")]
+    public async Task<ActionResult> RemoveLinkToTMDBShowsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        if (body != null && body.ID > 0)
+            await _tmdbService.RemoveShowLink(series.AniDB_ID, body.ID, body.Purge);
+        else
+            await _tmdbService.RemoveAllShowLinks(series.AniDB_ID, body.Purge);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Refresh all TMDB Shows linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="force">Forcefully refresh the shows, even if they've been recently updated.</param>
+    /// <param name="downloadImages">Also download images.</param>
+    /// /// <param name="downloadCrewAndCast">Also download crew and cast. Will respect global options if not set.</param>
+    /// <param name="downloadAlternateOrdering">Also download alternate ordering information. Will respect global options if not set.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Show/Action/Refresh")]
+    public async Task<ActionResult> RefreshTMDBShowsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery] bool force = false,
+        [FromQuery] bool downloadImages = true,
+        [FromQuery] bool? downloadCrewAndCast = null,
+        [FromQuery] bool? downloadAlternateOrdering = null
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
+            await _tmdbService.ScheduleUpdateOfShow(xref.TmdbShowID, force, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Get all TMDB Show cross-references for the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <returns>All TMDB Show cross-references for the Shoko Series.</returns>
+    [HttpGet("{seriesID}/TMDB/Show/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbShow.CrossReference>> GetTMDBShowCrossReferenceBySeriesID(
+        [FromRoute] int seriesID
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return series.TmdbShowCrossReferences
+            .Select(xref => new TmdbShow.CrossReference(xref))
+            .OrderBy(xref => xref.TmdbShowID)
+            .ToList();
+    }
+
+    #region Episode Cross-references
+
+    /// <summary>
+    /// Shows all existing episode mappings for a Shoko Series. Optionally
+    /// allows filtering it to a specific TMDB show.
+    /// </summary>
+    /// <param name="seriesID">The Shoko Series ID.</param>
+    /// <param name="tmdbShowID">The TMDB Show ID to filter the episode mappings. If not specified, mappings for any show may be included.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>A list of TMDB episode cross-references as part of the preview result, based on the provided filtering and pagination settings.</returns>
+    [HttpGet("{seriesID}/TMDB/Show/CrossReferences/Episode")]
+    public ActionResult<ListResult<TmdbEpisode.CrossReference>> GetTMDBEpisodeMappingsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery] int? tmdbShowID,
+        [FromQuery, Range(0, 1000)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        if (tmdbShowID.HasValue)
+        {
+            var xrefs = series.TmdbShowCrossReferences;
+            var xref = xrefs.FirstOrDefault(s => s.TmdbShowID == tmdbShowID.Value);
+            if (xref == null)
+                return ValidationProblem("Unable to find an existing cross-reference for the given TMDB Show ID. Please first link the TMDB Show to the Shoko Series.", "tmdbShowID");
+        }
+
+        return series.GetTmdbEpisodeCrossReferences(tmdbShowID)
+            .ToListResult(x => new TmdbEpisode.CrossReference(x), page, pageSize);
+    }
+
+    /// <summary>
+    /// Modifies the existing episode mappings by resetting, replacing, adding,
+    /// or removing links between Shoko episodes and TMDB episodes of any TMDB
+    /// shows linked to the Shoko series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">The payload containing the operations to be applied, detailing which mappings to reset, replace, add, or remove.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Show/CrossReferences/Episode")]
+    public async Task<ActionResult> OverrideTMDBEpisodeMappingsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.OverrideEpisodeMappingBody body
+    )
+    {
+        if (body == null || (body.Mapping.Count == 0 && !body.ResetAll))
+            return ValidationProblem("Empty body.");
+
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        // Validate the mappings.
+        var xrefs = series.TmdbShowCrossReferences;
+        var showIDs = xrefs
+            .Select(xref => xref.TmdbShowID)
+            .ToHashSet();
+        var missingIDs = new HashSet<int>();
+        foreach (var link in body.Mapping)
+        {
+            var shokoEpisode = RepoFactory.AnimeEpisode.GetByID(link.ShokoID);
+            if (shokoEpisode == null)
+            {
+                ModelState.AddModelError("Mapping", $"Unable to find a Shoko Episode with id '{link.ShokoID}'");
+                continue;
+            }
+            if (shokoEpisode.AnimeSeriesID != series.AnimeSeriesID)
+            {
+                ModelState.AddModelError("Mapping", $"The Shoko Episode with id '{link.ShokoID}' is not part of the series.");
+                continue;
+            }
+
+            var tmdbEpisode = link.TmdbID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(link.TmdbID);
+            if (link.TmdbID != 0 && tmdbEpisode == null)
+            {
+                ModelState.AddModelError("Mapping", $"Unable to find TMDB Episode with the id '{link.TmdbID}' locally.");
+                continue;
+            }
+            if (link.TmdbID != 0 && !showIDs.Contains(tmdbEpisode.TmdbShowID))
+                missingIDs.Add(tmdbEpisode.TmdbShowID);
+
+            link.AnidbID = shokoEpisode.AniDB_EpisodeID;
+        }
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Add any missing links if needed.
+        foreach (var showId in missingIDs)
+            await _tmdbService.AddShowLink(series.AniDB_ID, showId, additiveLink: true);
+
+        // Reset the existing links if we wanted to replace all.
+        if (body.ResetAll)
+            _tmdbService.ResetAllEpisodeLinks(series.AniDB_ID);
+
+        // Do the actual linking.
+        foreach (var link in body.Mapping)
+            _tmdbService.SetEpisodeLink(link.AnidbID, link.TmdbID, !link.Replace);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Preview the automagically matched Shoko episodes with the specified TMDB
+    /// show and/or season. If no season is specified, the operation applies to
+    /// any season of either the selected show or the first show already linked.
+    /// This endpoint allows for replacing all existing links or adding links to
+    /// episodes that currently lack any.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="tmdbShowID">The specified TMDB Show ID to search for links. This parameter is used to select a specific show.</param>
+    /// <param name="tmdbSeasonID">The specified TMDB Season ID to search for links. If not provided, links are searched for any season of the selected or first linked show.</param>
+    /// <param name="keepExisting">Determines whether to retain any and all existing links.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>A preview of the automagically matched episodes.</returns>
+    [Authorize("admin")]
+    [HttpGet("{seriesID}/TMDB/Show/CrossReferences/Episode/Auto")]
+    public ActionResult<ListResult<TmdbEpisode.CrossReference>> PreviewAutoTMDBEpisodeMappingsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery] int? tmdbShowID,
+        [FromQuery] int? tmdbSeasonID,
+        [FromQuery] bool keepExisting = true,
+        [FromQuery, Range(0, 1000)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        if (!tmdbShowID.HasValue)
+        {
+            var xrefs = series.TmdbShowCrossReferences;
+            var xref = xrefs.Count > 0 ? xrefs[0] : null;
+            if (xref == null)
+                return ValidationProblem("Unable to find an existing cross-reference for the series to use. Make sure at least one TMDB Show is linked to the Shoko Series.", "tmdbShowID");
+
+            tmdbShowID = xref.TmdbShowID;
+        }
+
+        if (tmdbSeasonID.HasValue)
+        {
+            var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(tmdbSeasonID.Value);
+            if (season == null)
+                return ValidationProblem("Unable to find existing TMDB Season with the given season ID.", "tmdbSeasonID");
+
+            if (season.TmdbShowID != tmdbShowID.Value)
+                return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
+        }
+
+        return _tmdbService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: false)
+            .ToListResult(x => new TmdbEpisode.CrossReference(x), page, pageSize);
+    }
+
+    /// <summary>
+    /// Automagically matches Shoko episodes with the specified TMDB show and/or
+    /// season. If no season is specified, the operation applies to any season
+    /// of either the selected show or the first show already linked. This
+    /// endpoint allows for replacing all existing links or adding links to
+    /// episodes that currently lack any.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="tmdbShowID">The specified TMDB Show ID to search for links. This parameter is used to select a specific show.</param>
+    /// <param name="tmdbSeasonID">The specified TMDB Season ID to search for links. If not provided, links are searched for any season of the selected or first linked show.</param>
+    /// <param name="keepExisting">Determines whether to retain any and all existing links.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Show/CrossReferences/Episode/Auto")]
+    public async Task<ActionResult> AutoTMDBEpisodeMappingsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery] int? tmdbShowID,
+        [FromQuery] int? tmdbSeasonID,
+        [FromQuery] bool keepExisting = true
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        var isMissing = false;
+        var xrefs = series.TmdbShowCrossReferences;
+        if (tmdbShowID.HasValue)
+        {
+            isMissing = xrefs.Any(s => s.TmdbShowID == tmdbShowID.Value);
+        }
+        else
+        {
+            var xref = xrefs.Count > 0 ? xrefs[0] : null;
+            if (xref == null)
+                return ValidationProblem("Unable to find an existing cross-reference for the series to use. Make sure at least one TMDB Show is linked to the Shoko Series.", "tmdbShowID");
+
+            tmdbShowID = xref.TmdbShowID;
+        }
+
+        // Hard bail if the TMDB show isn't locally available.
+        if (RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID.Value) == null)
+            return ValidationProblem("Unable to find the selected TMDB Show locally. Add the TMDB Show locally first.", "tmdbShowID");
+
+        // Add the missing link if needed.
+        if (isMissing)
+            await _tmdbService.AddShowLink(series.AniDB_ID, tmdbShowID.Value, additiveLink: true);
+
+        if (tmdbSeasonID.HasValue)
+        {
+            var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(tmdbSeasonID.Value);
+            if (season == null)
+                return ValidationProblem("Unable to find existing TMDB Season with the given season ID.", "tmdbSeasonID");
+
+            if (season.TmdbShowID != tmdbShowID.Value)
+                return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
+        }
+
+        _tmdbService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: true);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reset all existing episode mappings for the shoko series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/TMDB/Show/CrossReferences/Episode")]
+    public ActionResult RemoveTMDBEpisodeMappingsBySeriesID(
+        [FromRoute] int seriesID
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        _tmdbService.ResetAllEpisodeLinks(series.AniDB_ID);
+
+        return NoContent();
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Season
+
+    /// <summary>
+    /// Get all TMDB Season indirectly linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <param name="language">Language to fetch some details in.</param>
+    /// <returns>All TMDB Seasons indirectly linked to the Shoko Series.</returns>
+    [HttpGet("{seriesID}/TMDB/Season")]
+    public ActionResult<List<TmdbSeason>> GetTMDBSeasonsBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        return series.TmdbEpisodeCrossReferences
+            .Select(o => o.TmdbEpisode)
+            .OfType<TMDB_Episode>()
+            .DistinctBy(o => o.TmdbSeasonID)
+            .Select(o => o.TmdbSeason)
+            .OfType<TMDB_Season>()
+            .OrderBy(season => season.TmdbShowID)
+            .ThenBy(season => season.SeasonNumber)
+            .Select(o => new TmdbSeason(o, include?.CombineFlags(), language))
+            .ToList();
+    }
+
+    #endregion
 
     #endregion
 
@@ -1184,7 +1816,7 @@ public class SeriesController : BaseController
                 if (anidb == null)
                     return false;
 
-                // Filter by hidden state, if spesified
+                // Filter by hidden state, if specified
                 if (includeHidden != IncludeOnlyFilter.True)
                 {
                     // If we should hide hidden episodes and the episode is hidden, then hide it.
@@ -1229,7 +1861,7 @@ public class SeriesController : BaseController
         if (hasSearch)
         {
             var languages = SettingsProvider.GetSettings()
-                .LanguagePreference
+                .Language.EpisodeTitleLanguageOrder
                 .Select(lang => lang.GetTitleLanguage())
                 .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
                 .ToHashSet();
@@ -1303,7 +1935,7 @@ public class SeriesController : BaseController
                 if (anidb == null)
                     return false;
 
-                // Filter by hidden state, if spesified
+                // Filter by hidden state, if specified
                 if (includeHidden != IncludeOnlyFilter.True)
                 {
                     // If we should hide hidden episodes and the episode is hidden, then hide it.
@@ -1350,7 +1982,7 @@ public class SeriesController : BaseController
         if (hasSearch)
         {
             var languages = SettingsProvider.GetSettings()
-                .LanguagePreference
+                .Language.SeriesTitleLanguageOrder
                 .Select(lang => lang.GetTitleLanguage())
                 .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
                 .ToHashSet();
@@ -1513,7 +2145,7 @@ public class SeriesController : BaseController
     #region Vote
 
     /// <summary>
-    /// Add a permanent or temprary user-submitted rating for the series.
+    /// Add a permanent or temporary user-submitted rating for the series.
     /// </summary>
     /// <param name="seriesID"></param>
     /// <param name="vote"></param>
@@ -1532,7 +2164,13 @@ public class SeriesController : BaseController
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        await SeriesFactory.AddSeriesVote(_schedulerFactory, series, User.JMMUserID, vote);
+        var voteType = (vote.Type?.ToLowerInvariant() ?? "") switch
+        {
+            "temporary" => AniDBVoteType.AnimeTemp,
+            "permanent" => AniDBVoteType.Anime,
+            _ => series.AniDB_Anime?.GetFinishedAiring() ?? false ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp,
+        };
+        await _seriesService.AddSeriesVote(series, voteType, vote.GetRating());
 
         return NoContent();
     }
@@ -1543,15 +2181,9 @@ public class SeriesController : BaseController
 
     #region All images
 
-    private static HashSet<Image.ImageType> AllowedImageTypes =
-        new() { Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Fanart };
-
-    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
-    private readonly WatchedStatusService _watchedService;
+    private static readonly HashSet<Image.ImageType> _allowedImageTypes = [Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Backdrop, Image.ImageType.Logo];
 
     private const string InvalidIDForSource = "Invalid image id for selected source.";
-
-    private const string InvalidImageTypeForSeries = "Invalid image type for series images.";
 
     private const string InvalidImageIsDisabled = "Image is disabled.";
 
@@ -1576,7 +2208,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return SeriesFactory.GetArt(series.AniDB_ID, includeDisabled);
+        return series.GetImages().ToDto(includeDisabled: includeDisabled);
     }
 
     #endregion
@@ -1593,10 +2225,10 @@ public class SeriesController : BaseController
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
-        if (!AllowedImageTypes.Contains(imageType))
+        if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
 
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1604,19 +2236,18 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
-        var defaultBanner = SeriesFactory.GetDefaultImage(series.AniDB_ID, imageSizeType);
-        if (defaultBanner != null)
-        {
-            return defaultBanner;
-        }
+        var imageEntityType = imageType.ToServer();
+        var preferredImage = series.GetPreferredImageForType(imageEntityType);
+        if (preferredImage != null)
+            return new Image(preferredImage);
 
-        var images = SeriesFactory.GetArt(series.AniDB_ID);
-        return imageSizeType switch
+        var images = series.GetImages().ToDto();
+        return imageEntityType switch
         {
-            ImageSizeType.Poster => images.Posters.FirstOrDefault(),
-            ImageSizeType.WideBanner => images.Banners.FirstOrDefault(),
-            ImageSizeType.Fanart => images.Fanarts.FirstOrDefault(),
+            ImageEntityType.Poster => images.Posters.FirstOrDefault(),
+            ImageEntityType.Banner => images.Banners.FirstOrDefault(),
+            ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
+            ImageEntityType.Logo => images.Logos.FirstOrDefault(),
             _ => null
         };
     }
@@ -1633,10 +2264,10 @@ public class SeriesController : BaseController
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
-        if (!AllowedImageTypes.Contains(imageType))
+        if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
 
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1644,119 +2275,26 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, imageType);
-        if (!imageEntityType.HasValue)
-            return ValidationProblem("Invalid body source");
-
-        // All dynamic ids are stringified ints, so extract the image id from the body.
-        if (!int.TryParse(body.ID, out var imageID))
-            return ValidationProblem("Invalid body id. Id must be a stringified int.");
-
         // Check if the id is valid for the given type and source.
-
-        switch (imageEntityType.Value)
-        {
-            // Posters
-            case ImageEntityType.AniDB_Cover:
-                if (imageID != series.AniDB_ID)
-                {
-                    return ValidationProblem(InvalidIDForSource);
-                }
-
-                break;
-            case ImageEntityType.TvDB_Cover:
-                {
-                    var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
-                    if (tvdbPoster == null)
-                    {
-                        return ValidationProblem(InvalidIDForSource);
-                    }
-
-                    if (tvdbPoster.Enabled != 1)
-                    {
-                        return ValidationProblem(InvalidImageIsDisabled);
-                    }
-
-                    break;
-                }
-            case ImageEntityType.MovieDB_Poster:
-                var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
-                if (tmdbPoster == null)
-                {
-                    return ValidationProblem(InvalidIDForSource);
-                }
-
-                if (tmdbPoster.Enabled != 1)
-                {
-                    return ValidationProblem(InvalidImageIsDisabled);
-                }
-
-                break;
-
-            // Banners
-            case ImageEntityType.TvDB_Banner:
-                var tvdbBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
-                if (tvdbBanner == null)
-                {
-                    return ValidationProblem(InvalidIDForSource);
-                }
-
-                if (tvdbBanner.Enabled != 1)
-                {
-                    return ValidationProblem(InvalidImageIsDisabled);
-                }
-
-                break;
-
-            // Fanart
-            case ImageEntityType.TvDB_FanArt:
-                var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
-                if (tvdbFanart == null)
-                {
-                    return ValidationProblem(InvalidIDForSource);
-                }
-
-                if (tvdbFanart.Enabled != 1)
-                {
-                    return ValidationProblem(InvalidImageIsDisabled);
-                }
-
-                break;
-            case ImageEntityType.MovieDB_FanArt:
-                var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
-                if (tmdbFanart == null)
-                {
-                    return ValidationProblem(InvalidIDForSource);
-                }
-
-                if (tmdbFanart.Enabled != 1)
-                {
-                    return ValidationProblem(InvalidImageIsDisabled);
-                }
-
-                break;
-
-            // Not allowed.
-            default:
-                return ValidationProblem("Invalid source and/or type.");
-        }
-
-        var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
-        var defaultImage =
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType) ??
-            new AniDB_Anime_DefaultImage { AnimeID = series.AniDB_ID, ImageType = (int)imageSizeType };
-        defaultImage.ImageParentID = imageID;
-        defaultImage.ImageParentType = (int)imageEntityType.Value;
+        var dataSource = body.Source.ToServer();
+        var imageEntityType = imageType.ToServer();
+        var image = ImageUtils.GetImageMetadata(dataSource, imageEntityType, body.ID);
+        if (image is null)
+            return ValidationProblem(InvalidIDForSource);
+        if (!image.IsEnabled)
+            return ValidationProblem(InvalidImageIsDisabled);
 
         // Create or update the entry.
-        RepoFactory.AniDB_Anime_DefaultImage.Save(defaultImage);
+        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType) ??
+            new() { AnidbAnimeID = series.AniDB_ID, ImageType = imageEntityType };
+        defaultImage.ImageID = body.ID;
+        defaultImage.ImageSource = dataSource;
+        RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
 
         // Update the contract data (used by Shoko Desktop).
         RepoFactory.AnimeSeries.Save(series, false);
 
-        ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
-
-        return new Image(imageID, imageEntityType.Value, true);
+        return new Image(body.ID, imageEntityType, dataSource, true);
     }
 
     /// <summary>
@@ -1768,11 +2306,11 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/Images/{imageType}")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
-        if (!AllowedImageTypes.Contains(imageType))
+        if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
 
         // Check if the series exists and if the user can access the series.
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1781,14 +2319,13 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         // Check if a default image is set.
-        var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
-        var defaultImage =
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType);
+        var imageEntityType = imageType.ToServer();
+        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType);
         if (defaultImage == null)
             return ValidationProblem("No default banner.");
 
         // Delete the entry.
-        RepoFactory.AniDB_Anime_DefaultImage.Delete(defaultImage);
+        RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
 
         // Update the contract data (used by Shoko Desktop).
         RepoFactory.AnimeSeries.Save(series, false);
@@ -1835,7 +2372,7 @@ public class SeriesController : BaseController
             return new List<Tag>();
         }
 
-        return _seriesFactory.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified);
+        return Series.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified);
     }
 
     /// <summary>
@@ -1938,7 +2475,7 @@ public class SeriesController : BaseController
     /// <param name="excludeDescriptions"></param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags/{filter}")]
-    [Obsolete]
+    [Obsolete("Use Tags with query parameter instead.")]
     public ActionResult<List<Tag>> GetSeriesTagsFromPath([FromRoute] int seriesID, [FromRoute] TagFilter.Filter filter,
         [FromQuery] bool excludeDescriptions = false)
     {
@@ -1972,7 +2509,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return _seriesFactory.GetCast(series.AniDB_ID, roleType);
+        return Series.GetCast(series.AniDB_ID, roleType);
     }
 
     #endregion
@@ -2021,9 +2558,9 @@ public class SeriesController : BaseController
     /// <param name="query">target string</param>
     /// <param name="fuzzy">whether or not to use fuzzy search</param>
     /// <param name="limit">number of return items</param>
-    /// <returns>List<see cref="SeriesSearchResult"/></returns>
+    /// <returns>List<see cref="Series.SearchResult"/></returns>
     [HttpGet("Search")]
-    public ActionResult<IEnumerable<SeriesSearchResult>> SearchQuery([FromQuery] string query, [FromQuery] bool fuzzy = true,
+    public ActionResult<IEnumerable<Series.SearchResult>> SearchQuery([FromQuery] string query, [FromQuery] bool fuzzy = true,
         [FromQuery, Range(0, 1000)] int limit = 50)
         => SearchInternal(query, fuzzy, limit);
 
@@ -2034,22 +2571,22 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">whether or not to use fuzzy search</param>
     /// <param name="limit">number of return items</param>
     /// <param name="searchById">Enable search by anidb anime id.</param>
-    /// <returns>List<see cref="SeriesSearchResult"/></returns>
+    /// <returns>List<see cref="Series.SearchResult"/></returns>
     [Obsolete("Use the other endpoint instead.")]
     [HttpGet("Search/{query}")]
-    public ActionResult<IEnumerable<SeriesSearchResult>> SearchPath([FromRoute] string query, [FromQuery] bool fuzzy = true,
+    public ActionResult<IEnumerable<Series.SearchResult>> SearchPath([FromRoute] string query, [FromQuery] bool fuzzy = true,
         [FromQuery, Range(0, 1000)] int limit = 50, [FromQuery] bool searchById = false)
         => SearchInternal(HttpUtility.UrlDecode(query), fuzzy, limit, searchById);
 
     [NonAction]
-    internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal(string query, bool fuzzy = true, int limit = 50, bool searchById = false)
+    internal ActionResult<IEnumerable<Series.SearchResult>> SearchInternal(string query, bool fuzzy = true, int limit = 50, bool searchById = false)
     {
         var flags = SeriesSearch.SearchFlags.Titles;
         if (fuzzy)
             flags |= SeriesSearch.SearchFlags.Fuzzy;
 
         return SeriesSearch.SearchSeries(User, query, limit, flags, searchById: searchById)
-            .Select(result => _seriesFactory.GetSeriesSearchResult(result))
+            .Select(result => new Series.SearchResult(result, User.JMMUserID))
             .ToList();
     }
 
@@ -2066,8 +2603,8 @@ public class SeriesController : BaseController
     [HttpGet("AniDB/Search")]
     public ActionResult<ListResult<Series.AniDB>> AnidbSearchQuery([FromQuery] string query,
         [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
-        [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        [FromQuery] bool includeTitles = true, [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
         => AnidbSearchInternal(query, fuzzy, local, includeTitles, pageSize, page);
 
     /// <summary>
@@ -2084,8 +2621,8 @@ public class SeriesController : BaseController
     [HttpGet("AniDB/Search/{query}")]
     public ActionResult<ListResult<Series.AniDB>> AnidbSearchPath([FromRoute] string query,
         [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
-        [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        [FromQuery] bool includeTitles = true, [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
         => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, pageSize, page);
 
     [NonAction]
@@ -2098,19 +2635,17 @@ public class SeriesController : BaseController
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime != null)
             {
-                return new ListResult<Series.AniDB>(1,
-                    new List<Series.AniDB> { _seriesFactory.GetAniDB(anime, includeTitles: includeTitles) });
+                return new(1, [new(anime, includeTitles: includeTitles)]);
             }
 
             // Check the title cache for a match.
             var result = _titleHelper.SearchAnimeID(animeID);
             if (result != null)
             {
-                return new ListResult<Series.AniDB>(1,
-                    new List<Series.AniDB> { _seriesFactory.GetAniDB(result, includeTitles: includeTitles) });
+                return new(1, [new(result, includeTitles: includeTitles)]);
             }
 
-            return new ListResult<Series.AniDB>();
+            return new();
         }
 
         // Return all known entries on anidb if no query is given.
@@ -2121,13 +2656,11 @@ public class SeriesController : BaseController
                 {
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
                     if (local.HasValue && series == null == local.Value)
-                    {
                         return null;
-                    }
 
-                    return _seriesFactory.GetAniDB(result, series, includeTitles);
+                    return new Series.AniDB(result, series, includeTitles);
                 })
-                .Where(result => result != null)
+                .WhereNotNull()
                 .ToListResult(page, pageSize);
 
         // Search the title cache for anime matching the query.
@@ -2136,13 +2669,11 @@ public class SeriesController : BaseController
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
                 if (local.HasValue && series == null == local.Value)
-                {
                     return null;
-                }
 
-                return _seriesFactory.GetAniDB(result, series, includeTitles);
+                return new Series.AniDB(result, series, includeTitles);
             })
-            .Where(result => result != null)
+            .WhereNotNull()
             .ToListResult(page, pageSize);
     }
 
@@ -2153,16 +2684,16 @@ public class SeriesController : BaseController
     /// <param name="limit"></param>
     /// <returns></returns>
     [HttpGet("StartsWith/{query}")]
-    public ActionResult<List<SeriesSearchResult>> StartsWith([FromRoute] string query,
+    public ActionResult<List<Series.SearchResult>> StartsWith([FromRoute] string query,
         [FromQuery] int limit = int.MaxValue)
     {
         var user = User;
         query = query.ToLowerInvariant();
 
-        var seriesList = new List<SeriesSearchResult>();
+        var seriesList = new List<Series.SearchResult>();
         var tempSeries = new ConcurrentDictionary<SVR_AnimeSeries, string>();
         var allSeries = RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series))
+            .Where(user.AllowedSeries)
             .AsParallel();
 
         #region Search_TitlesOnly
@@ -2173,7 +2704,7 @@ public class SeriesController : BaseController
 
         foreach (var (ser, match) in series)
         {
-            seriesList.Add(_seriesFactory.GetSeriesSearchResult(new() { Result = ser, Match = match }));
+            seriesList.Add(new Series.SearchResult(new() { Result = ser, Match = match }, User.JMMUserID));
             if (seriesList.Count >= limit)
             {
                 break;
@@ -2194,12 +2725,12 @@ public class SeriesController : BaseController
     {
         var user = User;
         var query = path;
-        if (query.Contains("%") || query.Contains("+"))
+        if (query.Contains('%') || query.Contains('+'))
         {
             query = Uri.UnescapeDataString(query);
         }
 
-        if (query.Contains("%"))
+        if (query.Contains('%'))
         {
             query = Uri.UnescapeDataString(query);
         }
@@ -2216,7 +2747,7 @@ public class SeriesController : BaseController
             })
             .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<SVR_AnimeEpisode>()).Select(a => a.AnimeSeries)
             .Distinct()
-            .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => _seriesFactory.GetSeries(a)).ToList();
+            .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => new Series(a, User.JMMUserID)).ToList();
     }
 
     #region Helpers
@@ -2266,52 +2797,14 @@ public class SeriesController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("Years")]
-    public ActionResult<IEnumerable<int>> GetAllYears()
-    {
-        return RepoFactory.AnimeSeries.GetAllYears().ToList();
-    }
+    public static ActionResult<IEnumerable<int>> GetAllYears()
+        => RepoFactory.AnimeSeries.GetAllYears().ToList();
 
     /// <summary>
     /// Get a list of all years and seasons (2024 Winter) that series that you have aired in. One Piece would return every Season from 1999 Fall to preset (assuming it's still airing *today*)
     /// </summary>
     /// <returns></returns>
     [HttpGet("Seasons")]
-    public ActionResult<IEnumerable<Season>> GetAllSeasons()
-    {
-        return RepoFactory.AnimeSeries.GetAllSeasons().Select(a => new Season(a.Year, a.Season)).OrderBy(a => a, Season.SeasonComparer).ToList();
-    }
-
-    public record Season(int Year, AnimeSeason AnimeSeason)
-    {
-        private sealed class SeasonRelationalComparer : IComparer<Season>
-        {
-            public int Compare(Season x, Season y)
-            {
-                if (ReferenceEquals(x, y))
-                {
-                    return 0;
-                }
-
-                if (ReferenceEquals(null, y))
-                {
-                    return 1;
-                }
-
-                if (ReferenceEquals(null, x))
-                {
-                    return -1;
-                }
-
-                var yearComparison = x.Year.CompareTo(y.Year);
-                if (yearComparison != 0)
-                {
-                    return yearComparison;
-                }
-
-                return x.AnimeSeason.CompareTo(y.AnimeSeason);
-            }
-        }
-
-        public static IComparer<Season> SeasonComparer { get; } = new SeasonRelationalComparer();
-    }
+    public static ActionResult<IEnumerable<YearlySeason>> GetAllSeasons()
+        => RepoFactory.AnimeSeries.GetAllSeasons().Select(a => new YearlySeason(a.Year, a.Season)).Order().ToList();
 }

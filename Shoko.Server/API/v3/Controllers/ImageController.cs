@@ -1,12 +1,11 @@
-using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Mime = MimeMapping.MimeUtility;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -20,66 +19,37 @@ public class ImageController : BaseController
     /// <summary>
     /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
     /// </summary>
-    /// <param name="source">AniDB, TvDB, MovieDB, Shoko</param>
-    /// <param name="type">Poster, Fanart, Banner, Thumb, Static</param>
-    /// <param name="value">Usually the ID, but the resource name in the case of image/Shoko/Static/{value}</param>
+    /// <param name="source">AniDB, TvDB, TMDB, Shoko, etc.</param>
+    /// <param name="type">Poster, Fanart, Banner, Thumbnail, etc.</param>
+    /// <param name="value">The image ID.</param>
     /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
     [HttpGet("{source}/{type}/{value}")]
-    [HttpHead("{source}/{type}/{value}")]
-    [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
     public ActionResult GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type,
-        [FromRoute] string value)
+        [FromRoute] int value)
     {
-        // No value no image.
-        if (string.IsNullOrEmpty(value))
+        // Unrecognized combination of source, type and/or value.
+        var dataSource = source.ToServer();
+        var imageEntityType = type.ToServer();
+        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None || value <= 0)
             return NotFound(ImageNotFound);
 
-        var sourceType = Image.GetImageTypeFromSourceAndType(source, type) ?? ImageEntityType.None;
-        switch (sourceType)
+        // User avatars are stored in the database.
+        if (imageEntityType == ImageEntityType.Art && dataSource == DataSourceType.User)
         {
-            // Unrecognised combination of source and type.
-            case ImageEntityType.None:
+            var user = RepoFactory.JMMUser.GetByID(value);
+            if (!user.HasAvatarImage)
                 return NotFound(ImageNotFound);
 
-            // Static resources are stored in the resource manager.
-            case ImageEntityType.Static:
-            {
-                var fileName = Path.GetFileNameWithoutExtension(value);
-                var buffer = (byte[])Resources.ResourceManager.GetObject(fileName);
-                if (buffer == null || buffer.Length == 0)
-                    return NotFound(ImageNotFound);
-
-                return File(buffer, Mime.GetMimeMapping(fileName) ?? "image/png");
-            }
-
-            // User avatars are stored in the database.
-            case ImageEntityType.UserAvatar:
-            {
-                if (!int.TryParse(value, out var id))
-                    return NotFound(ImageNotFound);
-
-                var user = RepoFactory.JMMUser.GetByID(id);
-                if (!user.HasAvatarImage)
-                    return NotFound(ImageNotFound);
-
-                return File(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType);
-            }
-
-            // All other valid types.
-            default:
-            {
-                if (!int.TryParse(value, out var id))
-                    return NotFound(ImageNotFound);
-
-                var path = Image.GetImagePath(sourceType, id);
-                if (string.IsNullOrEmpty(path))
-                    return NotFound(ImageNotFound);
-
-                return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
-            }
+            return File(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType);
         }
+
+        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, value);
+        if (metadata is null || metadata.GetStream() is not { } stream)
+            return NotFound(ImageNotFound);
+
+        return File(stream, metadata.ContentType);
     }
 
     /// <summary>
@@ -90,26 +60,27 @@ public class ImageController : BaseController
     [HttpGet("Random/{imageType}")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     [ProducesResponseType(500)]
     public ActionResult GetRandomImageForType([FromRoute] Image.ImageType imageType)
     {
-        if (imageType == Image.ImageType.Static || imageType == Image.ImageType.Avatar)
+        if (imageType == Image.ImageType.Avatar)
             return ValidationProblem("Unsupported image type for random image.", "imageType");
 
-        var source = Image.GetRandomImageSource(imageType);
-        var sourceType = Image.GetImageTypeFromSourceAndType(source, imageType) ?? ImageEntityType.None;
-        if (sourceType == ImageEntityType.None)
+        var dataSource = Image.GetRandomImageSource(imageType);
+        var imageEntityType = imageType.ToServer();
+        if (imageEntityType == ImageEntityType.None)
             return InternalError("Could not generate a valid image type to fetch.");
 
-        var id = Image.GetRandomImageID(sourceType);
+        var id = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
         if (!id.HasValue)
             return InternalError("Unable to find a random image to send.");
 
-        var path = Image.GetImagePath(sourceType, id.Value);
-        if (string.IsNullOrEmpty(path))
+        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, id.Value);
+        if (metadata is null || metadata.GetStream() is not { } stream)
             return InternalError("Unable to load image from disk.");
 
-        return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
+        return File(stream, metadata.ContentType);
     }
 
     /// <summary>
@@ -123,30 +94,31 @@ public class ImageController : BaseController
     [ProducesResponseType(500)]
     public ActionResult<Image> GetRandomImageMetadataForType([FromRoute] Image.ImageType imageType)
     {
-        if (imageType == Image.ImageType.Static)
+        if (imageType == Image.ImageType.Avatar)
             return ValidationProblem("Unsupported image type for random image.", "imageType");
 
-        var source = Image.GetRandomImageSource(imageType);
-        var sourceType = Image.GetImageTypeFromSourceAndType(source, imageType) ?? ImageEntityType.None;
-        if (sourceType == ImageEntityType.None)
+        var dataSource = Image.GetRandomImageSource(imageType);
+        var imageEntityType = imageType.ToServer();
+        if (imageEntityType == ImageEntityType.None)
             return InternalError("Could not generate a valid image type to fetch.");
 
         // Try 5 times to get a valid image.
         var tries = 0;
-        do 
+        do
         {
-            var id = Image.GetRandomImageID(sourceType);
+            var id = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
             if (!id.HasValue)
                 break;
 
-            var path = Image.GetImagePath(sourceType, id.Value);
-            if (string.IsNullOrEmpty(path))
+            var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, id.Value);
+            if (metadata is null || !metadata.IsLocalAvailable)
                 continue;
 
-            var image = new Image(id.Value, sourceType, false, false);
-            var series = Image.GetFirstSeriesForImage(sourceType, id.Value);
-            if (series != null)
-                image.Series = new(series.AnimeSeriesID, series.SeriesName);
+            var image = new Image(metadata);
+            var series = ImageUtils.GetFirstSeriesForImage(dataSource, imageEntityType, id.Value);
+            if (series == null)
+                continue;
+            image.Series = new(series.AnimeSeriesID, series.PreferredTitle);
 
             return image;
         } while (tries++ < 5);

@@ -17,12 +17,12 @@ public class FileCrossReference
     /// <summary>
     /// The Series IDs.
     /// </summary>
-    public SeriesCrossReferenceIDs SeriesID { get; set; }
+    public SeriesCrossReferenceIDs SeriesID { get; set; } = new();
 
     /// <summary>
     /// The Episode IDs.
     /// </summary>
-    public List<EpisodeCrossReferenceIDs> EpisodeIDs { get; set; }
+    public List<EpisodeCrossReferenceIDs> EpisodeIDs { get; set; } = [];
 
     /// <summary>
     /// File episode cross-reference for a series.
@@ -42,7 +42,12 @@ public class FileCrossReference
         /// <summary>
         /// Any TvDB IDs linked to the AniDB episode.
         /// </summary>
-        public List<int> TvDB { get; set; }
+        public List<int> TvDB { get; set; } = [];
+
+        /// <summary>
+        /// The Movie DataBase (TMDB) Cross-Reference IDs.
+        /// </summary>
+        public Episode.EpisodeIDs.TmdbEpisodeIDs TMDB { get; set; } = new();
 
         /// <summary>
         /// The AniDB Release Group's ID, or null if this is a manually linked
@@ -53,7 +58,7 @@ public class FileCrossReference
         /// <summary>
         /// ED2K hash to look up the file by hash + file size.
         /// </summary>
-        public string ED2K { get; set; }
+        public string ED2K { get; set; } = string.Empty;
 
         /// <summary>
         /// File size to look up the file by hash + file size.
@@ -63,12 +68,12 @@ public class FileCrossReference
         /// <summary>
         /// Percentage file is matched to the episode.
         /// </summary>
-        public CrossReferencePercentage Percentage { get; set; }
+        public CrossReferencePercentage Percentage { get; set; } = new();
 
         /// <summary>
         /// The cross-reference source.
         /// </summary>
-        public string Source { get; set; }
+        public string Source { get; set; } = string.Empty;
     }
 
     public class CrossReferencePercentage
@@ -113,7 +118,12 @@ public class FileCrossReference
         /// <summary>
         /// Any TvDB IDs linked to the AniDB series.
         /// </summary>
-        public List<int> TvDB { get; set; }
+        public List<int> TvDB { get; set; } = [];
+
+        /// <summary>
+        /// The Movie DataBase (TMDB) Cross-Reference IDs.
+        /// </summary>
+        public Series.SeriesIDs.TmdbSeriesIDs TMDB { get; set; } = new();
     }
 
     private static int PercentageToFileCount(int percentage)
@@ -192,6 +202,21 @@ public class FileCrossReference
                             AniDB = xref.EpisodeID,
                             ReleaseGroup = releaseGroup,
                             TvDB = shokoEpisode?.TvDBEpisodes.Select(b => b.Id).ToList() ?? [],
+                            TMDB = new()
+                            {
+                                Episode = shokoEpisode?.TmdbEpisodeCrossReferences
+                                    .Where(xref => xref.TmdbEpisodeID != 0)
+                                    .Select(xref => xref.TmdbEpisodeID)
+                                    .ToList() ?? [],
+                                Movie = shokoEpisode?.TmdbMovieCrossReferences
+                                    .Select(xref => xref.TmdbMovieID)
+                                    .ToList() ?? [],
+                                Show = shokoEpisode?.TmdbEpisodeCrossReferences
+                                    .Where(xref => xref.TmdbShowID != 0)
+                                    .Select(xref => xref.TmdbShowID)
+                                    .Distinct()
+                                    .ToList() ?? [],
+                            },
                             Percentage = new()
                             {
                                 Size = xref.Percentage,
@@ -223,6 +248,11 @@ public class FileCrossReference
                             ID = shokoSeries?.AnimeSeriesID,
                             AniDB = tuples.Key,
                             TvDB = shokoSeries?.TvDBSeries.Select(b => b.SeriesID).ToList() ?? [],
+                            TMDB = new()
+                            {
+                                Movie = shokoSeries?.TmdbMovieCrossReferences.Select(xref => xref.TmdbMovieID).Distinct().ToList() ?? [],
+                                Show = shokoSeries?.TmdbShowCrossReferences.Select(xref => xref.TmdbShowID).Distinct().ToList() ?? [],
+                            },
                         },
                         EpisodeIDs = tuples.Select(tuple => tuple.dto).ToList(),
                     };

@@ -27,51 +27,50 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
 {
     public new HttpContext HttpContext { get; set; }
 
-    //89% Should be enough to not touch matroska offsets and give us some margin
-    private double WatchedThreshold = 0.89;
+    //89% Should be enough to not touch mkv offsets and give us some margin
+    private readonly double _watchedThreshold = 0.89;
+
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     public const string SERVER_VERSION = "Shoko Stream Server 1.0";
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    [HttpGet("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
+    [HttpGet("{videoLocalId}/{userId?}/{autoWatch?}/{fakeName?}")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(typeof(FileStreamResult), 206)]
     [ProducesResponseType(404)]
-    public object StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
+    public object StreamVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
     {
-        var r = ResolveVideoLocal(videolocalid, userId, autowatch);
+        var r = ResolveVideoLocal(videoLocalId, userId, autoWatch);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent) return StatusCode((int)r.Status, r.StatusDescription);
-        if (!string.IsNullOrEmpty(fakename)) return StreamFromIFile(r, autowatch);
+        if (!string.IsNullOrEmpty(fakeName)) return StreamInfoResult(r, autoWatch);
 
         var subs = r.VideoLocal.MediaInfo.TextStreams.Where(a => a.External).ToList();
-        if (!subs.Any()) return StatusCode(404);
+        if (subs.Count == 0) return StatusCode(404);
 
         return "<table>" + string.Join(string.Empty, subs.Select(a => "<tr><td><a href=\"" + a.Filename + "\"/></td></tr>")) + "</table>";
     }
 
-    [HttpGet("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
+    [HttpGet("Filename/{base64filename}/{userId?}/{autoWatch?}/{fakeName?}")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(typeof(FileStreamResult), 206)]
     [ProducesResponseType(404)]
-    public object StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
+    public object StreamVideoFromFilename(string base64filename, int? userId, bool? autoWatch, string fakeName)
     {
-        var r = ResolveFilename(base64filename, userId, autowatch);
+        var r = ResolveFilename(base64filename, userId, autoWatch);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
         {
             return StatusCode((int)r.Status, r.StatusDescription);
         }
 
-        return StreamFromIFile(r, autowatch);
+        return StreamInfoResult(r, autoWatch);
     }
 
-    private object StreamFromIFile(InfoResult r, bool? autowatch)
+    [NonAction]
+    private object StreamInfoResult(InfoResult r, bool? autoWatch)
     {
         try
         {
-            var rangevalue = Request.Headers["Range"].FirstOrDefault() ??
-                             Request.Headers["range"].FirstOrDefault();
-
-
+            var rangeValue = Request.Headers.Range.FirstOrDefault();
             Stream fr = null;
             string error = null;
             try
@@ -80,7 +79,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
             }
             catch (Exception e)
             {
-                Logger.Error(e);
+                _logger.Error(e);
                 error = e.ToString();
             }
 
@@ -90,64 +89,64 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
                     "Unable to open file '" + r.File?.FullName + "': " + error);
             }
 
-            var totalsize = fr.Length;
+            var totalSize = fr.Length;
             long start = 0;
-            var end = totalsize - 1;
+            var end = totalSize - 1;
 
-            rangevalue = rangevalue?.Replace("bytes=", string.Empty);
-            var range = !string.IsNullOrEmpty(rangevalue);
+            rangeValue = rangeValue?.Replace("bytes=", string.Empty);
+            var range = !string.IsNullOrEmpty(rangeValue);
 
             if (range)
             {
                 // range: bytes=split[0]-split[1]
-                var split = rangevalue.Split('-');
+                var split = rangeValue.Split('-');
                 if (split.Length == 2)
                 {
                     // bytes=-split[1] - tail of specified length
                     if (string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
                     {
                         var e = long.Parse(split[1]);
-                        start = totalsize - e;
-                        end = totalsize - 1;
+                        start = totalSize - e;
+                        end = totalSize - 1;
                     }
                     // bytes=split[0] - split[0] to end of file
                     else if (!string.IsNullOrEmpty(split[0]) && string.IsNullOrEmpty(split[1]))
                     {
                         start = long.Parse(split[0]);
-                        end = totalsize - 1;
+                        end = totalSize - 1;
                     }
                     // bytes=split[0]-split[1] - specified beginning and end
                     else if (!string.IsNullOrEmpty(split[0]) && !string.IsNullOrEmpty(split[1]))
                     {
                         start = long.Parse(split[0]);
                         end = long.Parse(split[1]);
-                        if (start > totalsize - 1)
+                        if (start > totalSize - 1)
                         {
-                            start = totalsize - 1;
+                            start = totalSize - 1;
                         }
 
-                        if (end > totalsize - 1)
+                        if (end > totalSize - 1)
                         {
-                            end = totalsize - 1;
+                            end = totalSize - 1;
                         }
                     }
                 }
             }
 
             Response.ContentType = r.Mime;
-            Response.Headers.Add("Server", SERVER_VERSION);
-            Response.Headers.Add("Connection", "keep-alive");
-            Response.Headers.Add("Accept-Ranges", "bytes");
-            Response.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
+            Response.Headers.Append("Server", SERVER_VERSION);
+            Response.Headers.Append("Connection", "keep-alive");
+            Response.Headers.Append("Accept-Ranges", "bytes");
+            Response.Headers.Append("Content-Range", "bytes " + start + "-" + end + "/" + totalSize);
             Response.ContentLength = end - start + 1;
 
             Response.StatusCode = (int)(range ? HttpStatusCode.PartialContent : HttpStatusCode.OK);
 
-            var outstream = new SubStream(fr, start, end - start + 1);
-            if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
+            var outStream = new SubStream(fr, start, end - start + 1);
+            if (r.User != null && autoWatch.HasValue && autoWatch.Value && r.VideoLocal != null)
             {
-                outstream.CrossPosition = (long)(totalsize * WatchedThreshold);
-                outstream.CrossPositionCrossed +=
+                outStream.CrossPosition = (long)(totalSize * _watchedThreshold);
+                outStream.CrossPositionCrossed +=
                     a =>
                     {
                         Task.Factory.StartNew(async () =>
@@ -160,45 +159,45 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
                     };
             }
 
-            return outstream;
+            return outStream;
         }
         catch (Exception e)
         {
-            Logger.Error("An error occurred while serving a file: " + e);
+            _logger.Error("An error occurred while serving a file: " + e);
             return StatusCode(500, e.Message);
         }
     }
 
-    [HttpHead("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
-    public object InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
+    [HttpHead("{videoLocalId}/{userId?}/{autoWatch?}/{fakeName?}")]
+    public object InfoVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
     {
-        var r = ResolveVideoLocal(videolocalid, userId, autowatch);
+        var r = ResolveVideoLocal(videoLocalId, userId, autoWatch);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
         {
             return StatusCode((int)r.Status, r.StatusDescription);
         }
 
-        Response.Headers.Add("Server", SERVER_VERSION);
-        Response.Headers.Add("Accept-Ranges", "bytes");
-        Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Length - 1) + "/" + r.File.Length);
+        Response.Headers.Append("Server", SERVER_VERSION);
+        Response.Headers.Append("Accept-Ranges", "bytes");
+        Response.Headers.Append("Content-Range", "bytes 0-" + (r.File.Length - 1) + "/" + r.File.Length);
         Response.ContentType = r.Mime;
         Response.ContentLength = r.File.Length;
         Response.StatusCode = (int)r.Status;
         return Ok();
     }
 
-    [HttpHead("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
-    public object InfoVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
+    [HttpHead("Filename/{base64filename}/{userId?}/{autoWatch?}/{fakeName?}")]
+    public object InfoVideoFromFilename(string base64filename, int? userId, bool? autoWatch, string fakeName)
     {
-        var r = ResolveFilename(base64filename, userId, autowatch);
+        var r = ResolveFilename(base64filename, userId, autoWatch);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
         {
             return StatusCode((int)r.Status, r.StatusDescription);
         }
 
-        Response.Headers.Add("Server", SERVER_VERSION);
-        Response.Headers.Add("Accept-Ranges", "bytes");
-        Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Length - 1) + "/" + r.File.Length);
+        Response.Headers.Append("Server", SERVER_VERSION);
+        Response.Headers.Append("Accept-Ranges", "bytes");
+        Response.Headers.Append("Content-Range", "bytes 0-" + (r.File.Length - 1) + "/" + r.File.Length);
         Response.ContentType = r.Mime;
         Response.ContentLength = r.File.Length;
         Response.StatusCode = (int)r.Status;
@@ -215,10 +214,10 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         public string Mime { get; set; }
     }
 
-    private InfoResult ResolveVideoLocal(int videolocalid, int? userId, bool? autowatch)
+    private static InfoResult ResolveVideoLocal(int videoLocalId, int? userId, bool? autoWatch)
     {
         var r = new InfoResult();
-        var loc = RepoFactory.VideoLocal.GetByID(videolocalid);
+        var loc = RepoFactory.VideoLocal.GetByID(videoLocalId);
         if (loc == null)
         {
             r.Status = HttpStatusCode.BadRequest;
@@ -228,19 +227,16 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
 
         r.VideoLocal = loc;
         r.File = loc.FirstResolvedPlace?.GetFile();
-        return FinishResolve(r, userId, autowatch);
+        return FinishResolve(r, userId, autoWatch);
     }
 
     public static string Base64DecodeUrl(string base64EncodedData)
     {
-        var base64EncodedBytes =
-            Convert.FromBase64String(base64EncodedData.Replace("-", "+")
-                .Replace("_", "/")
-                .Replace(",", "="));
+        var base64EncodedBytes = Convert.FromBase64String(base64EncodedData.Replace("-", "+").Replace("_", "/").Replace(",", "="));
         return Encoding.UTF8.GetString(base64EncodedBytes);
     }
 
-    private InfoResult FinishResolve(InfoResult r, int? userId, bool? autowatch)
+    private static InfoResult FinishResolve(InfoResult r, int? userId, bool? autoWatch)
     {
         if (r.File == null)
         {
@@ -249,7 +245,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
             return r;
         }
 
-        if (userId.HasValue && autowatch.HasValue && userId.Value != 0)
+        if (userId.HasValue && autoWatch.HasValue && userId.Value != 0)
         {
             r.User = RepoFactory.JMMUser.GetByID(userId.Value);
             if (r.User == null)
@@ -265,12 +261,12 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         return r;
     }
 
-    private InfoResult ResolveFilename(string filenamebase64, int? userId, bool? autowatch)
+    private static InfoResult ResolveFilename(string base64, int? userId, bool? autoWatch)
     {
         var r = new InfoResult();
-        var fullname = Base64DecodeUrl(filenamebase64);
+        var fullName = Base64DecodeUrl(base64);
         r.VideoLocal = null;
-        r.File = new FileInfo(fullname);
-        return FinishResolve(r, userId, autowatch);
+        r.File = new FileInfo(fullName);
+        return FinishResolve(r, userId, autoWatch);
     }
 }

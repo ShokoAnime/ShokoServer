@@ -16,7 +16,7 @@ public class GroupAwareRenamer : IRenamer
     internal const string RENAMER_ID = nameof(GroupAwareRenamer);
 
     // Defer to whatever else
-    public string GetFilename(RenameEventArgs args)
+    public string GetFilename(MoveEventArgs args)
     {
         // Terrible hack to make it forcefully return Legacy Renamer
         var legacy = (IRenamer)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, typeof(LegacyRenamer));
@@ -25,17 +25,18 @@ public class GroupAwareRenamer : IRenamer
 
     public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
     {
-        if (args?.EpisodeInfo == null)
+        if (args?.Episodes == null)
         {
             throw new ArgumentException("File is unrecognized. Not Moving");
         }
 
         // get the series
-        var series = args.AnimeInfo?.FirstOrDefault();
+        var series = args.Series?.FirstOrDefault();
 
         if (series == null)
         {
             throw new ArgumentException("Series cannot be found for file");
+            
         }
 
         // replace the invalid characters
@@ -45,7 +46,7 @@ public class GroupAwareRenamer : IRenamer
             throw new ArgumentException("Series Name is null or empty");
         }
 
-        var group = args.GroupInfo?.FirstOrDefault();
+        var group = args.Groups?.FirstOrDefault();
         if (group == null)
         {
             throw new ArgumentException("Group could not be found for file");
@@ -58,7 +59,7 @@ public class GroupAwareRenamer : IRenamer
         }
         else
         {
-            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.Name);
+            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.DefaultTitle);
             path = Path.Combine(groupName, name);
         }
 

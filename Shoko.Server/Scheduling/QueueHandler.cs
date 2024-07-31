@@ -137,7 +137,7 @@ public class QueueHandler
     public async ValueTask<Dictionary<string, int>> GetJobCounts()
     {
         var jobs = await _jobStore.GetJobCounts();
-        return jobs.Where(a => typeof(BaseJob).IsAssignableFrom(a.Key)).Select(a => (_jobFactory.CreateJob(new JobDetail{ Name = Guid.NewGuid().ToString(), JobType = new JobType(a.Key)})?.TypeName, a.Value))
+        return jobs.Where(a => typeof(BaseJob).IsAssignableFrom(a.Key)).Select(a => (_jobFactory.CreateJob(new JobDetail(a.Key) { Name = Guid.NewGuid().ToString() })?.TypeName, a.Value))
             .Where(a => a.TypeName != null)
             .ToDictionary(a => a.TypeName, a => a.Value);
     }

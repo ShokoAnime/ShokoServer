@@ -2,7 +2,7 @@ using NHibernate;
 using NHibernate.SqlCommand;
 using NLog;
 
-namespace Shoko.Server.Databases.NHIbernate;
+namespace Shoko.Server.Databases.NHibernate;
 
 public class NLogInterceptor : EmptyInterceptor
 {

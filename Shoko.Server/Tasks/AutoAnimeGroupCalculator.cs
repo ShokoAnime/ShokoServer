@@ -187,7 +187,7 @@ public class AutoAnimeGroupCalculator
     }
 
     /// <summary>
-    /// Gets the ID of the anime represents the group containing the specified <see cref="animeId"/>.
+    /// Gets the ID of the anime represents the group containing the specified <paramref name="animeId"/>.
     /// </summary>
     /// <param name="animeId">The ID of the anime to get the group's anime ID for.</param>
     /// <returns>The group's representative anime ID. For anime that don't have any suitable relations,

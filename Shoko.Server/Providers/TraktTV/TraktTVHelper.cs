@@ -24,6 +24,7 @@ using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable SYSLIB0014
 namespace Shoko.Server.Providers.TraktTV;
 
 public class TraktTVHelper
@@ -115,7 +116,8 @@ public class TraktTVHelper
             if (webEx.Status == WebExceptionStatus.ProtocolError)
             {
                 if (webEx.Response is HttpWebResponse response)
-                    if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken && response.StatusCode == HttpStatusCode.BadRequest) {
+                    if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken && response.StatusCode == HttpStatusCode.BadRequest)
+                    {
                         {
                             _logger.LogError(webEx, "Error in SendData: {StatusCode}", (int)response.StatusCode);
                             ret = (int)response.StatusCode;
@@ -297,12 +299,12 @@ public class TraktTVHelper
 
     /*
      *  Trakt Auth Flow
-     *  
+     *
      *  1. Generate codes. Your app calls /oauth/device/code to generate new codes. Save this entire response for later use.
      *  2. Display the code. Display the user_code and instruct the user to visit the verification_url on their computer or mobile device.
-     *  3. Poll for authorization. Poll the /oauth/device/token method to see if the user successfully authorizes your app. 
+     *  3. Poll for authorization. Poll the /oauth/device/token method to see if the user successfully authorizes your app.
      *     Use the device_code and poll at the interval (in seconds) to check if the user has authorized your app.
-     *     Use expires_in to stop polling after that many seconds, and gracefully instruct the user to restart the process. 
+     *     Use expires_in to stop polling after that many seconds, and gracefully instruct the user to restart the process.
      *     It is important to poll at the correct interval and also stop polling when expired.
      *     Status Codes
      *     This method will send various HTTP status codes that you should handle accordingly.
@@ -314,8 +316,8 @@ public class TraktTVHelper
      *     410 	Expired - the tokens have expired, restart the process
      *     418 	Denied - user explicitly denied this code
      *     429 	Slow Down - your app is polling too quickly
-     *  4. Successful authorization. 
-     *     When you receive a 200 success response, save the access_token so your app can authenticate the user in methods that require it. 
+     *  4. Successful authorization.
+     *     When you receive a 200 success response, save the access_token so your app can authenticate the user in methods that require it.
      *     The access_token is valid for 3 months.
      */
 
@@ -403,7 +405,7 @@ public class TraktTVHelper
                         break;
                     case TraktStatusCodes.Awaiting_Auth:
                         // Signaling the user that auth is still pending
-                        _logger.LogInformation (response, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
+                        _logger.LogInformation(response, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
                         break;
                     case TraktStatusCodes.Token_Expired:
                         // Signaling the user that Token has expired and restart is needed
@@ -523,7 +525,8 @@ public class TraktTVHelper
 
     public void ScanForMatches()
     {
-        if (!_settingsProvider.GetSettings().TraktTv.Enabled)
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || !settings.TvDB.AutoLink)
         {
             return;
         }
@@ -649,11 +652,11 @@ public class TraktTVHelper
                         if (dictTraktSeasons != null && dictTraktSeasons.TryGetValue(xrefBase.TraktSeasonNumber, out var traktSeason))
                         {
                             int episodeNumber;
-                            
+
                             if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
                             {
                                 // The Trakt and AniDB start episode numbers match
-                                episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
+                                episodeNumber = traktSeason - xrefBase.TraktStartEpisodeNumber + ep.EpisodeNumber;
                             }
                             else
                             {
@@ -662,7 +665,7 @@ public class TraktTVHelper
                                                 (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
                                                 (xrefBase.AniDBStartEpisodeNumber - 1);
                             }
-                            
+
                             if (dictTraktEpisodes.TryGetValue(episodeNumber, out var traktep))
                             {
                                 traktID = xrefBase.TraktID;
@@ -727,11 +730,11 @@ public class TraktTVHelper
                     if (dictTraktSeasons != null && dictTraktSeasons.TryGetValue(xrefBase.TraktSeasonNumber, out var traktSeason))
                     {
                         int episodeNumber;
-                        
+
                         if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
-                        { 
+                        {
                             // The Trakt and AniDB start episode numbers match
-                            episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
+                            episodeNumber = traktSeason - xrefBase.TraktStartEpisodeNumber + ep.EpisodeNumber;
                         }
                         else
                         {
@@ -740,7 +743,7 @@ public class TraktTVHelper
                                             (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
                                             (xrefBase.AniDBStartEpisodeNumber - 1);
                         }
-                        
+
                         if (dictTraktEpisodes != null && dictTraktEpisodes.TryGetValue(episodeNumber, out var traktep))
                         {
                             traktID = xrefBase.TraktID;
@@ -1497,7 +1500,7 @@ public class TraktTVHelper
                 counter++;
                 _logger.LogTrace("Syncing check -  local collection: {Counter} / {Count} - {Name}", counter,
                     allSeries.Count,
-                    series.SeriesName);
+                    series.PreferredTitle);
 
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
                 if (anime == null)

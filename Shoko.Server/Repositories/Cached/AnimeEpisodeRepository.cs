@@ -175,8 +175,8 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .ToList();
         all.Sort((a1, a2) =>
         {
-            var name1 = a1.AnimeSeries?.SeriesName;
-            var name2 = a2.AnimeSeries?.SeriesName;
+            var name1 = a1.AnimeSeries?.PreferredTitle;
+            var name2 = a2.AnimeSeries?.PreferredTitle;
 
             if (!string.IsNullOrEmpty(name1) && !string.IsNullOrEmpty(name2))
             {

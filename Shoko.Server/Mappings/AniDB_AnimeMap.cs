@@ -33,7 +33,9 @@ public class AniDB_AnimeMap : ClassMap<SVR_AniDB_Anime>
         Map(x => x.AvgReviewRating).Not.Nullable();
         Map(x => x.BeginYear).Not.Nullable();
         Map(x => x.DateTimeDescUpdated).Not.Nullable();
+#pragma warning disable CS0618
         Map(x => x.DateTimeUpdated).Not.Nullable();
+#pragma warning restore CS0618
         Map(x => x.Description).CustomType("StringClob").Not.Nullable();
         Map(x => x.EndDate);
         Map(x => x.EndYear).Not.Nullable();

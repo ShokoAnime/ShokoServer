@@ -31,7 +31,7 @@ public class Queue
     /// <summary>
     /// The currently executing jobs and their details
     /// </summary>
-    public List<QueueItem> CurrentlyExecuting { get; set; }
+    public List<QueueItem> CurrentlyExecuting { get; set; } = [];
 
     public class QueueItem
     {
@@ -40,22 +40,22 @@ public class Queue
         /// queue items over the life span of the queue, but only one item will
         /// exist with the same name at any given time.
         /// </summary>
-        public string Key { get; init; }
+        public string Key { get; init; } = string.Empty;
 
         /// <summary>
         /// The queue item type.
         /// </summary>
-        public string Type { get; init; }
+        public string Type { get; init; } = string.Empty;
 
         /// <summary>
         /// The Title line of a Queue Item, e.g. Hashing File
         /// </summary>
-        public string Title { get; init; }
+        public string Title { get; init; } = string.Empty;
 
         /// <summary>
         /// The details of the queue item. e.g. { "File Path": "/mnt/Drop/Steins Gate/Episode 1.mkv" }
         /// </summary>
-        public Dictionary<string, object> Details { get; init; }
+        public Dictionary<string, object> Details { get; init; } = [];
 
         /// <summary>
         /// Indicates the item is currently actively running in the queue.

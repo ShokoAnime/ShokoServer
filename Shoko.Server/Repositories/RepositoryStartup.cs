@@ -13,7 +13,7 @@ public static class RepositoryStartup
         services.AddSingleton<RepoFactory>();
         services.AddSingleton<DatabaseFactory>();
         services.AddDirectRepository<AniDB_AnimeUpdateRepository>();
-        
+
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
         services.AddDirectRepository<AniDB_Anime_SimilarRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
@@ -22,13 +22,31 @@ public static class RepositoryStartup
         services.AddDirectRepository<BookmarkedAnimeRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
         services.AddDirectRepository<IgnoreAnimeRepository>();
-        services.AddDirectRepository<MovieDB_PosterRepository>();
-        services.AddDirectRepository<MovieDb_MovieRepository>();
         services.AddDirectRepository<PlaylistRepository>();
         services.AddDirectRepository<RenameScriptRepository>();
         services.AddDirectRepository<ScanFileRepository>();
         services.AddDirectRepository<ScanRepository>();
         services.AddDirectRepository<ScheduledUpdateRepository>();
+        services.AddDirectRepository<TMDB_AlternateOrdering_EpisodeRepository>();
+        services.AddDirectRepository<TMDB_AlternateOrdering_SeasonRepository>();
+        services.AddDirectRepository<TMDB_AlternateOrderingRepository>();
+        services.AddDirectRepository<TMDB_Collection_MovieRepository>();
+        services.AddDirectRepository<TMDB_CollectionRepository>();
+        services.AddDirectRepository<TMDB_Company_EntityRepository>();
+        services.AddDirectRepository<TMDB_CompanyRepository>();
+        services.AddDirectRepository<TMDB_Episode_CastRepository>();
+        services.AddDirectRepository<TMDB_Episode_CrewRepository>();
+        services.AddDirectRepository<TMDB_EpisodeRepository>();
+        services.AddDirectRepository<TMDB_Movie_CastRepository>();
+        services.AddDirectRepository<TMDB_Movie_CrewRepository>();
+        services.AddDirectRepository<TMDB_MovieRepository>();
+        services.AddDirectRepository<TMDB_NetworkRepository>();
+        services.AddDirectRepository<TMDB_OverviewRepository>();
+        services.AddDirectRepository<TMDB_PersonRepository>();
+        services.AddDirectRepository<TMDB_SeasonRepository>();
+        services.AddDirectRepository<TMDB_Show_NetworkRepository>();
+        services.AddDirectRepository<TMDB_ShowRepository>();
+        services.AddDirectRepository<TMDB_TitleRepository>();
         services.AddDirectRepository<Trakt_EpisodeRepository>();
         services.AddDirectRepository<Trakt_SeasonRepository>();
         services.AddDirectRepository<Trakt_ShowRepository>();
@@ -38,12 +56,13 @@ public static class RepositoryStartup
 
         services.AddCachedRepository<AniDB_AnimeRepository>();
         services.AddCachedRepository<AniDB_Anime_CharacterRepository>();
-        services.AddCachedRepository<AniDB_Anime_DefaultImageRepository>();
+        services.AddCachedRepository<AniDB_Anime_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Anime_TagRepository>();
         services.AddCachedRepository<AniDB_Anime_TitleRepository>();
         services.AddCachedRepository<AniDB_CharacterRepository>();
         services.AddCachedRepository<AniDB_Character_SeiyuuRepository>();
         services.AddCachedRepository<AniDB_EpisodeRepository>();
+        services.AddCachedRepository<AniDB_Episode_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
         services.AddCachedRepository<AniDB_FileRepository>();
         services.AddCachedRepository<AniDB_ReleaseGroupRepository>();
@@ -60,7 +79,9 @@ public static class RepositoryStartup
         services.AddCachedRepository<AnimeStaffRepository>();
         services.AddCachedRepository<AuthTokensRepository>();
         services.AddCachedRepository<CrossRef_AniDB_MALRepository>();
-        services.AddCachedRepository<CrossRef_AniDB_OtherRepository>();
+        services.AddCachedRepository<CrossRef_AniDB_TMDB_EpisodeRepository>();
+        services.AddCachedRepository<CrossRef_AniDB_TMDB_MovieRepository>();
+        services.AddCachedRepository<CrossRef_AniDB_TMDB_ShowRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TraktV2Repository>();
         services.AddCachedRepository<CrossRef_AniDB_TvDBRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TvDB_EpisodeRepository>();
@@ -74,7 +95,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();
-        services.AddCachedRepository<MovieDB_FanartRepository>();
+        services.AddCachedRepository<TMDB_ImageRepository>();
         services.AddCachedRepository<TvDB_EpisodeRepository>();
         services.AddCachedRepository<TvDB_ImageFanartRepository>();
         services.AddCachedRepository<TvDB_ImagePosterRepository>();

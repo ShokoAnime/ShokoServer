@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime;
-using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using NLog;
 using Shoko.Models.PlexAndKodi;
@@ -594,7 +593,6 @@ public static class MediaInfoParserInternal
         _mInstance = null;
     }
 
-    [HandleProcessCorruptedStateExceptions]
     private static Media GetMediaInfo(string filename)
     {
         lock (Lock)
@@ -722,7 +720,7 @@ public static class MediaInfoParserInternal
                     }
                     catch (Exception e)
                     {
-                        _logger.Error($"Unable to parse video stream in {filename}");
+                        _logger.Error(e, $"Unable to parse video stream in {filename}");
                     }
                 }
             }
@@ -774,7 +772,7 @@ public static class MediaInfoParserInternal
                     }
                     catch (Exception e)
                     {
-                        _logger.Error($"Unable to parse audio stream in {filename}");
+                        _logger.Error(e, $"Unable to parse audio stream in {filename}");
                     }
                 }
             }
@@ -806,7 +804,7 @@ public static class MediaInfoParserInternal
                     }
                     catch (Exception e)
                     {
-                        _logger.Error($"Unable to parse subtitle stream in {filename}");
+                        _logger.Error(e, $"Unable to parse subtitle stream in {filename}");
                     }
                 }
             }

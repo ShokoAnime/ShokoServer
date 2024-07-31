@@ -12,6 +12,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories.Cached;
 using Media = Shoko.Models.PlexAndKodi.Media;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Services;
 
 public class VideoLocalService
@@ -59,7 +60,7 @@ public class VideoLocalService
             HashSource = vl.HashSource,
             IsIgnored = vl.IsIgnored ? 1 : 0,
             IsVariation = vl.IsVariation ? 1 : 0,
-            Duration = (long) (vl.MediaInfo?.GeneralStream.Duration ?? 0),
+            Duration = (long)(vl.MediaInfo?.GeneralStream.Duration ?? 0),
             MD5 = vl.MD5,
             SHA1 = vl.SHA1,
             VideoLocalID = vl.VideoLocalID,
@@ -101,7 +102,12 @@ public class VideoLocalService
         var userRecord = _vlUsers.GetByUserIDAndVideoLocalID(userID, vl.VideoLocalID);
         var aniFile = vl.AniDBFile; // to prevent multiple db calls
         var relGroup = vl.ReleaseGroup; // to prevent multiple db calls
-        var cl = new CL_VideoDetailed { Percentage = xrefs[0].Percentage, EpisodeOrder = xrefs[0].EpisodeOrder, CrossRefSource = xrefs[0].CrossRefSource, AnimeEpisodeID = xrefs[0].EpisodeID,
+        var cl = new CL_VideoDetailed
+        {
+            Percentage = xrefs[0].Percentage,
+            EpisodeOrder = xrefs[0].EpisodeOrder,
+            CrossRefSource = xrefs[0].CrossRefSource,
+            AnimeEpisodeID = xrefs[0].EpisodeID,
             VideoLocal_FileName = vl.FileName,
             VideoLocal_Hash = vl.Hash,
             VideoLocal_FileSize = vl.FileSize,
@@ -125,7 +131,7 @@ public class VideoLocalService
             VideoInfo_VideoFrameRate = vl.MediaInfo?.VideoStream?.FrameRate.ToString(),
             VideoInfo_VideoResolution = vl.VideoResolution,
             AniDB_File_FileExtension = Path.GetExtension(aniFile?.FileName) ?? string.Empty,
-            AniDB_File_LengthSeconds = (int?) vl.MediaInfo?.General?.Duration ?? 0,
+            AniDB_File_LengthSeconds = (int?)vl.MediaInfo?.General?.Duration ?? 0,
             AniDB_AnimeID = xrefs.FirstOrDefault()?.AnimeID,
             AniDB_CRC = vl.CRC32,
             AniDB_MD5 = vl.MD5,

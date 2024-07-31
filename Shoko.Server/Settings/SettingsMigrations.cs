@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 
 namespace Shoko.Server.Settings;
 
@@ -40,7 +43,8 @@ public static class SettingsMigrations
         { 3, MigrateAutoGroupRelations },
         { 4, MigrateHostnameToHost },
         { 5, MigrateAutoGroupRelationsAlternateToAlternative },
-        { 6, MigrateAniDBServerAddresses }
+        { 6, MigrateAniDBServerAddresses },
+        { 7, MigrateLanguageSettings },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -96,13 +100,40 @@ public static class SettingsMigrations
 
         if (currentSettings["AniDb"] is null)
             return settings;
-        
+
         var serverAddress = currentSettings["AniDb"]["ServerAddress"]?.Value<string>() ?? "api.anidb.net";
-        var serverPort = currentSettings["AniDb"]["ServerPort"]?.Value<ushort>() ?? 9001;
-        
+        var serverPort = currentSettings["AniDb"]["ServerPort"]?.Value<ushort>() ?? 9000;
+
         currentSettings["AniDb"]["HTTPServerUrl"] = $"http://{serverAddress}:{serverPort + 1}";
         currentSettings["AniDb"]["UDPServerAddress"] = serverAddress;
         currentSettings["AniDb"]["UDPServerPort"] = serverPort;
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateLanguageSettings(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["Language"] is not null)
+            return settings;
+
+        var seriesTitlePreference = (currentSettings["LanguagePreference"] as JArray)?.Values<string>() ?? [];
+        var episodeTitlePreference = (currentSettings["EpisodeLanguagePreference"] as JArray)?.Values<string>() ?? [];
+        var language = new LanguageSettings
+        {
+            UseSynonyms = currentSettings["LanguageUseSynonyms"]?.Value<bool>() ?? false,
+            SeriesTitleLanguageOrder = seriesTitlePreference
+                .Select(val => val.GetTitleLanguage())
+                .Except([TitleLanguage.None, TitleLanguage.Unknown])
+                .Select(val => val.GetString())
+                .ToList(),
+            EpisodeTitleLanguageOrder = episodeTitlePreference
+                .Select(val => val.GetTitleLanguage())
+                .Except([TitleLanguage.None, TitleLanguage.Unknown])
+                .Select(val => val.GetString())
+                .ToList(),
+        };
+        currentSettings["Language"] = JObject.Parse(JsonConvert.SerializeObject(language));
 
         return currentSettings.ToString();
     }

@@ -13,17 +13,19 @@ namespace Shoko.Server.Scheduling.GenericJobBuilder;
 
 public class JobKeyBuilder<T> where T : class, IJob
 {
-    private static readonly HashSet<Type> _allowedTypes = new()
-    {
+    private static readonly HashSet<Type> _allowedTypes =
+    [
         typeof(string), typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(bool), typeof(byte), typeof(sbyte),
         typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(char),
         typeof(double), typeof(float), typeof(decimal)
-    };
-    private JobDataMap _jobDataMap = new JobDataMap();
+    ];
+
+    private readonly JobDataMap _jobDataMap = new();
+
     private string? _group;
-    
+
     /// <summary>
-    /// Create a JobKeyBuilder with which to define a <see cref="JobKey" /> that matches <see cref="IdentityExtensions.WithGeneratedIdentity{T}(string)"/>
+    /// Create a JobKeyBuilder with which to define a <see cref="JobKey" /> that matches <see cref="IdentityExtensions.WithGeneratedIdentity{T}(IJobConfiguratorWithData{T}, string?)"/>
     /// </summary>
     /// <returns>a new JobKeyBuilder</returns>
     public static JobKeyBuilder<T> Create()
@@ -148,7 +150,7 @@ public class JobKeyBuilder<T> where T : class, IJob
         UsingJobData(map);
         return this;
     }
-    
+
     public JobKey Build()
     {
         var type = typeof(T);

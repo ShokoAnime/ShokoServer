@@ -1,7 +1,14 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.Models.TMDB;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>
@@ -10,21 +17,16 @@ namespace Shoko.Server.API.v3.Models.Common;
 public class Role
 {
     /// <summary>
-    /// Most will be Japanese. Once AniList is in, it will have multiple options
+    /// The character played, if applicable
     /// </summary>
-    [Required]
-    public string Language { get; set; }
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public Person? Character { get; set; }
 
     /// <summary>
     /// The person who plays a character, writes the music, etc.
     /// </summary>
     [Required]
     public Person Staff { get; set; }
-
-    /// <summary>
-    /// The character played, if applicable
-    /// </summary>
-    public Person Character { get; set; }
 
     /// <summary>
     /// The role that the staff plays, cv, writer, director, etc
@@ -35,7 +37,148 @@ public class Role
     /// <summary>
     /// Extra info about the role. For example, role can be voice actor, while role_details is Main Character
     /// </summary>
-    public string RoleDetails { get; set; }
+    [Required]
+    public string RoleDetails { get; set; } = string.Empty;
+
+    public Role(CrossRef_Anime_Staff xref, AnimeStaff staff, AnimeCharacter? character)
+    {
+        Character = character == null ? null : new()
+        {
+            Name = character.Name,
+            AlternateName = character.AlternateName,
+            Description = character.Description,
+            Image = new Image(character.CharacterID, ImageEntityType.Character, DataSourceType.Shoko),
+        };
+        Staff = new()
+        {
+            Name = staff.Name,
+            AlternateName = staff.AlternateName,
+            Description = staff.Description,
+            Image = staff.ImagePath != null ? new Image(staff.StaffID, ImageEntityType.Person, DataSourceType.Shoko) : null,
+        };
+        RoleName = (CreatorRoleType)xref.RoleType;
+        RoleDetails = xref.Role;
+    }
+
+    public Role(TMDB_Movie_Cast cast)
+    {
+        var person = cast.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = CreatorRoleType.Seiyuu;
+        RoleDetails = "Character";
+    }
+
+    public Role(TMDB_Show_Cast cast)
+    {
+        var person = cast.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = CreatorRoleType.Seiyuu;
+        RoleDetails = "Character";
+    }
+
+    public Role(TMDB_Season_Cast cast)
+    {
+        var person = cast.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = CreatorRoleType.Seiyuu;
+        RoleDetails = "Character";
+    }
+
+    public Role(TMDB_Episode_Cast cast)
+    {
+        var person = cast.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = CreatorRoleType.Seiyuu;
+        RoleDetails = "Character";
+    }
+
+    public Role(TMDB_Movie_Crew crew)
+    {
+        var person = crew.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = crew.ToCreatorRole();
+        RoleDetails = $"{crew.Department}, ${crew.Job}";
+    }
+
+    public Role(TMDB_Show_Crew crew)
+    {
+        var person = crew.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = crew.ToCreatorRole();
+        RoleDetails = $"{crew.Department}, ${crew.Job}";
+    }
+
+    public Role(TMDB_Season_Crew crew)
+    {
+        var person = crew.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = crew.ToCreatorRole();
+        RoleDetails = $"{crew.Department}, ${crew.Job}";
+    }
+
+    public Role(TMDB_Episode_Crew crew)
+    {
+        var person = crew.GetTmdbPerson();
+        var personImages = person.GetImages();
+        Staff = new()
+        {
+            Name = person.EnglishName,
+            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            Description = person.EnglishBiography,
+            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+        };
+        RoleName = crew.ToCreatorRole();
+        RoleDetails = $"{crew.Department}, ${crew.Job}";
+    }
 
     /// <summary>
     /// A generic person object with the name, altname, description, and image
@@ -47,24 +190,24 @@ public class Role
         /// ex. Sawano Hiroyuki
         /// </summary>
         [Required]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Alternate Name, this can be any other name, whether kanji, an alias, etc
         /// ex. 澤野弘之
         /// </summary>
-        public string AlternateName { get; set; }
+        public string AlternateName { get; set; } = string.Empty;
 
         /// <summary>
         /// A description, bio, etc
         /// ex. Sawano Hiroyuki was born September 12, 1980 in Tokyo, Japan. He is a composer and arranger.
         /// </summary>
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         /// <summary>
         /// image object, usually a profile picture of sorts
         /// </summary>
-        public Image Image { get; set; }
+        public Image? Image { get; set; }
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -113,6 +256,6 @@ public class Role
         /// <summary>
         /// Responsible for the creation of the source work this show is detrived from.
         /// </summary>
-        SourceWork
+        SourceWork,
     }
 }

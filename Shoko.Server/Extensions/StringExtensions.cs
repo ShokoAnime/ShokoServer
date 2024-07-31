@@ -3,21 +3,45 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using Shoko.Commons.Extensions;
 
 namespace Shoko.Server.Extensions;
 
 public static class StringExtensions
 {
-    public static void Deconstruct(this IList<string> list, out string first, out string second, out string third, out string forth, out IList<string> rest) {
-        first = list.Count > 0 ? list[0] : "";
-        second = list.Count > 1 ? list[1] : "";
-        third = list.Count > 2 ? list[2] : "";
-        forth = list.Count > 3 ? list[3] : "";
-        rest = list.Skip(4).ToList();
+    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second)
+    {
+        first = list.Count > 0 ? list[0] : default;
+        second = list.Count > 1 ? list[1] : default;
+    }
+
+    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third)
+    {
+        first = list.Count > 0 ? list[0] : default;
+        second = list.Count > 1 ? list[1] : default;
+        third = list.Count > 2 ? list[2] : default;
+    }
+
+    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third, out T forth)
+    {
+        first = list.Count > 0 ? list[0] : default;
+        second = list.Count > 1 ? list[1] : default;
+        third = list.Count > 2 ? list[2] : default;
+        forth = list.Count > 3 ? list[3] : default;
+    }
+
+    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third, out T forth, out T fifth)
+    {
+        first = list.Count > 0 ? list[0] : default;
+        second = list.Count > 1 ? list[1] : default;
+        third = list.Count > 2 ? list[2] : default;
+        forth = list.Count > 3 ? list[3] : default;
+        fifth = list.Count > 4 ? list[4] : default;
     }
 
     public static string Join(this IEnumerable<string> list, char separator)
+        => string.Join(separator, list);
+
+    public static string Join(this IEnumerable<string> list, string separator)
         => string.Join(separator, list);
 
     public static string ToISO8601Date(this DateTime dt)
@@ -78,31 +102,23 @@ public static class StringExtensions
     {
         return value1.Equals(value2, StringComparison.InvariantCultureIgnoreCase);
     }
-    
-    public static string CamelCaseToNatural(this string text, bool preserveAcronyms=true)
+
+    public static string CamelCaseToNatural(this string text, bool preserveAcronyms = true)
     {
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;
-        StringBuilder newText = new StringBuilder(text.Length * 2);
+        var newText = new StringBuilder(text.Length * 2);
         newText.Append(text[0]);
-        for (int i = 1; i < text.Length; i++)
+        for (var i = 1; i < text.Length; i++)
         {
             if (char.IsUpper(text[i]))
                 if ((text[i - 1] != ' ' && !char.IsUpper(text[i - 1])) ||
-                    (preserveAcronyms && char.IsUpper(text[i - 1]) && 
+                    (preserveAcronyms && char.IsUpper(text[i - 1]) &&
                      i < text.Length - 1 && !char.IsUpper(text[i + 1])))
                     newText.Append(' ');
             newText.Append(text[i]);
         }
         return newText.ToString();
-    }
-    
-    public static string TrimStart(this string inputText, string value, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
-    {
-        if (string.IsNullOrEmpty(value)) return inputText;
-        while (!string.IsNullOrEmpty(inputText) && inputText.StartsWith(value, comparisonType)) inputText = inputText[(value.Length - 1)..];
-
-        return inputText;
     }
 
     public static string TrimEnd(this string inputText, string value, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
@@ -111,10 +127,5 @@ public static class StringExtensions
         while (!string.IsNullOrEmpty(inputText) && inputText.EndsWith(value, comparisonType)) inputText = inputText[..^value.Length];
 
         return inputText;
-    }
-
-    public static string Trim(this string inputText, string value, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
-    {
-        return TrimStart(TrimEnd(inputText, value, comparisonType), value, comparisonType);
     }
 }

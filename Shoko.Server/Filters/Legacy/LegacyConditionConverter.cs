@@ -31,7 +31,7 @@ public static class LegacyConditionConverter
         // treat null expression similar to All
         if (expression == null)
         {
-            conditions = new List<GroupFilterCondition>();
+            conditions = [];
             baseCondition = GroupFilterBaseCondition.Include;
             return true;
         }
@@ -39,7 +39,7 @@ public static class LegacyConditionConverter
         if (TryGetSingleCondition(expression, out var condition))
         {
             baseCondition = GroupFilterBaseCondition.Include;
-            conditions = new List<GroupFilterCondition> { condition };
+            conditions = [condition];
             return true;
         }
 
@@ -103,7 +103,9 @@ public static class LegacyConditionConverter
 
         condition = new GroupFilterCondition
         {
-            ConditionType = (int)GroupFilterConditionType.AnimeGroup, ConditionOperator = (int)conditionOperator, ConditionParameter = nameExpression.Parameter
+            ConditionType = (int)GroupFilterConditionType.AnimeGroup,
+            ConditionOperator = (int)conditionOperator,
+            ConditionParameter = nameExpression.Parameter,
         };
         return true;
     }
@@ -123,7 +125,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.MissingEpisodes
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.MissingEpisodes,
             };
             return true;
         }
@@ -132,7 +135,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting,
             };
             return true;
         }
@@ -141,7 +145,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
             };
             return true;
         }
@@ -150,7 +155,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes,
             };
             return true;
         }
@@ -159,7 +165,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.UserVoted
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.UserVoted,
             };
             return true;
         }
@@ -168,7 +175,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.UserVotedAny
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.UserVotedAny,
             };
             return true;
         }
@@ -177,16 +185,18 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedTvDBInfo
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.AssignedTvDBInfo,
             };
             return true;
         }
 
-        if (type == typeof(HasTMDbLinkExpression))
+        if (type == typeof(HasTmdbLinkExpression))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo,
             };
             return true;
         }
@@ -195,7 +205,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedTraktInfo
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.AssignedTraktInfo,
             };
             return true;
         }
@@ -204,7 +215,8 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.Favourite
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.Favourite,
             };
             return true;
         }
@@ -213,16 +225,18 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.FinishedAiring
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.FinishedAiring,
             };
             return true;
         }
 
-        if (type == typeof(HasTMDbLinkExpression))
+        if (type == typeof(HasTmdbLinkExpression))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo,
             };
             return true;
         }
@@ -231,16 +245,18 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.CompletedSeries
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.CompletedSeries,
             };
             return true;
         }
 
-        if (expression == new OrExpression(new HasTvDBLinkExpression(), new HasTMDbLinkExpression()))
+        if (expression == new OrExpression(new HasTvDBLinkExpression(), new HasTmdbLinkExpression()))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo
+                ConditionOperator = (int)conditionOperator,
+                ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo,
             };
             return true;
         }
@@ -494,73 +510,73 @@ public static class LegacyConditionConverter
 
     private static bool IsInTag(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasTagExpression), parameters);
     }
 
     private static bool IsInCustomTag(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasCustomTagExpression), parameters);
     }
 
     private static bool IsInAnimeType(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasAnimeTypeExpression), parameters);
     }
 
     private static bool IsInVideoQuality(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasVideoSourceExpression), parameters);
     }
 
     private static bool IsInSharedVideoQuality(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasSharedVideoSourceExpression), parameters);
     }
 
     private static bool IsInGroup(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasNameExpression), parameters);
     }
 
     private static bool IsInYear(FilterExpression expression, out List<int> parameters)
     {
-        parameters = new List<int>();
+        parameters = [];
         return TryParseIn(expression, typeof(InYearExpression), parameters);
     }
 
     private static bool IsInSeason(FilterExpression expression, out List<(int Year, string Season)> parameters)
     {
-        parameters = new List<(int, string)>();
+        parameters = [];
         return TryParseIn(expression, typeof(InSeasonExpression), parameters);
     }
 
     private static bool IsInAudioLanguage(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasAudioLanguageExpression), parameters);
     }
 
     private static bool IsInSubtitleLanguage(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasSubtitleLanguageExpression), parameters);
     }
 
     private static bool IsInSharedAudioLanguage(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasSharedAudioLanguageExpression), parameters);
     }
 
     private static bool IsInSharedSubtitleLanguage(FilterExpression expression, out List<string> parameters)
     {
-        parameters = new List<string>();
+        parameters = [];
         return TryParseIn(expression, typeof(HasSharedSubtitleLanguageExpression), parameters);
     }
 
@@ -620,7 +636,7 @@ public static class LegacyConditionConverter
 
     }
 
-    private static bool TryParseIn<T,T1>(FilterExpression expression, Type type, List<(T, T1)> parameters)
+    private static bool TryParseIn<T, T1>(FilterExpression expression, Type type, List<(T, T1)> parameters)
     {
         if (expression is OrExpression or) return TryParseIn(or.Left, type, parameters) && TryParseIn(or.Right, type, parameters);
         if (expression.GetType() != type) return false;
@@ -763,7 +779,7 @@ public static class LegacyConditionConverter
     {
         // forward compatibility is easier. Just map the old conditions to an expression
         if (conditions == null || conditions.Count < 1) return null;
-        var first = conditions.Select((a, index) => new {Expression= GetExpression(a, suppressErrors), Index=index}).FirstOrDefault(a => a.Expression != null);
+        var first = conditions.Select((a, index) => new { Expression = GetExpression(a, suppressErrors), Index = index }).FirstOrDefault(a => a.Expression != null);
         if (first == null) return null;
         if (baseCondition == GroupFilterBaseCondition.Exclude)
         {
@@ -829,12 +845,12 @@ public static class LegacyConditionConverter
                 return new NotExpression(new HasTvDBLinkExpression());
             case GroupFilterConditionType.AssignedMovieDBInfo:
                 if (op == GroupFilterOperator.Include)
-                    return new HasTMDbLinkExpression();
-                return new NotExpression(new HasTMDbLinkExpression());
+                    return new HasTmdbLinkExpression();
+                return new NotExpression(new HasTmdbLinkExpression());
             case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
                 if (op == GroupFilterOperator.Include)
-                    return new OrExpression(new HasTvDBLinkExpression(), new HasTMDbLinkExpression());
-                return new NotExpression(new OrExpression(new HasTvDBLinkExpression(), new HasTMDbLinkExpression()));
+                    return new OrExpression(new HasTvDBLinkExpression(), new HasTmdbLinkExpression());
+                return new NotExpression(new OrExpression(new HasTvDBLinkExpression(), new HasTmdbLinkExpression()));
             case GroupFilterConditionType.AssignedTraktInfo:
                 if (op == GroupFilterOperator.Include)
                     return new HasTraktLinkExpression();
@@ -957,27 +973,20 @@ public static class LegacyConditionConverter
     {
         if (string.IsNullOrEmpty(sorting)) return new NameSortingSelector();
         var sortCriteriaList = new List<GroupFilterSortingCriteria>();
-        var scrit = sorting.Split('|');
-        foreach (var sortpair in scrit)
+        foreach (var pair in sorting.Split('|').Select(a => a.Split(';')))
         {
-            var spair = sortpair.Split(';');
-            if (spair.Length != 2)
-            {
+            if (pair.Length != 2)
                 continue;
-            }
 
-            int.TryParse(spair[0], out var stype);
-            int.TryParse(spair[1], out var sdir);
-
-            if (stype > 0 && sdir > 0)
+            if (int.TryParse(pair[0], out var filterSorting) && filterSorting > 0 && int.TryParse(pair[1], out var sortDirection) && sortDirection > 0)
             {
-                var gfsc = new GroupFilterSortingCriteria
+                var criteria = new GroupFilterSortingCriteria
                 {
                     GroupFilterID = 0,
-                    SortType = (GroupFilterSorting)stype,
-                    SortDirection = (GroupFilterSortDirection)sdir
+                    SortType = (GroupFilterSorting)filterSorting,
+                    SortDirection = (GroupFilterSortDirection)sortDirection
                 };
-                sortCriteriaList.Add(gfsc);
+                sortCriteriaList.Add(criteria);
             }
         }
 

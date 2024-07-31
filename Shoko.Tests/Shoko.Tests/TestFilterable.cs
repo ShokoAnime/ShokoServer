@@ -20,8 +20,8 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; init; }
     public bool HasTvDBLink { get; init; }
     public bool HasMissingTvDbLink { get; init; }
-    public bool HasTMDbLink { get; init; }
-    public bool HasMissingTMDbLink { get; init; }
+    public bool HasTmdbLink { get; init; }
+    public bool HasMissingTmdbLink { get; init; }
     public bool HasTraktLink { get; init; }
     public bool HasMissingTraktLink { get; init; }
     public bool IsFinished { get; init; }

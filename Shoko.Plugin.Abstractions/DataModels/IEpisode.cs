@@ -1,15 +1,20 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
-public interface IEpisode : IWithTitles, IWithDescriptions, IMetadata<int>
+public interface IEpisode : IWithTitles, IWithDescriptions, IWithImages, IMetadata<int>
 {
     /// <summary>
-    /// The AniDB Anime ID.
+    /// The series id.
     /// </summary>
     int SeriesID { get; }
+
+    /// <summary>
+    /// The shoko episode ID, if we have any.
+    /// </summary>
+    IReadOnlyList<int> ShokoEpisodeIDs { get; }
 
     /// <summary>
     /// The episode type.
@@ -42,9 +47,9 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IMetadata<int>
     ISeries? SeriesInfo { get; }
 
     /// <summary>
-    /// All episodes linked to this entity.
+    /// All shoko episodes linked to this episode.
     /// </summary>
-    IReadOnlyList<IEpisode> LinkedEpisodes { get; }
+    IReadOnlyList<IShokoEpisode> ShokoEpisodes { get; }
 
     /// <summary>
     /// All cross-references linked to the episode.
@@ -55,32 +60,4 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IMetadata<int>
     /// Get all videos linked to the episode, if any.
     /// </summary>
     IReadOnlyList<IVideo> VideoList { get; }
-
-    #region To-be-removed
-
-    /// <summary>
-    /// The AniDB Episode ID.
-    /// </summary>
-    [Obsolete("Use ID instead.")]
-    int EpisodeID { get; }
-
-    /// <summary>
-    /// The AniDB Anime ID.
-    /// </summary>
-    [Obsolete("Use ShowID instead.")]
-    int AnimeID { get; }
-
-    /// <summary>
-    /// The runtime of the episode, in seconds.
-    /// </summary>
-    [Obsolete("Use Runtime instead.")]
-    int Duration { get; }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    [Obsolete("Use EpisodeNumber instead.")]
-    int Number { get; }
-
-    #endregion
 }

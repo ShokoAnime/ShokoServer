@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Utils;
-using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -60,17 +60,17 @@ public class Episode : BaseDirectory
     {
         var ep = new Episode { id = aep.AnimeEpisodeID, art = new ArtCollection() };
 
-        if (aep.AniDB_Episode != null)
+        if (aep.AniDB_Episode is not null)
         {
             ep.eptype = aep.EpisodeTypeEnum.ToString();
             ep.aid = aep.AniDB_Episode.AnimeID;
             ep.eid = aep.AniDB_Episode.EpisodeID;
         }
 
-        var userrating = aep.UserRating;
-        if (userrating > 0)
+        var userRating = aep.UserRating;
+        if (userRating > 0)
         {
-            ep.userrating = userrating.ToString(CultureInfo.InvariantCulture);
+            ep.userrating = userRating.ToString(CultureInfo.InvariantCulture);
         }
 
         if (double.TryParse(ep.rating, out var rating))
@@ -100,36 +100,33 @@ public class Episode : BaseDirectory
             ep.epnumber = cae.EpisodeNumber;
         }
 
-        var tvep = aep.TvDBEpisode;
-
-        if (tvep != null)
+        var tvdbEpisode = aep.TvDBEpisode;
+        if (tvdbEpisode != null)
         {
-            if (!string.IsNullOrEmpty(tvep.EpisodeName))
+            if (!string.IsNullOrEmpty(tvdbEpisode.EpisodeName))
             {
-                ep.name = tvep.EpisodeName;
+                ep.name = tvdbEpisode.EpisodeName;
             }
 
             if (pic > 0)
             {
-                if (Misc.IsImageValid(tvep.GetFullImagePath()))
+                if (Misc.IsImageValid(tvdbEpisode.GetFullImagePath()))
                 {
                     ep.art.thumb.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Episode,
-                            tvep.Id)
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.Id),
                     });
                 }
 
-                var fanarts = aep.AnimeSeries?.AniDB_Anime?.AllFanarts;
+                var fanarts = aep.AnimeSeries?.AniDB_Anime?.GetImages(ImageEntityType.Backdrop);
                 if (fanarts is { Count: > 0 })
                 {
                     var cont_image =
                         fanarts[new Random().Next(fanarts.Count)];
                     ep.art.fanart.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                            cont_image.AniDB_Anime_DefaultImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType, cont_image.Source, cont_image.ID),
                         index = 0
                     });
                 }
@@ -138,24 +135,23 @@ public class Episode : BaseDirectory
                     ep.art.fanart.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Episode,
-                            tvep.Id)
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.Id),
                     });
                 }
             }
 
-            if (!string.IsNullOrEmpty(tvep.Overview))
+            if (!string.IsNullOrEmpty(tvdbEpisode.Overview))
             {
-                ep.summary = tvep.Overview;
+                ep.summary = tvdbEpisode.Overview;
             }
 
-            var zeroPadding = tvep.EpisodeNumber.ToString().Length;
-            var episodeNumber = tvep.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
-            zeroPadding = tvep.SeasonNumber.ToString().Length;
-            var seasonNumber = tvep.SeasonNumber.ToString().PadLeft(zeroPadding, '0');
+            var zeroPadding = tvdbEpisode.EpisodeNumber.ToString().Length;
+            var episodeNumber = tvdbEpisode.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
+            zeroPadding = tvdbEpisode.SeasonNumber.ToString().Length;
+            var seasonNumber = tvdbEpisode.SeasonNumber.ToString().PadLeft(zeroPadding, '0');
 
             ep.season = $"{seasonNumber}x{episodeNumber}";
-            var airdate = tvep.AirDate;
+            var airdate = tvdbEpisode.AirDate;
             if (airdate != null)
             {
                 ep.air = airdate.Value.ToISO8601Date();

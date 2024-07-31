@@ -2,8 +2,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -12,13 +14,8 @@ namespace Shoko.Server.API;
 
 public static class APIHelper
 {
-    public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, int type, int id, bool short_url = true)
-    {
-        var imgType = (ImageEntityType)type;
-        return ProperURL(ctx,
-            $"/api/v3/image/{Image.GetSourceFromType(imgType)}/{Image.GetSimpleTypeFromImageType(imgType)}/{id}",
-            short_url);
-    }
+    public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, ImageEntityType imageType, DataSourceEnum dataType, int id, bool short_url = true)
+         => ProperURL(ctx, $"/api/v3/image/{imageType.ToV3Dto()}/{dataType.ToV3Dto()}/{id}", short_url);
 
     public static string ProperURL(HttpContext ctx, string path, bool short_url = false)
     {

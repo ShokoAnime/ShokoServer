@@ -7,7 +7,7 @@ namespace Shoko.Plugin.Abstractions;
 /// </summary>
 public interface IRenamer
 {
-    string GetFilename(RenameEventArgs args);
+    string GetFilename(MoveEventArgs args);
 
     (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args);
 }

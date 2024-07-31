@@ -13,7 +13,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
@@ -21,6 +20,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
@@ -861,7 +861,7 @@ public class AnimeCreator
                         Name = chr.CharName,
                         AlternateName = rawchar.CharacterKanjiName,
                         Description = chr.CharDescription,
-                        ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
+                        ImagePath = chr.GetFullImagePath()?.Replace(charBasePath, "")
                     };
                     // we need an ID for xref
                     RepoFactory.AnimeCharacter.Save(character);
@@ -910,7 +910,7 @@ public class AnimeCreator
                                 // Unfortunately, most of the info is not provided
                                 AniDBID = seiyuu.SeiyuuID,
                                 Name = rawSeiyuu.SeiyuuName,
-                                ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
+                                ImagePath = seiyuu.GetFullImagePath()?.Replace(creatorBasePath, "")
                             };
                             // we need an ID for xref
                             RepoFactory.AnimeStaff.Save(staff);
@@ -1013,7 +1013,8 @@ public class AnimeCreator
                     staff = new AnimeStaff
                     {
                         // Unfortunately, most of the info is not provided
-                        AniDBID = rawStaff.CreatorID, Name = rawStaff.CreatorName
+                        AniDBID = rawStaff.CreatorID,
+                        Name = rawStaff.CreatorName,
                     };
                     // we need an ID for xref
                     RepoFactory.AnimeStaff.Save(staff);

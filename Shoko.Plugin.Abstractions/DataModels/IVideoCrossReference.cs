@@ -1,5 +1,7 @@
 
 #nullable enable
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
+
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IVideoCrossReference : IMetadata
@@ -51,4 +53,14 @@ public interface IVideoCrossReference : IMetadata
     /// The AniDB anime series, if available.
     /// </summary>
     ISeries? AnidbAnime { get; }
+
+    /// <summary>
+    /// The Shoko episode, if available.
+    /// </summary>
+    IShokoEpisode? ShokoEpisode { get; }
+
+    /// <summary>
+    /// The Shoko series, if available.
+    /// </summary>
+    IShokoSeries? ShokoSeries { get; }
 }

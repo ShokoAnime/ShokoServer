@@ -66,32 +66,20 @@ public class Group : BaseModel
 
     #region Constructors
 
-    public Group(HttpContext ctx, SVR_AnimeGroup group, bool randomiseImages = false)
+    public Group(SVR_AnimeGroup group, int userID = 0, bool randomizeImages = false)
     {
         var subGroupCount = group.Children.Count;
-        var userID = ctx.GetUser()?.JMMUserID ?? 0;
         var allSeries = group.AllSeries;
         var mainSeries = allSeries.FirstOrDefault();
-        var episodes = allSeries.SelectMany(a => a.AnimeEpisodes).ToList();
-
+        var episodes = allSeries.SelectMany(a => a.AllAnimeEpisodes).ToList();
         IDs = new GroupIDs { ID = group.AnimeGroupID };
         if (group.DefaultAnimeSeriesID != null)
-        {
             IDs.PreferredSeries = group.DefaultAnimeSeriesID.Value;
-        }
-
         if (mainSeries != null)
-        {
             IDs.MainSeries = mainSeries.AnimeSeriesID;
-        }
-
         if (group.AnimeGroupParentID.HasValue)
-        {
             IDs.ParentGroup = group.AnimeGroupParentID.Value;
-        }
-
         IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
-
         Name = group.GroupName;
         SortName = group.SortName;
         Description = group.Description;
@@ -99,10 +87,7 @@ public class Group : BaseModel
         Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
         HasCustomName = group.IsManuallyNamed == 1;
         HasCustomDescription = group.OverrideDescription == 1;
-
-        // TODO make a factory for this file. Not feeling it rn
-        var factory = ctx.RequestServices.GetRequiredService<SeriesFactory>();
-        Images = mainSeries == null ? new Images() : factory.GetDefaultImages(mainSeries, randomiseImages);
+        Images = mainSeries == null ? new Images() : mainSeries.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
     }
 
     #endregion
@@ -161,7 +146,7 @@ public class Group : BaseModel
             /// <summary>
             /// All the series to put into the group.
             /// </summary>
-            public List<int>? SeriesIDs { get; set; } = new();
+            public List<int>? SeriesIDs { get; set; } = null;
 
             /// <summary>
             /// All groups to put into the group as sub-groups.
@@ -170,7 +155,7 @@ public class Group : BaseModel
             /// If the parent group is a sub-group of any of the groups in this
             /// array, then the request will be aborted.
             /// </remarks>
-            public List<int>? GroupIDs { get; set; } = new();
+            public List<int>? GroupIDs { get; set; } = null;
 
             /// <summary>
             /// The group's custom name.
@@ -198,7 +183,7 @@ public class Group : BaseModel
             /// <remarks>
             /// Leave it as <c>null</c> to conditionally set the value if
             /// <see cref="Name"/> is set, or
-            /// explictly set it to <c>true</c> to lock in the new/current
+            /// explicitly set it to <c>true</c> to lock in the new/current
             /// names, or set it to <c>false</c> to reset the names back to the
             /// automatic naming based on the main series.
             /// </remarks>
@@ -209,7 +194,7 @@ public class Group : BaseModel
             /// </summary>
             /// <remarks>
             /// Leave it as <c>null</c> to conditionally set the value if
-            /// <see cref="Description"/> is set, or explictly set it to
+            /// <see cref="Description"/> is set, or explicitly set it to
             /// <c>true</c> to lock in the new/current description, or set it to
             /// <c>false</c> to reset the names back to the automatic naming
             /// based on the main series.
@@ -227,7 +212,7 @@ public class Group : BaseModel
                 GroupIDs = group.Children.Select(group => group.AnimeGroupID).ToList();
             }
 
-            public Group? MergeWithExisting(HttpContext ctx, SVR_AnimeGroup group, ModelStateDictionary modelState)
+            public Group? MergeWithExisting(SVR_AnimeGroup group, int userID, ModelStateDictionary modelState)
             {
                 // Validate if the parent exists if a parent id is set.
                 SVR_AnimeGroup? parent = null;
@@ -240,7 +225,7 @@ public class Group : BaseModel
                     }
                     else
                     {
-                        if (parent.IsDescendantOf(GroupIDs))
+                        if (GroupIDs is not null && parent.IsDescendantOf(GroupIDs))
                             modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and child groups.");
                         if (group.AnimeGroupID != 0 && parent.IsDescendantOf(group.AnimeGroupID))
                             modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and current group.");
@@ -248,7 +233,7 @@ public class Group : BaseModel
                 }
 
                 // Get the groups and validate the group ids.
-                var childGroups = GroupIDs == null ? new() : GroupIDs
+                var childGroups = GroupIDs == null ? [] : GroupIDs
                     .Select(groupID => groupID > 0 ? RepoFactory.AnimeGroup.GetByID(groupID) : null)
                     .OfType<SVR_AnimeGroup>()
                     .ToList();
@@ -261,7 +246,7 @@ public class Group : BaseModel
                 }
 
                 // Get the series and validate the series ids.
-                var seriesList = SeriesIDs == null ? new() : SeriesIDs
+                var seriesList = SeriesIDs == null ? [] : SeriesIDs
                     .Select(id => id > 0 ? RepoFactory.AnimeSeries.GetByID(id) : null)
                     .WhereNotNull()
                     .ToList();
@@ -285,7 +270,7 @@ public class Group : BaseModel
                     modelState.AddModelError(nameof(GroupIDs), "Unable to create an empty group without any series or child groups.");
                 }
 
-                // Find the preferred series among the list of seris.
+                // Find the preferred series among the list of series.
                 SVR_AnimeSeries? preferredSeries = null;
                 if (PreferredSeriesID.HasValue && PreferredSeriesID.Value != 0)
                 {
@@ -350,7 +335,7 @@ public class Group : BaseModel
                 else
                 {
                     group.IsManuallyNamed = 0;
-                    group.GroupName = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.SeriesName ?? group.GroupName;
+                    group.GroupName = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.PreferredTitle ?? group.GroupName;
                 }
 
                 // Same as above, but for the description.
@@ -371,7 +356,7 @@ public class Group : BaseModel
                 else
                 {
                     group.OverrideDescription = 0;
-                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.AniDB_Anime.Description ?? group.Description;
+                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.AniDB_Anime?.Description ?? group.Description;
                 }
 
                 // Update stats for all groups in the chain
@@ -382,7 +367,7 @@ public class Group : BaseModel
                     ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
 
                 // Return a new representation of the group.
-                return new Group(ctx, group);
+                return new Group(group, userID);
             }
         }
     }
@@ -423,12 +408,12 @@ public class GroupSizes : SeriesSizes
 
     public class SeriesTypeCounts
     {
-        public int Unknown;
-        public int Other;
-        public int TV;
-        public int TVSpecial;
-        public int Web;
-        public int Movie;
-        public int OVA;
+        public int Unknown { get; set; }
+        public int Other { get; set; }
+        public int TV { get; set; }
+        public int TVSpecial { get; set; }
+        public int Web { get; set; }
+        public int Movie { get; set; }
+        public int OVA { get; set; }
     }
 }

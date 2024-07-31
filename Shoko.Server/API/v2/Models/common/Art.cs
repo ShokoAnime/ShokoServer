@@ -16,9 +16,9 @@ public class ArtCollection
 
     public ArtCollection()
     {
-        banner = new List<Art>();
-        fanart = new List<Art>();
-        thumb = new List<Art>();
+        banner = [];
+        fanart = [];
+        thumb = [];
     }
 }
 

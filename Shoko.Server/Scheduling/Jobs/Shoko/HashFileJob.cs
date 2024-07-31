@@ -19,6 +19,8 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS8618
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 

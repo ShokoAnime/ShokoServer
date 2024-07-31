@@ -91,33 +91,13 @@ public sealed class UnhandledExceptionManager
     //--
     private static DateTime AssemblyBuildDate(Assembly objAssembly, bool blnForceFileDate = false)
     {
-        var objVersion = objAssembly.GetName().Version;
-        DateTime dtBuild = default;
-
-        if (blnForceFileDate)
+        if (!blnForceFileDate)
         {
-            dtBuild = AssemblyFileTime(objAssembly);
+            var extraVersionDict = Utils.GetApplicationExtraVersion(objAssembly);
+            if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+                return releaseDate.ToLocalTime();
         }
-        else
-        {
-            //dtBuild = ((DateTime)"01/01/2000").AddDays(objVersion.Build).AddSeconds(objVersion.Revision * 2);
-            dtBuild =
-                Convert.ToDateTime("01/01/2000")
-                    .AddDays(objVersion.Build)
-                    .AddSeconds(objVersion.Revision * 2);
-            if (TimeZone.IsDaylightSavingTime(DateTime.Now,
-                    TimeZone.CurrentTimeZone.GetDaylightChanges(DateTime.Now.Year)))
-            {
-                dtBuild = dtBuild.AddHours(1);
-            }
-
-            if ((dtBuild > DateTime.Now) | (objVersion.Build < 730) | (objVersion.Revision == 0))
-            {
-                dtBuild = AssemblyFileTime(objAssembly);
-            }
-        }
-
-        return dtBuild;
+        return AssemblyFileTime(objAssembly);
     }
 
     //--
@@ -164,7 +144,7 @@ public sealed class UnhandledExceptionManager
         _with1.Append("       ");
         if (sf.GetFileName() == null || sf.GetFileName().Length == 0)
         {
-            _with1.Append(Path.GetFileName(ParentAssembly().CodeBase));
+            _with1.Append(Path.GetFileName(ParentAssembly().Location));
             //-- native code offset is always available
             _with1.Append(": N ");
             _with1.Append(string.Format("{0:#00000}", sf.GetNativeOffset()));
@@ -375,7 +355,7 @@ public sealed class UnhandledExceptionManager
         try
         {
             //_with4.Append(ParentAssembly().CodeBase());
-            _with4.Append(ParentAssembly().CodeBase);
+            _with4.Append(ParentAssembly().Location);
         }
         catch (Exception e)
         {

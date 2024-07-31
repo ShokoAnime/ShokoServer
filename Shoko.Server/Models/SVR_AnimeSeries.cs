@@ -10,14 +10,14 @@ using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
-using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
-using EpisodeType = Shoko.Models.Enums.EpisodeType;
-using Range = System.Range;
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 
+#nullable enable
 namespace Shoko.Server.Models;
 
 public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
@@ -139,27 +139,58 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #endregion
 
-    public string SeriesName
+    public string PreferredTitle
     {
         get
         {
             // Return the override if it's set.
             if (!string.IsNullOrEmpty(SeriesNameOverride))
                 return SeriesNameOverride;
-
-            // Try to find the TvDB title if we prefer TvDB titles.
-            if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.TvDB)
+            // Check each provider in the given order.
+            foreach (var source in Utils.SettingsProvider.GetSettings().Language.SeriesTitleSourceOrder)
             {
-                var tvdbShows = TvDBSeries;
-                var tvdbShowTitle = tvdbShows
-                    .FirstOrDefault(show =>
-                        !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName;
-                if (!string.IsNullOrEmpty(tvdbShowTitle))
-                    return tvdbShowTitle;
+                var title = source switch
+                {
+                    DataSourceType.AniDB =>
+                        AniDB_Anime?.PreferredTitle,
+                    DataSourceType.TvDB =>
+                        TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName,
+                    DataSourceType.TMDB =>
+                        (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
+                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
+                    _ => null,
+                };
+                if (!string.IsNullOrEmpty(title))
+                    return title;
             }
+            // The most "default" title we have, even if AniDB isn't a preferred source.
+            return AniDB_Anime?.MainTitle ?? $"AniDB Anime {AniDB_ID}";
+        }
+    }
 
-            // Otherwise just return the anidb title.
-            return AniDB_Anime.PreferredTitle;
+    public string PreferredOverview
+    {
+        get
+        {
+            // Check each provider in the given order.
+            foreach (var source in Utils.SettingsProvider.GetSettings().Language.DescriptionSourceOrder)
+            {
+                var overview = source switch
+                {
+                    DataSourceType.AniDB =>
+                        AniDB_Anime?.Description,
+                    DataSourceType.TvDB =>
+                        TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview,
+                    DataSourceType.TMDB =>
+                        (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredOverview(false)?.Value : null) ??
+                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredOverview(false)?.Value : null),
+                    _ => null,
+                };
+                if (!string.IsNullOrEmpty(overview))
+                    return overview;
+            }
+            // Return nothing if no provider had an overview in the preferred language.
+            return string.Empty;
         }
     }
 
@@ -168,78 +199,119 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     public IReadOnlyList<SVR_AnimeEpisode> AnimeEpisodes => RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
         .Where(episode => !episode.IsHidden)
         .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
-        .OrderBy(tuple => tuple.anidbEpisode.EpisodeType)
-        .ThenBy(tuple => tuple.anidbEpisode.EpisodeNumber)
+        .OrderBy(tuple => tuple.anidbEpisode?.EpisodeType)
+        .ThenBy(tuple => tuple.anidbEpisode?.EpisodeNumber)
         .Select(tuple => tuple.episode)
         .ToList();
 
     public IReadOnlyList<SVR_AnimeEpisode> AllAnimeEpisodes => RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
         .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
-        .OrderBy(tuple => tuple.anidbEpisode.EpisodeType)
-        .ThenBy(tuple => tuple.anidbEpisode.EpisodeNumber)
+        .OrderBy(tuple => tuple.anidbEpisode?.EpisodeType)
+        .ThenBy(tuple => tuple.anidbEpisode?.EpisodeNumber)
         .Select(tuple => tuple.episode)
         .ToList();
 
-    public MovieDB_Movie MovieDB_Movie
+    #region Images
+
+    public IImageMetadata? GetPreferredImageForType(ImageEntityType entityType)
+        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AniDB_ID, entityType)?.GetImageMetadata();
+
+    public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType = null)
     {
-        get
+        var preferredImages = (entityType.HasValue ? [RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AniDB_ID, entityType.Value)!] : RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AniDB_ID))
+            .WhereNotNull()
+            .Select(preferredImage => preferredImage.GetImageMetadata())
+            .WhereNotNull()
+            .ToDictionary(image => image.ImageType);
+        var images = new List<IImageMetadata>();
+        if (!entityType.HasValue || entityType.Value is ImageEntityType.Poster)
         {
-            var movieDBXRef = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
-            if (movieDBXRef?.CrossRefID == null || !int.TryParse(movieDBXRef.CrossRefID, out var movieID))
-            {
-                return null;
-            }
-
-            var movieDB = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
-            return movieDB;
+            var poster = AniDB_Anime?.GetImageMetadata(false);
+            if (poster is not null)
+                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster == preferredPoster
+                    ? preferredPoster
+                    : poster
+                );
         }
-    }
+        foreach (var tvdbShow in TvDBSeries)
+            images.AddRange(tvdbShow.GetImages(entityType, preferredImages));
+        foreach (var tmdbShow in TmdbShows)
+            images.AddRange(tmdbShow.GetImages(entityType, preferredImages));
+        foreach (var tmdbMovie in TmdbMovies)
+            images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
 
-
-    #region TvDB
-
-    public List<CrossRef_AniDB_TvDB> TvDBXrefs => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AniDB_ID);
-
-    public List<TvDB_Series> TvDBSeries
-    {
-        get
-        {
-            var xrefs = TvDBXrefs?.WhereNotNull().ToArray();
-            if (xrefs == null || xrefs.Length == 0) return [];
-            return xrefs.Select(xref => xref.GetTvDBSeries()).WhereNotNull().ToList();
-        }
+        return images;
     }
 
     #endregion
+
+    #region AniDB
+
+    public SVR_AniDB_Anime? AniDB_Anime => RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
+
+    #endregion
+
+    #region TMDB
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<TMDB_Movie> TmdbMovies => TmdbMovieCrossReferences
+        .Select(xref => xref.TmdbMovie)
+        .WhereNotNull()
+        .ToList();
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Show> TmdbShowCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<TMDB_Show> TmdbShows => TmdbShowCrossReferences
+        .Select(xref => xref.TmdbShow)
+        .WhereNotNull()
+        .ToList();
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
+        ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AniDB_ID, tmdbShowId.Value)
+        : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    #endregion
+
+    #region TvDB
+
+    public List<CrossRef_AniDB_TvDB> TvdbSeriesCrossReferences => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AniDB_ID);
+
+    public List<TvDB_Series> TvDBSeries => TvdbSeriesCrossReferences.Select(xref => xref.GetTvDBSeries()).WhereNotNull().ToList();
+
+    #endregion
+
+    #region Trakt
+
+    public List<CrossRef_AniDB_TraktV2> TraktShowCrossReferences => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
 
     public List<Trakt_Show> TraktShow
     {
         get
         {
+            var series = new List<Trakt_Show>();
+            var xrefs = TraktShowCrossReferences;
+            if (xrefs.Count == 0)
+                return [];
+
             using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
-            var sers = new List<Trakt_Show>();
-
-            var xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
-            if (xrefs == null || xrefs.Count == 0)
-            {
-                return sers;
-            }
-
-            foreach (var xref in xrefs)
-            {
-                sers.Add(xref.GetByTraktShow(session));
-            }
-
-            return sers;
+            return xrefs
+                .Select(xref => xref.GetByTraktShow(session))
+                .WhereNotNull()
+                .ToList();
         }
     }
 
-    public CrossRef_AniDB_Other CrossRefMovieDB =>
-        RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
+    #endregion
 
-    public List<CrossRef_AniDB_MAL> CrossRefMAL => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
+    #region MAL
 
-    public SVR_AniDB_Anime AniDB_Anime => RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
+    public List<CrossRef_AniDB_MAL> MALCrossReferences
+        => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
+
+    #endregion
 
     private DateTime? _airDate;
 
@@ -254,7 +326,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
             // This will be slower, but hopefully more accurate
             var ep = RepoFactory.AniDB_Episode.GetByAnimeID(AniDB_ID)
-                .Where(a => a.EpisodeType == (int)EpisodeType.Episode && a.LengthSeconds > 0 && a.AirDate != 0)
+                .Where(a => a.EpisodeType == (int)Shoko.Models.Enums.EpisodeType.Episode && a.LengthSeconds > 0 && a.AirDate != 0)
                 .MinBy(a => a.AirDate);
             return _airDate = ep?.GetAirDateAsDate();
         }
@@ -275,15 +347,15 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         get
         {
             var anime = AniDB_Anime;
-            var startyear = anime?.BeginYear ?? 0;
-            if (startyear == 0) return [];
+            var startYear = anime?.BeginYear ?? 0;
+            if (startYear == 0) return [];
 
-            var endyear = anime?.EndYear ?? 0;
-            if (endyear == 0) endyear = DateTime.Today.Year;
-            if (endyear < startyear) endyear = startyear;
-            if (startyear == endyear) return [startyear];
+            var endYear = anime?.EndYear ?? 0;
+            if (endYear == 0) endYear = DateTime.Today.Year;
+            if (endYear < startYear) endYear = startYear;
+            if (startYear == endYear) return [startYear];
 
-            return Enumerable.Range(startyear, endyear - startyear + 1).Where(anime.IsInYear).ToHashSet();
+            return Enumerable.Range(startYear, endYear - startYear + 1).Where(anime.IsInYear).ToHashSet();
         }
     }
 
@@ -299,12 +371,14 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     {
         get
         {
-            var parentGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+            var parentGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID) ??
+                throw new NullReferenceException($"Unable to find parent AnimeGroup {AnimeGroupID} for AnimeSeries {AnimeSeriesID}");
 
             int parentID;
-            while ((parentID = parentGroup?.AnimeGroupParentID ?? 0) != 0)
+            while ((parentID = parentGroup.AnimeGroupParentID ?? 0) != 0)
             {
-                parentGroup = RepoFactory.AnimeGroup.GetByID(parentID);
+                parentGroup = RepoFactory.AnimeGroup.GetByID(parentID) ??
+                    throw new NullReferenceException($"Unable to find parent AnimeGroup {parentGroup.AnimeGroupParentID} for AnimeGroup {parentGroup.AnimeGroupID}");
             }
 
             return parentGroup;
@@ -337,7 +411,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     public override string ToString()
     {
-        return $"Series: {AniDB_Anime.MainTitle} ({AnimeSeriesID})";
+        return $"Series: {AniDB_Anime?.MainTitle} ({AnimeSeriesID})";
         //return string.Empty;
     }
 
@@ -353,7 +427,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     string IWithTitles.DefaultTitle => SeriesNameOverride ?? AniDB_Anime?.MainTitle ?? $"<Shoko Series {AnimeSeriesID}>";
 
-    string IWithTitles.PreferredTitle => SeriesName;
+    string IWithTitles.PreferredTitle => PreferredTitle;
 
     IReadOnlyList<AnimeTitle> IWithTitles.Titles
     {
@@ -374,20 +448,15 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                 seriesOverrideTitle = true;
             }
 
-            var anime = AniDB_Anime;
-            if (anime is not null && anime is ISeries animeSeries)
+            var animeTitles = (this as IShokoSeries).AnidbAnime.Titles;
+            if (seriesOverrideTitle)
             {
-                var animeTitles = animeSeries.Titles;
-                if (seriesOverrideTitle)
-                {
-                    var mainTitle = animeTitles.FirstOrDefault(title => title.Type == TitleType.Main);
-                    if (mainTitle is not null)
-                        mainTitle.Type = TitleType.Official;
-                }
-                titles.AddRange(animeTitles);
+                var mainTitle = animeTitles.FirstOrDefault(title => title.Type == TitleType.Main);
+                if (mainTitle is not null)
+                    mainTitle.Type = TitleType.Official;
             }
-
-            // TODO: Add other sources here.
+            titles.AddRange(animeTitles);
+            titles.AddRange((this as IShokoSeries).LinkedSeries.Where(e => e.Source is not DataSourceEnum.AniDB).SelectMany(ep => ep.Titles));
 
             return titles;
         }
@@ -399,46 +468,23 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     string IWithDescriptions.DefaultDescription => AniDB_Anime?.Description ?? string.Empty;
 
-    string IWithDescriptions.PreferredDescription => AniDB_Anime?.Description ?? string.Empty;
+    string IWithDescriptions.PreferredDescription => PreferredOverview;
 
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions
-    {
-        get
-        {
-            var titles = new List<TextDescription>();
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => (this as IShokoSeries).LinkedSeries.SelectMany(ep => ep.Descriptions).ToList() is { Count: > 0 } titles
+        ? titles
+        : [new() { Source = DataSourceEnum.AniDB, Language = TitleLanguage.English, LanguageCode = "en", Value = string.Empty }];
 
-            var anime = AniDB_Anime;
-            if (anime is not null && anime is ISeries animeSeries)
-            {
-                var animeTitles = animeSeries.Descriptions;
-                titles.AddRange(animeTitles);
-            }
+    #endregion
 
-            // TODO: Add other sources here.
-
-            // Fallback in the off-chance that the AniDB data is unavailable for whatever reason. It should never reach this code.
-            if (titles.Count is 0)
-                titles.Add(new()
-                {
-                    Source = DataSourceEnum.AniDB,
-                    Language = TitleLanguage.English,
-                    LanguageCode = "en",
-                    Value = string.Empty,
-                });
-
-            return titles;
-        }
-    }
+    #region IWithImages Implementation
 
     #endregion
 
     #region ISeries Implementation
 
-    AbstractAnimeType ISeries.Type => (AbstractAnimeType)(AniDB_Anime?.AnimeType ?? -1);
+    AnimeType ISeries.Type => (AnimeType)(AniDB_Anime?.AnimeType ?? -1);
 
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => [AnimeSeriesID];
-
-    IReadOnlyList<int> ISeries.ShokoGroupIDs => AllGroupsAbove.Select(a => a.AnimeGroupID).Distinct().ToList();
 
     double ISeries.Rating => (AniDB_Anime?.Rating ?? 0) / 100D;
 
@@ -446,26 +492,11 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => [this];
 
-    IReadOnlyList<IShokoGroup> ISeries.ShokoGroups => AllGroupsAbove;
+    IImageMetadata? ISeries.DefaultPoster => AniDB_Anime?.GetImageMetadata();
 
-    IReadOnlyList<ISeries> ISeries.LinkedSeries
-    {
-        get
-        {
-            var seriesList = new List<ISeries>();
+    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries => [];
 
-            var anidbAnime = RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
-            if (anidbAnime is not null)
-                seriesList.Add(anidbAnime);
-
-            // TODO: Add more series here.
-
-            return seriesList;
-        }
-    }
-
-    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries =>
-        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AniDB_ID);
+    IReadOnlyList<IRelatedMetadata<IMovie>> ISeries.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
@@ -479,15 +510,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             .WhereNotNull()
             .ToList();
 
-    IReadOnlyDictionary<AbstractEpisodeType, int> ISeries.EpisodeCountDict
-    {
-        get
-        {
-            var episodes = (this as ISeries).EpisodeList;
-            return Enum.GetValues<AbstractEpisodeType>()
-                .ToDictionary(a => a, a => episodes.Count(e => e.Type == a));
-        }
-    }
+    EpisodeCounts ISeries.EpisodeCounts => (this as IShokoSeries).AnidbAnime.EpisodeCounts;
 
     #endregion
 
@@ -505,6 +528,42 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     IShokoGroup IShokoSeries.ParentGroup => AnimeGroup;
 
     IShokoGroup IShokoSeries.TopLevelGroup => TopLevelAnimeGroup;
+
+    IReadOnlyList<IShokoGroup> IShokoSeries.AllParentGroups => AllGroupsAbove;
+
+
+    IReadOnlyList<ISeries> IShokoSeries.LinkedSeries
+    {
+        get
+        {
+            var seriesList = new List<ISeries>();
+
+            var anidbAnime = AniDB_Anime;
+            if (anidbAnime is not null)
+                seriesList.Add(anidbAnime);
+
+            seriesList.AddRange(TmdbShows);
+
+            // Add more series here.
+
+            return seriesList;
+        }
+    }
+    IReadOnlyList<IMovie> IShokoSeries.LinkedMovies
+    {
+        get
+        {
+            var movieList = new List<IMovie>();
+
+            movieList.AddRange(TmdbMovies);
+
+            // Add more movies here.
+
+            return movieList;
+        }
+    }
+
+    IReadOnlyList<IShokoEpisode> IShokoSeries.EpisodeList => AllAnimeEpisodes;
 
     #endregion
 }

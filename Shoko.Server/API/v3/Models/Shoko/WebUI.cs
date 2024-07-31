@@ -167,7 +167,7 @@ public class WebUI
             var episodes = series.AllAnimeEpisodes
                 .Select(shoko =>
                 {
-                    var anidb = shoko.AniDB_Episode;
+                    var anidb = shoko.AniDB_Episode!;
                     var type = Episode.MapAniDBEpisodeType(anidb.GetEpisodeTypeEnum());
                     var airDate = anidb.GetAirDateAsDate();
                     return new

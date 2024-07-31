@@ -3,22 +3,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using MessagePack;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Models;
 
 public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 {
-    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-
     #region DB columns
 
     public new bool IsIgnored { get; set; }
@@ -51,7 +49,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     /// <remarks>
     /// MediaInfo model has it in seconds, with milliseconds after the decimal point.
     /// </remarks>
-    public long Duration => (long) (MediaInfo?.GeneralStream?.Duration * 1000 ?? 0);
+    public long Duration => (long)(MediaInfo?.GeneralStream?.Duration * 1000 ?? 0);
 
     /// <summary>
     /// Playback duration as a <see cref="TimeSpan"/>.
@@ -164,22 +162,21 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     IReadOnlyList<IVideoCrossReference> IVideo.CrossReferences => EpisodeCrossRefs;
 
-    IReadOnlyList<IEpisode> IVideo.EpisodeInfo =>
+    IReadOnlyList<IShokoEpisode> IVideo.Episodes =>
         EpisodeCrossRefs
-            .Select(x => x.AniDBEpisode)
+            .Select(x => x.AnimeEpisode)
             .WhereNotNull()
             .ToArray();
 
-    IReadOnlyList<ISeries> IVideo.SeriesInfo =>
+    IReadOnlyList<IShokoSeries> IVideo.Series =>
         EpisodeCrossRefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.AniDBAnime)
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
-            .OrderBy(a => a.MainTitle)
-            .Cast<IAnime>()
+            .OrderBy(a => a.PreferredTitle)
             .ToArray();
 
-    IReadOnlyList<IGroup> IVideo.GroupInfo =>
+    IReadOnlyList<IShokoGroup> IVideo.Groups =>
         EpisodeCrossRefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
@@ -188,7 +185,6 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
             .Select(a => a.AnimeGroup)
             .WhereNotNull()
             .OrderBy(g => g.GroupName)
-            .Cast<IGroup>()
             .ToArray();
 
     int IMetadata<int>.ID => VideoLocalID;

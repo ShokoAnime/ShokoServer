@@ -5,13 +5,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using Shoko.Commons.Utils;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -378,7 +378,9 @@ public static partial class AVDumpHelper
             {
                 try
                 {
-                    using var stream = Misc.DownloadWebBinary(AVDumpURL);
+                    using var client = new HttpClient();
+                    client.DefaultRequestHeaders.Add("User-Agent", "JMM");
+                    using var stream = client.GetStreamAsync(AVDumpURL).ConfigureAwait(false).GetAwaiter().GetResult();
                     if (stream == null)
                         return false;
 

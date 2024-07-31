@@ -5,35 +5,29 @@ using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Filters;
 
 public class FilterEvaluator
 {
-    private readonly DatabaseFactory _databaseFactory;
     private readonly AnimeGroupRepository _groups;
+
     private readonly AnimeSeriesRepository _series;
-    private readonly CrossRef_AniDB_OtherRepository _crossRefAniDBOther; 
+
     private readonly JMMUserRepository _user;
+
     private readonly ILogger<FilterEvaluator> _logger;
 
-    public FilterEvaluator(ILogger<FilterEvaluator> logger, AnimeGroupRepository groups, AnimeSeriesRepository series, JMMUserRepository user,
-        DatabaseFactory databaseFactory, CrossRef_AniDB_OtherRepository crossRefAniDBOther)
+    public FilterEvaluator(ILogger<FilterEvaluator> logger, AnimeGroupRepository groups, AnimeSeriesRepository series, JMMUserRepository user)
     {
         _logger = logger;
         _groups = groups;
         _series = series;
         _user = user;
-        _databaseFactory = databaseFactory;
-        _crossRefAniDBOther = crossRefAniDBOther;
     }
 
     /// <summary>
@@ -51,7 +45,7 @@ public class FilterEvaluator
 
         var user = userID != null ? _user.GetByID(userID.Value) : null;
 
-        var filterables = filter.ApplyAtSeriesLevel switch
+        var filterable = filter.ApplyAtSeriesLevel switch
         {
             true when needsUser => _series?.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true).Select(a =>
                                        new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value))) ??
@@ -67,7 +61,7 @@ public class FilterEvaluator
 
         // Filtering
         var errors = new List<Exception>();
-        var filtered = filterables.Where(a =>
+        var filtered = filterable.Where(a =>
         {
             try
             {
@@ -80,12 +74,12 @@ public class FilterEvaluator
             }
         });
 
-        if (errors.Any())
+        if (errors.Count != 0)
             _logger.LogError(new AggregateException(errors.DistinctBy(a => a.StackTrace)), "There were one or more errors while evaluating filter: {Filter}",
                 filter);
 
         // ordering
-        var ordered = OrderFilterables(filter, filtered);
+        var ordered = OrderFilterable(filter, filtered);
 
         var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
         if (!filter.ApplyAtSeriesLevel)
@@ -104,10 +98,10 @@ public class FilterEvaluator
     /// <param name="skipSorting"></param>
     /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(List<FilterPreset> filters, int? userID, bool skipSorting=false)
+    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(List<FilterPreset> filters, int? userID, bool skipSorting = false)
     {
         ArgumentNullException.ThrowIfNull(filters);
-        if (!filters.Any()) return new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
+        if (filters.Count == 0) return [];
         // count it as a user filter if it needs to sort using a user-dependent expression
         var hasSeries = filters.Any(a => a.ApplyAtSeriesLevel);
         var seriesNeedsUser = hasSeries && filters.Any(a =>
@@ -129,9 +123,6 @@ public class FilterEvaluator
         if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
 
         var user = userID != null ? _user.GetByID(userID.Value) : null;
-        ILookup<int, CrossRef_AniDB_Other> movieDBMappings;
-        using (var session = _databaseFactory.SessionFactory.OpenStatelessSession())
-            movieDBMappings = _crossRefAniDBOther.GetByAnimeIDsAndType(session.Wrap(), null, CrossRefType.MovieDB);
 
         FilterableWithID[] series = null;
         if (hasSeries)
@@ -139,8 +130,8 @@ public class FilterEvaluator
             var allowedSeries = _series.GetAll().Where(a => user?.AllowedSeries(a) ?? true);
             series = seriesNeedsUser
                 ? allowedSeries.Select(a =>
-                    new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value))).ToArray()
-                : allowedSeries.Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings))).ToArray();
+                    new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value))).ToArray()
+                : allowedSeries.Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())).ToArray();
         }
 
         FilterableWithID[] groups = null;
@@ -148,30 +139,30 @@ public class FilterEvaluator
         {
             var allowedGroups = _groups.GetAll().Where(a => user?.AllowedGroup(a) ?? true);
             groups = groupsNeedUser
-                ? allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value)))
+                ? allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value)))
                     .ToArray()
-                : allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings))).ToArray();
+                : allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable())).ToArray();
         }
 
         var filterableMap = filters.Where(a => (a.FilterType & GroupFilterType.Directory) == 0)
             .ToDictionary(filter => filter, filter => filter.ApplyAtSeriesLevel switch { true => series, false => groups });
 
         var results = new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
-        
+
         filterableMap.AsParallel().AsUnordered().ForAll(kv =>
         {
-            var (filter, filterables) = kv;
+            var (filter, filterable) = kv;
             var expression = filter.Expression;
             // Filtering
-            var filtered = filterables.AsParallel().AsUnordered().Where(a => expression?.Evaluate(a.Filterable, a.UserInfo) ?? true).ToArray();
+            var filtered = filterable.AsParallel().AsUnordered().Where(a => expression?.Evaluate(a.Filterable, a.UserInfo) ?? true).ToArray();
             // Sorting
-            var ordered = skipSorting ? (IEnumerable<FilterableWithID>)filtered : OrderFilterables(filter, filtered);
+            var ordered = skipSorting ? (IEnumerable<FilterableWithID>)filtered : OrderFilterable(filter, filtered);
             // Building Group -> Series map
             var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
             // Fill Series IDs for filters calculated at the group level
             if (!filter.ApplyAtSeriesLevel)
                 result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID)));
-            lock(results) results[filter] = result;
+            lock (results) results[filter] = result;
         });
 
         foreach (var filter in filters.Where(filter => !results.ContainsKey(filter)))
@@ -180,7 +171,7 @@ public class FilterEvaluator
         return results;
     }
 
-    private static IOrderedEnumerable<FilterableWithID> OrderFilterables(FilterPreset filter, IEnumerable<FilterableWithID> filtered)
+    private static IOrderedEnumerable<FilterableWithID> OrderFilterable(FilterPreset filter, IEnumerable<FilterableWithID> filtered)
     {
         var nameSorter = new NameSortingSelector();
         var ordered = filter.SortingExpression == null ? filtered.OrderBy(a => nameSorter.Evaluate(a.Filterable, a.UserInfo)) :
@@ -198,7 +189,7 @@ public class FilterEvaluator
         return ordered;
     }
 
-    private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable, IFilterableUserInfo UserInfo=null);
+    private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable, IFilterableUserInfo UserInfo = null);
 
     private record Grouping(int GroupID, IEnumerable<int> SeriesIDs) : IGrouping<int, int>
     {

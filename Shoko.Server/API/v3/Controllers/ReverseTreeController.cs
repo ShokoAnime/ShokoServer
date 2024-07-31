@@ -24,8 +24,6 @@ public class ReverseTreeController : BaseController
 {
     private readonly FilterFactory _filterFactory;
 
-    private readonly SeriesFactory _seriesFactory;
-
     /// <summary>
     /// Get the parent <see cref="Filter"/> for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
@@ -101,7 +99,7 @@ public class ReverseTreeController : BaseController
             return InternalError("No parent Group entry for the given groupID");
         }
 
-        return new Group(HttpContext, parentGroup);
+        return new Group(parentGroup, User.JMMUserID);
     }
 
     /// <summary>
@@ -136,14 +134,14 @@ public class ReverseTreeController : BaseController
             return InternalError("No Group entry for the Series");
         }
 
-        return new Group(HttpContext, group);
+        return new Group(group, User.JMMUserID);
     }
 
     /// <summary>
     /// Get the <see cref="Series"/> for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID"><see cref="Episode"/> ID</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/Series")]
@@ -167,7 +165,7 @@ public class ReverseTreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        return _seriesFactory.GetSeries(series, randomImages, includeDataFrom);
+        return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -206,9 +204,8 @@ public class ReverseTreeController : BaseController
             .ToList();
     }
 
-    public ReverseTreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory, SeriesFactory seriesFactory) : base(settingsProvider)
+    public ReverseTreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory) : base(settingsProvider)
     {
         _filterFactory = filterFactory;
-        _seriesFactory = seriesFactory;
     }
 }

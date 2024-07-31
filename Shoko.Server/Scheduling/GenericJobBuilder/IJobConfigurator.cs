@@ -1,6 +1,7 @@
 ﻿using System;
 using Quartz;
 
+#nullable enable
 namespace Shoko.Server.Scheduling.GenericJobBuilder;
 
 public interface IJobConfigurator { }

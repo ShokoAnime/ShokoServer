@@ -36,6 +36,8 @@ public class SVR_VideoLocal_User : VideoLocal_User
     public override string ToString()
     {
         var file = GetVideoLocal();
+#pragma warning disable CS0618
         return $"{file.FileName} --- {file.Hash} --- User {JMMUserID}";
+#pragma warning restore CS0618
     }
 }

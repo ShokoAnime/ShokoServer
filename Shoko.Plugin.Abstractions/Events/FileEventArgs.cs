@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions;
 
 public class FileEventArgs : EventArgs
@@ -21,19 +21,17 @@ public class FileEventArgs : EventArgs
             relativePath = Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
         ImportFolder = importFolder;
-        FileInfo = fileInfo;
-        VideoInfo = videoInfo;
-        EpisodeInfo = VideoInfo.EpisodeInfo;
-        AnimeInfo = VideoInfo.SeriesInfo
-                        .OfType<IAnime>()
-                        .ToArray();
-        GroupInfo = VideoInfo.GroupInfo;
+        File = fileInfo;
+        Video = videoInfo;
+        Episodes = Video.Episodes;
+        Series = Video.Series;
+        Groups = Video.Groups;
     }
 
-    public FileEventArgs(IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
+    public FileEventArgs(IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo)
         : this(fileInfo.Path.Substring(importFolder.Path.Length), importFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo) { }
 
-    public FileEventArgs(string relativePath, IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
+    public FileEventArgs(string relativePath, IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo)
     {
         relativePath = relativePath
             .Replace('/', Path.DirectorySeparatorChar)
@@ -42,11 +40,11 @@ public class FileEventArgs : EventArgs
             relativePath = Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
         ImportFolder = importFolder;
-        FileInfo = fileInfo;
-        VideoInfo = videoInfo;
-        EpisodeInfo = episodeInfo.ToArray();
-        AnimeInfo = animeInfo.ToArray();
-        GroupInfo = groupInfo.ToArray();
+        File = fileInfo;
+        Video = videoInfo;
+        Episodes = episodeInfo.ToArray();
+        Series = animeInfo.ToArray();
+        Groups = groupInfo.ToArray();
     }
 
     /// <summary>
@@ -57,12 +55,12 @@ public class FileEventArgs : EventArgs
     /// <summary>
     /// Information about the video and video file location, such as ids, media info, hashes, etc..
     /// </summary>
-    public IVideoFile FileInfo { get; }
+    public IVideoFile File { get; }
 
     /// <summary>
     /// Information about the video.
     /// </summary>
-    public IVideo VideoInfo { get; }
+    public IVideo Video { get; }
 
     /// <summary>
     /// The import folder that the file is in.
@@ -72,15 +70,15 @@ public class FileEventArgs : EventArgs
     /// <summary>
     /// Episodes Linked to the file.
     /// </summary>
-    public IReadOnlyList<IEpisode> EpisodeInfo { get; }
+    public IReadOnlyList<IShokoEpisode> Episodes { get; }
 
     /// <summary>
     /// Information about the Anime, such as titles
     /// </summary>
-    public IReadOnlyList<IAnime> AnimeInfo { get; }
+    public IReadOnlyList<IShokoSeries> Series { get; }
 
     /// <summary>
     /// Information about the group
     /// </summary>
-    public IReadOnlyList<IGroup> GroupInfo { get; }
+    public IReadOnlyList<IShokoGroup> Groups { get; }
 }

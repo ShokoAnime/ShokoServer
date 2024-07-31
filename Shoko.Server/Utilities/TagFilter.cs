@@ -606,16 +606,18 @@ public static class TagFilter
 
 public class TagFilter<T> where T : class
 {
+#nullable enable
     private readonly Func<T, string> _nameSelector;
-    private readonly Func<string, T> _lookup;
-    private readonly Func<string, T> _ctor;
+    private readonly Func<string, T?> _lookup;
+    private readonly Func<string, T?> _ctor;
 
-    public TagFilter(Func<string, T> lookup, Func<T, string> nameSelector, Func<string, T> ctor = null)
+    public TagFilter(Func<string, T?> lookup, Func<T, string> nameSelector, Func<string, T?>? ctor = null)
     {
         _nameSelector = nameSelector;
-        _ctor = ctor ?? (typeof(T) == typeof(string) ? new Func<string, T>(name => name as T) : name => (T)Activator.CreateInstance(typeof(T), name));
+        _ctor = ctor ?? (typeof(T) == typeof(string) ? name => name as T : name => Activator.CreateInstance(typeof(T), name) as T);
         _lookup = lookup;
     }
+#nullable disable
 
     private string GetTagName(T tag)
     {

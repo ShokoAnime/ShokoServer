@@ -1,6 +1,7 @@
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
 
@@ -50,6 +51,10 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
     IEpisode? IVideoCrossReference.AnidbEpisode => AniDBEpisode;
 
     ISeries? IVideoCrossReference.AnidbAnime => AniDBAnime;
+
+    IShokoEpisode? IVideoCrossReference.ShokoEpisode => AnimeEpisode;
+
+    IShokoSeries? IVideoCrossReference.ShokoSeries => AnimeSeries;
 
     #endregion
 }

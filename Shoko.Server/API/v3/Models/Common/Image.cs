@@ -1,16 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
-using System.Linq;
-using ImageMagick;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.Extensions;
-using Shoko.Server.ImageDownload;
-using Shoko.Server.Models;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -23,10 +19,10 @@ namespace Shoko.Server.API.v3.Models.Common;
 public class Image
 {
     /// <summary>
-    /// AniDB, TvDB, MovieDB, etc
-    /// </summary>
+    /// The image's ID.
+    /// /// </summary>
     [Required]
-    public ImageSource Source { get; set; }
+    public int ID { get; set; }
 
     /// <summary>
     /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
@@ -35,10 +31,10 @@ public class Image
     public ImageType Type { get; set; }
 
     /// <summary>
-    /// The image's ID, usually an int, but in the case of Static resources, it is the resource name.
+    /// AniDB, TvDB, TMDB, etc.
     /// </summary>
     [Required]
-    public string ID { get; set; }
+    public ImageSource Source { get; set; }
 
     /// <summary>
     /// The relative path from the base image directory. A client with access to the server's filesystem can map
@@ -47,9 +43,16 @@ public class Image
     public string? RelativeFilepath { get; set; }
 
     /// <summary>
-    /// Is it marked as default. Only one default is possible for a given <see cref="Image.Type"/>.
+    /// Indicates this is the preferred image for the <see cref="Type"/> for the
+    /// selected entity.
     /// </summary>
     public bool Preferred { get; set; }
+
+    /// <summary>
+    /// Indicates the images is disabled. You must explicitly ask for these, for
+    /// hopefully obvious reasons.
+    /// </summary>
+    public bool Disabled { get; set; }
 
     /// <summary>
     /// Width of the image.
@@ -62,608 +65,142 @@ public class Image
     public int? Height { get; set; }
 
     /// <summary>
-    /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
-    /// </summary>
-    public bool Disabled { get; set; }
-
-    /// <summary>
     /// Series info for the image, currently only set when sending a random
     /// image.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public ImageSeriesInfo? Series { get; set; } = null;
 
-    public Image(int id, ImageEntityType type, bool preferred = false, bool disabled = false) : this(id.ToString(),
-        type, preferred, disabled)
+    public Image(IImageMetadata imageMetadata)
     {
-        switch (type)
-        {
-            case ImageEntityType.Static:
-                throw new ArgumentException("Static Resources do not use an integer ID");
+        ID = imageMetadata.ID;
+        Type = imageMetadata.ImageType.ToV3Dto();
+        Source = imageMetadata.Source.ToV3Dto();
 
-            case ImageEntityType.UserAvatar:
-            {
-                var user = RepoFactory.JMMUser.GetByID(id);
-                if (user != null && user.HasAvatarImage)
+        Preferred = imageMetadata.IsPreferred;
+        Disabled = !imageMetadata.IsEnabled;
+
+        // we need to set _something_ for the clients that determine
+        // if an image exists by checking if a relative path is set,
+        // so we set the id.
+        RelativeFilepath = imageMetadata.IsAvailable ? $"/{ID}" : null;
+        Width = imageMetadata.Width;
+        Height = imageMetadata.Height;
+    }
+
+    public Image(int id, ImageEntityType imageEntityType, DataSourceType dataSource, bool preferred = false, bool disabled = false)
+    {
+        ID = id;
+        Type = imageEntityType.ToV3Dto();
+        Source = dataSource.ToV3Dto();
+
+        Preferred = preferred;
+        Disabled = disabled;
+        switch (dataSource)
+        {
+            case DataSourceType.User:
+                if (imageEntityType == ImageEntityType.Art)
                 {
-                    var imageMetadata = user.AvatarImageMetadata;
-                    // we need to set _something_ for the clients that determine
-                    // if an image exists by checking if a relative path is set,
-                    // so we set the id.
-                    RelativeFilepath = $"/{id}";
-                    Width = imageMetadata.Width;
-                    Height = imageMetadata.Height;
+                    var user = RepoFactory.JMMUser.GetByID(id);
+                    if (user != null && user.HasAvatarImage)
+                    {
+                        var imageMetadata = user.AvatarImageMetadata;
+                        // we need to set _something_ for the clients that determine
+                        // if an image exists by checking if a relative path is set,
+                        // so we set the id.
+                        RelativeFilepath = $"/{id}";
+                        Width = imageMetadata.Width;
+                        Height = imageMetadata.Height;
+                    }
                 }
                 break;
-            }
+
+            // We can now grab the metadata from the database(!)
+            case DataSourceType.TMDB:
+                var tmdbImage = RepoFactory.TMDB_Image.GetByID(id);
+                if (tmdbImage != null)
+                {
+                    var relativePath = tmdbImage.RelativePath;
+                    if (!string.IsNullOrEmpty(relativePath))
+                    {
+                        RelativeFilepath = relativePath.Replace("\\", "/");
+                        if (RelativeFilepath[0] != '/')
+                            RelativeFilepath = "/" + RelativeFilepath;
+                    }
+                    Width = tmdbImage.Width;
+                    Height = tmdbImage.Height;
+                }
+                break;
 
             default:
-            {
-                var imagePath = GetImagePath(type, id);
-                if (!string.IsNullOrEmpty(imagePath))
+                var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, id);
+                if (metadata is not null && metadata.IsLocalAvailable)
                 {
-                    RelativeFilepath = imagePath.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-                    if (!RelativeFilepath.StartsWith("/"))
+                    RelativeFilepath = metadata.LocalPath!.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+                    if (RelativeFilepath[0] != '/')
                         RelativeFilepath = "/" + RelativeFilepath;
                     // This causes serious IO lag on some systems. Enable at own risk.
                     if (Utils.SettingsProvider.GetSettings().LoadImageMetadata)
                     {
-                        var info = new MagickImageInfo(imagePath);
-                        Width = info.Width;
-                        Height = info.Height;
+                        Width = metadata.Width;
+                        Height = metadata.Height;
                     }
                 }
                 break;
-            }
         }
     }
 
-    public Image(string id, ImageEntityType type, bool preferred = false, bool disabled = false)
-    {
-        ID = id;
-        Type = GetSimpleTypeFromImageType(type);
-        Source = GetSourceFromType(type);
+    private static readonly List<DataSourceType> _bannerImageSources =
+    [
+        DataSourceType.TMDB,
+        DataSourceType.TvDB,
+    ];
 
-        Preferred = preferred;
-        Disabled = disabled;
-    }
+    private static readonly List<DataSourceType> _posterImageSources =
+    [
+        DataSourceType.AniDB,
+        DataSourceType.TMDB,
+        DataSourceType.TvDB,
+    ];
 
-    public static ImageType GetSimpleTypeFromImageType(ImageEntityType type)
-    {
-        switch (type)
-        {
-            case ImageEntityType.TvDB_Cover:
-            case ImageEntityType.MovieDB_Poster:
-            case ImageEntityType.AniDB_Cover:
-                return ImageType.Poster;
-            case ImageEntityType.TvDB_Banner:
-                return ImageType.Banner;
-            case ImageEntityType.TvDB_Episode:
-                return ImageType.Thumb;
-            case ImageEntityType.TvDB_FanArt:
-            case ImageEntityType.MovieDB_FanArt:
-                return ImageType.Fanart;
-            case ImageEntityType.AniDB_Character:
-            case ImageEntityType.Character:
-                return ImageType.Character;
-            case ImageEntityType.AniDB_Creator:
-            case ImageEntityType.Staff:
-                return ImageType.Staff;
-            case ImageEntityType.Static:
-                return ImageType.Static;
-            case ImageEntityType.UserAvatar:
-                return ImageType.Avatar;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
-    }
+    private static readonly List<DataSourceType> _thumbImageSources =
+    [
+        DataSourceType.TMDB,
+        DataSourceType.TvDB,
+    ];
 
-    public static ImageSource GetSourceFromType(ImageEntityType type)
-    {
-        switch (type)
-        {
-            case ImageEntityType.AniDB_Cover:
-            case ImageEntityType.AniDB_Character:
-            case ImageEntityType.AniDB_Creator:
-                return ImageSource.AniDB;
-            case ImageEntityType.TvDB_Banner:
-            case ImageEntityType.TvDB_Cover:
-            case ImageEntityType.TvDB_Episode:
-            case ImageEntityType.TvDB_FanArt:
-                return ImageSource.TvDB;
-            case ImageEntityType.MovieDB_FanArt:
-            case ImageEntityType.MovieDB_Poster:
-                return ImageSource.TMDB;
-            case ImageEntityType.Character:
-            case ImageEntityType.Staff:
-            case ImageEntityType.Static:
-                return ImageSource.Shoko;
-            case ImageEntityType.UserAvatar:
-                return ImageSource.User;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
-    }
+    private static readonly List<DataSourceType> _backdropImageSources =
+    [
+        DataSourceType.TMDB,
+        DataSourceType.TvDB,
+    ];
 
-    /// <summary>
-    /// Gets the <see cref="ImageEntityType"/> for the given <paramref name="imageSource"/> and <paramref name="imageType"/>.
-    /// </summary>
-    /// <param name="imageSource"></param>
-    /// <param name="imageType"></param>
-    /// <returns></returns>
-    public static ImageEntityType? GetImageTypeFromSourceAndType(ImageSource imageSource, ImageType imageType)
-    {
-        return imageSource switch
-        {
-            ImageSource.AniDB => imageType switch
-            {
-                ImageType.Poster => ImageEntityType.AniDB_Cover,
-                ImageType.Character => ImageEntityType.AniDB_Character,
-                ImageType.Staff => ImageEntityType.AniDB_Creator,
-                _ => null
-            },
-            ImageSource.TvDB => imageType switch
-            {
-                ImageType.Poster => ImageEntityType.TvDB_Cover,
-                ImageType.Banner => ImageEntityType.TvDB_Banner,
-                ImageType.Thumb => ImageEntityType.TvDB_Episode,
-                ImageType.Fanart => ImageEntityType.TvDB_FanArt,
-                _ => null
-            },
-            ImageSource.TMDB => imageType switch
-            {
-                ImageType.Poster => ImageEntityType.MovieDB_Poster,
-                ImageType.Fanart => ImageEntityType.MovieDB_FanArt,
-                _ => null
-            },
-            ImageSource.Shoko => imageType switch
-            {
-                ImageType.Static => ImageEntityType.Static,
-                ImageType.Character => ImageEntityType.Character,
-                ImageType.Staff => ImageEntityType.Staff,
-                _ => null
-            },
-            ImageSource.User => imageType switch
-            {
-                ImageType.Avatar => ImageEntityType.UserAvatar,
-                _ => null
-            },
-            _ => null
-        };
-    }
+    private static readonly List<DataSourceType> _characterImageSources =
+    [
+        DataSourceType.AniDB,
+        DataSourceType.Shoko
+    ];
 
-    /// <summary>
-    /// Gets the <see cref="ImageSizeType"/> from the given <paramref name="imageEntityType"/>.
-    /// </summary>
-    /// <param name="imageEntityType">Image entity type.</param>
-    /// <returns>The <see cref="ImageSizeType"/></returns>
-    public static ImageSizeType? GetImageSizeTypeFromImageEntityType(ImageEntityType imageEntityType)
-    {
-        return imageEntityType switch
-        {
-            // Posters
-            ImageEntityType.AniDB_Cover => ImageSizeType.Poster,
-            ImageEntityType.TvDB_Cover => ImageSizeType.Poster,
-            ImageEntityType.MovieDB_Poster => ImageSizeType.Poster,
+    private static readonly List<DataSourceType> _staffImageSources =
+    [
+        DataSourceType.AniDB,
+        DataSourceType.Shoko
+    ];
 
-            // Banners
-            ImageEntityType.TvDB_Banner => ImageSizeType.WideBanner,
-
-            // Fanart
-            ImageEntityType.TvDB_FanArt => ImageSizeType.Fanart,
-            ImageEntityType.MovieDB_FanArt => ImageSizeType.Fanart,
-            _ => null
-        };
-    }
-
-    /// <summary>
-    /// Gets the <see cref="ImageSizeType"/> from the given <paramref name="imageType"/>.
-    /// </summary>
-    /// <param name="imageType"></param>
-    /// <returns>The <see cref="ImageSizeType"/></returns>
-    public static ImageSizeType GetImageSizeTypeFromType(ImageType imageType)
-    {
-        return imageType switch
-        {
-            // Posters
-            ImageType.Poster => ImageSizeType.Poster,
-
-            // Banners
-            ImageType.Banner => ImageSizeType.WideBanner,
-
-            // Fanart
-            ImageType.Fanart => ImageSizeType.Fanart,
-            _ => ImageSizeType.Poster
-        };
-    }
-
-    public static string? GetImagePath(ImageEntityType type, int id)
-    {
-        string path;
-
-        switch (type)
-        {
-            // 1
-            case ImageEntityType.AniDB_Cover:
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(id);
-                if (anime == null)
-                {
-                    return null;
-                }
-
-                path = anime.PosterPath;
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-            // 4
-            case ImageEntityType.TvDB_Banner:
-                var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(id);
-                if (wideBanner == null)
-                {
-                    return null;
-                }
-
-                path = wideBanner.GetFullImagePath();
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-
-            // 5
-            case ImageEntityType.TvDB_Cover:
-                var poster = RepoFactory.TvDB_ImagePoster.GetByID(id);
-                if (poster == null)
-                {
-                    return null;
-                }
-
-                path = poster.GetFullImagePath();
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-
-            // 6
-            case ImageEntityType.TvDB_Episode:
-                var ep = RepoFactory.TvDB_Episode.GetByTvDBID(id);
-                if (ep == null)
-                {
-                    return null;
-                }
-
-                path = ep.GetFullImagePath();
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-
-            // 7
-            case ImageEntityType.TvDB_FanArt:
-                var fanart = RepoFactory.TvDB_ImageFanart.GetByID(id);
-                if (fanart == null)
-                {
-                    return null;
-                }
-
-                path = fanart.GetFullImagePath();
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-
-                path = string.Empty;
-                break;
-
-            // 8
-            case ImageEntityType.MovieDB_FanArt:
-                var mFanart = RepoFactory.MovieDB_Fanart.GetByID(id);
-                if (mFanart == null)
-                {
-                    return null;
-                }
-
-                mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
-                if (mFanart == null)
-                {
-                    return null;
-                }
-
-                path = mFanart.GetFullImagePath();
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-
-            // 9
-            case ImageEntityType.MovieDB_Poster:
-                var mPoster = RepoFactory.MovieDB_Poster.GetByID(id);
-                if (mPoster == null)
-                {
-                    return null;
-                }
-
-                mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
-                if (mPoster == null)
-                {
-                    return null;
-                }
-
-                path = mPoster.GetFullImagePath();
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-
-            case ImageEntityType.Character:
-                var character = RepoFactory.AnimeCharacter.GetByID(id);
-                if (character == null)
-                {
-                    return null;
-                }
-
-                path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath;
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-
-            case ImageEntityType.Staff:
-                var staff = RepoFactory.AnimeStaff.GetByID(id);
-                if (staff == null)
-                {
-                    return null;
-                }
-
-                path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath;
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    path = string.Empty;
-                }
-
-                break;
-
-            default:
-                path = string.Empty;
-                break;
-        }
-
-        return path;
-    }
-
-    private static List<ImageSource> BannerImageSources = new() { ImageSource.TvDB };
-
-    private static List<ImageSource> PosterImageSources = new()
-    {
-        ImageSource.AniDB,
-        // ImageSource.TMDB,
-        ImageSource.TvDB
-    };
-
-    // There is only one thumbnail provider atm.
-    private static List<ImageSource> ThumbImageSources = new() { ImageSource.TvDB };
-
-    // TMDB is too unreliable atm, so we will only use TvDB for now.
-    private static List<ImageSource> FanartImageSources = new()
-    {
-        ImageSource.TvDB
-        // ImageSource.TMDB,
-    };
-
-    private static List<ImageSource> CharacterImageSources = new()
-    {
-        // ImageSource.AniDB,
-        ImageSource.Shoko
-    };
-
-    private static List<ImageSource> StaffImageSources = new()
-    {
-        // ImageSource.AniDB,
-        ImageSource.Shoko
-    };
-
-    private static List<ImageSource> StaticImageSources = new() { ImageSource.Shoko };
-
-    internal static ImageSource GetRandomImageSource(ImageType imageType)
+    internal static DataSourceType GetRandomImageSource(ImageType imageType)
     {
         var sourceList = imageType switch
         {
-            ImageType.Poster => PosterImageSources,
-            ImageType.Banner => BannerImageSources,
-            ImageType.Thumb => ThumbImageSources,
-            ImageType.Fanart => FanartImageSources,
-            ImageType.Character => CharacterImageSources,
-            ImageType.Staff => StaffImageSources,
-            _ => StaticImageSources
+            ImageType.Poster => _posterImageSources,
+            ImageType.Banner => _bannerImageSources,
+            ImageType.Thumb => _thumbImageSources,
+            ImageType.Backdrop => _backdropImageSources,
+            ImageType.Character => _characterImageSources,
+            ImageType.Staff => _staffImageSources,
+            _ => [],
         };
 
         return sourceList.GetRandomElement();
-    }
-
-    internal static int? GetRandomImageID(ImageEntityType imageType)
-    {
-        return imageType switch
-        {
-            ImageEntityType.AniDB_Cover => RepoFactory.AniDB_Anime.GetAll()
-                .Where(a => a?.PosterPath != null && !a.GetAllTags().Contains("18 restricted"))
-                .GetRandomElement()?.AnimeID,
-            ImageEntityType.AniDB_Character => RepoFactory.AniDB_Anime.GetAll()
-                .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                .SelectMany(a => a.Characters).Select(a => a.GetCharacter()).Where(a => a != null)
-                .GetRandomElement()?.AniDB_CharacterID,
-            // This will likely be slow
-            ImageEntityType.AniDB_Creator => RepoFactory.AniDB_Anime.GetAll()
-                .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                .SelectMany(a => a.Characters)
-                .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
-                .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).Where(a => a != null)
-                .GetRandomElement()?.AniDB_SeiyuuID,
-            // TvDB doesn't allow H content, so we get to skip the check!
-            ImageEntityType.TvDB_Banner => RepoFactory.TvDB_ImageWideBanner.GetAll()
-                .GetRandomElement()?.TvDB_ImageWideBannerID,
-            // TvDB doesn't allow H content, so we get to skip the check!
-            ImageEntityType.TvDB_Cover => RepoFactory.TvDB_ImagePoster.GetAll()
-                .GetRandomElement()?.TvDB_ImagePosterID,
-            // TvDB doesn't allow H content, so we get to skip the check!
-            ImageEntityType.TvDB_Episode => RepoFactory.TvDB_Episode.GetAll()
-                .GetRandomElement()?.Id,
-            // TvDB doesn't allow H content, so we get to skip the check!
-            ImageEntityType.TvDB_FanArt => RepoFactory.TvDB_ImageFanart.GetAll()
-                .GetRandomElement()?.TvDB_ImageFanartID,
-            ImageEntityType.MovieDB_FanArt => RepoFactory.MovieDB_Fanart.GetAll()
-                .GetRandomElement()?.MovieDB_FanartID,
-            ImageEntityType.MovieDB_Poster => RepoFactory.MovieDB_Poster.GetAll()
-                .GetRandomElement()?.MovieDB_PosterID,
-            ImageEntityType.Character => RepoFactory.AniDB_Anime.GetAll()
-                .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
-                .Where(a => a.RoleType == (int)StaffRoleType.Seiyuu && a.RoleID.HasValue)
-                .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID!.Value))
-                .GetRandomElement()?.CharacterID,
-            ImageEntityType.Staff => RepoFactory.AniDB_Anime.GetAll()
-                .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
-                .Select(a => RepoFactory.AnimeStaff.GetByID(a.StaffID))
-                .GetRandomElement()?.StaffID,
-            _ => null
-        };
-    }
-
-    internal static SVR_AnimeSeries? GetFirstSeriesForImage(ImageEntityType imageType, int imageID)
-    {
-        switch (imageType)
-        {
-            case ImageEntityType.AniDB_Cover:
-                return RepoFactory.AnimeSeries.GetByAnimeID(imageID);
-            case ImageEntityType.TvDB_Banner:
-            {
-                var tvdbWideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
-                if (tvdbWideBanner == null)
-                    return null;
-
-                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbWideBanner.SeriesID)
-                    .FirstOrDefault();
-                if (xref == null)
-                    return null;
-
-                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
-            }
-            case ImageEntityType.TvDB_Cover:
-            {
-                var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
-                if (tvdbPoster == null)
-                    return null;
-
-                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbPoster.SeriesID)
-                    .FirstOrDefault();
-                if (xref == null)
-                    return null;
-
-                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
-            }
-            case ImageEntityType.TvDB_FanArt:
-            {
-                var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
-                if (tvdbFanart == null)
-                    return null;
-
-                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbFanart.SeriesID)
-                    .FirstOrDefault();
-                if (xref == null)
-                    return null;
-
-                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
-            }
-            case ImageEntityType.TvDB_Episode:
-            {
-                var tvdbEpisode = RepoFactory.TvDB_Episode.GetByID(imageID);
-                if (tvdbEpisode == null)
-                    return null;
-                
-                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbEpisode.SeriesID)
-                    .FirstOrDefault();
-                if (xref == null)
-                    return null;
-
-                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
-            }
-            case ImageEntityType.MovieDB_FanArt:
-            {
-                var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
-                if (tmdbFanart == null)
-                    return null;
-                
-                // This will be slow as HELL. Why don't we have a lookup?
-                var xref = RepoFactory.CrossRef_AniDB_Other.GetAll()
-                    .FirstOrDefault(xref => xref.CrossRefType == (int)CrossRefType.MovieDB && int.Parse(xref.CrossRefID) == tmdbFanart.MovieId);
-                if (xref == null)
-                    return null;
-
-                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-            }
-            case ImageEntityType.MovieDB_Poster:
-            {
-                var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
-                if (tmdbPoster == null)
-                    return null;
-                
-                // This will be slow as HELL. Why don't we have a lookup?
-                var xref = RepoFactory.CrossRef_AniDB_Other.GetAll()
-                    .FirstOrDefault(xref => xref.CrossRefType == (int)CrossRefType.MovieDB && int.Parse(xref.CrossRefID) == tmdbPoster.MovieId);
-                if (xref == null)
-                    return null;
-
-                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-            }
-            default:
-                return null;
-        };
     }
 
     /// <summary>
@@ -722,7 +259,12 @@ public class Image
         /// <summary>
         ///
         /// </summary>
-        Fanart = 4,
+        Backdrop = 4,
+
+        /// <summary>
+        ///
+        /// </summary>
+        Fanart = Backdrop,
 
         /// <summary>
         ///
@@ -735,14 +277,14 @@ public class Image
         Staff = 6,
 
         /// <summary>
+        /// Clear-text logo.
+        /// </summary>
+        Logo = 7,
+
+        /// <summary>
         /// User avatar.
         /// </summary>
         Avatar = 99,
-
-        /// <summary>
-        /// Static resources are only valid if the <see cref="Image.Source"/> is set to <see cref="ImageSource.Shoko"/>.
-        /// </summary>
-        Static = 100
     }
 
     public class ImageSeriesInfo
@@ -776,8 +318,9 @@ public class Image
             /// from the API. Also see <seealso cref="Image.ID"/>.
             /// </summary>
             /// <value></value>
-            [Required, MinLength(1)]
-            public string ID { get; set; } = "";
+            [Required]
+            [Range(0, int.MaxValue)]
+            public int ID { get; set; }
 
             /// <summary>
             /// The image source.
@@ -787,4 +330,44 @@ public class Image
             public ImageSource Source { get; set; }
         }
     }
+}
+
+public static class ImageExtensions
+{
+    public static ImageEntityType ToServer(this Image.ImageType type)
+        => type switch
+        {
+            Image.ImageType.Avatar => ImageEntityType.Art,
+            Image.ImageType.Banner => ImageEntityType.Banner,
+            Image.ImageType.Character => ImageEntityType.Character,
+            Image.ImageType.Backdrop => ImageEntityType.Backdrop,
+            Image.ImageType.Poster => ImageEntityType.Poster,
+            Image.ImageType.Staff => ImageEntityType.Person,
+            Image.ImageType.Thumb => ImageEntityType.Thumbnail,
+            Image.ImageType.Logo => ImageEntityType.Logo,
+            _ => ImageEntityType.None,
+        };
+
+    public static Image.ImageType ToV3Dto(this ImageEntityType type)
+        => type switch
+        {
+            ImageEntityType.Art => Image.ImageType.Avatar,
+            ImageEntityType.Banner => Image.ImageType.Banner,
+            ImageEntityType.Character => Image.ImageType.Character,
+            ImageEntityType.Backdrop => Image.ImageType.Backdrop,
+            ImageEntityType.Poster => Image.ImageType.Poster,
+            ImageEntityType.Person => Image.ImageType.Staff,
+            ImageEntityType.Thumbnail => Image.ImageType.Thumb,
+            ImageEntityType.Logo => Image.ImageType.Logo,
+            _ => Image.ImageType.Staff,
+        };
+
+    public static DataSourceType ToServer(this Image.ImageSource source)
+        => Enum.Parse<DataSourceType>(source.ToString());
+
+    public static Image.ImageSource ToV3Dto(this DataSourceType source)
+        => Enum.Parse<Image.ImageSource>(source.ToString());
+
+    public static Image.ImageSource ToV3Dto(this DataSourceEnum source)
+        => Enum.Parse<Image.ImageSource>(source.ToString());
 }

@@ -27,7 +27,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class DashboardController : BaseController
 {
-    private readonly SeriesFactory _seriesFactory;
     private readonly QueueHandler _queueHandler;
     private readonly AnimeSeriesService _seriesService;
     private readonly AnimeSeries_UserRepository _seriesUser;
@@ -95,9 +94,9 @@ public class DashboardController : BaseController
         var hoursWatched = Math.Round(
             (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
             1, MidpointRounding.AwayFromZero);
+        // We cache the video local here since it may be gone later if the files are actively being removed.
         var places = files
-            // We cache the video local here since it may be gone later if the files are actively being removed.
-            .SelectMany(a => a.Places.Select(b => new { VideoLocalID = a.VideoLocalID, VideoLocal = a, Place = b }))
+            .SelectMany(a => a.Places.Select(b => new { a.VideoLocalID, VideoLocal = a, Place = b }))
             .ToList();
         var duplicates = places
             .Where(a => !a.VideoLocal.IsVariation)
@@ -139,10 +138,10 @@ public class DashboardController : BaseController
             return false;
         }
 
-        // this is fast now
-        var movieLinkMissing = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(ser.AniDB_ID, CrossRefType.MovieDB) == null;
-        var tvlinkMissing = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
-        return movieLinkMissing && tvlinkMissing;
+        var tmdbMovieLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
+        var tmdbShowLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
+        var tvdbLinkMissing = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
+        return tmdbMovieLinkMissing && tmdbShowLinkMissing && tvdbLinkMissing;
     }
 
     /// <summary>
@@ -152,7 +151,7 @@ public class DashboardController : BaseController
     /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
     /// <returns></returns>
     [HttpGet("TopTags/{number}")]
-    [Obsolete]
+    [Obsolete("Provide pageSize in query instead.")]
     public List<Tag> GetTopTagsObsolete(int number = 10,
         [FromQuery] TagFilter.Filter filter =
             TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
@@ -166,9 +165,11 @@ public class DashboardController : BaseController
     /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
     /// <returns></returns>
     [HttpGet("TopTags")]
-    public List<Tag> GetTopTags([FromQuery] [Range(0, 100)]  int pageSize = 10, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] TagFilter.Filter filter =
-            TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
+    public List<Tag> GetTopTags(
+        [FromQuery, Range(0, 100)] int pageSize = 10,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] TagFilter.Filter filter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source
+    )
     {
         var tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries()
             .GroupBy(xref => xref.TagID)
@@ -234,8 +235,11 @@ public class DashboardController : BaseController
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("RecentlyAddedEpisodes")]
-    public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] [Range(0, 100)] int pageSize = 30,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeRestricted = false)
+    public ListResult<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes(
+        [FromQuery, Range(0, 1000)] int pageSize = 30,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] bool includeRestricted = false
+    )
     {
         var user = HttpContext.GetUser();
         var episodeList = RepoFactory.VideoLocal.GetAll()
@@ -249,25 +253,13 @@ public class DashboardController : BaseController
             .ToDictionary(series => series.AnimeSeriesID);
         var animeDict = seriesDict.Values
             .ToDictionary(series => series.AnimeSeriesID, series => series.AniDB_Anime);
-
-        if (pageSize <= 0)
-        {
-            return episodeList
-                .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) &&
-                        (includeRestricted || anime.Restricted == 0))
-                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode,
-                    seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file))
-                .ToList();
-        }
-
         return episodeList
-            .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) &&
-                    (includeRestricted || anime.Restricted == 0))
-            .Skip(pageSize * (page - 1))
-            .Take(pageSize)
-            .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode,
-                seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file))
-            .ToList();
+            .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) && (includeRestricted || anime.Restricted == 0))
+            .ToListResult(
+                tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file),
+                page,
+                pageSize
+            );
     }
 
     /// <summary>
@@ -278,31 +270,22 @@ public class DashboardController : BaseController
     /// <param name="includeRestricted">Include restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("RecentlyAddedSeries")]
-    public List<Series> GetRecentlyAddedSeries([FromQuery] [Range(0, 100)] int pageSize = 20,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeRestricted = false)
+    public ListResult<Series> GetRecentlyAddedSeries(
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] bool includeRestricted = false
+    )
     {
         var user = HttpContext.GetUser();
-        var seriesList = RepoFactory.VideoLocal.GetAll()
+        return RepoFactory.VideoLocal.GetAll()
             .Where(f => f.DateTimeImported.HasValue)
             .OrderByDescending(f => f.DateTimeImported)
             .SelectMany(file => file.AnimeEpisodes.Select(episode => episode.AnimeSeriesID))
             .Distinct()
-            .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
+            .Select(RepoFactory.AnimeSeries.GetByID)
             .Where(series => series != null && user.AllowedSeries(series) &&
-                (includeRestricted || series.AniDB_Anime.Restricted != 1));
-
-        if (pageSize <= 0)
-        {
-            return seriesList
-                .Select(a => _seriesFactory.GetSeries(a))
-                .ToList();
-        }
-
-        return seriesList
-            .Skip(pageSize * (page - 1))
-            .Take(pageSize)
-            .Select(a => _seriesFactory.GetSeries(a))
-            .ToList();
+                (includeRestricted || series.AniDB_Anime.Restricted != 1))
+            .ToListResult(a => new Series(a, User.JMMUserID), page, pageSize);
     }
 
     /// <summary>
@@ -314,31 +297,23 @@ public class DashboardController : BaseController
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("ContinueWatchingEpisodes")]
-    public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20,
-        [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool includeSpecials = true,
-        [FromQuery] bool includeRestricted = false)
+    public ListResult<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes(
+        [FromQuery, Range(0, 100)] int pageSize = 20,
+        [FromQuery, Range(0, int.MaxValue)] int page = 0,
+        [FromQuery] bool includeSpecials = true,
+        [FromQuery] bool includeRestricted = false
+    )
     {
         var user = HttpContext.GetUser();
-        var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
+        return RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
             .Where(record => record.LastEpisodeUpdate.HasValue)
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => user.AllowedSeries(series) &&
                 (includeRestricted || series.AniDB_Anime.Restricted != 1))
             .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials)))
-            .Where(tuple => tuple.episode != null);
-        if (pageSize <= 0)
-        {
-            return episodeList
-                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
-                .ToList();
-        }
-
-        return episodeList
-            .Skip(pageSize * (page - 1))
-            .Take(pageSize)
-            .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
-            .ToList();
+            .Where(tuple => tuple.episode != null)
+            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
     }
 
     /// <summary>
@@ -355,21 +330,29 @@ public class DashboardController : BaseController
     /// search if we determine the user is "re-watching" the series.</param>
     /// <returns></returns>
     [HttpGet("NextUpEpisodes")]
-    public List<Dashboard.EpisodeDetails> GetNextUpEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20,
-        [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool onlyUnwatched = true,
-        [FromQuery] bool includeSpecials = true, [FromQuery] bool includeRestricted = false,
-        [FromQuery] bool includeMissing = false, [FromQuery] bool includeHidden = false,
-        [FromQuery] bool includeRewatching = false)
+    public ListResult<Dashboard.EpisodeDetails> GetNextUpEpisodes(
+        [FromQuery, Range(0, 100)] int pageSize = 20,
+        [FromQuery, Range(0, int.MaxValue)] int page = 0,
+        [FromQuery] bool onlyUnwatched = true,
+        [FromQuery] bool includeSpecials = true,
+        [FromQuery] bool includeRestricted = false,
+        [FromQuery] bool includeMissing = false,
+        [FromQuery] bool includeHidden = false,
+        [FromQuery] bool includeRewatching = false
+    )
     {
         var user = HttpContext.GetUser();
-        var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
+        return RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
             .Where(record =>
-                record.LastEpisodeUpdate.HasValue && (onlyUnwatched ? record.UnwatchedEpisodeCount > 0 : true))
+                record.LastEpisodeUpdate.HasValue && (!onlyUnwatched || record.UnwatchedEpisodeCount > 0))
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => user.AllowedSeries(series) &&
                 (includeRestricted || series.AniDB_Anime.Restricted != 1))
-            .Select(series => (series, episode: _seriesService.GetNextEpisode(series, user.JMMUserID, new()
+            .Select(series => (series, episode: _seriesService.GetNextEpisode(
+                series,
+                user.JMMUserID,
+                new()
                 {
                     DisableFirstEpisode = true,
                     IncludeCurrentlyWatching = !onlyUnwatched,
@@ -377,20 +360,10 @@ public class DashboardController : BaseController
                     IncludeMissing = includeMissing,
                     IncludeRewatching = includeRewatching,
                     IncludeSpecials = includeSpecials,
-                })))
-            .Where(tuple => tuple.episode != null);
-        if (pageSize <= 0)
-        {
-            return episodeList
-                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
-                .ToList();
-        }
-
-        return episodeList
-            .Skip(pageSize * (page - 1))
-            .Take(pageSize)
-            .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
-            .ToList();
+                }
+            )))
+            .Where(tuple => tuple.episode != null)
+            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
     }
 
     [NonAction]
@@ -461,9 +434,8 @@ public class DashboardController : BaseController
             .ToList();
     }
 
-    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, QueueHandler queueHandler, AnimeSeriesService seriesService, AnimeSeries_UserRepository seriesUser, VideoLocal_UserRepository vlUsers) : base(settingsProvider)
+    public DashboardController(ISettingsProvider settingsProvider, QueueHandler queueHandler, AnimeSeriesService seriesService, AnimeSeries_UserRepository seriesUser, VideoLocal_UserRepository vlUsers) : base(settingsProvider)
     {
-        _seriesFactory = seriesFactory;
         _queueHandler = queueHandler;
         _seriesService = seriesService;
         _seriesUser = seriesUser;

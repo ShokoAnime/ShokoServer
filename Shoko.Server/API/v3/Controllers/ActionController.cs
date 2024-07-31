@@ -8,10 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -37,21 +36,21 @@ public class ActionController : BaseController
     private readonly ActionService _actionService;
     private readonly AnimeGroupService _groupService;
     private readonly TraktTVHelper _traktHelper;
-    private readonly MovieDBHelper _movieDBHelper;
+    private readonly TmdbMetadataService _tmdbService;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly JobFactory _jobFactory;
-    private readonly SeriesFactory _seriesFactory;
+    private readonly AnimeSeriesService _seriesService;
 
-    public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory,
-        ISettingsProvider settingsProvider, JobFactory jobFactory, ActionService actionService, SeriesFactory seriesFactory, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
+    public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, TmdbMetadataService tmdbService, ISchedulerFactory schedulerFactory,
+        ISettingsProvider settingsProvider, JobFactory jobFactory, ActionService actionService, AnimeSeriesService seriesService, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
     {
         _logger = logger;
         _traktHelper = traktHelper;
-        _movieDBHelper = movieDBHelper;
+        _tmdbService = tmdbService;
         _schedulerFactory = schedulerFactory;
         _jobFactory = jobFactory;
         _actionService = actionService;
-        _seriesFactory = seriesFactory;
+        _seriesService = seriesService;
         _groupCreator = groupCreator;
         _groupService = groupService;
     }
@@ -59,7 +58,7 @@ public class ActionController : BaseController
     #region Common Actions
 
     /// <summary>
-    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tvdb, trakt, moviedb, etc), and downloads missing images.
+    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tvdb, trakt, tmdb, etc), and downloads missing images.
     /// </summary>
     /// <returns></returns>
     [HttpGet("RunImport")]
@@ -156,15 +155,60 @@ public class ActionController : BaseController
         return Ok();
     }
 
+
     /// <summary>
-    /// Updates All MovieDB Info
+    /// Updates All TMDB Movie Info.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("Use 'UpdateAllTMDBMovieInfo' instead.")]
     [HttpGet("UpdateAllMovieDBInfo")]
     public ActionResult UpdateAllMovieDBInfo()
     {
-        // fire and forget
-        Task.Factory.StartNew(async () => await _movieDBHelper.UpdateAllMovieInfo(true));
+        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Updates all TMDB Movies in the local database.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("UpdateAllTmdbMovies")]
+    public ActionResult UpdateAllTmdbMovies()
+    {
+        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all unused TMDB Movies that are not linked to any AniDB anime.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("PurgeAllUnusedTmdbMovies")]
+    public ActionResult PurgeAllUnusedTmdbMovies()
+    {
+        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedMovies());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Update all TMDB Shows in the local database.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("UpdateAllTmdbShows")]
+    public ActionResult UpdateAllTmdbShows()
+    {
+        Task.Factory.StartNew(() => _tmdbService.UpdateAllShows(true, true));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all unused TMDB Shows that are not linked to any AniDB anime.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("PurgeAllUnusedTmdbShows")]
+    public ActionResult PurgeAllUnusedTmdbShows()
+    {
+        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedShows());
         return Ok();
     }
 
@@ -187,7 +231,7 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Validates invalid images and redownloads them
+    /// Validates invalid images and re-downloads them
     /// </summary>
     /// <returns></returns>
     [HttpGet("ValidateAllImages")]
@@ -217,7 +261,7 @@ public class ActionController : BaseController
         var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
             .Select(file => (Video: file, AniDB: file.AniDBFile))
-            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.MediaInfo?.MenuStreams.Any() != tuple.AniDB.IsChaptered)
+            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
             .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
@@ -239,7 +283,7 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("DownloadMissingAniDBAnimeData")]
-    public async Task<ActionResult> UpdateMissingAniDBXML()
+    public async Task<ActionResult> UpdateMissingAnidbXml()
     {
         // Check existing anime.
         var index = 0;
@@ -260,7 +304,7 @@ public class ActionController : BaseController
             if (rawXml != null)
                 continue;
 
-            await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, animeID, true, false, false);
+            await _seriesService.QueueAniDBRefresh(animeID, true, false, false);
             queuedAnimeSet.Add(animeID);
         }
 
@@ -280,7 +324,7 @@ public class ActionController : BaseController
             if (++index % 10 == 1)
                 _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
 
-            await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, animeID, false, true, true);
+            await _seriesService.QueueAniDBRefresh(animeID, false, true, true);
             queuedAnimeSet.Add(animeID);
         }
 
@@ -300,12 +344,11 @@ public class ActionController : BaseController
         try
         {
             RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
-            RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
-                TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
+            RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeSeries => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeSeries.AniDB_ID, true));
         }
         catch (Exception e)
         {
-            _logger.LogError(e, e.Message);
+            _logger.LogError(e, "{ex}", e.Message);
             return InternalError(e.Message);
         }
 
@@ -357,9 +400,9 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateSeriesStats")]
-    public ActionResult UpdateSeriesStats()
+    public async Task<ActionResult> UpdateSeriesStats()
     {
-        _actionService.UpdateAllStats();
+        await _actionService.UpdateAllStats();
         return Ok();
     }
 
@@ -432,7 +475,7 @@ public class ActionController : BaseController
         await Utils.ShokoServer.SyncPlex();
         return Ok();
     }
-    
+
     /// <summary>
     /// Forcibly runs AddToMyList commands for all manual links
     /// </summary>

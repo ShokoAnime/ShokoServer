@@ -20,7 +20,9 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -36,15 +38,102 @@ public class AnimeSeriesService
     private readonly AniDB_AnimeService _animeService;
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly JobFactory _jobFactory;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
     {
         _logger = logger;
         _seriesUsers = seriesUsers;
         _schedulerFactory = schedulerFactory;
+        _jobFactory = jobFactory;
         _animeService = animeService;
         _groupService = groupService;
         _vlUsers = vlUsers;
+    }
+
+    public async Task AddSeriesVote(SVR_AnimeSeries series, AniDBVoteType voteType, decimal vote)
+    {
+        var dbVote = (RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.AnimeTemp) ??
+                     RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.Anime)) ??
+                     new AniDB_Vote { EntityID = series.AniDB_ID };
+        dbVote.VoteValue = (int)Math.Floor(vote * 100);
+        dbVote.VoteType = (int)voteType;
+
+        RepoFactory.AniDB_Vote.Save(dbVote);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+            {
+                c.AnimeID = series.AniDB_ID;
+                c.VoteType = voteType;
+                c.VoteValue = vote;
+            }
+        );
+    }
+
+    public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
+        bool cacheOnly = false)
+    {
+        if (animeID == 0) return false;
+        if (immediate)
+        {
+            var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
+            {
+                c.AnimeID = animeID;
+                c.DownloadRelations = downloadRelations;
+                c.ForceRefresh = force;
+                c.CacheOnly = !force && cacheOnly;
+                c.CreateSeriesEntry = createSeriesEntry;
+            });
+
+            try
+            {
+                return await job.Process() != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+        {
+            c.AnimeID = animeID;
+            c.DownloadRelations = downloadRelations;
+            c.ForceRefresh = force;
+            c.CacheOnly = !force && cacheOnly;
+            c.CreateSeriesEntry = createSeriesEntry;
+        });
+        return false;
+    }
+
+    public async Task<bool> QueueTvDBRefresh(int tvdbID, bool force, bool immediate = false)
+    {
+        if (immediate)
+        {
+            try
+            {
+                var job = _jobFactory.CreateJob<GetTvDBSeriesJob>(c =>
+                {
+                    c.TvDBSeriesID = tvdbID;
+                    c.ForceRefresh = force;
+                });
+                return await job.Process() != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetTvDBSeriesJob>(c =>
+        {
+            c.TvDBSeriesID = tvdbID;
+            c.ForceRefresh = force;
+        });
+        return false;
     }
 
     public async Task<bool> CreateAnimeEpisodes(SVR_AnimeSeries series)
@@ -58,7 +147,7 @@ public class AnimeSeriesService
             .Where(a => a.AniDB_Episode is null)
             .ToList();
         var filesToUpdate = epsToRemove
-            .SelectMany(a => a.FileCrossRefs)
+            .SelectMany(a => a.FileCrossReferences)
             .ToList();
         var vlIDsToUpdate = filesToUpdate
             .Select(a => a.VideoLocal?.VideoLocalID)
@@ -193,13 +282,7 @@ public class AnimeSeriesService
             AniDBAnime = _animeService.GetV1DetailedContract(series.AniDB_Anime),
         };
 
-        var tvDBCrossRefs = series.TvDBXrefs;
-        var movieDBCrossRef = series.CrossRefMovieDB;
-        MovieDB_Movie movie = null;
-        if (movieDBCrossRef != null)
-        {
-            movie = movieDBCrossRef.GetMovieDB_Movie();
-        }
+        var tvDBCrossRefs = series.TvdbSeriesCrossReferences;
 
         var sers = new List<TvDB_Series>();
         foreach (var xref in tvDBCrossRefs)
@@ -211,21 +294,20 @@ public class AnimeSeriesService
             }
             else
             {
-                _logger.LogWarning("You are missing database information for TvDB series: {0}", xref.TvDBID);
+                _logger.LogWarning("You are missing database information for TvDB series: {TvDB ID}", xref.TvDBID);
             }
         }
 
         contract.CrossRefAniDBTvDBV2 = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(series.AniDB_ID);
 
         contract.TvDB_Series = sers;
-        contract.CrossRefAniDBMovieDB = null;
-        if (movieDBCrossRef != null)
+        if (series.TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieXrefs)
         {
-            contract.CrossRefAniDBMovieDB = movieDBCrossRef;
-            contract.MovieDB_Movie = movie;
+            contract.CrossRefAniDBMovieDB = tmdbMovieXrefs[0].ToClient();
+            contract.MovieDB_Movie = tmdbMovieXrefs[0].TmdbMovie.ToClient();
         }
 
-        contract.CrossRefAniDBMAL = series.CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
+        contract.CrossRefAniDBMAL = series.MALCrossReferences?.ToList() ?? new List<CrossRef_AniDB_MAL>();
         try
         {
 
@@ -238,13 +320,13 @@ public class AnimeSeriesService
                 contract.PlayedCount = rr.PlayedCount;
                 contract.WatchedCount = rr.WatchedCount;
                 contract.StoppedCount = rr.StoppedCount;
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.SeriesName;
+                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.PreferredTitle;
                 return contract;
             }
 
             if (contract.AniDBAnime?.AniDBAnime != null)
             {
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.SeriesName;
+                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.PreferredTitle;
             }
 
             return contract;
@@ -347,7 +429,7 @@ public class AnimeSeriesService
                 watchedStats, missingEpsStats);
 
             var startEps = DateTime.Now;
-            var eps = series.AllAnimeEpisodes.Where(a => a.AniDB_Episode != null).ToList();
+            var eps = series.AllAnimeEpisodes.Where(a => a.AniDB_Episode is not null).ToList();
             var tsEps = DateTime.Now - startEps;
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
 
@@ -563,7 +645,7 @@ public class AnimeSeriesService
                 lock (daysofweekcounter)
                 {
                     daysofweekcounter.TryAdd(airdateLocal.DayOfWeek, 0);
-                            daysofweekcounter[airdateLocal.DayOfWeek]++;
+                    daysofweekcounter[airdateLocal.DayOfWeek]++;
                 }
 
                 if (lastEpAirDate == null || lastEpAirDate < airdate)
@@ -766,8 +848,8 @@ label0:;
         if (completelyRemove)
         {
             // episodes, anime, characters, images, staff relations, tag relations, titles
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(series.AniDB_ID);
-            RepoFactory.AniDB_Anime_DefaultImage.Delete(images);
+            var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(series.AniDB_ID);
+            RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
 
             var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID);
             var characters = characterXrefs.Select(a => RepoFactory.AniDB_Character.GetByCharID(a.CharID)).ToList();

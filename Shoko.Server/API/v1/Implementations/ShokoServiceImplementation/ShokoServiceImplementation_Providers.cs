@@ -10,8 +10,10 @@ using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -19,6 +21,8 @@ using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Utilities;
 
+#pragma warning disable ASP0023
+#pragma warning disable CA2012
 namespace Shoko.Server;
 
 public partial class ShokoServiceImplementation : IShokoServer
@@ -28,19 +32,19 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         var result = new CL_AniDB_AnimeCrossRefs
         {
-            CrossRef_AniDB_TvDB = new List<CrossRef_AniDB_TvDBV2>(),
-            TvDBSeries = new List<TvDB_Series>(),
-            TvDBEpisodes = new List<TvDB_Episode>(),
-            TvDBImageFanarts = new List<TvDB_ImageFanart>(),
-            TvDBImagePosters = new List<TvDB_ImagePoster>(),
-            TvDBImageWideBanners = new List<TvDB_ImageWideBanner>(),
+            CrossRef_AniDB_TvDB = [],
+            TvDBSeries = [],
+            TvDBEpisodes = [],
+            TvDBImageFanarts = [],
+            TvDBImagePosters = [],
+            TvDBImageWideBanners = [],
             CrossRef_AniDB_MovieDB = null,
             MovieDBMovie = null,
-            MovieDBFanarts = new List<MovieDB_Fanart>(),
-            MovieDBPosters = new List<MovieDB_Poster>(),
+            MovieDBFanarts = [],
+            MovieDBPosters = [],
             CrossRef_AniDB_MAL = null,
-            CrossRef_AniDB_Trakt = new List<CrossRef_AniDB_TraktV2>(),
-            TraktShows = new List<CL_Trakt_Show>(),
+            CrossRef_AniDB_Trakt = [],
+            TraktShows = [],
             AnimeID = animeID
         };
 
@@ -89,8 +93,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // Trakt
-
-
             foreach (var xref in anime.GetCrossRefTraktV2())
             {
                 result.CrossRef_AniDB_Trakt.Add(xref);
@@ -102,31 +104,16 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
-
-            // MovieDB
-            var xrefMovie = anime.CrossRefMovieDB;
-            result.CrossRef_AniDB_MovieDB = xrefMovie;
-
-
-            result.MovieDBMovie = anime.MovieDBMovie;
-
-
-            foreach (var fanart in anime.MovieDBFanarts)
+            // TMDB
+            var (xrefMovie, _) = anime.TmdbMovieCrossReferences;
+            result.CrossRef_AniDB_MovieDB = xrefMovie?.ToClient();
+            if (xrefMovie?.TmdbMovie is var tmdbMovie)
             {
-                if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                        StringComparison.InvariantCultureIgnoreCase))
-                {
-                    result.MovieDBFanarts.Add(fanart);
-                }
-            }
-
-            foreach (var poster in anime.MovieDBPosters)
-            {
-                if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                        StringComparison.InvariantCultureIgnoreCase))
-                {
-                    result.MovieDBPosters.Add(poster);
-                }
+                result.MovieDBMovie = xrefMovie?.TmdbMovie?.ToClient();
+                foreach (var fanart in tmdbMovie.GetImages(ImageEntityType.Backdrop))
+                    result.MovieDBFanarts.Add(fanart.ToClientFanart());
+                foreach (var poster in tmdbMovie.GetImages(ImageEntityType.Poster))
+                    result.MovieDBPosters.Add(poster.ToClientPoster());
             }
 
             // MAL
@@ -137,7 +124,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
             else
             {
-                result.CrossRef_AniDB_MAL = new List<CrossRef_AniDB_MAL>();
+                result.CrossRef_AniDB_MAL = [];
                 foreach (var xrefTemp in xrefMAL)
                 {
                     result.CrossRef_AniDB_MAL.Add(xrefTemp);
@@ -148,7 +135,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return result;
         }
     }
@@ -170,7 +157,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpGet("WebCache/AdminMessages")]
     public List<Azure_AdminMessage> GetAdminMessages()
     {
-        return new List<Azure_AdminMessage>();
+        return [];
     }
 
     #region Admin - TvDB
@@ -201,6 +188,8 @@ public partial class ShokoServiceImplementation : IShokoServer
 
     #region Admin - Trakt
 
+
+    // The interface have these mapped to the same endpoint and same method, so just map them and let them conflict.
     [HttpPost("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}")]
     public string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId)
     {
@@ -244,7 +233,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
         }
 
         return string.Empty;
@@ -259,10 +248,10 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
         }
 
-        return new List<TvDB_Language>();
+        return [];
     }
 
     [HttpGet("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}")]
@@ -270,12 +259,12 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return new List<Azure_CrossRef_AniDB_TvDB>();
+            return [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<Azure_CrossRef_AniDB_TvDB>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -288,8 +277,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<CrossRef_AniDB_TvDBV2>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -308,8 +297,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<CrossRef_AniDB_TvDB_Episode_Override>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -322,8 +311,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<TVDB_Series_Search_Response>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -342,7 +331,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return seasonNumbers;
         }
     }
@@ -380,7 +369,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -402,7 +391,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -431,30 +420,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             foreach (var xref in xrefs)
-            {
-                // check if there are default images used associated
-                var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                foreach (var image in images)
-                {
-                    if (image.ImageParentType == (int)ImageEntityType.TvDB_Banner ||
-                        image.ImageParentType == (int)ImageEntityType.TvDB_Cover ||
-                        image.ImageParentType == (int)ImageEntityType.TvDB_FanArt)
-                    {
-                        if (image.ImageParentID == xref.TvDBID)
-                        {
-                            RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                        }
-                    }
-                }
-
                 _tvdbHelper.RemoveLinkAniDBTvDB(xref.AniDBID, xref.TvDBID);
-            }
 
             return string.Empty;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -471,28 +443,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find Series for Anime!";
             }
 
-            // check if there are default images used associated
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(link.AnimeID);
-            foreach (var image in images)
-            {
-                if (image.ImageParentType == (int)ImageEntityType.TvDB_Banner ||
-                    image.ImageParentType == (int)ImageEntityType.TvDB_Cover ||
-                    image.ImageParentType == (int)ImageEntityType.TvDB_FanArt)
-                {
-                    if (image.ImageParentID == link.TvDBID)
-                    {
-                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                    }
-                }
-            }
-
             _tvdbHelper.RemoveLinkAniDBTvDB(link.AnimeID, link.TvDBID);
 
             return string.Empty;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -524,7 +481,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -532,7 +489,6 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpGet("TvDB/Poster/{tvDBID?}")]
     public List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
     {
-        var allImages = new List<TvDB_ImagePoster>();
         try
         {
             if (tvDBID.HasValue)
@@ -544,8 +500,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<TvDB_ImagePoster>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -563,8 +519,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<TvDB_ImageWideBanner>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -582,8 +538,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<TvDB_ImageFanart>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -601,8 +557,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<TvDB_Episode>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -624,8 +580,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<Trakt_Episode>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -640,12 +596,12 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return GetAllTraktEpisodes(show.Trakt_ShowID);
             }
 
-            return new List<Trakt_Episode>();
+            return [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<Trakt_Episode>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -654,12 +610,12 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return new List<Azure_CrossRef_AniDB_Trakt>();
+            return [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<Azure_CrossRef_AniDB_Trakt>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -705,7 +661,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -719,15 +675,15 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<CrossRef_AniDB_TraktV2>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
     [HttpGet("Trakt/CrossRef/Episode/{animeID}")]
     public List<CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID)
     {
-        return new List<CrossRef_AniDB_Trakt_Episode>();
+        return [];
     }
 
     [HttpGet("Trakt/Search/{criteria}")]
@@ -747,7 +703,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return results;
         }
     }
@@ -764,17 +720,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find Series for Anime!";
             }
 
-            // check if there are default images used associated
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-            foreach (var image in images)
-            {
-                if (image.ImageParentType == (int)ImageEntityType.Trakt_Fanart ||
-                    image.ImageParentType == (int)ImageEntityType.Trakt_Poster)
-                {
-                    RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                }
-            }
-
             foreach (var xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
             {
                 _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType)xref.AniDBStartEpisodeType,
@@ -786,7 +731,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -805,17 +750,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find Series for Anime!";
             }
 
-            // check if there are default images used associated
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-            foreach (var image in images)
-            {
-                if (image.ImageParentType == (int)ImageEntityType.Trakt_Fanart ||
-                    image.ImageParentType == (int)ImageEntityType.Trakt_Poster)
-                {
-                    RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                }
-            }
-
             _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType)aniEpType, aniEpNumber,
                 traktID, traktSeasonNumber, traktEpNumber);
 
@@ -823,7 +757,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -852,7 +786,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return seasonNumbers;
         }
     }
@@ -934,7 +868,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return 500;
         }
     }
@@ -948,7 +882,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
         }
 
         return string.Empty;
@@ -977,7 +911,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -997,7 +931,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
         }
 
         return false;
@@ -1012,16 +946,16 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
         }
 
-        return new List<CrossRef_AniDB_TraktV2>();
+        return [];
     }
 
     [HttpGet("Trakt/Comment/{animeID}")]
     public List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID)
     {
-        return new List<CL_Trakt_CommentUser>();
+        return [];
     }
 
     [HttpGet("Trakt/DeviceCode")]
@@ -1034,7 +968,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in GetTraktDeviceCode: " + ex);
+            _logger.LogError(ex, "Error in GetTraktDeviceCode: {ex}", ex.ToString());
             return null;
         }
     }
@@ -1052,7 +986,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return null;
         }
     }
@@ -1062,11 +996,14 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, (CrossRefType)crossRefType);
+            if (crossRefType != (int)CrossRefType.MovieDB)
+                return null;
+            var (xref, _) = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(animeID);
+            return xref?.ToClient();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return null;
         }
     }
@@ -1081,7 +1018,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-                    _movieDBHelper.LinkAniDBMovieDB(animeID, id, false);
+                    _tmdbService.AddMovieLink(animeID, id).ConfigureAwait(false).GetAwaiter().GetResult();
+                    _tmdbService.ScheduleUpdateOfMovie(id, downloadImages: true).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
 
@@ -1089,7 +1027,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -1110,20 +1048,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-
-                    // check if there are default images used associated
-                    var images =
-                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                    foreach (var image in images)
-                    {
-                        if (image.ImageParentType == (int)ImageEntityType.MovieDB_FanArt ||
-                            image.ImageParentType == (int)ImageEntityType.MovieDB_Poster)
-                        {
-                            RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                        }
-                    }
-
-                    _movieDBHelper.RemoveLinkAniDBMovieDB(animeID);
+                    _tmdbService.RemoveAllMovieLinks(animeID).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
 
@@ -1131,7 +1056,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -1146,18 +1071,15 @@ public partial class ShokoServiceImplementation : IShokoServer
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var movieResults = _movieDBHelper.Search(criteria).Result;
+            var (movieResults, _) = _tmdbService.SearchMovies(System.Web.HttpUtility.UrlDecode(criteria)).ConfigureAwait(false).GetAwaiter().GetResult();
 
-            foreach (var res in movieResults)
-            {
-                results.Add(res.ToContract());
-            }
+            results.AddRange(movieResults.Select(movie => movie.ToContract()));
 
             return results;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return results;
         }
     }
@@ -1168,16 +1090,18 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             if (movieID.HasValue)
-            {
-                return RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
-            }
+                return RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(movieID.Value, ImageEntityType.Poster)
+                    .Select(image => image.ToClientPoster())
+                    .ToList();
 
-            return RepoFactory.MovieDB_Poster.GetAllOriginal();
+            return RepoFactory.TMDB_Image.GetByType(ImageEntityType.Poster)
+                .Select(image => image.ToClientPoster())
+                .ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<MovieDB_Poster>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
@@ -1187,29 +1111,31 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             if (movieID.HasValue)
-            {
-                return RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
-            }
+                return RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(movieID.Value, ImageEntityType.Backdrop)
+                    .Select(image => image.ToClientFanart())
+                    .ToList();
 
-            return RepoFactory.MovieDB_Fanart.GetAllOriginal();
+            return RepoFactory.TMDB_Image.GetByType(ImageEntityType.Backdrop)
+                .Select(image => image.ToClientFanart())
+                .ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return new List<MovieDB_Fanart>();
+            _logger.LogError(ex, "{ex}", ex.ToString());
+            return [];
         }
     }
 
     [HttpPost("MovieDB/Refresh/{movieID}")]
-    public string UpdateMovieDBData(int movieD)
+    public string UpdateMovieDBData(int movieID)
     {
         try
         {
-            _movieDBHelper.UpdateMovieInfo(movieD, true);
+            _tmdbService.ScheduleUpdateOfMovie(movieID, downloadImages: true, forceRefresh: true).ConfigureAwait(false).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
         }
 
         return string.Empty;

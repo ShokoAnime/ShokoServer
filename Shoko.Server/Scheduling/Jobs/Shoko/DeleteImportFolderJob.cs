@@ -5,6 +5,7 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Services;
 
+#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]

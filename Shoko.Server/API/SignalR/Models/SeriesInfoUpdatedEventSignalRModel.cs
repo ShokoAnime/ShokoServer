@@ -16,7 +16,6 @@ public class SeriesInfoUpdatedEventSignalRModel
         SeriesID = eventArgs.SeriesInfo.ID;
 
         ShokoSeriesIDs = eventArgs.SeriesInfo.ShokoSeriesIDs;
-        ShokoGroupIDs = eventArgs.SeriesInfo.ShokoGroupIDs;
     }
 
     /// <summary>
@@ -40,9 +39,4 @@ public class SeriesInfoUpdatedEventSignalRModel
     /// Shoko series ids affected by this update.
     /// </summary>
     public IReadOnlyList<int> ShokoSeriesIDs { get; }
-
-    /// <summary>
-    /// Shoko group ids affected by this update.
-    /// </summary>
-    public IReadOnlyList<int> ShokoGroupIDs { get; }
 }

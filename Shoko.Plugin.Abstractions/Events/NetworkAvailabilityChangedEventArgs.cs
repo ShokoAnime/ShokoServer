@@ -1,13 +1,12 @@
 using System;
 using Shoko.Plugin.Abstractions.Enums;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions;
 
 public class NetworkAvailabilityChangedEventArgs : EventArgs
 {
     /// <summary>
-    /// The new network availibility.
+    /// The new network availability.
     /// </summary>
     public NetworkAvailability NetworkAvailability { get; }
 
