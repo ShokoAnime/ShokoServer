@@ -25,8 +25,7 @@ public static class Loader
         // add plugin api related things to service collection
         var assemblies = new List<Assembly>();
         var assembly = Assembly.GetExecutingAssembly();
-        var uri = new UriBuilder(assembly.GetName().CodeBase);
-        var dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
+        var dirname = Path.GetDirectoryName(assembly.Location);
         assemblies.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
 
         // Load plugins from the user config dir too.

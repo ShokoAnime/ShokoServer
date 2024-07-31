@@ -21,9 +21,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiV3]
 public class ReleaseManagementController : BaseController
 {
-    private readonly ILogger<ReleaseManagementController> _logger;
-    private readonly SeriesFactory _seriesFactory;
-
     /// <summary>
     /// Get series with multiple releases.
     /// </summary>
@@ -34,7 +31,7 @@ public class ReleaseManagementController : BaseController
     /// <param name="page">Page number.</param>
     /// <returns></returns>
     [HttpGet("Series")]
-    public ActionResult<ListResult<SeriesWithMultipleReleasesResult>> GetSeriesWithMultipleReleases(
+    public ActionResult<ListResult<Series.WithMultipleReleasesResult>> GetSeriesWithMultipleReleases(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool ignoreVariations = true,
         [FromQuery] bool onlyFinishedSeries = false,
@@ -45,9 +42,9 @@ public class ReleaseManagementController : BaseController
         if (onlyFinishedSeries) enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
-            .OrderBy(series => series.SeriesName)
+            .OrderBy(series => series.PreferredTitle)
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => _seriesFactory.GetSeriesWithMultipleReleasesResult(series, false, includeDataFrom, ignoreVariations), page, pageSize);
+            .ToListResult(series => new Series.WithMultipleReleasesResult(series, User.JMMUserID, includeDataFrom, ignoreVariations), page, pageSize);
     }
 
     /// <summary>
@@ -162,7 +159,7 @@ public class ReleaseManagementController : BaseController
     /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
     /// <returns></returns>
     [HttpGet("Episode/FilesToDelete")]
-    public ActionResult<List<int>> GetFileIdsWithPreference(
+    public static ActionResult<List<int>> GetFileIdsWithPreference(
         [FromQuery] bool ignoreVariations = true
     )
     {
@@ -182,9 +179,7 @@ public class ReleaseManagementController : BaseController
             .ToList();
     }
 
-    public ReleaseManagementController(ISettingsProvider settingsProvider, ILogger<ReleaseManagementController> logger, SeriesFactory seriesFactory) : base(settingsProvider)
+    public ReleaseManagementController(ISettingsProvider settingsProvider) : base(settingsProvider)
     {
-        _logger = logger;
-        _seriesFactory = seriesFactory;
     }
 }

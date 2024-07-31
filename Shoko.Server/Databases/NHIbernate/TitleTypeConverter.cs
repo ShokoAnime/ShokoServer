@@ -9,7 +9,7 @@ using NHibernate.UserTypes;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 
-namespace Shoko.Server.Databases.NHIbernate;
+namespace Shoko.Server.Databases.NHibernate;
 
 public class TitleTypeConverter : TypeConverter, IUserType
 {
@@ -142,7 +142,7 @@ public class TitleTypeConverter : TypeConverter, IUserType
     /// </summary>
     /// <param name="x">The x.</param>
     /// <returns>
-    /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+    /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table.
     /// </returns>
     public int GetHashCode(object x)
     {

@@ -10,7 +10,7 @@ namespace Shoko.Server.Providers.AniDB.Titles;
 [XmlRoot("animetitles")]
 public class ResponseAniDBTitles
 {
-    [XmlElement("anime")] public List<Anime> Animes { get; set; }
+    [XmlElement("anime")] public List<Anime> AnimeList { get; set; }
 
     public class Anime
     {
@@ -36,7 +36,7 @@ public class ResponseAniDBTitles
                     if (title != null) return title.Title;
 
                     // Then check for _any_ title at all, if there is no main or official title in the langugage.
-                    if (Utils.SettingsProvider.GetSettings().LanguageUseSynonyms)
+                    if (Utils.SettingsProvider.GetSettings().Language.UseSynonyms)
                     {
                         title = Titles.FirstOrDefault(t => t.Language == language);
                         if (title != null) return title.Title;

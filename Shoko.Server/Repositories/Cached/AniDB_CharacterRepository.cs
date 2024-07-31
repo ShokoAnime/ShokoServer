@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -17,7 +18,7 @@ public class AniDB_CharacterRepository : BaseCachedRepository<AniDB_Character, i
 
     public List<AniDB_Character> GetCharactersForAnime(int animeID)
     {
-        return ReadLock(() => RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID).Select(a => GetByCharID(a.CharID)).ToList());
+        return ReadLock(() => RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID).Select(a => GetByCharID(a.CharID)).WhereNotNull().ToList());
     }
 
     public AniDB_CharacterRepository(DatabaseFactory databaseFactory) : base(databaseFactory)

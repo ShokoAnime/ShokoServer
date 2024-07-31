@@ -1,4 +1,4 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,7 +18,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
@@ -44,27 +44,39 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly JobFactory _jobFactory;
     private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
-    private readonly MovieDBHelper _movieDBHelper;
+    private readonly TmdbMetadataService _tmdbService;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
-    private readonly AnimeSeriesService _seriesService;
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
     private readonly WatchedStatusService _watchedService;
-    
-    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ILogger<ShokoServiceImplementation> logger, ActionService actionService, AnimeGroupCreator groupCreator, JobFactory jobFactory, AnimeSeriesService seriesService, AnimeEpisodeService episodeService, WatchedStatusService watchedService, VideoLocalService videoLocalService)
+
+    public ShokoServiceImplementation(
+        TvDBApiHelper tvdbHelper,
+        TraktTVHelper traktHelper,
+        TmdbMetadataService tmdbService,
+        ISchedulerFactory schedulerFactory,
+        ISettingsProvider settingsProvider,
+        ILogger<ShokoServiceImplementation> logger,
+        ActionService actionService,
+        AnimeGroupCreator groupCreator,
+        JobFactory jobFactory,
+        AnimeSeriesService seriesService,
+        AnimeEpisodeService episodeService,
+        WatchedStatusService watchedService,
+        VideoLocalService videoLocalService
+    )
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
-        _movieDBHelper = movieDBHelper;
+        _tmdbService = tmdbService;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
         _logger = logger;
         _actionService = actionService;
         _groupCreator = groupCreator;
         _jobFactory = jobFactory;
-        _seriesService = seriesService;
         _episodeService = episodeService;
         _watchedService = watchedService;
         _videoLocalService = videoLocalService;
@@ -131,7 +143,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 changes[0].LastChange = changes[1].LastChange;
             }
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>(); 
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             c.Groups.ChangedItems = changes[0]
                 .ChangedItems.Select(a => RepoFactory.AnimeGroup.GetByID(a))
                 .Where(a => a != null)
@@ -365,7 +377,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                     contract.ErrorMessage += "AniDB Password must have a value" + Environment.NewLine;
                 }
             }
-            
+
             if (!ushort.TryParse(contractIn.AniDB_AVDumpClientPort, out var newAniDB_AVDumpClientPort))
             {
                 contract.ErrorMessage += "AniDB AVDump port must be a valid port" + Environment.NewLine;
@@ -431,11 +443,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.TvDB.UpdateFrequency = (ScheduledUpdateFrequency)contractIn.TvDB_UpdateFrequency;
             settings.TvDB.Language = contractIn.TvDB_Language;
 
-            // MovieDB
-            settings.MovieDb.AutoFanart = contractIn.MovieDB_AutoFanart;
-            settings.MovieDb.AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
-            settings.MovieDb.AutoPosters = contractIn.MovieDB_AutoPosters;
-            settings.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
+            // TMDB
+            settings.TMDB.AutoDownloadBackdrops = contractIn.MovieDB_AutoFanart;
+            settings.TMDB.MaxAutoBackdrops = contractIn.MovieDB_AutoFanartAmount;
+            settings.TMDB.AutoDownloadPosters = contractIn.MovieDB_AutoPosters;
+            settings.TMDB.MaxAutoPosters = contractIn.MovieDB_AutoPostersAmount;
 
             // Import settings
             settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
@@ -461,11 +473,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
 
             // Language
-            settings.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
-            settings.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
-            settings.EpisodeTitleSource = (DataSourceType)contractIn.EpisodeTitleSource;
-            settings.SeriesDescriptionSource = (DataSourceType)contractIn.SeriesDescriptionSource;
-            settings.SeriesNameSource = (DataSourceType)contractIn.SeriesNameSource;
+            settings.Language.SeriesTitleLanguageOrder = contractIn.LanguagePreference.Split(',').ToList();
+            settings.Language.UseSynonyms = contractIn.LanguageUseSynonyms;
+            settings.Language.EpisodeTitleSourceOrder = [(DataSourceType)contractIn.EpisodeTitleSource];
+            settings.Language.DescriptionSourceOrder = [(DataSourceType)contractIn.SeriesDescriptionSource];
+            settings.Language.SeriesTitleSourceOrder = [(DataSourceType)contractIn.SeriesNameSource];
 
             // Trakt
             settings.TraktTv.Enabled = contractIn.Trakt_IsEnabled;
@@ -755,86 +767,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            var imgType = (ImageEntityType)imageType;
-            int animeID = 0;
+            var it = (CL_ImageEntityType)imageType;
+            if (!ImageUtils.SetEnabled(it.ToServerSource(), it.ToServerType(), imageID, enabled))
+                return "Could not find image";
 
-            switch (imgType)
-            {
-                case ImageEntityType.AniDB_Cover:
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageID);
-                    if (anime == null)
-                    {
-                        return "Could not find anime";
-                    }
-
-                    anime.ImageEnabled = enabled ? 1 : 0;
-                    RepoFactory.AniDB_Anime.Save(anime);
-                    break;
-
-                case ImageEntityType.TvDB_Banner:
-                    var banner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
-                    if (banner == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    banner.Enabled = enabled ? 1 : 0;
-                    RepoFactory.TvDB_ImageWideBanner.Save(banner);
-                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(banner.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
-                    break;
-
-                case ImageEntityType.TvDB_Cover:
-                    var poster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
-                    if (poster == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    poster.Enabled = enabled ? 1 : 0;
-                    RepoFactory.TvDB_ImagePoster.Save(poster);
-                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(poster.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
-                    break;
-
-                case ImageEntityType.TvDB_FanArt:
-                    var fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
-                    if (fanart == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    fanart.Enabled = enabled ? 1 : 0;
-                    RepoFactory.TvDB_ImageFanart.Save(fanart);
-                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(fanart.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
-                    break;
-
-                case ImageEntityType.MovieDB_Poster:
-                    var moviePoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
-                    if (moviePoster == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    moviePoster.Enabled = enabled ? 1 : 0;
-                    RepoFactory.MovieDB_Poster.Save(moviePoster);
-                    animeID = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(moviePoster.MovieId, CrossRefType.MovieDB)?.AnimeID ?? 0;
-                    break;
-
-                case ImageEntityType.MovieDB_FanArt:
-                    var movieFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
-                    if (movieFanart == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    movieFanart.Enabled = enabled ? 1 : 0;
-                    RepoFactory.MovieDB_Fanart.Save(movieFanart);
-                    animeID = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(movieFanart.MovieId, CrossRefType.MovieDB)?.AnimeID ?? 0;
-                    break;
-            }
-
-            var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
-            var scheduler = schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            if (animeID != 0) scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
@@ -849,59 +785,30 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            var imgType = (ImageEntityType)imageType;
-            var sizeType = ImageSizeType.Poster;
+            var imageEntityType = ((CL_ImageEntityType)imageType).ToServerType();
+            var dataSource = ((CL_ImageEntityType)imageType).ToServerSource();
 
-            switch (imgType)
-            {
-                case ImageEntityType.AniDB_Cover:
-                case ImageEntityType.TvDB_Cover:
-                case ImageEntityType.MovieDB_Poster:
-                    sizeType = ImageSizeType.Poster;
-                    break;
-
-                case ImageEntityType.TvDB_Banner:
-                    sizeType = ImageSizeType.WideBanner;
-                    break;
-
-                case ImageEntityType.TvDB_FanArt:
-                case ImageEntityType.MovieDB_FanArt:
-                    sizeType = ImageSizeType.Fanart;
-                    break;
-            }
-
+            // Reset the image preference.
             if (!isDefault)
             {
-                // this mean we are removing an image as default
-                // which essential means deleting the record
-
-                var img =
-                    RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, sizeType);
-                if (img != null)
-                {
-                    RepoFactory.AniDB_Anime_DefaultImage.Delete(img.AniDB_Anime_DefaultImageID);
-                }
+                var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(animeID, imageEntityType);
+                if (defaultImage != null)
+                    RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
             }
+            // Mark the image as the preferred/default for it's type.
             else
             {
-                // making the image the default for it's type (poster, fanart, etc)
-                var img =
-                    RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, sizeType);
-                if (img == null)
-                {
-                    img = new AniDB_Anime_DefaultImage();
-                }
-
-                img.AnimeID = animeID;
-                img.ImageParentID = imageID;
-                img.ImageParentType = (int)imgType;
-                img.ImageType = (int)sizeType;
-                RepoFactory.AniDB_Anime_DefaultImage.Save(img);
+                var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(animeID, imageEntityType) ?? new(animeID, imageEntityType);
+                defaultImage.ImageID = imageID;
+                defaultImage.ImageSource = dataSource;
+                RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
             }
 
-            var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
-            var scheduler = schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            if (animeID != 0) scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).GetAwaiter().GetResult();
+            if (animeID != 0)
+            {
+                var scheduler = _schedulerFactory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
+                scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).GetAwaiter().GetResult();
+            }
 
             return string.Empty;
         }
@@ -1153,7 +1060,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                     var rec = new CL_Recommendation
                     {
-                        BasedOnAnimeID = anime.AnimeID, RecommendedAnimeID = link.SimilarAnimeID
+                        BasedOnAnimeID = anime.AnimeID,
+                        RecommendedAnimeID = link.SimilarAnimeID,
                     };
 
                     // if we don't have the anime locally. lets assume the anime has a high rating
@@ -1171,9 +1079,9 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                     // check if we have added this recommendation before
                     // this might happen where animes are recommended based on different votes
                     // and could end up with different scores
-                    if (dictRecs.ContainsKey(rec.RecommendedAnimeID))
+                    if (dictRecs.TryGetValue(rec.RecommendedAnimeID, out var recommendation))
                     {
-                        if (rec.Score < dictRecs[rec.RecommendedAnimeID].Score)
+                        if (rec.Score < recommendation.Score)
                         {
                             continue;
                         }

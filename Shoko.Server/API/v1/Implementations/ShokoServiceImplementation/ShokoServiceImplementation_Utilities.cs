@@ -48,13 +48,15 @@ public partial class ShokoServiceImplementation
         return series.Select(a => a.Result).Select(ser => seriesService.GetV1UserContract(ser, uid)).ToList();
     }
 
-    private static readonly char[] InvalidPathChars =
+    private static readonly char[] _invalidPathChars =
         $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}".ToCharArray();
 
-    private static readonly char[] ReplaceWithSpace = @"[]_-.+&()".ToCharArray();
+    private static readonly char[] _replaceWithSpace = @"[]_-.+&()".ToCharArray();
 
-    private static readonly string[] ReplacementStrings =
+    private static readonly string[] _replacementStrings =
         {"h264", "x264", "x265", "bluray", "blu-ray", "remux", "avc", "flac", "dvd", "1080p", "720p", "480p", "hevc", "webrip", "web", "h265", "ac3", "aac", "mp3", "dts", "bd"};
+
+    private static readonly char[] _pipeSeparator = ['|'];
 
     private static string ReplaceCaseInsensitive(string input, string search, string replacement)
     {
@@ -66,9 +68,9 @@ public partial class ShokoServiceImplementation
     {
         if (!replaceInvalid) return value;
 
-        value = ReplacementStrings.Aggregate(value, (current, c) => ReplaceCaseInsensitive(current, c, string.Empty));
-        value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
-        value = value.FilterCharacters(InvalidPathChars, true);
+        value = _replacementStrings.Aggregate(value, (current, c) => ReplaceCaseInsensitive(current, c, string.Empty));
+        value = _replaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
+        value = value.FilterCharacters(_invalidPathChars, true);
 
         // Takes too long
         //value = RemoveSubgroups(value);
@@ -82,9 +84,9 @@ public partial class ShokoServiceImplementation
         if ((titles?.Count ?? 0) == 0) return 1;
         double dist = 1;
         var dice = new SorensenDice();
-        var languages = new HashSet<string> {"en", "x-jat"};
+        var languages = new HashSet<string> { "en", "x-jat" };
         languages.UnionWith(languagePreference.Select(b => b.ToLower()));
-            
+
         foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
                      .Where(b => b.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Short && languages.Contains(b.LanguageCode))
                      .Select(b => b.Title?.ToLowerInvariant()).ToList())
@@ -103,7 +105,7 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpPost("AniDB/Anime/SearchFilename/{uid}")]
-    public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, [FromForm]string query)
+    public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, [FromForm] string query)
     {
         var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
         var input = query ?? string.Empty;
@@ -113,10 +115,10 @@ public partial class ShokoServiceImplementation
         var user = RepoFactory.JMMUser.GetByID(uid);
         if (user == null) return [];
 
-        var languagePreference = _settingsProvider.GetSettings().LanguagePreference;
+        var languagePreference = _settingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
         var animeResults = RepoFactory.AnimeSeries.GetAll()
             .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(languagePreference, a, input))).OrderBy(a => a.Item2)
-            .ThenBy(a => a.Item1.SeriesName)
+            .ThenBy(a => a.Item1.PreferredTitle)
             .Select(a => a.Item1.AniDB_Anime).ToList();
 
         var seriesList = animeResults.Select(anime => aniDBAnimeService.GetV1Contract(anime)).ToList();
@@ -555,7 +557,7 @@ public partial class ShokoServiceImplementation
                     {
                         AnimeID = anime.AnimeID,
                         MainTitle = anime.MainTitle,
-                        Titles = new HashSet<string>(anime.AllTitles.Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries)),
+                        Titles = new HashSet<string>(anime.AllTitles.Split(_pipeSeparator, StringSplitOptions.RemoveEmptyEntries)),
                     };
 
                     // check for existing series and group details
@@ -690,7 +692,7 @@ public partial class ShokoServiceImplementation
                 var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
                 return ser.AllAnimeEpisodes
                     .Where(aep =>
-                        aep.AniDB_Episode != null && aep.VideoLocals.Count == 0 &&
+                        aep.AniDB_Episode is not null && aep.VideoLocals.Count == 0 &&
                         (!regularEpisodesOnly || aep.EpisodeTypeEnum == EpisodeType.Episode))
                     .Select(aep => aep.AniDB_Episode)
                     .Where(aniep => aniep.HasAired)
@@ -1045,7 +1047,7 @@ public partial class ShokoServiceImplementation
                         AnimeName = anime?.MainTitle,
                         EpisodeType = episode?.EpisodeType,
                         EpisodeNumber = episode?.EpisodeNumber,
-                        EpisodeName = episode?.DefaultTitle,
+                        EpisodeName = episode?.DefaultTitle.Title,
                         DuplicateFileID = vl.VideoLocalID,
                         DateTimeUpdated = DateTime.Now
                     });
@@ -1191,10 +1193,10 @@ public partial class ShokoServiceImplementation
                 var thisBitDepth = 8;
 
                 if (vid.MediaInfo?.VideoStream?.BitDepth != null) thisBitDepth = vid.MediaInfo.VideoStream.BitDepth;
-                
+
                 // Sometimes, especially with older files, the info doesn't quite match for resolution
                 var vidResInfo = vid.VideoResolution;
-                
+
                 _logger.LogTrace("GetFilesByGroupAndResolution -- thisBitDepth: {BitDepth}", thisBitDepth);
                 _logger.LogTrace("GetFilesByGroupAndResolution -- videoBitDepth: {BitDepth}", videoBitDepth);
 
@@ -1210,7 +1212,7 @@ public partial class ShokoServiceImplementation
                 var groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName) || "null".EqualsInvariantIgnoreCase(relGroupName) || relGroupName == null;
                 _logger.LogTrace("GetFilesByGroupAndResolution -- sourceMatches (manual/unkown): {SourceMatches}", sourceMatches);
                 _logger.LogTrace("GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {GroupMatches}", groupMatches);
-                
+
                 // get the anidb file info
                 var aniFile = vid.AniDBFile;
                 if (aniFile != null)
@@ -1240,7 +1242,9 @@ public partial class ShokoServiceImplementation
                 if (groupMatches && sourceMatches && thisBitDepth == videoBitDepth &&
                     string.Equals(resolution, vidResInfo, StringComparison.InvariantCultureIgnoreCase))
                 {
+#pragma warning disable CS0618
                     _logger.LogTrace("GetFilesByGroupAndResolution -- File Matched: {FileName}", vid.FileName);
+#pragma warning restore CS0618
                     vids.Add(_videoLocalService.GetV1DetailedContract(vid, userID));
                 }
             }

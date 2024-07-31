@@ -371,7 +371,7 @@ public class AnimeGroupCreator
                     // Override the group name if the group is not manually named.
                     if (animeGroup.IsManuallyNamed == 0)
                     {
-                        animeGroup.GroupName = series.SeriesName;
+                        animeGroup.GroupName = series.PreferredTitle;
                     }
                     // Override the group desc. if the group doesn't have an override.
                     if (animeGroup.OverrideDescription == 0)

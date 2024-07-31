@@ -6,7 +6,6 @@ using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 using TvDbSharper.Dto;
@@ -15,48 +14,16 @@ namespace Shoko.Server.Extensions;
 
 public static class ModelProviders
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public static void Populate(this MovieDB_Fanart m, MovieDB_Image_Result result, int movieID)
+    public static void Populate(this Trakt_Show show, TraktV2ShowExtended tvShow)
     {
-        m.MovieId = movieID;
-        m.ImageID = result.ImageID;
-        m.ImageType = result.ImageType;
-        m.ImageSize = result.ImageSize;
-        m.ImageWidth = result.ImageWidth;
-        m.ImageHeight = result.ImageHeight;
-        m.Enabled = 1;
-    }
-
-    public static void Populate(this MovieDB_Movie m, MovieDB_Movie_Result result)
-    {
-        m.MovieId = result.MovieID;
-        m.MovieName = result.MovieName;
-        m.OriginalName = result.OriginalName;
-        m.Overview = result.Overview;
-        m.Rating = (int)Math.Round(result.Rating * 10D);
-    }
-
-    public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
-    {
-        m.MovieId = movieID;
-        m.ImageID = result.ImageID;
-        m.ImageType = result.ImageType;
-        m.ImageSize = result.ImageSize;
-        m.URL = result.URL;
-        m.ImageWidth = result.ImageWidth;
-        m.ImageHeight = result.ImageHeight;
-        m.Enabled = 1;
-    }
-
-    public static void Populate(this Trakt_Show show, TraktV2ShowExtended tvshow)
-    {
-        show.Overview = tvshow.overview;
-        show.Title = tvshow.title;
-        show.TraktID = tvshow.ids.slug;
-        show.TvDB_ID = tvshow.ids.tvdb;
-        show.URL = tvshow.ShowURL;
-        show.Year = tvshow.year.ToString();
+        show.Overview = tvShow.overview;
+        show.Title = tvShow.title;
+        show.TraktID = tvShow.ids.slug;
+        show.TvDB_ID = tvShow.ids.tvdb;
+        show.URL = tvShow.ShowURL;
+        show.Year = tvShow.year.ToString();
     }
 
     public static void Populate(this TvDB_Episode episode, EpisodeRecord apiEpisode)
@@ -107,7 +74,7 @@ public static class ModelProviders
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex);
+            _logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex);
             return false;
         }
     }
@@ -126,7 +93,7 @@ public static class ModelProviders
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in TvDB_ImagePoster.Populate: " + ex);
+            _logger.Error(ex, "Error in TvDB_ImagePoster.Populate: " + ex);
             return false;
         }
     }
@@ -153,7 +120,7 @@ public static class ModelProviders
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in TvDB_ImageWideBanner.Populate: " + ex);
+            _logger.Error(ex, "Error in TvDB_ImageWideBanner.Populate: " + ex);
             return false;
         }
     }
@@ -202,7 +169,7 @@ public static class ModelProviders
             CharKanjiName = character.CharKanjiName,
             CharDescription = character.CharDescription,
             CharType = charRel.CharType,
-            ImageType = (int)ImageEntityType.AniDB_Character,
+            ImageType = (int)CL_ImageEntityType.AniDB_Character,
             ImageID = character.AniDB_CharacterID
         };
         var seiyuu = character.GetSeiyuu();
@@ -210,45 +177,45 @@ public static class ModelProviders
         {
             contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
             contract.SeiyuuName = seiyuu.SeiyuuName;
-            contract.SeiyuuImageType = (int)ImageEntityType.AniDB_Creator;
+            contract.SeiyuuImageType = (int)CL_ImageEntityType.AniDB_Creator;
             contract.SeiyuuImageID = seiyuu.AniDB_SeiyuuID;
         }
 
         return contract;
     }
 
-    public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series)
+    public static void Populate(this SVR_AnimeGroup group, SVR_AnimeSeries series)
     {
-        agroup.Populate(series, DateTime.Now);
+        group.Populate(series, DateTime.Now);
     }
 
-    public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series, DateTime now)
+    public static void Populate(this SVR_AnimeGroup group, SVR_AnimeSeries series, DateTime now)
     {
         var anime = series.AniDB_Anime;
 
-        agroup.Description = anime.Description;
-        var name = series.SeriesName;
-        agroup.GroupName = name;
-        agroup.MainAniDBAnimeID = series.AniDB_ID;
-        agroup.DateTimeUpdated = now;
-        agroup.DateTimeCreated = now;
+        group.Description = anime.Description;
+        var name = series.PreferredTitle;
+        group.GroupName = name;
+        group.MainAniDBAnimeID = series.AniDB_ID;
+        group.DateTimeUpdated = now;
+        group.DateTimeCreated = now;
     }
 
-    public static void Populate(this SVR_AnimeGroup agroup, SVR_AniDB_Anime anime, DateTime now)
+    public static void Populate(this SVR_AnimeGroup group, SVR_AniDB_Anime anime, DateTime now)
     {
-        agroup.Description = anime.Description;
+        group.Description = anime.Description;
         var name = anime.PreferredTitle;
-        agroup.GroupName = name;
-        agroup.MainAniDBAnimeID = anime.AnimeID;
-        agroup.DateTimeUpdated = now;
-        agroup.DateTimeCreated = now;
+        group.GroupName = name;
+        group.MainAniDBAnimeID = anime.AnimeID;
+        group.DateTimeUpdated = now;
+        group.DateTimeCreated = now;
     }
 
-    public static void Populate(this SVR_AnimeEpisode animeep, SVR_AniDB_Episode anidbEp)
+    public static void Populate(this SVR_AnimeEpisode episode, SVR_AniDB_Episode anidbEpisode)
     {
-        animeep.AniDB_EpisodeID = anidbEp.EpisodeID;
-        animeep.DateTimeUpdated = DateTime.Now;
-        animeep.DateTimeCreated = DateTime.Now;
+        episode.AniDB_EpisodeID = anidbEpisode.EpisodeID;
+        episode.DateTimeUpdated = DateTime.Now;
+        episode.DateTimeCreated = DateTime.Now;
     }
 
     public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)

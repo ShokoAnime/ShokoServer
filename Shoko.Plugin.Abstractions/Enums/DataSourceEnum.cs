@@ -1,5 +1,4 @@
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.Enums;
 
 /// <summary>
@@ -10,7 +9,7 @@ public enum DataSourceEnum
     User = -2,
     Shoko = -1,
     AniDB = 0,
-    MovieDB = 1,
+    TMDB = 1,
     TvDB = 2,
     AniList = 3,
     Animeshon = 4,

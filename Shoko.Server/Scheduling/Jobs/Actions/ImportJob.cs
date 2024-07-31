@@ -30,8 +30,8 @@ public class ImportJob : BaseJob
         // Trakt association checks
         _service.RunImport_ScanTrakt();
 
-        // MovieDB association checks
-        await _service.RunImport_ScanMovieDB();
+        // TMDB association checks
+        await _service.RunImport_ScanTMDB();
 
         // Check for missing images
         await _service.RunImport_GetImages();

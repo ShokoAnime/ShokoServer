@@ -49,7 +49,6 @@ public static class APIExtensions
         services.AddSingleton<NetworkEmitter>();
         services.AddSingleton<QueueEmitter>();
         services.AddScoped<FilterFactory>();
-        services.AddScoped<SeriesFactory>();
         services.AddScoped<WebUIFactory>();
 
         services.AddAuthentication(options =>

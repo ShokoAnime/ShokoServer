@@ -288,7 +288,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
     public async Task<SVR_AnimeSeries> CreateAnimeSeriesAndGroup(SVR_AniDB_Anime anime)
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         // Create a new AnimeSeries record
         var series = new SVR_AnimeSeries
         {
@@ -305,17 +304,17 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Populate before making a group to ensure IDs and stats are set for group filters.
         RepoFactory.AnimeSeries.Save(series, false, false);
 
-        // check for TvDB associations
+        var scheduler = await _schedulerFactory.GetScheduler();
+        if (_settings.TMDB.AutoLink && !series.IsTMDBAutoMatchingDisabled)
+            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = AnimeID);
+
         if (anime.Restricted == 0)
         {
-            if (_settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled) await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID);
+            if (_settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
+                await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID);
 
-            // check for Trakt associations
-            if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) && !series.IsTraktAutoMatchingDisabled)
+            if (_settings.TraktTv.Enabled && _settings.TraktTv.AutoLink && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) && !series.IsTraktAutoMatchingDisabled)
                 await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID);
-
-            if (anime.AnimeType == (int)AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
-                await scheduler.StartJob<SearchTMDBSeriesJob>(c => c.AnimeID = AnimeID);
         }
 
         return series;
@@ -342,7 +341,9 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 // the local anime record was last updated (be it from a fresh
                 // online xml file or from a cached xml file).
                 var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(relation.RelatedAnimeID);
+#pragma warning disable CS0618
                 var updatedAt = ForceRefresh && !_handler.IsBanned && update != null ? update.UpdatedAt : anime.DateTimeUpdated;
+#pragma warning restore CS0618
                 var ts = DateTime.Now - updatedAt;
                 if (ts.TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo) continue;
             }

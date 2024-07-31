@@ -19,9 +19,11 @@ public class ShokoEventEmitter : IDisposable
         EventHandler.FileMatched += OnFileMatched;
         EventHandler.FileRenamed += OnFileRenamed;
         EventHandler.FileMoved += OnFileMoved;
+        EventHandler.FileDeleted += OnFileDeleted;
         EventHandler.FileNotMatched += OnFileNotMatched;
         EventHandler.SeriesUpdated += OnSeriesUpdated;
         EventHandler.EpisodeUpdated += OnEpisodeUpdated;
+        EventHandler.MovieUpdated += OnMovieUpdated;
     }
 
     public void Dispose()
@@ -31,9 +33,11 @@ public class ShokoEventEmitter : IDisposable
         EventHandler.FileMatched -= OnFileMatched;
         EventHandler.FileRenamed -= OnFileRenamed;
         EventHandler.FileMoved -= OnFileMoved;
+        EventHandler.FileDeleted -= OnFileDeleted;
         EventHandler.FileNotMatched -= OnFileNotMatched;
         EventHandler.SeriesUpdated -= OnSeriesUpdated;
         EventHandler.EpisodeUpdated -= OnEpisodeUpdated;
+        EventHandler.MovieUpdated -= OnMovieUpdated;
     }
 
     private async void OnFileDetected(object sender, FileDetectedEventArgs e)
@@ -41,14 +45,19 @@ public class ShokoEventEmitter : IDisposable
         await Hub.Clients.All.SendAsync("FileDetected", new FileDetectedEventSignalRModel(e));
     }
 
-    private async void OnFileHashed(object sender, FileHashedEventArgs e)
+    private async void OnFileDeleted(object sender, FileEventArgs e)
     {
-        await Hub.Clients.All.SendAsync("FileHashed", new FileHashedEventSignalRModel(e));
+        await Hub.Clients.All.SendAsync("FileDeleted", new FileEventSignalRModel(e));
     }
 
-    private async void OnFileMatched(object sender, FileMatchedEventArgs e)
+    private async void OnFileHashed(object sender, FileEventArgs e)
     {
-        await Hub.Clients.All.SendAsync("FileMatched", new FileMatchedEventSignalRModel(e));
+        await Hub.Clients.All.SendAsync("FileHashed", new FileEventSignalRModel(e));
+    }
+
+    private async void OnFileMatched(object sender, FileEventArgs e)
+    {
+        await Hub.Clients.All.SendAsync("FileMatched", new FileEventSignalRModel(e));
     }
 
     private async void OnFileRenamed(object sender, FileRenamedEventArgs e)
@@ -74,5 +83,10 @@ public class ShokoEventEmitter : IDisposable
     private async void OnEpisodeUpdated(object sender, EpisodeInfoUpdatedEventArgs e)
     {
         await Hub.Clients.All.SendAsync("EpisodeUpdated", new EpisodeInfoUpdatedEventSignalRModel(e));
+    }
+
+    private async void OnMovieUpdated(object sender, MovieInfoUpdatedEventArgs e)
+    {
+        await Hub.Clients.All.SendAsync("MovieUpdated", new MovieInfoUpdatedEventSignalRModel(e));
     }
 }

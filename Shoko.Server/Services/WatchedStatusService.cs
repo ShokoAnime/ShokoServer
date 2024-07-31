@@ -152,7 +152,7 @@ public class WatchedStatusService
 
                 // get all the files for this episode
                 var epPercentWatched = 0;
-                foreach (var filexref in ep.FileCrossRefs)
+                foreach (var filexref in ep.FileCrossReferences)
                 {
                     var xrefVideoLocal = filexref.VideoLocal;
                     if (xrefVideoLocal == null) continue;
@@ -200,7 +200,7 @@ public class WatchedStatusService
 
                 // get all the files for this episode
                 var epPercentWatched = 0;
-                foreach (var filexref in ep.FileCrossRefs)
+                foreach (var filexref in ep.FileCrossReferences)
                 {
                     var xrefVideoLocal = filexref.VideoLocal;
                     if (xrefVideoLocal == null) continue;

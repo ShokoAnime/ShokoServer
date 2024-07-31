@@ -18,28 +18,28 @@ namespace Shoko.Plugin.Abstractions.DataModels
         int StreamOrder { get; set; }
 
         string Codec { get; set; }
-        
+
         string CodecID { get; set; }
-        
+
         /// <summary>
         /// The Language code (ISO 639-1 in everything I've seen) from MediaInfo
         /// </summary>
         string Language { get; set; }
-        
+
         /// <summary>
         /// This is the 3 character language code
         /// This is mapped from the Language, it is not MediaInfo data
         /// </summary>
         string LanguageCode { get; set; }
-        
+
         /// <summary>
         /// This is the Language Name, "English"
         /// This is mapped from the Language, it is not MediaInfo data
         /// </summary>
         string LanguageName { get; set; }
-        
+
         bool Default { get; set; }
-        
+
         bool Forced { get; set; }
     }
 

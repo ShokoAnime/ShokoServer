@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 #nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
@@ -44,15 +45,15 @@ public interface IVideo : IMetadata<int>
     /// <summary>
     /// All episodes linked to the video.
     /// </summary>
-    IReadOnlyList<IEpisode> EpisodeInfo { get; }
+    IReadOnlyList<IShokoEpisode> Episodes { get; }
 
     /// <summary>
     /// All shows linked to the show.
     /// </summary>
-    IReadOnlyList<ISeries> SeriesInfo { get; }
+    IReadOnlyList<IShokoSeries> Series { get; }
 
     /// <summary>
     /// Information about the group
     /// </summary>
-    IReadOnlyList<IGroup> GroupInfo { get; }
+    IReadOnlyList<IShokoGroup> Groups { get; }
 }

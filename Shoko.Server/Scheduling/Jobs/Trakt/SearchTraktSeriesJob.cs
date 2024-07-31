@@ -101,7 +101,7 @@ public class SearchTraktSeriesJob : BaseJob
         }
 
         // Use TvDB setting due to similarity
-        if (!settings.TvDB.AutoLink) return Task.CompletedTask;
+        if (!settings.TraktTv.AutoLink) return Task.CompletedTask;
 
         // finally lets try searching Trakt directly
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
@@ -126,7 +126,7 @@ public class SearchTraktSeriesJob : BaseJob
             _logger.LogTrace("Found {Count} trakt results for search on {Title}", results.Count, title.Title);
             if (ProcessSearchResults(session, results, title.Title)) return Task.CompletedTask;
         }
-        
+
         return Task.CompletedTask;
     }
 

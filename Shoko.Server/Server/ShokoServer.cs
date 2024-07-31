@@ -27,30 +27,29 @@ namespace Shoko.Server.Server;
 
 public class ShokoServer
 {
-    //private static bool doneFirstTrakTinfo = false;
-    private readonly ILogger<ShokoServer> logger;
+    private readonly ILogger<ShokoServer> _logger;
     private readonly DatabaseFactory _databaseFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly RepoFactory _repoFactory;
     private readonly FileWatcherService _fileWatcherService;
 
-    private static DateTime? StartTime;
+    private static DateTime? _startTime;
 
-    public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
+    public static TimeSpan? UpTime => _startTime == null ? null : DateTime.Now - _startTime;
 
     private readonly BackgroundWorker _workerSetupDB = new();
 
-    // TODO Move all of these to Quartz
-    private static Timer autoUpdateTimer;
-    private static Timer autoUpdateTimerShort;
+    // TODO: Move all of these to Quartz
 
-    private BackgroundWorker downloadImagesWorker = new();
+    private static Timer _autoUpdateTimer;
+
+    private readonly BackgroundWorker _downloadImagesWorker = new();
 
 
     public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, DatabaseFactory databaseFactory, RepoFactory repoFactory, FileWatcherService fileWatcherService)
     {
-        this.logger = logger;
+        _logger = logger;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
         _databaseFactory = databaseFactory;
@@ -96,9 +95,9 @@ public class ShokoServer
         ServerState.Instance.StartupFailed = false;
         ServerState.Instance.StartupFailedMessage = string.Empty;
 
-        downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
-        downloadImagesWorker.WorkerSupportsCancellation = true;
-        
+        _downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
+        _downloadImagesWorker.WorkerSupportsCancellation = true;
+
         _workerSetupDB.WorkerReportsProgress = true;
         _workerSetupDB.ProgressChanged += (_, _) => WorkerSetupDB_ReportProgress();
         _workerSetupDB.DoWork += WorkerSetupDB_DoWork;
@@ -141,7 +140,7 @@ public class ShokoServer
         foreach (var dllFile in dllFiles)
         {
             if (!FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier")) continue;
-            logger.LogError("Found blocked DLL file: " + dllFile);
+            _logger.LogError("Found blocked DLL file: " + dllFile);
             result = false;
         }
 
@@ -151,9 +150,6 @@ public class ShokoServer
 
     #region Database settings and initial start up
 
-    public event EventHandler ServerStarting;
-    public event EventHandler LoginFormNeeded;
-    public event EventHandler DatabaseSetup;
     public event EventHandler DBSetupCompleted;
 
     private void WorkerSetupDB_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -167,30 +163,19 @@ public class ShokoServer
         if (!string.IsNullOrEmpty(settings.Database.Type)) return;
 
         settings.Database.Type = Constants.DatabaseType.Sqlite;
-        ShowDatabaseSetup();
     }
 
     private void WorkerSetupDB_ReportProgress()
     {
-        logger.LogInformation("Starting Server: Complete!");
+        _logger.LogInformation("Starting Server: Complete!");
         ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
         ServerState.Instance.ServerOnline = true;
         var settings = _settingsProvider.GetSettings();
         settings.FirstRun = false;
         _settingsProvider.SaveSettings();
-        if (string.IsNullOrEmpty(settings.AniDb.Username) ||
-            string.IsNullOrEmpty(settings.AniDb.Password))
-        {
-            LoginFormNeeded?.Invoke(this, EventArgs.Empty);
-        }
 
         DBSetupCompleted?.Invoke(this, EventArgs.Empty);
         ShokoEventHandler.Instance.OnStarted();
-    }
-
-    private void ShowDatabaseSetup()
-    {
-        DatabaseSetup?.Invoke(this, EventArgs.Empty);
     }
 
     private void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
@@ -208,14 +193,9 @@ public class ShokoServer
 
             _fileWatcherService.StopWatchingFiles();
 
-            if (autoUpdateTimer != null)
+            if (_autoUpdateTimer != null)
             {
-                autoUpdateTimer.Enabled = false;
-            }
-
-            if (autoUpdateTimerShort != null)
-            {
-                autoUpdateTimerShort.Enabled = false;
+                _autoUpdateTimer.Enabled = false;
             }
 
             _databaseFactory.CloseSessionFactory();
@@ -225,7 +205,7 @@ public class ShokoServer
 
             ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseSetup;
 
-            logger.LogInformation("Setting up database...");
+            _logger.LogInformation("Setting up database...");
             if (!InitDB(out var errorMessage))
             {
                 ServerState.Instance.DatabaseAvailable = false;
@@ -242,7 +222,7 @@ public class ShokoServer
                 return;
             }
 
-            logger.LogInformation("Initializing Session Factory...");
+            _logger.LogInformation("Initializing Session Factory...");
             //init session factory
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingSession;
             var _ = _databaseFactory.SessionFactory;
@@ -250,20 +230,13 @@ public class ShokoServer
 
 
             // timer for automatic updates
-            autoUpdateTimer = new Timer
+            _autoUpdateTimer = new Timer
             {
-                AutoReset = true, Interval = 5 * 60 * 1000 // 5 * 60 seconds (5 minutes)
+                AutoReset = true,
+                Interval = 5 * 60 * 1000 // 5 * 60 seconds (5 minutes)
             };
-            autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
-            autoUpdateTimer.Start();
-
-            // timer for automatic updates
-            autoUpdateTimerShort = new Timer
-            {
-                AutoReset = true, Interval = 5 * 1000 // 5 seconds, later we set it to 30 seconds
-            };
-            autoUpdateTimerShort.Elapsed += AutoUpdateTimerShort_Elapsed;
-            autoUpdateTimerShort.Start();
+            _autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
+            _autoUpdateTimer.Start();
 
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingFile;
 
@@ -276,13 +249,13 @@ public class ShokoServer
             ServerState.Instance.ServerOnline = true;
             _workerSetupDB.ReportProgress(100);
 
-            StartTime = DateTime.Now;
+            _startTime = DateTime.Now;
 
             e.Result = true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             ServerState.Instance.ServerStartingStatus = ex.Message;
             ServerState.Instance.StartupFailed = true;
             ServerState.Instance.StartupFailedMessage = $"Startup Failed: {ex}";
@@ -306,17 +279,17 @@ public class ShokoServer
             {
                 if (instance.TestConnection())
                 {
-                    logger.LogInformation("Database Connection OK!");
+                    _logger.LogInformation("Database Connection OK!");
                     break;
                 }
 
                 if (i == 59)
                 {
-                    logger.LogError(errorMessage = "Unable to connect to database!");
+                    _logger.LogError(errorMessage = "Unable to connect to database!");
                     return false;
                 }
 
-                logger.LogInformation("Waiting for database connection...");
+                _logger.LogInformation("Waiting for database connection...");
                 Thread.Sleep(1000);
             }
 
@@ -329,7 +302,7 @@ public class ShokoServer
             _databaseFactory.CloseSessionFactory();
 
             var message = Resources.Database_Initializing;
-            logger.LogInformation("Starting Server: {Message}", message);
+            _logger.LogInformation("Starting Server: {Message}", message);
             ServerState.Instance.ServerStartingStatus = message;
 
             instance.Init();
@@ -337,7 +310,7 @@ public class ShokoServer
             if (version > instance.RequiredVersion)
             {
                 message = Resources.Database_NotSupportedVersion;
-                logger.LogInformation("Starting Server: {Message}", message);
+                _logger.LogInformation("Starting Server: {Message}", message);
                 ServerState.Instance.ServerStartingStatus = message;
                 errorMessage = Resources.Database_NotSupportedVersion;
                 return false;
@@ -346,17 +319,17 @@ public class ShokoServer
             if (version != 0 && version < instance.RequiredVersion)
             {
                 message = Resources.Database_Backup;
-                logger.LogInformation("Starting Server: {Message}", message);
+                _logger.LogInformation("Starting Server: {Message}", message);
                 ServerState.Instance.ServerStartingStatus = message;
                 instance.BackupDatabase(instance.GetDatabaseBackupName(version));
             }
 
             try
             {
-                logger.LogInformation("Starting Server: {Type} - CreateAndUpdateSchema()", instance.GetType());
+                _logger.LogInformation("Starting Server: {Type} - CreateAndUpdateSchema()", instance.GetType());
                 instance.CreateAndUpdateSchema();
 
-                logger.LogInformation("Starting Server: RepoFactory.Init()");
+                _logger.LogInformation("Starting Server: RepoFactory.Init()");
                 _repoFactory.Init();
                 instance.ExecuteDatabaseFixes();
                 instance.PopulateInitialData();
@@ -364,7 +337,7 @@ public class ShokoServer
             }
             catch (DatabaseCommandException ex)
             {
-                logger.LogError(ex, ex.ToString());
+                _logger.LogError(ex, ex.ToString());
                 Utils.ShowErrorMessage("Database Error :\n\r " + ex +
                                        "\n\rNotify developers about this error, it will be logged in your logs",
                     "Database Error");
@@ -375,7 +348,7 @@ public class ShokoServer
             }
             catch (TimeoutException ex)
             {
-                logger.LogError(ex, $"Database Timeout: {ex}");
+                _logger.LogError(ex, $"Database Timeout: {ex}");
                 ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseTimeOut;
                 errorMessage = Resources.Server_DatabaseTimeOut + "\n\r" + ex;
                 return false;
@@ -387,7 +360,7 @@ public class ShokoServer
         catch (Exception ex)
         {
             errorMessage = $"Could not init database: {ex}";
-            logger.LogError(ex, errorMessage);
+            _logger.LogError(ex, errorMessage);
             ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
             return false;
         }
@@ -396,7 +369,7 @@ public class ShokoServer
     #endregion
 
     #region Update all media info
-    
+
     public void RefreshAllMediaInfo()
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
@@ -407,9 +380,9 @@ public class ShokoServer
 
     public void DownloadAllImages()
     {
-        if (!downloadImagesWorker.IsBusy)
+        if (!_downloadImagesWorker.IsBusy)
         {
-            downloadImagesWorker.RunWorkerAsync();
+            _downloadImagesWorker.RunWorkerAsync();
         }
     }
 
@@ -417,15 +390,6 @@ public class ShokoServer
     {
         var actionService = Utils.ServiceContainer.GetRequiredService<ActionService>();
         actionService.RunImport_GetImages().GetAwaiter().GetResult();
-    }
-
-    private void AutoUpdateTimerShort_Elapsed(object sender, ElapsedEventArgs e)
-    {
-        autoUpdateTimerShort.Enabled = false;
-
-
-        autoUpdateTimerShort.Interval = 30 * 1000; // 30 seconds
-        autoUpdateTimerShort.Enabled = true;
     }
 
     #region Tray Minimize

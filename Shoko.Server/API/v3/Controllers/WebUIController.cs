@@ -27,6 +27,7 @@ using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISerie
 using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 
+#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
@@ -39,11 +40,12 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiV3]
 public class WebUIController : BaseController
 {
-    private static IMemoryCache Cache = new MemoryCache(new MemoryCacheOptions() {
+    private static readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions()
+    {
         ExpirationScanFrequency = TimeSpan.FromMinutes(50),
     });
 
-    private static readonly TimeSpan CacheTTL = TimeSpan.FromHours(1);
+    private static readonly TimeSpan _cacheTTL = TimeSpan.FromHours(1);
 
     private readonly ILogger<WebUIController> _logger;
 
@@ -106,7 +108,7 @@ public class WebUIController : BaseController
     /// Retrieves a specific theme by its ID.
     /// </summary>
     /// <param name="themeID">The ID of the theme to retrieve.</param>
-    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes before retriving the specific theme.</param>
+    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes before retrieving the specific theme.</param>
     /// <returns>The retrieved theme.</returns>
     [AllowAnonymous]
     [DatabaseBlockedExempt]
@@ -115,7 +117,7 @@ public class WebUIController : BaseController
     public ActionResult<WebUITheme> GetTheme([FromRoute] string themeID, [FromQuery] bool forceRefresh = false)
     {
         var theme = WebUIThemeProvider.GetTheme(themeID, forceRefresh);
-        if (theme == null)
+        if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
         return new WebUITheme(theme);
@@ -125,7 +127,7 @@ public class WebUIController : BaseController
     /// Retrieves the CSS representation of a specific theme by its ID.
     /// </summary>
     /// <param name="themeID">The ID of the theme to retrieve.</param>
-    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes before retriving the specific theme.</param>
+    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes before retrieving the specific theme.</param>
     /// <returns>The retrieved theme.</returns>
     [AllowAnonymous]
     [DatabaseBlockedExempt]
@@ -135,7 +137,7 @@ public class WebUIController : BaseController
     public ActionResult<string> GetThemeCSS([FromRoute] string themeID, [FromQuery] bool forceRefresh = false)
     {
         var theme = WebUIThemeProvider.GetTheme(themeID, forceRefresh);
-        if (theme == null)
+        if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
         return Content(theme.ToCSS(), "text/css");
@@ -151,7 +153,7 @@ public class WebUIController : BaseController
     public ActionResult RemoveTheme([FromRoute] string themeID)
     {
         var theme = WebUIThemeProvider.GetTheme(themeID, true);
-        if (theme == null)
+        if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
         WebUIThemeProvider.RemoveTheme(theme);
@@ -168,7 +170,7 @@ public class WebUIController : BaseController
     public async Task<ActionResult<WebUITheme>> PreviewUpdatedTheme([FromRoute] string themeID)
     {
         var theme = WebUIThemeProvider.GetTheme(themeID, true);
-        if (theme == null)
+        if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
         try
@@ -196,7 +198,7 @@ public class WebUIController : BaseController
     public async Task<ActionResult<WebUITheme>> UpdateTheme([FromRoute] string themeID)
     {
         var theme = WebUIThemeProvider.GetTheme(themeID, true);
-        if (theme == null)
+        if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
         try
@@ -228,19 +230,19 @@ public class WebUIController : BaseController
             .Select(groupID =>
             {
                 var group = RepoFactory.AnimeGroup.GetByID(groupID);
-                if (group == null || !user.AllowedGroup(group))
+                if (group is null || !user.AllowedGroup(group))
                 {
                     return null;
                 }
 
                 var series = group.MainSeries ?? group.AllSeries.FirstOrDefault();
                 var anime = series?.AniDB_Anime;
-                if (series == null || anime == null)
+                if (anime is null)
                 {
                     return null;
                 }
 
-                return _webUIFactory.GetWebUIGroupExtra(group, series, anime, body.TagFilter, body.OrderByName,
+                return _webUIFactory.GetWebUIGroupExtra(group, anime, body.TagFilter, body.OrderByName,
                     body.TagLimit);
             })
             .ToList();
@@ -258,7 +260,7 @@ public class WebUIController : BaseController
 
         // Retrieve extra information for the specified series if it exists and the user has permissions.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
+        if (series is null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
         }
@@ -275,7 +277,7 @@ public class WebUIController : BaseController
     /// Returns a summary of file information for the series with the given ID.
     /// </summary>
     /// <param name="seriesID">The ID of the series to retrieve file information for.</param>
-    /// <param name="type">Filter the view to only the spesified <see cref="EpisodeType"/>s.</param>
+    /// <param name="type">Filter the view to only the specified <see cref="EpisodeType"/>s.</param>
     /// <param name="groupBy">Group the episodes in view into smaller groups based on <see cref="FileSummaryGroupByCriteria"/>s.</param>
     /// <param name="includeEpisodeDetails">Include episode details for each range.</param>
     /// <param name="includeMissingUnknownEpisodes">Include missing episodes that does not have an air date set.</param>
@@ -293,7 +295,7 @@ public class WebUIController : BaseController
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
         if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
+        if (series is null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
         }
@@ -331,7 +333,7 @@ public class WebUIController : BaseController
         }
 
         var result = LatestWebUIVersion(channel);
-        if (result.Value == null)
+        if (result.Value is null)
             return result.Result;
 
         try
@@ -342,7 +344,7 @@ public class WebUIController : BaseController
         {
             if (ex.Status != WebExceptionStatus.Success)
             {
-                _logger.LogError(ex, "An error occured while trying to install the Web UI.");
+                _logger.LogError(ex, "An error occurred while trying to install the Web UI.");
                 return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
             }
             throw;
@@ -373,7 +375,7 @@ public class WebUIController : BaseController
         if (channel == ReleaseChannel.Auto)
             channel = GetCurrentWebUIReleaseChannel();
         var result = LatestWebUIVersion(channel);
-        if (result.Value == null)
+        if (result.Value is null)
             return result.Result;
 
         try
@@ -384,7 +386,7 @@ public class WebUIController : BaseController
         {
             if (ex.Status != WebExceptionStatus.Success)
             {
-                _logger.LogError(ex, "An error occured while trying to update the Web UI.");
+                _logger.LogError(ex, "An error occurred while trying to update the Web UI.");
                 return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
             }
             throw;
@@ -419,69 +421,69 @@ public class WebUIController : BaseController
             if (channel == ReleaseChannel.Auto)
                 channel = GetCurrentServerReleaseChannel();
             var key = $"webui:{channel}";
-            if (!force && Cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
+            if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
                 return componentVersion;
             switch (channel)
             {
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
-                {
-                    var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
-                    foreach (var release in releases)
                     {
-                        string tagName = release.tag_name;
-                        string version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                        foreach (var asset in release.assets)
+                        var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
+                        foreach (var release in releases)
                         {
-                            // We don't care what the zip is named, only that it is attached.
-                            // This is because we changed the signature from "latest.zip" to
-                            // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
-                            string fileName = asset.name;
-                            if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{tagName}.zip")
+                            string tagName = release.tag_name;
+                            var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                            foreach (var asset in release.assets)
                             {
-                                var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
-                                string commit = tag["object"].sha;
-                                DateTime releaseDate = release.published_at;
-                                releaseDate = releaseDate.ToUniversalTime();
-                                string description = release.body;
-                                return Cache.Set(key, new ComponentVersion
+                                // We don't care what the zip is named, only that it is attached.
+                                // This is because we changed the signature from "latest.zip" to
+                                // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
+                                string fileName = asset.name;
+                                if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{tagName}.zip")
                                 {
-                                    Version = version,
-                                    Commit = commit[..7],
-                                    ReleaseChannel = ReleaseChannel.Dev,
-                                    ReleaseDate = releaseDate,
-                                    Tag = tagName,
-                                    Description = description.Trim(),
-                                }, CacheTTL);
+                                    var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
+                                    string commit = tag["object"].sha;
+                                    DateTime releaseDate = release.published_at;
+                                    releaseDate = releaseDate.ToUniversalTime();
+                                    string description = release.body;
+                                    return _cache.Set(key, new ComponentVersion
+                                    {
+                                        Version = version,
+                                        Commit = commit[..7],
+                                        ReleaseChannel = ReleaseChannel.Dev,
+                                        ReleaseDate = releaseDate,
+                                        Tag = tagName,
+                                        Description = description.Trim(),
+                                    }, _cacheTTL);
+                                }
                             }
                         }
-                    }
 
-                    // Fallback to stable.
-                    goto default;
-                }
+                        // Fallback to stable.
+                        goto default;
+                    }
 
                 // Check for stable channel updates.
                 default:
-                {
-                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest");
-                    string tagName = latestRelease.tag_name;
-                    string version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                    var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
-                    string commit = tag["object"].sha;
-                    DateTime releaseDate = latestRelease.published_at;
-                    releaseDate = releaseDate.ToUniversalTime();
-                    string description = latestRelease.body;
-                    return Cache.Set<ComponentVersion>(key, new ComponentVersion
                     {
-                        Version = version,
-                        Commit = commit[0..7],
-                        ReleaseChannel = ReleaseChannel.Stable,
-                        ReleaseDate = releaseDate,
-                        Tag = tagName,
-                        Description = description.Trim(),
-                    }, CacheTTL);
-                }
+                        var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest");
+                        string tagName = latestRelease.tag_name;
+                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                        var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
+                        string commit = tag["object"].sha;
+                        DateTime releaseDate = latestRelease.published_at;
+                        releaseDate = releaseDate.ToUniversalTime();
+                        string description = latestRelease.body;
+                        return _cache.Set<ComponentVersion>(key, new ComponentVersion
+                        {
+                            Version = version,
+                            Commit = commit[0..7],
+                            ReleaseChannel = ReleaseChannel.Stable,
+                            ReleaseDate = releaseDate,
+                            Tag = tagName,
+                            Description = description.Trim(),
+                        }, _cacheTTL);
+                    }
             }
         }
         catch (WebException ex)
@@ -510,91 +512,92 @@ public class WebUIController : BaseController
             if (channel == ReleaseChannel.Auto)
                 channel = GetCurrentServerReleaseChannel();
             var key = $"server:{channel}";
-            if (!force && Cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
+            if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
                 return componentVersion;
             switch (channel)
             {
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
-                {
-                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", "shokoanime/shokoserver");
-                    var masterBranch = WebUIHelper.DownloadApiResponse("git/ref/heads/master", "shokoanime/shokoserver");
-                    string commitSha = masterBranch["object"].sha;
-                    var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", "shokoanime/shokoserver");
-                    string tagName = latestRelease.tag_name;
-                    var version = tagName[1..] + ".0";
-                    DateTime releaseDate = latestCommit.commit.author.date;
-                    releaseDate = releaseDate.ToUniversalTime();
-                    string description;
-                    // We're on a local build.
-                    if (!Utils.GetApplicationExtraVersion().TryGetValue("commit", out var currentCommit))
                     {
-                        description = "Local build detected. Unable to determine the relativeness of the latest daily release.";
+                        var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
+                        var masterBranch = WebUIHelper.DownloadApiResponse("git/ref/heads/master", WebUIHelper.ServerRepoName);
+                        string commitSha = masterBranch["object"].sha;
+                        var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", WebUIHelper.ServerRepoName);
+                        string tagName = latestRelease.tag_name;
+                        var version = tagName[1..] + ".0";
+                        DateTime releaseDate = latestCommit.commit.author.date;
+                        releaseDate = releaseDate.ToUniversalTime();
+                        string description;
+                        // We're on a local build.
+                        if (!Utils.GetApplicationExtraVersion().TryGetValue("commit", out var currentCommit))
+                        {
+                            description = "Local build detected. Unable to determine the relativeness of the latest daily release.";
+                        }
+                        // We're not on the latest daily release.
+                        else if (!string.Equals(currentCommit, commitSha))
+                        {
+                            var diff = WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", WebUIHelper.ServerRepoName);
+                            var aheadBy = (int)diff.ahead_by;
+                            var behindBy = (int)diff.behind_by;
+                            description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
+                        }
+                        // We're on the latest daily release.
+                        else
+                        {
+                            description = "All caught up! You are running the latest daily release.";
+                        }
+                        return _cache.Set(key, new ComponentVersion
+                        {
+                            Version = version,
+                            Commit = commitSha,
+                            ReleaseChannel = ReleaseChannel.Dev,
+                            ReleaseDate = releaseDate,
+                            Description = description,
+                        }, _cacheTTL);
                     }
-                    // We're not on the latest daily release.
-                    else if (!string.Equals(currentCommit, commitSha))
-                    {
-                        var diff = WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", "shokoanime/shokoserver");
-                        var aheadBy = (int)diff.ahead_by;
-                        var behindBy = (int)diff.behind_by;
-                        description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
-                    }
-                    // We're on the latest daily release.
-                    else {
-                        description = "All caught up! You are running the latest daily release.";
-                    }
-                    return Cache.Set(key, new ComponentVersion
-                    {
-                        Version = version,
-                        Commit = commitSha,
-                        ReleaseChannel = ReleaseChannel.Dev,
-                        ReleaseDate = releaseDate,
-                        Description = description,
-                    }, CacheTTL);
-                }
 
 #if DEBUG
                 // Spoof update if debugging and requesting the latest debug version.
                 case ReleaseChannel.Debug:
-                {
-                    componentVersion = new ComponentVersion() { Version = Utils.GetApplicationVersion(), Description = "Local debug version." };
-                    var extraVersionDict = Utils.GetApplicationExtraVersion();
-                    if (extraVersionDict.TryGetValue("tag", out var tag))
-                        componentVersion.Tag = tag;
-                    if (extraVersionDict.TryGetValue("commit", out var commit))
-                        componentVersion.Commit = commit;
-                    if (extraVersionDict.TryGetValue("channel", out var rawChannel))
-                        if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
-                            componentVersion.ReleaseChannel = parsedChannel;
-                        else
-                            componentVersion.ReleaseChannel = ReleaseChannel.Debug;
-                    if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-                        componentVersion.ReleaseDate = releaseDate.ToUniversalTime();
-                    return Cache.Set<ComponentVersion>(key, componentVersion, CacheTTL);
-                }
+                    {
+                        componentVersion = new ComponentVersion() { Version = Utils.GetApplicationVersion(), Description = "Local debug version." };
+                        var extraVersionDict = Utils.GetApplicationExtraVersion();
+                        if (extraVersionDict.TryGetValue("tag", out var tag))
+                            componentVersion.Tag = tag;
+                        if (extraVersionDict.TryGetValue("commit", out var commit))
+                            componentVersion.Commit = commit;
+                        if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+                            if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
+                                componentVersion.ReleaseChannel = parsedChannel;
+                            else
+                                componentVersion.ReleaseChannel = ReleaseChannel.Debug;
+                        if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+                            componentVersion.ReleaseDate = releaseDate.ToUniversalTime();
+                        return _cache.Set<ComponentVersion>(key, componentVersion, _cacheTTL);
+                    }
 #endif
 
                 // Check for stable channel updates.
                 default:
-                {
-                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", "shokoanime/shokoserver");
-                    string tagName = latestRelease.tag_name;
-                    var tagResponse = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}", "shokoanime/shokoserver");
-                    var version = tagName[1..] + ".0";
-                    string commit = tagResponse["object"].sha;
-                    DateTime releaseDate = latestRelease.published_at;
-                    releaseDate = releaseDate.ToUniversalTime();
-                    string description = latestRelease.body;
-                    return Cache.Set(key, new ComponentVersion
                     {
-                        Version = version,
-                        Commit = commit,
-                        ReleaseChannel = ReleaseChannel.Stable,
-                        ReleaseDate = releaseDate,
-                        Tag = tagName,
-                        Description = description.Trim()
-                    }, CacheTTL);
-                }
+                        var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
+                        string tagName = latestRelease.tag_name;
+                        var tagResponse = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}", WebUIHelper.ServerRepoName);
+                        var version = tagName[1..] + ".0";
+                        string commit = tagResponse["object"].sha;
+                        DateTime releaseDate = latestRelease.published_at;
+                        releaseDate = releaseDate.ToUniversalTime();
+                        string description = latestRelease.body;
+                        return _cache.Set(key, new ComponentVersion
+                        {
+                            Version = version,
+                            Commit = commit,
+                            ReleaseChannel = ReleaseChannel.Stable,
+                            ReleaseDate = releaseDate,
+                            Tag = tagName,
+                            Description = description.Trim()
+                        }, _cacheTTL);
+                    }
             }
         }
         catch (WebException ex)

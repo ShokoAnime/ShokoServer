@@ -98,7 +98,9 @@ public static class TvDBLinkingHelper
         return matches.Where(a => a.AniDB != null && a.TvDB != null).OrderBy(a => a.AniDB.EpisodeType)
             .ThenBy(a => a.AniDB.EpisodeNumber).Select(match => new CrossRef_AniDB_TvDB_Episode
             {
-                AniDBEpisodeID = match.AniDB.EpisodeID, TvDBEpisodeID = match.TvDB.Id, MatchRating = match.Rating
+                AniDBEpisodeID = match.AniDB.EpisodeID,
+                TvDBEpisodeID = match.TvDB.Id,
+                MatchRating = match.Rating
             }).ToList();
     }
 
@@ -306,7 +308,7 @@ public static class TvDBLinkingHelper
                             tvepsNormal = temp;
                         }
 
-                        goto matchepisodes;
+                        goto matchEpisodes;
                     }
 
                     // no need for else, the goto skips ahead
@@ -333,9 +335,8 @@ public static class TvDBLinkingHelper
             }
         }
 
-        matchepisodes:
-
-        // It's one to one, possibly spanning multiple seasons
+// It's one to one, possibly spanning multiple seasons
+matchEpisodes:
         if (one2one)
         {
             if (!hasNumberedTitles)
@@ -436,7 +437,7 @@ public static class TvDBLinkingHelper
     public static bool HasNumberedTitles(List<SVR_AniDB_Episode> eps)
     {
         return eps.Zip(eps.Skip(1), Tuple.Create).All(a =>
-            IsTitleNumberedAndConsecutive(a.Item1.DefaultTitle, a.Item2.DefaultTitle));
+            IsTitleNumberedAndConsecutive(a.Item1.DefaultTitle.Title, a.Item2.DefaultTitle.Title));
     }
 
     public static bool HasNumberedTitles(List<TvDB_Episode> eps)
@@ -710,7 +711,7 @@ public static class TvDBLinkingHelper
 
         // first ep
         var aniepstart = aniepsNormal.FirstOrDefault();
-        var anistart = aniepstart?.DefaultTitle;
+        var anistart = aniepstart?.DefaultTitle.Title;
         if (string.IsNullOrEmpty(anistart))
         {
             return;
@@ -718,7 +719,7 @@ public static class TvDBLinkingHelper
 
         // last ep
         var aniepend = aniepsNormal.FirstOrDefault();
-        var aniend = aniepend?.DefaultTitle;
+        var aniend = aniepend?.DefaultTitle.Title;
         if (string.IsNullOrEmpty(aniend))
         {
             return;
@@ -782,7 +783,7 @@ public static class TvDBLinkingHelper
                 }
 
                 // Add them to the matches and remove them from the lists to process
-                matches.Add((aniep, tvep, MatchRating.Good));
+                matches.Add((aniep, tvep, MatchRating.DateAndTitleMatches));
                 tvepsNormal.Remove(tvep);
                 aniepsNormal.Remove(aniep);
                 break;
@@ -796,7 +797,7 @@ public static class TvDBLinkingHelper
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
-            var anititle = aniep.DefaultTitle;
+            var anititle = aniep.DefaultTitle.Title;
             if (string.IsNullOrEmpty(anititle))
             {
                 continue;
@@ -827,7 +828,7 @@ public static class TvDBLinkingHelper
                 }
 
                 // Add them to the matches and remove them from the lists to process
-                matches.Add((aniep, tvep, fuzzy ? MatchRating.Bad : MatchRating.Mkay));
+                matches.Add((aniep, tvep, fuzzy ? MatchRating.TitleMatches : MatchRating.DateMatches));
                 tvepsNormal.Remove(tvep);
                 aniepsNormal.Remove(aniep);
                 break;
@@ -862,14 +863,14 @@ public static class TvDBLinkingHelper
 
             // if the dates match, then they would have filled with Good, so the fuzzy search is only being done once
 
-            var aniTitle = match.Item1.DefaultTitle;
+            var aniTitle = match.Item1.DefaultTitle.Title;
             var tvTitle = match.Item2.EpisodeName;
             // this method returns false if either is null
             var titlesMatch = aniTitle.FuzzyMatch(tvTitle);
 
             matches[index] = titlesMatch
-                ? (match.Item1, match.Item2, MatchRating.Good)
-                : (match.Item1, match.Item2, MatchRating.Mkay);
+                ? (match.Item1, match.Item2, MatchRating.DateAndTitleMatches)
+                : (match.Item1, match.Item2, MatchRating.DateMatches);
         }
     }
 
@@ -906,7 +907,7 @@ public static class TvDBLinkingHelper
                         break;
                     }
 
-                    matches.Add((aniep, tvep, MatchRating.Bad));
+                    matches.Add((aniep, tvep, MatchRating.TitleMatches));
                     aniepsNormal.Remove(aniep);
                     tvepsNormal.Remove(tvep);
                 }
@@ -940,7 +941,7 @@ public static class TvDBLinkingHelper
                 }
 
                 // add the mapping and remove it from the possible listings
-                matches.Add((aniDbEpisode, nextEp, MatchRating.Ugly));
+                matches.Add((aniDbEpisode, nextEp, MatchRating.FirstAvailable));
                 aniepsNormal.Remove(aniDbEpisode);
                 tvepsNormal.Remove(nextEp);
             }
@@ -998,7 +999,7 @@ public static class TvDBLinkingHelper
             }
 
             // It goes against the initial rules for Good rating, but this is a very specific case
-            matches.Add((aniep, ep, MatchRating.Mkay));
+            matches.Add((aniep, ep, MatchRating.DateMatches));
             aniepsNormal.Remove(aniep);
             count++;
         }
@@ -1012,7 +1013,7 @@ public static class TvDBLinkingHelper
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
-            var anititle = aniep.DefaultTitle;
+            var anititle = aniep.DefaultTitle.Title;
             if (string.IsNullOrEmpty(anititle))
             {
                 continue;
@@ -1033,7 +1034,7 @@ public static class TvDBLinkingHelper
                 }
 
                 // Add them to the matches and remove them from the lists to process
-                matches.Add((aniep, tvep, MatchRating.Mkay));
+                matches.Add((aniep, tvep, MatchRating.DateMatches));
                 aniepsNormal.Remove(aniep);
                 break;
             }
@@ -1066,7 +1067,7 @@ public static class TvDBLinkingHelper
                 }
 
                 // Add them to the matches and remove them from the lists to process
-                matches.Add((aniep, tvep, MatchRating.Mkay));
+                matches.Add((aniep, tvep, MatchRating.DateMatches));
                 aniepsNormal.Remove(aniep);
                 break;
             }
@@ -1186,11 +1187,12 @@ public static class TvDBLinkingHelper
             // this is a separate variable just to make debugging easier
             var newxref = new CrossRef_AniDB_TvDB_Episode_Override
             {
-                AniDBEpisodeID = episode.EpisodeID, TvDBEpisodeID = tvep.Id
+                AniDBEpisodeID = episode.EpisodeID,
+                TvDBEpisodeID = tvep.Id
             };
             output.Add(newxref);
 
-            label0: ;
+label0:;
         }
 
         return output;
@@ -1265,10 +1267,10 @@ public static class TvDBLinkingHelper
                 season = tvep.SeasonNumber;
             }
 
-            label0: ;
+label0:;
         }
 
-        label1:
+label1:
         if (!new_xrefs.SequenceEqual(xrefs))
         {
             return;

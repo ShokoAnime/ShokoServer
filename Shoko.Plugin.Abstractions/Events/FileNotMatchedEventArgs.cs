@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions;
 
 public class FileNotMatchedEventArgs : FileEventArgs
@@ -12,7 +12,7 @@ public class FileNotMatchedEventArgs : FileEventArgs
     public int AutoMatchAttempts { get; }
 
     /// <summary>
-    /// True if this file had existing cross-refernces before this match
+    /// True if this file had existing cross-references before this match
     /// attempt.
     /// </summary>
     public bool HasCrossReferences { get; }
@@ -22,7 +22,7 @@ public class FileNotMatchedEventArgs : FileEventArgs
     /// </summary>
     public bool IsUDPBanned { get; }
 
-    public FileNotMatchedEventArgs(string relativePath, IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo, int autoMatchAttempts, bool hasCrossReferences, bool isUdpBanned)
+    public FileNotMatchedEventArgs(string relativePath, IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo, int autoMatchAttempts, bool hasCrossReferences, bool isUdpBanned)
         : base(relativePath, importFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo)
     {
         AutoMatchAttempts = autoMatchAttempts;

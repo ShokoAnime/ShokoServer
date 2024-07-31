@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions;
 
 /// <summary>
@@ -25,37 +25,37 @@ public class MoveEventArgs : CancelEventArgs
     /// <summary>
     /// Information about the file itself, such as MediaInfo
     /// </summary>
-    public IVideoFile FileInfo { get; }
+    public IVideoFile File { get; }
 
     /// <summary>
     /// Information about the video.
     /// </summary>
-    public IVideo VideoInfo { get; }
+    public IVideo Video { get; }
 
     /// <summary>
-    /// Information about the episode, such as titles
+    /// Information about the shoko episodes.
     /// </summary>
-    public IReadOnlyList<IEpisode> EpisodeInfo { get; }
+    public IReadOnlyList<IShokoEpisode> Episodes { get; }
 
     /// <summary>
-    /// Information about the Anime, such as titles
+    /// Information about the shoko series.
     /// </summary>
-    public IReadOnlyList<IAnime> AnimeInfo { get; }
+    public IReadOnlyList<IShokoSeries> Series { get; }
 
     /// <summary>
-    /// Information about the group
+    /// Information about the shoko groups.
     /// </summary>
-    public IReadOnlyList<IGroup> GroupInfo { get; }
+    public IReadOnlyList<IShokoGroup> Groups { get; }
 
-    public MoveEventArgs(IRenameScript script, IEnumerable<IImportFolder> availableFolders, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
+    public MoveEventArgs(IRenameScript script, IEnumerable<IImportFolder> availableFolders, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo)
     {
         Script = script;
         AvailableFolders = availableFolders.ToArray();
-        FileInfo = fileInfo;
-        VideoInfo = videoInfo;
-        EpisodeInfo = episodeInfo.ToArray();
-        AnimeInfo = animeInfo.ToArray();
-        GroupInfo = groupInfo.ToArray();
+        File = fileInfo;
+        Video = videoInfo;
+        Episodes = episodeInfo.ToArray();
+        Series = animeInfo.ToArray();
+        Groups = groupInfo.ToArray();
     }
 }
 

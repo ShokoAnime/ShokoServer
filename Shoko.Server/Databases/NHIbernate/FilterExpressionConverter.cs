@@ -11,7 +11,7 @@ using NHibernate.UserTypes;
 using NLog;
 using Shoko.Server.Filters;
 
-namespace Shoko.Server.Databases.NHIbernate;
+namespace Shoko.Server.Databases.NHibernate;
 
 public class FilterExpressionConverter : TypeConverter, IUserType
 {

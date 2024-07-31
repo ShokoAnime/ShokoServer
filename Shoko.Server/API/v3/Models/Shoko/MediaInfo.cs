@@ -100,7 +100,7 @@ public class MediaInfo
         Subtitles = mediaContainer.TextStreams
             .Select(text => new TextStreamInfo(text))
             .ToList();
-        Chapters = new();
+        Chapters = [];
         FileExtension = general.FileExtension;
         MediaContainer = general.Format;
         MediaContainerVersion = general.Format_Version;
@@ -111,7 +111,7 @@ public class MediaInfo
             {
                 if (string.IsNullOrEmpty(key))
                     continue;
-                var (hours, minutes, seconds, milliseconds, _rest) = key[1..].Split('_');
+                var (hours, minutes, seconds, milliseconds) = key[1..].Split('_');
                 if (!TimeSpan.TryParse($"{hours}:{minutes}:{seconds}.{milliseconds}", out var timestamp))
                     continue;
                 var index = value.IndexOf(':');
@@ -220,7 +220,7 @@ public class MediaInfo
         public string? AdditionalFeatures { get; }
 
         /// <summary>
-        /// Format edianness, if available.
+        /// Format endianness, if available.
         /// </summary>
         public string? Endianness { get; }
 
@@ -243,7 +243,7 @@ public class MediaInfo
         public string? HDR { get; }
 
         /// <summary>
-        /// HDR format compatibility informaiton, if available.
+        /// HDR format compatibility information, if available.
         /// </summary>
         /// <remarks>
         /// Only available for <see cref="VideoStreamInfo"/>.
@@ -259,7 +259,7 @@ public class MediaInfo
         public bool? CABAC { get; }
 
         /// <summary>
-        /// Bi-direcitonal video object planes (BVOP).
+        /// Bi-directional video object planes (BVOP).
         /// </summary>
         /// <remarks>
         /// Only available for <see cref="VideoStreamInfo"/>.
@@ -393,7 +393,7 @@ public class MediaInfo
         public string ChromaSubsampling { get; }
 
         /// <summary>
-        /// Matrix co-efficients.
+        /// Matrix co-efficiencies.
         /// </summary>
         public string? MatrixCoefficients { get; }
 

@@ -7,16 +7,29 @@ using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
+using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using SeriesType = Shoko.Server.API.v3.Models.Shoko.SeriesType;
 
 namespace Shoko.Server.API.v3.Helpers;
 
 public static class ModelHelper
 {
+    public static T CombineFlags<T>(this HashSet<T> flags) where T : Enum
+    {
+        T combinedFlags = default;
+        foreach (var flag in flags)
+            combinedFlags = CombineFlags(combinedFlags, flag);
+        return combinedFlags;
+    }
+
+    private static T CombineFlags<T>(T a, T b) where T : Enum
+        => (T)Enum.ToObject(typeof(T), Convert.ToInt64(a) | Convert.ToInt64(b));
+
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
         return new ListResult<T>
@@ -98,6 +111,21 @@ public static class ModelHelper
                 .ToList()
         };
     }
+
+    public static SeriesType ToAniDBSeriesType(this int animeType)
+        => ToAniDBSeriesType((AniDBAnimeType)animeType);
+
+    public static SeriesType ToAniDBSeriesType(this AniDBAnimeType animeType)
+        => animeType switch
+        {
+            AniDBAnimeType.TVSeries => SeriesType.TV,
+            AniDBAnimeType.Movie => SeriesType.Movie,
+            AniDBAnimeType.OVA => SeriesType.OVA,
+            AniDBAnimeType.TVSpecial => SeriesType.TVSpecial,
+            AniDBAnimeType.Web => SeriesType.Web,
+            AniDBAnimeType.Other => SeriesType.Other,
+            _ => SeriesType.Unknown,
+        };
 
     public static (int, EpisodeType?, string) GetEpisodeNumberAndTypeFromInput(string input)
     {
@@ -364,7 +392,7 @@ public static class ModelHelper
         foreach (var series in seriesList)
         {
             var anime = series.AniDB_Anime;
-            switch (SeriesFactory.GetAniDBSeriesType(anime?.AnimeType))
+            switch (anime?.AnimeType.ToAniDBSeriesType())
             {
                 case SeriesType.Unknown:
                     sizes.SeriesTypes.Unknown++;

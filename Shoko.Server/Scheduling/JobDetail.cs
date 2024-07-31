@@ -1,25 +1,24 @@
-#nullable enable
 using System;
 using System.Globalization;
 using Quartz;
 using Quartz.Impl;
 
+#nullable enable
 namespace Shoko.Server.Scheduling;
 
-public class JobDetail : IJobDetail
+public class JobDetail(Type type) : IJobDetail, IEquatable<JobDetail>
 {
-    private string name = null!;
-    private string group = SchedulerConstants.DefaultGroup;
-    private string? description;
-    private JobDataMap jobDataMap = null!;
-    private readonly Type jobType = null!;
+    private string _name = string.Empty;
+    private string _group = SchedulerConstants.DefaultGroup;
+    private string? _description;
+    private JobDataMap? _jobDataMap = null;
 
     [NonSerialized] // we have the key in string fields
-    private JobKey key = null!;
+    private JobKey? _key = null;
 
     public string Name
     {
-        get => name;
+        get => _name;
 
         init
         {
@@ -28,7 +27,7 @@ public class JobDetail : IJobDetail
                 throw new ArgumentException("Job name cannot be empty.");
             }
 
-            name = value;
+            _name = value;
         }
     }
 
@@ -41,7 +40,7 @@ public class JobDetail : IJobDetail
     /// </exception>
     public string Group
     {
-        get => group;
+        get => _group;
         init
         {
             if (value != null && value.Trim().Length == 0)
@@ -49,12 +48,9 @@ public class JobDetail : IJobDetail
                 throw new ArgumentException("Group name cannot be empty.");
             }
 
-            if (value == null)
-            {
-                value = SchedulerConstants.DefaultGroup;
-            }
+            value ??= SchedulerConstants.DefaultGroup;
 
-            group = value;
+            _group = value;
         }
     }
 
@@ -62,7 +58,7 @@ public class JobDetail : IJobDetail
     /// Returns the 'full name' of the <see cref="ITrigger" /> in the format
     /// "group.name".
     /// </summary>
-    public string FullName => group + "." + name;
+    public string FullName => _group + "." + _name;
 
     /// <summary>
     /// Gets the key.
@@ -72,16 +68,16 @@ public class JobDetail : IJobDetail
     {
         get
         {
-            if (key == null)
+            if (_key == null)
             {
                 if (Name == null)
                 {
                     return null!;
                 }
-                key = new JobKey(Name, Group);
+                _key = new JobKey(Name, Group);
             }
 
-            return key;
+            return _key;
         }
         init
         {
@@ -89,7 +85,7 @@ public class JobDetail : IJobDetail
 
             Name = value.Name;
             Group = value.Group;
-            key = value;
+            _key = value;
         }
     }
 
@@ -103,11 +99,11 @@ public class JobDetail : IJobDetail
     /// </remarks>
     public string? Description
     {
-        get => description;
-        init => description = value;
+        get => _description;
+        init => _description = value;
     }
 
-    public JobType JobType { get; init; }
+    public JobType JobType { get; private set; } = new(type);
 
     /// <summary>
     /// Get or set the <see cref="JobDataMap" /> that is associated with the <see cref="IJob" />.
@@ -116,10 +112,10 @@ public class JobDetail : IJobDetail
     {
         get
         {
-            return jobDataMap ??= new JobDataMap();
+            return _jobDataMap ??= [];
         }
 
-        init => jobDataMap = value;
+        init => _jobDataMap = value;
     }
 
     /// <summary>
@@ -162,26 +158,12 @@ public class JobDetail : IJobDetail
     /// </returns>
     public IJobDetail Clone()
     {
-        var copy = (JobDetail) MemberwiseClone();
-        if (jobDataMap != null)
+        var copy = (JobDetail)MemberwiseClone();
+        if (_jobDataMap != null)
         {
-            copy.jobDataMap = (JobDataMap) jobDataMap.Clone();
+            copy._jobDataMap = (JobDataMap)_jobDataMap.Clone();
         }
         return copy;
-    }
-
-    /// <summary>
-    /// Determines whether the specified detail is equal to this instance.
-    /// </summary>
-    /// <param name="detail">The detail to examine.</param>
-    /// <returns>
-    /// 	<c>true</c> if the specified detail is equal; otherwise, <c>false</c>.
-    /// </returns>
-    private bool IsEqual(JobDetail? detail)
-    {
-        //doesn't consider job's saved data,
-        //durability etc
-        return detail != null && detail.Name == Name && detail.Group == Group && detail.JobType.Equals(JobType);
     }
 
     /// <summary>
@@ -194,12 +176,7 @@ public class JobDetail : IJobDetail
     /// </returns>
     public override bool Equals(object? obj)
     {
-        if (!(obj is JobDetail jd))
-        {
-            return false;
-        }
-
-        return IsEqual(jd);
+        return obj is JobDetail jd && Equals(jd);
     }
 
     /// <summary>
@@ -207,9 +184,9 @@ public class JobDetail : IJobDetail
     /// </summary>
     /// <param name="detail">The detail to compare this instance with.</param>
     /// <returns></returns>
-    public bool Equals(JobDetail detail)
+    public bool Equals(JobDetail? detail)
     {
-        return IsEqual(detail);
+        return detail is not null && detail.Name == Name && detail.Group == Group && detail.JobType.Equals(JobType);
     }
 
     /// <summary>
@@ -233,7 +210,7 @@ public class JobDetail : IJobDetail
             .UsingJobData(JobDataMap)
             .DisallowConcurrentExecution(ConcurrentExecutionDisallowed)
             .PersistJobDataAfterExecution(PersistJobDataAfterExecution)
-            .WithDescription(description)
+            .WithDescription(_description)
             .WithIdentity(Key);
     }
 }

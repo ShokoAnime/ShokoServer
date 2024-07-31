@@ -11,6 +11,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Plugin.Abstractions.Services;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -44,19 +45,14 @@ public class TvDBApiHelper
         _connectivityService = connectivityService;
         _schedulerFactory = schedulerFactory;
         _jobFactory = jobFactory;
-        _client = new TvDbClient();
-        _client.BaseUrl = "https://api-beta.thetvdb.com";
+        _client = new TvDbClient
+        {
+            BaseUrl = "https://api-beta.thetvdb.com"
+        };
     }
 
-    private string CurrentServerTime
-    {
-        get
-        {
-            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
-            var span = DateTime.Now - epoch;
-            return ((long)span.TotalSeconds).ToString(CultureInfo.InvariantCulture);
-        }
-    }
+    private static string CurrentServerTime
+        => ((long)(DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds).ToString(CultureInfo.InvariantCulture);
 
     private async Task CheckAuthorizationAsync()
     {
@@ -66,7 +62,7 @@ public class TvDBApiHelper
             if (string.IsNullOrEmpty(_client.Authentication.Token))
             {
                 TvDBRateLimiter.Instance.EnsureRate();
-                await _client.Authentication.AuthenticateAsync(Constants.TvDB.apiKey);
+                await _client.Authentication.AuthenticateAsync(Constants.TvDB.ApiKey);
                 if (string.IsNullOrEmpty(_client.Authentication.Token))
                 {
                     throw new TvDbServerException("Authentication Failed", 200);
@@ -199,7 +195,7 @@ public class TvDBApiHelper
         {
             // remove all current links
             _logger.LogInformation("Removing All TvDB Links for: {AnimeID}", animeID);
-            RemoveAllAniDBTvDBLinks(animeID, false);
+            RemoveAllAniDBTvDBLinks(animeID);
         }
 
         // check if we have this information locally
@@ -236,6 +232,7 @@ public class TvDBApiHelper
         var settings = _settingsProvider.GetSettings();
         var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
         if (settings.TraktTv.Enabled &&
+            settings.TraktTv.AutoLink &&
             !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
             !series.IsTraktAutoMatchingDisabled)
         {
@@ -253,33 +250,20 @@ public class TvDBApiHelper
         }
     }
 
-    private void RemoveAllAniDBTvDBLinks(int animeID, bool updateStats = true)
+    private static void RemoveAllAniDBTvDBLinks(int animeID)
     {
         // check for Trakt associations
         var trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
         if (trakt.Count != 0)
-        {
             foreach (var a in trakt)
-            {
                 RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
-            }
-        }
 
         var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
         if (xrefs == null || xrefs.Count == 0)
-        {
             return;
-        }
 
         foreach (var xref in xrefs)
-        {
             RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
-        }
-
-        if (updateStats)
-        {
-            _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).Process().GetAwaiter().GetResult();
-        }
     }
 
     public async Task<List<TvDB_Language>> GetLanguagesAsync()
@@ -303,7 +287,10 @@ public class TvDBApiHelper
             {
                 var lan = new TvDB_Language
                 {
-                    Id = item.Id, EnglishName = item.EnglishName, Name = item.Name, Abbreviation = item.Abbreviation
+                    Id = item.Id,
+                    EnglishName = item.EnglishName,
+                    Name = item.Name,
+                    Abbreviation = item.Abbreviation,
                 };
                 languages.Add(lan);
             }
@@ -411,7 +398,7 @@ public class TvDBApiHelper
             }
             else if (exception.StatusCode == (int)HttpStatusCode.NotFound)
             {
-                return new Image[] { };
+                return [];
             }
 
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
@@ -424,7 +411,7 @@ public class TvDBApiHelper
             // ignore
         }
 
-        return new Image[] { };
+        return [];
     }
 
     private async Task<List<TvDB_ImageFanart>> GetFanartOnlineAsync(int seriesID)
@@ -672,9 +659,9 @@ public class TvDBApiHelper
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
+                        c.ParentName = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
                         c.ImageID = img.TvDB_ImageFanartID;
-                        c.ImageType = ImageEntityType.TvDB_FanArt;
+                        c.ImageType = ImageEntityType.Backdrop;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -683,7 +670,7 @@ public class TvDBApiHelper
             else
             {
                 //The TvDB_AutoFanartAmount point to download less images than its available
-                // we should clean those image that we didn't download because those dont exists in local repo
+                // we should clean those image that we didn't download because those don't exists in local repo
                 // first we check if file was downloaded
                 if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
                 {
@@ -711,9 +698,9 @@ public class TvDBApiHelper
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
+                        c.ParentName = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
                         c.ImageID = img.TvDB_ImagePosterID;
-                        c.ImageType = ImageEntityType.TvDB_Cover;
+                        c.ImageType = ImageEntityType.Poster;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -722,7 +709,7 @@ public class TvDBApiHelper
             else
             {
                 //The TvDB_AutoFanartAmount point to download less images than its available
-                // we should clean those image that we didn't download because those dont exists in local repo
+                // we should clean those image that we didn't download because those don't exists in local repo
                 // first we check if file was downloaded
                 if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
                 {
@@ -749,9 +736,9 @@ public class TvDBApiHelper
                 if (fileExists && !forceDownload) continue;
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
+                        c.ParentName = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
                         c.ImageID = img.TvDB_ImageWideBannerID;
-                        c.ImageType = ImageEntityType.TvDB_Banner;
+                        c.ImageType = ImageEntityType.Banner;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -760,7 +747,7 @@ public class TvDBApiHelper
             else
             {
                 // The TvDB_AutoFanartAmount point to download less images than its available
-                // we should clean those image that we didn't download because those dont exists in local repo
+                // we should clean those image that we didn't download because those don't exists in local repo
                 // first we check if file was downloaded
                 if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
                     RepoFactory.TvDB_ImageWideBanner.Delete(img);
@@ -792,11 +779,11 @@ public class TvDBApiHelper
             }
 
             var results = await Task.WhenAll(tasks);
-            var lastresponse = results.Length == 0 ? firstResponse : results.Last();
+            var lastResponse = results.Length == 0 ? firstResponse : results.Last();
             _logger.LogTrace("Last Page: First: {First} Next: {Next} Previous: {Previous} Last: {Last}",
-                lastresponse?.Links?.First?.ToString() ?? "NULL", lastresponse?.Links?.Next?.ToString() ?? "NULL",
-                lastresponse?.Links?.Prev?.ToString() ?? "NULL", lastresponse?.Links?.Last?.ToString() ?? "NULL");
-            _logger.LogTrace("Last Count: {Last}", lastresponse?.Data.Length.ToString() ?? "NULL");
+                lastResponse?.Links?.First?.ToString() ?? "NULL", lastResponse?.Links?.Next?.ToString() ?? "NULL",
+                lastResponse?.Links?.Prev?.ToString() ?? "NULL", lastResponse?.Links?.Last?.ToString() ?? "NULL");
+            _logger.LogTrace("Last Count: {Last}", lastResponse?.Data.Length.ToString() ?? "NULL");
             apiEpisodes = firstResponse?.Data?.Concat(results.SelectMany(x => x.Data)).ToList();
         }
         catch (TvDbServerException exception)
@@ -878,9 +865,9 @@ public class TvDBApiHelper
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.Anime = tvSeries.SeriesName;
+                        c.ParentName = tvSeries.SeriesName;
                         c.ImageID = ep.TvDB_EpisodeID;
-                        c.ImageType = ImageEntityType.TvDB_Episode;
+                        c.ImageType = ImageEntityType.Thumbnail;
                         c.ForceDownload = forceRefresh;
                     }
                 );
@@ -929,12 +916,39 @@ public class TvDBApiHelper
     }
 
     // Removes all TVDB information from a series, bringing it back to a blank state.
-    public void RemoveLinkAniDBTvDB(int animeID, int tvDBID)
+    public void RemoveLinkAniDBTvDB(int animeID, int tvdbID)
     {
-        var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID);
+        var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvdbID);
         if (xref == null)
         {
             return;
+        }
+
+        // check if there are preferred images used associated
+        var preferredImages = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(animeID);
+        var posterImages = RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvdbID);
+        var backdropImages = RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvdbID);
+        var bannerImages = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvdbID);
+        foreach (var image in preferredImages)
+        {
+            if (image.ImageSource is not DataSourceType.TvDB)
+                continue;
+
+            switch (image.ImageType)
+            {
+                case ImageEntityType.Backdrop:
+                    if (backdropImages.Any(backdrop => backdrop.TvDB_ImageFanartID == image.ImageID))
+                        RepoFactory.AniDB_Anime_PreferredImage.Delete(image);
+                    break;
+                case ImageEntityType.Banner:
+                    if (bannerImages.Any(backdrop => backdrop.TvDB_ImageWideBannerID == image.ImageID))
+                        RepoFactory.AniDB_Anime_PreferredImage.Delete(image);
+                    break;
+                case ImageEntityType.Poster:
+                    if (posterImages.Any(backdrop => backdrop.TvDB_ImagePosterID == image.ImageID))
+                        RepoFactory.AniDB_Anime_PreferredImage.Delete(image);
+                    break;
+            }
         }
 
         RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
@@ -972,7 +986,7 @@ public class TvDBApiHelper
             if (anime == null)
                 continue;
 
-            _logger.LogTrace("Found anime without TvDB association: {MaintTitle}", anime.MainTitle);
+            _logger.LogTrace("Found anime without TvDB association: {MainTitle}", anime.MainTitle);
             await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
@@ -997,14 +1011,14 @@ public class TvDBApiHelper
         return GetUpdatedSeriesListAsync(serverTime).Result;
     }
 
-    private async Task<List<int>> GetUpdatedSeriesListAsync(long lasttimeseconds)
+    private async Task<List<int>> GetUpdatedSeriesListAsync(long lastTimeSeconds)
     {
         var seriesList = new List<int>();
         try
         {
             // Unix timestamp is seconds past epoch
             var lastUpdateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            lastUpdateTime = lastUpdateTime.AddSeconds(lasttimeseconds).ToLocalTime();
+            lastUpdateTime = lastUpdateTime.AddSeconds(lastTimeSeconds).ToLocalTime();
 
             // api limits this to a week at a time, so split it up
             var spans = new List<(DateTime, DateTime)>();
@@ -1059,7 +1073,7 @@ public class TvDBApiHelper
                         await CheckAuthorizationAsync();
                         if (!string.IsNullOrEmpty(_client.Authentication.Token))
                         {
-                            return await GetUpdatedSeriesListAsync(lasttimeseconds);
+                            return await GetUpdatedSeriesListAsync(lastTimeSeconds);
                         }
 
                         // suppress 404 and move on
@@ -1088,7 +1102,7 @@ public class TvDBApiHelper
         // otherwise we need to do a full update and keep a record of the time
 
         var allTvDBIDs = new List<int>();
-        tvDBIDs ??= new List<int>();
+        tvDBIDs ??= [];
         tvDBOnline = true;
 
         try
@@ -1104,7 +1118,7 @@ public class TvDBApiHelper
 
             foreach (var ser in RepoFactory.AnimeSeries.GetAll())
             {
-                var xrefs = ser.TvDBXrefs;
+                var xrefs = ser.TvdbSeriesCrossReferences;
                 if (xrefs == null)
                 {
                     continue;
@@ -1123,16 +1137,16 @@ public class TvDBApiHelper
             // if this is the first time it will be null
             // update the anidb info ever 24 hours
 
-            var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TvDBInfo);
+            var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TvDBInfo);
 
             var lastServerTime = string.Empty;
-            if (sched != null)
+            if (schedule != null)
             {
-                var ts = DateTime.Now - sched.LastUpdate;
+                var ts = DateTime.Now - schedule.LastUpdate;
                 _logger.LogTrace("Last tvdb info update was {TotalHours} hours ago", ts.TotalHours);
-                if (!string.IsNullOrEmpty(sched.UpdateDetails))
+                if (!string.IsNullOrEmpty(schedule.UpdateDetails))
                 {
-                    lastServerTime = sched.UpdateDetails;
+                    lastServerTime = schedule.UpdateDetails;
                 }
 
                 // the UpdateDetails field for this type will actually contain the last server time from
@@ -1143,18 +1157,18 @@ public class TvDBApiHelper
             // get a list of updates from TvDB since that time
             if (lastServerTime.Length > 0)
             {
-                if (!long.TryParse(lastServerTime, out var lasttimeseconds))
+                if (!long.TryParse(lastServerTime, out var lastTimeSeconds))
                 {
-                    lasttimeseconds = -1;
+                    lastTimeSeconds = -1;
                 }
 
-                if (lasttimeseconds < 0)
+                if (lastTimeSeconds < 0)
                 {
                     tvDBIDs = allTvDBIDs;
                     return CurrentServerTime;
                 }
 
-                var seriesList = GetUpdatedSeriesList(lasttimeseconds);
+                var seriesList = GetUpdatedSeriesList(lastTimeSeconds);
                 _logger.LogTrace("{Count} series have been updated since last download", seriesList.Count);
                 _logger.LogTrace("{Count} TvDB series locally", allTvDBIDs.Count);
 

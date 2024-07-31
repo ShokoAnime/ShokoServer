@@ -28,7 +28,6 @@ public class FilterController : BaseController
     internal const string FilterNotFound = "No Filter entry for the given filterID";
 
     private readonly FilterFactory _factory;
-    private readonly SeriesFactory _seriesFactory;
     private readonly FilterEvaluator _filterEvaluator;
     private static Filter.FilterExpressionHelp[] _expressionTypes;
     private static Filter.SortingCriteriaHelp[] _sortingTypes;
@@ -46,8 +45,8 @@ public class FilterController : BaseController
     /// <returns></returns>
     [HttpGet]
     public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false,
-        [FromQuery] bool showHidden = false, [FromQuery] [Range(0, 100)] int pageSize = 10,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
+        [FromQuery] bool showHidden = false, [FromQuery, Range(0, 100)] int pageSize = 10,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
     {
         var user = User;
 
@@ -105,10 +104,11 @@ public class FilterController : BaseController
     /// <param name="types">Optional. The Expression types to return</param>
     /// <param name="groups">Optional. The Expression groups to return</param>
     [HttpGet("Expressions")]
-    public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions([FromQuery]Filter.FilterExpressionHelp.FilterExpressionParameterType[] types = null, [FromQuery]FilterExpressionGroup[] groups = null)
+    public static ActionResult<Filter.FilterExpressionHelp[]> GetExpressions([FromQuery] Filter.FilterExpressionHelp.FilterExpressionParameterType[] types = null,
+        [FromQuery] FilterExpressionGroup[] groups = null)
     {
-        types ??= Array.Empty<Filter.FilterExpressionHelp.FilterExpressionParameterType>();
-        groups ??= Array.Empty<FilterExpressionGroup>();
+        types ??= [];
+        groups ??= [];
 
         // get all classes that derive from FilterExpression, but not SortingExpression
         _expressionTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
@@ -187,7 +187,7 @@ public class FilterController : BaseController
     /// For example, MissingEpisodeCount,Descending -> AirDate, Descending would have thing with the most missing episodes, then the last aired first.
     /// </remarks>
     [HttpGet("SortingCriteria")]
-    public ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
+    public static ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
     {
         // get all classes that derive from FilterExpression, but not SortingExpression
         _sortingTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
@@ -316,12 +316,12 @@ public class FilterController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
     /// <param name="orderByName">Ignore the group filter sort criteria and always order the returned list by name.</param>
     /// <returns></returns>
     [HttpPost("Preview/Group")]
     public ActionResult<ListResult<Group>> GetPreviewFilteredGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
-        [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Directories should only contain sub-filters, not groups and series.
@@ -346,8 +346,12 @@ public class FilterController : BaseController
                 return includeEmpty || group.AllSeries
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             });
+
+        if (orderByName)
+            groups = groups.OrderBy(group => group.SortName);
+
         return groups
-            .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
+            .ToListResult(group => new Group(group, User.JMMUserID, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -393,13 +397,13 @@ public class FilterController : BaseController
     /// <param name="filter">The filter to preview</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
-    /// <param name="randomImages">Randomise images shown for each <see cref="Series"/>.</param>
+    /// <param name="randomImages">Randomize images shown for each <see cref="Series"/>.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing
     /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpPost("Preview/Series")]
     public ActionResult<ListResult<Series>> GetPreviewSeriesInFilteredGroup([FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
-        [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
     {
         // Directories should only contain sub-filters, not groups and series.
@@ -416,8 +420,8 @@ public class FilterController : BaseController
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
         return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
             .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
-            .OrderBy(series => series.SeriesName.ToLowerInvariant())
-            .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
+            .OrderBy(series => series.PreferredTitle.ToLowerInvariant())
+            .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -425,7 +429,7 @@ public class FilterController : BaseController
     /// </summary>
     /// <param name="filter">The filter to preview</param>
     /// <param name="groupID"><see cref="Group"/> ID</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Group")]
@@ -474,7 +478,7 @@ public class FilterController : BaseController
                 return groups.Contains(subGroup.AnimeGroupID);
             })
             .OrderBy(a => Array.IndexOf(orderedGroups, a.AnimeGroupID))
-            .Select(g => new Group(HttpContext, g, randomImages))
+            .Select(g => new Group(g, User.JMMUserID, randomImages))
             .ToList();
     }
 
@@ -485,7 +489,7 @@ public class FilterController : BaseController
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
-    /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Series")]
@@ -513,7 +517,7 @@ public class FilterController : BaseController
             return (recursive ? group.AllSeries : group.Series)
                 .Where(a => User.AllowedSeries(a))
                 .OrderBy(series => series.AniDB_Anime?.AirDate ?? DateTime.MaxValue)
-                .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
+                .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
                 .Where(series => series.Size > 0 || includeMissing)
                 .ToList();
 
@@ -527,20 +531,17 @@ public class FilterController : BaseController
             ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID)?.ToList() ?? []).ToList()
             : results.FirstOrDefault(a => a.Key == groupID)?.ToList();
 
-        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => (a?.VideoLocals.Any() ?? false) || includeMissing) ??
-                     Array.Empty<SVR_AnimeSeries>();
-
+        var series = seriesIDs?.Select(RepoFactory.AnimeSeries.GetByID).Where(a => includeMissing || ((a?.VideoLocals.Count ?? 0) != 0)) ?? [];
         return series
-            .Select(a => _seriesFactory.GetSeries(a, randomImages, includeDataFrom))
+            .Select(a => new Series(a, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
     }
 
     #endregion
 
-    public FilterController(ISettingsProvider settingsProvider, FilterFactory factory, SeriesFactory seriesFactory, FilterEvaluator filterEvaluator) : base(settingsProvider)
+    public FilterController(ISettingsProvider settingsProvider, FilterFactory factory, FilterEvaluator filterEvaluator) : base(settingsProvider)
     {
         _factory = factory;
-        _seriesFactory = seriesFactory;
         _filterEvaluator = filterEvaluator;
     }
 }

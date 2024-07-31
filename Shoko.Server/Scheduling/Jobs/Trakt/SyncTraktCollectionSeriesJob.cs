@@ -26,7 +26,7 @@ public class SyncTraktCollectionSeriesJob : BaseJob
 
     public override void PostInit()
     {
-        _seriesName = RepoFactory.AnimeSeries?.GetByID(AnimeSeriesID)?.SeriesName ?? AnimeSeriesID.ToString();
+        _seriesName = RepoFactory.AnimeSeries?.GetByID(AnimeSeriesID)?.PreferredTitle ?? AnimeSeriesID.ToString();
     }
 
     public override Dictionary<string, object> Details => new() { { "Anime", _seriesName } };

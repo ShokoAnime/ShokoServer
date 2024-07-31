@@ -14,10 +14,10 @@ public class Filterable : IFilterable
     private readonly Lazy<decimal> _averageAniDBRating;
     private readonly Lazy<IReadOnlySet<string>> _customTags;
     private readonly Lazy<int> _episodeCount;
-    private readonly Lazy<bool> _hasMissingTMDbLink;
+    private readonly Lazy<bool> _hasMissingTmdbLink;
     private readonly Lazy<bool> _hasMissingTraktLink;
     private readonly Lazy<bool> _hasMissingTvDBLink;
-    private readonly Lazy<bool> _hasTMDbLink;
+    private readonly Lazy<bool> _hasTmdbLink;
     private readonly Lazy<bool> _hasTraktLink;
     private readonly Lazy<bool> _hasTvDBLink;
     private readonly Lazy<decimal> _highestAniDBRating;
@@ -135,18 +135,18 @@ public class Filterable : IFilterable
         init => _hasMissingTvDBLink = new Lazy<bool>(value);
     }
 
-    public bool HasTMDbLink => _hasTMDbLink.Value;
+    public bool HasTmdbLink => _hasTmdbLink.Value;
 
-    public Func<bool> HasTMDbLinkDelegate
+    public Func<bool> HasTmdbLinkDelegate
     {
-        init => _hasTMDbLink = new Lazy<bool>(value);
+        init => _hasTmdbLink = new Lazy<bool>(value);
     }
 
-    public bool HasMissingTMDbLink => _hasMissingTMDbLink.Value;
+    public bool HasMissingTmdbLink => _hasMissingTmdbLink.Value;
 
-    public Func<bool> HasMissingTMDbLinkDelegate
+    public Func<bool> HasMissingTmdbLinkDelegate
     {
-        init => _hasMissingTMDbLink = new Lazy<bool>(value);
+        init => _hasMissingTmdbLink = new Lazy<bool>(value);
     }
 
     public bool HasTraktLink => _hasTraktLink.Value;
@@ -290,7 +290,7 @@ public class Filterable : IFilterable
             _resolutions = new Lazy<IReadOnlySet<string>>(value);
         }
     }
-    
+
     public IReadOnlySet<string> FilePaths => _filePaths.Value;
 
     public Func<IReadOnlySet<string>> FilePathsDelegate

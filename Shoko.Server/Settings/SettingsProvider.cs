@@ -135,13 +135,13 @@ public class SettingsProvider : ISettingsProvider
                     UpdateFrequency = legacy.TvDB_UpdateFrequency,
                     Language = legacy.TvDB_Language
                 },
-            MovieDb =
-                new MovieDbSettings
+            TMDB =
+                new TMDBSettings
                 {
-                    AutoFanart = legacy.MovieDB_AutoFanart,
-                    AutoFanartAmount = legacy.MovieDB_AutoFanartAmount,
-                    AutoPosters = legacy.MovieDB_AutoPosters,
-                    AutoPostersAmount = legacy.MovieDB_AutoPostersAmount
+                    AutoDownloadBackdrops = legacy.MovieDB_AutoFanart,
+                    MaxAutoBackdrops = legacy.MovieDB_AutoFanartAmount,
+                    AutoDownloadPosters = legacy.MovieDB_AutoPosters,
+                    MaxAutoPosters = legacy.MovieDB_AutoPostersAmount
                 },
             Import =
                 new ImportSettings
@@ -169,13 +169,15 @@ public class SettingsProvider : ISettingsProvider
             AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
             FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
             FileQualityPreferences = legacy.FileQualityFilterPreferences,
-            LanguagePreference = legacy.LanguagePreference.Split(',').ToList(),
-            EpisodeLanguagePreference = legacy.EpisodeLanguagePreference.Split(',').ToList(),
-            LanguageUseSynonyms = legacy.LanguageUseSynonyms,
-            CloudWatcherTime = legacy.CloudWatcherTime,
-            EpisodeTitleSource = legacy.EpisodeTitleSource,
-            SeriesDescriptionSource = legacy.SeriesDescriptionSource,
-            SeriesNameSource = legacy.SeriesNameSource,
+            Language = new()
+            {
+                UseSynonyms = legacy.LanguageUseSynonyms,
+                SeriesTitleLanguageOrder = legacy.LanguagePreference.Split(',').ToList(),
+                SeriesTitleSourceOrder = [legacy.SeriesNameSource],
+                EpisodeTitleLanguageOrder = legacy.EpisodeLanguagePreference.Split(',').ToList(),
+                EpisodeTitleSourceOrder = [legacy.EpisodeTitleSource],
+                DescriptionSourceOrder = [legacy.SeriesDescriptionSource],
+            },
             TraktTv = new TraktSettings
             {
                 Enabled = legacy.Trakt_IsEnabled,

@@ -6,10 +6,14 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -79,100 +83,89 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
 
     public Dictionary<int, DefaultAnimeImages> GetDefaultImagesByAnime(ISessionWrapper session, int[] animeIds)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException("session");
-        }
-
-        if (animeIds == null)
-        {
-            throw new ArgumentNullException("animeIds");
-        }
-
+        ArgumentNullException.ThrowIfNull(session, nameof(session));
+        ArgumentNullException.ThrowIfNull(animeIds, nameof(animeIds));
         var defImagesByAnime = new Dictionary<int, DefaultAnimeImages>();
 
-        if (animeIds.Length == 0)
-        {
+        if (animeIds is { Length: 0 })
             return defImagesByAnime;
-        }
 
         // treating cache as a global DB lock, as well
-        var results = Lock(() => session.CreateSQLQuery(
-                @"SELECT {defImg.*}, {tvWide.*}, {tvPoster.*}, {tvFanart.*}, {movPoster.*}, {movFanart.*}
-                    FROM AniDB_Anime_DefaultImage defImg
-                        LEFT OUTER JOIN TvDB_ImageWideBanner AS tvWide
-                            ON tvWide.TvDB_ImageWideBannerID = defImg.ImageParentID AND defImg.ImageParentType = :tvdbBannerType
-                        LEFT OUTER JOIN TvDB_ImagePoster AS tvPoster
-                            ON tvPoster.TvDB_ImagePosterID = defImg.ImageParentID AND defImg.ImageParentType = :tvdbCoverType
-                        LEFT OUTER JOIN TvDB_ImageFanart AS tvFanart
-                            ON tvFanart.TvDB_ImageFanartID = defImg.ImageParentID AND defImg.ImageParentType = :tvdbFanartType
-                        LEFT OUTER JOIN MovieDB_Poster AS movPoster
-                            ON movPoster.MovieDB_PosterID = defImg.ImageParentID AND defImg.ImageParentType = :movdbPosterType
-                        LEFT OUTER JOIN MovieDB_Fanart AS movFanart
-                            ON movFanart.MovieDB_FanartID = defImg.ImageParentID AND defImg.ImageParentType = :movdbFanartType
-                    WHERE defImg.AnimeID IN (:animeIds) AND defImg.ImageParentType IN (:tvdbBannerType, :tvdbCoverType, :tvdbFanartType, :movdbPosterType, :movdbFanartType)"
-            )
-            .AddEntity("defImg", typeof(AniDB_Anime_DefaultImage))
-            .AddEntity("tvWide", typeof(TvDB_ImageWideBanner))
-            .AddEntity("tvPoster", typeof(TvDB_ImagePoster))
-            .AddEntity("tvFanart", typeof(TvDB_ImageFanart))
-            .AddEntity("movPoster", typeof(MovieDB_Poster))
-            .AddEntity("movFanart", typeof(MovieDB_Fanart))
-            .SetParameterList("animeIds", animeIds)
-            .SetInt32("tvdbBannerType", (int)ImageEntityType.TvDB_Banner)
-            .SetInt32("tvdbCoverType", (int)ImageEntityType.TvDB_Cover)
-            .SetInt32("tvdbFanartType", (int)ImageEntityType.TvDB_FanArt)
-            .SetInt32("movdbPosterType", (int)ImageEntityType.MovieDB_Poster)
-            .SetInt32("movdbFanartType", (int)ImageEntityType.MovieDB_FanArt)
-            .List<object[]>());
+        var results = Lock(() =>
+        {
+            // TODO: Determine if joining on the correct columns
+            return session.CreateSQLQuery(
+                    @"SELECT {prefImg.*}, {tvdbBanner.*}, {tvdbPoster.*}, {tvdbBackdrop.*}, {tmdbPoster.*}, {tmdbBackdrop.*}
+                    FROM AniDB_Anime_PreferredImage prefImg
+                        LEFT OUTER JOIN TvDB_ImageWideBanner AS tvdbBanner
+                            ON tvdbBanner.TvDB_ImageWideBannerID = prefImg.ImageID AND prefImg.ImageSource = :tvdbSourceType AND prefImg.ImageType = :imageBannerType
+                        LEFT OUTER JOIN TvDB_ImagePoster AS tvdbPoster
+                            ON tvdbPoster.TvDB_ImagePosterID = prefImg.ImageID AND prefImg.ImageSource = :tvdbSourceType AND prefImg.ImageType = :imagePosterType
+                        LEFT OUTER JOIN TvDB_ImageFanart AS tvdbBackdrop
+                            ON tvdbBackdrop.TvDB_ImageFanartID = prefImg.ImageID AND prefImg.ImageSource = :tvdbSourceType AND prefImg.ImageType = :imageBackdropType
+                        LEFT OUTER JOIN TMDB_Image AS tmdbPoster
+                            ON tmdbPoster.ImageType = :imagePosterType AND tmdbPoster.TMDB_ImageID = prefImg.ImageID AND prefImg.ImageSource = :tmdbSourceType AND prefImg.ImageParentType = :imagePosterType
+                        LEFT OUTER JOIN TMDB_Image AS tmdbBackdrop
+                            ON tmdbBackdrop.ImageType = :imageBackdropType AND tmdbBackdrop.TMDB_ImageID = prefImg.ImageID AND prefImg.ImageSource = :tmdbSourceType AND prefImg.ImageType = :imageBackdropType
+                    WHERE prefImg.AnimeID IN (:animeIds) AND prefImg.ImageType IN (:imageBannerType, :imagePosterType, :imageBackdropType)"
+                )
+                .AddEntity("prefImg", typeof(AniDB_Anime_PreferredImage))
+                .AddEntity("tvdbBanner", typeof(TvDB_ImageWideBanner))
+                .AddEntity("tvdbPoster", typeof(TvDB_ImagePoster))
+                .AddEntity("tvdbBackdrop", typeof(TvDB_ImageFanart))
+                .AddEntity("tmdbPoster", typeof(TMDB_Image))
+                .AddEntity("tmdbBackdrop", typeof(TMDB_Image))
+                .SetParameterList("animeIds", animeIds)
+                .SetInt32("tvdbSourceType", (int)DataSourceType.TvDB)
+                .SetInt32("tmdbSourceType", (int)DataSourceType.TMDB)
+                .SetInt32("imageBackdropType", (int)ImageEntityType.Backdrop)
+                .SetInt32("imageBannerType", (int)ImageEntityType.Banner)
+                .SetInt32("imagePosterType", (int)ImageEntityType.Poster)
+                .List<object[]>();
+        });
 
         foreach (var result in results)
         {
-            var aniDbDefImage = (AniDB_Anime_DefaultImage)result[0];
-            IImageEntity parentImage = null;
-
-            switch ((ImageEntityType)aniDbDefImage.ImageParentType)
+            var preferredImage = (AniDB_Anime_PreferredImage)result[0];
+            IImageEntity image = null;
+            switch (preferredImage.ImageType.ToClient(preferredImage.ImageSource))
             {
-                case ImageEntityType.TvDB_Banner:
-                    parentImage = (IImageEntity)result[1];
+                case CL_ImageEntityType.TvDB_Banner:
+                    image = (IImageEntity)result[1];
                     break;
-                case ImageEntityType.TvDB_Cover:
-                    parentImage = (IImageEntity)result[2];
+                case CL_ImageEntityType.TvDB_Cover:
+                    image = (IImageEntity)result[2];
                     break;
-                case ImageEntityType.TvDB_FanArt:
-                    parentImage = (IImageEntity)result[3];
+                case CL_ImageEntityType.TvDB_FanArt:
+                    image = (IImageEntity)result[3];
                     break;
-                case ImageEntityType.MovieDB_Poster:
-                    parentImage = (IImageEntity)result[4];
+                case CL_ImageEntityType.MovieDB_Poster:
+                    image = ((TMDB_Image)result[4]).ToClientPoster();
                     break;
-                case ImageEntityType.MovieDB_FanArt:
-                    parentImage = (IImageEntity)result[5];
+                case CL_ImageEntityType.MovieDB_FanArt:
+                    image = ((TMDB_Image)result[5]).ToClientFanart();
                     break;
             }
 
-            if (parentImage == null)
-            {
+            if (image == null)
                 continue;
-            }
 
-            var defImage = new DefaultAnimeImage(aniDbDefImage, parentImage);
-
-            if (!defImagesByAnime.TryGetValue(aniDbDefImage.AnimeID, out var defImages))
+            if (!defImagesByAnime.TryGetValue(preferredImage.AnidbAnimeID, out var defImages))
             {
-                defImages = new DefaultAnimeImages { AnimeID = aniDbDefImage.AnimeID };
+                defImages = new DefaultAnimeImages { AnimeID = preferredImage.AnidbAnimeID };
                 defImagesByAnime.Add(defImages.AnimeID, defImages);
             }
 
-            switch (defImage.AniDBImageSizeType)
+            switch (preferredImage.ImageType)
             {
-                case ImageSizeType.Poster:
-                    defImages.Poster = defImage;
+                case ImageEntityType.Poster:
+                    defImages.Poster = preferredImage.ToClient(image);
                     break;
-                case ImageSizeType.WideBanner:
-                    defImages.WideBanner = defImage;
+                case ImageEntityType.Banner:
+                    defImages.Banner = preferredImage.ToClient(image);
                     break;
-                case ImageSizeType.Fanart:
-                    defImages.Fanart = defImage;
+                case ImageEntityType.Backdrop:
+                    defImages.Backdrop = preferredImage.ToClient(image);
                     break;
             }
         }
@@ -187,22 +180,19 @@ public class DefaultAnimeImages
     {
         if (Poster != null)
         {
-            return Poster.ToContract();
+            return Poster;
         }
 
-        return new CL_AniDB_Anime_DefaultImage { AnimeID = AnimeID, ImageType = (int)ImageEntityType.AniDB_Cover };
+        return new() { AnimeID = AnimeID, ImageType = (int)CL_ImageEntityType.AniDB_Cover };
     }
 
     public CL_AniDB_Anime_DefaultImage GetFanartContractNoBlanks(CL_AniDB_Anime anime)
     {
-        if (anime == null)
-        {
-            throw new ArgumentNullException(nameof(anime));
-        }
+        ArgumentNullException.ThrowIfNull(anime, nameof(anime));
 
-        if (Fanart != null)
+        if (Backdrop != null)
         {
-            return Fanart.ToContract();
+            return Backdrop;
         }
 
         var fanarts = anime.Fanarts;
@@ -224,37 +214,9 @@ public class DefaultAnimeImages
 
     public int AnimeID { get; set; }
 
-    public DefaultAnimeImage Poster { get; set; }
+    public CL_AniDB_Anime_DefaultImage Poster { get; set; }
 
-    public DefaultAnimeImage Fanart { get; set; }
+    public CL_AniDB_Anime_DefaultImage Backdrop { get; set; }
 
-    public DefaultAnimeImage WideBanner { get; set; }
-}
-
-public class DefaultAnimeImage
-{
-    private readonly IImageEntity _parentImage;
-
-    public DefaultAnimeImage(AniDB_Anime_DefaultImage aniDbImage, IImageEntity parentImage)
-    {
-        AniDBImage = aniDbImage ?? throw new ArgumentNullException(nameof(aniDbImage));
-        _parentImage = parentImage ?? throw new ArgumentNullException(nameof(parentImage));
-    }
-
-    public CL_AniDB_Anime_DefaultImage ToContract()
-    {
-        return AniDBImage.ToClient(_parentImage);
-    }
-
-    public TImageType GetParentImage<TImageType>()
-        where TImageType : class, IImageEntity
-    {
-        return _parentImage as TImageType;
-    }
-
-    public ImageSizeType AniDBImageSizeType => (ImageSizeType)AniDBImage.ImageType;
-
-    public AniDB_Anime_DefaultImage AniDBImage { get; private set; }
-
-    public ImageEntityType ParentImageType => (ImageEntityType)AniDBImage.ImageParentType;
+    public CL_AniDB_Anime_DefaultImage Banner { get; set; }
 }

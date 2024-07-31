@@ -21,6 +21,7 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
         EventHandler.FileDeleted += OnFileDeleted;
         EventHandler.SeriesUpdated += OnSeriesUpdated;
         EventHandler.EpisodeUpdated += OnEpisodeUpdated;
+        EventHandler.MovieUpdated += OnMovieUpdated;
     }
 
     public void Dispose()
@@ -34,6 +35,7 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
         EventHandler.FileDeleted -= OnFileDeleted;
         EventHandler.SeriesUpdated -= OnSeriesUpdated;
         EventHandler.EpisodeUpdated -= OnEpisodeUpdated;
+        EventHandler.MovieUpdated -= OnMovieUpdated;
     }
 
     private async void OnFileDetected(object sender, FileDetectedEventArgs e)
@@ -41,19 +43,19 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
         await SendAsync("FileDetected", new FileDetectedEventSignalRModel(e));
     }
 
-    private async void OnFileDeleted(object sender, FileDeletedEventArgs e)
+    private async void OnFileDeleted(object sender, FileEventArgs e)
     {
-        await SendAsync("FileDeleted", new FileDeletedEventSignalRModel(e));
+        await SendAsync("FileDeleted", new FileEventSignalRModel(e));
     }
 
-    private async void OnFileHashed(object sender, FileHashedEventArgs e)
+    private async void OnFileHashed(object sender, FileEventArgs e)
     {
-        await SendAsync("FileHashed", new FileHashedEventSignalRModel(e));
+        await SendAsync("FileHashed", new FileEventSignalRModel(e));
     }
 
-    private async void OnFileMatched(object sender, FileMatchedEventArgs e)
+    private async void OnFileMatched(object sender, FileEventArgs e)
     {
-        await SendAsync("FileMatched", new FileMatchedEventSignalRModel(e));
+        await SendAsync("FileMatched", new FileEventSignalRModel(e));
     }
 
     private async void OnFileRenamed(object sender, FileRenamedEventArgs e)
@@ -79,6 +81,11 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
     private async void OnEpisodeUpdated(object sender, EpisodeInfoUpdatedEventArgs e)
     {
         await SendAsync("EpisodeUpdated", new EpisodeInfoUpdatedEventSignalRModel(e));
+    }
+
+    private async void OnMovieUpdated(object sender, MovieInfoUpdatedEventArgs e)
+    {
+        await SendAsync("MovieUpdated", new MovieInfoUpdatedEventSignalRModel(e));
     }
 
     public override object GetInitialMessage()

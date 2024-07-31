@@ -205,7 +205,7 @@ public class MediaInfoDLLInternal : IDisposable
         {
             Handle = MediaInfo_New();
         }
-        catch (Exception ex)
+        catch
         {
             Handle = (IntPtr)0;
         }

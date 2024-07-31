@@ -8,13 +8,19 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
+using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
+using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class Episode : BaseModel
@@ -28,6 +34,11 @@ public class Episode : BaseModel
     /// Indicates that the episode have a custom name set.
     /// </summary>
     public bool HasCustomName { get; set; }
+
+    /// <summary>
+    /// The preferred images for the episode.
+    /// </summary>
+    public Images Images { get; set; }
 
     /// <summary>
     /// The duration of the episode.
@@ -57,7 +68,7 @@ public class Episode : BaseModel
 
     /// <summary>
     /// Episode is marked as "ignored." Which means it won't be show up in the
-    /// api unless explictly requested, and will not count against the unwatched
+    /// api unless explicitly requested, and will not count against the unwatched
     /// counts and missing counts for the series.
     /// </summary>
     public bool IsHidden { get; set; }
@@ -67,35 +78,44 @@ public class Episode : BaseModel
     /// included in the data to add.
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
-    public AniDB _AniDB { get; set; }
+    public AniDB? _AniDB { get; set; }
 
     /// <summary>
     /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
     /// is included in the data to add.
     /// </summary>
     [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
-    public IEnumerable<TvDB> _TvDB { get; set; }
+    public IEnumerable<TvDB>? _TvDB { get; set; }
 
     /// <summary>
-    /// Files assosiated with the episode, if included with the metadata.
+    /// The <see cref="TmdbData"/> entries, if <see cref="DataSource.TMDB"/>
+    /// is included in the data to add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IEnumerable<File> Files { get; set; }
+    public TmdbData? TMDB { get; set; }
+
+    /// <summary>
+    /// Files associated with the episode, if included with the metadata.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IEnumerable<File>? Files { get; set; }
 
     /// <summary>
     /// File/episode cross-references linked to the episode.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs> CrossReferences { get; set; }
+    public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs>? CrossReferences { get; set; }
 
-    public Episode() { }
-
-    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false)
     {
+        includeDataFrom ??= [];
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
-        var anidbEpisode = episode.AniDB_Episode;
+        var anidbEpisode = episode.AniDB_Episode ??
+            throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.AnimeEpisodeID}");
         var tvdbEpisodes = episode.TvDBEpisodes;
+        var tmdbMovieXRefs = episode.TmdbMovieCrossReferences;
+        var tmdbEpisodeXRefs = episode.TmdbEpisodeCrossReferences;
         var files = episode.VideoLocals;
         var (file, fileUserRecord) = files
             .Select(file => (file, userRecord: RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID)))
@@ -106,9 +126,25 @@ public class Episode : BaseModel
             ID = episode.AnimeEpisodeID,
             ParentSeries = episode.AnimeSeriesID,
             AniDB = episode.AniDB_EpisodeID,
-            TvDB = tvdbEpisodes.Select(a => a.Id).ToList()
+            TvDB = tvdbEpisodes.Select(a => a.Id).ToList(),
+            TMDB = new()
+            {
+                Episode = tmdbEpisodeXRefs
+                    .Where(xref => xref.TmdbEpisodeID != 0)
+                    .Select(xref => xref.TmdbEpisodeID)
+                    .ToList(),
+                Movie = tmdbMovieXRefs
+                    .Select(xref => xref.TmdbMovieID)
+                    .ToList(),
+                Show = tmdbEpisodeXRefs
+                    .Where(xref => xref.TmdbShowID != 0)
+                    .Select(xref => xref.TmdbShowID)
+                    .Distinct()
+                    .ToList(),
+            },
         };
         HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
+        Images = episode.GetImages().ToDto(includeThumbnails: true, preferredImages: true);
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
         ResumePosition = fileUserRecord?.ResumePositionTimeSpan;
         Watched = fileUserRecord?.WatchedDate?.ToUniversalTime();
@@ -117,14 +153,26 @@ public class Episode : BaseModel
         Name = episode.PreferredTitle;
         Size = files.Count;
 
-        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+        if (includeDataFrom.Contains(DataSource.AniDB))
             _AniDB = new AniDB(anidbEpisode);
-        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
+        if (includeDataFrom.Contains(DataSource.TvDB))
             _TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
+        if (includeDataFrom.Contains(DataSource.TMDB))
+            TMDB = new()
+            {
+                Episodes = tmdbEpisodeXRefs
+                    .Select(tmdbEpisodeXref => tmdbEpisodeXref.TmdbEpisode)
+                    .WhereNotNull()
+                    .Select(tmdbEpisode => new TmdbEpisode(tmdbEpisode)),
+                Movies = tmdbMovieXRefs
+                    .Select(tmdbMovieXref => tmdbMovieXref.TmdbMovie)
+                    .WhereNotNull()
+                    .Select(tmdbMovie => new TmdbMovie(tmdbMovie)),
+            };
         if (includeFiles)
             Files = files.Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths));
         if (withXRefs)
-            CrossReferences = FileCrossReference.From(episode.FileCrossRefs).FirstOrDefault()?.EpisodeIDs ?? [];
+            CrossReferences = FileCrossReference.From(episode.FileCrossReferences).FirstOrDefault()?.EpisodeIDs ?? [];
     }
 
     internal static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
@@ -177,15 +225,9 @@ public class Episode : BaseModel
             AirDate = ep.GetAirDateAsDate();
             Description = ep.Description;
             Rating = new Rating { MaxValue = 10, Value = rating, Votes = votes, Source = "AniDB" };
-            Title = mainTitle;
+            Title = mainTitle.Title;
             Titles = titles
-                .Select(a => new Title
-                {
-                    Name = a.Title,
-                    Language = a.LanguageCode,
-                    Default = string.Equals(a.Title, defaultTitle),
-                    Source = "AniDB",
-                })
+                .Select(a => new Title(a, defaultTitle.Title, mainTitle))
                 .ToList();
         }
 
@@ -250,7 +292,7 @@ public class Episode : BaseModel
             AirsAfterSeason = tvDBEpisode.AirsAfterSeason;
             AirsBeforeSeason = tvDBEpisode.AirsBeforeSeason;
             AirsBeforeEpisode = tvDBEpisode.AirsBeforeEpisode;
-            Thumbnail = new Image(tvDBEpisode.Id, ImageEntityType.TvDB_Episode, true);
+            Thumbnail = new Image(tvDBEpisode.Id, ImageEntityType.Thumbnail, DataSourceType.TvDB, true, false);
         }
 
         /// <summary>
@@ -307,7 +349,7 @@ public class Episode : BaseModel
         /// <summary>
         /// Rating of the episode
         /// </summary>
-        public Rating Rating { get; set; }
+        public Rating? Rating { get; set; }
 
         /// <summary>
         /// The TvDB Thumbnail. Later, we'll have more thumbnail support, and episodes will have an Images endpoint like series, but for now, this will do.
@@ -341,9 +383,39 @@ public class Episode : BaseModel
         /// </summary>
         public List<int> TvDB { get; set; } = [];
 
-        // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
-
         #endregion
+        /// <summary>
+        /// The Movie DataBase (TMDB) Cross-Reference IDs.
+        /// </summary>
+        public TmdbEpisodeIDs TMDB { get; init; } = new();
+
+        public class TmdbEpisodeIDs
+        {
+            public List<int> Episode { get; init; } = [];
+
+            public List<int> Movie { get; init; } = [];
+
+            public List<int> Show { get; init; } = [];
+        }
+    }
+
+    public class TmdbData
+    {
+        public IEnumerable<TmdbEpisode> Episodes { get; init; } = [];
+
+        public IEnumerable<TmdbMovie> Movies { get; init; } = [];
+    }
+
+    public static class Input
+    {
+        public class TitleOverrideBody
+        {
+            /// <summary>
+            /// New title to be set as override for the series
+            /// </summary>
+            [Required(AllowEmptyStrings = true)]
+            public string Title { get; set; } = string.Empty;
+        }
     }
 }
 
@@ -403,13 +475,4 @@ public enum EpisodeType
     /// A DVD or BD extra, e.g. BD-menu or deleted scenes.
     /// </summary>
     Extra = 10
-}
-
-public class EpisodeTitleOverride
-{
-    /// <summary>
-    /// New title to be set as override for the series
-    /// </summary>
-    [Required(AllowEmptyStrings = true)]
-    public string Title { get; set; }
 }

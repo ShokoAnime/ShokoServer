@@ -15,7 +15,7 @@ using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
@@ -54,7 +54,7 @@ public class Startup
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
-            services.AddSingleton<MovieDBHelper>();
+            services.AddSingleton<TmdbMetadataService>();
             services.AddSingleton<FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();

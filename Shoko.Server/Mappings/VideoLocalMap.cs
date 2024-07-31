@@ -15,7 +15,9 @@ public class VideoLocalMap : ClassMap<SVR_VideoLocal>
         Map(x => x.DateTimeUpdated).Not.Nullable();
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeImported);
+#pragma warning disable CS0618
         Map(x => x.FileName).Not.Nullable();
+#pragma warning restore CS0618
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.Hash).Not.Nullable();
         Map(x => x.CRC32);

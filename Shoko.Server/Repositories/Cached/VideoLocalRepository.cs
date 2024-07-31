@@ -19,6 +19,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>

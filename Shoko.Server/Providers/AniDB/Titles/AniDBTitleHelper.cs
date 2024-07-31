@@ -38,7 +38,7 @@ public class AniDBTitleHelper
             try
             {
                 _accessLock.EnterReadLock();
-                return _cache?.Animes.ToList() ?? new List<ResponseAniDBTitles.Anime>();
+                return _cache?.AnimeList.ToList() ?? [];
             }
             finally
             {
@@ -58,11 +58,11 @@ public class AniDBTitleHelper
         try
         {
             if (_cache == null) CreateCache();
-            
+
             try
             {
                 _accessLock.EnterReadLock();
-                return _cache?.Animes
+                return _cache?.AnimeList
                     .FirstOrDefault(a => a.AnimeID == animeID);
             }
             finally
@@ -88,8 +88,8 @@ public class AniDBTitleHelper
             try
             {
                 _accessLock.EnterReadLock();
-                var languages = _settingsProvider.GetSettings().LanguagePreference;
-                return _cache?.Animes
+                var languages = _settingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
+                return _cache?.AnimeList
                     .AsParallel()
                     .Search(
                         query,
@@ -100,7 +100,7 @@ public class AniDBTitleHelper
                             .ToList(),
                         fuzzy
                     )
-                    .Select(a => a.Result).ToList() ?? new List<ResponseAniDBTitles.Anime>();
+                    .Select(a => a.Result).ToList() ?? [];
             }
             finally
             {

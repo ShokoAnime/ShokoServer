@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Models;
 
@@ -11,19 +12,19 @@ public class FileEventSignalRModel
     public FileEventSignalRModel(FileEventArgs eventArgs)
     {
         RelativePath = eventArgs.RelativePath;
-        FileID = eventArgs.FileInfo.VideoID;
-        FileLocationID = eventArgs.FileInfo.ID;
+        FileID = eventArgs.File.VideoID;
+        FileLocationID = eventArgs.File.ID;
         ImportFolderID = eventArgs.ImportFolder.ID;
-        var xrefs = eventArgs.VideoInfo.CrossReferences;
-        var episodeDict = eventArgs.EpisodeInfo
+        var xrefs = eventArgs.Video.CrossReferences;
+        var episodeDict = eventArgs.Episodes
             .Cast<SVR_AniDB_Episode>()
             .Select(e => e.AnimeEpisode)
-            .Where(e => e != null)
+            .WhereNotNull()
             .ToDictionary(e => e!.AniDB_EpisodeID, e => e!);
         var animeToGroupDict = episodeDict.Values
             .DistinctBy(e => e.AnimeSeriesID)
             .Select(e => e.AnimeSeries)
-            .Where(s => s != null)
+            .WhereNotNull()
             .ToDictionary(s => s.AniDB_ID, s => (s.AnimeSeriesID, s.AnimeGroupID));
         CrossReferences = xrefs
             .Select(xref => new FileCrossReferenceSignalRModel

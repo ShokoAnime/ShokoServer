@@ -30,7 +30,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     #region Episodes and Files
 
     /// <summary>
-    ///     Finds the previous episode for use int the next unwatched episode
+    /// Finds the previous episode for use int the next unwatched episode.
     /// </summary>
     /// <param name="animeSeriesID"></param>
     /// <param name="userID"></param>
@@ -41,34 +41,24 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var nextEp = GetNextUnwatchedEpisode(animeSeriesID, userID);
-            if (nextEp == null)
-            {
+            if (nextEp is null)
                 return null;
-            }
 
             var epType = nextEp.EpisodeType;
             var epNum = nextEp.EpisodeNumber - 1;
 
             if (epNum <= 0)
-            {
                 return null;
-            }
 
             var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (series == null)
-            {
+            if (series is null)
                 return null;
-            }
 
-            var anieps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID,
-                (EpisodeType)epType,
-                epNum);
-            if (anieps.Count == 0)
-            {
+            var anidbEpisodes = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, (EpisodeType)epType, epNum);
+            if (anidbEpisodes.Count == 0)
                 return null;
-            }
 
-            var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anieps[0].EpisodeID);
+            var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisodes[0].EpisodeID);
             return _episodeService.GetV1Contract(ep, userID);
         }
         catch (Exception ex)
@@ -85,16 +75,12 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var seriesService = Utils.ServiceContainer.GetService<AnimeSeriesService>();
             var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (series == null)
-            {
+            if (series is null)
                 return null;
-            }
 
             var episode = seriesService.GetNextEpisode(series, userID);
-            if (episode == null)
-            {
+            if (episode is null)
                 return null;
-            }
 
             return _episodeService.GetV1Contract(episode, userID);
         }
@@ -112,15 +98,14 @@ public partial class ShokoServiceImplementation : IShokoServer
 
         try
         {
-            return
-                RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
-                    .Where(a => a != null && !a.IsHidden)
-                    .Select(a => _episodeService.GetV1Contract(a, userID))
-                    .Where(a => a != null)
-                    .Where(a => a.WatchedCount == 0)
-                    .OrderBy(a => a.EpisodeType)
-                    .ThenBy(a => a.EpisodeNumber)
-                    .ToList();
+            return RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
+                .Where(a => a != null && !a.IsHidden)
+                .Select(a => _episodeService.GetV1Contract(a, userID))
+                .Where(a => a != null)
+                .Where(a => a.WatchedCount == 0)
+                .OrderBy(a => a.EpisodeType)
+                .ThenBy(a => a.EpisodeNumber)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -134,13 +119,13 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-            if (grp == null)
+            var group = RepoFactory.AnimeGroup.GetByID(animeGroupID);
+            if (group is null)
             {
                 return null;
             }
 
-            var allSeries = grp.AllSeries.OrderBy(a => a.AirDate).ToList();
+            var allSeries = group.AllSeries.OrderBy(a => a.AirDate).ToList();
 
 
             foreach (var ser in allSeries)
@@ -168,25 +153,23 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null) return retEps;
+            if (user is null) return retEps;
 
             // find the locked Continue Watching Filter
             var lockedGFs = RepoFactory.FilterPreset.GetLockedGroupFilters();
             var gf = lockedGFs?.FirstOrDefault(a => a.Name == "Continue Watching");
-            if (gf == null) return retEps;
+            if (gf is null) return retEps;
 
             var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
-            var groupService = HttpContext.RequestServices.GetRequiredService<AnimeGroupService>(); 
+            var groupService = HttpContext.RequestServices.GetRequiredService<AnimeGroupService>();
             var comboGroups = evaluator.EvaluateFilter(gf, userID).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null)
                 .Select(a => groupService.GetV1Contract(a, userID));
 
-            foreach (var grp in comboGroups)
+            foreach (var group in comboGroups)
             {
-                var sers = RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID).OrderBy(a => a.AirDate).ToList();
-
+                var seriesList = RepoFactory.AnimeSeries.GetByGroupID(group.AnimeGroupID).OrderBy(a => a.AirDate).ToList();
                 var seriesWatching = new List<int>();
-
-                foreach (var ser in sers)
+                foreach (var ser in seriesList)
                 {
                     if (!user.AllowedSeries(ser)) continue;
 
@@ -196,7 +179,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     if (!useSeries) continue;
 
                     var ep = GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
-                    if (ep == null) continue;
+                    if (ep is null) continue;
 
                     retEps.Add(ep);
 
@@ -229,7 +212,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var start = DateTime.Now;
 
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return retEps;
             }
@@ -244,7 +227,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             foreach (var userRecord in allSeriesUser)
             {
                 var series = RepoFactory.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
-                if (series == null)
+                if (series is null)
                 {
                     continue;
                 }
@@ -306,13 +289,13 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return retEps;
             }
 
             // We will deal with a large list, don't perform ops on the whole thing!
-            var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords*5, userID);
+            var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords * 5, userID);
             foreach (var vid in vids)
             {
                 if (string.IsNullOrEmpty(vid.Hash)) continue;
@@ -344,7 +327,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return retEps;
             }
@@ -362,7 +345,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             foreach (var res in results)
             {
                 var ser = RepoFactory.AnimeSeries.GetByID(res);
-                if (ser == null)
+                if (ser is null)
                 {
                     continue;
                 }
@@ -417,7 +400,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return retSeries;
             }
@@ -434,13 +417,12 @@ public partial class ShokoServiceImplementation : IShokoServer
         return retSeries;
     }
 
-    [HttpGet("Episode/LastWatched/{animeSeriesID}/{jmmuserID}")]
-    public CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID)
+    [HttpGet("Episode/LastWatched/{animeSeriesID}/{userID}")]
+    public CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int userID)
     {
         try
         {
-            return _episodeService.GetV1Contract(RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)
-                ?.GetAnimeEpisode(),jmmuserID);
+            return _episodeService.GetV1Contract(RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, userID)?.GetAnimeEpisode(), userID);
         }
         catch (Exception ex)
         {
@@ -499,7 +481,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "Could not find video record";
             }
@@ -562,7 +544,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "Could not find video record";
             }
@@ -584,7 +566,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "Could not find video record";
             }
@@ -601,9 +583,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [NonAction]
-    private void RemoveXRefsForFile(int VideoLocalID)
+    private static void RemoveXRefsForFile(int videoLocalID)
     {
-        var vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        var vlocal = RepoFactory.VideoLocal.GetByID(videoLocalID);
         var fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
 
         foreach (var fileEp in fileEps)
@@ -625,7 +607,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "Could not find video record";
             }
@@ -636,7 +618,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
-            if (ep == null)
+            if (ep is null)
             {
                 return "Could not find episode record";
             }
@@ -668,18 +650,18 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "Could not find video record";
             }
 
-            if (vid.Hash == null)
+            if (vid.Hash is null)
             {
                 return "Could not associate a cloud file without hash, hash it locally first";
             }
 
             var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (ser == null)
+            if (ser is null)
             {
                 return "Could not find anime series record";
             }
@@ -690,13 +672,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             for (var i = startingEpisodeNumber; i <= endEpisodeNumber; i++)
             {
                 var aniep = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i)[0];
-                if (aniep == null)
+                if (aniep is null)
                 {
                     return "Could not find the AniDB episode record";
                 }
 
                 var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
-                if (ep == null)
+                if (ep is null)
                 {
                     return "Could not find episode record";
                 }
@@ -728,7 +710,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             startingEpisodeNumber ??= "1";
             var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (ser == null)
+            if (ser is null)
             {
                 return "Could not find anime series record";
             }
@@ -768,12 +750,12 @@ public partial class ShokoServiceImplementation : IShokoServer
             foreach (var videoLocalID in videoLocalIDs)
             {
                 var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-                if (vid == null)
+                if (vid is null)
                 {
                     return "Could not find video local record";
                 }
 
-                if (vid.Hash == null)
+                if (vid.Hash is null)
                 {
                     return "Could not associate a cloud file without hash, hash it locally first";
                 }
@@ -788,7 +770,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 var aniep = anieps[0];
 
                 var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
-                if (ep == null)
+                if (ep is null)
                 {
                     return "Could not find episode record";
                 }
@@ -838,7 +820,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "File could not be found";
             }
@@ -867,7 +849,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "File could not be found";
             }
@@ -903,7 +885,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         if (vl != null)
         {
             var pl = vl.FirstResolvedPlace;
-            if (pl == null)
+            if (pl is null)
             {
                 _logger.LogError("Unable to hash videolocal with id = {VideoLocalID}, it has no assigned place", videoLocalID);
                 return;
@@ -931,7 +913,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var place = RepoFactory.VideoLocalPlace.GetByID(videoplaceid);
-            if (place?.VideoLocal == null)
+            if (place?.VideoLocal is null)
             {
                 return "Database entry does not exist";
             }
@@ -958,7 +940,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var place = RepoFactory.VideoLocalPlace.GetByID(videoplaceid);
-            if (place?.VideoLocal == null)
+            if (place?.VideoLocal is null)
             {
                 return "Database entry does not exist";
             }
@@ -980,7 +962,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "Could not find video local record";
             }
@@ -1051,14 +1033,14 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
-            if (ep == null)
+            if (ep is null)
             {
                 return;
             }
 
             var epUserRecord = ep.GetUserRecord(userID);
 
-            if (epUserRecord == null)
+            if (epUserRecord is null)
             {
                 epUserRecord = new SVR_AnimeEpisode_User(userID, ep.AnimeEpisodeID, ep.AnimeSeriesID);
             }
@@ -1080,7 +1062,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             RepoFactory.AnimeEpisode_User.Save(epUserRecord);
 
             var ser = ep.AnimeSeries;
-            if (ser == null)
+            if (ser is null)
             {
                 return;
             }
@@ -1112,7 +1094,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     public void DeleteFileFromMyList(int fileID)
     {
         var vl = RepoFactory.VideoLocal.GetByMyListID(fileID);
-        if (vl == null)
+        if (vl is null)
         {
             return;
         }
@@ -1255,7 +1237,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return "Could not find video local record";
             }
@@ -1278,7 +1260,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
-            if (ep == null)
+            if (ep is null)
             {
                 response.ErrorMessage = "Could not find anime episode record";
                 return response;
@@ -1311,7 +1293,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return null;
             }
@@ -1332,7 +1314,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            if (vid is null)
             {
                 return contracts;
             }
@@ -1370,7 +1352,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var aniEp = RepoFactory.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
-            if (aniEp == null)
+            if (aniEp is null)
             {
                 return relGroups;
             }
@@ -1381,7 +1363,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var series = RepoFactory.AnimeSeries.GetByAnimeID(aniEp.AnimeID);
-            if (series == null)
+            if (series is null)
             {
                 return relGroups;
             }
@@ -1550,7 +1532,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
         }
 
-        if (thisVote == null)
+        if (thisVote is null)
         {
             return;
         }
@@ -1589,7 +1571,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             foreach (var ep in eps)
             {
-                if (ep?.AniDB_Episode == null)
+                if (ep?.AniDB_Episode is null)
                 {
                     continue;
                 }
@@ -1655,7 +1637,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            if (series == null)
+            if (series is null)
             {
                 return false;
             }
@@ -1726,7 +1708,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (series == null)
+            if (series is null)
             {
                 return grps;
             }
@@ -1799,7 +1781,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-            if (grp == null)
+            if (grp is null)
             {
                 return "Group does not exist";
             }
@@ -1828,7 +1810,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null) return retGroups;
+            if (user is null) return retGroups;
 
             var gf = RepoFactory.FilterPreset.GetByID(groupFilterID);
 
@@ -1884,7 +1866,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (contract.AnimeGroupID is > 0)
             {
                 group = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
-                if (group == null)
+                if (group is null)
                 {
                     contractout.ErrorMessage = "Could not find existing group with ID: " +
                                                contract.AnimeGroupID.Value;
@@ -1954,7 +1936,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
             else
             {
-                var mainName = mainSeries.SeriesName;
+                var mainName = mainSeries.PreferredTitle;
                 if (!string.Equals(group.GroupName, mainName))
                 {
                     group.GroupName = mainName;
@@ -2003,7 +1985,8 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var userRecord = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(userID, group.AnimeGroupID) ?? new AnimeGroup_User
             {
-                JMMUserID = userID, AnimeGroupID = group.AnimeGroupID
+                JMMUserID = userID,
+                AnimeGroupID = group.AnimeGroupID,
             };
             userRecord.IsFave = contract.IsFave;
             RepoFactory.AnimeGroup_User.Save(userRecord);
@@ -2069,7 +2052,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (contract.AnimeSeriesID.HasValue && contract.AnimeSeriesID.Value > 0)
             {
                 var series = RepoFactory.AnimeSeries.GetByID(contract.AnimeSeriesID.Value);
-                if (series == null)
+                if (series is null)
                 {
                     contractout.ErrorMessage = "Could not find existing series with ID: " + contract.AnimeSeriesID.Value;
                     return contractout;
@@ -2140,7 +2123,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             else
             {
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(contract.AniDB_ID);
-                if (anime == null)
+                if (anime is null)
                 {
                     contractout.ErrorMessage = $"Could not find anime record with ID: {contract.AniDB_ID}";
                     return contractout;
@@ -2198,7 +2181,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (animeGroupID is > 0)
             {
                 var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
-                if (grp == null)
+                if (grp is null)
                 {
                     response.ErrorMessage = "Could not find the specified group";
                     return response;
@@ -2226,7 +2209,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             });
             var anime = job.Process().Result;
 
-            if (anime == null)
+            if (anime is null)
             {
                 response.ErrorMessage = "Could not get anime information from AniDB";
                 return response;
@@ -2322,13 +2305,13 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-            if (grp == null)
+            if (grp is null)
             {
                 return;
             }
 
             var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (ser == null)
+            if (ser is null)
             {
                 return;
             }
@@ -2348,7 +2331,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-            if (grp == null)
+            if (grp is null)
             {
                 return;
             }
@@ -2384,13 +2367,13 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            if (anime == null)
+            if (anime is null)
             {
                 return;
             }
 
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return;
             }
@@ -2419,13 +2402,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            if (anime == null)
+            if (anime is null)
             {
                 return links;
             }
 
             var juser = RepoFactory.JMMUser.GetByID(userID);
-            if (juser == null)
+            if (juser is null)
             {
                 return links;
             }
@@ -2476,13 +2459,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            if (anime == null)
+            if (anime is null)
             {
                 return links;
             }
 
             var juser = RepoFactory.JMMUser.GetByID(userID);
-            if (juser == null)
+            if (juser is null)
             {
                 return links;
             }
@@ -2536,7 +2519,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (ser == null)
+            if (ser is null)
             {
                 return "Series does not exist";
             }
@@ -2657,7 +2640,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var allVotes = RepoFactory.AniDB_Vote.GetAll();
 
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return contracts;
             }
@@ -2718,7 +2701,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     }
 
                     var userRec = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
-                    if (userRec == null)
+                    if (userRec is null)
                     {
                         continue;
                     }
@@ -2856,7 +2839,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-            if (grp == null)
+            if (grp is null)
             {
                 return retGroups;
             }
@@ -2886,7 +2869,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-            if (grp == null)
+            if (grp is null)
             {
                 return series;
             }
@@ -2917,7 +2900,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-            if (grp == null)
+            if (grp is null)
             {
                 return series;
             }
@@ -2954,7 +2937,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         if (contract.GroupFilterID != 0)
         {
             gf = RepoFactory.FilterPreset.GetByID(contract.GroupFilterID);
-            if (gf == null)
+            if (gf is null)
             {
                 response.ErrorMessage = "Could not find existing Group Filter with ID: " +
                                         contract.GroupFilterID;
@@ -2964,7 +2947,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
         var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
         var newFilter = legacyConverter.FromClient(contract);
-        if (gf == null)
+        if (gf is null)
         {
             gf = newFilter;
         }
@@ -2989,7 +2972,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var gf = RepoFactory.FilterPreset.GetByID(groupFilterID);
-            if (gf == null) return "Group Filter not found";
+            if (gf is null) return "Group Filter not found";
 
             RepoFactory.FilterPreset.Delete(groupFilterID);
 
@@ -3008,13 +2991,13 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var gf = RepoFactory.FilterPreset.GetByID(groupFilterID);
-            if (gf == null)
+            if (gf is null)
             {
                 return null;
             }
 
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return null;
             }
@@ -3043,7 +3026,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return gfs;
             }
@@ -3052,7 +3035,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs).Select(a => new CL_GroupFilterExtended
             {
-                GroupFilter = a, GroupCount = a.Groups[userID].Count
+                GroupFilter = a,
+                GroupCount = a.Groups[userID].Count,
             }).ToList();
         }
         catch (Exception ex)
@@ -3070,7 +3054,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user is null)
             {
                 return gfs;
             }
@@ -3081,7 +3065,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs).Select(a => new CL_GroupFilterExtended
             {
-                GroupFilter = a, GroupCount = a.Groups.FirstOrDefault().Value.Count
+                GroupFilter = a,
+                GroupCount = a.Groups.FirstOrDefault().Value.Count,
             }).ToList();
         }
         catch (Exception ex)
@@ -3102,7 +3087,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var allGfs = RepoFactory.FilterPreset.GetAll();
             var ts = DateTime.Now - start;
-            _logger.LogInformation("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
+            _logger.LogInformation("GetAllGroupFilters (Database) in {Milliseconds}ms", ts.TotalMilliseconds);
 
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs)
@@ -3204,7 +3189,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (contract.PlaylistID != 0)
             {
                 pl = RepoFactory.Playlist.GetByID(contract.PlaylistID);
-                if (pl == null)
+                if (pl is null)
                 {
                     contractRet.ErrorMessage = "Could not find existing Playlist with ID: " +
                                                contract.PlaylistID;
@@ -3248,7 +3233,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var pl = RepoFactory.Playlist.GetByID(playlistID);
-            if (pl == null)
+            if (pl is null)
             {
                 return "Playlist not found";
             }
@@ -3340,7 +3325,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var pl = RepoFactory.CrossRef_CustomTag.GetByID(xrefID);
-            if (pl == null)
+            if (pl is null)
             {
                 return "Custom Tag not found";
             }
@@ -3364,7 +3349,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var xrefs =
                 RepoFactory.CrossRef_CustomTag.GetByUniqueID(customTagID, crossRefType, crossRefID);
 
-            if (xrefs == null || xrefs.Count == 0)
+            if (xrefs is null || xrefs.Count == 0)
             {
                 return "Custom Tag not found";
             }
@@ -3392,7 +3377,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (contract.CustomTagID != 0)
             {
                 ctag = RepoFactory.CustomTag.GetByID(contract.CustomTagID);
-                if (ctag == null)
+                if (ctag is null)
                 {
                     contractRet.ErrorMessage = "Could not find existing custom tag with ID: " +
                                                contract.CustomTagID;
@@ -3433,7 +3418,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var pl = RepoFactory.CustomTag.GetByID(customTagID);
-            if (pl == null)
+            if (pl is null)
             {
                 return "Custom Tag not found";
             }
@@ -3515,7 +3500,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var jmmUser = RepoFactory.JMMUser.GetByID(userID);
-            if (jmmUser == null)
+            if (jmmUser is null)
             {
                 return "User not found";
             }
@@ -3543,12 +3528,11 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var existingUser = false;
             var updateStats = false;
-            var updateGf = false;
             SVR_JMMUser jmmUser = null;
             if (user.JMMUserID != 0)
             {
                 jmmUser = RepoFactory.JMMUser.GetByID(user.JMMUserID);
-                if (jmmUser == null)
+                if (jmmUser is null)
                 {
                     return "User not found";
                 }
@@ -3559,7 +3543,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 jmmUser = new SVR_JMMUser();
                 updateStats = true;
-                updateGf = true;
             }
 
             if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
@@ -3567,13 +3550,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 updateStats = true;
             }
 
-            var hcat = string.Join(",", user.HideCategories);
-            if (jmmUser.HideCategories != hcat)
-            {
-                updateGf = true;
-            }
-
-            jmmUser.HideCategories = hcat;
+            jmmUser.HideCategories = string.Join(",", user.HideCategories);
             jmmUser.IsAniDBUser = user.IsAniDBUser;
             jmmUser.IsTraktUser = user.IsTraktUser;
             jmmUser.IsAdmin = user.IsAdmin;
@@ -3654,7 +3631,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var jmmUser = RepoFactory.JMMUser.GetByID(userID);
-            if (jmmUser == null)
+            if (jmmUser is null)
             {
                 return "User not found";
             }

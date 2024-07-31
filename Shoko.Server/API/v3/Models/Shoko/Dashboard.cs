@@ -3,10 +3,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Converters;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -72,7 +72,7 @@ public static class Dashboard
         public int UnrecognizedFiles { get; set; }
 
         /// <summary>
-        /// The number of series missing both the TvDB and MovieDB Links
+        /// The number of series missing both the TvDB and TMDB Links
         /// </summary>
         public int SeriesWithMissingLinks { get; set; }
 
@@ -143,16 +143,17 @@ public static class Dashboard
                     ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.AnimeEpisodeID
                     : null
             };
-            Title = episode.PreferredTitle;
+            Title = episode.PreferredTitle.Title;
             Number = episode.EpisodeNumber;
             Type = Episode.MapAniDBEpisodeType(episode.GetEpisodeTypeEnum());
             AirDate = episode.GetAirDateAsDate();
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
             ResumePosition = userRecord?.ResumePositionTimeSpan;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
-            SeriesTitle = series?.SeriesName ?? anime.PreferredTitle;
-            SeriesPoster = SeriesFactory.GetDefaultImage(anime.AnimeID, ImageSizeType.Poster) ??
-                           SeriesFactory.GetAniDBPoster(anime.AnimeID);
+            SeriesTitle = series?.PreferredTitle ?? anime.PreferredTitle;
+            SeriesPoster = (series?.GetPreferredImageForType(ImageEntityType.Poster) ?? anime.GetImageMetadata()) is { } imageMetadata
+                ? new Image(imageMetadata)
+                : new Image(anime.AnimeID, ImageEntityType.Poster, DataSourceType.AniDB);
         }
 
         /// <summary>

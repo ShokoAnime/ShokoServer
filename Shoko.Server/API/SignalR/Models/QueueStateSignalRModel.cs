@@ -35,5 +35,5 @@ public class QueueStateSignalRModel
     /// <summary>
     /// The currently executing jobs and their details
     /// </summary>
-    public List<Queue.QueueItem> CurrentlyExecuting { get; set; }
+    public List<Queue.QueueItem> CurrentlyExecuting { get; set; } = [];
 }

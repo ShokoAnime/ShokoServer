@@ -29,7 +29,6 @@ namespace Shoko.Server.API.v3.Controllers;
 public class TreeController : BaseController
 {
     private readonly FilterFactory _filterFactory;
-    private readonly SeriesFactory _seriesFactory;
     private readonly FilterEvaluator _filterEvaluator;
     #region Import Folder
 
@@ -51,7 +50,7 @@ public class TreeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        include ??= Array.Empty<FileNonDefaultIncludeType>();
+        include ??= [];
 
         var importFolder = folderID > 0 ? RepoFactory.ImportFolder.GetByID(folderID) : null;
         if (importFolder == null)
@@ -66,11 +65,11 @@ public class TreeController : BaseController
                 .Replace('\\', System.IO.Path.DirectorySeparatorChar)
                 .Replace('/', System.IO.Path.DirectorySeparatorChar);
 
-            // Remove leading seperator.
+            // Remove leading separator.
             if (folderPath.Length > 0 && folderPath[0] == System.IO.Path.DirectorySeparatorChar)
                 folderPath = folderPath[1..];
 
-            // Append tailing seperator if the string is not empty, since we're searching for the folder path.
+            // Append tailing separator if the string is not empty, since we're searching for the folder path.
             if (folderPath.Length > 0 && folderPath[^1] != System.IO.Path.DirectorySeparatorChar)
                 folderPath += System.IO.Path.DirectorySeparatorChar;
 
@@ -106,7 +105,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Filter")]
     public ActionResult<ListResult<Filter>> GetSubFilters([FromRoute] int filterID,
-        [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showHidden = false)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
@@ -134,12 +133,12 @@ public class TreeController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
-    /// <param name="orderByName">Ignore the group filter sort critaria and always order the returned list by name.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
+    /// <param name="orderByName">Ignore the group filter sort criteria and always order the returned list by name.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group")]
     public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute] int filterID,
-        [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Return the top level groups with no filter.
@@ -188,8 +187,11 @@ public class TreeController : BaseController
                 });
         }
 
+        if (orderByName)
+            groups = groups.OrderBy(group => group.SortName);
+
         return groups
-            .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
+            .ToListResult(group => new Group(group, User.JMMUserID, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -268,13 +270,13 @@ public class TreeController : BaseController
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
-    /// <param name="randomImages">Randomise images shown for each <see cref="Series"/>.</param>
+    /// <param name="randomImages">Randomize images shown for each <see cref="Series"/>.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing
     /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Series")]
     public ActionResult<ListResult<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID,
-        [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
     {
         // Return the series with no group filter applied.
@@ -282,8 +284,8 @@ public class TreeController : BaseController
         if (filterID == 0)
             return RepoFactory.AnimeSeries.GetAll()
                 .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0))
-                .OrderBy(series => series.SeriesName.ToLowerInvariant())
-                .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
+                .OrderBy(series => series.PreferredTitle.ToLowerInvariant())
+                .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
 
         // Check if the group filter exists.
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
@@ -301,8 +303,8 @@ public class TreeController : BaseController
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
         return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
             .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
-            .OrderBy(series => series.SeriesName.ToLowerInvariant())
-            .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
+            .OrderBy(series => series.PreferredTitle.ToLowerInvariant())
+            .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -314,7 +316,7 @@ public class TreeController : BaseController
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="groupID"><see cref="Group"/> ID</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Group")]
@@ -347,12 +349,12 @@ public class TreeController : BaseController
         var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
         if (results.Length == 0)
             return new List<Group>();
-        
+
         // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
         // This should maintain the order of results, but have every group in the tree for those results
         var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.AllChildren.Select(b => b.AnimeGroupID)).ToArray();
         var groups = orderedGroups.ToHashSet();
-        
+
         return group.Children
             .Where(subGroup =>
             {
@@ -369,7 +371,7 @@ public class TreeController : BaseController
                 return groups.Contains(subGroup.AnimeGroupID);
             })
             .OrderBy(a => Array.IndexOf(orderedGroups, a.AnimeGroupID))
-            .Select(g => new Group(HttpContext, g, randomImages))
+            .Select(g => new Group(g, User.JMMUserID, randomImages))
             .ToList();
     }
 
@@ -386,7 +388,7 @@ public class TreeController : BaseController
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
-    /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
@@ -429,11 +431,11 @@ public class TreeController : BaseController
             ? group.AllChildren.SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID))
             : results.FirstOrDefault(a => a.Key == groupID);
 
-        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => a.VideoLocals.Any() || includeMissing) ??
+        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => includeMissing || a.VideoLocals.Count != 0) ??
                      Array.Empty<SVR_AnimeSeries>();
 
         return series
-            .Select(a => _seriesFactory.GetSeries(a, randomImages, includeDataFrom))
+            .Select(a => new Series(a, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
     }
 
@@ -445,7 +447,7 @@ public class TreeController : BaseController
     /// Get a list of sub-<see cref="Group"/>s a the <see cref="Group"/>.
     /// </summary>
     /// <param name="groupID"></param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Group")]
@@ -456,34 +458,26 @@ public class TreeController : BaseController
         if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
             return NotFound(GroupController.GroupNotFound);
-        }
 
         var user = User;
         if (!user.AllowedGroup(group))
-        {
             return Forbid(GroupController.GroupForbiddenForUser);
-        }
 
         return group.Children
             .Where(subGroup =>
             {
                 if (subGroup == null)
-                {
                     return false;
-                }
 
                 if (!user.AllowedGroup(subGroup))
-                {
                     return false;
-                }
 
                 return includeEmpty || subGroup.AllSeries
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
             .OrderBy(g => g.GroupName)
-            .Select(g => new Group(HttpContext, g, randomImages))
+            .Select(g => new Group(g, User.JMMUserID, randomImages))
             .ToList();
     }
 
@@ -497,7 +491,7 @@ public class TreeController : BaseController
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/></param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
-    /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Series")]
@@ -509,14 +503,12 @@ public class TreeController : BaseController
         if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
             return NotFound(GroupController.GroupNotFound);
-        }
 
         var user = User;
         return (recursive ? group.AllSeries : group.Series)
             .Where(a => user.AllowedSeries(a))
-            .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
+            .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
             .OrderBy(a => a._AniDB?.AirDate ?? a._TvDB?.Select(b => b.AirDate ?? DateTime.MaxValue).DefaultIfEmpty(DateTime.MaxValue).Min() ?? DateTime.MaxValue)
             .ToList();
@@ -531,7 +523,7 @@ public class TreeController : BaseController
     /// empty.
     /// </remarks>
     /// <param name="groupID"><see cref="Group"/> ID</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/MainSeries")]
@@ -542,28 +534,22 @@ public class TreeController : BaseController
         if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
             return NotFound(GroupController.GroupNotFound);
-        }
 
         var user = User;
         if (!user.AllowedGroup(group))
-        {
             return Forbid(GroupController.GroupForbiddenForUser);
-        }
 
         var mainSeries = group.MainSeries ?? group.AllSeries.FirstOrDefault();
         if (mainSeries == null)
-        {
             return InternalError("Unable to find main series for group.");
-        }
 
-        return _seriesFactory.GetSeries(mainSeries, randomImages, includeDataFrom);
+        return new Series(mainSeries, User.JMMUserID, randomImages, includeDataFrom);
     }
 
     #endregion
-    
-    
+
+
     /// <summary>
     /// Get the <see cref="File"/>s for the <see cref="Series"/> with the given <paramref name="seriesID"/>.
     /// </summary>
@@ -590,18 +576,14 @@ public class TreeController : BaseController
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
-        }
 
         if (!user.AllowedSeries(series))
-        {
             return Forbid(SeriesController.SeriesForbiddenForUser);
-        }
 
         return ModelHelper.FilterFiles(series.VideoLocals, user, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
-    
+
     #region Episode
 
     /// <summary>
@@ -628,30 +610,23 @@ public class TreeController : BaseController
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
-        }
 
         var series = episode.AnimeSeries;
         if (series == null)
-        {
             return InternalError("No Series entry for given Episode");
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
-        }
 
         return ModelHelper.FilterFiles(episode.VideoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
 
     #endregion
 
-    public TreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory, FilterEvaluator filterEvaluator, SeriesFactory seriesFactory) : base(settingsProvider)
+    public TreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory, FilterEvaluator filterEvaluator) : base(settingsProvider)
     {
         _filterFactory = filterFactory;
         _filterEvaluator = filterEvaluator;
-        _seriesFactory = seriesFactory;
     }
 }

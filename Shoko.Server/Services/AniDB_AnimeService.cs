@@ -106,67 +106,52 @@ public class AniDB_AnimeService
     {
         if (anime == null) return null;
         var characters = GetCharactersContract(anime);
-        var movDbFanart = anime.MovieDBFanarts;
-        var tvDbFanart = anime.TvDBImageFanarts;
-        var tvDbBanners = anime.TvDBImageWideBanners;
-        var cl = GenerateContract(anime, characters, movDbFanart, tvDbFanart, tvDbBanners);
-        var defFanart = anime.DefaultFanart;
-        var defPoster = anime.DefaultPoster;
-        var defBanner = anime.DefaultWideBanner;
-
-        cl.DefaultImageFanart = defFanart?.ToClient();
-        cl.DefaultImagePoster = defPoster?.ToClient();
-        cl.DefaultImageWideBanner = defBanner?.ToClient();
-
+        var movDbFanart = anime.TmdbMovieBackdrops.Concat(anime.TmdbShowBackdrops).Select(i => i.ToClientFanart()).ToList();
+        var tvDbFanart = anime.TvdbBackdrops;
+        var tvDbBanners = anime.TvdbBanners;
+        var cl = anime.ToClient();
+        cl.FormattedTitle = anime.PreferredTitle;
+        cl.Characters = characters;
+        cl.Fanarts = [];
+        if (movDbFanart != null && movDbFanart.Count != 0)
+        {
+            cl.Fanarts.AddRange(movDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
+            {
+                ImageType = (int)CL_ImageEntityType.MovieDB_FanArt,
+                MovieFanart = a,
+                AniDB_Anime_DefaultImageID = a.MovieDB_FanartID,
+            }));
+        }
+        if (tvDbFanart != null && tvDbFanart.Count != 0)
+        {
+            cl.Fanarts.AddRange(tvDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
+            {
+                ImageType = (int)CL_ImageEntityType.TvDB_FanArt,
+                TVFanart = a,
+                AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID,
+            }));
+        }
+        cl.Banners = tvDbBanners
+            ?.Select(a =>
+                new CL_AniDB_Anime_DefaultImage
+                {
+                    ImageType = (int)CL_ImageEntityType.TvDB_Banner,
+                    TVWideBanner = a,
+                    AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID,
+                })
+            .ToList();
+        if (cl.Fanarts?.Count == 0)
+            cl.Fanarts = null;
+        if (cl.Banners?.Count == 0)
+            cl.Banners = null;
+        cl.DefaultImageFanart = anime.PreferredBackdrop?.ToClient();
+        cl.DefaultImagePoster = anime.PreferredPoster?.ToClient();
+        cl.DefaultImageWideBanner = anime.PreferredBanner?.ToClient();
         return cl;
     }
 
     public List<CL_AniDB_Character> GetCharactersContract(SVR_AniDB_Anime anime)
     {
         return _characters.GetCharactersForAnime(anime.AnimeID).Select(a => a.ToClient()).ToList();
-    }
-
-    private CL_AniDB_Anime GenerateContract(SVR_AniDB_Anime anime, List<CL_AniDB_Character> characters, IList<MovieDB_Fanart> movDbFanart,
-        IList<TvDB_ImageFanart> tvDbFanart, IList<TvDB_ImageWideBanner> tvDbBanners)
-    {
-        var cl = anime.ToClient();
-        cl.FormattedTitle = anime.PreferredTitle;
-        cl.Characters = characters;
-
-        cl.Fanarts = new List<CL_AniDB_Anime_DefaultImage>();
-        if (movDbFanart != null && movDbFanart.Any())
-        {
-            cl.Fanarts.AddRange(movDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
-            {
-                ImageType = (int)ImageEntityType.MovieDB_FanArt, MovieFanart = a, AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
-            }));
-        }
-
-        if (tvDbFanart != null && tvDbFanart.Any())
-        {
-            cl.Fanarts.AddRange(tvDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
-            {
-                ImageType = (int)ImageEntityType.TvDB_FanArt, TVFanart = a, AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
-            }));
-        }
-
-        cl.Banners = tvDbBanners?.Select(a =>
-                new CL_AniDB_Anime_DefaultImage
-                {
-                    ImageType = (int)ImageEntityType.TvDB_Banner, TVWideBanner = a, AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
-                })
-            .ToList();
-
-        if (cl.Fanarts?.Count == 0)
-        {
-            cl.Fanarts = null;
-        }
-
-        if (cl.Banners?.Count == 0)
-        {
-            cl.Banners = null;
-        }
-
-        return cl;
     }
 }

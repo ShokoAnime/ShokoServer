@@ -11,6 +11,8 @@ namespace Shoko.Plugin.Abstractions.DataModels
 
         public string LanguageCode { get; set; } = string.Empty;
 
+        public string? CountryCode { get; set; }
+
         public string Title { get; set; } = string.Empty;
 
         public TitleType Type { get; set; }
@@ -18,6 +20,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
 
     public enum TitleLanguage
     {
+        None = -1,
         Unknown = 0,
         English = 1,
         Romaji,
@@ -128,6 +131,11 @@ namespace Shoko.Plugin.Abstractions.DataModels
         Yiddish,
         Yoruba,
         Zulu,
+        Hindi,
+        Filipino,
+        KoreanTranscription,
+        ThaiTranscription,
+        Urdu,
     }
 
     public enum TitleType

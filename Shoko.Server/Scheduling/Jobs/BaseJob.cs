@@ -12,6 +12,18 @@ namespace Shoko.Server.Scheduling.Jobs;
 [UsedImplicitly(ImplicitUseTargetFlags.WithInheritors)]
 public abstract class BaseJob : IJob
 {
+    [XmlIgnore, JsonIgnore]
+    public ILogger _logger;
+
+    [XmlIgnore, JsonIgnore]
+    public abstract string TypeName { get; }
+
+    [XmlIgnore, JsonIgnore]
+    public abstract string Title { get; }
+
+    [XmlIgnore, JsonIgnore]
+    public virtual Dictionary<string, object> Details { get; } = [];
+
     public async ValueTask Execute(IJobExecutionContext context)
     {
         try
@@ -26,11 +38,6 @@ public abstract class BaseJob : IJob
     }
 
     public abstract Task Process();
- 
-    [XmlIgnore] [JsonIgnore] public ILogger _logger;
-    [XmlIgnore] [JsonIgnore] public abstract string TypeName { get; }
-    [XmlIgnore] [JsonIgnore] public abstract string Title { get; }
-    [XmlIgnore] [JsonIgnore] public virtual Dictionary<string, object> Details { get; } = new();
 
     public virtual void PostInit() { }
 }

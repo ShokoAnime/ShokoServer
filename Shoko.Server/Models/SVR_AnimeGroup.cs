@@ -13,9 +13,9 @@ using Shoko.Server.Repositories;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
+public class SVR_AnimeGroup : AnimeGroup, IShokoGroup
 {
-    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
     /// Get a predictable sort name that stuffs everything that's not between
@@ -34,7 +34,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
     public SVR_AnimeGroup? Parent => AnimeGroupParentID.HasValue ? RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value) : null;
 
     public List<SVR_AniDB_Anime> Anime =>
-        RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).Select(s => s.AniDB_Anime).Where(anime => anime != null).ToList();
+        RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).Select(s => s.AniDB_Anime).WhereNotNull().ToList();
 
     public decimal AniDBRating
     {
@@ -60,7 +60,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
             }
             catch (Exception ex)
             {
-                logger.Error($"Error in  AniDBRating: {ex}");
+                _logger.Error($"Error in  AniDBRating: {ex}");
                 return 0;
             }
         }
@@ -176,7 +176,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
 
 
     public List<AniDB_Tag> Tags => AllSeries
-        .SelectMany(ser => ser.AniDB_Anime.AnimeTags)
+        .SelectMany(ser => ser.AniDB_Anime?.AnimeTags ?? [])
         .OrderByDescending(a => a.Weight)
         .Select(animeTag => RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID))
         .WhereNotNull()
@@ -191,10 +191,10 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
 
     public HashSet<int> Years => AllSeries.SelectMany(a => a.Years).ToHashSet();
 
-    public HashSet<(int Year, AnimeSeason Season)> Seasons => AllSeries.SelectMany(a => a.AniDB_Anime.Seasons).ToHashSet();
+    public HashSet<(int Year, AnimeSeason Season)> Seasons => AllSeries.SelectMany(a => a.AniDB_Anime?.Seasons ?? []).ToHashSet();
 
     public List<SVR_AniDB_Anime_Title> Titles => AllSeries
-        .SelectMany(ser => ser.AniDB_Anime.Titles)
+        .SelectMany(ser => ser.AniDB_Anime?.Titles ?? [])
         .DistinctBy(tit => tit.AniDB_Anime_TitleID)
         .ToList();
 
@@ -244,22 +244,6 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup, IShokoGroup
 
         return false;
     }
-
-    #region IGroup Implementation
-
-    string IGroup.Name => GroupName;
-    IAnime IGroup.MainSeries => (MainSeries ?? AllSeries.First()).AniDB_Anime;
-
-    IReadOnlyList<IAnime> IGroup.Series => AllSeries
-        .Select(a => a.AniDB_Anime)
-        .Where(a => a != null)
-        .OrderBy(a => a.BeginYear)
-        .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
-        .ThenBy(a => a.MainTitle)
-        .Cast<IAnime>()
-        .ToList();
-
-    #endregion
 
     #region IMetadata Implementation
 

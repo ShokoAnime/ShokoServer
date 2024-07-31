@@ -1,8 +1,8 @@
-namespace Shoko.Plugin.Abstractions.DataModels
+
+namespace Shoko.Plugin.Abstractions.DataModels;
+
+public interface IReleaseGroup
 {
-    public interface IReleaseGroup
-    {
-        string Name { get; }
-        string ShortName { get; }
-    }
+    string Name { get; }
+    string ShortName { get; }
 }

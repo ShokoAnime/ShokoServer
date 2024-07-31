@@ -19,7 +19,7 @@ public class TestServerSettings
     public AniDbSettings AniDb { get; set; } = new();
     public WebCacheSettings WebCache { get; set; } = new();
     public TvDBSettings TvDB { get; set; } = new();
-    public MovieDbSettings MovieDb { get; set; } = new();
+    public TMDBSettings TMDB { get; set; } = new();
     public ImportSettings Import { get; set; } = new();
     public PlexSettings Plex { get; set; } = new();
     public PluginSettings Plugins { get; set; } = new();
