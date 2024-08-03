@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
-using MessagePack;
+using System.Linq;
 using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
@@ -26,7 +26,7 @@ public class TypeStringConverter : TypeConverter, IUserType
         object value)
     {
         var s = value as string ?? throw new ArgumentException("Can only convert from string");
-        return Type.GetType(s);
+        return Type.GetType(s) ?? AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).FirstOrDefault(a => a.Name.Equals(s) || Equals(a.FullName, s));
     }
 
     /// <summary>
