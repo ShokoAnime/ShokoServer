@@ -334,14 +334,29 @@ public class ActionService
     {
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
-        // AniDB posters
+        // AniDB images
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
         {
-            if (string.IsNullOrEmpty(anime.PosterPath)) continue;
-            var fileExists = File.Exists(anime.PosterPath);
-            if (fileExists) continue;
+            var updateImages = false;
+            // poster
+            if (!string.IsNullOrEmpty(anime.PosterPath)) updateImages |= !File.Exists(anime.PosterPath);
 
-            await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = anime.AnimeID);
+            var seriesExists = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) != null;
+            if (seriesExists)
+            {
+                // characters
+                updateImages |= ShouldUpdateAniDBCharacterImages(settings, anime);
+
+                // creators
+                updateImages |= ShouldUpdateAniDBCreatorImages(settings, anime);
+            }
+
+            if (!updateImages) continue;
+            await scheduler.StartJob<GetAniDBImagesJob>(c =>
+            {
+                c.AnimeID = anime.AnimeID;
+                c.OnlyPosters = !seriesExists;
+            });
         }
 
         // TvDB Posters
@@ -535,39 +550,41 @@ public class ActionService
                 if (!fanartCount.TryAdd(movieFanart.MovieId, 1)) fanartCount[movieFanart.MovieId] += 1;
             }
         }
+    }
 
-        // AniDB Characters
-        if (settings.AniDb.DownloadCharacters)
+    private static bool ShouldUpdateAniDBCreatorImages(IServerSettings settings, SVR_AniDB_Anime anime)
+    {
+        if (!settings.AniDb.DownloadCreators) return false;
+
+        foreach (var seiyuu in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID)
+                     .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
+                     .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)))
         {
-            foreach (var chr in RepoFactory.AniDB_Character.GetAll())
-            {
-                if (string.IsNullOrEmpty(chr.GetPosterPath())) continue;
-                var fileExists = File.Exists(chr.GetPosterPath());
-                if (fileExists) continue;
-                var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()?.AnimeID ?? 0;
-                if (AnimeID == 0) continue;
-
-                await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
-            }
+            if (string.IsNullOrEmpty(seiyuu.PicName)) continue;
+            if (!File.Exists(seiyuu.GetPosterPath())) return true;
         }
 
-        // AniDB Creators
-        if (settings.AniDb.DownloadCreators)
+        foreach (var seiyuu in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)
+                     .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.CreatorID)))
         {
-            foreach (var seiyuu in RepoFactory.AniDB_Seiyuu.GetAll())
-            {
-                if (string.IsNullOrEmpty(seiyuu.GetPosterPath())) continue;
-                var fileExists = File.Exists(seiyuu.GetPosterPath());
-                if (fileExists) continue;
-                var chr = RepoFactory.AniDB_Character_Seiyuu.GetBySeiyuuID(seiyuu.SeiyuuID).FirstOrDefault();
-                if (chr == null) continue;
-
-                var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()?.AnimeID ?? 0;
-                if (AnimeID == 0) continue;
-
-                await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
-            }
+            if (string.IsNullOrEmpty(seiyuu.PicName)) continue;
+            if (!File.Exists(seiyuu.GetPosterPath())) return true;
         }
+
+        return false;
+    }
+
+    private static bool ShouldUpdateAniDBCharacterImages(IServerSettings settings, SVR_AniDB_Anime anime)
+    {
+        if (!settings.AniDb.DownloadCharacters) return false;
+
+        foreach (var chr in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID))
+        {
+            if (string.IsNullOrEmpty(chr.PicName)) continue;
+            if (!File.Exists(chr.GetPosterPath())) return true;
+        }
+
+        return false;
     }
 
     public async Task RunImport_ScanTvDB()

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server.Settings;
@@ -40,9 +41,26 @@ public class ImportSettings
 
     public bool ScanDropFoldersOnStart { get; set; } = false;
 
-    public bool Hash_CRC32 { get; set; } = false;
-    public bool Hash_MD5 { get; set; } = false;
-    public bool Hash_SHA1 { get; set; } = false;
+    [JsonIgnore]
+    public bool Hash_CRC32
+    {
+        get => Hasher.CRC;
+        set => Hasher.CRC = value;
+    }
+
+    [JsonIgnore]
+    public bool Hash_MD5
+    {
+        get => Hasher.MD5;
+        set => Hasher.MD5 = value;
+    }
+
+    [JsonIgnore]
+    public bool Hash_SHA1
+    {
+        get => Hasher.SHA1;
+        set => Hasher.SHA1 = value;
+    }
 
     public bool UseExistingFileWatchedStatus { get; set; } = true;
 

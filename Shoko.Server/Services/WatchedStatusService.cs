@@ -163,30 +163,28 @@ public class WatchedStatusService
                     if (epPercentWatched > 95) break;
                 }
 
-                if (epPercentWatched > 95)
-                {
-                    ser = ep.AnimeSeries;
-                    // a problem
-                    if (ser == null) continue;
-                    toUpdateSeries.TryAdd(ser.AnimeSeriesID, ser);
-                    if (user.IsAniDBUser == 0)
-                        SaveWatchedStatus(ep, true, userID, watchedDate, updateWatchedDate);
-                    else
-                        foreach (var juser in aniDBUsers)
-                            if (juser.IsAniDBUser == 1)
-                                SaveWatchedStatus(ep, true, juser.JMMUserID, watchedDate, updateWatchedDate);
+                if (epPercentWatched <= 95) continue;
 
-                    if (syncTrakt && settings.TraktTv.Enabled &&
-                        !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-                    {
-                        await scheduler.StartJob<SyncTraktEpisodeHistoryJob>(
-                            c =>
-                            {
-                                c.AnimeEpisodeID = ep.AnimeEpisodeID;
-                                c.Action = TraktSyncAction.Add;
-                            }
-                        );
-                    }
+                ser = ep.AnimeSeries;
+                // a problem
+                if (ser == null) continue;
+                toUpdateSeries.TryAdd(ser.AnimeSeriesID, ser);
+                if (user.IsAniDBUser == 0)
+                    SaveWatchedStatus(ep, true, userID, watchedDate, updateWatchedDate);
+                else
+                    foreach (var juser in aniDBUsers.Where(a => a.IsAniDBUser == 1))
+                        SaveWatchedStatus(ep, true, juser.JMMUserID, watchedDate, updateWatchedDate);
+
+                if (syncTrakt && settings.TraktTv.Enabled &&
+                    !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+                {
+                    await scheduler.StartJob<SyncTraktEpisodeHistoryJob>(
+                        c =>
+                        {
+                            c.AnimeEpisodeID = ep.AnimeEpisodeID;
+                            c.Action = TraktSyncAction.Add;
+                        }
+                    );
                 }
             }
         }
@@ -204,7 +202,9 @@ public class WatchedStatusService
                 var epPercentWatched = 0;
                 foreach (var filexref in ep.FileCrossRefs)
                 {
-                    var vidUser = _vlUsers.GetByUserIDAndVideoLocalID(userID, filexref.VideoLocal.VideoLocalID);
+                    var xrefVideoLocal = filexref.VideoLocal;
+                    if (xrefVideoLocal == null) continue;
+                    var vidUser = _vlUsers.GetByUserIDAndVideoLocalID(userID, xrefVideoLocal.VideoLocalID);
                     if (vidUser?.WatchedDate != null)
                         epPercentWatched += filexref.Percentage <= 0 ? 100 : filexref.Percentage;
 

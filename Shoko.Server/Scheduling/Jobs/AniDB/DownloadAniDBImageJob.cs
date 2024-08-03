@@ -17,7 +17,6 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
 {
-    private const string FailedToDownloadNoImpl = "Image failed to download: No implementation found for {ImageType}";
     private readonly AniDBImageHandler _imageHandler;
     public string Anime { get; set; }
     public int ImageID { get; set; }
@@ -70,13 +69,13 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job} for {Anime} -> Cover: {ImageType} | ImageID: {EntityID}", nameof(DownloadAniDBImageJob), Anime, ImageType, ImageID);
+        _logger.LogInformation("Processing {Job} for {Anime} -> Type: {ImageType} | ImageID: {EntityID}", nameof(DownloadAniDBImageJob), Anime, ImageType, ImageID);
 
         var (downloadUrl, filePath) = _imageHandler.GetPaths(ImageType, ImageID);
 
-        if (downloadUrl == null || filePath == null)
+        if (string.IsNullOrEmpty(downloadUrl) || string.IsNullOrEmpty(filePath))
         {
-            _logger.LogWarning(FailedToDownloadNoImpl, ImageType.ToString());
+            _logger.LogWarning("Image failed to download for {Anime}: No paths found for {ImageType} and {EntityID}", Anime, ImageType, ImageID);
             return;
         }
 

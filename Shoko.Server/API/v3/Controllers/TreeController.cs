@@ -83,6 +83,7 @@ public class TreeController : BaseController
         return locations
             .GroupBy(place => place.VideoLocalID)
             .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
+            .WhereNotNull()
             .OrderBy(file => file.DateTimeCreated)
             .ToListResult(file => new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);

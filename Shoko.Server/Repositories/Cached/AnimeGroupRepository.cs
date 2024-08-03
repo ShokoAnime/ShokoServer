@@ -165,13 +165,13 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
             // Then, actually delete the AnimeGroups
             if (excludeGroupId != null)
             {
-                await session.CreateQuery("delete SVR_AnimeGroup ag where ag.id <> :excludeId")
+                await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID <> :excludeId")
                     .SetInt32("excludeId", excludeGroupId.Value)
                     .ExecuteUpdateAsync();
             }
             else
             {
-                await session.CreateQuery("delete SVR_AnimeGroup ag")
+                await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID > 0")
                     .ExecuteUpdateAsync();
             }
         });

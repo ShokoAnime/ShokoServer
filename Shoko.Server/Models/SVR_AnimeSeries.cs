@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
@@ -145,16 +145,16 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             if (!string.IsNullOrEmpty(SeriesNameOverride))
                 return SeriesNameOverride;
 
-            if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.AniDB)
-                return AniDB_Anime.PreferredTitle;
-
             // Try to find the TvDB title if we prefer TvDB titles.
-            var tvdbShows = TvDBSeries;
-            var tvdbShowTitle = tvdbShows
-                .FirstOrDefault(show =>
-                    !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName;
-            if (!string.IsNullOrEmpty(tvdbShowTitle))
-                return tvdbShowTitle;
+            if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.TvDB)
+            {
+                var tvdbShows = TvDBSeries;
+                var tvdbShowTitle = tvdbShows
+                    .FirstOrDefault(show =>
+                        !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName;
+                if (!string.IsNullOrEmpty(tvdbShowTitle))
+                    return tvdbShowTitle;
+            }
 
             // Otherwise just return the anidb title.
             return AniDB_Anime.PreferredTitle;

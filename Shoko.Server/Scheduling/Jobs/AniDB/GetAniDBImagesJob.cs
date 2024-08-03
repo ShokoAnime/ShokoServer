@@ -28,6 +28,7 @@ public class GetAniDBImagesJob : BaseJob
 
     public int AnimeID { get; set; }
     public bool ForceDownload { get; set; }
+    public bool OnlyPosters { get; set; }
 
     public override string TypeName => "Get AniDB Images Data";
 
@@ -73,6 +74,7 @@ public class GetAniDBImagesJob : BaseJob
                 a.ForceDownload = ForceDownload;
             });
 
+        if (OnlyPosters) return;
         var requests = new List<Action<DownloadAniDBImageJob>>();
 
         // characters

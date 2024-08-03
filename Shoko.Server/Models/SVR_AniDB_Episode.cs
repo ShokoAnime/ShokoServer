@@ -43,6 +43,18 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         }
     }
 
+    public bool HasAired
+    {
+        get
+        {
+            if (AniDB_Anime.GetFinishedAiring()) return true;
+            var date = this.GetAirDateAsDate();
+            if (date == null) return false;
+
+            return date.Value.ToLocalTime() < DateTime.Now;
+        }
+    }
+
     public IReadOnlyList<SVR_AniDB_Episode_Title> GetTitles(TitleLanguage? language = null) => language.HasValue
         ? RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(EpisodeID, language.Value)
         : RepoFactory.AniDB_Episode_Title.GetByEpisodeID(EpisodeID);
