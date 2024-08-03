@@ -1839,6 +1839,97 @@ public class SeriesController : BaseController
     }
 
     /// <summary>
+    /// Get user tags for Series with ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="excludeDescriptions">Exclude tag descriptions.</param>
+    /// <returns></returns>
+    [HttpGet("{seriesID}/Tags/User")]
+    public ActionResult<List<Tag>> GetSeriesUserTags(
+        [FromRoute] int seriesID,
+        [FromQuery] bool excludeDescriptions = false)
+        => GetSeriesTags(seriesID, TagFilter.Filter.User | TagFilter.Filter.Invert, excludeDescriptions, true, true);
+
+    /// <summary>
+    /// Add user tags for Series with ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID.</param>
+    /// <param name="body">Body containing the user tag ids to add.</param>
+    /// <returns>No content if nothing was added, Created if any cross-references were added, otherwise an error action result.</returns>
+    [HttpPost("{seriesID}/Tags/User")]
+    [Authorize("admin")]
+    public ActionResult AddSeriesUserTags(
+        [FromRoute] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.AddOrRemoveUserTagsBody body
+    )
+    {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesForbiddenForUser);
+        }
+
+        var existingTagIds = RepoFactory.CrossRef_CustomTag.GetByAnimeID(seriesID);
+        var toAdd = body.IDs
+            .Except(existingTagIds.Select(xref => xref.CustomTagID))
+            .Select(id => new CrossRef_CustomTag
+            {
+                CrossRefID = seriesID,
+                CrossRefType = (int)CustomTagCrossRefType.Anime,
+                CustomTagID = id,
+            })
+            .ToList();
+        if (toAdd.Count is 0)
+            return NoContent();
+
+        RepoFactory.CrossRef_CustomTag.Save(toAdd);
+
+        return Created();
+    }
+
+    /// <summary>
+    /// Remove user tags for Series with ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID.</param>
+    /// <param name="body">Body containing the user tag ids to remove.</param>
+    /// <returns>No content if nothing was removed, Ok if any cross-references were removed, otherwise an error action result.</returns>
+    [HttpDelete("{seriesID}/Tags/User")]
+    [Authorize("admin")]
+    public ActionResult RemoveSeriesUserTags(
+        [FromRoute] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.AddOrRemoveUserTagsBody body
+    )
+    {
+        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesForbiddenForUser);
+        }
+
+        var existingTagIds = RepoFactory.CrossRef_CustomTag.GetByAnimeID(seriesID);
+        var toRemove = existingTagIds
+            .IntersectBy(body.IDs, xref => xref.CustomTagID)
+            .ToList();
+        if (toRemove.Count is 0)
+            return NoContent();
+
+        RepoFactory.CrossRef_CustomTag.Delete(toRemove);
+        return Ok();
+    }
+
+    /// <summary>
     /// Get tags for Series with ID, applying the given TagFilter (0 is show all)
     /// </summary>
     ///

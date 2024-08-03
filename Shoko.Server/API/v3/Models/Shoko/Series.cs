@@ -389,6 +389,16 @@ public class Series : BaseModel
             [Required]
             public int ID;
         }
+
+        public class AddOrRemoveUserTagsBody
+        {
+            /// <summary>
+            /// User Tag IDs to add/remove from the series.
+            /// </summary>
+            [Required]
+            [MinLength(1)]
+            public int[] IDs { get; set; } = [];
+        }
     }
 
     #endregion

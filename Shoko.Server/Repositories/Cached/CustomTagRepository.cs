@@ -1,14 +1,18 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
 {
-    public CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory) 
+    private PocoIndex<int, CustomTag, string?>? _names;
+
+    public CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         DeleteWithOpenTransactionCallback = (ses, obj) =>
         {
@@ -24,6 +28,7 @@ public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
 
     public override void PopulateIndexes()
     {
+        _names = new PocoIndex<int, CustomTag, string?>(Cache, a => a.TagName);
     }
 
     public override void RegenerateDb()
@@ -38,6 +43,10 @@ public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
             .ToList();
     }
 
+    public CustomTag? GetByTagName(string? tagName)
+        => !string.IsNullOrEmpty(tagName?.Trim())
+            ? ReadLock(() => _names!.GetOne(tagName))
+            : null;
 
     public Dictionary<int, List<CustomTag>> GetByAnimeIDs(ISessionWrapper session, int[] animeIDs)
     {
