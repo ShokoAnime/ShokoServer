@@ -957,6 +957,61 @@ public class ActionService
         await _tvdbHelper.ScanForMatches();
     }
 
+    public async Task CheckForUnreadNotifications(bool ignoreSchedule)
+    {
+        var settings = _settingsProvider.GetSettings();
+        if (!ignoreSchedule && settings.AniDb.Notification_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
+
+        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
+        if (sched == null)
+        {
+            sched = new()
+            {
+                UpdateType = (int)ScheduledUpdateType.AniDBNotify,
+                UpdateDetails = string.Empty
+            };
+        }
+        else
+        {
+            var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
+            var tsLastRun = DateTime.Now - sched.LastUpdate;
+
+            // The NOTIFY command must not be issued more than once every 20 minutes according to the AniDB UDP API documentation:
+            // https://wiki.anidb.net/UDP_API_Definition#NOTIFY:_Notifications
+            // We will use 30 minutes as a safe interval.
+            if (tsLastRun.TotalMinutes < 30) return;
+
+            // if we have run this in the last freqHours and are not forcing it, then exit
+            if (!ignoreSchedule && tsLastRun.TotalHours < freqHours) return;
+        }
+
+        sched.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(sched);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetAniDBNotifyJob>();
+
+        // process any unhandled moved file messages
+        await RefreshAniDBMovedFiles(false);
+    }
+
+    public async Task RefreshAniDBMovedFiles(bool force)
+    {
+        var settings = _settingsProvider.GetSettings();
+        if (force || settings.AniDb.Notification_HandleMovedFiles)
+        {
+            var messages = RepoFactory.AniDB_Message.GetUnhandledFileMoveMessages();
+            if (messages.Count > 0)
+            {
+                var scheduler = await _schedulerFactory.GetScheduler();
+                foreach (var msg in messages)
+                {
+                    await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
+                }
+            }
+        }
+    }
+
     public async Task CheckForCalendarUpdate(bool forceRefresh)
     {
         var settings = _settingsProvider.GetSettings();

@@ -22,6 +22,8 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Services.Ogg;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using DirectoryInfo = System.IO.DirectoryInfo;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -133,8 +135,8 @@ public class VideoLocal_PlaceService
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
         var newFullPath = Path.Combine(request.ImportFolder.Path, newRelativePath);
         var newFileName = Path.GetFileName(newRelativePath);
-        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.InvariantCultureIgnoreCase);
-        var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.InvariantCultureIgnoreCase);
+        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.OrdinalIgnoreCase);
+        var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
 
         // Don't relocate files not in a drop source or drop destination.
         if (!dropFolder.DropFolderType.HasFlag(DropFolderType.Source) && !dropFolder.DropFolderType.HasFlag(DropFolderType.Destination))
@@ -149,7 +151,7 @@ public class VideoLocal_PlaceService
         }
 
         // Last ditch effort to ensure we aren't moving a file unto itself
-        if (string.Equals(newFullPath, oldFullPath, StringComparison.InvariantCultureIgnoreCase))
+        if (string.Equals(newFullPath, oldFullPath, StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogTrace("Resolved to move {FilePath} onto itself. Not moving.", newFullPath);
             return new()
@@ -292,9 +294,15 @@ public class VideoLocal_PlaceService
 
                 if (request.DeleteEmptyDirectories)
                 {
-                    var directories = new DirectoryInfo(dropFolder.Path)?.EnumerateDirectories("*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
-                        .Select(dirInfo => dirInfo.FullName) ?? [];
-                    RecursiveDeleteEmptyDirectories(directories, dropFolder.Path);
+                    //mpiva: For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
+                    //IDK: why, Shoko get totally frozen, but it seems a .NET issue.
+                    //https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
+                    /*
+                    var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
+                   .Select(dirInfo => dirInfo.FullName);
+                    RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
+                    */
+                    RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
                 }
             }
         }
@@ -326,9 +334,15 @@ public class VideoLocal_PlaceService
 
             if (request.DeleteEmptyDirectories)
             {
-                var directories = new DirectoryInfo(dropFolder.Path)?.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
-                    .Select(dirInfo => dirInfo.FullName) ?? [];
-                RecursiveDeleteEmptyDirectories(directories, dropFolder.Path);
+                //mpiva: For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
+                //IDK: why, Shoko get totally frozen, but it seems a .NET issue.
+                //https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
+                /*
+                var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
+                    .Select(dirInfo => dirInfo.FullName);
+                RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
+                */
+                RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
             }
         }
 
@@ -566,31 +580,40 @@ public class VideoLocal_PlaceService
     #endregion Methods
     #region Helpers
 
-    private void MoveExternalSubtitles(string newFullServerPath, string originalFileName)
+    private void MoveExternalSubtitles(string newFullServerPath, string oldFullServerPath)
     {
         try
         {
-            var srcParent = Path.GetDirectoryName(originalFileName);
+            var oldParent = Path.GetDirectoryName(oldFullServerPath);
             var newParent = Path.GetDirectoryName(newFullServerPath);
-            if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(srcParent))
+            var oldFileName = Path.GetFileNameWithoutExtension(oldFullServerPath);
+            var newFileName = Path.GetFileNameWithoutExtension(newFullServerPath);
+            if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(oldParent) ||
+                string.IsNullOrEmpty(oldFileName) || string.IsNullOrEmpty(newFileName))
                 return;
 
-            var textStreams = SubtitleHelper.GetSubtitleStreams(originalFileName);
+            var textStreams = SubtitleHelper.GetSubtitleStreams(oldFullServerPath);
             // move any subtitle files
             foreach (var subtitleFile in textStreams)
             {
                 if (string.IsNullOrEmpty(subtitleFile.Filename))
                     continue;
 
-                var subPath = Path.Combine(srcParent, subtitleFile.Filename);
-                if (!File.Exists(subPath))
+                var subPath = Path.Combine(oldParent, subtitleFile.Filename);
+                var subFile = new FileInfo(subPath);
+                if (!subFile.Exists)
                 {
-                    _logger.LogError("Unable to rename external subtitle file {SubtitleFile}. Cannot access the file.", subtitleFile.Filename);
+                    _logger.LogError("Unable to rename external subtitle file {SubtitleFile}. Cannot access the file.", subPath);
                     continue;
                 }
 
-                var subFile = new FileInfo(subPath);
-                var newSubPath = Path.Combine(newParent, subFile.Name);
+                var newSubPath = Path.Combine(newParent, newFileName + subtitleFile.Filename[oldFileName.Length..]);
+                if (string.Equals(subPath, newSubPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug("Attempting to move subtitle file onto itself. Skipping. Path: {FilePath} to {FilePath}", subPath, newSubPath);
+                    continue;
+                }
+
                 if (File.Exists(newSubPath))
                 {
                     try
@@ -599,7 +622,7 @@ public class VideoLocal_PlaceService
                     }
                     catch (Exception e)
                     {
-                        _logger.LogWarning(e, "Unable to DELETE file: {SubtitleFile}\n{ErrorMessage}", subtitleFile, e.Message);
+                        _logger.LogWarning(e, "Unable to DELETE file: {SubtitleFile}\n{ErrorMessage}", subPath, e.Message);
                     }
                 }
 
@@ -609,13 +632,13 @@ public class VideoLocal_PlaceService
                 }
                 catch (Exception e)
                 {
-                    _logger.LogWarning(e, "Unable to DELETE file: {PreviousFile} to {NextPath}\n{ErrorMessage}", subtitleFile, newSubPath, e.Message);
+                    _logger.LogWarning(e, "Unable to MOVE file: {PreviousFile} to {NextPath}\n{ErrorMessage}", subPath, newSubPath, e.Message);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error occurred while trying to move an external subtitle file for {FilePath}\n{ErrorMessage}", originalFileName, ex.Message);
+            _logger.LogError(ex, "An unexpected error occurred while trying to move an external subtitle file for {FilePath}\n{ErrorMessage}", oldFullServerPath, ex.Message);
         }
     }
 
@@ -693,6 +716,20 @@ public class VideoLocal_PlaceService
     #endregion Helpers
     #endregion Relocation (Move & Rename)
 
+    double CalculateDurationOggFile(string filename)
+    {
+        try
+        {
+            OggFile of = OggFile.ParseFile(filename);
+            return of.Duration;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Unable to parse duration from Ogg-Vorbis file {filename}.");
+            return 0;
+        }
+    }
+
     public bool RefreshMediaInfo(SVR_VideoLocal_Place place)
     {
         try
@@ -715,6 +752,12 @@ public class VideoLocal_PlaceService
 
                 var name = place.FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
                 m = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(name); // MediaInfo should have libcurl.dll for http
+
+                if (m?.GeneralStream != null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format != null && m.GeneralStream.Format.ToLowerInvariant() == "ogg")
+                {
+                    m.GeneralStream.Duration = CalculateDurationOggFile(name);
+                }
+
                 var duration = m?.GeneralStream?.Duration ?? 0;
                 if (duration == 0)
                 {

@@ -15,6 +15,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Test;
 using Shoko.Server.Settings;
 
@@ -82,6 +83,19 @@ public class DebugController : BaseController
             });
         }
 
+        return Ok();
+    }
+
+    /// <summary>
+    /// Fetch a specific AniDB message by the provided ID.
+    /// </summary>
+    /// <param name="id">Message ID</param>
+    /// <returns></returns>
+    [HttpGet("FetchAniDBMessage/{id}")]
+    public async Task<ActionResult> FetchAniDBMessage(int id)
+    {
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<GetAniDBMessageJob>(r => r.MessageID = id);
         return Ok();
     }
 

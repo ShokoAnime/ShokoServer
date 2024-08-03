@@ -16,6 +16,7 @@ using NLog.Config;
 using NLog.Filters;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
+using Quartz.Logging;
 using Shoko.Models.Enums;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -124,6 +125,8 @@ public static class Utils
             }
         }
 
+        LogProvider.SetLogProvider(new NLog.Extensions.Logging.NLogLoggerFactory());
+        
         LogManager.ReconfigExistingLoggers();
     }
 

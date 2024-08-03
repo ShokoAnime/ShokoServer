@@ -443,6 +443,7 @@ public class ShokoServer
     private static void AutoUpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
     {
         var actionService = Utils.ServiceContainer.GetRequiredService<ActionService>();
+        actionService.CheckForUnreadNotifications(false).GetAwaiter().GetResult();
         actionService.CheckForCalendarUpdate(false).GetAwaiter().GetResult();
         actionService.CheckForAnimeUpdate().GetAwaiter().GetResult();
         actionService.CheckForTvDBUpdates(false).GetAwaiter().GetResult();

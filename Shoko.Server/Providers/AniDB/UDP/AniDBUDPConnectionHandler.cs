@@ -20,24 +20,32 @@ using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
+#nullable enable
 public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
 {
+    /**** 
+    * From Anidb wiki:
+    * The virtual UDP connection times out if no data was received from the client for 35 minutes.
+    * A client should issue a UPTIME command once every 30 minutes to keep the connection alive should that be required.
+    * If the client does not use any of the notification/push features of the API it should NOT keep the connection alive, furthermore it should explicitly terminate the connection by issuing a LOGOUT command once it finished it's work.
+    * If it is very likely that another command will be issued shortly (within the next 20 minutes) a client SHOULD keep the current connection open, by not sending a LOGOUT command.
+    ****/
+    // 25 minutes
+    private const int LogoutPeriod = 25 * 60 * 1000;
     // 10 minutes
-    private const int LogoutPeriod = 10 * 60 * 1000;
-    // 45 seconds
-    private const int PingFrequency = 45 * 1000;
+    private const int PingFrequency = 10 * 60 * 1000;
     private readonly IRequestFactory _requestFactory;
     private readonly IConnectivityService _connectivityService;
-    private IAniDBSocketHandler _socketHandler;
+    private IAniDBSocketHandler? _socketHandler;
     private static readonly Regex s_logMask = new("(?<=(\\bpass=|&pass=\\bs=|&s=))[^&]+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public event EventHandler LoginFailed;
+    public event EventHandler? LoginFailed;
 
     public override double BanTimerResetLength => 1.5D;
     public override string Type => "UDP";
     protected override UpdateType BanEnum => UpdateType.UDPBan;
 
-    public string SessionID { get; private set; }
+    public string? SessionID { get; private set; }
     public bool IsAlive { get; private set; }
 
     private string _cdnDomain = Constants.URLS.AniDB_Images_Domain;
@@ -46,8 +54,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     private ISettingsProvider SettingsProvider { get; set; }
 
-    private Timer _pingTimer;
-    private Timer _logoutTimer;
+    private Timer? _pingTimer;
+    private Timer? _logoutTimer;
 
     private bool _isLoggedOn;
     private bool _isInvalidSession;
@@ -61,7 +69,9 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             _isInvalidSession = value;
             UpdateState(new AniDBStateUpdate
             {
-                UpdateType = UpdateType.InvalidSession, UpdateTime = DateTime.Now, Value = value
+                UpdateType = UpdateType.InvalidSession,
+                UpdateTime = DateTime.Now,
+                Value = value
             });
         }
     }
@@ -110,7 +120,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         await InitInternal();
         return true;
     }
-    
+
     public async Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
     {
         var settings = SettingsProvider.GetSettings();
@@ -150,12 +160,12 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         IsAlive = true;
     }
 
-    private void PingTimerElapsed(object sender, ElapsedEventArgs e)
+    private void PingTimerElapsed(object? sender, ElapsedEventArgs e)
     {
         try
         {
             if (!_isLoggedOn) return;
-            if (_socketHandler.IsLocked || !_socketHandler.IsConnected) return;
+            if (_socketHandler == null || _socketHandler.IsLocked || !_socketHandler.IsConnected) return;
             if (IsBanned || BackoffSecs.HasValue) return;
 
             var ping = _requestFactory.Create<RequestPing>();
@@ -163,11 +173,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
         catch (UnexpectedUDPResponseException)
         {
-            _pingTimer.Stop();
+            _pingTimer?.Stop();
         }
         catch (AniDBBannedException)
         {
-            _pingTimer.Stop();
+            _pingTimer?.Stop();
         }
         catch (Exception exception)
         {
@@ -175,12 +185,12 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
     }
 
-    private void LogoutTimerElapsed(object sender, ElapsedEventArgs e)
+    private void LogoutTimerElapsed(object? sender, ElapsedEventArgs e)
     {
         try
         {
             if (!_isLoggedOn) return;
-            if (_socketHandler.IsLocked || !_socketHandler.IsConnected) return;
+            if (_socketHandler == null || _socketHandler.IsLocked || !_socketHandler.IsConnected) return;
             if (IsBanned || BackoffSecs.HasValue) return;
 
             ForceLogout();
@@ -210,7 +220,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         {
             throw new AniDBBannedException
             {
-                BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                BanType = UpdateType.UDPBan,
+                BanExpires = BanTime?.AddHours(BanTimerResetLength)
             };
         }
         // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
@@ -262,7 +273,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         var sendByteAdd = encoding.GetBytes(command);
 
         var timeoutPolicy = Policy
-            .Handle<SocketException>(e => e is { SocketErrorCode: SocketError.TimedOut})
+            .Handle<SocketException>(e => e is { SocketErrorCode: SocketError.TimedOut })
             .Or<OperationCanceledException>()
             .RetryAsync(async (_, _) =>
             {
@@ -288,7 +299,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 IsBanned = true;
                 throw new AniDBBannedException
                 {
-                    BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                    BanType = UpdateType.UDPBan,
+                    BanExpires = BanTime?.AddHours(BanTimerResetLength)
                 };
             }
 
@@ -305,6 +317,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         if (result.FinalException != null)
         {
             Logger.LogError(result.FinalException, "Failed to send AniDB message");
+            throw result.FinalException;
         }
 
         return result.Result;

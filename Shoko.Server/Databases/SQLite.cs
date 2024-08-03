@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 114;
+    public override int RequiredVersion => 115;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -693,7 +693,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(112, 2, "ALTER TABLE AnimeSeries DROP COLUMN ContractVersion;ALTER TABLE AnimeSeries DROP COLUMN ContractBlob;ALTER TABLE AnimeSeries DROP COLUMN ContractSize;"),
         new(112, 3, "ALTER TABLE AnimeGroup DROP COLUMN ContractVersion;ALTER TABLE AnimeGroup DROP COLUMN ContractBlob;ALTER TABLE AnimeGroup DROP COLUMN ContractSize;"),
         new (113, 1, "ALTER TABLE VideoLocal DROP COLUMN MediaSize;"),
-        new(114, 1, MigrateRenamers),
+        new(114, 1, "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID INTEGER PRIMARY KEY AUTOINCREMENT, Type int NOT NULL, ID int NOT NULL, AddedAt timestamp NOT NULL ); "),
+        new(114, 2, "CREATE TABLE AniDB_Message( AniDB_MessageID INTEGER PRIMARY KEY AUTOINCREMENT, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName text NOT NULL, SentAt timestamp NOT NULL, FetchedAt timestamp NOT NULL, Type int NOT NULL, Title text NOT NULL, Body text NOT NULL, Flags int NOT NULL DEFAULT 0 ); "),
+        new(115, 1, MigrateRenamers),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
