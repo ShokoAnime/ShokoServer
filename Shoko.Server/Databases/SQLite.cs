@@ -692,7 +692,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(112, 1, "ALTER TABLE AniDB_Anime DROP COLUMN ContractVersion;ALTER TABLE AniDB_Anime DROP COLUMN ContractBlob;ALTER TABLE AniDB_Anime DROP COLUMN ContractSize;"),
         new(112, 2, "ALTER TABLE AnimeSeries DROP COLUMN ContractVersion;ALTER TABLE AnimeSeries DROP COLUMN ContractBlob;ALTER TABLE AnimeSeries DROP COLUMN ContractSize;"),
         new(112, 3, "ALTER TABLE AnimeGroup DROP COLUMN ContractVersion;ALTER TABLE AnimeGroup DROP COLUMN ContractBlob;ALTER TABLE AnimeGroup DROP COLUMN ContractSize;"),
-        new DatabaseCommand(113, 1, "ALTER TABLE VideoLocal DROP COLUMN MediaSize;"),
+        new (113, 1, "ALTER TABLE VideoLocal DROP COLUMN MediaSize;"),
         new(114, 1, MigrateRenamers),
     };
 
