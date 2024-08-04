@@ -308,9 +308,9 @@ public class VideoLocal_PlaceService
 
                 if (request.DeleteEmptyDirectories)
                 {
-                    //mpiva: For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
-                    //IDK: why, Shoko get totally frozen, but it seems a .NET issue.
-                    //https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
+                    // For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
+                    // IDK why, Shoko get totally frozen, but it seems a .NET issue.
+                    // https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
                     /*
                     var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
                    .Select(dirInfo => dirInfo.FullName);
@@ -348,9 +348,9 @@ public class VideoLocal_PlaceService
 
             if (request.DeleteEmptyDirectories)
             {
-                //mpiva: For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
-                //IDK: why, Shoko get totally frozen, but it seems a .NET issue.
-                //https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
+                // For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
+                // IDK why, Shoko get totally frozen, but it seems a .NET issue.
+                // https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
                 /*
                 var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
                     .Select(dirInfo => dirInfo.FullName);
@@ -829,12 +829,12 @@ public class VideoLocal_PlaceService
     {
         try
         {
-            OggFile of = OggFile.ParseFile(filename);
-            return of.Duration;
+            var oggFile = OggFile.ParseFile(filename);
+            return oggFile.Duration;
         }
         catch (Exception e)
         {
-            _logger.LogError("Unable to parse duration from Ogg-Vorbis file {filename}.");
+            _logger.LogError(e, "Unable to parse duration from Ogg-Vorbis file {filename}.", filename);
             return 0;
         }
     }
@@ -862,7 +862,7 @@ public class VideoLocal_PlaceService
                 var name = place.FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
                 m = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(name); // MediaInfo should have libcurl.dll for http
 
-                if (m?.GeneralStream != null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format != null && m.GeneralStream.Format.ToLowerInvariant() == "ogg")
+                if (m?.GeneralStream != null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format != null && m.GeneralStream.Format.Equals("ogg", StringComparison.InvariantCultureIgnoreCase))
                 {
                     m.GeneralStream.Duration = CalculateDurationOggFile(name);
                 }

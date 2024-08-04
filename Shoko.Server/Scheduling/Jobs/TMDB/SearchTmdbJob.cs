@@ -190,7 +190,7 @@ continuePrequelWhileLoop:
         var airDate = series.AirDate;
         if (!airDate.HasValue)
         {
-            airDate = series.EpisodeList
+            airDate = series.Episodes
                 .Where(episode => episode.Type == EpisodeType.Episode)
                 .OrderBy(episode => episode.Type)
                 .ThenBy(episode => episode.EpisodeNumber)

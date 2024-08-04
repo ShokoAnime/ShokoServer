@@ -501,9 +501,9 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
 
-    IReadOnlyList<IEpisode> ISeries.EpisodeList => AllAnimeEpisodes;
+    IReadOnlyList<IEpisode> ISeries.Episodes => AllAnimeEpisodes;
 
-    IReadOnlyList<IVideo> ISeries.VideoList =>
+    IReadOnlyList<IVideo> ISeries.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID)
             .DistinctBy(xref => xref.Hash)
             .Select(xref => xref.VideoLocal)
@@ -563,7 +563,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         }
     }
 
-    IReadOnlyList<IShokoEpisode> IShokoSeries.EpisodeList => AllAnimeEpisodes;
+    IReadOnlyList<IShokoEpisode> IShokoSeries.Episodes => AllAnimeEpisodes;
 
     #endregion
 }

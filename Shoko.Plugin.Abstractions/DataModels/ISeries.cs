@@ -65,7 +65,7 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IMetadat
     /// <summary>
     /// All known episodes for the show.
     /// </summary>
-    IReadOnlyList<IEpisode> EpisodeList { get; }
+    IReadOnlyList<IEpisode> Episodes { get; }
 
     /// <summary>
     /// The number of total episodes in the series.
@@ -75,5 +75,5 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IMetadat
     /// <summary>
     /// Get all videos linked to the series, if any.
     /// </summary>
-    IReadOnlyList<IVideo> VideoList { get; }
+    IReadOnlyList<IVideo> Videos { get; }
 }

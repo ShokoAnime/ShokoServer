@@ -55,5 +55,5 @@ public interface IShokoSeries : ISeries
     /// <summary>
     /// All episodes for the the shoko series.
     /// </summary>
-    new IReadOnlyList<IShokoEpisode> EpisodeList { get; }
+    new IReadOnlyList<IShokoEpisode> Episodes { get; }
 }
