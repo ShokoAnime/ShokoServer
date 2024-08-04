@@ -1,7 +1,9 @@
 using System;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
@@ -95,10 +97,62 @@ public class Tag
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? LastUpdated { get; set; }
-    
+
     /// <summary>
     /// Source. Anidb, User, etc.
     /// </summary>
     /// <value></value>
     public string Source { get; set; }
+
+    public static class Input
+    {
+        /// <summary>
+        /// Create or update a custom tag.
+        /// </summary>
+        public class CreateOrUpdateCustomTagBody
+        {
+            /// <summary>
+            /// Set the tag name. Set to null or empty to skip. Cannot be null
+            /// or empty when creating a new tag.
+            /// </summary>
+            public string? Name { get; set; } = null;
+
+            /// <summary>
+            /// Set the tag description. Set to null to skip. Set to any string
+            /// value to override existing or set the new description.
+            /// </summary>
+            public string? Description { get; set; } = null;
+
+            public Tag? MergeWithExisting(CustomTag tag, ModelStateDictionary modelState)
+            {
+                if (!string.IsNullOrEmpty(Name?.Trim()))
+                {
+                    var existing = RepoFactory.CustomTag.GetByTagName(Name);
+                    if (existing is not null && existing.CustomTagID != tag.CustomTagID)
+                        modelState.AddModelError(nameof(Name), "Unable to create duplicate tag with the same name.");
+                }
+
+                if (!modelState.IsValid)
+                    return null;
+
+                var updated = tag.CustomTagID is 0;
+                if (!string.IsNullOrEmpty(Name?.Trim()))
+                {
+                    tag.TagName = Name;
+                    updated = true;
+                }
+
+                if (Description is not null)
+                {
+                    tag.TagDescription = Description.Trim();
+                    updated = true;
+                }
+
+                if (updated)
+                    RepoFactory.CustomTag.Save(tag);
+
+                return new(tag);
+            }
+        }
+    }
 }
