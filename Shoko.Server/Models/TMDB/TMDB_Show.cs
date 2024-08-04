@@ -538,7 +538,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByAnimeID(xref.AnidbAnimeID))
         .ToList();
 
-    IReadOnlyList<IEpisode> ISeries.EpisodeList => TmdbEpisodes;
+    IReadOnlyList<IEpisode> ISeries.Episodes => TmdbEpisodes;
 
     EpisodeCounts ISeries.EpisodeCounts =>
         new()
@@ -546,7 +546,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             Episodes = EpisodeCount,
         };
 
-    IReadOnlyList<IVideo> ISeries.VideoList => CrossReferences
+    IReadOnlyList<IVideo> ISeries.Videos => CrossReferences
         .DistinctBy(xref => xref.AnidbAnimeID)
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByAnimeID(xref.AnidbAnimeID))
         .Select(xref => xref.VideoLocal)

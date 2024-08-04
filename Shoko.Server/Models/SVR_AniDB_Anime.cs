@@ -429,9 +429,9 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID);
 
-    IReadOnlyList<IEpisode> ISeries.EpisodeList => AniDBEpisodes;
+    IReadOnlyList<IEpisode> ISeries.Episodes => AniDBEpisodes;
 
-    IReadOnlyList<IVideo> ISeries.VideoList =>
+    IReadOnlyList<IVideo> ISeries.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
             .DistinctBy(xref => xref.Hash)
             .Select(xref => xref.VideoLocal)
@@ -442,7 +442,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     {
         get
         {
-            var episodes = (this as ISeries).EpisodeList;
+            var episodes = (this as ISeries).Episodes;
             return new()
             {
                 Episodes = episodes.Count(a => a.Type == AbstractEpisodeType.Episode),
