@@ -2231,7 +2231,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             foreach (var vid in ep.VideoLocals.Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
             {
-                if (vid.Hash == args.FileInfo.VideoInfo.Hashes.ED2K) continue;
+                if (vid.Hash == args.FileInfo.Video.Hashes.ED2K) continue;
 
                 var place = vid.Places.FirstOrDefault();
                 var thisFileName = place?.FilePath;
@@ -2275,7 +2275,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             return (null, "Unable to resolve a destination");
         }
 
-        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.SeriesName));
+        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.PreferredTitle));
     }
 
     public WebAOMSettings DefaultSettings => new()
