@@ -5,6 +5,11 @@ namespace Shoko.Plugin.Abstractions.DataModels.Shoko;
 public interface IShokoEpisode : IEpisode
 {
     /// <summary>
+    /// The id of the anidb episode linked to the shoko episode.
+    /// </summary>
+    int AnidbEpisodeID { get; }
+
+    /// <summary>
     /// Get the shoko series info for the episode, if available.
     /// </summary>
     new IShokoSeries? SeriesInfo { get; }

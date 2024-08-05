@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
@@ -369,6 +369,8 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     #endregion
 
     #region IShokoEpisode Implementation
+
+    int IShokoEpisode.AnidbEpisodeID => AniDB_EpisodeID;
 
     IShokoSeries? IShokoEpisode.SeriesInfo => AnimeSeries;
 
