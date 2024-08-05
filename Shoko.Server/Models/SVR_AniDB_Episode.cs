@@ -189,7 +189,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
                     LanguageCode = a.LanguageCode,
                     Language = a.Language,
                     Title = a.Title,
-                    Type = string.Equals(a.Title, defaultTitle) ? TitleType.Main : TitleType.None,
+                    Type = string.Equals(a.Title, defaultTitle.Title) ? TitleType.Main : TitleType.None,
                 })
                 .ToList();
         }
