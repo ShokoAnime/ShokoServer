@@ -1,6 +1,3 @@
-using System;
-
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IImportFolder
@@ -24,14 +21,4 @@ public interface IImportFolder
     /// The rules that this Import Folder should adhere to. E.g. a folder that is both a <see cref="DropFolderType.Source"/> and <see cref="DropFolderType.Destination"/> cares not how files are moved in or out of it.
     /// </summary>
     DropFolderType DropFolderType { get; }
-
-    #region To-be-removed
-
-    [Obsolete("Use ID instead.")]
-    int ImportFolderID { get; }
-
-    [Obsolete("Use Path instead.")]
-    string Location { get; }
-
-    #endregion
 }

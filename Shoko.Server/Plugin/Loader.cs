@@ -17,7 +17,7 @@ namespace Shoko.Server.Plugin;
 public static class Loader
 {
     private static readonly IList<Type> _pluginTypes = new List<Type>();
-    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
     private static IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
 
     internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection)
@@ -43,24 +43,24 @@ public static class Loader
                 var name = Path.GetFileNameWithoutExtension(dll);
                 if (settings.Plugins.EnabledPlugins.ContainsKey(name) && !settings.Plugins.EnabledPlugins[name])
                 {
-                    _logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
+                    s_logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                     continue;
                 }
 
-                _logger.Info($"Trying to load {dll}");
+                s_logger.Info($"Trying to load {dll}");
                 assemblies.Add(Assembly.LoadFrom(dll));
                 // TryAdd, because if it made it this far, then it's missing or true.
                 settings.Plugins.EnabledPlugins.TryAdd(name, true);
                 if (!settings.Plugins.Priority.Contains(name)) settings.Plugins.Priority.Add(name);
                 Utils.SettingsProvider.SaveSettings();
+                s_logger.Info($"Loaded Assemblies from {dll}");
             }
-            catch (Exception e) when (e is BadImageFormatException or FileLoadException)
+            catch (Exception ex)
             {
-                _logger.Error(e);
+                s_logger.Warn(ex, "Failed to load plugin {Name}", Path.GetFileNameWithoutExtension(dll));
             }
         }
 
-        RenameFileHelper.FindRenamers(assemblies);
         LoadPlugins(assemblies, serviceCollection);
 
         return serviceCollection;
@@ -101,6 +101,7 @@ public static class Loader
 
     private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
     {
+        s_logger.Trace("Scanning for IPlugin implementations");
         var implementations = assemblies.SelectMany(a =>
         {
             try
@@ -109,7 +110,7 @@ public static class Loader
             }
             catch (Exception e)
             {
-                _logger.Debug(e);
+                s_logger.Debug(e);
                 return new Type[0];
             }
         }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
@@ -120,23 +121,25 @@ public static class Loader
                 BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
             if (mtd != null)
             {
+                s_logger.Trace("Configuring Services for {0}", implementation.Name);
                 mtd.Invoke(null, new object[] { serviceCollection });
             }
 
             _pluginTypes.Add(implementation);
+            s_logger.Trace("Loaded IPlugin implementation: {0}", implementation.Name);
         }
     }
 
     internal static void InitPlugins(IServiceProvider provider)
     {
-        _logger.Info("Loading {0} plugins", _pluginTypes.Count);
+        s_logger.Info("Loading {0} plugins", _pluginTypes.Count);
 
         foreach (var pluginType in _pluginTypes)
         {
             var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
             Plugins.Add(pluginType, plugin);
             LoadSettings(pluginType, plugin);
-            _logger.Info($"Loaded: {plugin.Name}");
+            s_logger.Info($"Loaded: {plugin.Name}");
             plugin.Load();
         }
 
@@ -170,7 +173,7 @@ public static class Loader
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"Unable to initialize Settings for {name}");
+            s_logger.Error(e, $"Unable to initialize Settings for {name}");
         }
     }
 
@@ -188,7 +191,7 @@ public static class Loader
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"Unable to Save Settings for {name}");
+            s_logger.Error(e, $"Unable to Save Settings for {name}");
         }
     }
 }

@@ -1,4 +1,4 @@
-using Shoko.Server.Models;
+using Shoko.Plugin.Abstractions.DataModels;
 
 #nullable enable
 namespace Shoko.Server.Renamer;
@@ -11,7 +11,7 @@ public record DirectRelocateRequest
     /// <summary>
     /// The import folder where the file should be relocated to.
     /// </summary>
-    public SVR_ImportFolder? ImportFolder = null;
+    public IImportFolder? ImportFolder = null;
 
     /// <summary>
     /// The relative path from the <see cref="ImportFolder"/> where the file

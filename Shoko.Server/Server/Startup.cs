@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using MessagePack;
+using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
@@ -48,6 +51,7 @@ public class Startup
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<RenameFileService>();
             services.AddSingleton<ISettingsProvider, SettingsProvider>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<ShokoServer>();

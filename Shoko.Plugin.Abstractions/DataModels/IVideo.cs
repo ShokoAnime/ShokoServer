@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IVideo : IMetadata<int>

@@ -318,209 +318,36 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpGet("File/Rename/Preview/{videoLocalID}")]
-    public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID)
-        => RenameAndMoveFile(videoLocalID, Shoko.Models.Constants.Renamer.TempFileName, false, true).ConfigureAwait(false).GetAwaiter().GetResult();
+    public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID) => null;
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}")]
-    public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
-        => RenameAndMoveFile(videoLocalID, scriptName, move: false, preview: false).ConfigureAwait(false).GetAwaiter().GetResult();
+    public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName) => null;
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}/{move}")]
-    public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move)
-        => RenameAndMoveFile(videoLocalID, scriptName, move, preview: false).ConfigureAwait(false).GetAwaiter().GetResult();
-
-    [NonAction]
-    private async Task<CL_VideoLocal_Renamed> RenameAndMoveFile(int videoLocalID, string scriptName, bool move, bool preview)
-    {
-        var ret = new CL_VideoLocal_Renamed
-        {
-            VideoLocalID = videoLocalID,
-            VideoLocal = null,
-            Success = false,
-        };
-        if (!preview && scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
-        {
-            ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
-            return ret;
-        }
-        try
-        {
-            var script = RepoFactory.RenameScript.GetByName(scriptName);
-            if (script is null)
-            {
-                ret.NewFileName = "ERROR: Could not find script.";
-                return ret;
-            }
-
-            var file = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (file == null)
-            {
-                ret.NewFileName = "ERROR: Could not find file.";
-                return ret;
-            }
-
-            var allLocations = file.Places;
-            if (allLocations.Count <= 0)
-            {
-                ret.NewFileName = "ERROR: No locations were found for the file. Run the \"Remove Missing Files\" action to remove the file.";
-                return ret;
-            }
-
-            // First do a dry-run on the best location.
-            var bestLocation = file.FirstValidPlace;
-            var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
-            var previewResult = await service.AutoRelocateFile(bestLocation, new() { Preview = true, ScriptID = script.RenameScriptID, Move = move });
-            if (!previewResult.Success)
-            {
-                ret.NewFileName = $"ERROR: {previewResult.ErrorMessage}";
-                return ret;
-            }
-
-            // Relocate the file locations.
-            var fullPath = string.Empty;
-            var errorString = string.Empty;
-            foreach (var place in allLocations)
-            {
-                var result = await service.AutoRelocateFile(place, new() { Preview = preview, ScriptID = script.RenameScriptID, Move = move });
-                if (result.Success)
-                    fullPath = result.AbsolutePath;
-                else
-                    errorString = result.ErrorMessage;
-            }
-            if (!string.IsNullOrEmpty(errorString))
-            {
-                ret.NewFileName = errorString;
-                return ret;
-            }
-
-            // Return the full path if we moved, otherwise return the file name.
-            ret.Success = true;
-            ret.VideoLocal = new CL_VideoLocal { VideoLocalID = videoLocalID };
-            ret.NewFileName = fullPath;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unexpected error occurred while trying to rename/move a file; {ErrorMessage}", ex.Message);
-            ret.NewFileName = $"ERROR: {ex.Message}";
-        }
-        return ret;
-    }
+    public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move) => null;
 
     [HttpGet("RenameScript")]
     public List<RenameScript> GetAllRenameScripts()
     {
-        try
-        {
-            return RepoFactory.RenameScript.GetAll().Where(a =>
-                    !a.ScriptName.EqualsInvariantIgnoreCase(Shoko.Models.Constants.Renamer.TempFileName))
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-        }
-        return new List<RenameScript>();
+        return [];
     }
 
     [HttpPost("RenameScript")]
     public CL_Response<RenameScript> SaveRenameScript(RenameScript contract)
     {
-        var response = new CL_Response<RenameScript>
-        {
-            ErrorMessage = string.Empty,
-            Result = null
-        };
-        try
-        {
-            RenameScript script;
-            if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
-            {
-                script = RepoFactory.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
-                         new RenameScript();
-            }
-            else if (contract.RenameScriptID != 0)
-            {
-                // update
-                script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID);
-                if (script == null)
-                {
-                    response.ErrorMessage = "Could not find Rename Script ID: " + contract.RenameScriptID;
-                    return response;
-                }
-            }
-            else
-            {
-                //response.ErrorMessage = "Could not find Rename Script ID: " + contract.RenameScriptID;
-                //return response;
-                script = new RenameScript();
-            }
-
-            if (string.IsNullOrEmpty(contract.ScriptName))
-            {
-                response.ErrorMessage = "Must specify a Script Name";
-                return response;
-            }
-
-
-            if (contract.IsEnabledOnImport == 1)
-            {
-
-                // check to make sure we multiple scripts enable on import (only one can be selected)
-                var allScripts = RepoFactory.RenameScript.GetAll();
-
-                foreach (var rs in allScripts)
-                {
-                    if (rs.IsEnabledOnImport == 1 &&
-                        (contract.RenameScriptID == 0 || (contract.RenameScriptID != rs.RenameScriptID)))
-                    {
-                        rs.IsEnabledOnImport = 0;
-                        RepoFactory.RenameScript.Save(rs);
-                    }
-                }
-            }
-
-            script.IsEnabledOnImport = contract.IsEnabledOnImport;
-            script.Script = contract.Script;
-            script.ScriptName = contract.ScriptName;
-            script.RenamerType = contract.RenamerType;
-            script.ExtraData = contract.ExtraData;
-            RepoFactory.RenameScript.Save(script);
-
-            response.Result = script;
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-            response.ErrorMessage = ex.Message;
-            return response;
-        }
+        return null;
     }
 
     [HttpDelete("RenameScript/{renameScriptID}")]
     public string DeleteRenameScript(int renameScriptID)
     {
-        try
-        {
-            var df = RepoFactory.RenameScript.GetByID(renameScriptID);
-            if (df == null) return "Database entry does not exist";
-            RepoFactory.RenameScript.Delete(renameScriptID);
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpGet("RenameScript/Types")]
     public IDictionary<string, string> GetScriptTypes()
     {
-        return RenameFileHelper.Renamers
-            .Select(s => new KeyValuePair<string, string>(s.Key, s.Value.description))
-            .ToDictionary(x => x.Key, x => x.Value);
+        return new Dictionary<string, string>();
     }
 
     [HttpGet("AniDB/Recommendation/{animeID}")]

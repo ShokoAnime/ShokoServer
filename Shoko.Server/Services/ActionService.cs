@@ -180,7 +180,7 @@ public class ActionService
                 i++;
 
                 if (dictFilesExisting.TryGetValue(fileName, out var value) && folder.IsDropSource == 1)
-                    await _placeService.RenameAndMoveAsRequired(value);
+                    await _placeService.AutoRelocateFile(value);
 
                 if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
                 {

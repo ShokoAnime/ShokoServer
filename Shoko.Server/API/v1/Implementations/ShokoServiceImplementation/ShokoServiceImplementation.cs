@@ -468,8 +468,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.Import.Hash_CRC32 = contractIn.Hash_CRC32;
             settings.Import.Hash_MD5 = contractIn.Hash_MD5;
             settings.Import.Hash_SHA1 = contractIn.Hash_SHA1;
-            settings.Import.RenameOnImport = contractIn.Import_RenameOnImport;
-            settings.Import.MoveOnImport = contractIn.Import_MoveOnImport;
+            settings.Plugins.Renamer.RenameOnImport = contractIn.Import_RenameOnImport;
+            settings.Plugins.Renamer.MoveOnImport = contractIn.Import_MoveOnImport;
             settings.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
 
             // Language

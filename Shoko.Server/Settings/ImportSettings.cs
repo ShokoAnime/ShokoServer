@@ -76,11 +76,6 @@ public class ImportSettings
 
     public bool SkipDiskSpaceChecks { get; set; }
 
-    public bool RenameThenMove { get; set; }
-
-    public bool RenameOnImport { get; set; } = false;
-    public bool MoveOnImport { get; set; } = false;
-
     public string MediaInfoPath { get; set; }
 
     public int MediaInfoTimeoutMinutes { get; set; } = 5;

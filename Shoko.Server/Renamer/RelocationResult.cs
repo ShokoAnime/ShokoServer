@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using Shoko.Server.Models;
+using Shoko.Plugin.Abstractions.DataModels;
 
 #nullable enable
 namespace Shoko.Server.Renamer;
@@ -59,7 +59,7 @@ public record RelocationResult
     /// The destination import folder if the relocation result were
     /// successful.
     /// </summary>
-    public SVR_ImportFolder? ImportFolder { get; set; } = null;
+    public IImportFolder? ImportFolder { get; set; } = null;
 
     /// <summary>
     /// The relative path from the <see cref="ImportFolder"/> to where
@@ -73,5 +73,5 @@ public record RelocationResult
     /// </summary>
     /// <returns>The combined path.</returns>
     internal string? AbsolutePath
-        => Success && !string.IsNullOrEmpty(RelativePath) ? Path.Combine(ImportFolder.ImportFolderLocation, RelativePath) : null;
+        => Success && !string.IsNullOrEmpty(RelativePath) ? Path.Combine(ImportFolder?.Path ?? string.Empty, RelativePath) : null;
 }
