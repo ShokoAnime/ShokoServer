@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
@@ -320,7 +320,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
 
     DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
 
-    ISeries? IEpisode.SeriesInfo => AnimeSeries;
+    ISeries? IEpisode.Series => AnimeSeries;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => [this];
 
@@ -372,7 +372,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
 
     int IShokoEpisode.AnidbEpisodeID => AniDB_EpisodeID;
 
-    IShokoSeries? IShokoEpisode.SeriesInfo => AnimeSeries;
+    IShokoSeries? IShokoEpisode.Series => AnimeSeries;
 
     IEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??
         throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for AnimeEpisode {AnimeEpisodeID}");

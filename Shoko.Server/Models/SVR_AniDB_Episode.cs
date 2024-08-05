@@ -225,7 +225,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
 
     DateTime? IEpisode.AirDate => this.GetAirDateAsDate();
 
-    ISeries? IEpisode.SeriesInfo => AniDB_Anime;
+    ISeries? IEpisode.Series => AniDB_Anime;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => AnimeEpisode is IShokoEpisode shokoEpisode ? [shokoEpisode] : [];
 

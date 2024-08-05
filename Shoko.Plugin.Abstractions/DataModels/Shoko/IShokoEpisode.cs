@@ -12,7 +12,7 @@ public interface IShokoEpisode : IEpisode
     /// <summary>
     /// Get the shoko series info for the episode, if available.
     /// </summary>
-    new IShokoSeries? SeriesInfo { get; }
+    new IShokoSeries? Series { get; }
 
     /// <summary>
     /// A direct link to the anidb episode metadata.

@@ -395,6 +395,10 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         })
         .ToList();
 
+    #endregion
+
+    #region IEpisode
+
     int IEpisode.SeriesID => TmdbShowID;
 
     IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => CrossReferences
@@ -412,7 +416,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     DateTime? IEpisode.AirDate => AiredAt?.ToDateTime();
 
-    ISeries? IEpisode.SeriesInfo => TmdbShow;
+    ISeries? IEpisode.Series => TmdbShow;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => CrossReferences
         .Select(xref => xref.AnimeEpisode)
