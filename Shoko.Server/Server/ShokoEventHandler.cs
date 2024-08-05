@@ -6,6 +6,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Models;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Utilities;

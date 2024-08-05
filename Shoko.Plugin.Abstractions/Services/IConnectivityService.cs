@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Plugin.Abstractions.Services
 {

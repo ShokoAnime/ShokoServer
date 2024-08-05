@@ -5,7 +5,7 @@ using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 public class FileEventArgs : EventArgs
 {

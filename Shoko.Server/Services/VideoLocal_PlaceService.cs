@@ -27,7 +27,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using DirectoryInfo = System.IO.DirectoryInfo;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
-using RelocationResult = Shoko.Plugin.Abstractions.RelocationResult;
+using RelocationResult = Shoko.Plugin.Abstractions.Events.RelocationResult;
 
 #nullable enable
 namespace Shoko.Server.Services;

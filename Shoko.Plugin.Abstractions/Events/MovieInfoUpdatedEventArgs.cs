@@ -2,7 +2,7 @@ using System;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
 /// Fired when movie data was updated.

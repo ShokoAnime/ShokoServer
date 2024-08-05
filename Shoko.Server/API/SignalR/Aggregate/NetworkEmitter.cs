@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.SignalR.Models;
 

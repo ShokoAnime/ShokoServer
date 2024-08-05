@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Models;
 
 #nullable enable

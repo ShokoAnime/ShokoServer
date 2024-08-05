@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.API.SignalR.Models;

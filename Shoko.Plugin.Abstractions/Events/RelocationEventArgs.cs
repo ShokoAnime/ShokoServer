@@ -1,9 +1,13 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
+/// <summary>
+/// Event Args for File Relocation
+/// </summary>
 public class RelocationEventArgs : CancelEventArgs
 {
     /// <summary>
@@ -25,22 +29,22 @@ public class RelocationEventArgs : CancelEventArgs
     /// <summary>
     /// Information about the file and video, such as MediaInfo, current location, size, etc
     /// </summary>
-    public IVideoFile FileInfo { get; set; }
+    public IVideoFile File { get; set; }
 
     /// <summary>
     /// Information about the episode, such as titles
     /// </summary>
-    public IReadOnlyList<IEpisode> EpisodeInfo { get; set; }
+    public IReadOnlyList<IShokoEpisode> Episodes { get; set; }
 
     /// <summary>
     /// Information about the Anime, such as titles
     /// </summary>
-    public IReadOnlyList<ISeries> AnimeInfo { get; set; }
+    public IReadOnlyList<IShokoSeries> Series { get; set; }
 
     /// <summary>
     /// Information about the group
     /// </summary>
-    public IReadOnlyList<IGroup> GroupInfo { get; set; }
+    public IReadOnlyList<IShokoGroup> Groups { get; set; }
 }
 
 public class RelocationEventArgs<T> : RelocationEventArgs where T : class

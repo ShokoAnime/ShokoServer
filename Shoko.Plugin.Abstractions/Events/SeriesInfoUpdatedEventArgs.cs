@@ -2,7 +2,7 @@ using System;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
 /// Fired on series info updates, currently, AniDB, TvDB, etc will trigger this

@@ -731,7 +731,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(122, 31, "DROP TABLE AniDB_Anime_DefaultImage;"),
         new DatabaseCommand(122, 32, "CREATE TABLE AniDB_Episode_PreferredImage ( AniDB_Episode_PreferredImageID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NOT NULL, ImageID INT NOT NULL, ImageType INT NOT NULL, ImageSource INT NOT NULL );"),
         new DatabaseCommand(122, 33, DatabaseFixes.CleanupAfterAddingTMDB),
-        new DatabaseCommand(122, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression')")
+        new DatabaseCommand(122, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression')"),
         new DatabaseCommand(123, 1, MigrateRenamers),
     };
 

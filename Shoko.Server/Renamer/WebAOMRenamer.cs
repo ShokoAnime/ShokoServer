@@ -7,6 +7,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -29,12 +30,12 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     public string Name => "WebAOM Renamer";
     public string Description => "The legacy renamer, based on WebAOM's renamer. You can find information for it at https://wiki.anidb.net/WebAOM#Scripting";
 
-    public Shoko.Plugin.Abstractions.RelocationResult GetNewPath(RelocationEventArgs<WebAOMSettings> args)
+    public Shoko.Plugin.Abstractions.Events.RelocationResult GetNewPath(RelocationEventArgs<WebAOMSettings> args)
     {
         var script = args.Settings.Script;
         if (script == null)
         {
-            return new Shoko.Plugin.Abstractions.RelocationResult
+            return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
                 Error = new MoveRenameError("No script available for renamer")
             };
@@ -60,13 +61,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (!success)
         {
-            return new Shoko.Plugin.Abstractions.RelocationResult
+            return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
                 Error = ex == null ? null : new MoveRenameError(ex.Message, ex)
             };
         }
 
-        return new Shoko.Plugin.Abstractions.RelocationResult
+        return new Shoko.Plugin.Abstractions.Events.RelocationResult
         {
             FileName = newFilename,
             DestinationImportFolder = destination.dest,
@@ -1383,11 +1384,11 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
         var sourceFolder = RepoFactory.ImportFolder.GetAll()
-            .FirstOrDefault(a => args.FileInfo.Path.StartsWith(a.ImportFolderLocation));
+            .FirstOrDefault(a => args.File.Path.StartsWith(a.ImportFolderLocation));
         if (sourceFolder == null) return (false, "Unable to Get Import Folder");
 
         var place = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(
-            args.FileInfo.Path.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
+            args.File.Path.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
         var vid = place?.VideoLocal;
         var lines = script.Split(Environment.NewLine.ToCharArray());
 
@@ -2103,13 +2104,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
     private (IImportFolder dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
     {
-        if (args?.EpisodeInfo == null)
+        if (args?.Episodes == null || args.Episodes.Count == 0)
         {
             throw new ArgumentException("File is unrecognized. Not Moving");
         }
 
         // get the series
-        var series = args.AnimeInfo?.FirstOrDefault();
+        var series = args.Series?.FirstOrDefault();
 
         if (series == null)
         {
@@ -2123,7 +2124,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             throw new ArgumentException("Series Name is null or empty");
         }
 
-        var group = args.GroupInfo?.FirstOrDefault();
+        var group = args.Groups?.FirstOrDefault();
         if (group == null)
         {
             throw new ArgumentException("Group could not be found for file");
@@ -2136,7 +2137,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         else
         {
-            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.Name);
+            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.PreferredTitle);
             path = Path.Combine(groupName, name);
         }
 
@@ -2170,7 +2171,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             // Continue if on a separate drive and there's no space
             // TODO refactor this into a shared helper
-            if (!settings.Import.SkipDiskSpaceChecks && !args.FileInfo.Path.StartsWith(Path.GetPathRoot(fldr.Path)))
+            if (!settings.Import.SkipDiskSpaceChecks && !args.File.Path.StartsWith(Path.GetPathRoot(fldr.Path)))
             {
                 var available = 0L;
                 try
@@ -2182,14 +2183,14 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                     _logger.LogError(e, "Error checking disk space for {ImportFolder}", fldr.Path);
                 }
 
-                if (available < args.FileInfo.Size) continue;
+                if (available < args.File.Size) continue;
             }
 
             destFolder = fldr;
             break;
         }
 
-        var xrefs = args.EpisodeInfo;
+        var xrefs = args.Episodes;
         if (xrefs.Count == 0)
         {
             return (null, "No xrefs");
@@ -2231,7 +2232,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             foreach (var vid in ep.VideoLocals.Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
             {
-                if (vid.Hash == args.FileInfo.Video.Hashes.ED2K) continue;
+                if (vid.Hash == args.File.Video.Hashes.ED2K) continue;
 
                 var place = vid.Places.FirstOrDefault();
                 var thisFileName = place?.FilePath;
@@ -2243,7 +2244,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 if (dstImportFolder == null) continue;
 
                 // check space
-                if (!args.FileInfo.Path.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) && !settings.Import.SkipDiskSpaceChecks)
+                if (!args.File.Path.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) && !settings.Import.SkipDiskSpaceChecks)
                 {
                     var available = 0L;
                     try
@@ -2261,7 +2262,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName))) continue;
 
                 // ensure we aren't moving to the current directory
-                if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(Path.GetDirectoryName(args.FileInfo.Path), StringComparison.InvariantCultureIgnoreCase))
+                if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
                     continue;
 
                 destFolder = place.ImportFolder;

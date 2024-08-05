@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Events;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;

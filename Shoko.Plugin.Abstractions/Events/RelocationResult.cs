@@ -1,6 +1,7 @@
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Events;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 public class RelocationResult
 {

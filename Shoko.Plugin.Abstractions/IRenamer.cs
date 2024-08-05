@@ -1,4 +1,6 @@
-﻿namespace Shoko.Plugin.Abstractions;
+﻿using Shoko.Plugin.Abstractions.Events;
+
+namespace Shoko.Plugin.Abstractions;
 
 public interface IBaseRenamer
 {
