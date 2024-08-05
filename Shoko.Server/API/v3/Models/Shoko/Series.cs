@@ -531,7 +531,7 @@ public class Series : BaseModel
             Relation = ((IRelatedMetadata)relation).RelationType;
             // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
             if (Type == SeriesType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedAnimeID) is not null)
-                Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.AnimeID) is var relatedAnime && relatedAnime.Restricted == 1;
+                Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.AnimeID) is { Restricted: 1 };
         }
 
         public AniDB(AniDB_Anime_Similar similar, SVR_AnimeSeries? series = null, bool includeTitles = true)

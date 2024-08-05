@@ -411,13 +411,13 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     AnimeType ISeries.Type => (AnimeType)AnimeType;
 
-    IReadOnlyList<int> ISeries.ShokoSeriesIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is var series ? [series.AnimeSeriesID] : [];
+    IReadOnlyList<int> ISeries.ShokoSeriesIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series.AnimeSeriesID] : [];
 
     double ISeries.Rating => Rating / 100D;
 
     bool ISeries.Restricted => Restricted == 1;
 
-    IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is var series ? [series] : [];
+    IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
 
     IImageMetadata? ISeries.DefaultPoster => this.GetImageMetadata();
 
