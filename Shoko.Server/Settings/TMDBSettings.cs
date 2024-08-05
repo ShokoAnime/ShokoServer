@@ -115,7 +115,7 @@ public class TMDBSettings
     public int MaxAutoStaffImages { get; set; } = 10;
 
     /// <summary>
-    /// Automagically download sudio and company images.
+    /// Automagically download studio and company images.
     /// </summary>
     public bool AutoDownloadStudioImages { get; set; } = true;
 
