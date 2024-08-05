@@ -59,7 +59,7 @@ public class GroupAwareRenamer : IRenamer
         }
         else
         {
-            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.DefaultTitle);
+            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.PreferredTitle);
             path = Path.Combine(groupName, name);
         }
 
