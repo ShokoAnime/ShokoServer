@@ -795,6 +795,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(129, 31, "DROP TABLE `AniDB_Anime_DefaultImage`;"),
         new(129, 32, "CREATE TABLE `AniDB_Episode_PreferredImage` ( `AniDB_Episode_PreferredImageID` INT NOT NULL AUTO_INCREMENT, `AnidbAnimeID` INT NOT NULL, `AnidbEpisodeID` INT NOT NULL, `ImageID` INT NOT NULL, `ImageType` INT NOT NULL, `ImageSource` INT NOT NULL, PRIMARY KEY (`AniDB_Episode_PreferredImageID`) );"),
         new(129, 33, DatabaseFixes.CleanupAfterAddingTMDB),
+        new(129, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression')")
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
