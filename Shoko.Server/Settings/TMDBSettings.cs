@@ -115,12 +115,12 @@ public class TMDBSettings
     public int MaxAutoStaffImages { get; set; } = 10;
 
     /// <summary>
-    /// Automagically download sudio and company images.
+    /// Automagically download studio and company images.
     /// </summary>
     public bool AutoDownloadStudioImages { get; set; } = true;
 
     /// <summary>
-    /// User provided TMDB API key to use.
+    /// Optional. User provided TMDB API key to use.
     /// </summary>
     public string? UserApiKey { get; set; } = null;
 }

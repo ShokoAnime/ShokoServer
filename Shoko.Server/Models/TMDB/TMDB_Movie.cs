@@ -451,9 +451,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #region IMovie
 
-    IReadOnlyList<int> IMovie.ShokoSeriesIDs => throw new NotImplementedException();
+    IReadOnlyList<int> IMovie.ShokoSeriesIDs => [];
 
-    IReadOnlyList<int> IMovie.ShokoEpisodeIDs => throw new NotImplementedException();
+    IReadOnlyList<int> IMovie.ShokoEpisodeIDs => [];
 
     DateTime? IMovie.ReleaseDate => ReleasedAt?.ToDateTime();
 

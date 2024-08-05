@@ -614,7 +614,8 @@ public class TagFilter<T> where T : class
     public TagFilter(Func<string, T?> lookup, Func<T, string> nameSelector, Func<string, T?>? ctor = null)
     {
         _nameSelector = nameSelector;
-        _ctor = ctor ?? (typeof(T) == typeof(string) ? name => name as T : name => Activator.CreateInstance(typeof(T), name) as T);
+        // explicit delegate prevents a warning
+        _ctor = ctor ?? (typeof(T) == typeof(string) ? new Func<string, T?>(name => name as T) : name => Activator.CreateInstance(typeof(T), name) as T);
         _lookup = lookup;
     }
 #nullable disable

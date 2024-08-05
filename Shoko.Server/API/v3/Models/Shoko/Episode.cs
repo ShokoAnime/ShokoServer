@@ -36,6 +36,11 @@ public class Episode : BaseModel
     public bool HasCustomName { get; set; }
 
     /// <summary>
+    /// Preferred episode description based on the language preference.
+    /// </summary>
+    public string Description { get; set; }
+
+    /// <summary>
     /// The preferred images for the episode.
     /// </summary>
     public Images Images { get; set; }
@@ -73,6 +78,7 @@ public class Episode : BaseModel
     /// </summary>
     public bool IsHidden { get; set; }
 
+#pragma warning disable IDE1006
     /// <summary>
     /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
@@ -86,6 +92,7 @@ public class Episode : BaseModel
     /// </summary>
     [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<TvDB>? _TvDB { get; set; }
+#pragma warning restore IDE1006
 
     /// <summary>
     /// The <see cref="TmdbData"/> entries, if <see cref="DataSource.TMDB"/>
@@ -151,6 +158,7 @@ public class Episode : BaseModel
         WatchCount = episodeUserRecord?.WatchedCount ?? 0;
         IsHidden = episode.IsHidden;
         Name = episode.PreferredTitle;
+        Description = episode.PreferredOverview;
         Size = files.Count;
 
         if (includeDataFrom.Contains(DataSource.AniDB))
@@ -187,6 +195,7 @@ public class Episode : BaseModel
             _ => EpisodeType.Unknown,
         };
 
+#pragma warning disable IDE0060
     public static void AddEpisodeVote(HttpContext context, SVR_AnimeEpisode ep, int userID, Vote vote)
     {
         var dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode) ??
@@ -198,6 +207,7 @@ public class Episode : BaseModel
         //var cmdVote = new CommandRequest_VoteAnimeEpisode(ep.AniDB_EpisodeID, voteType, vote.GetRating());
         //cmdVote.Save();
     }
+#pragma warning restore IDE0060
 
     /// <summary>
     /// AniDB specific data for an Episode
