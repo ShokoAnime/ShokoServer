@@ -451,9 +451,15 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #region IMovie
 
-    IReadOnlyList<int> IMovie.ShokoSeriesIDs => [];
+    IReadOnlyList<int> IMovie.ShokoEpisodeIDs => CrossReferences
+        .Select(xref => xref.AnimeEpisode?.AnimeEpisodeID)
+        .WhereNotNull()
+        .ToList();
 
-    IReadOnlyList<int> IMovie.ShokoEpisodeIDs => [];
+    IReadOnlyList<int> IMovie.ShokoSeriesIDs => CrossReferences
+        .Select(xref => xref.AnimeSeries?.AnimeSeriesID)
+        .WhereNotNull()
+        .ToList();
 
     DateTime? IMovie.ReleaseDate => ReleasedAt?.ToDateTime();
 
