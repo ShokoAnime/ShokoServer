@@ -2227,8 +2227,7 @@ public class LegacyRenamer : IRenamer
         }
 
         // find the series associated with this episode
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.SeriesID);
-        if (series == null)
+        if (xref.Series is not SVR_AnimeSeries series)
         {
             return (null, "Series not Found");
         }
