@@ -239,7 +239,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
             .OfType<SVR_VideoLocal>()
             .ToList();
 
-    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => throw new NotImplementedException();
+    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is {} episode ? [episode.AnimeEpisodeID] : [];
 
     #endregion
 }
