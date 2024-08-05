@@ -120,7 +120,7 @@ public class TMDBSettings
     public bool AutoDownloadStudioImages { get; set; } = true;
 
     /// <summary>
-    /// User provided TMDB API key to use.
+    /// Optional. User provided TMDB API key to use.
     /// </summary>
     public string? UserApiKey { get; set; } = null;
 }
