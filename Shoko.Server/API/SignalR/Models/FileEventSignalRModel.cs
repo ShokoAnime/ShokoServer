@@ -17,10 +17,9 @@ public class FileEventSignalRModel
         ImportFolderID = eventArgs.ImportFolder.ID;
         var xrefs = eventArgs.Video.CrossReferences;
         var episodeDict = eventArgs.Episodes
-            .Cast<SVR_AniDB_Episode>()
-            .Select(e => e.AnimeEpisode)
+            .Cast<SVR_AnimeEpisode>()
             .WhereNotNull()
-            .ToDictionary(e => e!.AniDB_EpisodeID, e => e!);
+            .ToDictionary(e => e.AniDB_EpisodeID, e => e);
         var animeToGroupDict = episodeDict.Values
             .DistinctBy(e => e.AnimeSeriesID)
             .Select(e => e.AnimeSeries)
