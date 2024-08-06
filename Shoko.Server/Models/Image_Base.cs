@@ -315,7 +315,7 @@ public class Image_Base : IImageMetadata
             return true;
 
         var binary = await _retryPolicy.ExecuteAsync(async () => await Client.GetByteArrayAsync(RemoteURL));
-        if (Misc.IsImageValid(binary))
+        if (!Misc.IsImageValid(binary))
             throw new HttpRequestException($"Invalid image data format at remote resource: {RemoteURL}", null, HttpStatusCode.ExpectationFailed);
 
         // Ensure directory structure exists.
