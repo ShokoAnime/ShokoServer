@@ -419,7 +419,7 @@ public class WebUIController : BaseController
         try
         {
             if (channel == ReleaseChannel.Auto)
-                channel = GetCurrentServerReleaseChannel();
+                channel = GetCurrentWebUIReleaseChannel();
             var key = $"webui:{channel}";
             if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
                 return componentVersion;
