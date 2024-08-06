@@ -56,7 +56,7 @@ public class RenameFileService
         if (xrefs.Count != episodes.Count)
             return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
-                Error = new MoveRenameError(
+                Error = new RelocationError(
                     $"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.")
             };
 
@@ -66,13 +66,13 @@ public class RenameFileService
             if (string.IsNullOrWhiteSpace(defaultRenamerName))
                 return new Shoko.Plugin.Abstractions.Events.RelocationResult
                 {
-                    Error = new MoveRenameError("No default renamer configured and no renamer config given")
+                    Error = new RelocationError("No default renamer configured and no renamer config given")
                 };
             var defaultRenamer = _renamers.GetByName(defaultRenamerName);
             if (defaultRenamer == null)
                 return new Shoko.Plugin.Abstractions.Events.RelocationResult
                 {
-                    Error = new MoveRenameError("The specified default renamer does not exist")
+                    Error = new RelocationError("The specified default renamer does not exist")
                 };
             renamerConfig = defaultRenamer;
         }
@@ -80,13 +80,13 @@ public class RenameFileService
         if (!RenamersByType.TryGetValue(renamerConfig.Type, out var renamer))
             return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
-                Error = new MoveRenameError($"No renamers configured for {renamerConfig.Type}")
+                Error = new RelocationError($"No renamers configured for {renamerConfig.Type}")
             };
         // check if it's unrecognized
         if (xrefs.Count == 0 && renamer.GetType().GetInterfaces().Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IUnrecognizedRenamer<>)))
             return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
-                Error = new MoveRenameError("Configured renamer does not support unrecognized files, and the file is unrecognized")
+                Error = new RelocationError("Configured renamer does not support unrecognized files, and the file is unrecognized")
             };
 
         var anime = xrefs
@@ -115,7 +115,7 @@ public class RenameFileService
             if (settingsType != renamerConfig.Settings.GetType())
                 return new Shoko.Plugin.Abstractions.Events.RelocationResult
                 {
-                    Error = new MoveRenameError(
+                    Error = new RelocationError(
                         $"Configured renamer has settings of type {settingsType} but the renamer config has settings of type {renamerConfig.Settings.GetType()}")
                 };
 
@@ -133,14 +133,14 @@ public class RenameFileService
             if (!_settingsSetters.TryGetValue(argsType, out var settingsSetter))
                 _settingsSetters.TryAdd(argsType,
                     settingsSetter = argsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(a => a.Name == "Settings")?.SetMethod);
-            if (settingsSetter == null) return new Shoko.Plugin.Abstractions.Events.RelocationResult {Error = new MoveRenameError($"Cannot find Settings setter on {renamerInterface}")};
+            if (settingsSetter == null) return new Shoko.Plugin.Abstractions.Events.RelocationResult {Error = new RelocationError($"Cannot find Settings setter on {renamerInterface}")};
             settingsSetter.Invoke(args, [renamerConfig.Settings]);
 
             if (!_genericGetNewPaths.TryGetValue(renamerInterface, out var method))
                 _genericGetNewPaths.TryAdd(renamerInterface,
                     method = renamerInterface.GetMethod(nameof(IRenamer.GetNewPath), BindingFlags.Instance | BindingFlags.Public));
 
-            if (method == null) return new Shoko.Plugin.Abstractions.Events.RelocationResult {Error = new MoveRenameError("Cannot find GetNewPath method")};
+            if (method == null) return new Shoko.Plugin.Abstractions.Events.RelocationResult {Error = new RelocationError("Cannot find GetNewPath method")};
 
             return GetNewPath((r, a) => (Shoko.Plugin.Abstractions.Events.RelocationResult)method.Invoke(r, [a])!, renamer, args, shouldRename, shouldMove);
         }
@@ -181,20 +181,20 @@ public class RenameFileService
             if (args.Cancel)
                 return new Shoko.Plugin.Abstractions.Events.RelocationResult
                 {
-                    Error = new MoveRenameError($"Operation canceled by renamer {renamer.GetType().Name}.")
+                    Error = new RelocationError($"Operation canceled by renamer {renamer.GetType().Name}.")
                 };
 
             // TODO check fallback renamer 
             if (shouldRename && string.IsNullOrEmpty(res.FileName))
                 return new Shoko.Plugin.Abstractions.Events.RelocationResult
                 {
-                    Error = new MoveRenameError($"Set to rename, but renamer {renamer.GetType().Name} did not return a new file name")
+                    Error = new RelocationError($"Set to rename, but renamer {renamer.GetType().Name} did not return a new file name")
                 };
 
             if (shouldMove && (string.IsNullOrEmpty(res.Path) || res.DestinationImportFolder == null))
                 return new Shoko.Plugin.Abstractions.Events.RelocationResult
                 {
-                    Error = new MoveRenameError($"Renamer {renamer.GetType().Name} did not return a file path")
+                    Error = new RelocationError($"Renamer {renamer.GetType().Name} did not return a file path")
                 };
 
             return res;
@@ -203,7 +203,7 @@ public class RenameFileService
         {
             return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
-                Error = new MoveRenameError(e.Message, e)
+                Error = new RelocationError(e.Message, e)
             };
         }
     }

@@ -1,8 +1,10 @@
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Plugin.Abstractions.Events;
 
+/// <summary>
+/// The result object for a Relocation Event
+/// </summary>
 public class RelocationResult
 {
     /// <summary>
@@ -24,5 +26,5 @@ public class RelocationResult
     /// Set this object if the event is not successful. If this is set, it assumed that there was a failure, and the rename/move operation should be aborted. It is required to have at least a message.
     /// An exception can be provided if relevant.
     /// </summary>
-    public MoveRenameError? Error { get; set; }
+    public RelocationError? Error { get; set; }
 }

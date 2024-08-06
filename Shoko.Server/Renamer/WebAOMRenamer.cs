@@ -37,7 +37,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         {
             return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
-                Error = new MoveRenameError("No script available for renamer")
+                Error = new RelocationError("No script available for renamer")
             };
         }
 
@@ -63,7 +63,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         {
             return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
-                Error = ex == null ? null : new MoveRenameError(ex.Message, ex)
+                Error = ex == null ? null : new RelocationError(ex.Message, ex)
             };
         }
 
@@ -72,7 +72,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             FileName = newFilename,
             DestinationImportFolder = destination.dest,
             Path = destination.folder,
-            Error = ex == null ? null : new MoveRenameError(ex.Message, ex)
+            Error = ex == null ? null : new RelocationError(ex.Message, ex)
         };
     }
 

@@ -47,6 +47,9 @@ public class RelocationEventArgs : CancelEventArgs
     public IReadOnlyList<IShokoGroup> Groups { get; set; }
 }
 
+/// <summary>
+/// Event Args for File Relocation with Settings
+/// </summary>
 public class RelocationEventArgs<T> : RelocationEventArgs where T : class
 {
     /// <summary>
