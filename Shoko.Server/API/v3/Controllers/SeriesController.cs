@@ -316,7 +316,7 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
-    /// <param name="search">An optional search query to filter episodes based on their titles.</param>
+    /// <param name="search">An optional search query to filter series based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns></returns>
     [HttpGet("WithoutFiles")]
@@ -358,15 +358,40 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
+    /// <param name="search">An optional search query to filter series based on their titles.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns></returns>
     [HttpGet("WithManuallyLinkedFiles")]
-    public ActionResult<ListResult<Series>> GetSeriesWithManuallyLinkedFiles([FromQuery, Range(0, 100)] int pageSize = 50,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<Series>> GetSeriesWithManuallyLinkedFiles(
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] string search = null,
+        [FromQuery] bool fuzzy = true)
     {
         var user = User;
-        return RepoFactory.AnimeSeries.GetAll()
+        var query = RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Where(a => a.VideoLocal != null)
-                .Any(a => a.CrossRefSource == (int)CrossRefSource.User))
+                .Any(a => a.CrossRefSource == (int)CrossRefSource.User));
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var languages = SettingsProvider.GetSettings()
+                .Language.SeriesTitleLanguageOrder
+                .Select(lang => lang.GetTitleLanguage())
+                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
+                .ToHashSet();
+            return query
+                .Search(
+                    search,
+                    series => (series as IShokoSeries).Titles
+                        .Where(title => languages.Contains(title.Language))
+                        .Select(title => title.Title)
+                        .Distinct()
+                        .ToList(),
+                    fuzzy
+                )
+                .ToListResult(searchResult => new Series(searchResult.Result, User.JMMUserID), page, pageSize);
+        }
+        return query
             .OrderBy(series => series.PreferredTitle.ToLowerInvariant())
             .ToListResult(series => new Series(series, User.JMMUserID), page, pageSize);
     }
