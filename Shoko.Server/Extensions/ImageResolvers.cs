@@ -57,7 +57,7 @@ public static class ImageResolvers
 
     public static IImageMetadata? GetImageMetadata(this TvDB_Episode episode, bool preferred = false)
         => !string.IsNullOrEmpty(episode.Filename)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Character, episode.TvDB_EpisodeID, episode.GetFullImagePath(), string.Format(Constants.URLS.TvDB_Images, episode.Filename))
+            ? new Image_Base(DataSourceEnum.TvDB, ImageEntityType.Thumbnail, episode.TvDB_EpisodeID, episode.GetFullImagePath(), string.Format(Constants.URLS.TvDB_Images, episode.Filename))
             {
                 IsEnabled = true,
                 IsPreferred = preferred,
