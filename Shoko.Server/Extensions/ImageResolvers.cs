@@ -17,7 +17,7 @@ namespace Shoko.Server.Extensions;
 public static class ImageResolvers
 {
     private static string ResolveAnidbImageUrl(string relativePath)
-        => string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.URLS.AniDB_Images_Domain), relativePath);
+        => string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.URLS.AniDB_Images_Domain), relativePath.Split('/').Last());
 
     public static IReadOnlyList<IImageMetadata> GetImages(this TvDB_Series tvdbSeries, ImageEntityType? entityType = null, IReadOnlyDictionary<ImageEntityType, IImageMetadata>? preferredImages = null)
     {
