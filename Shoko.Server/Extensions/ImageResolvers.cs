@@ -145,7 +145,7 @@ public static class ImageResolvers
                     (RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(anime.AnimeID, ImageEntityType.Poster) is { } preferredImage &&
                     preferredImage!.ImageSource == Shoko.Models.Enums.DataSourceType.AniDB),
             }
-            : throw new NullReferenceException($"AniDB Anime {anime.AnimeID} does not have a poster path set!");
+            : new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Poster, anime.AnimeID);
 
     public static string GetFullImagePath(this AniDB_Anime anime)
     {
