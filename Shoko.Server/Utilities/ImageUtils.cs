@@ -165,7 +165,7 @@ public class ImageUtils
                 ImageEntityType.Backdrop => RepoFactory.TvDB_ImageFanart.GetByID(imageId)?.GetImageMetadata(),
                 ImageEntityType.Banner => RepoFactory.TvDB_ImageWideBanner.GetByID(imageId)?.GetImageMetadata(),
                 ImageEntityType.Poster => RepoFactory.TvDB_ImagePoster.GetByID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Thumbnail => RepoFactory.TvDB_Episode.GetByTvDBID(imageId)?.GetImageMetadata(),
+                ImageEntityType.Thumbnail => RepoFactory.TvDB_Episode.GetByID(imageId)?.GetImageMetadata(),
                 _ => null,
             },
             _ => null,

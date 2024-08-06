@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -39,11 +39,11 @@ public static class ImageResolvers
         return images;
     }
 
-    public static IReadOnlyList<IImageMetadata> GetImages(this TvDB_Episode tvdbSeries, ImageEntityType? entityType = null, IReadOnlyDictionary<ImageEntityType, IImageMetadata>? preferredImages = null)
+    public static IReadOnlyList<IImageMetadata> GetImages(this TvDB_Episode tvdbEpisode, ImageEntityType? entityType = null, IReadOnlyDictionary<ImageEntityType, IImageMetadata>? preferredImages = null)
     {
         var images = new List<IImageMetadata>();
 
-        if ((!entityType.HasValue || entityType is ImageEntityType.Thumbnail) && GetImageMetadata(tvdbSeries) is { } thumbnail)
+        if ((!entityType.HasValue || entityType is ImageEntityType.Thumbnail) && GetImageMetadata(tvdbEpisode) is { } thumbnail)
             images.Add(thumbnail);
 
         if (preferredImages is not null)
