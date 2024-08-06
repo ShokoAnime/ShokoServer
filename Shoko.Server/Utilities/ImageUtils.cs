@@ -162,9 +162,9 @@ public class ImageUtils
             DataSourceType.TMDB => RepoFactory.TMDB_Image.GetByID(imageId),
             DataSourceType.TvDB => imageType switch
             {
-                ImageEntityType.Backdrop => RepoFactory.TvDB_ImageFanart.GetByTvDBID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Banner => RepoFactory.TvDB_ImageWideBanner.GetByTvDBID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Poster => RepoFactory.TvDB_ImagePoster.GetByTvDBID(imageId)?.GetImageMetadata(),
+                ImageEntityType.Backdrop => RepoFactory.TvDB_ImageFanart.GetByID(imageId)?.GetImageMetadata(),
+                ImageEntityType.Banner => RepoFactory.TvDB_ImageWideBanner.GetByID(imageId)?.GetImageMetadata(),
+                ImageEntityType.Poster => RepoFactory.TvDB_ImagePoster.GetByID(imageId)?.GetImageMetadata(),
                 ImageEntityType.Thumbnail => RepoFactory.TvDB_Episode.GetByTvDBID(imageId)?.GetImageMetadata(),
                 _ => null,
             },
