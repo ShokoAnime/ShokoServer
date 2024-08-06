@@ -278,14 +278,12 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
             .ToList();
 
     IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-    {
-        throw new NotImplementedException();
-    }
+        => null;
 
     IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType)
-    {
-        throw new NotImplementedException();
-    }
+        => entityType.HasValue
+            ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
+            : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     /// <summary>
     /// Get all cast members that have worked on this episode.
@@ -395,6 +393,10 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         })
         .ToList();
 
+    #endregion
+
+    #region IEpisode
+
     int IEpisode.SeriesID => TmdbShowID;
 
     IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => CrossReferences
@@ -412,7 +414,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     DateTime? IEpisode.AirDate => AiredAt?.ToDateTime();
 
-    ISeries? IEpisode.SeriesInfo => TmdbShow;
+    ISeries? IEpisode.Series => TmdbShow;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => CrossReferences
         .Select(xref => xref.AnimeEpisode)

@@ -44,7 +44,7 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IWithImages, IMetada
     /// <summary>
     /// Get the series info for the episode, if available.
     /// </summary>
-    ISeries? SeriesInfo { get; }
+    ISeries? Series { get; }
 
     /// <summary>
     /// All shoko episodes linked to this episode.

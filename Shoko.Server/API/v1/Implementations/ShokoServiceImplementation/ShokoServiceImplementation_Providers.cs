@@ -107,7 +107,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             // TMDB
             var (xrefMovie, _) = anime.TmdbMovieCrossReferences;
             result.CrossRef_AniDB_MovieDB = xrefMovie?.ToClient();
-            if (xrefMovie?.TmdbMovie is var tmdbMovie)
+            if (xrefMovie?.TmdbMovie is { } tmdbMovie)
             {
                 result.MovieDBMovie = xrefMovie?.TmdbMovie?.ToClient();
                 foreach (var fanart in tmdbMovie.GetImages(ImageEntityType.Backdrop))

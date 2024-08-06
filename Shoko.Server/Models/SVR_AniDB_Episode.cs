@@ -189,7 +189,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
                     LanguageCode = a.LanguageCode,
                     Language = a.Language,
                     Title = a.Title,
-                    Type = string.Equals(a.Title, defaultTitle) ? TitleType.Main : TitleType.None,
+                    Type = string.Equals(a.Title, defaultTitle.Title) ? TitleType.Main : TitleType.None,
                 })
                 .ToList();
         }
@@ -225,7 +225,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
 
     DateTime? IEpisode.AirDate => this.GetAirDateAsDate();
 
-    ISeries? IEpisode.SeriesInfo => AniDB_Anime;
+    ISeries? IEpisode.Series => AniDB_Anime;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => AnimeEpisode is IShokoEpisode shokoEpisode ? [shokoEpisode] : [];
 
@@ -239,7 +239,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
             .OfType<SVR_VideoLocal>()
             .ToList();
 
-    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => throw new NotImplementedException();
+    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is {} episode ? [episode.AnimeEpisodeID] : [];
 
     #endregion
 }
