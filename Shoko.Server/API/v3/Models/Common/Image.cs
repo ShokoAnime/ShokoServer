@@ -83,9 +83,12 @@ public class Image
         // we need to set _something_ for the clients that determine
         // if an image exists by checking if a relative path is set,
         // so we set the id.
-        RelativeFilepath = imageMetadata.IsAvailable ? $"/{ID}" : null;
-        Width = imageMetadata.Width;
-        Height = imageMetadata.Height;
+        RelativeFilepath = imageMetadata.IsLocalAvailable ? $"/{ID}" : null;
+        if (imageMetadata.IsLocalAvailable || Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+        {
+            Width = imageMetadata.Width;
+            Height = imageMetadata.Height;
+        }
     }
 
     public Image(int id, ImageEntityType imageEntityType, DataSourceType dataSource, bool preferred = false, bool disabled = false)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +17,7 @@ namespace Shoko.Server.Extensions;
 public static class ImageResolvers
 {
     private static string ResolveAnidbImageUrl(string relativePath)
-        => string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.URLS.AniDB_Images_Domain), relativePath);
+        => string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.URLS.AniDB_Images_Domain), relativePath.Split(Path.DirectorySeparatorChar).LastOrDefault());
 
     public static IReadOnlyList<IImageMetadata> GetImages(this TvDB_Series tvdbSeries, ImageEntityType? entityType = null, IReadOnlyDictionary<ImageEntityType, IImageMetadata>? preferredImages = null)
     {
@@ -39,11 +39,11 @@ public static class ImageResolvers
         return images;
     }
 
-    public static IReadOnlyList<IImageMetadata> GetImages(this TvDB_Episode tvdbSeries, ImageEntityType? entityType = null, IReadOnlyDictionary<ImageEntityType, IImageMetadata>? preferredImages = null)
+    public static IReadOnlyList<IImageMetadata> GetImages(this TvDB_Episode tvdbEpisode, ImageEntityType? entityType = null, IReadOnlyDictionary<ImageEntityType, IImageMetadata>? preferredImages = null)
     {
         var images = new List<IImageMetadata>();
 
-        if ((!entityType.HasValue || entityType is ImageEntityType.Thumbnail) && GetImageMetadata(tvdbSeries) is { } thumbnail)
+        if ((!entityType.HasValue || entityType is ImageEntityType.Thumbnail) && GetImageMetadata(tvdbEpisode) is { } thumbnail)
             images.Add(thumbnail);
 
         if (preferredImages is not null)
@@ -57,7 +57,7 @@ public static class ImageResolvers
 
     public static IImageMetadata? GetImageMetadata(this TvDB_Episode episode, bool preferred = false)
         => !string.IsNullOrEmpty(episode.Filename)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Character, episode.TvDB_EpisodeID, episode.GetFullImagePath(), string.Format(Constants.URLS.TvDB_Images, episode.Filename))
+            ? new Image_Base(DataSourceEnum.TvDB, ImageEntityType.Thumbnail, episode.TvDB_EpisodeID, episode.GetFullImagePath(), string.Format(Constants.URLS.TvDB_Images, episode.Filename))
             {
                 IsEnabled = true,
                 IsPreferred = preferred,
@@ -145,7 +145,7 @@ public static class ImageResolvers
                     (RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(anime.AnimeID, ImageEntityType.Poster) is { } preferredImage &&
                     preferredImage!.ImageSource == Shoko.Models.Enums.DataSourceType.AniDB),
             }
-            : throw new NullReferenceException($"AniDB Anime {anime.AnimeID} does not have a poster path set!");
+            : new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Poster, anime.AnimeID);
 
     public static string GetFullImagePath(this AniDB_Anime anime)
     {

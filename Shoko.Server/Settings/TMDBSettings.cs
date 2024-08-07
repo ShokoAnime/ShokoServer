@@ -97,7 +97,7 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
-    public int MaxAutoThumbnails { get; set; } = 10;
+    public int MaxAutoThumbnails { get; set; } = 1;
 
     /// <summary>
     /// Automagically download staff member and voice-actor images.

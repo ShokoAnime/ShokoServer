@@ -25,7 +25,7 @@ public class VoteAniDBAnimeJob : BaseJob
 
     public int AnimeID { get; set; }
     public AniDBVoteType VoteType { get; set; }
-    public decimal VoteValue { get; set; }
+    public double VoteValue { get; set; }
 
     public override void PostInit()
     {
@@ -50,7 +50,7 @@ public class VoteAniDBAnimeJob : BaseJob
             r =>
             {
                 r.Temporary = VoteType == AniDBVoteType.AnimeTemp;
-                r.Value = Convert.ToDouble(VoteValue);
+                r.Value = VoteValue;
                 r.AnimeID = AnimeID;
             }
         );

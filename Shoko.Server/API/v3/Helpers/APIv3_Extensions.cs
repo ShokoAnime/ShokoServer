@@ -11,7 +11,7 @@ using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
 #nullable enable
 namespace Shoko.Server.API.v3.Helpers;
 
-public static class APIv3_TMDB_Extensions
+public static class APIv3_Extensions
 {
     public static Role.CreatorRoleType ToCreatorRole(this TMDB_Movie_Crew crew)
         => ToCreatorRole(crew.Department, crew.Job);

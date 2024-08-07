@@ -302,7 +302,7 @@ public class Episode : BaseModel
             AirsAfterSeason = tvDBEpisode.AirsAfterSeason;
             AirsBeforeSeason = tvDBEpisode.AirsBeforeSeason;
             AirsBeforeEpisode = tvDBEpisode.AirsBeforeEpisode;
-            Thumbnail = new Image(tvDBEpisode.Id, ImageEntityType.Thumbnail, DataSourceType.TvDB, true, false);
+            Thumbnail = new Image(tvDBEpisode.TvDB_EpisodeID, ImageEntityType.Thumbnail, DataSourceType.TvDB, true, false);
         }
 
         /// <summary>
@@ -418,7 +418,7 @@ public class Episode : BaseModel
 
     public static class Input
     {
-        public class TitleOverrideBody
+        public class EpisodeTitleOverrideBody
         {
             /// <summary>
             /// New title to be set as override for the series

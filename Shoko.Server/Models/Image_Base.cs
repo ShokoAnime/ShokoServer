@@ -127,14 +127,9 @@ public class Image_Base : IImageMetadata
         get => !string.IsNullOrEmpty(LocalPath) && File.Exists(LocalPath) && Misc.IsImageValid(LocalPath);
     }
 
-    private Exception? _remoteException = null;
-
-    private byte[]? _remoteImageByteArray = null;
-
     private bool? _urlExists = null;
 
     [MemberNotNullWhen(true, nameof(RemoteURL))]
-    [MemberNotNullWhen(true, nameof(_remoteImageByteArray))]
     public bool IsRemoteAvailable
     {
         get
@@ -146,14 +141,11 @@ public class Image_Base : IImageMetadata
         }
         set
         {
-            _remoteException = null;
-            _remoteImageByteArray = null;
             _urlExists = null;
         }
     }
 
     [MemberNotNullWhen(true, nameof(RemoteURL))]
-    [MemberNotNullWhen(true, nameof(_remoteImageByteArray))]
     private async Task<bool> CheckIsRemoteAvailableAsync()
     {
         if (_urlExists.HasValue)
@@ -161,27 +153,22 @@ public class Image_Base : IImageMetadata
 
         if (string.IsNullOrEmpty(RemoteURL))
         {
-            _remoteImageByteArray = null;
-            _remoteException = null;
             _urlExists = false;
             return false;
         }
 
         try
         {
-            _remoteImageByteArray = await _retryPolicy
-                .ExecuteAsync(async () => await Client.GetByteArrayAsync(RemoteURL) is { } bytes ? bytes : null);
-            _urlExists = _remoteImageByteArray is not null && Misc.IsImageValid(_remoteImageByteArray);
-            _remoteException = null;
+            var stream = await _retryPolicy.ExecuteAsync(async () => await Client.GetStreamAsync(RemoteURL));
+            var bytes = new byte[12];
+            stream.Read(bytes, 0, 12);
+            stream.Close();
+            _urlExists = Misc.IsImageValid(bytes);
             return _urlExists.Value;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to retrieve resource at url: {RemoteURL}", RemoteURL);
-            // Ignore timeouts
-            if (ex is not TaskCanceledException)
-                _remoteException = ex;
-            _remoteImageByteArray = null;
             _urlExists = false;
             return false;
         }
@@ -247,8 +234,6 @@ public class Image_Base : IImageMetadata
             _width = null;
             _height = null;
             _urlExists = null;
-            _remoteException = null;
-            _remoteImageByteArray = null;
             _remoteURL = value;
         }
     }
@@ -315,8 +300,8 @@ public class Image_Base : IImageMetadata
         if (allowLocal && IsLocalAvailable)
             return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
 
-        if (allowRemote && IsRemoteAvailable)
-            return new MemoryStream(_remoteImageByteArray);
+        if (allowRemote && DownloadImage().ConfigureAwait(false).GetAwaiter().GetResult() && IsLocalAvailable)
+            return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
 
         return null;
     }
@@ -329,24 +314,9 @@ public class Image_Base : IImageMetadata
         if (!force && IsLocalAvailable)
             return true;
 
-        if (!await CheckIsRemoteAvailableAsync() || _remoteImageByteArray is null)
-        {
-            var remoteException = _remoteException;
-            var bytesExists = _remoteImageByteArray is not null;
-
-            // "Flush" the cached image.
-            _remoteException = null;
-            _remoteImageByteArray = null;
-            _urlExists = null;
-
-            if (remoteException is not null)
-                throw remoteException;
-
-            if (bytesExists)
-                throw new HttpRequestException($"Invalid image data format at remote resource: {RemoteURL}", null, HttpStatusCode.ExpectationFailed);
-
-            return false;
-        }
+        var binary = await _retryPolicy.ExecuteAsync(async () => await Client.GetByteArrayAsync(RemoteURL));
+        if (!Misc.IsImageValid(binary))
+            throw new HttpRequestException($"Invalid image data format at remote resource: {RemoteURL}", null, HttpStatusCode.ExpectationFailed);
 
         // Ensure directory structure exists.
         var dirPath = Path.GetDirectoryName(LocalPath);
@@ -358,11 +328,9 @@ public class Image_Base : IImageMetadata
             File.Delete(LocalPath);
 
         // Write the memory-cached image onto the disk.
-        File.WriteAllBytes(LocalPath, _remoteImageByteArray);
+        File.WriteAllBytes(LocalPath, binary);
 
         // "Flush" the cached image.
-        _remoteException = null;
-        _remoteImageByteArray = null;
         _urlExists = null;
 
         return true;

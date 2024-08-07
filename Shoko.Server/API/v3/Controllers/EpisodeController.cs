@@ -340,7 +340,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/OverrideTitle")]
-    public ActionResult OverrideEpisodeTitle([FromRoute] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Episode.Input.TitleOverrideBody body)
+    public ActionResult OverrideEpisodeTitle([FromRoute] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Episode.Input.EpisodeTitleOverrideBody body)
     {
         if (episodeID == 0)
             return BadRequest(EpisodeWithZeroID);
