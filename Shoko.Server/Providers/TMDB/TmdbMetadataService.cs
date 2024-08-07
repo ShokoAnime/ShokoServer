@@ -174,7 +174,7 @@ public class TmdbMetadataService
             await RemoveAllMovieLinks(animeId);
 
         // Add or update the link.
-        _logger.LogInformation("Adding TMDB Movie Link: AniDB (ID:{AnidbID}) → TvDB Movie (ID:{TmdbID})", animeId, movieId);
+        _logger.LogInformation("Adding TMDB Movie Link: AniDB (ID:{AnidbID}) → TMDB Movie (ID:{TmdbID})", animeId, movieId);
         var xref = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId) ??
             new(animeId, movieId);
         if (episodeId.HasValue)
@@ -761,7 +761,7 @@ public class TmdbMetadataService
             await RemoveAllShowLinks(animeId);
 
         // Add or update the link.
-        _logger.LogInformation("Adding TMDB Show Link: AniDB (ID:{AnidbID}) → TvDB Show (ID:{TmdbID})", animeId, showId);
+        _logger.LogInformation("Adding TMDB Show Link: AniDB (ID:{AnidbID}) → TMDB Show (ID:{TmdbID})", animeId, showId);
         var xref = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId) ??
             new(animeId, showId);
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
