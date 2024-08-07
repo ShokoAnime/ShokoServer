@@ -66,7 +66,7 @@ public class AnimeSeriesService
             {
                 c.AnimeID = series.AniDB_ID;
                 c.VoteType = voteType;
-                c.VoteValue = vote;
+                c.VoteValue = Convert.ToDouble(vote);
             }
         );
     }

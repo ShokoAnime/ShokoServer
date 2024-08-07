@@ -1510,7 +1510,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 c.AnimeID = animeID;
                 c.VoteType = (AniDBVoteType)voteType;
-                c.VoteValue = voteValue;
+                c.VoteValue = Convert.ToDouble(voteValue);
             }
         ).GetAwaiter().GetResult();
     }

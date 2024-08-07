@@ -2608,7 +2608,7 @@ public class Common : BaseController
             {
                 c.AnimeID = ser.AniDB_ID;
                 c.VoteType = (AniDBVoteType)voteType;
-                c.VoteValue = Convert.ToDecimal(score / 100);
+                c.VoteValue = score / 100D;
             }
         );
         return Ok();
