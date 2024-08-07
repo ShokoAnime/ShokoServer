@@ -418,7 +418,7 @@ public class Episode : BaseModel
 
     public static class Input
     {
-        public class TitleOverrideBody
+        public class EpisodeTitleOverrideBody
         {
             /// <summary>
             /// New title to be set as override for the series
