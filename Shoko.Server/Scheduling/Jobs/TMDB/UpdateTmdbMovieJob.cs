@@ -14,7 +14,7 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
 [NetworkRequired]
-[DisallowConcurrencyGroup(ConcurrencyGroups.TMDB)]
+[LimitConcurrency(4, 12)]
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public class UpdateTmdbMovieJob : BaseJob
 {

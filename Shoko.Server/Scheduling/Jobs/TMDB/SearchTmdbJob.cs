@@ -18,7 +18,7 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
 [NetworkRequired]
-[DisallowConcurrencyGroup(ConcurrencyGroups.TMDB)]
+[LimitConcurrency(8, 24)]
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public partial class SearchTmdbJob : BaseJob
 {

@@ -9,7 +9,7 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
 [NetworkRequired]
-[LimitConcurrency(8, 16)]
+[LimitConcurrency(10, 16)]
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public class DownloadTmdbImageJob : DownloadImageBaseJob
 {
