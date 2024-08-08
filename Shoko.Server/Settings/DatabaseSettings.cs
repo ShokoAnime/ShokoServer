@@ -41,6 +41,7 @@ public class DatabaseSettings
             {
                 Constants.DatabaseType.MySQL => 3306,
                 Constants.DatabaseType.SqlServer => 1433,
+                Constants.DatabaseType.PostgreSQL => 5432,
                 _ => 0,
             };
         }

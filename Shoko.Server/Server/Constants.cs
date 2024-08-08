@@ -1,4 +1,4 @@
-﻿namespace Shoko.Server.Server;
+namespace Shoko.Server.Server;
 
 public static class Constants
 {
@@ -30,6 +30,7 @@ public static class Constants
         public const string SqlServer = "SQLServer";
         public const string Sqlite = "SQLite";
         public const string MySQL = "MySQL";
+        public const string PostgreSQL = "PostgreSQL";
     }
 
     // http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
