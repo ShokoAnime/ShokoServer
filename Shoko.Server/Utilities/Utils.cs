@@ -352,23 +352,17 @@ public static class Utils
 
     public static int GetScheduledHours(ScheduledUpdateFrequency freq)
     {
-        switch (freq)
+        return freq switch
         {
-            case ScheduledUpdateFrequency.Daily:
-                return 24;
-            case ScheduledUpdateFrequency.HoursSix:
-                return 6;
-            case ScheduledUpdateFrequency.HoursTwelve:
-                return 12;
-            case ScheduledUpdateFrequency.WeekOne:
-                return 24 * 7;
-            case ScheduledUpdateFrequency.MonthOne:
-                return 24 * 30;
-            case ScheduledUpdateFrequency.Never:
-                return int.MaxValue;
-        }
-
-        return int.MaxValue;
+            ScheduledUpdateFrequency.HoursOne => 1,
+            ScheduledUpdateFrequency.HoursThree => 3,
+            ScheduledUpdateFrequency.HoursSix => 6,
+            ScheduledUpdateFrequency.HoursTwelve => 12,
+            ScheduledUpdateFrequency.Daily => 24,
+            ScheduledUpdateFrequency.WeekOne => 24 * 7,
+            ScheduledUpdateFrequency.MonthOne => 24 * 30,
+            _ => int.MaxValue,
+        };
     }
 
     public static void GetFilesForImportFolder(DirectoryInfo sDir, ref List<string> fileList)
