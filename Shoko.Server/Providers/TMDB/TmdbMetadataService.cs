@@ -10,6 +10,7 @@ using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.TMDB;
@@ -284,8 +285,12 @@ public class TmdbMetadataService
         if (movie == null)
             return false;
 
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
         var updated = tmdbMovie.Populate(movie);
-        updated = UpdateTitlesAndOverviews(tmdbMovie, movie.Translations) || updated;
+        updated = UpdateTitlesAndOverviews(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
         if (downloadCrewAndCast)
             updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
@@ -508,8 +513,12 @@ public class TmdbMetadataService
                 return;
             }
 
+            var settings = _settingsProvider.GetSettings();
+            var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+            var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
             var updated = tmdbCollection.Populate(collection);
-            updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations) || updated;
+            updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
 
             var xrefsToAdd = 0;
             var xrefsToSave = new List<TMDB_Collection_Movie>();
@@ -970,8 +979,12 @@ public class TmdbMetadataService
         if (show == null)
             return false;
 
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
         var updated = tmdbShow.Populate(show);
-        updated = UpdateTitlesAndOverviews(tmdbShow, show.Translations) || updated;
+        updated = UpdateTitlesAndOverviews(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
         var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, forceRefresh);
         if (episodesOrSeasonsUpdated)
@@ -1000,6 +1013,10 @@ public class TmdbMetadataService
 
     private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadImages, bool downloadCrewAndCast = false, bool forceRefresh = false)
     {
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
         var existingSeasons = RepoFactory.TMDB_Season.GetByTmdbShowID(show.Id)
             .ToDictionary(season => season.Id);
         var seasonsToAdd = 0;
@@ -1024,7 +1041,7 @@ public class TmdbMetadataService
             }
 
             var seasonUpdated = tmdbSeason.Populate(show, season);
-            seasonUpdated = UpdateTitlesAndOverviews(tmdbSeason, season.Translations) || seasonUpdated;
+            seasonUpdated = UpdateTitlesAndOverviews(tmdbSeason, season.Translations, preferredTitleLanguages, preferredOverviewLanguages) || seasonUpdated;
             if (seasonUpdated)
             {
                 tmdbSeason.LastUpdatedAt = DateTime.Now;
@@ -1049,7 +1066,7 @@ public class TmdbMetadataService
                 // Update base episode and titles/overviews.
                 var episodeTranslations = await Client.GetTvEpisodeTranslationsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
                 var episodeUpdated = tmdbEpisode.Populate(show, season, episode, episodeTranslations!);
-                episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!) || episodeUpdated;
+                episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!, preferredTitleLanguages, preferredOverviewLanguages) || episodeUpdated;
 
                 // Update crew & cast.
                 if (downloadCrewAndCast)
@@ -2028,8 +2045,10 @@ public class TmdbMetadataService
     /// </summary>
     /// <param name="tmdbEntity">The local TMDB Entity to update titles and overviews for.</param>
     /// <param name="translations">The translations container returned from the API.</param>
+    /// <param name="preferredTitleLanguages">The preferred title languages to store. If not set then we will store all languages.</param>
+    /// <param name="preferredOverviewLanguages">The preferred overview languages to store. If not set then we will store all languages.</param>
     /// <returns>A boolean indicating if any changes were made to the titles and/or overviews.</returns>
-    private bool UpdateTitlesAndOverviews(IEntityMetadata tmdbEntity, TranslationsContainer translations)
+    private bool UpdateTitlesAndOverviews(IEntityMetadata tmdbEntity, TranslationsContainer translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages)
     {
         var existingOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
         var existingTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
@@ -2044,13 +2063,22 @@ public class TmdbMetadataService
             var languageCode = translation.Iso_639_1.ToLowerInvariant();
             var countryCode = translation.Iso_3166_1.ToUpperInvariant();
 
+            var alwaysInclude = false;
             var currentTitle = translation.Data.Name ?? string.Empty;
             if (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode == tmdbEntity.OriginalLanguageCode)
+            {
                 currentTitle = tmdbEntity.OriginalTitle ?? translation.Data.Name ?? string.Empty;
+                alwaysInclude = true;
+            }
             else if (languageCode == "en" && countryCode == "US")
+            {
+                alwaysInclude = true;
                 currentTitle = tmdbEntity.EnglishTitle ?? translation.Data.Name ?? string.Empty;
+            }
+
+            var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage());
             var existingTitle = existingTitles.FirstOrDefault(title => title.LanguageCode == languageCode && title.CountryCode == countryCode);
-            if (!string.IsNullOrEmpty(currentTitle) && !(
+            if (shouldInclude && !string.IsNullOrEmpty(currentTitle) && !(
                 // Make sure the "translation" is not just the English Title or
                 (languageCode != "en" && languageCode != "US" && string.Equals(tmdbEntity.EnglishTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase)) ||
                 // the Original Title.
@@ -2073,11 +2101,17 @@ public class TmdbMetadataService
                 }
             }
 
+            alwaysInclude = false;
             var currentOverview = translation.Data.Overview ?? string.Empty;
             if (languageCode == "en" && countryCode == "US")
+            {
+                alwaysInclude = true;
                 currentOverview = tmdbEntity.EnglishOverview ?? translation.Data.Overview ?? string.Empty;
+            }
+
+            shouldInclude = alwaysInclude || preferredOverviewLanguages is null || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage());
             var existingOverview = existingOverviews.FirstOrDefault(overview => overview.LanguageCode == languageCode && overview.CountryCode == countryCode);
-            if (!string.IsNullOrEmpty(currentOverview))
+            if (shouldInclude && !string.IsNullOrEmpty(currentOverview))
             {
                 if (existingOverview == null)
                 {
