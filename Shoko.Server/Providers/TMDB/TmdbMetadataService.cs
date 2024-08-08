@@ -501,63 +501,61 @@ public class TmdbMetadataService
 
     private async Task UpdateMovieCollections(Movie movie)
     {
-        var collectionId = movie.BelongsToCollection?.Id;
-        if (collectionId.HasValue)
-        {
-            var movieXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(collectionId.Value);
-            var tmdbCollection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionId.Value) ?? new(collectionId.Value);
-            var collection = await Client.GetCollectionAsync(collectionId.Value, CollectionMethods.Images | CollectionMethods.Translations);
-            if (collection == null)
-            {
-                PurgeMovieCollection(collectionId.Value);
-                return;
-            }
-
-            var settings = _settingsProvider.GetSettings();
-            var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
-            var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
-
-            var updated = tmdbCollection.Populate(collection);
-            updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
-
-            var xrefsToAdd = 0;
-            var xrefsToSave = new List<TMDB_Collection_Movie>();
-            var xrefsToRemove = movieXRefs.Where(xref => !collection.Parts.Any(part => xref.TmdbMovieID == part.Id)).ToList();
-            var movieXref = movieXRefs.FirstOrDefault(xref => xref.TmdbMovieID == movie.Id);
-            var index = collection.Parts.FindIndex(part => part.Id == movie.Id);
-            if (index == -1)
-                index = collection.Parts.Count;
-            if (movieXref == null)
-            {
-                xrefsToAdd++;
-                xrefsToSave.Add(new(collectionId.Value, movie.Id, index + 1));
-            }
-            else if (movieXref.Ordering != index + 1)
-            {
-                movieXref.Ordering = index + 1;
-                xrefsToSave.Add(movieXref);
-            }
-
-            _logger.LogDebug(
-                "Added/updated/removed/skipped {ta}/{tu}/{tr}/{ts} movie cross-references for movie collection {CollectionTitle} (Id={CollectionId})",
-                xrefsToAdd,
-                xrefsToSave.Count - xrefsToAdd,
-                xrefsToRemove.Count,
-                movieXRefs.Count + xrefsToAdd - xrefsToRemove.Count - xrefsToSave.Count,
-                tmdbCollection.EnglishTitle,
-                tmdbCollection.Id);
-            RepoFactory.TMDB_Collection_Movie.Save(xrefsToSave);
-            RepoFactory.TMDB_Collection_Movie.Delete(xrefsToRemove);
-
-            if (updated || xrefsToSave.Count > 0 || xrefsToRemove.Count > 0)
-            {
-                tmdbCollection.LastUpdatedAt = DateTime.Now;
-                RepoFactory.TMDB_Collection.Save(tmdbCollection);
-            }
-        }
-        else
+        if (movie.BelongsToCollection?.Id is not { } collectionId)
         {
             CleanupMovieCollection(movie.Id);
+            return;
+        }
+
+        var movieXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(collectionId);
+        var tmdbCollection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
+        var collection = await Client.GetCollectionAsync(collectionId, CollectionMethods.Images | CollectionMethods.Translations);
+        if (collection == null)
+        {
+            PurgeMovieCollection(collectionId);
+            return;
+        }
+
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
+        var updated = tmdbCollection.Populate(collection);
+        updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
+
+        var xrefsToAdd = 0;
+        var xrefsToSave = new List<TMDB_Collection_Movie>();
+        var xrefsToRemove = movieXRefs.Where(xref => !collection.Parts.Any(part => xref.TmdbMovieID == part.Id)).ToList();
+        var movieXref = movieXRefs.FirstOrDefault(xref => xref.TmdbMovieID == movie.Id);
+        var index = collection.Parts.FindIndex(part => part.Id == movie.Id);
+        if (index == -1)
+            index = collection.Parts.Count;
+        if (movieXref == null)
+        {
+            xrefsToAdd++;
+            xrefsToSave.Add(new(collectionId, movie.Id, index + 1));
+        }
+        else if (movieXref.Ordering != index + 1)
+        {
+            movieXref.Ordering = index + 1;
+            xrefsToSave.Add(movieXref);
+        }
+
+        _logger.LogDebug(
+            "Added/updated/removed/skipped {ta}/{tu}/{tr}/{ts} movie cross-references for movie collection {CollectionTitle} (Id={CollectionId})",
+            xrefsToAdd,
+            xrefsToSave.Count - xrefsToAdd,
+            xrefsToRemove.Count,
+            movieXRefs.Count + xrefsToAdd - xrefsToRemove.Count - xrefsToSave.Count,
+            tmdbCollection.EnglishTitle,
+            tmdbCollection.Id);
+        RepoFactory.TMDB_Collection_Movie.Save(xrefsToSave);
+        RepoFactory.TMDB_Collection_Movie.Delete(xrefsToRemove);
+
+        if (updated || xrefsToSave.Count > 0 || xrefsToRemove.Count > 0)
+        {
+            tmdbCollection.LastUpdatedAt = DateTime.Now;
+            RepoFactory.TMDB_Collection.Save(tmdbCollection);
         }
     }
 
