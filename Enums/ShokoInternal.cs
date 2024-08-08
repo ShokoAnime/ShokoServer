@@ -369,7 +369,9 @@ namespace Shoko.Models.Enums
         HoursTwelve = 3,
         Daily = 4,
         WeekOne = 5,
-        MonthOne = 6
+        MonthOne = 6,
+        HoursThree = 7,
+        HoursOne = 8,
     }
 
     public enum SeriesSearchType
