@@ -77,7 +77,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         {
             var poster = AniDB_Anime?.GetImageMetadata(false);
             if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster == preferredPoster
+                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
                     ? preferredPoster
                     : poster
                 );
@@ -239,7 +239,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
             .OfType<SVR_VideoLocal>()
             .ToList();
 
-    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is {} episode ? [episode.AnimeEpisodeID] : [];
+    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is { } episode ? [episode.AnimeEpisodeID] : [];
 
     #endregion
 }

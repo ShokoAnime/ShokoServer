@@ -229,7 +229,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
         {
             var poster = this.GetImageMetadata(false);
             if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster == preferredPoster
+                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
                     ? preferredPoster
                     : poster
                 );

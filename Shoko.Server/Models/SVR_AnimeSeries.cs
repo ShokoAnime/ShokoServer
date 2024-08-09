@@ -228,7 +228,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         {
             var poster = AniDB_Anime?.GetImageMetadata(false);
             if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster == preferredPoster
+                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
                     ? preferredPoster
                     : poster
                 );
