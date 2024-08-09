@@ -332,6 +332,15 @@ public class Image
             [Required]
             public ImageSource Source { get; set; }
         }
+
+        public class EnableImageBody
+        {
+            /// <summary>
+            /// Indicates that the image should be enabled.
+            /// </summary>
+            [Required]
+            public bool Enabled { get; set; }
+        }
     }
 }
 
