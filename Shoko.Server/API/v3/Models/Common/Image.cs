@@ -7,6 +7,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -84,7 +85,12 @@ public class Image
         // if an image exists by checking if a relative path is set,
         // so we set the id.
         RelativeFilepath = imageMetadata.IsLocalAvailable ? $"/{ID}" : null;
-        if (imageMetadata.IsLocalAvailable || Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+        if (imageMetadata is TMDB_Image tmdbImage)
+        {
+            Width = tmdbImage.Width;
+            Height = tmdbImage.Height;
+        }
+        else if (imageMetadata.IsLocalAvailable || Utils.SettingsProvider.GetSettings().LoadImageMetadata)
         {
             Width = imageMetadata.Width;
             Height = imageMetadata.Height;
