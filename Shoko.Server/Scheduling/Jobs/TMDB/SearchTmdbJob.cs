@@ -22,6 +22,11 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public partial class SearchTmdbJob : BaseJob
 {
+    /// <summary>
+    /// Max days into the future to search for matches against.
+    /// </summary>
+    private readonly TimeSpan _maxDaysIntoTheFuture = TimeSpan.FromDays(15);
+
     private readonly TmdbMetadataService _tmdbService;
 
     private string _animeTitle;
@@ -85,11 +90,12 @@ public partial class SearchTmdbJob : BaseJob
 
         // We only have one movie in the movie collection, so don't search for
         // a sub-title.
+        var now = DateTime.Now;
         if (episodes.Count is 1)
         {
-            // Abort if the movie have not aired yet.
+            // Abort if the movie have not aired within the _maxDaysIntoTheFuture limit.
             var airDate = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
-            if (!airDate.HasValue || airDate.Value > DateTime.Now)
+            if (!airDate.HasValue || (airDate.Value > now && airDate.Value - now > _maxDaysIntoTheFuture))
                 return;
             await SearchForMovie(episodes[0], officialTitle.Title, airDate.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
             return;
@@ -104,14 +110,14 @@ public partial class SearchTmdbJob : BaseJob
             if (isCompleteMovie)
             {
                 var airDateForAnime = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
-                if (!airDateForAnime.HasValue || airDateForAnime.Value > DateTime.Now)
+                if (!airDateForAnime.HasValue || (airDateForAnime.Value > now && airDateForAnime.Value - now > _maxDaysIntoTheFuture))
                     continue;
                 await SearchForMovie(episode, officialTitle.Title, airDateForAnime.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
                 continue;
             }
 
             var airDateForEpisode = episode.GetAirDateAsDate() ?? anime.AirDate ?? null;
-            if (!airDateForEpisode.HasValue || airDateForEpisode.Value > DateTime.Now)
+            if (!airDateForEpisode.HasValue || (airDateForEpisode.Value > now && airDateForEpisode.Value - now > _maxDaysIntoTheFuture))
                 continue;
             var subTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == language) ??
                 allEpisodeTitles.FirstOrDefault(title => title.Language == mainTitle.Language);
@@ -151,6 +157,24 @@ public partial class SearchTmdbJob : BaseJob
     {
         // TODO: Improve this logic to take tmdb seasons into account, and maybe also take better anidb series relations into account in cases where the tmdb show name and anidb series name are too different.
 
+        // Get the first or second episode to get the aired date if the anime is missing a date.
+        var airDate = anime.AirDate;
+        if (!airDate.HasValue)
+        {
+            airDate = anime.AniDBEpisodes
+                .Where(episode => episode.EpisodeType == (int)EpisodeType.Episode)
+                .OrderBy(episode => episode.EpisodeType)
+                .ThenBy(episode => episode.EpisodeNumber)
+                .Take(2)
+                .LastOrDefault()
+                ?.GetAirDateAsDate();
+        }
+
+        // Abort if the show have not aired within the _maxDaysIntoTheFuture limit.
+        var now = DateTime.Now;
+        if (!airDate.HasValue || (airDate.Value > now && airDate.Value - now > _maxDaysIntoTheFuture))
+            return;
+
         // Find the official title in the origin language, to compare it against
         // the original language stored in the offline tmdb search dump.
         var allTitles = anime.Titles
@@ -186,22 +210,7 @@ public partial class SearchTmdbJob : BaseJob
 continuePrequelWhileLoop:
             continue;
         }
-        // Get the first or second episode to get the aired date if the anime is missing a date.
-        var airDate = series.AirDate;
-        if (!airDate.HasValue)
-        {
-            airDate = series.Episodes
-                .Where(episode => episode.Type == EpisodeType.Episode)
-                .OrderBy(episode => episode.Type)
-                .ThenBy(episode => episode.EpisodeNumber)
-                .Take(2)
-                .LastOrDefault()
-                ?.AirDate;
-        }
 
-        // Abort if the show have not aired yet.
-        if (!airDate.HasValue || airDate.Value > DateTime.Now)
-            return;
         var officialTitle = language == mainTitle.Language
             ? mainTitle.Title
             : (
