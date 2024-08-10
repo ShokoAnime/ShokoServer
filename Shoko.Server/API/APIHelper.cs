@@ -15,7 +15,7 @@ namespace Shoko.Server.API;
 public static class APIHelper
 {
     public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, ImageEntityType imageType, DataSourceEnum dataType, int id, bool short_url = true)
-         => ProperURL(ctx, $"/api/v3/image/{imageType.ToV3Dto()}/{dataType.ToV3Dto()}/{id}", short_url);
+         => ProperURL(ctx, $"/api/v3/Image/{dataType.ToV3Dto()}/{imageType.ToV3Dto()}/{id}", short_url);
 
     public static string ProperURL(HttpContext ctx, string path, bool short_url = false)
     {
