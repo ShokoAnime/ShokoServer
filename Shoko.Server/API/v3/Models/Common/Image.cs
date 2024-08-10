@@ -38,6 +38,12 @@ public class Image
     public ImageSource Source { get; set; }
 
     /// <summary>
+    /// Language code for the language used for the text in the image, if any.
+    /// Or null if the image doesn't contain any language specifics.
+    /// </summary>
+    public string? LanguageCode { get; set; }
+
+    /// <summary>
     /// The relative path from the base image directory. A client with access to the server's filesystem can map
     /// these for quick access and no need for caching
     /// </summary>
@@ -80,6 +86,7 @@ public class Image
 
         Preferred = imageMetadata.IsPreferred;
         Disabled = !imageMetadata.IsEnabled;
+        LanguageCode = imageMetadata.LanguageCode;
 
         // we need to set _something_ for the clients that determine
         // if an image exists by checking if a relative path is set,
@@ -129,6 +136,7 @@ public class Image
                 var tmdbImage = RepoFactory.TMDB_Image.GetByID(id);
                 if (tmdbImage != null)
                 {
+                    LanguageCode = tmdbImage.LanguageCode;
                     var relativePath = tmdbImage.RelativePath;
                     if (!string.IsNullOrEmpty(relativePath))
                     {
