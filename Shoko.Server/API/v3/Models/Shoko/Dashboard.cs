@@ -151,9 +151,7 @@ public static class Dashboard
             ResumePosition = userRecord?.ResumePositionTimeSpan;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
             SeriesTitle = series?.PreferredTitle ?? anime.PreferredTitle;
-            SeriesPoster = (series?.GetPreferredImageForType(ImageEntityType.Poster) ?? anime.GetImageMetadata()) is { } imageMetadata
-                ? new Image(imageMetadata)
-                : new Image(anime.AnimeID, ImageEntityType.Poster, DataSourceType.AniDB);
+            SeriesPoster = new Image(anime.PreferredOrDefaultPoster);
         }
 
         /// <summary>

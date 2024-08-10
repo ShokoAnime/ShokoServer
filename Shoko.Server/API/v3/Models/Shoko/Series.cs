@@ -475,9 +475,7 @@ public class Series : BaseModel
                     : null;
                 Description = anime.Description;
                 Restricted = anime.Restricted == 1;
-                Poster = (series?.GetPreferredImageForType(ImageEntityType.Poster) ?? anime.GetImageMetadata()) is { } poster
-                    ? new Image(poster)
-                    : new Image(anime.AnimeID, ImageEntityType.Poster, DataSourceType.AniDB);
+                Poster = new Image(anime.PreferredOrDefaultPoster);
                 EpisodeCount = anime.EpisodeCountNormal;
                 Rating = new Rating
                 {
