@@ -136,7 +136,7 @@ public class Series : BaseModel
             TMDB = new()
             {
                 Movie = ser.TmdbMovieCrossReferences.Select(a => a.TmdbMovieID).Distinct().ToList(),
-                Show = ser.TmdbShows.Select(a => a.TmdbShowID).Distinct().ToList(),
+                Show = ser.TmdbShowCrossReferences.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
             TraktTv = ser.TraktShowCrossReferences.Select(a => a.TraktID).Distinct().ToList(),
             MAL = ser.MALCrossReferences.Select(a => a.MALID).Distinct().ToList()
