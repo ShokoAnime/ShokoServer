@@ -75,7 +75,10 @@ public class TmdbMetadataService
     private readonly TMDbClient? _client = null;
 
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
-    protected TMDbClient Client => _client ?? new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? Constants.TMDB.ApiKey);
+    protected TMDbClient Client => _client ?? new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? Constants.TMDB.ApiKey)
+    {
+        MaxRetryCount = 3,
+    };
 
     public TmdbMetadataService(ILoggerFactory loggerFactory, ISchedulerFactory commandFactory, ISettingsProvider settingsProvider)
     {
