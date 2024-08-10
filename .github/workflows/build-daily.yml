@@ -32,13 +32,11 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: |
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "BUILD_NUMBER<<$EOF" >> "$GITHUB_OUTPUT"
+          echo -n "BUILD_NUMBER=" >> "$GITHUB_OUTPUT"
           curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
             | jq -r 'first | .version | split("-") | first | split(".") | last | tonumber | . + 1' >> "$GITHUB_OUTPUT"
-          echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Get Current Version
         id: release_info
