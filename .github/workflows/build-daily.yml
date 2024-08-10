@@ -25,11 +25,27 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
+      - name: Increment build number from last sentry release
+        id: incremental_build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "BUILD_NUMBER<<$EOF" >> "$GITHUB_OUTPUT"
+          curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/releases/" \
+            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            | jq -r 'map(.projects |= map(select(.slug == "$SENTRY_PROJECT")) | select(.projects | length > 0)) | first | .version | split("-") | first | split(".") | last | tonumber | . + 1'
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+
       - name: Get Current Version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
           branch: true
+          buildNumber: ${{ steps.incremental_build.outputs.BUILD_NUMBER }}
           prefix: v
           prefixRegex: "[vV]?"
 
