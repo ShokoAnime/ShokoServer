@@ -5,11 +5,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
+using TMDbLib.Objects.Search;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -36,7 +38,7 @@ public class Show
     public IReadOnlyList<Title>? Titles { get; init; }
 
     /// <summary>
-    /// Preferred overview based upon episode title preference.
+    /// Preferred overview based upon description preference.
     /// </summary>
     public string Overview { get; init; }
 
@@ -238,7 +240,82 @@ public class Show
         LastAiredAt = show.LastAiredAt;
         CreatedAt = show.CreatedAt.ToUniversalTime();
         LastUpdatedAt = show.LastUpdatedAt.ToUniversalTime();
+    }
 
+    /// <summary>
+    /// Remote search show DTO.
+    /// </summary>
+    public class RemoteSearchShow
+    {
+        /// <summary>
+        /// TMDB Show ID.
+        /// </summary>
+        public int ID { get; init; }
+
+        /// <summary>
+        /// English title.
+        /// </summary>
+        public string Title { get; init; }
+
+        /// <summary>
+        /// Title in the original language.
+        /// </summary>
+        public string OriginalTitle { get; init; }
+
+        /// <summary>
+        /// Original language the show was shot in.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public TitleLanguage OriginalLanguage { get; init; }
+
+        /// <summary>
+        /// Preferred overview based upon description preference.
+        /// </summary>
+        public string Overview { get; init; }
+
+        /// <summary>
+        /// The date the first episode aired at, if it is known.
+        /// </summary>
+        public DateOnly? FirstAiredAt { get; init; }
+
+        /// <summary>
+        /// Poster URL, if available.
+        /// </summary>
+        public string? Poster { get; init; }
+
+        /// <summary>
+        /// Backdrop URL, if available.
+        /// </summary>
+        public string? Backdrop { get; init; }
+
+        /// <summary>
+        /// User rating of the movie from TMDB users.
+        /// </summary>
+        public Rating UserRating { get; init; }
+
+        public RemoteSearchShow(SearchTv show)
+        {
+            ID = show.Id;
+            Title = show.Name;
+            OriginalTitle = show.OriginalName;
+            OriginalLanguage = show.OriginalLanguage.GetTitleLanguage();
+            Overview = show.Overview ?? string.Empty;
+            FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
+            Poster = !string.IsNullOrEmpty(show.PosterPath)
+                ? $"{TmdbMetadataService.ImageServerUrl}/original/{show.PosterPath}"
+                : null;
+            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
+                ? $"{TmdbMetadataService.ImageServerUrl}/original/{show.BackdropPath}"
+                : null;
+            UserRating = new Rating()
+            {
+                Value = (decimal)show.VoteAverage,
+                MaxValue = 10,
+                Source = "TMDB",
+                Type = "User",
+                Votes = show.VoteCount,
+            };
+        }
     }
 
     public class OrderingInformation

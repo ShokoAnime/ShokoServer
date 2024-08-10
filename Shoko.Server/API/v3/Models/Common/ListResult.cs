@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
@@ -20,7 +21,15 @@ public class ListResult<T>
     }
 
     /// <summary>
-    /// Create a new fully initialised list result.
+    /// Create a new fully initialized list result.
+    /// </summary>
+    /// <param name="total">Total count</param>
+    /// <param name="list">List of <typeparamref name="T"/> entries.</param>
+    public ListResult(int total, IEnumerable<T> list)
+        : this(total, list.ToList()) { }
+
+    /// <summary>
+    /// Create a new fully initialized list result.
     /// </summary>
     /// <param name="total">Total count</param>
     /// <param name="list">List of <typeparamref name="T"/> entries.</param>

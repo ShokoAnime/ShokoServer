@@ -448,11 +448,11 @@ public class TmdbController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Movie/Search/Online")]
-    public ListResult<SearchMovie> SearchOnlineForTmdbMovies(
+    public ListResult<TmdbMovie.RemoteSearchMovie> SearchOnlineForTmdbMovies(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
-        [FromQuery, Range(0, 100)] int pageSize = 20,
+        [FromQuery, Range(0, 100)] int pageSize = 6,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
@@ -461,7 +461,7 @@ public class TmdbController : BaseController
             .GetAwaiter()
             .GetResult();
 
-        return new ListResult<SearchMovie>(totalMovies, pageView);
+        return new ListResult<TmdbMovie.RemoteSearchMovie>(totalMovies, pageView.Select(a => new TmdbMovie.RemoteSearchMovie(a)));
     }
 
     #endregion
@@ -1054,11 +1054,11 @@ public class TmdbController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Show/Search/Online")]
-    public ListResult<SearchTv> SearchOnlineForTmdbShows(
+    public ListResult<TmdbShow.RemoteSearchShow> SearchOnlineForTmdbShows(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
-        [FromQuery, Range(0, 100)] int pageSize = 20,
+        [FromQuery, Range(0, 100)] int pageSize = 6,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
@@ -1067,7 +1067,7 @@ public class TmdbController : BaseController
             .GetAwaiter()
             .GetResult();
 
-        return new ListResult<SearchTv>(totalShows, pageView);
+        return new ListResult<TmdbShow.RemoteSearchShow>(totalShows, pageView.Select(a => new TmdbShow.RemoteSearchShow(a)));
     }
 
     #endregion
