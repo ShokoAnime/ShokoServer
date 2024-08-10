@@ -82,12 +82,12 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
                     : poster
                 );
         }
-        foreach (var tvdbEpisode in TvDBEpisodes)
-            images.AddRange(tvdbEpisode.GetImages(entityType, preferredImages));
         foreach (var tmdbEpisode in TmdbEpisodes)
             images.AddRange(tmdbEpisode.GetImages(entityType, preferredImages));
         foreach (var tmdbMovie in TmdbMovies)
             images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
+        foreach (var tvdbEpisode in TvDBEpisodes)
+            images.AddRange(tvdbEpisode.GetImages(entityType, preferredImages));
 
         return images;
     }
