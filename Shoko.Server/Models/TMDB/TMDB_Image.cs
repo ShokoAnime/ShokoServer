@@ -144,6 +144,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
         RemoteFileName = filePath?.Trim() ?? string.Empty;
         if (RemoteFileName.EndsWith(".svg"))
             RemoteFileName = RemoteFileName[..^4] + ".png";
+        IsEnabled = true;
     }
 
     #endregion
