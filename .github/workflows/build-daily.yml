@@ -46,7 +46,7 @@ jobs:
         with:
           branch: true
           buildNumber: ${{ steps.incremental_build.outputs.BUILD_NUMBER }}
-          incement: "build"
+          increment: "build"
           prefix: v
           prefixRegex: "[vV]?"
 
