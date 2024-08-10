@@ -37,7 +37,7 @@ jobs:
           curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
-            | jq -r 'first | .version | split("-") | first | split(".") | last | tonumber | . + 1'
+            | jq -r 'first | .version | split("-") | first | split(".") | last | tonumber | . + 1' >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Get Current Version
@@ -46,6 +46,7 @@ jobs:
         with:
           branch: true
           buildNumber: ${{ steps.incremental_build.outputs.BUILD_NUMBER }}
+          incement: "build"
           prefix: v
           prefixRegex: "[vV]?"
 
