@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -14,6 +13,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -159,7 +159,7 @@ public class ReleaseManagementController : BaseController
     /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
     /// <returns></returns>
     [HttpGet("Episode/FilesToDelete")]
-    public static ActionResult<List<int>> GetFileIdsWithPreference(
+    public ActionResult<List<int>> GetFileIdsWithPreference(
         [FromQuery] bool ignoreVariations = true
     )
     {

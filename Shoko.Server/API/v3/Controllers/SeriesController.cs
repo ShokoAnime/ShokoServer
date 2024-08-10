@@ -46,6 +46,7 @@ using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
 using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
 
+#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -2848,7 +2849,7 @@ public class SeriesController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("Years")]
-    public static ActionResult<IEnumerable<int>> GetAllYears()
+    public ActionResult<IEnumerable<int>> GetAllYears()
         => RepoFactory.AnimeSeries.GetAllYears().ToList();
 
     /// <summary>
@@ -2856,6 +2857,6 @@ public class SeriesController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("Seasons")]
-    public static ActionResult<IEnumerable<YearlySeason>> GetAllSeasons()
+    public ActionResult<IEnumerable<YearlySeason>> GetAllSeasons()
         => RepoFactory.AnimeSeries.GetAllSeasons().Select(a => new YearlySeason(a.Year, a.Season)).Order().ToList();
 }

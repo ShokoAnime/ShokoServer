@@ -13,10 +13,10 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
+#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -104,7 +104,7 @@ public class FilterController : BaseController
     /// <param name="types">Optional. The Expression types to return</param>
     /// <param name="groups">Optional. The Expression groups to return</param>
     [HttpGet("Expressions")]
-    public static ActionResult<Filter.FilterExpressionHelp[]> GetExpressions([FromQuery] Filter.FilterExpressionHelp.FilterExpressionParameterType[] types = null,
+    public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions([FromQuery] Filter.FilterExpressionHelp.FilterExpressionParameterType[] types = null,
         [FromQuery] FilterExpressionGroup[] groups = null)
     {
         types ??= [];
@@ -187,7 +187,7 @@ public class FilterController : BaseController
     /// For example, MissingEpisodeCount,Descending -> AirDate, Descending would have thing with the most missing episodes, then the last aired first.
     /// </remarks>
     [HttpGet("SortingCriteria")]
-    public static ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
+    public ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
     {
         // get all classes that derive from FilterExpression, but not SortingExpression
         _sortingTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
