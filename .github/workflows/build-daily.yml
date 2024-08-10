@@ -34,10 +34,10 @@ jobs:
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "BUILD_NUMBER<<$EOF" >> "$GITHUB_OUTPUT"
-          curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/releases/" \
+          curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
-            | jq -r 'map(.projects |= map(select(.slug == "$SENTRY_PROJECT")) | select(.projects | length > 0)) | first | .version | split("-") | first | split(".") | last | tonumber | . + 1'
+            | jq -r 'first | .version | split("-") | first | split(".") | last | tonumber | . + 1'
           echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Get Current Version
