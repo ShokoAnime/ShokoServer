@@ -24,7 +24,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using TMDbLib.Objects.Search;
 
 using InternalEpisodeType = Shoko.Models.Enums.EpisodeType;
 using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
@@ -32,6 +31,7 @@ using MatchRating = Shoko.Models.Enums.MatchRating;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
+using TmdbSearch = Shoko.Server.API.v3.Models.TMDB.Search;
 using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
 using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
 using System.Threading.Tasks;
@@ -448,7 +448,7 @@ public class TmdbController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Movie/Search/Online")]
-    public ListResult<TmdbMovie.RemoteSearchMovie> SearchOnlineForTmdbMovies(
+    public ListResult<TmdbSearch.RemoteSearchMovie> SearchOnlineForTmdbMovies(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
@@ -461,7 +461,7 @@ public class TmdbController : BaseController
             .GetAwaiter()
             .GetResult();
 
-        return new ListResult<TmdbMovie.RemoteSearchMovie>(totalMovies, pageView.Select(a => new TmdbMovie.RemoteSearchMovie(a)));
+        return new ListResult<TmdbSearch.RemoteSearchMovie>(totalMovies, pageView.Select(a => new TmdbSearch.RemoteSearchMovie(a)));
     }
 
     #endregion
@@ -1054,7 +1054,7 @@ public class TmdbController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Show/Search/Online")]
-    public ListResult<TmdbShow.RemoteSearchShow> SearchOnlineForTmdbShows(
+    public ListResult<TmdbSearch.RemoteSearchShow> SearchOnlineForTmdbShows(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
@@ -1067,7 +1067,7 @@ public class TmdbController : BaseController
             .GetAwaiter()
             .GetResult();
 
-        return new ListResult<TmdbShow.RemoteSearchShow>(totalShows, pageView.Select(a => new TmdbShow.RemoteSearchShow(a)));
+        return new ListResult<TmdbSearch.RemoteSearchShow>(totalShows, pageView.Select(a => new TmdbSearch.RemoteSearchShow(a)));
     }
 
     #endregion

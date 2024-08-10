@@ -5,13 +5,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
-using TMDbLib.Objects.Search;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -208,108 +205,6 @@ public class Movie
         ReleasedAt = movie.ReleasedAt;
         CreatedAt = movie.CreatedAt.ToUniversalTime();
         LastUpdatedAt = movie.LastUpdatedAt.ToUniversalTime();
-    }
-
-    /// <summary>
-    /// Remote search movie DTO.
-    /// </summary>
-    public class RemoteSearchMovie
-    {
-        /// <summary>
-        /// TMDB Movie ID.
-        /// </summary>
-        public int ID { get; init; }
-
-        /// <summary>
-        /// English title.
-        /// </summary>
-        public string Title { get; init; }
-
-        /// <summary>
-        /// Title in the original language.
-        /// </summary>
-        public string OriginalTitle { get; init; }
-
-        /// <summary>
-        /// Original language the movie was shot in.
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public TitleLanguage OriginalLanguage { get; init; }
-
-        /// <summary>
-        /// Preferred overview based upon description preference.
-        /// </summary>
-        public string Overview { get; init; }
-
-        /// <summary>
-        /// Indicates the movie is restricted to an age group above the legal age,
-        /// because it's a pornography.
-        /// </summary>
-        public bool IsRestricted { get; init; }
-
-        /// <summary>
-        /// Indicates the entry is not truly a movie, including but not limited to
-        /// the types:
-        ///
-        /// - official compilations,
-        /// - best of,
-        /// - filmed sport events,
-        /// - music concerts,
-        /// - plays or stand-up show,
-        /// - fitness video,
-        /// - health video,
-        /// - live movie theater events (art, music),
-        /// - and how-to DVDs,
-        ///
-        /// among others.
-        /// </summary>
-        public bool IsVideo { get; init; }
-
-        /// <summary>
-        /// The date the movie first released, if it is known.
-        /// </summary>
-        public DateOnly? ReleasedAt { get; init; }
-
-        /// <summary>
-        /// Poster URL, if available.
-        /// </summary>
-        public string? Poster { get; init; }
-
-        /// <summary>
-        /// Backdrop URL, if available.
-        /// </summary>
-        public string? Backdrop { get; init; }
-
-        /// <summary>
-        /// User rating of the movie from TMDB users.
-        /// </summary>
-        public Rating UserRating { get; init; }
-
-        public RemoteSearchMovie(SearchMovie movie)
-        {
-            ID = movie.Id;
-            Title = movie.Title;
-            OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage.GetTitleLanguage();
-            Overview = movie.Overview ?? string.Empty;
-            IsRestricted = movie.Adult;
-            IsVideo = movie.Video;
-            ReleasedAt = movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}/original/{movie.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}/original/{movie.BackdropPath}"
-                : null;
-            UserRating = new Rating()
-            {
-                Value = (decimal)movie.VoteAverage,
-                MaxValue = 10,
-                Source = "TMDB",
-                Type = "User",
-                Votes = movie.VoteCount,
-            };
-        }
     }
 
     /// <summary>
