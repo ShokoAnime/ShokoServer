@@ -40,8 +40,8 @@ public partial class SearchTmdbJob : BaseJob
         _animeTitle = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override string TypeName => "Search for TMDB Entry";
-    public override string Title => "Searching for TMDB Entry";
+    public override string TypeName => "Search for TMDB Match";
+    public override string Title => "Searching for TMDB Match";
     public override Dictionary<string, object> Details => new() { { "Anime", _animeTitle } };
 
     public override async Task Process()
