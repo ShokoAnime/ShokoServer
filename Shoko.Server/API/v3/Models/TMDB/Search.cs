@@ -33,7 +33,7 @@ public static class Search
         /// <summary>
         /// AniDB Episode ID, if it's an auto-magic movie match.
         /// </summary>
-        /// <value></value>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public int? EpisodeID { get; set; }
 
         /// <summary>
@@ -174,7 +174,6 @@ public static class Search
         }
     }
 
-    
     /// <summary>
     /// Remote search show DTO.
     /// </summary>
