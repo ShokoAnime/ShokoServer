@@ -41,6 +41,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\issue-no-response.yml = .github\workflows\issue-no-response.yml
 		.github\workflows\ReplaceAVD3URL.ps1 = .github\workflows\ReplaceAVD3URL.ps1
 		.github\workflows\ReplaceSentryDSN.ps1 = .github\workflows\ReplaceSentryDSN.ps1
+		.github\workflows\ReplaceTmdbApiKey.ps1 = .github\workflows\ReplaceTmdbApiKey.ps1
 		.github\workflows\UploadRelease.ps1 = .github\workflows\UploadRelease.ps1
 	EndProjectSection
 EndProject

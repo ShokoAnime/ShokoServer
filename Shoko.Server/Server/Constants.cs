@@ -119,8 +119,8 @@ public static class Constants
 
     public struct TMDB
     {
-        // To all the bot authors trying to scan for exposed keys; It's fine. We know.
-        public const string ApiKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
+        // For local development, please replace the text below with your TMDB API key, or insert the key in your settings.
+        public const string ApiKey = "TMDB_API_KEY_GOES_HERE";
     }
 
     public struct TvDB
