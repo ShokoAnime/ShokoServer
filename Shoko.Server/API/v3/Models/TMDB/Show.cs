@@ -300,7 +300,7 @@ public class Show
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             TmdbShowID = xref.TmdbShowID;
-            Rating = xref.Source != CrossRefSource.User ? "User" : "Automatic";
+            Rating = xref.Source is CrossRefSource.User ? "User" : "Automatic";
         }
     }
 

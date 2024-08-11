@@ -323,7 +323,7 @@ public class Movie
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbMovieID = xref.TmdbMovieID;
-            Rating = xref.Source != CrossRefSource.User ? "User" : "Automatic";
+            Rating = xref.Source is CrossRefSource.User ? "User" : "Automatic";
         }
     }
 
