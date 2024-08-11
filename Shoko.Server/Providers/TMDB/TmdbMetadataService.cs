@@ -2369,29 +2369,39 @@ public class TmdbMetadataService
         if (maxConcurrent < 1)
             throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Concurrency level must be at least 1.");
 
-        var tasks = new List<Task>();
-        var semaphore = new SemaphoreSlim(1, maxConcurrent);
-        var parallel = enumerable is ParallelQuery<T> query ? query : enumerable.AsParallel();
-        foreach (var item in enumerable)
-        {
-            await semaphore.WaitAsync();
-
-            var task = Task.Run(async () =>
+        var semaphore = new SemaphoreSlim(maxConcurrent);
+        var exceptions = new List<Exception>();
+        var tasks = enumerable
+            .Select(item => Task.Run(async () =>
             {
                 try
                 {
-                    await processAsync(item);
+                    await semaphore.WaitAsync().ConfigureAwait(false);
+                    await processAsync(item).ConfigureAwait(false);
                 }
                 finally
                 {
                     semaphore.Release();
                 }
-            });
-
-            tasks.Add(task);
+            }))
+            .ToList();
+        while (tasks.Count > 0)
+        {
+            try
+            {
+                var task = await Task.WhenAny(tasks).ConfigureAwait(false);
+                tasks.Remove(task);
+            }
+            catch (Exception ex)
+            {
+                var task = tasks.First(task => task.IsFaulted);
+                tasks.Remove(task);
+                exceptions.Add(ex);
+                if (exceptions.Count > maxConcurrent)
+                    throw new AggregateException(exceptions);
+                continue;
+            }
         }
-
-        await Task.WhenAll(tasks);
     }
 
     #endregion
