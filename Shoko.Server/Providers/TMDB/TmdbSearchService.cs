@@ -119,7 +119,7 @@ public partial class TmdbSearchService
 
         _logger.LogTrace("Found {Count} results for search on {Query}, best match: {MovieName} ({ID})", results.Count, query, results[0].OriginalTitle, results[0].Id);
         list.Add(new(anime, episode, results[0]));
-    
+
         return true;
     }
 
@@ -191,54 +191,75 @@ continuePrequelWhileLoop:
             continue;
         }
 
-        var officialTitle = language == mainTitle.Language
+        // First attempt the official title in the country of origin.
+        var originalTitle = language == mainTitle.Language
             ? mainTitle.Title
             : (
                 series.ID == anime.AnimeID
-                    ? allTitles.FirstOrDefault(title => title.Language == language)?.Title
-                    : series.Titles.FirstOrDefault(title => title.Language == language)?.Title
-            ) ?? mainTitle.Title;
+                    ? allTitles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == language)?.Title
+                    : series.Titles.FirstOrDefault(title => title.Type == TitleType.Official && title.Language == language)?.Title
+            );
+        var match = !string.IsNullOrEmpty(originalTitle)
+            ? await SearchForShowUsingTitle(anime, originalTitle, airDate.Value, series.Restricted)
+            : null;
 
+        // And if that failed, then try the official english title.
+        if (match is null)
+        {
+            var englishTitle = series.ID == anime.AnimeID
+                ? allTitles.FirstOrDefault(l => l.TitleType == TitleType.Official && l.Language == TitleLanguage.English)?.Title
+                : series.Titles.FirstOrDefault(l => l.Type == TitleType.Official && l.Language == TitleLanguage.English)?.Title;
+            if (!string.IsNullOrEmpty(englishTitle) && (string.IsNullOrEmpty(originalTitle) || !string.Equals(englishTitle, originalTitle, StringComparison.Ordinal)))
+                match = await SearchForShowUsingTitle(anime, englishTitle, airDate.Value, series.Restricted);
+        }
+
+        // And the last ditch attempt will be to use the main title. We won't try other languages.
+        match ??= await SearchForShowUsingTitle(anime, mainTitle.Title, airDate.Value, series.Restricted);
+        return match is not null ? [match] : [];
+    }
+
+    private async Task<TmdbAutoSearchResult?> SearchForShowUsingTitle(SVR_AniDB_Anime anime, string title, DateTime airDate, bool restricted)
+    {
         // Brute force attempt #1: With the original title and earliest known aired year.
-        var (results, totalFound) = await _tmdbService.SearchShows(officialTitle, includeRestricted: anime.Restricted == 1, year: airDate.Value.Year).ConfigureAwait(false);
+        var (results, totalFound) = await _tmdbService.SearchShows(title, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
         if (results.Count > 0)
         {
-            _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, officialTitle, results[0].OriginalName, results[0].Id);
+            _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
 
-            return [new(anime, results[0])];
+            return new(anime, results[0]);
         }
 
         // Brute force attempt #2: With the original title but without the earliest known aired year.
-        (results, totalFound) = await _tmdbService.SearchShows(officialTitle, includeRestricted: series.Restricted).ConfigureAwait(false);
+        (results, totalFound) = await _tmdbService.SearchShows(title, includeRestricted: restricted).ConfigureAwait(false);
         if (totalFound > 0)
         {
-            _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, officialTitle, results[0].OriginalName, results[0].Id);
+            _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
 
-            return [new(anime, results[0])];
+            return new(anime, results[0]);
         }
 
         // Brute force attempt #3-4: Same as above, but after stripping the title of common "sequel endings"
-        var strippedTitle = SequelSuffixRemovalRegex().Match(officialTitle) is { Success: true } regexResult
-            ? officialTitle[..^regexResult.Length].TrimEnd() : null;
+        var strippedTitle = SequelSuffixRemovalRegex().Match(title) is { Success: true } regexResult
+            ? title[..^regexResult.Length].TrimEnd() : null;
         if (!string.IsNullOrEmpty(strippedTitle))
         {
-            (results, totalFound) = await _tmdbService.SearchShows(strippedTitle, includeRestricted: series.Restricted, year: airDate.Value.Year).ConfigureAwait(false);
+            (results, totalFound) = await _tmdbService.SearchShows(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
             if (results.Count > 0)
             {
                 _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
 
-                return [new(anime, results[0])];
+                return new(anime, results[0]);
             }
-            (results, totalFound) = await _tmdbService.SearchShows(strippedTitle, includeRestricted: series.Restricted).ConfigureAwait(false);
+            (results, totalFound) = await _tmdbService.SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
             if (results.Count > 0)
             {
                 _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
 
-                return [new(anime, results[0])];
+                return new(anime, results[0]);
             }
         }
 
-        return [];
+        return null;
     }
 
     #endregion
