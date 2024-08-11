@@ -1514,16 +1514,17 @@ public class TmdbMetadataService
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false)
     {
+        var animeSeries = RepoFactory.AnimeSeries.GetByAnimeID(anidbAnimeId);
+        if (animeSeries == null)
+            return [];
+
+        // Mapping logic
+        var toSkip = new HashSet<int>();
+        var toAdd = new List<CrossRef_AniDB_TMDB_Episode>();
+        var crossReferences = new List<CrossRef_AniDB_TMDB_Episode>();
         var existing = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAllByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId)
             .GroupBy(xref => xref.AnidbEpisodeID)
             .ToDictionary(grouped => grouped.Key, grouped => grouped.ToList());
-        var toSkip = new HashSet<int>();
-        var toSave = new List<CrossRef_AniDB_TMDB_Episode>();
-
-        var animeSeries = RepoFactory.AnimeSeries.GetByAnimeID(anidbAnimeId);
-        if (animeSeries == null)
-            return new List<CrossRef_AniDB_TMDB_Episode>();
-
         var anidbEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(anidbAnimeId)
             .Where(episode => episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special)
             .ToDictionary(episode => episode.EpisodeID);
@@ -1539,19 +1540,11 @@ public class TmdbMetadataService
             .Where(episode => episode.SeasonNumber == 0)
             .OrderBy(episode => episode.EpisodeNumber)
             .ToList();
-
-        var crossReferences = useExisting
-            ? existing
-                .Where(pair => anidbEpisodes.ContainsKey(pair.Key))
-                .SelectMany(pair => pair.Value)
-                .ToList()
-            : [];
-
-        // Mapping logic
         foreach (var episode in anidbEpisodes.Values)
         {
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks))
             {
+                crossReferences.AddRange(existingLinks);
                 foreach (var link in existingLinks)
                     toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
             }
@@ -1566,30 +1559,30 @@ public class TmdbMetadataService
                     if (index != -1)
                         episodeList.RemoveAt(index);
                 }
-                toSave.Add(crossRef);
+                crossReferences.Add(crossRef);
+                toAdd.Add(crossRef);
             }
         }
 
-        // Save state to db, remove old links if needed
-        if (saveToDatabase)
-        {
-            // Remove the anidb episodes that does not overlap with our show.
-            var toRemove = existing.Values
-                .SelectMany(list => list)
-                .Where(xref => anidbEpisodes.ContainsKey(xref.AnidbEpisodeID) && !toSkip.Contains(xref.CrossRef_AniDB_TMDB_EpisodeID))
-                .ToList();
+        if (!saveToDatabase)
+            return crossReferences;
 
-            _logger.LogDebug(
-                "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} (Anime={AnimeId},Show={ShowId})",
-                toSave.Count,
-                toRemove.Count,
-                existing.Count + toSave.Count - toRemove.Count - toSave.Count,
-                animeSeries.PreferredTitle,
-                anidbAnimeId,
-                tmdbShowId);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toRemove);
-        }
+        // Remove the current anidb episodes that does not overlap with the show.
+        var toRemove = existing.Values
+            .SelectMany(list => list)
+            .Where(xref => anidbEpisodes.ContainsKey(xref.AnidbEpisodeID) && !toSkip.Contains(xref.CrossRef_AniDB_TMDB_EpisodeID))
+            .ToList();
+
+        _logger.LogDebug(
+            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} (Anime={AnimeId},Show={ShowId})",
+            toAdd.Count,
+            toRemove.Count,
+            existing.Count - toRemove.Count,
+            animeSeries.PreferredTitle,
+            anidbAnimeId,
+            tmdbShowId);
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toAdd);
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toRemove);
 
         return crossReferences;
     }
