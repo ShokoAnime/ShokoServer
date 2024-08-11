@@ -1544,9 +1544,11 @@ public class TmdbMetadataService
         {
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks))
             {
-                crossReferences.AddRange(existingLinks);
-                foreach (var link in existingLinks)
+                foreach (var link in existingLinks.DistinctBy((link => (link.TmdbShowID, link.TmdbEpisodeID))))
+                {
+                    crossReferences.Add(link);
                     toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
+                }
             }
             else
             {
