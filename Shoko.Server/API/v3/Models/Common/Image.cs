@@ -227,17 +227,17 @@ public class Image
     public enum ImageSource
     {
         /// <summary>
-        ///
+        /// AniDB.
         /// </summary>
         AniDB = 1,
 
         /// <summary>
-        ///
+        /// The Tv DataBase (TvDB).
         /// </summary>
         TvDB = 2,
 
         /// <summary>
-        ///
+        /// The Movie DataBase (TMDB).
         /// </summary>
         TMDB = 3,
 
@@ -247,9 +247,9 @@ public class Image
         User = 99,
 
         /// <summary>
-        ///
+        /// Shoko.
         /// </summary>
-        Shoko = 100
+        Shoko = 100,
     }
 
     /// <summary>
@@ -259,37 +259,45 @@ public class Image
     public enum ImageType
     {
         /// <summary>
-        ///
+        /// The standard poster image. May or may not contain text.
         /// </summary>
         Poster = 1,
 
         /// <summary>
-        ///
+        /// A long/wide banner image, usually with text.
         /// </summary>
         Banner = 2,
 
         /// <summary>
-        ///
+        /// Thumbnail image.
         /// </summary>
-        Thumb = 3,
+        Thumbnail = 3,
 
         /// <summary>
-        ///
+        /// Temp. synonym until it's safe to remove it.
+        /// </summary>
+        Thumb = Thumbnail,
+
+        /// <summary>
+        /// Backdrop / background images. Usually doesn't contain any text, but
+        /// it might.
         /// </summary>
         Backdrop = 4,
 
         /// <summary>
-        ///
+        /// Temp. synonym until it's safe to remove it.
         /// </summary>
         Fanart = Backdrop,
 
         /// <summary>
-        ///
+        /// Character image. May be a close up portrait of the character, or a
+        /// full-body view of the character.
         /// </summary>
         Character = 5,
 
         /// <summary>
-        ///
+        /// Staff image. May be a close up portrait of the person, or a
+        /// full-body view of the person.
         /// </summary>
         Staff = 6,
 
