@@ -41,7 +41,7 @@ public class CrossRef_AniDB_TMDB_EpisodeRepository : BaseCachedRepository<CrossR
 
     public override void PopulateIndexes()
     {
-        _anidbAnimeIDs = new(Cache, a => a.AnidbEpisodeID);
+        _anidbAnimeIDs = new(Cache, a => a.AnidbAnimeID);
         _anidbEpisodeIDs = new(Cache, a => a.AnidbEpisodeID);
         _tmdbShowIDs = new(Cache, a => a.TmdbShowID);
         _tmdbEpisodeIDs = new(Cache, a => a.TmdbEpisodeID);
