@@ -1495,7 +1495,7 @@ public class TmdbMetadataService
     private async Task DownloadSeasonImages(int seasonId, int showId, int seasonNumber, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
-        if (settings.TMDB.AutoDownloadPosters)
+        if (!settings.TMDB.AutoDownloadPosters)
             return;
 
         var images = await Client.GetTvSeasonImagesAsync(showId, seasonNumber);
@@ -1505,7 +1505,7 @@ public class TmdbMetadataService
     private async Task DownloadEpisodeImages(int episodeId, int showId, int seasonNumber, int episodeNumber, bool forceDownload)
     {
         var settings = _settingsProvider.GetSettings();
-        if (settings.TMDB.AutoDownloadThumbnails)
+        if (!settings.TMDB.AutoDownloadThumbnails)
             return;
 
         var images = await Client.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber);
