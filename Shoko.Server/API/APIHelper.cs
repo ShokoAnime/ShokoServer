@@ -1,11 +1,10 @@
 ﻿using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -29,17 +28,26 @@ public static class APIHelper
         return string.Empty;
     }
 
+    // Only get the user once from the db for the same request, and let the GC
+    // automagically clean up the user object reference mapping when the request
+    // is disposed.
+    private static readonly ConditionalWeakTable<ClaimsPrincipal, SVR_JMMUser> _userTable = [];
+
     public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
     {
         if (!ServerState.Instance.ServerOnline) return InitUser.Instance;
 
         var authenticated = identity?.Identity?.IsAuthenticated ?? false;
         if (!authenticated) return null;
+        if (_userTable.TryGetValue(identity, out var user))
+            return user;
 
         var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (nameIdentifier == null) return null;
         if (!int.TryParse(nameIdentifier, out var id) || id == 0) return null;
-        return RepoFactory.JMMUser.GetByID(id);
+        user = RepoFactory.JMMUser.GetByID(id);
+        _userTable.AddOrUpdate(identity, user);
+        return user;
     }
 
     public static SVR_JMMUser GetUser(this HttpContext ctx)
