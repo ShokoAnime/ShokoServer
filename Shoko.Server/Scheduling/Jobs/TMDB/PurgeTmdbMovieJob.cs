@@ -13,7 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
 [NetworkRequired]
-[LimitConcurrency(4, 12)]
+[LimitConcurrency(1, 12)]
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public class PurgeTmdbMovieJob : BaseJob
 {
