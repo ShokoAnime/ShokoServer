@@ -157,8 +157,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
             var titles = Titles;
 
             // Check each preferred language in order.
-            foreach (var thisLanguage in Languages.PreferredNamingLanguageNames)
+            foreach (var namingLanguage in Languages.PreferredNamingLanguages)
             {
+                var thisLanguage = namingLanguage.Language;
+                if (thisLanguage == TitleLanguage.Main)
+                    return MainTitle;
+
                 // First check the main title.
                 var title = titles.FirstOrDefault(t => t.TitleType == TitleType.Main && t.Language == thisLanguage);
                 if (title != null) return title.Title;
@@ -167,7 +171,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
                 title = titles.FirstOrDefault(t => t.TitleType == TitleType.Official && t.Language == thisLanguage);
                 if (title != null) return title.Title;
 
-                // Then check for _any_ title at all, if there is no main or official title in the langugage.
+                // Then check for _any_ title at all, if there is no main or official title in the language.
                 if (Utils.SettingsProvider.GetSettings().Language.UseSynonyms)
                 {
                     title = titles.FirstOrDefault(t => t.Language == thisLanguage);

@@ -239,6 +239,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
+            if (preferredLanguage.Language == TitleLanguage.Main)
+                return new(ForeignEntityType.Movie, TmdbMovieID, EnglishTitle, "en", "US");
+
             var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
             if (title != null)
                 return title;

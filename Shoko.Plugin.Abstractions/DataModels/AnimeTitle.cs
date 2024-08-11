@@ -20,6 +20,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
 
     public enum TitleLanguage
     {
+        Main = -2,
         None = -1,
         Unknown = 0,
         English = 1,

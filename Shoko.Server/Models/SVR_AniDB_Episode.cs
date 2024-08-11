@@ -34,6 +34,9 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         // Try finding one of the preferred languages.
         foreach (var language in Languages.PreferredEpisodeNamingLanguages)
         {
+            if (language.Language == TitleLanguage.Main)
+                return DefaultTitle;
+
             var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(EpisodeID, language.Language)
                 .FirstOrDefault();
             if (title is not null)
