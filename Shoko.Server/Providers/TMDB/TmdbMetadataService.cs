@@ -2371,12 +2371,20 @@ public class TmdbMetadataService
 
         var semaphore = new SemaphoreSlim(maxConcurrent);
         var exceptions = new List<Exception>();
+        var cancellationTokenSource = new CancellationTokenSource();
         var tasks = enumerable
             .Select(item => Task.Run(async () =>
             {
                 try
                 {
-                    await semaphore.WaitAsync().ConfigureAwait(false);
+                    await semaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                try
+                {
                     await processAsync(item).ConfigureAwait(false);
                 }
                 finally
@@ -2398,7 +2406,10 @@ public class TmdbMetadataService
                 tasks.Remove(task);
                 exceptions.Add(ex);
                 if (exceptions.Count > maxConcurrent)
+                {
+                    cancellationTokenSource.Cancel();
                     throw new AggregateException(exceptions);
+                }
                 continue;
             }
         }
