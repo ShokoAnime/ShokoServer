@@ -1076,6 +1076,24 @@ public class FileController : BaseController
     }
 
     /// <summary>
+    /// Force add a file to AniDB MyList
+    /// </summary>
+    /// <param name="fileID">The file id.</param>
+    /// <returns></returns>
+    [HttpPost("{fileID}/AddToMyList")]
+    public async Task<ActionResult> AddFileToMyList([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<AddFileToMyListJob>(c => c.Hash = file.Hash);
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Unlink all the episodes if no body is given, or only the spesified episodes from the file.
     /// </summary>
     /// <param name="fileID">The file id.</param>
