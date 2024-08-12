@@ -526,12 +526,26 @@ public class VideoLocal_PlaceService
 
         if (result.Error != null) return new Renamer.RelocationResult() { Success = false, ShouldRetry = false, ErrorMessage = result.Error.Message, Exception = result.Error.Exception };
 
-        if (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:"))
+        if (request.Rename && (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:")))
         {
             var errorMessage = !string.IsNullOrWhiteSpace(result.FileName)
                 ? result.FileName[7..].Trim()
                 : "The file renamer returned a null or empty value.";
             _logger.LogError("An error occurred while trying to find a new file name for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = errorMessage,
+            };
+        }
+
+        if (request.Move && (string.IsNullOrWhiteSpace(result.Path) || result.Path.StartsWith("*Error:")))
+        {
+            var errorMessage = !string.IsNullOrWhiteSpace(result.Path)
+                ? result.Path[7..].Trim()
+                : "Could not find a valid destination.";
+            _logger.LogWarning("An error occurred while trying to find a destination for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
             return new()
             {
                 Success = false,

@@ -42,7 +42,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
 
         string newFilename = null;
-        var success = false;
+        var success = true;
         (IImportFolder dest, string folder) destination = default;
         Exception ex = null;
         try
@@ -56,6 +56,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception e)
         {
+            success = false;
             ex = e;
         }
 
