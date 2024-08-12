@@ -153,9 +153,7 @@ public static class SettingsMigrations
         var renamerSettings = pluginsSettings["Renamer"] ?? (pluginsSettings["Renamer"] = new JObject());
         renamerSettings["RenameOnImport"] = renameOnImport;
         renamerSettings["MoveOnImport"] = moveOnImport;
-
-        var enabledRenamers = pluginsSettings["EnabledRenamers"]?.ToObject<Dictionary<string, bool>>();
-        if (enabledRenamers != null) renamerSettings["EnabledRenamers"] = new JObject(enabledRenamers);
+        renamerSettings["EnabledRenamers"] = pluginsSettings["EnabledRenamers"] ?? new JObject();
 
         return currentSettings.ToString();
     }
