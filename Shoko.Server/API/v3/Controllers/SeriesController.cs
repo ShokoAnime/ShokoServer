@@ -1238,7 +1238,7 @@ public class SeriesController : BaseController
 
         await _tmdbMetadataService.AddMovieLink(series.AniDB_ID, body.ID, body.EpisodeID, additiveLink: !body.Replace);
 
-        var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) != null || body.Refresh;
+        var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
             await _tmdbMetadataService.ScheduleUpdateOfMovie(body.ID, forceRefresh: body.Refresh, downloadImages: true);
 
@@ -1388,7 +1388,7 @@ public class SeriesController : BaseController
 
         await _tmdbMetadataService.AddShowLink(series.AniDB_ID, body.ID, additiveLink: !body.Replace);
 
-        var needRefresh = RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) != null || body.Refresh;
+        var needRefresh = RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) is null || body.Refresh;
         if (needRefresh)
             await _tmdbMetadataService.ScheduleUpdateOfShow(body.ID, forceRefresh: body.Refresh, downloadImages: true);
 
