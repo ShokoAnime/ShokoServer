@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -75,9 +76,8 @@ public class ImportFolderController : BaseController
     /// <param name="folderID">Import Folder ID</param>
     /// <returns></returns>
     [HttpGet("{folderID}")]
-    public ActionResult<ImportFolder> GetImportFolderByFolderID([FromRoute] int folderID)
+    public ActionResult<ImportFolder> GetImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID)
     {
-        if (folderID == 0) return BadRequest("ID must be greater than 0");
         var folder = RepoFactory.ImportFolder.GetByID(folderID);
         if (folder == null)
         {
@@ -95,7 +95,7 @@ public class ImportFolderController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPatch("{folderID}")]
-    public ActionResult PatchImportFolderByFolderID([FromRoute] int folderID,
+    public ActionResult PatchImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID,
         [FromBody] JsonPatchDocument<ImportFolder> patch)
     {
         if (patch == null)
@@ -163,14 +163,9 @@ public class ImportFolderController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{folderID}")]
-    public async Task<ActionResult> DeleteImportFolderByFolderID([FromRoute] int folderID, [FromQuery] bool removeRecords = true,
+    public async Task<ActionResult> DeleteImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID, [FromQuery] bool removeRecords = true,
         [FromQuery] bool updateMyList = true)
     {
-        if (folderID == 0)
-        {
-            return NotFound("Folder not found.");
-        }
-
         if (!removeRecords)
         {
             // These are annoying to clean up later, so do it now. We can easily recreate them.
@@ -195,7 +190,7 @@ public class ImportFolderController : BaseController
     /// <param name="folderID">Import Folder ID</param>
     /// <returns></returns>
     [HttpGet("{folderID}/Scan")]
-    public async Task<ActionResult> ScanImportFolderByFolderID([FromRoute] int folderID)
+    public async Task<ActionResult> ScanImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID)
     {
         var folder = RepoFactory.ImportFolder.GetByID(folderID);
         if (folder == null)

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -116,7 +117,7 @@ public class UserController : BaseController
     /// <returns>The user.</returns>
     [Authorize("admin")]
     [HttpGet("{userID}")]
-    public ActionResult<User> GetUserByUserID([FromRoute] int userID)
+    public ActionResult<User> GetUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
@@ -136,7 +137,7 @@ public class UserController : BaseController
     /// <returns>The updated user.</returns>
     [Authorize("admin")]
     [HttpPatch("{userID}")]
-    public ActionResult<User> PatchUserByUserID([FromRoute] int userID, [FromBody] JsonPatchDocument<User.Input.CreateOrUpdateUserBody> document)
+    public ActionResult<User> PatchUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID, [FromBody] JsonPatchDocument<User.Input.CreateOrUpdateUserBody> document)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
@@ -166,7 +167,7 @@ public class UserController : BaseController
     /// <returns>The updated user.</returns>
     [Authorize("admin")]
     [HttpPut("{userID}")]
-    public ActionResult<User> PutUserByUserID([FromRoute] int userID, [FromBody] User.Input.CreateOrUpdateUserBody body)
+    public ActionResult<User> PutUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID, [FromBody] User.Input.CreateOrUpdateUserBody body)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
@@ -189,7 +190,7 @@ public class UserController : BaseController
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpDelete("{userID}")]
-    public ActionResult DeleteUser([FromRoute] int userID)
+    public ActionResult DeleteUser([FromRoute, Range(1, int.MaxValue)] int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
@@ -215,7 +216,7 @@ public class UserController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{userID}/ChangePassword")]
-    public ActionResult ChangePasswordForUserByUserID([FromRoute] int userID, [FromBody] User.Input.ChangePasswordBody body) =>
+    public ActionResult ChangePasswordForUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID, [FromBody] User.Input.ChangePasswordBody body) =>
         ChangePassword(RepoFactory.JMMUser.GetByID(userID), body);
 
     [NonAction]

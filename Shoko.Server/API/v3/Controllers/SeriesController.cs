@@ -77,8 +77,6 @@ public class SeriesController : BaseController
 
     #region Return messages
 
-    internal const string SeriesWithZeroID = "SeriesID must be greater than 0";
-
     internal const string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
 
     internal const string SeriesNotFoundWithAnidbID = "No Series entry for the given anidbID";
@@ -142,10 +140,9 @@ public class SeriesController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}")]
-    public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool randomImages = false,
+    public ActionResult<Series> GetSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -169,11 +166,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}")]
-    public async Task<ActionResult> DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
+    public async Task<ActionResult> DeleteSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
     {
-        if (seriesID == 0)
-            return BadRequest(SeriesWithZeroID);
-
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -191,11 +185,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/OverrideTitle")]
-    public ActionResult OverrideSeriesTitle([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.TitleOverrideBody body)
+    public ActionResult OverrideSeriesTitle([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.TitleOverrideBody body)
     {
-        if (seriesID == 0)
-            return BadRequest(SeriesWithZeroID);
-
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -222,9 +213,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("{seriesID}/AutoMatchSettings")]
-    public ActionResult<Series.AutoMatchSettings> GetAutoMatchSettingsBySeriesID([FromRoute] int seriesID)
+    public ActionResult<Series.AutoMatchSettings> GetAutoMatchSettingsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -244,9 +234,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPatch("{seriesID}/AutoMatchSettings")]
-    public ActionResult<Series.AutoMatchSettings> PatchAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] JsonPatchDocument<Series.AutoMatchSettings> patchDocument)
+    public ActionResult<Series.AutoMatchSettings> PatchAutoMatchSettingsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] JsonPatchDocument<Series.AutoMatchSettings> patchDocument)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -273,9 +262,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{seriesID}/AutoMatchSettings")]
-    public ActionResult<Series.AutoMatchSettings> PutAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] Series.AutoMatchSettings autoMatchSettings)
+    public ActionResult<Series.AutoMatchSettings> PutAutoMatchSettingsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] Series.AutoMatchSettings autoMatchSettings)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -292,9 +280,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Relations")]
-    public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int seriesID)
+    public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -455,9 +442,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB")]
-    public ActionResult<Series.AniDB> GetSeriesAnidbBySeriesID([FromRoute] int seriesID)
+    public ActionResult<Series.AniDB> GetSeriesAnidbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -484,9 +470,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB/Similar")]
-    public ActionResult<List<Series.AniDB>> GetAnidbSimilarBySeriesID([FromRoute] int seriesID)
+    public ActionResult<List<Series.AniDB>> GetAnidbSimilarBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -515,9 +500,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB/Related")]
-    public ActionResult<List<Series.AniDB>> GetAnidbRelatedBySeriesID([FromRoute] int seriesID)
+    public ActionResult<List<Series.AniDB>> GetAnidbRelatedBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -546,9 +530,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB/Relations")]
-    public ActionResult<List<SeriesRelation>> GetAnidbRelationsBySeriesID([FromRoute] int seriesID)
+    public ActionResult<List<SeriesRelation>> GetAnidbRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -891,11 +874,10 @@ public class SeriesController : BaseController
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh")]
-    public async Task<ActionResult<bool>> RefreshAniDBBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false,
+    public async Task<ActionResult<bool>> RefreshAniDBBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
         [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         if (!createSeriesEntry.HasValue)
         {
             var settings = SettingsProvider.GetSettings();
@@ -931,7 +913,7 @@ public class SeriesController : BaseController
     /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
     [Obsolete("Use Refresh with cacheOnly set to true")]
-    public async Task<ActionResult<bool>> RefreshAniDBFromXML([FromRoute] int seriesID)
+    public async Task<ActionResult<bool>> RefreshAniDBFromXML([FromRoute, Range(1, int.MaxValue)] int seriesID)
         => await RefreshAniDBBySeriesID(seriesID, false, false, true, true, true);
 
     #endregion
@@ -944,9 +926,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/TvDB")]
-    public ActionResult<List<Series.TvDB>> GetSeriesTvdb([FromRoute] int seriesID)
+    public ActionResult<List<Series.TvDB>> GetSeriesTvdb([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -972,9 +953,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/TvDB")]
-    public async Task<ActionResult> LinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
+    public async Task<ActionResult> LinkTvDB([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TvdbNotFoundForSeriesID);
@@ -996,9 +976,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/TvDB")]
-    public ActionResult UnlinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body)
+    public ActionResult UnlinkTvDB([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TvdbNotFoundForSeriesID);
@@ -1024,9 +1003,8 @@ public class SeriesController : BaseController
     /// <param name="force">Forcefully retrieve updated data from TvDB</param>
     /// <returns></returns>
     [HttpPost("{seriesID}/TvDB/Refresh")]
-    public async Task<ActionResult> RefreshSeriesTvdbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false)
+    public async Task<ActionResult> RefreshSeriesTvdbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool force = false)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -1136,7 +1114,7 @@ public class SeriesController : BaseController
     /// <returns>Void.</returns>
     [HttpGet("{seriesID}/TMDB/Action/AutoSearch")]
     public async Task<ActionResult<List<TmdbSearch.AutoMatchResult>>> PreviewAutoMatchTMDBMoviesBySeriesID(
-        [FromRoute] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1164,7 +1142,7 @@ public class SeriesController : BaseController
     /// <returns>Void.</returns>
     [HttpPost("{seriesID}/TMDB/Action/AutoSearch")]
     public async Task<ActionResult> ScheduleAutoMatchTMDBMoviesBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool force = false
     )
     {
@@ -1191,7 +1169,7 @@ public class SeriesController : BaseController
     /// <returns>All TMDB Movies linked to the Shoko Series.</returns>
     [HttpGet("{seriesID}/TMDB/Movie")]
     public ActionResult<List<TmdbMovie>> GetTMDBMoviesBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
@@ -1219,7 +1197,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Movie")]
     public async Task<ActionResult> AddLinkToTMDBMoviesBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkMovieBody body
     )
     {
@@ -1254,7 +1232,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpDelete("{seriesID}/TMDB/Movie")]
     public async Task<ActionResult> RemoveLinkToTMDBMoviesBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body
     )
     {
@@ -1285,7 +1263,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Movie/Action/Refresh")]
     public async Task<ActionResult> RefreshTMDBMoviesBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool force = false,
         [FromQuery] bool downloadImages = true,
         [FromQuery] bool? downloadCrewAndCast = null,
@@ -1312,7 +1290,7 @@ public class SeriesController : BaseController
     /// <returns>All TMDB Movie cross-references for the Shoko Series.</returns>
     [HttpGet("{seriesID}/TMDB/Movie/CrossReferences")]
     public ActionResult<IReadOnlyList<TmdbMovie.CrossReference>> GetTMDBMovieCrossReferenceBySeriesID(
-        [FromRoute] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1341,7 +1319,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/TMDB/Show")]
     public ActionResult<List<TmdbShow>> GetTMDBShowsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails> include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
@@ -1369,7 +1347,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Show")]
     public async Task<ActionResult> AddLinkToTMDBShowsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkShowBody body
     )
     {
@@ -1404,7 +1382,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpDelete("{seriesID}/TMDB/Show")]
     public async Task<ActionResult> RemoveLinkToTMDBShowsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body
     )
     {
@@ -1435,7 +1413,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Show/Action/Refresh")]
     public async Task<ActionResult> RefreshTMDBShowsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool force = false,
         [FromQuery] bool downloadImages = true,
         [FromQuery] bool? downloadCrewAndCast = null,
@@ -1462,7 +1440,7 @@ public class SeriesController : BaseController
     /// <returns>All TMDB Show cross-references for the Shoko Series.</returns>
     [HttpGet("{seriesID}/TMDB/Show/CrossReferences")]
     public ActionResult<IReadOnlyList<TmdbShow.CrossReference>> GetTMDBShowCrossReferenceBySeriesID(
-        [FromRoute] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1491,7 +1469,7 @@ public class SeriesController : BaseController
     /// <returns>A list of TMDB episode cross-references as part of the preview result, based on the provided filtering and pagination settings.</returns>
     [HttpGet("{seriesID}/TMDB/Show/CrossReferences/Episode")]
     public ActionResult<ListResult<TmdbEpisode.CrossReference>> GetTMDBEpisodeMappingsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] int? tmdbShowID,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
@@ -1527,7 +1505,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Show/CrossReferences/Episode")]
     public async Task<ActionResult> OverrideTMDBEpisodeMappingsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.OverrideEpisodeMappingBody body
     )
     {
@@ -1607,7 +1585,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpGet("{seriesID}/TMDB/Show/CrossReferences/Episode/Auto")]
     public ActionResult<ListResult<TmdbEpisode.CrossReference>> PreviewAutoTMDBEpisodeMappingsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] int? tmdbShowID,
         [FromQuery] int? tmdbSeasonID,
         [FromQuery] bool keepExisting = true,
@@ -1661,7 +1639,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Show/CrossReferences/Episode/Auto")]
     public async Task<ActionResult> AutoTMDBEpisodeMappingsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] int? tmdbShowID,
         [FromQuery] int? tmdbSeasonID,
         [FromQuery] bool keepExisting = true
@@ -1720,7 +1698,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpDelete("{seriesID}/TMDB/Show/CrossReferences/Episode")]
     public ActionResult RemoveTMDBEpisodeMappingsBySeriesID(
-        [FromRoute] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1750,7 +1728,7 @@ public class SeriesController : BaseController
     /// <returns>All TMDB Seasons indirectly linked to the Shoko Series.</returns>
     [HttpGet("{seriesID}/TMDB/Season")]
     public ActionResult<List<TmdbSeason>> GetTMDBSeasonsBySeriesID(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails> include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
@@ -1805,7 +1783,7 @@ public class SeriesController : BaseController
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("{seriesID}/Episode")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
@@ -1821,7 +1799,6 @@ public class SeriesController : BaseController
         [FromQuery] bool fuzzy = true
     )
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1847,7 +1824,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpPost("{seriesID}/Episode/Watched")]
     public async Task<ActionResult> MarkSeriesWatched(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool value = true,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
@@ -1856,7 +1833,6 @@ public class SeriesController : BaseController
         [FromQuery] string search = null,
         [FromQuery] bool fuzzy = true)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2110,7 +2086,7 @@ public class SeriesController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/NextUpEpisode")]
-    public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
+    public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool onlyUnwatched = true,
         [FromQuery] bool includeSpecials = true,
         [FromQuery] bool includeMissing = true,
@@ -2123,7 +2099,6 @@ public class SeriesController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2156,9 +2131,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/File/Rescan")]
-    public async Task<ActionResult> RescanSeriesFiles([FromRoute] int seriesID, [FromQuery] bool priority = false)
+    public async Task<ActionResult> RescanSeriesFiles([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool priority = false)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2195,9 +2169,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/File/Rehash")]
-    public async Task<ActionResult> RehashSeriesFiles([FromRoute] int seriesID)
+    public async Task<ActionResult> RehashSeriesFiles([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2234,9 +2207,8 @@ public class SeriesController : BaseController
     /// <param name="vote"></param>
     /// <returns></returns>
     [HttpPost("{seriesID}/Vote")]
-    public async Task<ActionResult> PostSeriesUserVote([FromRoute] int seriesID, [FromBody] Vote vote)
+    public async Task<ActionResult> PostSeriesUserVote([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody] Vote vote)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2277,9 +2249,8 @@ public class SeriesController : BaseController
     /// <param name="includeDisabled"></param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Images")]
-    public ActionResult<Images> GetSeriesImages([FromRoute] int seriesID, [FromQuery] bool includeDisabled)
+    public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool includeDisabled)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -2305,13 +2276,12 @@ public class SeriesController : BaseController
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Images/{imageType}")]
-    public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute] int seriesID,
+    public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
 
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2344,13 +2314,12 @@ public class SeriesController : BaseController
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [HttpPut("{seriesID}/Images/{imageType}")]
-    public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int seriesID,
+    public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
 
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2387,13 +2356,12 @@ public class SeriesController : BaseController
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [HttpDelete("{seriesID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType)
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
 
         // Check if the series exists and if the user can access the series.
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2433,11 +2401,10 @@ public class SeriesController : BaseController
     /// <param name="onlyVerified">Only show verified tags.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags")]
-    public ActionResult<List<Tag>> GetSeriesTags([FromRoute] int seriesID, [FromQuery] TagFilter.Filter filter = 0,
+    public ActionResult<List<Tag>> GetSeriesTags([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] TagFilter.Filter filter = 0,
         [FromQuery] bool excludeDescriptions = false, [FromQuery] bool orderByName = false,
         [FromQuery] bool onlyVerified = true)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -2466,7 +2433,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags/User")]
     public ActionResult<List<Tag>> GetSeriesUserTags(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool excludeDescriptions = false)
         => GetSeriesTags(seriesID, TagFilter.Filter.User | TagFilter.Filter.Invert, excludeDescriptions, true, true);
 
@@ -2479,11 +2446,10 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/Tags/User")]
     [Authorize("admin")]
     public ActionResult AddSeriesUserTags(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.AddOrRemoveUserTagsBody body
     )
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -2522,11 +2488,10 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/Tags/User")]
     [Authorize("admin")]
     public ActionResult RemoveSeriesUserTags(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.AddOrRemoveUserTagsBody body
     )
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -2559,10 +2524,9 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags/{filter}")]
     [Obsolete("Use Tags with query parameter instead.")]
-    public ActionResult<List<Tag>> GetSeriesTagsFromPath([FromRoute] int seriesID, [FromRoute] TagFilter.Filter filter,
+    public ActionResult<List<Tag>> GetSeriesTagsFromPath([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] TagFilter.Filter filter,
         [FromQuery] bool excludeDescriptions = false)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         return GetSeriesTags(seriesID, filter, excludeDescriptions);
     }
 
@@ -2577,10 +2541,9 @@ public class SeriesController : BaseController
     /// <param name="roleType">Filter by role type</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Cast")]
-    public ActionResult<List<Role>> GetSeriesCast([FromRoute] int seriesID,
+    public ActionResult<List<Role>> GetSeriesCast([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Role.CreatorRoleType> roleType = null)
     {
-        if (seriesID == 0) return BadRequest(SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -2607,14 +2570,8 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPatch("{seriesID}/Move/{groupID}")]
-    public ActionResult MoveSeries([FromRoute] int seriesID, [FromRoute] int groupID)
+    public ActionResult MoveSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        if (seriesID == 0)
-            return BadRequest(SeriesWithZeroID);
-
-        if (groupID == 0)
-            return BadRequest(GroupController.GroupWithZeroID);
-
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);

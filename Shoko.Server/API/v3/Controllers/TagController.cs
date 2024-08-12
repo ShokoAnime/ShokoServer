@@ -119,9 +119,9 @@ public class TagController : BaseController
     /// <param name="excludeDescription">Exclude tag description from response.</param>
     /// <returns></returns>
     [HttpGet("User/{tagID}")]
-    public ActionResult<Tag> GetUserTag([FromRoute] int tagID, [FromQuery] bool excludeDescription = false)
+    public ActionResult<Tag> GetUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromQuery] bool excludeDescription = false)
     {
-        var tag = tagID <= 0 ? null : RepoFactory.CustomTag.GetByID(tagID);
+        var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
@@ -136,9 +136,9 @@ public class TagController : BaseController
     /// <returns>The updated user tag, or an error action result.</returns>
     [HttpPut("User/{tagID}")]
     [Authorize("admin")]
-    public ActionResult<Tag> EditUserTag([FromRoute] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Tag.Input.CreateOrUpdateCustomTagBody body)
+    public ActionResult<Tag> EditUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Tag.Input.CreateOrUpdateCustomTagBody body)
     {
-        var tag = tagID <= 0 ? null : RepoFactory.CustomTag.GetByID(tagID);
+        var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
@@ -158,9 +158,9 @@ public class TagController : BaseController
     /// <returns>The updated user tag, or an error action result.</returns>
     [HttpPatch("User/{tagID}")]
     [Authorize("admin")]
-    public ActionResult<Tag> PatchUserTag([FromRoute] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<Tag.Input.CreateOrUpdateCustomTagBody> patchDocument)
+    public ActionResult<Tag> PatchUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<Tag.Input.CreateOrUpdateCustomTagBody> patchDocument)
     {
-        var tag = tagID <= 0 ? null : RepoFactory.CustomTag.GetByID(tagID);
+        var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
         var body = new Tag.Input.CreateOrUpdateCustomTagBody();
@@ -182,9 +182,9 @@ public class TagController : BaseController
     /// <returns>No content or an error action result.</returns>
     [HttpDelete("User/{tagID}")]
     [Authorize("admin")]
-    public ActionResult RemoveUserTag([FromRoute] int tagID)
+    public ActionResult RemoveUserTag([FromRoute, Range(1, int.MaxValue)] int tagID)
     {
-        var tag = tagID <= 0 ? null : RepoFactory.CustomTag.GetByID(tagID);
+        var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 

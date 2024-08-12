@@ -254,10 +254,8 @@ public class WebUIController : BaseController
     /// <param name="seriesID">The ID of the series to retrieve information for.</param>
     /// <returns>A <c>WebUISeriesExtra</c> object containing extra information for the series.</returns>
     [HttpGet("Series/{seriesID}")]
-    public ActionResult<WebUISeriesExtra> GetSeries([FromRoute] int seriesID)
+    public ActionResult<WebUISeriesExtra> GetSeries([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
-
         // Retrieve extra information for the specified series if it exists and the user has permissions.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series is null)
@@ -285,7 +283,7 @@ public class WebUIController : BaseController
     /// <returns>A <c>WebUISeriesFileSummary</c> object containing a summary of file information for the series.</returns>
     [HttpGet("Series/{seriesID}/FileSummary")]
     public ActionResult<WebUISeriesFileSummary> GetSeriesFileSummary(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<FileSummaryGroupByCriteria> groupBy = null,
         [FromQuery] bool includeEpisodeDetails = false,
@@ -293,7 +291,6 @@ public class WebUIController : BaseController
         [FromQuery] bool includeMissingFutureEpisodes = false)
     {
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series is null)
         {
