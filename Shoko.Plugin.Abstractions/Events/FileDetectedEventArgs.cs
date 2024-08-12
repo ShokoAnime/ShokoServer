@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Shoko.Plugin.Abstractions.DataModels;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 public class FileDetectedEventArgs : EventArgs
 {

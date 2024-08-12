@@ -2,7 +2,7 @@ using System;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
 /// Currently, these will fire a lot in succession, as these are updated in batch with a series.

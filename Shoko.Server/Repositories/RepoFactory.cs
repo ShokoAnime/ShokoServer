@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Properties;
-using Shoko.Commons.Utils;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
@@ -71,7 +70,7 @@ public class RepoFactory
     public static ImportFolderRepository ImportFolder;
     public static JMMUserRepository JMMUser;
     public static PlaylistRepository Playlist;
-    public static RenameScriptRepository RenameScript;
+    public static RenamerConfigRepository RenamerConfig;
     public static ScanFileRepository ScanFile;
     public static ScanRepository Scan;
     public static ScheduledUpdateRepository ScheduledUpdate;
@@ -165,7 +164,7 @@ public class RepoFactory
         ImportFolderRepository importFolder,
         JMMUserRepository jmmUser,
         PlaylistRepository playlist,
-        RenameScriptRepository renameScript,
+        RenamerConfigRepository renamerConfig,
         ScanFileRepository scanFile,
         ScanRepository scan,
         ScheduledUpdateRepository scheduledUpdate,
@@ -259,7 +258,7 @@ public class RepoFactory
         ImportFolder = importFolder;
         JMMUser = jmmUser;
         Playlist = playlist;
-        RenameScript = renameScript;
+        RenamerConfig = renamerConfig;
         Scan = scan;
         ScanFile = scanFile;
         ScheduledUpdate = scheduledUpdate;

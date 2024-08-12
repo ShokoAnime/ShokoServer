@@ -1,7 +1,7 @@
 using System;
 using Shoko.Plugin.Abstractions.Enums;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 public class NetworkAvailabilityChangedEventArgs : EventArgs
 {

@@ -13,6 +13,7 @@ using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 

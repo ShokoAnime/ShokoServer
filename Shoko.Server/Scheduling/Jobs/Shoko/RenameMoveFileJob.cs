@@ -49,7 +49,7 @@ public class RenameMoveFileJob : BaseJob
 
         var places = _vlocal.Places;
         foreach (var place in places)
-            await _vlPlaceService.RenameAndMoveAsRequired(place);
+            await _vlPlaceService.AutoRelocateFile(place);
     }
 
     public RenameMoveFileJob(VideoLocal_PlaceService vlPlaceService)

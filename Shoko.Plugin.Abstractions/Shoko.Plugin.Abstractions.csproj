@@ -4,6 +4,7 @@
         <OutputType>Library</OutputType>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Title>Interfaces for Shoko Plugins</Title>
         <Authors>Shoko Team</Authors>
         <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
@@ -11,8 +12,8 @@
         <PackageIcon>icon.png</PackageIcon>
         <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
-        <PackageReleaseNotes>File Events</PackageReleaseNotes>
-        <Version>3.0.0-alpha11</Version>
+        <PackageReleaseNotes>Renamer Rewrite</PackageReleaseNotes>
+        <Version>3.0.0-alpha12</Version>
         <Configurations>Debug;Release;Benchmarks</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>

@@ -17,7 +17,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
-public class File
+public partial class File
 {
     /// <summary>
     /// The ID of the File. You'll need this to play it.
@@ -164,7 +164,7 @@ public class File
     /// <summary>
     /// Represents a file location.
     /// </summary>
-    public class Location
+    public partial class Location
     {
         /// <summary>
         /// The file location id.
@@ -246,32 +246,6 @@ public class File
             public bool DeleteEmptyDirectories { get; set; } = true;
         }
 
-        /// <summary>
-        /// Represents the information required to create or move to a new file
-        /// location.
-        /// </summary>
-        public class NewLocationBody
-        {
-            /// <summary>
-            /// The id of the <see cref="ImportFolder"/> where this file should
-            /// be relocated to.
-            /// </summary>
-            [Required]
-            public int ImportFolderID { get; set; }
-
-            /// <summary>
-            /// The new relative path from the <see cref="ImportFolder"/>'s path
-            /// on the server.
-            /// </summary>
-            [Required]
-            public string RelativePath { get; set; } = string.Empty;
-
-            /// <summary>
-            /// Indicates whether empty directories should be deleted after
-            /// relocating the file.
-            /// </summary>
-            public bool DeleteEmptyDirectories { get; set; } = true;
-        }
     }
 #nullable disable
 

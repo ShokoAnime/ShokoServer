@@ -1,24 +1,16 @@
-using System;
-
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IVideoFile
 {
     /// <summary>
-    /// The video file location id.
+    /// The video file location (VideoLocal_Place) id.
     /// </summary>
     int ID { get; }
 
     /// <summary>
-    /// The video id.
+    /// The video (VideoLocal) id.
     /// </summary>
     int VideoID { get; }
-
-    /// <summary>
-    /// The import folder id.
-    /// </summary>
-    int ImportFolderID { get; }
 
     /// <summary>
     /// The file name.

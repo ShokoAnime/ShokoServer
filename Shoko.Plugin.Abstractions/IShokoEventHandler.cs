@@ -1,4 +1,5 @@
 using System;
+using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Plugin.Abstractions
 {

@@ -1,8 +1,7 @@
-
 using System;
 using System.Collections.Generic;
 
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
 public class AVDumpEventArgs : EventArgs
 {

@@ -23,7 +23,7 @@ public static class RepositoryStartup
         services.AddDirectRepository<FileNameHashRepository>();
         services.AddDirectRepository<IgnoreAnimeRepository>();
         services.AddDirectRepository<PlaylistRepository>();
-        services.AddDirectRepository<RenameScriptRepository>();
+        services.AddDirectRepository<RenamerConfigRepository>();
         services.AddDirectRepository<ScanFileRepository>();
         services.AddDirectRepository<ScanRepository>();
         services.AddDirectRepository<ScheduledUpdateRepository>();
