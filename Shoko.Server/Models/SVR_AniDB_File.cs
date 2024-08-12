@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Repositories;
@@ -24,7 +25,11 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     [XmlIgnore]
     public List<SVR_AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash)
-        .Select(crossref => crossref.AniDBEpisode).Where(ep => ep != null).ToList();
+        .Select(crossref => crossref.AniDBEpisode)
+        .WhereNotNull()
+        .OrderBy(ep => ep.EpisodeTypeEnum)
+        .OrderBy(ep => ep.EpisodeNumber)
+        .ToList();
 
     [XmlIgnore]
     public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);

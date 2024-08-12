@@ -136,7 +136,7 @@ public class Series : BaseModel
             TMDB = new()
             {
                 Movie = ser.TmdbMovieCrossReferences.Select(a => a.TmdbMovieID).Distinct().ToList(),
-                Show = ser.TmdbShows.Select(a => a.TmdbShowID).Distinct().ToList(),
+                Show = ser.TmdbShowCrossReferences.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
             TraktTv = ser.TraktShowCrossReferences.Select(a => a.TraktID).Distinct().ToList(),
             MAL = ser.MALCrossReferences.Select(a => a.MALID).Distinct().ToList()
@@ -475,9 +475,7 @@ public class Series : BaseModel
                     : null;
                 Description = anime.Description;
                 Restricted = anime.Restricted == 1;
-                Poster = (series?.GetPreferredImageForType(ImageEntityType.Poster) ?? anime.GetImageMetadata()) is { } poster
-                    ? new Image(poster)
-                    : new Image(anime.AnimeID, ImageEntityType.Poster, DataSourceType.AniDB);
+                Poster = new Image(anime.PreferredOrDefaultPoster);
                 EpisodeCount = anime.EpisodeCountNormal;
                 Rating = new Rating
                 {
@@ -770,7 +768,7 @@ public class Series : BaseModel
             /// <summary>
             /// Purge the provider metadata from the database.
             /// </summary>
-            public bool Purge { get; set; }
+            public bool Purge { get; set; } = false;
         }
 
         public class OverrideEpisodeMappingBody

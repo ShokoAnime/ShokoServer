@@ -25,7 +25,6 @@ public class LanguageSettings
         {
             _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
             Languages.PreferredNamingLanguages = null;
-            Languages.PreferredNamingLanguageNames = null;
         }
     }
 

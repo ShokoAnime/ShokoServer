@@ -11,7 +11,7 @@ namespace Shoko.Server.Scheduling.Jobs.TvDB;
 
 [DatabaseRequired]
 [NetworkRequired]
-[DisallowConcurrencyGroup(ConcurrencyGroups.TvDB)]
+[LimitConcurrency(8, 16)]
 [JobKeyGroup(JobKeyGroup.TvDB)]
 public class GetTvDBImagesJob : BaseJob
 {

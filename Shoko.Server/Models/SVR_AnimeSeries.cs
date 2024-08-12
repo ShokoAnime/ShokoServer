@@ -228,17 +228,17 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         {
             var poster = AniDB_Anime?.GetImageMetadata(false);
             if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster == preferredPoster
+                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
                     ? preferredPoster
                     : poster
                 );
         }
-        foreach (var tvdbShow in TvDBSeries)
-            images.AddRange(tvdbShow.GetImages(entityType, preferredImages));
         foreach (var tmdbShow in TmdbShows)
             images.AddRange(tmdbShow.GetImages(entityType, preferredImages));
         foreach (var tmdbMovie in TmdbMovies)
             images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
+        foreach (var tvdbShow in TvDBSeries)
+            images.AddRange(tvdbShow.GetImages(entityType, preferredImages));
 
         return images;
     }

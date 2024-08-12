@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Annotations;
@@ -20,7 +22,7 @@ public class ImageController : BaseController
     /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
     /// </summary>
     /// <param name="source">AniDB, TvDB, TMDB, Shoko, etc.</param>
-    /// <param name="type">Poster, Fanart, Banner, Thumbnail, etc.</param>
+    /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
     /// <param name="value">The image ID.</param>
     /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
     [HttpGet("{source}/{type}/{value}")]
@@ -53,9 +55,48 @@ public class ImageController : BaseController
     }
 
     /// <summary>
+    /// Enable or disable an image. Disabled images are hidden unless explicitly
+    /// asked for.
+    /// </summary>
+    /// <param name="source">AniDB, TvDB, TMDB, Shoko, etc.</param>
+    /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
+    /// <param name="value">The image ID.</param>
+    /// <param name="body"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{source}/{type}/{value}/Enabled")]
+    public ActionResult EnableOrDisableImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type, [FromRoute] int value, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body)
+    {
+        // Unrecognized combination of source, type and/or value.
+        var dataSource = source.ToServer();
+        var imageEntityType = type.ToServer();
+        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None || value <= 0)
+            return NotFound(ImageNotFound);
+
+        // User avatars are stored in the database.
+        if (imageEntityType == ImageEntityType.Art && dataSource == DataSourceType.User)
+        {
+            var user = RepoFactory.JMMUser.GetByID(value);
+            if (!user.HasAvatarImage)
+                return NotFound(ImageNotFound);
+
+            return ValidationProblem($"Unable to enable or disable user avatar with id {value}!");
+        }
+
+        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, value);
+        if (metadata is null)
+            return NotFound(ImageNotFound);
+
+        if (!ImageUtils.SetEnabled(dataSource, imageEntityType, value, body.Enabled))
+            return ValidationProblem($"Unable to enable or disable {source} {type} with id {value}!");
+
+        return NoContent();
+    }
+
+    /// <summary>
     /// Returns a random image for the <paramref name="imageType"/>.
     /// </summary>
-    /// <param name="imageType">Poster, Fanart, Banner, Thumb, Static</param>
+    /// <param name="imageType">Poster, Backdrop, Banner, Thumb, Static</param>
     /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
     [HttpGet("Random/{imageType}")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
@@ -86,7 +127,7 @@ public class ImageController : BaseController
     /// <summary>
     /// Returns the metadata for a random image for the <paramref name="imageType"/>.
     /// </summary>
-    /// <param name="imageType">Poster, Fanart, Banner, Thumb</param>
+    /// <param name="imageType">Poster, Backdrop, Banner, Thumb</param>
     /// <returns>200 on found, 400 if the type or source are invalid</returns>
     [HttpGet("Random/{imageType}/Metadata")]
     [ProducesResponseType(typeof(Image), 200)]

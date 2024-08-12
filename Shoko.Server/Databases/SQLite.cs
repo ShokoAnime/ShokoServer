@@ -728,7 +728,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(115, 31, "DROP TABLE AniDB_Anime_DefaultImage;"),
         new(115, 32, "CREATE TABLE AniDB_Episode_PreferredImage ( AniDB_Episode_PreferredImageID INTEGER PRIMARY KEY AUTOINCREMENT, AnidbAnimeID INTEGER NOT NULL, AnidbEpisodeID INTEGER NOT NULL, ImageID INTEGER NOT NULL, ImageType INTEGER NOT NULL, ImageSource INTEGER NOT NULL );"),
         new(115, 33, DatabaseFixes.CleanupAfterAddingTMDB),
-        new(115, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression')"),
+        new(115, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression');"),
+        new(115, 35, "UPDATE TMDB_Image SET IsEnabled = 1;"),
         new(116, 1, MigrateRenamers),
     };
 

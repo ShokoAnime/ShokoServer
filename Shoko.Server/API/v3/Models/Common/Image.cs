@@ -7,6 +7,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -35,6 +36,12 @@ public class Image
     /// </summary>
     [Required]
     public ImageSource Source { get; set; }
+
+    /// <summary>
+    /// Language code for the language used for the text in the image, if any.
+    /// Or null if the image doesn't contain any language specifics.
+    /// </summary>
+    public string? LanguageCode { get; set; }
 
     /// <summary>
     /// The relative path from the base image directory. A client with access to the server's filesystem can map
@@ -79,12 +86,18 @@ public class Image
 
         Preferred = imageMetadata.IsPreferred;
         Disabled = !imageMetadata.IsEnabled;
+        LanguageCode = imageMetadata.LanguageCode;
 
         // we need to set _something_ for the clients that determine
         // if an image exists by checking if a relative path is set,
         // so we set the id.
         RelativeFilepath = imageMetadata.IsLocalAvailable ? $"/{ID}" : null;
-        if (imageMetadata.IsLocalAvailable || Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+        if (imageMetadata is TMDB_Image tmdbImage)
+        {
+            Width = tmdbImage.Width;
+            Height = tmdbImage.Height;
+        }
+        else if (imageMetadata.IsLocalAvailable || Utils.SettingsProvider.GetSettings().LoadImageMetadata)
         {
             Width = imageMetadata.Width;
             Height = imageMetadata.Height;
@@ -123,6 +136,7 @@ public class Image
                 var tmdbImage = RepoFactory.TMDB_Image.GetByID(id);
                 if (tmdbImage != null)
                 {
+                    LanguageCode = tmdbImage.LanguageCode;
                     var relativePath = tmdbImage.RelativePath;
                     if (!string.IsNullOrEmpty(relativePath))
                     {
@@ -213,17 +227,17 @@ public class Image
     public enum ImageSource
     {
         /// <summary>
-        ///
+        /// AniDB.
         /// </summary>
         AniDB = 1,
 
         /// <summary>
-        ///
+        /// The Tv DataBase (TvDB).
         /// </summary>
         TvDB = 2,
 
         /// <summary>
-        ///
+        /// The Movie DataBase (TMDB).
         /// </summary>
         TMDB = 3,
 
@@ -233,9 +247,9 @@ public class Image
         User = 99,
 
         /// <summary>
-        ///
+        /// Shoko.
         /// </summary>
-        Shoko = 100
+        Shoko = 100,
     }
 
     /// <summary>
@@ -245,37 +259,45 @@ public class Image
     public enum ImageType
     {
         /// <summary>
-        ///
+        /// The standard poster image. May or may not contain text.
         /// </summary>
         Poster = 1,
 
         /// <summary>
-        ///
+        /// A long/wide banner image, usually with text.
         /// </summary>
         Banner = 2,
 
         /// <summary>
-        ///
+        /// Thumbnail image.
         /// </summary>
-        Thumb = 3,
+        Thumbnail = 3,
 
         /// <summary>
-        ///
+        /// Temp. synonym until it's safe to remove it.
+        /// </summary>
+        Thumb = Thumbnail,
+
+        /// <summary>
+        /// Backdrop / background images. Usually doesn't contain any text, but
+        /// it might.
         /// </summary>
         Backdrop = 4,
 
         /// <summary>
-        ///
+        /// Temp. synonym until it's safe to remove it.
         /// </summary>
         Fanart = Backdrop,
 
         /// <summary>
-        ///
+        /// Character image. May be a close up portrait of the character, or a
+        /// full-body view of the character.
         /// </summary>
         Character = 5,
 
         /// <summary>
-        ///
+        /// Staff image. May be a close up portrait of the person, or a
+        /// full-body view of the person.
         /// </summary>
         Staff = 6,
 
@@ -331,6 +353,15 @@ public class Image
             /// <value></value>
             [Required]
             public ImageSource Source { get; set; }
+        }
+
+        public class EnableImageBody
+        {
+            /// <summary>
+            /// Indicates that the image should be enabled.
+            /// </summary>
+            [Required]
+            public bool Enabled { get; set; }
         }
     }
 }

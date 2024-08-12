@@ -40,7 +40,7 @@ public class Movie
     public IReadOnlyList<Title>? Titles { get; init; }
 
     /// <summary>
-    /// Preferred overview based upon episode title preference.
+    /// Preferred overview based upon description preference.
     /// </summary>
     public string Overview { get; init; }
 
@@ -81,12 +81,12 @@ public class Movie
     public bool IsVideo { get; init; }
 
     /// <summary>
-    /// User rating of the episode from TMDB users.
+    /// User rating of the movie from TMDB users.
     /// </summary>
     public Rating UserRating { get; init; }
 
     /// <summary>
-    /// The episode run-time, if it is known.
+    /// The movie run-time, if it is known.
     /// </summary>
     public TimeSpan? Runtime { get; init; }
 
@@ -132,7 +132,7 @@ public class Movie
     public IReadOnlyList<CrossReference>? CrossReferences { get; init; }
 
     /// <summary>
-    /// The date the episode first released, if it is known.
+    /// The date the movie first released, if it is known.
     /// </summary>
     public DateOnly? ReleasedAt { get; init; }
 
@@ -172,6 +172,7 @@ public class Movie
             MaxValue = 10,
             Votes = movie.UserVotes,
             Source = "TMDB",
+            Type = "User",
         };
         Runtime = movie.Runtime;
         Genres = movie.Genres;
@@ -217,7 +218,7 @@ public class Movie
         public int ID { get; init; }
 
         /// <summary>
-        /// Preferred title based upon episode title preference.
+        /// Preferred title based upon series title preference.
         /// </summary>
         public string Title { get; init; }
 
@@ -228,7 +229,7 @@ public class Movie
         public IReadOnlyList<Title>? Titles { get; init; }
 
         /// <summary>
-        /// Preferred overview based upon episode title preference.
+        /// Preferred overview based upon description preference.
         /// </summary>
         public string Overview { get; init; }
 
@@ -260,11 +261,11 @@ public class Movie
         public Collection(TMDB_Collection collection, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
         {
             var include = includeDetails ?? default;
-            var preferredTitle = collection.GetPreferredTitle();
+            var preferredTitle = collection.GetPreferredTitle()!;
             var preferredOverview = collection.GetPreferredOverview();
 
             ID = collection.TmdbCollectionID;
-            Title = preferredTitle!.Value;
+            Title = preferredTitle.Value;
             if (include.HasFlag(IncludeDetails.Titles))
                 Titles = collection.GetAllTitles()
                     .ToDto(collection.EnglishTitle, preferredTitle, language);
@@ -322,7 +323,7 @@ public class Movie
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbMovieID = xref.TmdbMovieID;
-            Rating = xref.Source != CrossRefSource.User ? "User" : "Automatic";
+            Rating = xref.Source is CrossRefSource.User ? "User" : "Automatic";
         }
     }
 

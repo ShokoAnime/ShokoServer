@@ -10,6 +10,7 @@ using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.TMDB;
@@ -74,7 +75,14 @@ public class TmdbMetadataService
     private readonly TMDbClient? _client = null;
 
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
-    protected TMDbClient Client => _client ?? new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? Constants.TMDB.ApiKey);
+    protected TMDbClient Client => _client ?? new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
+        Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
+            ? Constants.TMDB.ApiKey
+            : throw new Exception("You need to provide an api key before using the TMDB provider!")
+    ))
+    {
+        MaxRetryCount = 3,
+    };
 
     public TmdbMetadataService(ILoggerFactory loggerFactory, ISchedulerFactory commandFactory, ISettingsProvider settingsProvider)
     {
@@ -284,8 +292,12 @@ public class TmdbMetadataService
         if (movie == null)
             return false;
 
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
         var updated = tmdbMovie.Populate(movie);
-        updated = UpdateTitlesAndOverviews(tmdbMovie, movie.Translations) || updated;
+        updated = UpdateTitlesAndOverviews(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
         if (downloadCrewAndCast)
             updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
@@ -496,59 +508,61 @@ public class TmdbMetadataService
 
     private async Task UpdateMovieCollections(Movie movie)
     {
-        var collectionId = movie.BelongsToCollection?.Id;
-        if (collectionId.HasValue)
-        {
-            var movieXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(collectionId.Value);
-            var tmdbCollection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionId.Value) ?? new(collectionId.Value);
-            var collection = await Client.GetCollectionAsync(collectionId.Value, CollectionMethods.Images | CollectionMethods.Translations);
-            if (collection == null)
-            {
-                PurgeMovieCollection(collectionId.Value);
-                return;
-            }
-
-            var updated = tmdbCollection.Populate(collection);
-            updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations) || updated;
-
-            var xrefsToAdd = 0;
-            var xrefsToSave = new List<TMDB_Collection_Movie>();
-            var xrefsToRemove = movieXRefs.Where(xref => !collection.Parts.Any(part => xref.TmdbMovieID == part.Id)).ToList();
-            var movieXref = movieXRefs.FirstOrDefault(xref => xref.TmdbMovieID == movie.Id);
-            var index = collection.Parts.FindIndex(part => part.Id == movie.Id);
-            if (index == -1)
-                index = collection.Parts.Count;
-            if (movieXref == null)
-            {
-                xrefsToAdd++;
-                xrefsToSave.Add(new(collectionId.Value, movie.Id, index + 1));
-            }
-            else if (movieXref.Ordering != index + 1)
-            {
-                movieXref.Ordering = index + 1;
-                xrefsToSave.Add(movieXref);
-            }
-
-            _logger.LogDebug(
-                "Added/updated/removed/skipped {ta}/{tu}/{tr}/{ts} movie cross-references for movie collection {CollectionTitle} (Id={CollectionId})",
-                xrefsToAdd,
-                xrefsToSave.Count - xrefsToAdd,
-                xrefsToRemove.Count,
-                movieXRefs.Count + xrefsToAdd - xrefsToRemove.Count - xrefsToSave.Count,
-                tmdbCollection.EnglishTitle,
-                tmdbCollection.Id);
-            RepoFactory.TMDB_Collection_Movie.Save(xrefsToSave);
-            RepoFactory.TMDB_Collection_Movie.Delete(xrefsToRemove);
-
-            if (updated || xrefsToSave.Count > 0 || xrefsToRemove.Count > 0)
-            {
-                tmdbCollection.LastUpdatedAt = DateTime.Now;
-                RepoFactory.TMDB_Collection.Save(tmdbCollection);
-            }
-        }
-        else
+        if (movie.BelongsToCollection?.Id is not { } collectionId)
         {
             CleanupMovieCollection(movie.Id);
+            return;
+        }
+
+        var movieXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(collectionId);
+        var tmdbCollection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
+        var collection = await Client.GetCollectionAsync(collectionId, CollectionMethods.Images | CollectionMethods.Translations);
+        if (collection == null)
+        {
+            PurgeMovieCollection(collectionId);
+            return;
+        }
+
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
+        var updated = tmdbCollection.Populate(collection);
+        updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
+
+        var xrefsToAdd = 0;
+        var xrefsToSave = new List<TMDB_Collection_Movie>();
+        var xrefsToRemove = movieXRefs.Where(xref => !collection.Parts.Any(part => xref.TmdbMovieID == part.Id)).ToList();
+        var movieXref = movieXRefs.FirstOrDefault(xref => xref.TmdbMovieID == movie.Id);
+        var index = collection.Parts.FindIndex(part => part.Id == movie.Id);
+        if (index == -1)
+            index = collection.Parts.Count;
+        if (movieXref == null)
+        {
+            xrefsToAdd++;
+            xrefsToSave.Add(new(collectionId, movie.Id, index + 1));
+        }
+        else if (movieXref.Ordering != index + 1)
+        {
+            movieXref.Ordering = index + 1;
+            xrefsToSave.Add(movieXref);
+        }
+
+        _logger.LogDebug(
+            "Added/updated/removed/skipped {ta}/{tu}/{tr}/{ts} movie cross-references for movie collection {CollectionTitle} (Id={CollectionId})",
+            xrefsToAdd,
+            xrefsToSave.Count - xrefsToAdd,
+            xrefsToRemove.Count,
+            movieXRefs.Count + xrefsToAdd - xrefsToRemove.Count - xrefsToSave.Count,
+            tmdbCollection.EnglishTitle,
+            tmdbCollection.Id);
+        RepoFactory.TMDB_Collection_Movie.Save(xrefsToSave);
+        RepoFactory.TMDB_Collection_Movie.Delete(xrefsToRemove);
+
+        if (updated || xrefsToSave.Count > 0 || xrefsToRemove.Count > 0)
+        {
+            tmdbCollection.LastUpdatedAt = DateTime.Now;
+            RepoFactory.TMDB_Collection.Save(tmdbCollection);
         }
     }
 
@@ -970,8 +984,12 @@ public class TmdbMetadataService
         if (show == null)
             return false;
 
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
         var updated = tmdbShow.Populate(show);
-        updated = UpdateTitlesAndOverviews(tmdbShow, show.Translations) || updated;
+        updated = UpdateTitlesAndOverviews(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
         var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, forceRefresh);
         if (episodesOrSeasonsUpdated)
@@ -1000,6 +1018,10 @@ public class TmdbMetadataService
 
     private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadImages, bool downloadCrewAndCast = false, bool forceRefresh = false)
     {
+        var settings = _settingsProvider.GetSettings();
+        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
+        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
         var existingSeasons = RepoFactory.TMDB_Season.GetByTmdbShowID(show.Id)
             .ToDictionary(season => season.Id);
         var seasonsToAdd = 0;
@@ -1024,7 +1046,7 @@ public class TmdbMetadataService
             }
 
             var seasonUpdated = tmdbSeason.Populate(show, season);
-            seasonUpdated = UpdateTitlesAndOverviews(tmdbSeason, season.Translations) || seasonUpdated;
+            seasonUpdated = UpdateTitlesAndOverviews(tmdbSeason, season.Translations, preferredTitleLanguages, preferredOverviewLanguages) || seasonUpdated;
             if (seasonUpdated)
             {
                 tmdbSeason.LastUpdatedAt = DateTime.Now;
@@ -1049,7 +1071,7 @@ public class TmdbMetadataService
                 // Update base episode and titles/overviews.
                 var episodeTranslations = await Client.GetTvEpisodeTranslationsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
                 var episodeUpdated = tmdbEpisode.Populate(show, season, episode, episodeTranslations!);
-                episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!) || episodeUpdated;
+                episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!, preferredTitleLanguages, preferredOverviewLanguages) || episodeUpdated;
 
                 // Update crew & cast.
                 if (downloadCrewAndCast)
@@ -1473,7 +1495,7 @@ public class TmdbMetadataService
     private async Task DownloadSeasonImages(int seasonId, int showId, int seasonNumber, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
-        if (settings.TMDB.AutoDownloadPosters)
+        if (!settings.TMDB.AutoDownloadPosters)
             return;
 
         var images = await Client.GetTvSeasonImagesAsync(showId, seasonNumber);
@@ -1483,7 +1505,7 @@ public class TmdbMetadataService
     private async Task DownloadEpisodeImages(int episodeId, int showId, int seasonNumber, int episodeNumber, bool forceDownload)
     {
         var settings = _settingsProvider.GetSettings();
-        if (settings.TMDB.AutoDownloadThumbnails)
+        if (!settings.TMDB.AutoDownloadThumbnails)
             return;
 
         var images = await Client.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber);
@@ -1492,16 +1514,17 @@ public class TmdbMetadataService
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false)
     {
+        var animeSeries = RepoFactory.AnimeSeries.GetByAnimeID(anidbAnimeId);
+        if (animeSeries == null)
+            return [];
+
+        // Mapping logic
+        var toSkip = new HashSet<int>();
+        var toAdd = new List<CrossRef_AniDB_TMDB_Episode>();
+        var crossReferences = new List<CrossRef_AniDB_TMDB_Episode>();
         var existing = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAllByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId)
             .GroupBy(xref => xref.AnidbEpisodeID)
             .ToDictionary(grouped => grouped.Key, grouped => grouped.ToList());
-        var toSkip = new HashSet<int>();
-        var toSave = new List<CrossRef_AniDB_TMDB_Episode>();
-
-        var animeSeries = RepoFactory.AnimeSeries.GetByAnimeID(anidbAnimeId);
-        if (animeSeries == null)
-            return new List<CrossRef_AniDB_TMDB_Episode>();
-
         var anidbEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(anidbAnimeId)
             .Where(episode => episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special)
             .ToDictionary(episode => episode.EpisodeID);
@@ -1517,21 +1540,15 @@ public class TmdbMetadataService
             .Where(episode => episode.SeasonNumber == 0)
             .OrderBy(episode => episode.EpisodeNumber)
             .ToList();
-
-        var crossReferences = useExisting
-            ? existing
-                .Where(pair => anidbEpisodes.ContainsKey(pair.Key))
-                .SelectMany(pair => pair.Value)
-                .ToList()
-            : [];
-
-        // Mapping logic
         foreach (var episode in anidbEpisodes.Values)
         {
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks))
             {
-                foreach (var link in existingLinks)
+                foreach (var link in existingLinks.DistinctBy((link => (link.TmdbShowID, link.TmdbEpisodeID))))
+                {
+                    crossReferences.Add(link);
                     toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
+                }
             }
             else
             {
@@ -1544,30 +1561,30 @@ public class TmdbMetadataService
                     if (index != -1)
                         episodeList.RemoveAt(index);
                 }
-                toSave.Add(crossRef);
+                crossReferences.Add(crossRef);
+                toAdd.Add(crossRef);
             }
         }
 
-        // Save state to db, remove old links if needed
-        if (saveToDatabase)
-        {
-            // Remove the anidb episodes that does not overlap with our show.
-            var toRemove = existing.Values
-                .SelectMany(list => list)
-                .Where(xref => anidbEpisodes.ContainsKey(xref.AnidbEpisodeID) && !toSkip.Contains(xref.CrossRef_AniDB_TMDB_EpisodeID))
-                .ToList();
+        if (!saveToDatabase)
+            return crossReferences;
 
-            _logger.LogDebug(
-                "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} (Anime={AnimeId},Show={ShowId})",
-                toSave.Count,
-                toRemove.Count,
-                existing.Count + toSave.Count - toRemove.Count - toSave.Count,
-                animeSeries.PreferredTitle,
-                anidbAnimeId,
-                tmdbShowId);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toRemove);
-        }
+        // Remove the current anidb episodes that does not overlap with the show.
+        var toRemove = existing.Values
+            .SelectMany(list => list)
+            .Where(xref => anidbEpisodes.ContainsKey(xref.AnidbEpisodeID) && !toSkip.Contains(xref.CrossRef_AniDB_TMDB_EpisodeID))
+            .ToList();
+
+        _logger.LogDebug(
+            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} (Anime={AnimeId},Show={ShowId})",
+            toAdd.Count,
+            toRemove.Count,
+            existing.Count - toRemove.Count,
+            animeSeries.PreferredTitle,
+            anidbAnimeId,
+            tmdbShowId);
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toAdd);
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toRemove);
 
         return crossReferences;
     }
@@ -2028,8 +2045,10 @@ public class TmdbMetadataService
     /// </summary>
     /// <param name="tmdbEntity">The local TMDB Entity to update titles and overviews for.</param>
     /// <param name="translations">The translations container returned from the API.</param>
+    /// <param name="preferredTitleLanguages">The preferred title languages to store. If not set then we will store all languages.</param>
+    /// <param name="preferredOverviewLanguages">The preferred overview languages to store. If not set then we will store all languages.</param>
     /// <returns>A boolean indicating if any changes were made to the titles and/or overviews.</returns>
-    private bool UpdateTitlesAndOverviews(IEntityMetadata tmdbEntity, TranslationsContainer translations)
+    private bool UpdateTitlesAndOverviews(IEntityMetadata tmdbEntity, TranslationsContainer translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages)
     {
         var existingOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
         var existingTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
@@ -2044,13 +2063,22 @@ public class TmdbMetadataService
             var languageCode = translation.Iso_639_1.ToLowerInvariant();
             var countryCode = translation.Iso_3166_1.ToUpperInvariant();
 
+            var alwaysInclude = false;
             var currentTitle = translation.Data.Name ?? string.Empty;
             if (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode == tmdbEntity.OriginalLanguageCode)
+            {
                 currentTitle = tmdbEntity.OriginalTitle ?? translation.Data.Name ?? string.Empty;
+                alwaysInclude = true;
+            }
             else if (languageCode == "en" && countryCode == "US")
+            {
+                alwaysInclude = true;
                 currentTitle = tmdbEntity.EnglishTitle ?? translation.Data.Name ?? string.Empty;
+            }
+
+            var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage());
             var existingTitle = existingTitles.FirstOrDefault(title => title.LanguageCode == languageCode && title.CountryCode == countryCode);
-            if (!string.IsNullOrEmpty(currentTitle) && !(
+            if (shouldInclude && !string.IsNullOrEmpty(currentTitle) && !(
                 // Make sure the "translation" is not just the English Title or
                 (languageCode != "en" && languageCode != "US" && string.Equals(tmdbEntity.EnglishTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase)) ||
                 // the Original Title.
@@ -2073,11 +2101,17 @@ public class TmdbMetadataService
                 }
             }
 
+            alwaysInclude = false;
             var currentOverview = translation.Data.Overview ?? string.Empty;
             if (languageCode == "en" && countryCode == "US")
+            {
+                alwaysInclude = true;
                 currentOverview = tmdbEntity.EnglishOverview ?? translation.Data.Overview ?? string.Empty;
+            }
+
+            shouldInclude = alwaysInclude || preferredOverviewLanguages is null || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage());
             var existingOverview = existingOverviews.FirstOrDefault(overview => overview.LanguageCode == languageCode && overview.CountryCode == countryCode);
-            if (!string.IsNullOrEmpty(currentOverview))
+            if (shouldInclude && !string.IsNullOrEmpty(currentOverview))
             {
                 if (existingOverview == null)
                 {
@@ -2330,29 +2364,50 @@ public class TmdbMetadataService
         if (maxConcurrent < 1)
             throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Concurrency level must be at least 1.");
 
-        var tasks = new List<Task>();
-        var semaphore = new SemaphoreSlim(1, maxConcurrent);
-        var parallel = enumerable is ParallelQuery<T> query ? query : enumerable.AsParallel();
-        foreach (var item in enumerable)
-        {
-            await semaphore.WaitAsync();
-
-            var task = Task.Run(async () =>
+        var semaphore = new SemaphoreSlim(maxConcurrent);
+        var exceptions = new List<Exception>();
+        var cancellationTokenSource = new CancellationTokenSource();
+        var tasks = enumerable
+            .Select(item => Task.Run(async () =>
             {
                 try
                 {
-                    await processAsync(item);
+                    await semaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                try
+                {
+                    await processAsync(item).ConfigureAwait(false);
                 }
                 finally
                 {
                     semaphore.Release();
                 }
-            });
-
-            tasks.Add(task);
+            }))
+            .ToList();
+        while (tasks.Count > 0)
+        {
+            try
+            {
+                var task = await Task.WhenAny(tasks).ConfigureAwait(false);
+                tasks.Remove(task);
+            }
+            catch (Exception ex)
+            {
+                var task = tasks.First(task => task.IsFaulted);
+                tasks.Remove(task);
+                exceptions.Add(ex);
+                if (exceptions.Count > maxConcurrent)
+                {
+                    cancellationTokenSource.Cancel();
+                    throw new AggregateException(exceptions);
+                }
+                continue;
+            }
         }
-
-        await Task.WhenAll(tasks);
     }
 
     #endregion

@@ -34,6 +34,9 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         // Try finding one of the preferred languages.
         foreach (var language in Languages.PreferredEpisodeNamingLanguages)
         {
+            if (language.Language == TitleLanguage.Main)
+                return DefaultTitle;
+
             var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(EpisodeID, language.Language)
                 .FirstOrDefault();
             if (title is not null)
@@ -77,17 +80,17 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         {
             var poster = AniDB_Anime?.GetImageMetadata(false);
             if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster == preferredPoster
+                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
                     ? preferredPoster
                     : poster
                 );
         }
-        foreach (var tvdbEpisode in TvDBEpisodes)
-            images.AddRange(tvdbEpisode.GetImages(entityType, preferredImages));
         foreach (var tmdbEpisode in TmdbEpisodes)
             images.AddRange(tmdbEpisode.GetImages(entityType, preferredImages));
         foreach (var tmdbMovie in TmdbMovies)
             images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
+        foreach (var tvdbEpisode in TvDBEpisodes)
+            images.AddRange(tvdbEpisode.GetImages(entityType, preferredImages));
 
         return images;
     }
@@ -239,7 +242,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
             .OfType<SVR_VideoLocal>()
             .ToList();
 
-    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is {} episode ? [episode.AnimeEpisodeID] : [];
+    IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is { } episode ? [episode.AnimeEpisodeID] : [];
 
     #endregion
 }

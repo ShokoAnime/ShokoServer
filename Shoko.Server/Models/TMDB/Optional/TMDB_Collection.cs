@@ -122,6 +122,9 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
 
         foreach (var preferredLanguage in Languages.PreferredEpisodeNamingLanguages)
         {
+            if (preferredLanguage.Language == TitleLanguage.Main)
+                return new(ForeignEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US");
+
             var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
             if (title != null)
                 return title;

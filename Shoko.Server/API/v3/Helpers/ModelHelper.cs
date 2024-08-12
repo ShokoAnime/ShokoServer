@@ -68,7 +68,9 @@ public static class ModelHelper
             return new ListResult<U>
             {
                 Total = enumerable.Count(),
-                List = enumerable.ToList()
+                List = enumerable
+                    .AsParallel()
+                    .AsOrdered()
                     .Select(mapper)
                     .ToList()
             };
@@ -80,7 +82,8 @@ public static class ModelHelper
             List = enumerable.AsQueryable()
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
-                .ToList()
+                .AsParallel()
+                .AsOrdered()
                 .Select(mapper)
                 .ToList()
         };
@@ -94,7 +97,9 @@ public static class ModelHelper
             return new ListResult<U>
             {
                 Total = total,
-                List = enumerable.ToList()
+                List = enumerable
+                    .AsParallel()
+                    .AsOrdered()
                     .Select(mapper)
                     .ToList()
             };
@@ -106,7 +111,8 @@ public static class ModelHelper
             List = enumerable.AsQueryable()
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
-                .ToList()
+                .AsParallel()
+                .AsOrdered()
                 .Select(mapper)
                 .ToList()
         };

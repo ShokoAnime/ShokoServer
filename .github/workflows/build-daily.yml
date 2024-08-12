@@ -25,11 +25,26 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
+      - name: Increment build number from last sentry release
+        id: incremental_build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          echo -n "BUILD_NUMBER=" >> "$GITHUB_OUTPUT"
+          curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/" \
+            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            | jq -r 'first | .version | split("-") | first | split(".") | last | tonumber | . + 1' >> "$GITHUB_OUTPUT"
+
       - name: Get Current Version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
           branch: true
+          buildNumber: ${{ steps.incremental_build.outputs.BUILD_NUMBER }}
+          increment: "build"
           prefix: v
           prefixRegex: "[vV]?"
 
@@ -77,6 +92,7 @@ jobs:
         shell: pwsh
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Set up QEMU
@@ -131,6 +147,7 @@ jobs:
         shell: pwsh
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
@@ -184,6 +201,7 @@ jobs:
         shell: pwsh
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - uses: docker/setup-qemu-action@v2

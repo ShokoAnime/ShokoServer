@@ -11,10 +11,6 @@ public class NamingLanguage
 
     public string LanguageDescription => Language.GetDescription();
 
-    public NamingLanguage()
-    {
-    }
-
     public NamingLanguage(TitleLanguage language)
     {
         Language = language;

@@ -36,7 +36,7 @@ public class Show
     public IReadOnlyList<Title>? Titles { get; init; }
 
     /// <summary>
-    /// Preferred overview based upon episode title preference.
+    /// Preferred overview based upon description preference.
     /// </summary>
     public string Overview { get; init; }
 
@@ -238,7 +238,6 @@ public class Show
         LastAiredAt = show.LastAiredAt;
         CreatedAt = show.CreatedAt.ToUniversalTime();
         LastUpdatedAt = show.LastUpdatedAt.ToUniversalTime();
-
     }
 
     public class OrderingInformation
@@ -301,7 +300,7 @@ public class Show
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             TmdbShowID = xref.TmdbShowID;
-            Rating = xref.Source != CrossRefSource.User ? "User" : "Automatic";
+            Rating = xref.Source is CrossRefSource.User ? "User" : "Automatic";
         }
     }
 

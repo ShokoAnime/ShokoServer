@@ -37,13 +37,13 @@ public class GetAniDBCalendarJob : BaseJob
         var settings = _settingsProvider.GetSettings();
         // we will always assume that an anime was downloaded via http first
 
-        var sched =
-            RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
-        if (sched == null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
+        if (schedule is null)
         {
-            sched = new ScheduledUpdate
+            schedule = new ScheduledUpdate
             {
-                UpdateType = (int)ScheduledUpdateType.AniDBCalendar, UpdateDetails = string.Empty
+                UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
+                UpdateDetails = string.Empty,
             };
         }
         else
@@ -51,21 +51,21 @@ public class GetAniDBCalendarJob : BaseJob
             var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
 
             // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
             if (tsLastRun.TotalHours < freqHours)
             {
                 if (!ForceRefresh) return;
             }
         }
 
-        sched.LastUpdate = DateTime.Now;
+        schedule.LastUpdate = DateTime.Now;
 
         var request = _requestFactory.Create<RequestCalendar>();
         var response = request.Send();
-        RepoFactory.ScheduledUpdate.Save(sched);
+        RepoFactory.ScheduledUpdate.Save(schedule);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        if (response.Response?.Next25Anime != null)
+        if (response.Response?.Next25Anime is not null)
         {
             foreach (var cal in response.Response.Next25Anime)
             {
@@ -74,7 +74,7 @@ public class GetAniDBCalendarJob : BaseJob
             }
         }
 
-        if (response.Response?.Previous25Anime == null) return;
+        if (response.Response?.Previous25Anime is null) return;
 
         foreach (var cal in response.Response.Previous25Anime)
         {
@@ -83,11 +83,11 @@ public class GetAniDBCalendarJob : BaseJob
         }
     }
 
-    private async Task GetAnime(IScheduler scheduler, ResponseCalendar.CalendarEntry cal, IServerSettings settings)
+    private static async Task GetAnime(IScheduler scheduler, ResponseCalendar.CalendarEntry cal, IServerSettings settings)
     {
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
-        if (anime != null && update != null)
+        if (anime is not null && update is not null)
         {
             // don't update if the local data is less 2 days old
             var ts = DateTime.Now - update.UpdatedAt;
@@ -110,7 +110,7 @@ public class GetAniDBCalendarJob : BaseJob
                 anime.AirDate = cal.ReleaseDate;
                 RepoFactory.AniDB_Anime.Save(anime);
                 var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                if (ser != null) RepoFactory.AnimeSeries.Save(ser, true, false);
+                if (ser is not null) RepoFactory.AnimeSeries.Save(ser, true, false);
             }
         }
         else
@@ -125,7 +125,7 @@ public class GetAniDBCalendarJob : BaseJob
                 });
         }
     }
-    
+
     public GetAniDBCalendarJob(IRequestFactory requestFactory,
         ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {

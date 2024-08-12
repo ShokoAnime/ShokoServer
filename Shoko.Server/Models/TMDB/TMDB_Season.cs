@@ -142,6 +142,9 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
 
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
+            if (preferredLanguage.Language == TitleLanguage.Main)
+                return new(ForeignEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US");
+
             var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
             if (title != null)
                 return title;

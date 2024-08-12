@@ -1,8 +1,9 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.Services;
@@ -10,7 +11,9 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
+#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -138,4 +141,12 @@ public class SettingsController : BaseController
         _udpHandler = udpHandler;
         _httpHandler = httpHandler;
     }
+
+    /// <summary>
+    /// Get a list of all supported languages.
+    /// </summary>
+    /// <returns>A list of all supported languages.</returns>
+    [HttpGet("SupportedLanguages")]
+    public ActionResult<List<LanguageDetails>> GetAllSupportedLanguages() =>
+        Languages.AllNamingLanguages.Select(a => new LanguageDetails(a.Language)).ToList();
 }

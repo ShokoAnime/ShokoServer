@@ -223,6 +223,9 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
+            if (preferredLanguage.Language == TitleLanguage.Main)
+                return new(ForeignEntityType.Show, TmdbShowID, EnglishTitle, "en", "US");
+
             var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
             if (title != null)
                 return title;

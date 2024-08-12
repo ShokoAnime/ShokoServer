@@ -59,6 +59,7 @@ public class Startup
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
             services.AddSingleton<TmdbMetadataService>();
+            services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();

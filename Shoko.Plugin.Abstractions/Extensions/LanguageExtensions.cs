@@ -137,12 +137,13 @@ public static class LanguageExtensions
             "KOREAN (TRANSCRIPTION)" => TitleLanguage.KoreanTranscription,
             "FILIPINO (TAGALOG)" => TitleLanguage.Filipino,
             "" => TitleLanguage.None,
+            "X-MAIN" => TitleLanguage.Main,
             null => TitleLanguage.None,
             _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), out var titleLanguage) ?
                 titleLanguage : TitleLanguage.Unknown,
         };
     }
-    
+
     public static string GetDescription(this TitleLanguage lang)
     {
         return lang switch
@@ -166,6 +167,7 @@ public static class LanguageExtensions
     {
         return lang switch
         {
+            TitleLanguage.Main => "x-main",
             TitleLanguage.None => "none",
             TitleLanguage.English => "en",
             TitleLanguage.Romaji => "x-jat",
