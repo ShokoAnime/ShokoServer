@@ -1268,7 +1268,7 @@ public class SeriesController : BaseController
         if (body != null && body.ID > 0)
             await _tmdbMetadataService.RemoveMovieLink(series.AniDB_ID, body.ID, body.Purge);
         else
-            await _tmdbMetadataService.RemoveAllMovieLinks(series.AniDB_ID, body?.Purge ?? true);
+            await _tmdbMetadataService.RemoveAllMovieLinks(series.AniDB_ID, body?.Purge ?? false);
 
         return NoContent();
     }
@@ -1418,7 +1418,7 @@ public class SeriesController : BaseController
         if (body != null && body.ID > 0)
             await _tmdbMetadataService.RemoveShowLink(series.AniDB_ID, body.ID, body.Purge);
         else
-            await _tmdbMetadataService.RemoveAllShowLinks(series.AniDB_ID, body?.Purge ?? true);
+            await _tmdbMetadataService.RemoveAllShowLinks(series.AniDB_ID, body?.Purge ?? false);
 
         return NoContent();
     }

@@ -768,7 +768,7 @@ public class Series : BaseModel
             /// <summary>
             /// Purge the provider metadata from the database.
             /// </summary>
-            public bool Purge { get; set; }
+            public bool Purge { get; set; } = false;
         }
 
         public class OverrideEpisodeMappingBody
