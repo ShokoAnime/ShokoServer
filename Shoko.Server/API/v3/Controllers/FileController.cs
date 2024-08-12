@@ -293,11 +293,9 @@ public class FileController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
-    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+    public ActionResult<File> GetFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        if (fileID is <= 0)
-            return NotFound(FileNotFoundWithFileID);
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
@@ -318,10 +316,8 @@ public class FileController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{fileID}")]
-    public async Task<ActionResult> DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
+    public async Task<ActionResult> DeleteFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
     {
-        if (fileID is <= 0)
-            return NotFound(FileNotFoundWithFileID);
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
@@ -341,10 +337,8 @@ public class FileController : BaseController
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns>A list of file locations associated with the specified file ID.</returns>
     [HttpGet("{fileID}/Location")]
-    public ActionResult<List<File.Location>> GetFileLocations([FromRoute] int fileID, [FromQuery] bool includeAbsolutePaths = false)
+    public ActionResult<List<File.Location>> GetFileLocations([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool includeAbsolutePaths = false)
     {
-        if (fileID is <= 0)
-            return NotFound(FileLocationNotFoundWithLocationID);
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileLocationNotFoundWithLocationID);
@@ -361,10 +355,8 @@ public class FileController : BaseController
     /// </param>
     /// <returns>Returns the file location information.</returns>
     [HttpGet("Location/{locationID}")]
-    public ActionResult<File.Location> GetFileLocation([FromRoute] int locationID)
+    public ActionResult<File.Location> GetFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID)
     {
-        if (locationID is <= 0)
-            return NotFound(FileLocationNotFoundWithLocationID);
         var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
         if (fileLocation == null)
             return NotFound(FileLocationNotFoundWithLocationID);
@@ -383,10 +375,8 @@ public class FileController : BaseController
     /// </returns>
     [Authorize("admin")]
     [HttpDelete("Location/{locationID}")]
-    public async Task<ActionResult> DeleteFileLocation([FromRoute] int locationID, [FromQuery] bool deleteFile = true, [FromQuery] bool deleteFolder = true)
+    public async Task<ActionResult> DeleteFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID, [FromQuery] bool deleteFile = true, [FromQuery] bool deleteFolder = true)
     {
-        if (locationID is <= 0)
-            return NotFound(FileLocationNotFoundWithLocationID);
         var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
         if (fileLocation == null)
             return NotFound(FileLocationNotFoundWithLocationID);
@@ -408,7 +398,7 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko File ID</param>
     /// <returns></returns>
     [HttpGet("{fileID}/AniDB")]
-    public ActionResult<File.AniDB> GetFileAnidbByFileID([FromRoute] int fileID)
+    public ActionResult<File.AniDB> GetFileAnidbByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -430,7 +420,7 @@ public class FileController : BaseController
     /// <param name="anidbFileID">AniDB File ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}")]
-    public ActionResult<File.AniDB> GetFileAnidbByAnidbFileID([FromRoute] int anidbFileID)
+    public ActionResult<File.AniDB> GetFileAnidbByAnidbFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -452,7 +442,7 @@ public class FileController : BaseController
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
-    public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false,
+    public ActionResult<File> GetFileByAnidbFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID, [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = false, [FromQuery] bool includeAbsolutePaths = false)
     {
@@ -474,7 +464,7 @@ public class FileController : BaseController
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <returns></returns>
     [HttpPost("AniDB/{anidbFileID}/Rescan")]
-    public async Task<ActionResult> RescanFileByAniDBFileID([FromRoute] int anidbFileID, [FromQuery] bool priority = false)
+    public async Task<ActionResult> RescanFileByAniDBFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID, [FromQuery] bool priority = false)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -520,7 +510,7 @@ public class FileController : BaseController
     [HttpHead("{fileID}/Stream")]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
     [HttpHead("{fileID}/StreamDirectory/{filename}")]
-    public ActionResult GetFileStream([FromRoute] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
+    public ActionResult GetFileStream([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -558,7 +548,7 @@ public class FileController : BaseController
     /// <returns>A file stream for the specified file.</returns>
     [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/")]
-    public ActionResult GetFileStreamDirectory([FromRoute] int fileID)
+    public ActionResult GetFileStreamDirectory([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -577,7 +567,7 @@ public class FileController : BaseController
     /// <returns></returns>
     [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/ExternalSub/{filename}")]
-    public ActionResult GetExternalSubtitle([FromRoute] int fileID, [FromRoute] string filename)
+    public ActionResult GetExternalSubtitle([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string filename)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -603,7 +593,7 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{fileID}/MediaInfo")]
-    public ActionResult<MediaInfo> GetFileMediaInfo([FromRoute] int fileID)
+    public ActionResult<MediaInfo> GetFileMediaInfo([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -622,7 +612,7 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko file ID</param>
     /// <returns>The user stats if found.</returns>
     [HttpGet("{fileID}/UserStats")]
-    public ActionResult<File.FileUserStats> GetFileUserStats([FromRoute] int fileID)
+    public ActionResult<File.FileUserStats> GetFileUserStats([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -644,7 +634,7 @@ public class FileController : BaseController
     /// <param name="fileUserStats">The new and/or update file stats to put for the file.</param>
     /// <returns>The new and/or updated user stats.</returns>
     [HttpPut("{fileID}/UserStats")]
-    public ActionResult<File.FileUserStats> PutFileUserStats([FromRoute] int fileID, [FromBody] File.FileUserStats fileUserStats)
+    public ActionResult<File.FileUserStats> PutFileUserStats([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.FileUserStats fileUserStats)
     {
         // Make sure the file exists.
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -666,7 +656,7 @@ public class FileController : BaseController
     /// <param name="watched">Is it watched?</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Watched/{watched?}")]
-    public async Task<ActionResult> SetWatchedStatusOnFile([FromRoute] int fileID, [FromRoute] bool watched = true)
+    public async Task<ActionResult> SetWatchedStatusOnFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] bool watched = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -687,7 +677,7 @@ public class FileController : BaseController
     /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
     /// <returns></returns>
     [HttpPatch("{fileID}/Scrobble")]
-    public async Task<ActionResult> ScrobbleFileAndEpisode([FromRoute] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+    public async Task<ActionResult> ScrobbleFileAndEpisode([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
     {
 
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -789,7 +779,7 @@ public class FileController : BaseController
     /// <param name="value">Thew new ignore value.</param>
     /// <returns></returns>
     [HttpPut("{fileID}/Ignore")]
-    public ActionResult MarkFileAsIgnored([FromRoute] int fileID, [FromQuery] bool value = true)
+    public ActionResult MarkFileAsIgnored([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool value = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -808,7 +798,7 @@ public class FileController : BaseController
     /// <param name="value">Thew new variation value.</param>
     /// <returns></returns>
     [HttpPut("{fileID}/Variation")]
-    public ActionResult MarkFileAsVariation([FromRoute] int fileID, [FromQuery] bool value = true)
+    public ActionResult MarkFileAsVariation([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool value = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -828,7 +818,7 @@ public class FileController : BaseController
     /// <param name="immediate">Immediately run the AVDump, without adding the command to the queue.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/AVDump")]
-    public async Task<ActionResult<AVDump.Result>> AvDumpFile([FromRoute] int fileID, [FromQuery] bool priority = false,
+    public async Task<ActionResult<AVDump.Result>> AvDumpFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false,
         [FromQuery] bool immediate = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -868,7 +858,7 @@ public class FileController : BaseController
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Rescan")]
-    public async Task<ActionResult> RescanFile([FromRoute] int fileID, [FromQuery] bool priority = false)
+    public async Task<ActionResult> RescanFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -903,7 +893,7 @@ public class FileController : BaseController
     /// <param name="priority">Whether to start the job immediately. Default true</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Rehash")]
-    public async Task<ActionResult> RehashFile([FromRoute] int fileID, [FromQuery] bool priority = true)
+    public async Task<ActionResult> RehashFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -939,7 +929,7 @@ public class FileController : BaseController
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Link")]
-    public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
+    public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -987,7 +977,7 @@ public class FileController : BaseController
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/LinkFromSeries")]
-    public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute] int fileID, [FromBody] File.Input.LinkSeriesBody body)
+    public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkSeriesBody body)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -1100,7 +1090,7 @@ public class FileController : BaseController
     /// <param name="body">Optional. The body.</param>
     /// <returns></returns>
     [HttpDelete("{fileID}/Link")]
-    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
+    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
