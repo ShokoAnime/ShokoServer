@@ -30,8 +30,6 @@ public class GroupController : BaseController
 
     #region Return messages
 
-    internal const string GroupWithZeroID = "GroupID must be greater than 0";
-
     internal const string GroupNotFound = "No Group entry for the given groupID";
 
     internal const string GroupForbiddenForUser = "Accessing Group is not allowed for the current user";
@@ -162,9 +160,8 @@ public class GroupController : BaseController
     /// <param name="groupID"></param>
     /// <returns></returns>
     [HttpGet("{groupID}")]
-    public ActionResult<Group> GetGroup([FromRoute] int groupID)
+    public ActionResult<Group> GetGroup([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -190,9 +187,8 @@ public class GroupController : BaseController
     /// <param name="body">The new details for the group.</param>
     /// <returns>The updated group.</returns>
     [HttpPut("{groupID}")]
-    public ActionResult<Group> PutGroup([FromRoute] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
+    public ActionResult<Group> PutGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
         if (animeGroup == null)
         {
@@ -226,9 +222,8 @@ public class GroupController : BaseController
     /// <param name="patchDocument">The JSON Patch document containing the changes to be applied to the group.</param>
     /// <returns>The updated group.</returns>
     [HttpPatch("{groupID}")]
-    public ActionResult<Group> PatchGroup([FromRoute] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
+    public ActionResult<Group> PatchGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
         if (animeGroup == null)
         {
@@ -268,10 +263,9 @@ public class GroupController : BaseController
     /// <param name="recursive">Show relations for all series within the group, even for series within sub-groups.</param>
     /// <returns></returns>
     [HttpGet("{groupID}/Relations")]
-    public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int groupID,
+    public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -315,9 +309,8 @@ public class GroupController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{groupID}")]
-    public async Task<ActionResult> DeleteGroup(int groupID, bool deleteSeries = false, bool deleteFiles = false)
+    public async Task<ActionResult> DeleteGroup([FromRoute, Range(1, int.MaxValue)] int groupID, bool deleteSeries = false, bool deleteFiles = false)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -351,9 +344,8 @@ public class GroupController : BaseController
     /// <param name="groupID"></param>
     /// <returns></returns>
     [HttpPost("{groupID}/Recalculate")]
-    public async Task<ActionResult> RecalculateStats(int groupID)
+    public async Task<ActionResult> RecalculateStats([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {

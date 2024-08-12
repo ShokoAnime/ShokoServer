@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -29,12 +30,12 @@ public class ImageController : BaseController
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
     public ActionResult GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type,
-        [FromRoute] int value)
+        [FromRoute, Range(1, int.MaxValue)] int value)
     {
         // Unrecognized combination of source, type and/or value.
         var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None || value <= 0)
+        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None)
             return NotFound(ImageNotFound);
 
         // User avatars are stored in the database.
@@ -65,12 +66,12 @@ public class ImageController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{source}/{type}/{value}/Enabled")]
-    public ActionResult EnableOrDisableImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type, [FromRoute] int value, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body)
+    public ActionResult EnableOrDisableImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type, [FromRoute, Range(1, int.MaxValue)] int value, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body)
     {
         // Unrecognized combination of source, type and/or value.
         var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None || value <= 0)
+        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None)
             return NotFound(ImageNotFound);
 
         // User avatars are stored in the database.

@@ -43,7 +43,7 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("ImportFolder/{folderID}/File")]
-    public ActionResult<ListResult<File>> GetFilesInImportFolder([FromRoute] int folderID,
+    public ActionResult<ListResult<File>> GetFilesInImportFolder([FromRoute, Range(1, int.MaxValue)] int folderID,
         [FromQuery, Range(0, 10000)] int pageSize = 200,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] string folderPath = null,
@@ -52,7 +52,7 @@ public class TreeController : BaseController
     {
         include ??= [];
 
-        var importFolder = folderID > 0 ? RepoFactory.ImportFolder.GetByID(folderID) : null;
+        var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
         if (importFolder == null)
             return NotFound("Import folder not found: " + folderID);
 
@@ -104,7 +104,7 @@ public class TreeController : BaseController
     /// <param name="showHidden">Show hidden filters</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Filter")]
-    public ActionResult<ListResult<Filter>> GetSubFilters([FromRoute] int filterID,
+    public ActionResult<ListResult<Filter>> GetSubFilters([FromRoute, Range(1, int.MaxValue)] int filterID,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showHidden = false)
     {
@@ -137,7 +137,7 @@ public class TreeController : BaseController
     /// <param name="orderByName">Ignore the group filter sort criteria and always order the returned list by name.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group")]
-    public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute] int filterID,
+    public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute, Range(0, int.MaxValue)] int filterID,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
@@ -208,12 +208,12 @@ public class TreeController : BaseController
     /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/Letters")]
-    public ActionResult<Dictionary<char, int>> GetGroupNameLettersInFilter([FromRoute] int? filterID = null, [FromQuery] bool includeEmpty = false)
+    public ActionResult<Dictionary<char, int>> GetGroupNameLettersInFilter([FromRoute, Range(0, int.MaxValue)] int filterID, [FromQuery] bool includeEmpty = false)
     {
         var user = User;
-        if (filterID.HasValue && filterID > 0)
+        if (filterID > 0)
         {
-            var filterPreset = RepoFactory.FilterPreset.GetByID(filterID.Value);
+            var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
             if (filterPreset == null)
                 return NotFound(FilterController.FilterNotFound);
 
@@ -275,7 +275,7 @@ public class TreeController : BaseController
     /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Series")]
-    public ActionResult<ListResult<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID,
+    public ActionResult<ListResult<Series>> GetSeriesInFilteredGroup([FromRoute, Range(0, int.MaxValue)] int filterID,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
     {
@@ -320,7 +320,7 @@ public class TreeController : BaseController
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Group")]
-    public ActionResult<List<Group>> GetFilteredSubGroups([FromRoute] int filterID, [FromRoute] int groupID,
+    public ActionResult<List<Group>> GetFilteredSubGroups([FromRoute, Range(0, int.MaxValue)] int filterID, [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = false)
     {
         // Return sub-groups with no group filter applied.
@@ -332,7 +332,6 @@ public class TreeController : BaseController
             return NotFound(FilterController.FilterNotFound);
 
         // Check if the group exists.
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
@@ -392,11 +391,10 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
-    public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromRoute] int groupID,
+    public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute, Range(0, int.MaxValue)] int filterID, [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
         [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         // Return the groups with no group filter applied.
         if (filterID == 0)
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages, includeDataFrom);
@@ -451,11 +449,10 @@ public class TreeController : BaseController
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Group")]
-    public ActionResult<List<Group>> GetSubGroups([FromRoute] int groupID, [FromQuery] bool randomImages = false,
+    public ActionResult<List<Group>> GetSubGroups([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery] bool includeEmpty = false)
     {
         // Check if the group exists.
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
@@ -495,12 +492,11 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Series")]
-    public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false,
+    public ActionResult<List<Series>> GetSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool recursive = false,
         [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
@@ -527,11 +523,10 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/MainSeries")]
-    public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool randomImages = false,
+    public ActionResult<Series> GetMainSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
@@ -563,7 +558,7 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/File")]
-    public ActionResult<ListResult<File>> GetFilesForSeries([FromRoute] int seriesID,
+    public ActionResult<ListResult<File>> GetFilesForSeries([FromRoute, Range(1, int.MaxValue)] int seriesID,
     [FromQuery, Range(0, 1000)] int pageSize = 100,
     [FromQuery, Range(1, int.MaxValue)] int page = 1,
     [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
@@ -572,7 +567,6 @@ public class TreeController : BaseController
     [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
     [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -599,7 +593,7 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
-    public ActionResult<ListResult<File>> GetFilesForEpisode([FromRoute] int episodeID,
+    public ActionResult<ListResult<File>> GetFilesForEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,

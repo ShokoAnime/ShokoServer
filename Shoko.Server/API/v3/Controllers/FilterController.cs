@@ -213,7 +213,7 @@ public class FilterController : BaseController
     /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
     /// <returns>The filter</returns>
     [HttpGet("{filterID}")]
-    public ActionResult<Filter> GetFilter([FromRoute] int filterID, [FromQuery] bool withConditions = false)
+    public ActionResult<Filter> GetFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool withConditions = false)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
         if (filterPreset == null)
@@ -231,7 +231,7 @@ public class FilterController : BaseController
     /// <returns>The updated filter.</returns>
     [Authorize("admin")]
     [HttpPatch("{filterID}")]
-    public ActionResult<Filter> PatchFilter([FromRoute] int filterID, JsonPatchDocument<Filter.Input.CreateOrUpdateFilterBody> document)
+    public ActionResult<Filter> PatchFilter([FromRoute, Range(1, int.MaxValue)] int filterID, JsonPatchDocument<Filter.Input.CreateOrUpdateFilterBody> document)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
         if (filterPreset == null)
@@ -265,7 +265,7 @@ public class FilterController : BaseController
     /// <returns>The updated filter.</returns>
     [Authorize("admin")]
     [HttpPut("{filterID}")]
-    public ActionResult<Filter> PutFilter([FromRoute] int filterID, Filter.Input.CreateOrUpdateFilterBody body)
+    public ActionResult<Filter> PutFilter([FromRoute, Range(1, int.MaxValue)] int filterID, Filter.Input.CreateOrUpdateFilterBody body)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
         if (filterPreset == null)
@@ -293,7 +293,7 @@ public class FilterController : BaseController
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpDelete("{filterID}")]
-    public ActionResult DeleteFilter(int filterID)
+    public ActionResult DeleteFilter([FromRoute, Range(1, int.MaxValue)] int filterID)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
         if (filterPreset == null)
@@ -433,14 +433,13 @@ public class FilterController : BaseController
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Group")]
-    public ActionResult<List<Group>> GetPreviewFilteredSubGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute] int groupID,
+    public ActionResult<List<Group>> GetPreviewFilteredSubGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = false)
     {
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         // Check if the group exists.
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);
@@ -493,7 +492,7 @@ public class FilterController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Series")]
-    public ActionResult<List<Series>> GetPreviewSeriesInFilteredGroup([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute] int groupID,
+    public ActionResult<List<Series>> GetPreviewSeriesInFilteredGroup([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
         [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
@@ -501,7 +500,6 @@ public class FilterController : BaseController
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         // Check if the group exists.
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
             return NotFound(GroupController.GroupNotFound);

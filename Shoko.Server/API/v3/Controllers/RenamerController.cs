@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -514,10 +515,8 @@ public class RenamerController : BaseController
     /// <returns>A result object containing information about the relocation process.</returns>
     [Authorize("admin")]
     [HttpPost("Relocate/Location/{locationID}")]
-    public async Task<ActionResult<RelocationResult>> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RelocateArgs body)
+    public async Task<ActionResult<RelocationResult>> DirectlyRelocateFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RelocateArgs body)
     {
-        if (locationID <= 0)
-            return NotFound(FileController.FileLocationNotFoundWithLocationID);
         var fileLocation = _vlpRepository.GetByID(locationID);
         if (fileLocation == null)
             return NotFound(FileController.FileLocationNotFoundWithLocationID);

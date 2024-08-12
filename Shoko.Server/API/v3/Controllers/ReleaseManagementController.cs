@@ -62,7 +62,7 @@ public class ReleaseManagementController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
@@ -72,7 +72,6 @@ public class ReleaseManagementController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
@@ -124,11 +123,10 @@ public class ReleaseManagementController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episode/FilesToDelete")]
     public ActionResult<List<int>> GetFileIdsWithPreference(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool ignoreVariations = true
     )
     {
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return new List<int>();

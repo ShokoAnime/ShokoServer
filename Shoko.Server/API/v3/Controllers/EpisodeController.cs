@@ -42,8 +42,6 @@ public class EpisodeController : BaseController
 
     private readonly WatchedStatusService _watchedService;
 
-    internal const string EpisodeWithZeroID = "episodeID must be greater than 0";
-
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
     internal const string EpisodeNotFoundForAnidbEpisodeID = "No Episode entry for the given anidbEpisodeID";
@@ -308,16 +306,13 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns></returns>
     [HttpGet("{episodeID}")]
     public ActionResult<Episode> GetEpisodeByEpisodeID(
-        [FromRoute] int episodeID,
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -340,11 +335,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/OverrideTitle")]
-    public ActionResult OverrideEpisodeTitle([FromRoute] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Episode.Input.EpisodeTitleOverrideBody body)
+    public ActionResult OverrideEpisodeTitle([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Episode.Input.EpisodeTitleOverrideBody body)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
 
         if (episode == null)
@@ -378,11 +370,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/SetHidden")]
-    public ActionResult PostEpisodeSetHidden([FromRoute] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
+    public ActionResult PostEpisodeSetHidden([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -422,11 +411,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="episodeID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{episodeID}/AniDB")]
-    public ActionResult<Episode.AniDB> GetEpisodeAnidbByEpisodeID([FromRoute] int episodeID)
+    public ActionResult<Episode.AniDB> GetEpisodeAnidbByEpisodeID([FromRoute, Range(1, int.MaxValue)] int episodeID)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -490,11 +476,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="vote"></param>
     /// <returns></returns>
     [HttpPost("{episodeID}/Vote")]
-    public ActionResult PostEpisodeVote([FromRoute] int episodeID, [FromBody] Vote vote)
+    public ActionResult PostEpisodeVote([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] Vote vote)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -527,7 +510,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns>All TMDB Movies linked directly to the Shoko Episode.</returns>
     [HttpGet("{episodeID}/TMDB/Movie")]
     public ActionResult<List<TmdbMovie>> GetTmdbMoviesByEpisodeID(
-        [FromRoute] int episodeID,
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
@@ -550,7 +533,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns>All TMDB Movie cross-references for the Shoko Episode.</returns>
     [HttpGet("{seriesID}/TMDB/Movie/CrossReferences")]
     public ActionResult<IReadOnlyList<TmdbMovie.CrossReference>> GetTMDBMovieCrossReferenceByEpisodeID(
-        [FromRoute] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
@@ -572,7 +555,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns>All TMDB Episodes linked to the Shoko Episode.</returns>
     [HttpGet("{episodeID}/TMDB/Episode")]
     public ActionResult<List<TmdbEpisode>> GetTmdbEpisodesByEpisodeID(
-        [FromRoute] int episodeID,
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails> include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
@@ -595,7 +578,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns>All TMDB Episode cross-references for the Shoko Episode.</returns>
     [HttpGet("{seriesID}/TMDB/Episode/CrossReferences")]
     public ActionResult<IReadOnlyList<TmdbEpisode.CrossReference>> GetTMDBEpisodeCrossReferenceByEpisodeID(
-        [FromRoute] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
@@ -618,11 +601,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="episodeID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{episodeID}/TvDB")]
-    public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails([FromRoute] int episodeID)
+    public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails([FromRoute, Range(1, int.MaxValue)] int episodeID)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -658,11 +638,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="includeDisabled"></param>
     /// <returns></returns>
     [HttpGet("{episodeID}/Images")]
-    public ActionResult<Images> GetSeriesImages([FromRoute] int episodeID, [FromQuery] bool includeDisabled)
+    public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool includeDisabled)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -688,14 +665,11 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [HttpGet("{episodeID}/Images/{imageType}")]
-    public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute] int episodeID,
+    public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
-
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
 
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -733,14 +707,11 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [HttpPut("{episodeID}/Images/{imageType}")]
-    public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int episodeID,
+    public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
-
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
 
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -779,13 +750,10 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [HttpDelete("{episodeID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute] int episodeID, [FromRoute] Image.ImageType imageType)
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
-
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
 
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -822,11 +790,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="watched"></param>
     /// <returns></returns>
     [HttpPost("{episodeID}/Watched/{watched}")]
-    public async Task<ActionResult> SetWatchedStatusOnEpisode([FromRoute] int episodeID, [FromRoute] bool watched)
+    public async Task<ActionResult> SetWatchedStatusOnEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] bool watched)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
