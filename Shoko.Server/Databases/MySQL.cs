@@ -929,9 +929,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
         try
         {
             const string createCommand = """
-                                         CREATE TABLE IF NOT EXISTS RenamerInstance (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name text NOT NULL, Type text NOT NULL, Settings BLOB);
-                                         ALTER TABLE RenamerInstance CREATE INDEX IX_RenamerInstance_Name ON RenamerInstance(Name);
-                                         ALTER TABLE RenamerInstance CREATE INDEX IX_RenamerInstance_Type ON RenamerInstance(Type);
+                                         CREATE TABLE IF NOT EXISTS RenamerInstance (ID INT NOT NULL AUTO_INCREMENT, Name text NOT NULL, Type text NOT NULL, Settings mediumblob, PRIMARY KEY (ID));
+                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Name (Name);
+                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Type (Type);
                                          """;
 
             session.CreateSQLQuery(createCommand).ExecuteUpdate();

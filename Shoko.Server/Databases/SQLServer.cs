@@ -749,7 +749,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         try
         {
             const string createCommand = """
-                                         CREATE TABLE IF NOT EXISTS RenamerInstance (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name text NOT NULL, Type text NOT NULL, Settings BLOB);
+                                         CREATE TABLE RenamerInstance (ID INT IDENTITY(1,1) PRIMARY KEY, Name nvarchar(250) NOT NULL, Type nvarchar(250) NOT NULL, Settings varbinary(MAX));
                                          CREATE INDEX IX_RenamerInstance_Name ON RenamerInstance(Name);
                                          CREATE INDEX IX_RenamerInstance_Type ON RenamerInstance(Type);
                                          """;
