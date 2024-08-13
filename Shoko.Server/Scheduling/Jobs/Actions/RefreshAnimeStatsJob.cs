@@ -38,6 +38,11 @@ public class RefreshAnimeStatsJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {Anime}", nameof(RefreshAnimeStatsJob), _anime);
         var anime = _animeRepo.GetByAnimeID(AnimeID);
+        if (anime == null)
+        {
+            _logger.LogWarning("AniDB_Anime not found: {AnimeID}", AnimeID);
+            return Task.CompletedTask;
+        }
         _animeRepo.Save(anime);
         var series = _seriesRepo.GetByAnimeID(AnimeID);
         // Updating stats saves everything and updates groups
