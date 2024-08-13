@@ -206,15 +206,15 @@ public class RenameFileService
                 Exception = result.Error.Exception,
             };
 
-        var newImportFolder = shouldMove ? result.DestinationImportFolder! : place.ImportFolder;
-        var newFileName = shouldRename ? result.FileName! : place.FileName;
-        var newRelativeDirectory = shouldMove ? result.Path! : Path.GetDirectoryName(place.FilePath)!;
+        var newImportFolder = shouldMove && !result.SkipMove ? result.DestinationImportFolder! : place.ImportFolder;
+        var newFileName = shouldRename && !result.SkipRename ? result.FileName! : place.FileName;
+        var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path! : Path.GetDirectoryName(place.FilePath)!;
         var newRelativePath = newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
         var newFullPath = Path.Combine(newImportFolder.Path, newRelativePath);
         return new()
         {
             Success = true,
-            ImportFolder = result.DestinationImportFolder ?? place.ImportFolder,
+            ImportFolder = newImportFolder,
             RelativePath = newRelativePath,
             // TODO: Handle file-systems that are or aren't case sensitive.
             Renamed = !string.Equals(place.FileName, result.FileName, StringComparison.OrdinalIgnoreCase),
@@ -247,7 +247,7 @@ public class RenameFileService
                     Error = new RelocationError($"Operation canceled by renamer {renamer.GetType().Name}.")
                 };
 
-            if (shouldRename && (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:")))
+            if (shouldRename && !result.SkipRename && (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:")))
             {
                 var errorMessage = !string.IsNullOrWhiteSpace(result.FileName)
                     ? result.FileName[7..].Trim()
@@ -274,7 +274,7 @@ public class RenameFileService
             if (!string.IsNullOrEmpty(result.Path) && result.Path[0] == Path.DirectorySeparatorChar)
                 result.Path = result.Path[1..];
 
-            if (shouldMove && (result.DestinationImportFolder is null || result.Path is null || result.Path.StartsWith("*Error:")))
+            if (shouldMove && !result.SkipMove && (result.DestinationImportFolder is null || result.Path is null || result.Path.StartsWith("*Error:")))
             {
                 var errorMessage = !string.IsNullOrWhiteSpace(result.Path)
                     ? result.Path[7..].Trim()
