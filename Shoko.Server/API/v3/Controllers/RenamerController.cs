@@ -183,7 +183,9 @@ public class RenamerController : BaseController
 
         return new RenamerConfig
         {
-            RenamerID = attribute.RenamerId, Name = p.Name, Settings = settings
+            RenamerID = attribute.RenamerId,
+            Name = p.Name,
+            Settings = settings,
         };
     }
 
@@ -485,23 +487,18 @@ public class RenamerController : BaseController
             }
 
             var result = _renameFileService.GetNewPath(vlp, config, move, rename);
-            string? path = null;
-            if (result.DestinationImportFolder != null && !string.IsNullOrEmpty(result.DestinationImportFolder.Path) && !string.IsNullOrEmpty(result.Path) &&
-                !string.IsNullOrEmpty(result.FileName)) path = Path.Combine(result.DestinationImportFolder.Path, result.Path, result.FileName);
-            string? relativePath = null;
-            if (!string.IsNullOrEmpty(result.Path) && !string.IsNullOrEmpty(result.FileName)) relativePath = Path.Combine(result.Path, result.FileName);
 
             yield return new RelocationResult
             {
                 FileID = vlID,
-                IsSuccess = result.Error is null,
+                IsSuccess = result.Success,
                 IsPreview = true,
-                IsRelocated = !Equals(path, vlp.FullServerPath),
+                IsRelocated = result.Moved || result.Renamed,
                 ConfigName = config.ID > 0 ? config.Name : null,
-                AbsolutePath = path,
-                ImportFolderID = result.DestinationImportFolder?.ID ?? 0,
-                RelativePath = relativePath,
-                ErrorMessage = result.Error?.Message,
+                AbsolutePath = result.AbsolutePath,
+                ImportFolderID = result.ImportFolder?.ID,
+                RelativePath = result.RelativePath,
+                ErrorMessage = result.ErrorMessage,
                 FileLocationID = vlp.VideoLocal_Place_ID
             };
         }
@@ -624,7 +621,7 @@ public class RenamerController : BaseController
 
         if (!_renameFileService.RenamersByType.ContainsKey(config.Type))
             return BadRequest("Renamer not found.");
-        
+
         return new ActionResult<IAsyncEnumerable<RelocationResult>>(
             InternalBatchRelocateFiles(fileIDs, new AutoRelocateRequest
             {

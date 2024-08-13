@@ -11,7 +11,6 @@ using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper.Subtitles;
@@ -23,11 +22,9 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services.Ogg;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using DirectoryInfo = System.IO.DirectoryInfo;
+
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
-using RelocationResult = Shoko.Plugin.Abstractions.Events.RelocationResult;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -45,7 +42,6 @@ public class VideoLocal_PlaceService
     private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
     private readonly VideoLocalRepository _videoLocal;
     private readonly VideoLocal_PlaceRepository _videoLocalPlace;
-
 
     public VideoLocal_PlaceService(ILogger<VideoLocal_PlaceService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory,
         FileWatcherService fileWatcherService, VideoLocalRepository videoLocal, VideoLocal_PlaceRepository videoLocalPlace,
@@ -83,9 +79,9 @@ public class VideoLocal_PlaceService
     /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to relocate.</param>
     /// <param name="request">The <see cref="DirectRelocateRequest"/> containing
     /// the details for the relocation operation.</param>
-    /// <returns>A <see cref="Renamer.RelocationResult"/> representing the outcome of
+    /// <returns>A <see cref="RelocationResult"/> representing the outcome of
     /// the relocation operation.</returns>
-    public async Task<Renamer.RelocationResult> DirectlyRelocateFile(SVR_VideoLocal_Place place, DirectRelocateRequest request)
+    public async Task<RelocationResult> DirectlyRelocateFile(SVR_VideoLocal_Place place, DirectRelocateRequest request)
     {
         if (request.ImportFolder is null || string.IsNullOrWhiteSpace(request.RelativePath))
             return new()
@@ -391,9 +387,9 @@ public class VideoLocal_PlaceService
     /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to relocate.</param>
     /// <param name="request">The <see cref="AutoRelocateRequest"/> containing
     /// the details for the relocation operation, or null for default settings.</param>
-    /// <returns>A <see cref="Renamer.RelocationResult"/> representing the outcome of
+    /// <returns>A <see cref="RelocationResult"/> representing the outcome of
     /// the relocation operation.</returns>
-    public async Task<Renamer.RelocationResult> AutoRelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest? request = null)
+    public async Task<RelocationResult> AutoRelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest? request = null)
     {
         // Allows calling the method without any parameters.
         var settings = _settingsProvider.GetSettings();
@@ -409,13 +405,17 @@ public class VideoLocal_PlaceService
         if (request is { Preview: true, Renamer: null })
             return new()
             {
-                Success = false, ShouldRetry = false, ErrorMessage = "Cannot preview without a renamer given"
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = "Cannot preview without a renamer given",
             };
 
         if (request is { Move: false, Rename: false })
             return new()
             {
-                Success = false, ShouldRetry = false, ErrorMessage = "Rename and Move are both set to false. Nothing to do"
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = "Rename and Move are both set to false. Nothing to do",
             };
 
         // make sure we can find the file
@@ -431,7 +431,7 @@ public class VideoLocal_PlaceService
         }
 
         var retryPolicy = Policy
-            .HandleResult<Renamer.RelocationResult>(a => a.ShouldRetry)
+            .HandleResult<RelocationResult>(a => a.ShouldRetry)
             .Or<Exception>(e =>
             {
                 _logger.LogError(e, "Error Renaming/Moving File");
@@ -442,7 +442,7 @@ public class VideoLocal_PlaceService
                 TimeSpan.FromMilliseconds((int)DelayInUse.Second),
                 TimeSpan.FromMilliseconds((int)DelayInUse.Third),
             ]);
-        
+
         var relocationResult = await retryPolicy.ExecuteAsync(() => RelocateFile(place, request)).ConfigureAwait(false);
         if (!relocationResult.Success)
             return relocationResult;
@@ -490,9 +490,9 @@ public class VideoLocal_PlaceService
     /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to rename.</param>
     /// <param name="request">The <see cref="AutoRelocateRequest"/> containing the
     ///     details for the rename operation.</param>
-    /// <returns>A <see cref="Renamer.RelocationResult"/> representing the outcome of
+    /// <returns>A <see cref="RelocationResult"/> representing the outcome of
     /// the rename operation.</returns>
-    private async Task<Renamer.RelocationResult> RelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest request)
+    public async Task<RelocationResult> RelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest request)
     {
         // Just return the existing values if we're going to skip the operation.
         if (!request.Rename && !request.Move)
@@ -524,71 +524,17 @@ public class VideoLocal_PlaceService
             };
         }
 
-        if (result.Error != null) return new Renamer.RelocationResult() { Success = false, ShouldRetry = false, ErrorMessage = result.Error.Message, Exception = result.Error.Exception };
-
-        if (request.Rename && (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:")))
-        {
-            var errorMessage = !string.IsNullOrWhiteSpace(result.FileName)
-                ? result.FileName[7..].Trim()
-                : "The file renamer returned a null or empty value.";
-            _logger.LogError("An error occurred while trying to find a new file name for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
-            return new()
-            {
-                Success = false,
-                ShouldRetry = false,
-                ErrorMessage = errorMessage,
-            };
-        }
-
-        if (request.Move && (string.IsNullOrWhiteSpace(result.Path) || result.Path.StartsWith("*Error:")))
-        {
-            var errorMessage = !string.IsNullOrWhiteSpace(result.Path)
-                ? result.Path[7..].Trim()
-                : "Could not find a valid destination.";
-            _logger.LogWarning("An error occurred while trying to find a destination for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
-            return new()
-            {
-                Success = false,
-                ShouldRetry = false,
-                ErrorMessage = errorMessage,
-            };
-        }
-
-        // Return early if we're only previewing.
-        var newFullPath = GetResultFullPath(place, result);
-        var newRelativePath = Path.Combine(result.Path ?? Path.GetDirectoryName(place.FilePath), result.FileName ?? place.FileName);
-        if (request.Preview)
-            return new()
-            {
-                Success = true,
-                ImportFolder = result.DestinationImportFolder ?? place.ImportFolder,
-                RelativePath = newRelativePath,
-                // TODO handle filesystems that are or aren't case sensitive
-                Renamed = !string.Equals(place.FileName, result.FileName, StringComparison.InvariantCultureIgnoreCase),
-                Moved = !string.Equals(Path.GetDirectoryName(place.FullServerPath), newFullPath, StringComparison.InvariantCultureIgnoreCase)
-            };
+        // Return early if we're only previewing or if it not a success.
+        if (request.Preview || !result.Success)
+            return result;
 
         // Actually move it.
         return await DirectlyRelocateFile(place, new()
         {
             DeleteEmptyDirectories = false,
-            ImportFolder = result.DestinationImportFolder ?? place.ImportFolder,
-            RelativePath = newRelativePath,
+            ImportFolder = result.ImportFolder,
+            RelativePath = result.RelativePath,
         });
-    }
-
-    private static string GetResultFullPath(SVR_VideoLocal_Place place, RelocationResult result)
-    {
-        var segments = new List<string>();
-        // handle import folder and relative path if the renamer doesn't support moving
-        segments.AddRange(
-            (result.DestinationImportFolder?.Path ?? place.ImportFolder.ImportFolderLocation).Split(new char[] {'\\', '/'}, StringSplitOptions.RemoveEmptyEntries));
-        segments.AddRange((result.Path ?? (Path.GetDirectoryName(place.FilePath) ?? string.Empty)).Split(new char[] {'\\', '/'}, StringSplitOptions.RemoveEmptyEntries));
-        // handle file name if the renamer doesn't support renaming
-        segments.Add(result.FileName ?? place.FileName);
-
-        var newFullPath = Path.Combine(segments.Where(a => !string.IsNullOrWhiteSpace(a)).ToArray());
-        return newFullPath;
     }
 
     #endregion Methods

@@ -1,5 +1,8 @@
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Video file location.
+/// </summary>
 public interface IVideoFile
 {
     /// <summary>

@@ -4,6 +4,9 @@ using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Video.
+/// </summary>
 public interface IVideo : IMetadata<int>
 {
     /// <summary>

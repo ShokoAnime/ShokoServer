@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,8 @@ using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Utilities;
+
+using AbstractRelocationResult = Shoko.Plugin.Abstractions.Events.RelocationResult;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
@@ -23,8 +26,8 @@ public class RenameFileService
     private readonly ILogger<RenameFileService> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly RenamerConfigRepository _renamers;
-    private readonly Dictionary<Type, MethodInfo?> _settingsSetters = new();
-    private readonly Dictionary<Type, MethodInfo?> _genericGetNewPaths = new();
+    private readonly Dictionary<Type, MethodInfo?> _settingsSetters = [];
+    private readonly Dictionary<Type, MethodInfo?> _genericGetNewPaths = [];
 
     public Dictionary<string, IBaseRenamer> RenamersByKey { get; } = [];
     public Dictionary<Type, IBaseRenamer> RenamersByType { get; } = [];
@@ -38,7 +41,7 @@ public class RenameFileService
         LoadRenamers(AppDomain.CurrentDomain.GetAssemblies());
     }
 
-    public Shoko.Plugin.Abstractions.Events.RelocationResult GetNewPath(SVR_VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null)
+    public RelocationResult GetNewPath(SVR_VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null)
     {
         var settings = _settingsProvider.GetSettings();
         var shouldMove = move ?? settings.Plugins.Renamer.MoveOnImport;
@@ -54,39 +57,51 @@ public class RenameFileService
 
         // We don't have all the data yet, so don't try to rename yet.
         if (xrefs.Count != episodes.Count)
-            return new Shoko.Plugin.Abstractions.Events.RelocationResult
+            return new()
             {
-                Error = new RelocationError(
-                    $"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.")
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.",
             };
 
         if (renamerConfig == null)
         {
             var defaultRenamerName = settings.Plugins.Renamer.DefaultRenamer;
             if (string.IsNullOrWhiteSpace(defaultRenamerName))
-                return new Shoko.Plugin.Abstractions.Events.RelocationResult
+                return new()
                 {
-                    Error = new RelocationError("No default renamer configured and no renamer config given")
+                    Success = false,
+                    ShouldRetry = false,
+                    ErrorMessage = "No default renamer configured and no renamer config given",
                 };
+
             var defaultRenamer = _renamers.GetByName(defaultRenamerName);
             if (defaultRenamer == null)
-                return new Shoko.Plugin.Abstractions.Events.RelocationResult
+                return new()
                 {
-                    Error = new RelocationError("The specified default renamer does not exist")
+                    Success = false,
+                    ShouldRetry = false,
+                    ErrorMessage = "The specified default renamer does not exist",
                 };
+
             renamerConfig = defaultRenamer;
         }
 
         if (!RenamersByType.TryGetValue(renamerConfig.Type, out var renamer))
-            return new Shoko.Plugin.Abstractions.Events.RelocationResult
+            return new()
             {
-                Error = new RelocationError($"No renamers configured for {renamerConfig.Type}")
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"No renamers configured for {renamerConfig.Type}",
             };
-        // check if it's unrecognized
+
+        // Check if it's unrecognized.
         if (xrefs.Count == 0 && renamer.GetType().GetInterfaces().Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IUnrecognizedRenamer<>)))
-            return new Shoko.Plugin.Abstractions.Events.RelocationResult
+            return new()
             {
-                Error = new RelocationError("Configured renamer does not support unrecognized files, and the file is unrecognized")
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = "Configured renamer does not support unrecognized files, and the file is unrecognized",
             };
 
         var anime = xrefs
@@ -109,14 +124,15 @@ public class RenameFileService
 
         RelocationEventArgs args;
         var renamerInterface = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>));
-        if (renamerInterface != null)
+        if (renamerInterface is not null)
         {
             var settingsType = renamerInterface.GetGenericArguments()[0];
             if (settingsType != renamerConfig.Settings.GetType())
-                return new Shoko.Plugin.Abstractions.Events.RelocationResult
+                return new()
                 {
-                    Error = new RelocationError(
-                        $"Configured renamer has settings of type {settingsType} but the renamer config has settings of type {renamerConfig.Settings.GetType()}")
+                    Success = false,
+                    ShouldRetry = false,
+                    ErrorMessage = $"Configured renamer has settings of type {settingsType} but the renamer config has settings of type {renamerConfig.Settings.GetType()}",
                 };
 
             var argsType = typeof(RelocationEventArgs<>).MakeGenericType(settingsType);
@@ -129,20 +145,32 @@ public class RenameFileService
             args.MoveEnabled = shouldMove;
             args.RenameEnabled = shouldRename;
 
-            // cached reflection
+            // Cached reflection.
             if (!_settingsSetters.TryGetValue(argsType, out var settingsSetter))
                 _settingsSetters.TryAdd(argsType,
                     settingsSetter = argsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(a => a.Name == "Settings")?.SetMethod);
-            if (settingsSetter == null) return new Shoko.Plugin.Abstractions.Events.RelocationResult {Error = new RelocationError($"Cannot find Settings setter on {renamerInterface}")};
+            if (settingsSetter == null)
+                return new()
+                {
+                    Success = false,
+                    ShouldRetry = false,
+                    ErrorMessage = $"Cannot find Settings setter on {renamerInterface}",
+                };
             settingsSetter.Invoke(args, [renamerConfig.Settings]);
 
             if (!_genericGetNewPaths.TryGetValue(renamerInterface, out var method))
                 _genericGetNewPaths.TryAdd(renamerInterface,
                     method = renamerInterface.GetMethod(nameof(IRenamer.GetNewPath), BindingFlags.Instance | BindingFlags.Public));
 
-            if (method == null) return new Shoko.Plugin.Abstractions.Events.RelocationResult {Error = new RelocationError("Cannot find GetNewPath method")};
+            if (method == null)
+                return new()
+                {
+                    Success = false,
+                    ShouldRetry = false,
+                    ErrorMessage = "Cannot find GetNewPath method",
+                };
 
-            return GetNewPath((r, a) => (Shoko.Plugin.Abstractions.Events.RelocationResult)method.Invoke(r, [a])!, renamer, args, shouldRename, shouldMove);
+            return UnAbstractResult(place, GetNewPath((r, a) => (AbstractRelocationResult)method.Invoke(r, [a])!, renamer, args, shouldRename, shouldMove), shouldMove, shouldRename);
         }
 
         args = new RelocationEventArgs
@@ -152,11 +180,46 @@ public class RenameFileService
             Episodes = episodes,
             Groups = groups,
             AvailableFolders = availableFolders,
-            MoveEnabled = move ?? settings.Plugins.Renamer.MoveOnImport,
-            RenameEnabled = rename ?? settings.Plugins.Renamer.RenameOnImport,
+            MoveEnabled = shouldMove,
+            RenameEnabled = shouldRename,
         };
 
-        return GetNewPath((r, a) => ((IRenamer)r).GetNewPath(a), renamer, args, shouldRename, shouldMove);
+        return UnAbstractResult(place, GetNewPath((r, a) => ((IRenamer)r).GetNewPath(a), renamer, args, shouldRename, shouldMove), shouldMove, shouldRename);
+    }
+
+    /// <summary>
+    /// Un-abstract the relocation result returned from the renamer, and convert it to something easier to work internally for us.
+    /// </summary>
+    /// <param name="place">Video file location.</param>
+    /// <param name="result">Abstract result returned from the renamed.</param>
+    /// <param name="shouldMove">Indicates that we should have moved.</param>
+    /// <param name="shouldRename">Indicates that we should have renamed.</param>
+    /// <returns>An non-abstract relocation result.</returns>
+    private static RelocationResult UnAbstractResult(SVR_VideoLocal_Place place, AbstractRelocationResult result, bool shouldMove, bool shouldRename)
+    {
+        if (result.Error is not null)
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = result.Error.Message,
+                Exception = result.Error.Exception,
+            };
+
+        var newImportFolder = shouldMove ? result.DestinationImportFolder! : place.ImportFolder;
+        var newFileName = shouldRename ? result.FileName! : place.FileName;
+        var newRelativeDirectory = shouldMove ? result.Path! : Path.GetDirectoryName(place.FilePath)!;
+        var newRelativePath = newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
+        var newFullPath = Path.Combine(newImportFolder.Path, newRelativePath);
+        return new()
+        {
+            Success = true,
+            ImportFolder = result.DestinationImportFolder ?? place.ImportFolder,
+            RelativePath = newRelativePath,
+            // TODO: Handle file-systems that are or aren't case sensitive.
+            Renamed = !string.Equals(place.FileName, result.FileName, StringComparison.OrdinalIgnoreCase),
+            Moved = !string.Equals(Path.GetDirectoryName(place.FullServerPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase),
+        };
     }
 
     /// <summary>
@@ -168,40 +231,63 @@ public class RenameFileService
     /// <param name="shouldRename"></param>
     /// <param name="shouldMove"></param>
     /// <returns></returns>
-    private static Shoko.Plugin.Abstractions.Events.RelocationResult GetNewPath(Func<IBaseRenamer, RelocationEventArgs, Shoko.Plugin.Abstractions.Events.RelocationResult> func, IBaseRenamer renamer, RelocationEventArgs args, bool shouldRename,
+    private AbstractRelocationResult GetNewPath(Func<IBaseRenamer, RelocationEventArgs, AbstractRelocationResult> func, IBaseRenamer renamer, RelocationEventArgs args, bool shouldRename,
         bool shouldMove)
     {
         try
         {
             // get filename from plugin
-            var res = func(renamer, args);
-            if (res.Error != null) return res;
+            var result = func(renamer, args);
+            if (result.Error is not null) return result;
 
             // if the plugin said to cancel, then do so
             if (args.Cancel)
-                return new Shoko.Plugin.Abstractions.Events.RelocationResult
+                return new AbstractRelocationResult
                 {
                     Error = new RelocationError($"Operation canceled by renamer {renamer.GetType().Name}.")
                 };
 
-            // TODO check fallback renamer 
-            if (shouldRename && string.IsNullOrEmpty(res.FileName))
-                return new Shoko.Plugin.Abstractions.Events.RelocationResult
-                {
-                    Error = new RelocationError($"Set to rename, but renamer {renamer.GetType().Name} did not return a new file name")
-                };
+            if (shouldRename && (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:")))
+            {
+                var errorMessage = !string.IsNullOrWhiteSpace(result.FileName)
+                    ? result.FileName[7..].Trim()
+                    : $"The renamer \"{renamer.GetType().Name}\" returned a null or empty value for the file name.";
+                _logger.LogError("An error occurred while trying to find a new file name for {FilePath}: {ErrorMessage}", args.File.Path, errorMessage);
+                return new() { Error = new RelocationError(errorMessage) };
+            }
 
-            if (shouldMove && (string.IsNullOrEmpty(res.Path) || res.DestinationImportFolder == null))
-                return new Shoko.Plugin.Abstractions.Events.RelocationResult
-                {
-                    Error = new RelocationError($"Renamer {renamer.GetType().Name} did not return a file path")
-                };
+            // Normalize file name.
+            if (!string.IsNullOrEmpty(result.FileName))
+            {
+                // Move path from file name to path if it's provided in the file name and not as the Path.
+                if (Path.GetDirectoryName(result.FileName) is { } dirName && string.IsNullOrEmpty(result.Path))
+                    result.Path = dirName;
 
-            return res;
+                // Ensure file name only contains a name and no path.
+                result.FileName = Path.GetFileName(result.FileName).Trim();
+            }
+
+            // Replace alt separator with main separator.
+            result.Path = result.Path?.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar).Trim();
+
+            // Ensure the path does not have a leading separator.
+            if (!string.IsNullOrEmpty(result.Path) && result.Path[0] == Path.DirectorySeparatorChar)
+                result.Path = result.Path[1..];
+
+            if (shouldMove && (result.DestinationImportFolder is null || result.Path is null || result.Path.StartsWith("*Error:")))
+            {
+                var errorMessage = !string.IsNullOrWhiteSpace(result.Path)
+                    ? result.Path[7..].Trim()
+                    : $"The renamer \"{renamer.GetType().Name}\" could not find a valid destination.";
+                _logger.LogWarning("An error occurred while trying to find a destination for {FilePath}: {ErrorMessage}", args.File.Path, errorMessage);
+                return new() { Error = new RelocationError(errorMessage) };
+            }
+
+            return result;
         }
         catch (Exception e)
         {
-            return new Shoko.Plugin.Abstractions.Events.RelocationResult
+            return new AbstractRelocationResult
             {
                 Error = new RelocationError(e.Message, e)
             };
@@ -223,7 +309,7 @@ public class RenameFileService
                 }
             })
             .Where(a => a.IsClass && a is { IsAbstract: false, IsGenericType: false } && a.GetInterfaces().Any(b =>
-                b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>) || b == typeof(IRenamer)))
+                (b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>)) || b == typeof(IRenamer)))
             .ToList();
 
         var enabledSetting = _settingsProvider.GetSettings().Plugins.Renamer.EnabledRenamers;
@@ -231,15 +317,14 @@ public class RenameFileService
         {
             var attributes = implementation.GetCustomAttributes<RenamerIDAttribute>();
             if (!attributes.Any())
-                _logger.LogWarning($"Warning {implementation.Name} has no RenamerIDAttribute and cannot be loaded");
+                _logger.LogWarning("Warning {ImplementationName} has no RenamerIDAttribute and cannot be loaded", implementation.Name);
             foreach (var id in attributes.Select(a => a.RenamerId))
             {
                 var version = implementation.Assembly.GetName().Version;
                 if (RenamersByKey.TryGetValue(id, out var value))
                 {
                     var info = value.GetType();
-                    _logger.LogWarning(
-                        $"Warning Duplicate renamer ID \"{id}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{info.Assembly.Location} (v{info.Assembly.GetName().Version})");
+                    _logger.LogWarning("{Message}", $"Warning Duplicate renamer ID \"{id}\" of types {implementation}@{implementation.Assembly.Location} (v{version}) and {value}@{info.Assembly.Location} (v{info.Assembly.GetName().Version})");
                     continue;
                 }
 
@@ -257,7 +342,7 @@ public class RenameFileService
 
                 if (!enabledSetting.TryGetValue(id, out var enabled) || enabled)
                 {
-                    _logger.LogInformation($"Added Renamer: {id} (v{version})");
+                    _logger.LogInformation("Added Renamer: {Id} (v{Version})", id, version);
                     RenamersByKey.Add(id, renamer);
                     RenamersByType.Add(implementation, renamer);
                     AllRenamers[renamer] = true;
