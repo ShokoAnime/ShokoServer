@@ -96,7 +96,7 @@ public class RenameFileService
             };
 
         // Check if it's unrecognized.
-        if (xrefs.Count == 0 && renamer.GetType().GetInterfaces().Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IUnrecognizedRenamer<>)))
+        if (xrefs.Count == 0 && !renamer.GetType().GetInterfaces().Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IUnrecognizedRenamer<>)))
             return new()
             {
                 Success = false,
