@@ -13,7 +13,7 @@ public class LanguageSettings
     /// </summary>
     public bool UseSynonyms { get; set; } = false;
 
-    private List<string> _seriesTitleLanguageOrder = [];
+    private List<string> _seriesTitleLanguageOrder = ["x-main"];
 
     /// <summary>
     /// Series / group title language preference order.
