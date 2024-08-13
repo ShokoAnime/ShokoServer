@@ -805,6 +805,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(129, 35, "ALTER TABLE `TMDB_Movie` CHANGE COLUMN IF EXISTS `EnglishOvervie` `EnglishOverview` TEXT CHARACTER SET UTF8 NOT NULL;"),
         new(129, 36, "UPDATE `TMDB_Image` SET `IsEnabled` = 1;"),
         new(130, 1, MigrateRenamers),
+        new(131, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';")
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
