@@ -806,7 +806,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(129, 36, "UPDATE `TMDB_Image` SET `IsEnabled` = 1;"),
         new(130, 1, MigrateRenamers),
         new(131, 1, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
-        new(131, 2, DatabaseFixes.CreateDefaultRenamerConfig)
+        new(131, 2, DatabaseFixes.CreateDefaultRenamerConfig),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

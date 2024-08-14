@@ -46,7 +46,7 @@ public static class SettingsMigrations
         { 6, MigrateAniDBServerAddresses },
         { 7, MigrateLanguageSettings },
         { 8, MigrateRenamerFromImportToPluginsSettings },
-        { 9, MigrateFixDefaultRenamer }
+        { 9, MigrateFixDefaultRenamer },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)

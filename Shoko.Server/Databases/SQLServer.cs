@@ -736,7 +736,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(122, 36, "UPDATE TMDB_Image SET IsEnabled = 1;"),
         new DatabaseCommand(123, 1, MigrateRenamers),
         new DatabaseCommand(123, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
-        new DatabaseCommand(123, 3, DatabaseFixes.CreateDefaultRenamerConfig)
+        new DatabaseCommand(123, 3, DatabaseFixes.CreateDefaultRenamerConfig),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

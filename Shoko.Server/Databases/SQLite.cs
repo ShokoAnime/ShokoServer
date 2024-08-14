@@ -732,7 +732,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(115, 35, "UPDATE TMDB_Image SET IsEnabled = 1;"),
         new(116, 1, MigrateRenamers),
         new(116, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
-        new(116, 3, DatabaseFixes.CreateDefaultRenamerConfig)
+        new(116, 3, DatabaseFixes.CreateDefaultRenamerConfig),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
