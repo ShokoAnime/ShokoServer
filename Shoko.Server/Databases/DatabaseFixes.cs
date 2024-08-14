@@ -801,4 +801,20 @@ public class DatabaseFixes
         // Schedule tmdb searches if we have auto linking enabled.
         service.ScanForMatches().ConfigureAwait(false).GetAwaiter().GetResult();
     }
+
+    public static void CreateDefaultRenamerConfig()
+    {
+        var existingRenamer = RepoFactory.RenamerConfig.GetByName("Default");
+        if (existingRenamer != null)
+            return;
+
+        var config = new RenamerConfig
+        {
+            Name = "Default",
+            Type = typeof(Renamer.WebAOMRenamer),
+            Settings = new Renamer.WebAOMSettings(),
+        };
+
+        RepoFactory.RenamerConfig.Save(config);
+    }
 }

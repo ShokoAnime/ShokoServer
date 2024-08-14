@@ -11,7 +11,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 8;
+    public const int Version = 9;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -45,7 +45,8 @@ public static class SettingsMigrations
         { 5, MigrateAutoGroupRelationsAlternateToAlternative },
         { 6, MigrateAniDBServerAddresses },
         { 7, MigrateLanguageSettings },
-        { 8, MigrateRenamerFromImportToPluginsSettings }
+        { 8, MigrateRenamerFromImportToPluginsSettings },
+        { 9, MigrateFixDefaultRenamer }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -154,6 +155,21 @@ public static class SettingsMigrations
         renamerSettings["RenameOnImport"] = renameOnImport;
         renamerSettings["MoveOnImport"] = moveOnImport;
         renamerSettings["EnabledRenamers"] = pluginsSettings["EnabledRenamers"] ?? new JObject();
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateFixDefaultRenamer(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        if (currentSettings["Plugins"]?["Renamer"] is null)
+            return settings;
+
+        var renamerSettings = currentSettings["Plugins"]["Renamer"];
+
+        if (string.IsNullOrEmpty(renamerSettings["DefaultRenamer"]?.Value<string>()))
+            renamerSettings["DefaultRenamer"] = "Default";
 
         return currentSettings.ToString();
     }
