@@ -297,7 +297,7 @@ jobs:
           submodules: recursive
 
       # Only add the release to sentry if the build is successful.
-      - name: Push Sentry Release "${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}"
+      - name: Push Sentry Release "${{ needs.current_info.outputs.version }}"
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -306,7 +306,7 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'dev'
-          version: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
+          version: ${{ needs.current_info.outputs.version }}
 
   discord-notify:
     runs-on: ubuntu-latest
@@ -324,7 +324,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
+          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "CHANGELOG<<$EOF" >> "$GITHUB_OUTPUT"
@@ -344,7 +344,7 @@ jobs:
           embed-author-icon-url: https://raw.githubusercontent.com/${{ github.repository }}/master/.github/images/Shoko.png
           embed-author-url: https://github.com/${{ github.repository }}
           embed-description: |
-            **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
+            **Version**: `${{ needs.current_info.outputs.version }}` (`${{ needs.current_info.outputs.sha_short }}`)
 
             Update by grabbing the latest daily from [our site](https://shokoanime.com/downloads/shoko-server) or through Docker using the `shokoanime/server:daily` tag!
 
