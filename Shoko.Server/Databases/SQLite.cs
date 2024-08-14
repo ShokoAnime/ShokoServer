@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 116;
+    public override int RequiredVersion => 117;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -733,6 +733,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(116, 1, MigrateRenamers),
         new(116, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
         new(116, 3, DatabaseFixes.CreateDefaultRenamerConfig),
+        new(117, 1, "UPDATE CrossRef_AniDB_TMDB_Episode SET MatchRating = CASE MatchRating WHEN 'UserVerified' THEN 1 WHEN 'DateAndTitleMatches' THEN 2 WHEN 'DateMatches' THEN 3 WHEN 'TitleMatches' THEN 4 WHEN 'FirstAvailable' THEN 5 WHEN 'SarahJessicaParker' THEN 6 ELSE MatchRating END;"),
+        new(117, 2, "UPDATE CrossRef_AniDB_TMDB_Show SET Source = CASE Source WHEN 'Automatic' THEN 0 WHEN 'User' THEN 2 ELSE Source END;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
