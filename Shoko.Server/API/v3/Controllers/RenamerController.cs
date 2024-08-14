@@ -381,6 +381,9 @@ public class RenamerController : BaseController
     [HttpDelete("Config/{configName}")]
     public ActionResult DeleteRenamerConfig([FromRoute] string configName)
     {
+        if (configName.Equals("Default"))
+            return BadRequest("Default config cannot be deleted!");
+
         var renamerConfig = _renamerConfigRepository.GetByName(configName);
         if (renamerConfig == null)
             return NotFound("Config not found");
