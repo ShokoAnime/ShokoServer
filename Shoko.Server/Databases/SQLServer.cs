@@ -737,9 +737,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(123, 1, MigrateRenamers),
         new DatabaseCommand(123, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
         new DatabaseCommand(123, 3, DatabaseFixes.CreateDefaultRenamerConfig),
-        new DatabaseCommand(124, 1, "ALTER TABLE TMDB_Show ADD COLUMN TvdbShowID INT NULL DEFAULT NULL;"),
-        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD COLUMN TvdbEpisodeID INT NULL DEFAULT NULL;"),
-        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Movie ADD COLUMN ImdbMovieID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 1, "ALTER TABLE TMDB_Show ADD TvdbShowID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD TvdbEpisodeID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Movie ADD ImdbMovieID INT NULL DEFAULT NULL;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
