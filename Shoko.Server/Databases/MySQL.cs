@@ -810,6 +810,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(132, 1, "ALTER TABLE `TMDB_Show` ADD COLUMN `TvdbShowID` INT NULL DEFAULT NULL;"),
         new(132, 2, "ALTER TABLE `TMDB_Episode` ADD COLUMN `TvdbEpisodeID` INT NULL DEFAULT NULL;"),
         new(132, 3, "ALTER TABLE `TMDB_Movie` ADD COLUMN `ImdbMovieID` INT NULL DEFAULT NULL;"),
+        new(132, 4, "ALTER TABLE `TMDB_Movie` DROP COLUMN `ImdbMovieID`;"),
+        new(132, 5, "ALTER TABLE `TMDB_Movie` ADD COLUMN `ImdbMovieID` VARCHAR(12) NULL DEFAULT NULL;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

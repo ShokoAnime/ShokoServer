@@ -51,7 +51,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Will be <code>null</code> if not linked. Will be <code>0</code> if no
     /// Imdb link is found in TMDB. Otherwise, it will be the Imdb movie ID.
     /// </remarks>
-    public int? ImdbMovieID { get; set; }
+    public string? ImdbMovieID { get; set; }
 
     /// <summary>
     /// The default poster path. Used to determine the default poster for the show.

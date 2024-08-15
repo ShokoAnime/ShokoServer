@@ -2430,7 +2430,16 @@ public class TmdbMetadataService
     private async Task<bool> UpdateShowTvdb(TMDB_Show show)
     {
         var externalIds = await Client.GetTvShowExternalIdsAsync(show.TmdbShowID);
-        if (!string.IsNullOrEmpty(externalIds.TvdbId) || !int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || show.TvdbShowID == tvdbId)
+        if (string.IsNullOrEmpty(externalIds.TvdbId))
+        {
+            if (!show.TvdbShowID.HasValue)
+                return false;
+
+            show.TvdbShowID = null;
+            return true;
+        }
+
+        if (!int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || show.TvdbShowID == tvdbId)
             return false;
 
         show.TvdbShowID = tvdbId;
@@ -2445,7 +2454,16 @@ public class TmdbMetadataService
     private async Task<bool> UpdateEpisodeTvdb(TMDB_Episode episode)
     {
         var externalIds = await Client.GetTvEpisodeExternalIdsAsync(episode.TmdbShowID, episode.SeasonNumber, episode.EpisodeNumber);
-        if (!string.IsNullOrEmpty(externalIds.TvdbId) || !int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || episode.TvdbEpisodeID == tvdbId)
+        if (string.IsNullOrEmpty(externalIds.TvdbId))
+        {
+            if (!episode.TvdbEpisodeID.HasValue)
+                return false;
+
+            episode.TvdbEpisodeID = null;
+            return true;
+        }
+
+        if (!int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || episode.TvdbEpisodeID == tvdbId)
             return false;
 
         episode.TvdbEpisodeID = tvdbId;
@@ -2460,10 +2478,10 @@ public class TmdbMetadataService
     private async Task<bool> UpdateMovieImdb(TMDB_Movie movie)
     {
         var externalIds = await Client.GetMovieExternalIdsAsync(movie.TmdbMovieID);
-        if (!string.IsNullOrEmpty(externalIds.ImdbId) || !int.TryParse(externalIds.ImdbId, out var tvdbId) || tvdbId <= 0 || movie.ImdbMovieID == tvdbId)
+        if (movie.ImdbMovieID == externalIds.ImdbId)
             return false;
 
-        movie.ImdbMovieID = tvdbId;
+        movie.ImdbMovieID = externalIds.ImdbId;
         return true;
     }
 

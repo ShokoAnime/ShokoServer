@@ -738,6 +738,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(117, 3, "ALTER TABLE TMDB_Show ADD COLUMN TvdbShowID INTEGER NULL DEFAULT NULL;"),
         new(117, 4, "ALTER TABLE TMDB_Episode ADD COLUMN TvdbEpisodeID INTEGER NULL DEFAULT NULL;"),
         new(117, 5, "ALTER TABLE TMDB_Movie ADD COLUMN ImdbMovieID INTEGER NULL DEFAULT NULL;"),
+        new(117, 6, "ALTER TABLE TMDB_Movie DROP COLUMN ImdbMovieID;"),
+        new(117, 7, "ALTER TABLE TMDB_Movie ADD COLUMN ImdbMovieID TEXT NULL DEFAULT NULL;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
