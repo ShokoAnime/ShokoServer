@@ -52,7 +52,7 @@ public class RenameMoveFileJob : BaseJob
         {
             var result = await _vlPlaceService.AutoRelocateFile(place);
             if (!result.Success)
-                _logger.LogTrace(result.Exception, "Unable to move file; {ErrorMessage}", result.ErrorMessage);
+                _logger.LogTrace(result.Exception, "Unable to move/rename file; {ErrorMessage}", result.ErrorMessage);
         }
     }
 
