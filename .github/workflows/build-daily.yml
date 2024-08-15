@@ -25,7 +25,15 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Increment build number from last sentry release
+      - name: Get Commit Date (as ISO8601)
+        id: commit_date_iso8601
+        shell: bash
+        env:
+          TZ: UTC0
+        run: |
+          echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
+      - name: Increment build number from last sentry release before "${{ steps.commit_date_iso8601.outputs.date }}"
         id: incremental_build
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -36,7 +44,7 @@ jobs:
           curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
-            | jq -r 'first | .version | split("-") | first | split(".") | last | tonumber | . + 1' >> "$GITHUB_OUTPUT"
+            | jq -r '. | map(select((.dateCreated | .[0:-8] + "Z" | fromdateiso8601) < ("${{ steps.commit_date_iso8601.outputs.date }}" | fromdateiso8601))) | first | .version | split("-") | first | split(".") | last | tonumber | . + 1' >> "$GITHUB_OUTPUT"
 
       - name: Get Current Version
         id: release_info
@@ -48,11 +56,6 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Get Commit Date (as ISO8601)
-        id: commit_date_iso8601
-        shell: bash
-        run: |
-          echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})" >> "$GITHUB_OUTPUT"
       - id: commit_info
         name: Shorten Commit Hash
         uses: actions/github-script@v6
