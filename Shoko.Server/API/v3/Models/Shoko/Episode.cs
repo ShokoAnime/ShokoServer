@@ -133,7 +133,12 @@ public class Episode : BaseModel
             ID = episode.AnimeEpisodeID,
             ParentSeries = episode.AnimeSeriesID,
             AniDB = episode.AniDB_EpisodeID,
-            TvDB = tvdbEpisodes.Select(a => a.Id).ToList(),
+            TvDB = tvdbEpisodes.Select(a => a.Id).Concat(tmdbEpisodeXRefs.Select(xref => xref.TmdbEpisode?.TvdbEpisodeID).WhereNotNull()).Distinct().ToList(),
+            IMDB = tmdbMovieXRefs
+                .Select(xref => xref.TmdbMovie?.ImdbMovieID)
+                .WhereNotNull()
+                .Distinct()
+                .ToList(),
             TMDB = new()
             {
                 Episode = tmdbEpisodeXRefs
@@ -392,6 +397,11 @@ public class Episode : BaseModel
         /// The TvDB IDs
         /// </summary>
         public List<int> TvDB { get; set; } = [];
+
+        /// <summary>
+        /// The IMDB Movie IDs.
+        /// </summary>
+        public List<int> IMDB { get; set; } = [];
 
         #endregion
         /// <summary>

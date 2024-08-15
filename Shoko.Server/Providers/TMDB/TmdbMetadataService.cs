@@ -301,6 +301,8 @@ public class TmdbMetadataService
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
         if (downloadCrewAndCast)
             updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
+        if (settings.TMDB.DownloadTvdbIDs.HasFlag(ForeignEntityType.Movie))
+            updated = await UpdateMovieImdb(tmdbMovie) || updated;
         if (updated)
         {
             tmdbMovie.LastUpdatedAt = DateTime.Now;
@@ -996,6 +998,8 @@ public class TmdbMetadataService
             updated = true;
         if (downloadAlternateOrdering)
             updated = await UpdateShowAlternateOrdering(show) || updated;
+        if (settings.TMDB.DownloadTvdbIDs.HasFlag(ForeignEntityType.Show))
+            updated = await UpdateShowTvdb(tmdbShow) || updated;
         if (updated)
         {
             tmdbShow.LastUpdatedAt = DateTime.Now;
@@ -1079,6 +1083,10 @@ public class TmdbMetadataService
                     var credits = await Client.GetTvEpisodeCreditsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
                     episodeUpdated = await UpdateEpisodeCastAndCrew(tmdbEpisode, credits, downloadImages) || episodeUpdated;
                 }
+
+                // Store TvDB ID if needed and available.
+                if (settings.TMDB.DownloadTvdbIDs.HasFlag(ForeignEntityType.Episode))
+                    episodeUpdated = await UpdateEpisodeTvdb(tmdbEpisode) || episodeUpdated;
 
                 // Update images.
                 if (downloadImages)
@@ -2408,6 +2416,55 @@ public class TmdbMetadataService
                 continue;
             }
         }
+    }
+
+    #endregion
+
+    #region External IDs
+
+    /// <summary>
+    /// Update TvDB ID for the TMDB show if needed and the ID is available.
+    /// </summary>
+    /// <param name="show">TMDB Show.</param>
+    /// <returns>Indicates that the ID was updated.</returns>
+    private async Task<bool> UpdateShowTvdb(TMDB_Show show)
+    {
+        var externalIds = await Client.GetTvShowExternalIdsAsync(show.TmdbShowID);
+        if (!string.IsNullOrEmpty(externalIds.TvdbId) || !int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || show.TvdbShowID == tvdbId)
+            return false;
+
+        show.TvdbShowID = tvdbId;
+        return true;
+    }
+
+    /// <summary>
+    /// Update TvDB ID for the TMDB episode if needed and the ID is available.
+    /// </summary>
+    /// <param name="episode">TMDB Episode.</param>
+    /// <returns>Indicates that the ID was updated.</returns>
+    private async Task<bool> UpdateEpisodeTvdb(TMDB_Episode episode)
+    {
+        var externalIds = await Client.GetTvEpisodeExternalIdsAsync(episode.TmdbShowID, episode.SeasonNumber, episode.EpisodeNumber);
+        if (!string.IsNullOrEmpty(externalIds.TvdbId) || !int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || episode.TvdbEpisodeID == tvdbId)
+            return false;
+
+        episode.TvdbEpisodeID = tvdbId;
+        return true;
+    }
+
+    /// <summary>
+    /// Update IMDb ID for the TMDB movie if needed and the ID is available.
+    /// </summary>
+    /// <param name="movie">TMDB Movie.</param>
+    /// <returns>Indicates that the ID was updated.</returns>
+    private async Task<bool> UpdateMovieImdb(TMDB_Movie movie)
+    {
+        var externalIds = await Client.GetMovieExternalIdsAsync(movie.TmdbMovieID);
+        if (!string.IsNullOrEmpty(externalIds.ImdbId) || !int.TryParse(externalIds.ImdbId, out var tvdbId) || tvdbId <= 0 || movie.ImdbMovieID == tvdbId)
+            return false;
+
+        movie.ImdbMovieID = tvdbId;
+        return true;
     }
 
     #endregion

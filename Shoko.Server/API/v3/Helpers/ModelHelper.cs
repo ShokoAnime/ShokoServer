@@ -19,7 +19,7 @@ namespace Shoko.Server.API.v3.Helpers;
 
 public static class ModelHelper
 {
-    public static T CombineFlags<T>(this HashSet<T> flags) where T : Enum
+    public static T CombineFlags<T>(this IEnumerable<T> flags) where T : Enum
     {
         T combinedFlags = default;
         foreach (var flag in flags)
@@ -29,6 +29,23 @@ public static class ModelHelper
 
     private static T CombineFlags<T>(T a, T b) where T : Enum
         => (T)Enum.ToObject(typeof(T), Convert.ToInt64(a) | Convert.ToInt64(b));
+
+    // Note: there is no `this` because if it's set then the compiler will
+    // complain that there is no `System.Enum` defined.
+    public static IEnumerable<T> UnCombineFlags<T>(T flags) where T : struct, Enum
+    {
+        var allValues = Enum.GetValues<T>();
+        var flagLong = Convert.ToInt64(flags);
+        foreach (var value in allValues)
+        {
+            var valueLong = Convert.ToInt64(value);
+            if (valueLong != 0 && (flagLong & valueLong) == valueLong)
+                yield return value;
+        }
+
+        if (flagLong == 0)
+            yield return default;
+    }
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {

@@ -29,6 +29,11 @@ public class Movie
     public int? CollectionID { get; init; }
 
     /// <summary>
+    /// IMDB Movie ID, if available.
+    /// </summary>
+    public int? ImdbMovieID { get; init; }
+
+    /// <summary>
     /// Preferred title based upon series title preference.
     /// </summary>
     public string Title { get; init; }
@@ -155,6 +160,7 @@ public class Movie
 
         ID = movie.TmdbMovieID;
         CollectionID = movie.TmdbCollectionID;
+        ImdbMovieID = movie.ImdbMovieID;
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = movie.GetAllTitles()

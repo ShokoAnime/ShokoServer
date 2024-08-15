@@ -40,6 +40,15 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public int TmdbShowID { get; set; }
 
     /// <summary>
+    /// Linked TvDB Show ID.
+    /// </summary>
+    /// <remarks>
+    /// Will be <code>null</code> if not linked. Will be <code>0</code> if no
+    /// TvDB link is found in TMDB. Otherwise it will be the TvDB Show ID.
+    /// </remarks>
+    public int? TvdbShowID { get; set; }
+
+    /// <summary>
     /// The default poster path. Used to determine the default poster for the show.
     /// </summary>
     public string PosterPath { get; set; } = string.Empty;

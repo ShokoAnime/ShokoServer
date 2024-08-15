@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 131;
+    public override int RequiredVersion { get; } = 132;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -807,6 +807,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(130, 1, MigrateRenamers),
         new(131, 1, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
         new(131, 2, DatabaseFixes.CreateDefaultRenamerConfig),
+        new(132, 1, "ALTER TABLE `TMDB_Show` ADD COLUMN `TvdbShowID` INT NULL DEFAULT NULL;"),
+        new(132, 2, "ALTER TABLE `TMDB_Episode` ADD COLUMN `TvdbEpisodeID` INT NULL DEFAULT NULL;"),
+        new(132, 3, "ALTER TABLE `TMDB_Movie` ADD COLUMN `ImdbMovieID` INT NULL DEFAULT NULL;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

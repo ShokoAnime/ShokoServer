@@ -25,6 +25,11 @@ public class Show
     public int ID { get; init; }
 
     /// <summary>
+    /// TvDB Show ID, if available.
+    /// </summary>
+    public int? TvdbID { get; init; }
+
+    /// <summary>
     /// Preferred title based upon series title preference.
     /// </summary>
     public string Title { get; init; }
@@ -163,6 +168,7 @@ public class Show
         var preferredTitle = show.GetPreferredTitle();
 
         ID = show.TmdbShowID;
+        TvdbID = show.TvdbShowID;
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = show.GetAllTitles()

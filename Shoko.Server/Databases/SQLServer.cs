@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 123;
+    public override int RequiredVersion { get; } = 124;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -737,6 +737,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(123, 1, MigrateRenamers),
         new DatabaseCommand(123, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
         new DatabaseCommand(123, 3, DatabaseFixes.CreateDefaultRenamerConfig),
+        new DatabaseCommand(124, 1, "ALTER TABLE TMDB_Show ADD COLUMN TvdbShowID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD COLUMN TvdbEpisodeID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Movie ADD COLUMN ImdbMovieID INT NULL DEFAULT NULL;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

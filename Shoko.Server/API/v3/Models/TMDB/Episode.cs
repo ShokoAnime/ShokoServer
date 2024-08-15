@@ -36,6 +36,11 @@ public class Episode
     public int ShowID { get; init; }
 
     /// <summary>
+    /// TVDB Episode ID, if available.
+    /// </summary>
+    public int? TvdbEpisodeID { get; init; }
+
+    /// <summary>
     /// Preferred title based upon episode title preference.
     /// </summary>
     public string Title { get; init; }
@@ -138,6 +143,7 @@ public class Episode
          ? alternateOrderingEpisode.TmdbEpisodeGroupID
          : episode.TmdbSeasonID.ToString();
         ShowID = episode.TmdbShowID;
+        TvdbEpisodeID = episode.TvdbEpisodeID;
 
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))

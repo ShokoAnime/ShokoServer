@@ -125,6 +125,8 @@ public class Series : BaseModel
         var allEpisodes = ser.AllAnimeEpisodes;
         var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
                    RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
+        var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
+        var tmdbShowXRefs = ser.TmdbShowCrossReferences;
         var sizes = ModelHelper.GenerateSeriesSizes(allEpisodes, userId);
         IDs = new()
         {
@@ -132,11 +134,16 @@ public class Series : BaseModel
             ParentGroup = ser.AnimeGroupID,
             TopLevelGroup = ser.TopLevelAnimeGroup?.AnimeGroupID ?? 0,
             AniDB = ser.AniDB_ID,
-            TvDB = ser.TvdbSeriesCrossReferences.Select(a => a.TvDBID).Distinct().ToList(),
+            TvDB = ser.TvdbSeriesCrossReferences.Select(a => a.TvDBID).Concat(tmdbShowXRefs.Select(xref => xref.TmdbShow?.TvdbShowID).WhereNotNull()).Distinct().ToList(),
+            IMDB = tmdbMovieXRefs
+                .Select(xref => xref.TmdbMovie?.ImdbMovieID)
+                .WhereNotNull()
+                .Distinct()
+                .ToList(),
             TMDB = new()
             {
-                Movie = ser.TmdbMovieCrossReferences.Select(a => a.TmdbMovieID).Distinct().ToList(),
-                Show = ser.TmdbShowCrossReferences.Select(a => a.TmdbShowID).Distinct().ToList(),
+                Movie = tmdbMovieXRefs.Select(a => a.TmdbMovieID).Distinct().ToList(),
+                Show = tmdbShowXRefs.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
             TraktTv = ser.TraktShowCrossReferences.Select(a => a.TraktID).Distinct().ToList(),
             MAL = ser.MALCrossReferences.Select(a => a.MALID).Distinct().ToList()
@@ -688,7 +695,10 @@ public class Series : BaseModel
         /// </summary>
         public List<int> TvDB { get; set; } = [];
 
-        // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
+        /// <summary>
+        /// The IMDB Movie IDs.
+        /// </summary>
+        public List<int> IMDB { get; set; } = [];
 
         /// <summary>
         /// The Movie Database (TMDB) IDs.

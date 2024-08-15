@@ -16,6 +16,7 @@ public class TMDB_EpisodeMap : ClassMap<TMDB_Episode>
         Map(x => x.TmdbShowID).Not.Nullable();
         Map(x => x.TmdbSeasonID).Not.Nullable();
         Map(x => x.TmdbEpisodeID).Not.Nullable();
+        Map(x => x.TvdbEpisodeID).Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
         Map(x => x.EpisodeNumber).Not.Nullable();

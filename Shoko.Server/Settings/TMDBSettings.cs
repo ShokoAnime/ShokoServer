@@ -1,4 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Newtonsoft.Json;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -33,6 +37,19 @@ public class TMDBSettings
     /// which overviews should be stored locally.
     /// </summary>
     public bool DownloadAllOverviews { get; set; } = false;
+
+    /// <summary>
+    /// Download and save TvDB IDs for the TMDB entities.
+    /// </summary>
+    [JsonProperty(nameof(DownloadTvdbIDs))]
+    public ForeignEntityType[] InternalDownloadTvdbIDs
+    {
+        get => ModelHelper.UnCombineFlags(DownloadTvdbIDs).ToArray();
+        set => DownloadTvdbIDs = value.CombineFlags();
+    }
+
+    [JsonIgnore]
+    public ForeignEntityType DownloadTvdbIDs { get; set; } = ForeignEntityType.None;
 
     /// <summary>
     /// Automagically download crew and cast for movies and tv shows in the

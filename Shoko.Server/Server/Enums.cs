@@ -1,4 +1,6 @@
 ﻿using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Shoko.Server.Server;
 
@@ -80,6 +82,7 @@ public enum AniDBMessageFlags
 }
 
 [Flags]
+[JsonConverter(typeof(StringEnumConverter))]
 public enum ForeignEntityType
 {
     None = 0,

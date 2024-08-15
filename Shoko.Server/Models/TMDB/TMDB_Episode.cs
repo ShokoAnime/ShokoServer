@@ -51,6 +51,15 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     public int TmdbEpisodeID { get; set; }
 
     /// <summary>
+    /// Linked TvDB episode ID.
+    /// </summary>
+    /// <remarks>
+    /// Will be <code>null</code> if not linked. Will be <code>0</code> if no
+    /// TvDB link is found in TMDB. Otherwise it will be the TvDB episode ID.
+    /// </remarks>
+    public int? TvdbEpisodeID { get; set; }
+
+    /// <summary>
     /// The english title of the episode, used as a fallback for when no title
     /// is available in the preferred language.
     /// </summary>

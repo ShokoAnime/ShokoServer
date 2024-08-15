@@ -14,6 +14,7 @@ public class TMDB_ShowMap : ClassMap<TMDB_Show>
         Id(x => x.TMDB_ShowID);
 
         Map(x => x.TmdbShowID).Not.Nullable();
+        Map(x => x.TvdbShowID).Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
         Map(x => x.OriginalTitle).Not.Nullable();
