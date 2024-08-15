@@ -42,9 +42,6 @@ public static class ModelHelper
             if (valueLong != 0 && (flagLong & valueLong) == valueLong)
                 yield return value;
         }
-
-        if (flagLong == 0)
-            yield return default;
     }
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
