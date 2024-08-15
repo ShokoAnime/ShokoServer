@@ -739,7 +739,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(123, 3, DatabaseFixes.CreateDefaultRenamerConfig),
         new DatabaseCommand(124, 1, "ALTER TABLE TMDB_Show ADD TvdbShowID INT NULL DEFAULT NULL;"),
         new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD TvdbEpisodeID INT NULL DEFAULT NULL;"),
-        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Movie ADD ImdbMovieID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 3, "ALTER TABLE TMDB_Movie ADD ImdbMovieID INT NULL DEFAULT NULL;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
