@@ -301,7 +301,7 @@ public class TmdbMetadataService
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
         if (downloadCrewAndCast)
             updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
-        if (settings.TMDB.DownloadTvdbIDs.HasFlag(ForeignEntityType.Movie))
+        if (settings.TMDB.DownloadExternalIDs.HasFlag(ForeignEntityType.Movie))
             updated = await UpdateMovieImdb(tmdbMovie) || updated;
         if (updated)
         {
@@ -998,7 +998,7 @@ public class TmdbMetadataService
             updated = true;
         if (downloadAlternateOrdering)
             updated = await UpdateShowAlternateOrdering(show) || updated;
-        if (settings.TMDB.DownloadTvdbIDs.HasFlag(ForeignEntityType.Show))
+        if (settings.TMDB.DownloadExternalIDs.HasFlag(ForeignEntityType.Show))
             updated = await UpdateShowTvdb(tmdbShow) || updated;
         if (updated)
         {
@@ -1085,7 +1085,7 @@ public class TmdbMetadataService
                 }
 
                 // Store TvDB ID if needed and available.
-                if (settings.TMDB.DownloadTvdbIDs.HasFlag(ForeignEntityType.Episode))
+                if (settings.TMDB.DownloadExternalIDs.HasFlag(ForeignEntityType.Episode))
                     episodeUpdated = await UpdateEpisodeTvdb(tmdbEpisode) || episodeUpdated;
 
                 // Update images.
