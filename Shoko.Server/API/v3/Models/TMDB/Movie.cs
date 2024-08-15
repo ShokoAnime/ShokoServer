@@ -31,7 +31,7 @@ public class Movie
     /// <summary>
     /// IMDB Movie ID, if available.
     /// </summary>
-    public int? ImdbMovieID { get; init; }
+    public string? ImdbMovieID { get; init; }
 
     /// <summary>
     /// Preferred title based upon series title preference.

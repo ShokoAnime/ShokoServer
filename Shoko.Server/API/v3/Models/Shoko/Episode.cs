@@ -401,7 +401,7 @@ public class Episode : BaseModel
         /// <summary>
         /// The IMDB Movie IDs.
         /// </summary>
-        public List<int> IMDB { get; set; } = [];
+        public List<string> IMDB { get; set; } = [];
 
         #endregion
         /// <summary>

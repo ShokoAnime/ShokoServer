@@ -698,7 +698,7 @@ public class Series : BaseModel
         /// <summary>
         /// The IMDB Movie IDs.
         /// </summary>
-        public List<int> IMDB { get; set; } = [];
+        public List<string> IMDB { get; set; } = [];
 
         /// <summary>
         /// The Movie Database (TMDB) IDs.
