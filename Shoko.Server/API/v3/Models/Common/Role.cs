@@ -64,6 +64,10 @@ public class Role
     {
         var person = cast.GetTmdbPerson();
         var personImages = person.GetImages();
+        Character = new()
+        {
+            Name = cast.CharacterName,
+        };
         Staff = new()
         {
             Name = person.EnglishName,
