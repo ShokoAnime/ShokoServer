@@ -740,9 +740,20 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(124, 1, "ALTER TABLE TMDB_Show ADD TvdbShowID INT NULL DEFAULT NULL;"),
         new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD TvdbEpisodeID INT NULL DEFAULT NULL;"),
         new DatabaseCommand(124, 3, "ALTER TABLE TMDB_Movie ADD ImdbMovieID INT NULL DEFAULT NULL;"),
-        new DatabaseCommand(124, 4, "ALTER TABLE TMDB_Movie DROP COLUMN ImdbMovieID;"),
-        new DatabaseCommand(124, 5, "ALTER TABLE TMDB_Movie ADD ImdbMovieID NVARCHAR(12) NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 4, AlterImdbMovieIDType),
     };
+
+    private static void AlterImdbMovieIDType()
+    {
+        DropColumnWithDefaultConstraint("TMDB_Movie", "ImdbMovieID");
+
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var transaction = session.BeginTransaction();
+
+        const string alterCommand = "ALTER TABLE TMDB_Movie ADD ImdbMovieID NVARCHAR(12) NULL DEFAULT NULL;";
+        session.CreateSQLQuery(alterCommand).ExecuteUpdate();
+        transaction.Commit();
+    }
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
     {
