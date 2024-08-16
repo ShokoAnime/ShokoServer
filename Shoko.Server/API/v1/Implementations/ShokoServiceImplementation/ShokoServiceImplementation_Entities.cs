@@ -2080,19 +2080,19 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
                 var updated = shouldMove;
 
-                if (string.Equals(contract.DefaultAudioLanguage, series.DefaultAudioLanguage))
+                if (!string.Equals(contract.DefaultAudioLanguage, series.DefaultAudioLanguage))
                 {
                     series.DefaultAudioLanguage = contract.DefaultAudioLanguage;
                     updated = true;
                 }
 
-                if (string.Equals(contract.DefaultSubtitleLanguage, series.DefaultSubtitleLanguage))
+                if (!string.Equals(contract.DefaultSubtitleLanguage, series.DefaultSubtitleLanguage))
                 {
                     series.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
                     updated = true;
                 }
 
-                if (string.Equals(contract.SeriesNameOverride, series.SeriesNameOverride))
+                if (!string.Equals(contract.SeriesNameOverride, series.SeriesNameOverride))
                 {
                     series.SeriesNameOverride = contract.SeriesNameOverride;
                     series.ResetPreferredTitle();
@@ -2100,7 +2100,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     updated = true;
                 }
 
-                if (string.Equals(contract.DefaultFolder, series.DefaultFolder))
+                if (!string.Equals(contract.DefaultFolder, series.DefaultFolder))
                 {
                     series.DefaultFolder = contract.DefaultFolder;
                     updated = true;
