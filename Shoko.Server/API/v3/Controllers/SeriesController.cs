@@ -197,6 +197,8 @@ public class SeriesController : BaseController
         if (!string.Equals(series.SeriesNameOverride, body.Title))
         {
             series.SeriesNameOverride = body.Title;
+            series.ResetPreferredTitle();
+            series.ResetAnimeTitles();
 
             RepoFactory.AnimeSeries.Save(series);
 
@@ -330,7 +332,7 @@ public class SeriesController : BaseController
             return query
                 .Search(
                     search,
-                    series => (series as IShokoSeries).Titles
+                    series => series.Titles
                         .Where(title => languages.Contains(title.Language))
                         .Select(title => title.Title)
                         .Distinct()
@@ -373,7 +375,7 @@ public class SeriesController : BaseController
             return query
                 .Search(
                     search,
-                    series => (series as IShokoSeries).Titles
+                    series => series.Titles
                         .Where(title => languages.Contains(title.Language))
                         .Select(title => title.Title)
                         .Distinct()

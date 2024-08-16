@@ -33,7 +33,13 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
         Animes = new PocoIndex<int, SVR_AniDB_Anime, int>(Cache, a => a.AnimeID);
     }
 
-    public override void RegenerateDb() { }
+    public override void RegenerateDb()
+    {
+        foreach (var anime in Cache.Values.ToList())
+        {
+            anime.ResetPreferredTitle();
+        }
+    }
 
     public override void Save(SVR_AniDB_Anime obj)
     {

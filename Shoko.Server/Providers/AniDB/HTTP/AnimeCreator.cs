@@ -40,17 +40,17 @@ public class AnimeCreator
 
 
 #pragma warning disable CS0618
-    public async Task<(bool animeUpdated, ISet<int> episodesAddedOrUpdated)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, ISet<int> episodesAddedOrUpdated)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
-        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, new HashSet<int>());
+        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, new HashSet<int>());
         var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
         try
         {
             // check if we updated in a lock
             var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
+            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, new HashSet<int>());
 
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
@@ -66,12 +66,12 @@ public class AnimeCreator
                 _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                                  "This is not an error on our end. It is AniDB's issue, " +
                                  "as they did not return either an ID or a title for the anime");
-                return (false, new HashSet<int>());
+                return (false, false, false, new HashSet<int>());
             }
 
             var taskTimer = Stopwatch.StartNew();
             var totalTimer = Stopwatch.StartNew();
-            var updated = PopulateAnime(response.Anime, anime);
+            var (updated, descriptionUpdated) = PopulateAnime(response.Anime, anime);
             RepoFactory.AniDB_Anime.Save(anime, false);
 
             taskTimer.Stop();
@@ -87,7 +87,8 @@ public class AnimeCreator
             _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            updated = CreateTitles(response.Titles, anime) || updated;
+            var titlesUpdated = CreateTitles(response.Titles, anime);
+            updated = updated || titlesUpdated;
             taskTimer.Stop();
             _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -135,7 +136,7 @@ public class AnimeCreator
             _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
             _logger.LogTrace("------------------------------------------------");
 
-            return (updated, updated ? response.Episodes.Select(ep => ep.EpisodeID).ToHashSet() : updatedEpisodes);
+            return (updated, titlesUpdated, descriptionUpdated, updated ? response.Episodes.Select(ep => ep.EpisodeID).ToHashSet() : updatedEpisodes);
         }
         catch (Exception ex)
         {
@@ -150,9 +151,10 @@ public class AnimeCreator
     }
 #pragma warning restore CS0618
 
-    private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
+    private static (bool animeUpdated, bool descriptionUpdated) PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
     {
         var isUpdated = false;
+        var descriptionUpdated = false;
         var isNew = anime.AnimeID == 0 || anime.AniDB_AnimeID == 0;
         var description = animeInfo.Description ?? string.Empty;
         var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
@@ -202,6 +204,7 @@ public class AnimeCreator
         {
             anime.Description = description;
             isUpdated = true;
+            descriptionUpdated = true;
         }
 
         if (anime.EndDate != animeInfo.EndDate)
@@ -302,7 +305,7 @@ public class AnimeCreator
 #pragma warning restore CS0618
         }
 
-        return isUpdated;
+        return (isUpdated, descriptionUpdated);
     }
 
     private async Task<(bool, ISet<int>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)

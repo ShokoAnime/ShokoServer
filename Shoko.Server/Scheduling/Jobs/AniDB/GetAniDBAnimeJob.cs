@@ -135,7 +135,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Create or update the anime record,
         anime ??= new SVR_AniDB_Anime();
         var isNew = anime.AniDB_AnimeID == 0;
-        var (isUpdated, episodesToMove) = await _animeCreator.CreateAnime(response, anime, RelDepth);
+        var (isUpdated, titlesUpdated, descriptionUpdated, episodesToMove) = await _animeCreator.CreateAnime(response, anime, RelDepth);
 
         // then conditionally create the series record if it doesn't exist,
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
@@ -167,6 +167,23 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Emit anidb anime updated event.
         if (isUpdated)
             ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated);
+
+        // Reset the cached preferred title if anime titles were updated.
+        if (titlesUpdated)
+            anime.ResetPreferredTitle();
+
+        // Reset the cached titles if anime titles were updated or if series is new.
+        if ((titlesUpdated || seriesIsNew) && series is not null)
+        {
+            series.ResetPreferredTitle();
+            series.ResetAnimeTitles();
+        }
+
+        // Reset the cached description if anime description was updated or if series is new.
+        if ((descriptionUpdated || seriesIsNew) && series is not null)
+        {
+            series.ResetPreferredOverview();
+        }
 
         // Emit shoko series updated event.
         if (series != null && (seriesUpdated || seriesIsNew))

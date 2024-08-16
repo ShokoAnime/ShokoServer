@@ -297,7 +297,8 @@ public class TmdbMetadataService
         var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
 
         var updated = tmdbMovie.Populate(movie);
-        updated = UpdateTitlesAndOverviews(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
+        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages);
+        updated = titlesUpdated || overviewsUpdated || updated;
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
         if (downloadCrewAndCast)
             updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
@@ -318,6 +319,26 @@ public class TmdbMetadataService
             await DownloadMovieImages(movieId);
         else if (downloadCollections)
             await UpdateMovieCollections(movie);
+
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(movieId))
+        {
+            if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+            {
+                if (titlesUpdated)
+                {
+                    series.ResetPreferredTitle();
+                    series.ResetAnimeTitles();
+                }
+
+                if (overviewsUpdated)
+                    series.ResetPreferredOverview();
+            }
+
+            if (titlesUpdated && xref.AnimeEpisode is { } episode)
+            {
+                episode.ResetPreferredTitle();
+            }
+        }
 
         if (newlyAdded || updated)
             ShokoEventHandler.Instance.OnMovieUpdated(tmdbMovie, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
@@ -991,7 +1012,8 @@ public class TmdbMetadataService
         var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
 
         var updated = tmdbShow.Populate(show);
-        updated = UpdateTitlesAndOverviews(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
+        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
+        updated = titlesUpdated || overviewsUpdated || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
         var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, forceRefresh);
         if (episodesOrSeasonsUpdated)
@@ -1010,7 +1032,21 @@ public class TmdbMetadataService
             await DownloadShowImages(showId, forceRefresh);
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(showId))
+        {
             MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
+
+            if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+            {
+                if (titlesUpdated)
+                {
+                    series.ResetPreferredTitle();
+                    series.ResetAnimeTitles();
+                }
+
+                if (overviewsUpdated)
+                    series.ResetPreferredOverview();
+            }
+        }
 
         if (newlyAdded || updated)
             ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
@@ -2058,6 +2094,21 @@ public class TmdbMetadataService
     /// <returns>A boolean indicating if any changes were made to the titles and/or overviews.</returns>
     private bool UpdateTitlesAndOverviews(IEntityMetadata tmdbEntity, TranslationsContainer translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages)
     {
+        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbEntity, translations, preferredTitleLanguages, preferredOverviewLanguages);
+        return titlesUpdated || overviewsUpdated;
+    }
+
+    /// <summary>
+    /// Updates the titles and overviews for the <paramref name="tmdbEntity"/>
+    /// using the translation data available in the <paramref name="translations"/>.
+    /// </summary>
+    /// <param name="tmdbEntity">The local TMDB Entity to update titles and overviews for.</param>
+    /// <param name="translations">The translations container returned from the API.</param>
+    /// <param name="preferredTitleLanguages">The preferred title languages to store. If not set then we will store all languages.</param>
+    /// <param name="preferredOverviewLanguages">The preferred overview languages to store. If not set then we will store all languages.</param>
+    /// <returns>A tuple indicating if any changes were made to the titles and/or overviews.</returns>
+    private (bool titlesUpdated, bool overviewsUpdated) UpdateTitlesAndOverviewsWithTuple(IEntityMetadata tmdbEntity, TranslationsContainer translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages)
+    {
         var existingOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
         var existingTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
         var overviewsToAdd = 0;
@@ -2159,10 +2210,10 @@ public class TmdbMetadataService
         RepoFactory.TMDB_Title.Save(titlesToSave);
         RepoFactory.TMDB_Title.Delete(titlesToRemove);
 
-        return overviewsToSave.Count > 0 ||
-            overviewsToRemove.Count > 0 ||
-            titlesToSave.Count > 0 ||
-            titlesToRemove.Count > 0;
+        return (
+            titlesToSave.Count > 0 || titlesToRemove.Count > 0,
+            overviewsToSave.Count > 0 || overviewsToRemove.Count > 0
+        );
     }
 
     private void PurgeTitlesAndOverviews(ForeignEntityType foreignType, int foreignId)

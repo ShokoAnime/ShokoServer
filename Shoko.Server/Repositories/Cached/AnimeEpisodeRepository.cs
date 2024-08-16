@@ -38,6 +38,10 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
 
     public override void RegenerateDb()
     {
+        foreach (var episode in Cache.Values.ToList())
+        {
+            episode.ResetPreferredTitle();
+        }
     }
 
     public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)

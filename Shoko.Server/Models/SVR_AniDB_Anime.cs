@@ -149,39 +149,51 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     public List<SVR_AniDB_Anime_Title> Titles
         => RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
 
-    public string PreferredTitle
+    private string? _preferredTitle = null;
+
+    public string PreferredTitle => LoadPreferredTitle();
+
+    public void ResetPreferredTitle()
     {
-        get
+        _preferredTitle = null;
+        LoadPreferredTitle();
+    }
+
+    private string LoadPreferredTitle()
+    {
+        // Check if we have already loaded the preferred title.
+        if (_preferredTitle is not null)
+            return _preferredTitle;
+
+        // Check each preferred language in order.
+        var titles = Titles;
+        foreach (var namingLanguage in Languages.PreferredNamingLanguages)
         {
-            // Get the titles now if they were not provided as an argument.
-            var titles = Titles;
+            var thisLanguage = namingLanguage.Language;
+            if (thisLanguage == TitleLanguage.Main)
+                return _preferredTitle = MainTitle;
 
-            // Check each preferred language in order.
-            foreach (var namingLanguage in Languages.PreferredNamingLanguages)
+            // First check the main title.
+            var title = titles.FirstOrDefault(t => t.TitleType == TitleType.Main && t.Language == thisLanguage);
+            if (title != null)
+                return _preferredTitle = title.Title;
+
+            // Then check for an official title.
+            title = titles.FirstOrDefault(t => t.TitleType == TitleType.Official && t.Language == thisLanguage);
+            if (title != null)
+                return _preferredTitle = title.Title;
+
+            // Then check for _any_ title at all, if there is no main or official title in the language.
+            if (Utils.SettingsProvider.GetSettings().Language.UseSynonyms)
             {
-                var thisLanguage = namingLanguage.Language;
-                if (thisLanguage == TitleLanguage.Main)
-                    return MainTitle;
-
-                // First check the main title.
-                var title = titles.FirstOrDefault(t => t.TitleType == TitleType.Main && t.Language == thisLanguage);
-                if (title != null) return title.Title;
-
-                // Then check for an official title.
-                title = titles.FirstOrDefault(t => t.TitleType == TitleType.Official && t.Language == thisLanguage);
-                if (title != null) return title.Title;
-
-                // Then check for _any_ title at all, if there is no main or official title in the language.
-                if (Utils.SettingsProvider.GetSettings().Language.UseSynonyms)
-                {
-                    title = titles.FirstOrDefault(t => t.Language == thisLanguage);
-                    if (title != null) return title.Title;
-                }
+                title = titles.FirstOrDefault(t => t.Language == thisLanguage);
+                if (title != null)
+                    return _preferredTitle = title.Title;
             }
-
-            // Otherwise just use the cached main title.
-            return MainTitle;
         }
+
+        // Otherwise just use the cached main title.
+        return _preferredTitle = MainTitle;
     }
 
     #endregion

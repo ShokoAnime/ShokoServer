@@ -2095,6 +2095,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 if (string.Equals(contract.SeriesNameOverride, series.SeriesNameOverride))
                 {
                     series.SeriesNameOverride = contract.SeriesNameOverride;
+                    series.ResetPreferredTitle();
+                    series.ResetAnimeTitles();
                     updated = true;
                 }
 

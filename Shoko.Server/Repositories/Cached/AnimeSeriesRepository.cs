@@ -69,9 +69,17 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     {
         try
         {
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " Database Regeneration - Caching Titles & Overview");
+            foreach (var series in Cache.Values.ToList())
+            {
+                series.ResetPreferredTitle();
+                series.ResetPreferredOverview();
+                series.ResetAnimeTitles();
+            }
+
             var sers = Cache.Values.Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
             var max = sers.Count;
-            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Ensuring Groups Exist");
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " Database Regeneration - Ensuring Groups Exist");
 
             var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
             for (var i = 0; i < max; i++)

@@ -57,34 +57,44 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
         }
     }
 
-    public string PreferredTitle
-    {
-        get
-        {
-            // Return the override if it's set.
-            if (!string.IsNullOrEmpty(EpisodeNameOverride))
-                return EpisodeNameOverride;
-            // Check each provider in the given order.
-            foreach (var source in Utils.SettingsProvider.GetSettings().Language.EpisodeTitleSourceOrder)
-            {
-                var title = source switch
-                {
-                    DataSourceType.AniDB =>
-                        AniDB_Episode?.PreferredTitle?.Title,
-                    DataSourceType.TvDB =>
-                        TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName,
-                    DataSourceType.TMDB =>
-                        (TmdbEpisodes is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
-                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
-                    _ => null,
-                };
-                if (!string.IsNullOrEmpty(title))
-                    return title;
-            }
+    private string? _preferredTitle = null;
 
-            // The most "default" title we have, even if AniDB isn't a preferred source.
-            return DefaultTitle;
+    public string PreferredTitle => LoadPreferredTitle();
+
+    public void ResetPreferredTitle()
+    {
+        _preferredTitle = null;
+        LoadPreferredTitle();
+    }
+
+    private string LoadPreferredTitle()
+    {
+        if (_preferredTitle is not null)
+            return _preferredTitle;
+
+        // Return the override if it's set.
+        if (!string.IsNullOrEmpty(EpisodeNameOverride))
+            return _preferredTitle = EpisodeNameOverride;
+        // Check each provider in the given order.
+        foreach (var source in Utils.SettingsProvider.GetSettings().Language.EpisodeTitleSourceOrder)
+        {
+            var title = source switch
+            {
+                DataSourceType.AniDB =>
+                    AniDB_Episode?.PreferredTitle?.Title,
+                DataSourceType.TvDB =>
+                    TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName,
+                DataSourceType.TMDB =>
+                    (TmdbEpisodes is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
+                    (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
+                _ => null,
+            };
+            if (!string.IsNullOrEmpty(title))
+                return _preferredTitle = title;
         }
+
+        // The most "default" title we have, even if AniDB isn't a preferred source.
+        return _preferredTitle = DefaultTitle;
     }
 
     public string PreferredOverview

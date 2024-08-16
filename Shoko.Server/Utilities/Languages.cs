@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Utilities;
 
 public static class Languages
@@ -15,46 +18,137 @@ public static class Languages
             .Select(l => new NamingLanguage(l))
             .ToList();
 
-    private static List<NamingLanguage> _preferredNamingLanguages;
+    private static List<NamingLanguage>? _preferredNamingLanguages;
+
+    private static readonly object _lockObj = new();
 
     public static List<NamingLanguage> PreferredNamingLanguages
     {
         get
         {
-            if (_preferredNamingLanguages != null)
+            if (_preferredNamingLanguages is not null)
                 return _preferredNamingLanguages;
 
-            var preference = Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder ?? new();
-            return _preferredNamingLanguages = preference
-                .Where(l => !string.IsNullOrEmpty(l))
-                .Select(l => new NamingLanguage(l))
-                .ExceptBy(_invalidLanguages, l => l.Language)
-                .ToList();
+            lock (_lockObj)
+            {
+                if (_preferredNamingLanguages is not null)
+                    return _preferredNamingLanguages;
+
+                _preferredNamingLanguages = null;
+                var preference = Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder ?? [];
+                _preferredNamingLanguages = preference
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Select(l => new NamingLanguage(l))
+                    .ExceptBy(_invalidLanguages, l => l.Language)
+                    .ToList();
+
+                return _preferredNamingLanguages;
+            }
         }
-        set => _preferredNamingLanguages = value;
+        set
+        {
+            if (value is not null || Utils.SettingsProvider is null)
+                return;
+
+            lock (_lockObj)
+            {
+                var preference = Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder ?? [];
+                _preferredNamingLanguages = preference
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Select(l => new NamingLanguage(l))
+                    .ExceptBy(_invalidLanguages, l => l.Language)
+                    .ToList();
+
+                // Reset all preferred titles when the language setting has been updated.
+                Task.Run(() => RepoFactory.AnimeSeries.GetAll().AsParallel().ForAll(series => series.ResetPreferredTitle()));
+                Task.Run(() => RepoFactory.AniDB_Anime.GetAll().AsParallel().ForAll(anime => anime.ResetPreferredTitle()));
+            }
+        }
     }
 
-    private static List<NamingLanguage> _preferredEpisodeNamingLanguages;
+    private static List<NamingLanguage>? _preferredEpisodeNamingLanguages;
 
     public static List<NamingLanguage> PreferredEpisodeNamingLanguages
     {
-        get => _preferredEpisodeNamingLanguages ??= (Utils.SettingsProvider.GetSettings().Language.EpisodeTitleLanguageOrder ?? [])
-            .Where(l => !string.IsNullOrEmpty(l))
-            .Select(l => new NamingLanguage(l))
-            .ExceptBy(_invalidLanguages, l => l.Language)
-            .ToList();
-        set => _preferredEpisodeNamingLanguages = value;
+        get
+        {
+            if (_preferredEpisodeNamingLanguages is not null)
+                return _preferredEpisodeNamingLanguages;
+            lock (_lockObj)
+            {
+                if (_preferredEpisodeNamingLanguages is not null)
+                    return _preferredEpisodeNamingLanguages;
+
+                var preference = Utils.SettingsProvider.GetSettings().Language.EpisodeTitleLanguageOrder ?? [];
+                _preferredEpisodeNamingLanguages = preference
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Select(l => new NamingLanguage(l))
+                    .ExceptBy(_invalidLanguages, l => l.Language)
+                    .ToList();
+
+                return _preferredEpisodeNamingLanguages;
+            }
+        }
+        set
+        {
+            if (value is not null || Utils.SettingsProvider is null)
+                return;
+
+            lock (_lockObj)
+            {
+                var preference = Utils.SettingsProvider.GetSettings().Language.EpisodeTitleLanguageOrder ?? [];
+                _preferredEpisodeNamingLanguages = preference
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Select(l => new NamingLanguage(l))
+                    .ExceptBy(_invalidLanguages, l => l.Language)
+                    .ToList();
+
+                // Reset all preferred titles when the language setting has been updated.
+                Task.Run(() => RepoFactory.AnimeEpisode.GetAll().AsParallel().ForAll(episode => episode.ResetPreferredTitle()));
+            }
+        }
     }
 
-    private static List<NamingLanguage> _preferredDescriptionNamingLanguages;
+    private static List<NamingLanguage>? _preferredDescriptionNamingLanguages;
 
     public static List<NamingLanguage> PreferredDescriptionNamingLanguages
     {
-        get => _preferredDescriptionNamingLanguages ??= (Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder ?? [])
-            .Where(l => !string.IsNullOrEmpty(l))
-            .Select(l => new NamingLanguage(l))
-            .ExceptBy(_invalidLanguages, l => l.Language)
-            .ToList();
-        set => _preferredDescriptionNamingLanguages = value;
+        get
+        {
+            if (_preferredDescriptionNamingLanguages is not null)
+                return _preferredDescriptionNamingLanguages;
+            lock (_lockObj)
+            {
+                if (_preferredDescriptionNamingLanguages is not null)
+                    return _preferredDescriptionNamingLanguages;
+
+                var preference = Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder ?? [];
+                _preferredDescriptionNamingLanguages = preference
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Select(l => new NamingLanguage(l))
+                    .ExceptBy(_invalidLanguages, l => l.Language)
+                    .ToList();
+
+                return _preferredDescriptionNamingLanguages;
+            }
+        }
+        set
+        {
+            if (value is not null || Utils.SettingsProvider is null)
+                return;
+
+            lock (_lockObj)
+            {
+                var preference = Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder ?? [];
+                _preferredDescriptionNamingLanguages = preference
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Select(l => new NamingLanguage(l))
+                    .ExceptBy(_invalidLanguages, l => l.Language)
+                    .ToList();
+
+                // Reset all preferred overviews when the language setting has been updated.
+                Task.Run(() => RepoFactory.AnimeSeries.GetAll().AsParallel().ForAll(ser => ser.ResetPreferredOverview()));
+            }
+        }
     }
 }

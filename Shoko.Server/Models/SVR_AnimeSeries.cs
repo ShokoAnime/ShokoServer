@@ -139,60 +139,135 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #endregion
 
-    public string PreferredTitle
+    #region Titles & Overviews
+
+    private string? _preferredTitle = null;
+
+    public string PreferredTitle => LoadPreferredTitle();
+
+    public void ResetPreferredTitle()
     {
-        get
+        _preferredTitle = null;
+        LoadPreferredTitle();
+    }
+
+    private string LoadPreferredTitle()
+    {
+        if (_preferredTitle is not null)
+            return _preferredTitle;
+
+        // Return the override if it's set.
+        if (!string.IsNullOrEmpty(SeriesNameOverride))
+            return _preferredTitle = SeriesNameOverride;
+        // Check each provider in the given order.
+        foreach (var source in Utils.SettingsProvider.GetSettings().Language.SeriesTitleSourceOrder)
         {
-            // Return the override if it's set.
-            if (!string.IsNullOrEmpty(SeriesNameOverride))
-                return SeriesNameOverride;
-            // Check each provider in the given order.
-            foreach (var source in Utils.SettingsProvider.GetSettings().Language.SeriesTitleSourceOrder)
+            var title = source switch
             {
-                var title = source switch
+                DataSourceType.AniDB =>
+                    AniDB_Anime?.PreferredTitle,
+                DataSourceType.TvDB =>
+                    TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName,
+                DataSourceType.TMDB =>
+                    (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
+                    (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
+                _ => null,
+            };
+            if (!string.IsNullOrEmpty(title))
+                return _preferredTitle = title;
+        }
+        // The most "default" title we have, even if AniDB isn't a preferred source.
+        return _preferredTitle = AniDB_Anime?.MainTitle ?? $"AniDB Anime {AniDB_ID}";
+    }
+
+    private List<AnimeTitle>? _animeTitles = null;
+
+    public IReadOnlyList<AnimeTitle> Titles => LoadAnimeTitles();
+
+    public void ResetAnimeTitles()
+    {
+        _animeTitles = null;
+        LoadAnimeTitles();
+    }
+
+    private List<AnimeTitle> LoadAnimeTitles()
+    {
+        if (_animeTitles is not null)
+            return _animeTitles;
+
+        lock (this)
+        {
+            if (_animeTitles is not null)
+                return _animeTitles;
+
+            var titles = new List<AnimeTitle>();
+            var seriesOverrideTitle = false;
+            if (!string.IsNullOrEmpty(SeriesNameOverride))
+            {
+                titles.Add(new()
                 {
-                    DataSourceType.AniDB =>
-                        AniDB_Anime?.PreferredTitle,
-                    DataSourceType.TvDB =>
-                        TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName,
-                    DataSourceType.TMDB =>
-                        (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
-                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
-                    _ => null,
-                };
-                if (!string.IsNullOrEmpty(title))
-                    return title;
+                    Source = DataSourceEnum.Shoko,
+                    Language = TitleLanguage.Unknown,
+                    LanguageCode = "unk",
+                    Title = SeriesNameOverride,
+                    Type = TitleType.Main,
+                });
+                seriesOverrideTitle = true;
             }
-            // The most "default" title we have, even if AniDB isn't a preferred source.
-            return AniDB_Anime?.MainTitle ?? $"AniDB Anime {AniDB_ID}";
+
+            var animeTitles = (this as IShokoSeries).AnidbAnime.Titles;
+            if (seriesOverrideTitle)
+            {
+                var mainTitle = animeTitles.FirstOrDefault(title => title.Type == TitleType.Main);
+                if (mainTitle is not null)
+                    mainTitle.Type = TitleType.Official;
+            }
+            titles.AddRange(animeTitles);
+            titles.AddRange((this as IShokoSeries).LinkedSeries.Where(e => e.Source is not DataSourceEnum.AniDB).SelectMany(ep => ep.Titles));
+
+            return _animeTitles = titles;
         }
     }
 
-    public string PreferredOverview
+    private string? _preferredOverview = null;
+
+    public string PreferredOverview => LoadPreferredOverview();
+
+    public void ResetPreferredOverview()
     {
-        get
-        {
-            // Check each provider in the given order.
-            foreach (var source in Utils.SettingsProvider.GetSettings().Language.DescriptionSourceOrder)
-            {
-                var overview = source switch
-                {
-                    DataSourceType.AniDB =>
-                        AniDB_Anime?.Description,
-                    DataSourceType.TvDB =>
-                        TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview,
-                    DataSourceType.TMDB =>
-                        (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredOverview(false)?.Value : null) ??
-                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredOverview(false)?.Value : null),
-                    _ => null,
-                };
-                if (!string.IsNullOrEmpty(overview))
-                    return overview;
-            }
-            // Return nothing if no provider had an overview in the preferred language.
-            return string.Empty;
-        }
+        _preferredOverview = null;
+        LoadPreferredOverview();
     }
+
+    private string LoadPreferredOverview()
+    {
+        // Return the cached value if it's set.
+        if (_preferredOverview is not null)
+            return _preferredOverview;
+
+        // Check each provider in the given order.
+        foreach (var source in Utils.SettingsProvider.GetSettings().Language.DescriptionSourceOrder)
+        {
+            var overview = source switch
+            {
+                DataSourceType.AniDB =>
+                    AniDB_Anime?.Description,
+                DataSourceType.TvDB =>
+                    TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview,
+                DataSourceType.TMDB =>
+                    (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredOverview(false)?.Value : null) ??
+                    (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredOverview(false)?.Value : null),
+                _ => null,
+            };
+            if (!string.IsNullOrEmpty(overview))
+                return _preferredOverview = overview;
+        }
+
+        // Return nothing if no provider had an overview in the preferred language.
+        return _preferredOverview = string.Empty;
+    }
+
+    #endregion
 
     public List<SVR_VideoLocal> VideoLocals => RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
 
@@ -428,39 +503,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     string IWithTitles.DefaultTitle => SeriesNameOverride ?? AniDB_Anime?.MainTitle ?? $"<Shoko Series {AnimeSeriesID}>";
 
     string IWithTitles.PreferredTitle => PreferredTitle;
-
-    IReadOnlyList<AnimeTitle> IWithTitles.Titles
-    {
-        get
-        {
-            var titles = new List<AnimeTitle>();
-            var seriesOverrideTitle = false;
-            if (!string.IsNullOrEmpty(SeriesNameOverride))
-            {
-                titles.Add(new()
-                {
-                    Source = DataSourceEnum.Shoko,
-                    Language = TitleLanguage.Unknown,
-                    LanguageCode = "unk",
-                    Title = SeriesNameOverride,
-                    Type = TitleType.Main,
-                });
-                seriesOverrideTitle = true;
-            }
-
-            var animeTitles = (this as IShokoSeries).AnidbAnime.Titles;
-            if (seriesOverrideTitle)
-            {
-                var mainTitle = animeTitles.FirstOrDefault(title => title.Type == TitleType.Main);
-                if (mainTitle is not null)
-                    mainTitle.Type = TitleType.Official;
-            }
-            titles.AddRange(animeTitles);
-            titles.AddRange((this as IShokoSeries).LinkedSeries.Where(e => e.Source is not DataSourceEnum.AniDB).SelectMany(ep => ep.Titles));
-
-            return titles;
-        }
-    }
 
     #endregion
 
