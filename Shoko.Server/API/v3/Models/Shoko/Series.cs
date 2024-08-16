@@ -51,6 +51,11 @@ public class Series : BaseModel
     public bool HasCustomName { get; set; }
 
     /// <summary>
+    /// Preferred description for series.
+    /// </summary>
+    public string Description { get; set; }
+
+    /// <summary>
     /// The default or random pictures for a series. This allows the client to not need to get all images and pick one.
     /// There should always be a poster, but no promises on the rest.
     /// </summary>
@@ -153,6 +158,7 @@ public class Series : BaseModel
             .ToList();
         Name = ser.PreferredTitle;
         HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
+        Description = ser.PreferredOverview;
         Images = ser.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
         AirsOn = animeType == AniDBAnimeType.TVSeries || animeType == AniDBAnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
         Sizes = sizes;
