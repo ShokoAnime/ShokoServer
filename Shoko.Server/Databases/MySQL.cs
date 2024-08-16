@@ -812,6 +812,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(132, 3, "ALTER TABLE `TMDB_Movie` ADD COLUMN `ImdbMovieID` INT NULL DEFAULT NULL;"),
         new(132, 4, "ALTER TABLE `TMDB_Movie` DROP COLUMN `ImdbMovieID`;"),
         new(132, 5, "ALTER TABLE `TMDB_Movie` ADD COLUMN `ImdbMovieID` VARCHAR(12) NULL DEFAULT NULL;"),
+        new(132, 6, "ALTER TABLE `TMDB_Overview` ADD INDEX `IX_TMDB_Overview` (ParentType, ParentID)"),
+        new(132, 7, "ALTER TABLE `TMDB_Title` ADD INDEX `IX_TMDB_Title` (ParentType, ParentID)"),
+        new(132, 8, "ALTER TABLE `TMDB_Episode` ADD UNIQUE INDEX `UIX_TMDB_Episode_TmdbEpisodeID` (TmdbEpisodeID)"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

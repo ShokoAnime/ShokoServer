@@ -741,6 +741,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD TvdbEpisodeID INT NULL DEFAULT NULL;"),
         new DatabaseCommand(124, 3, "ALTER TABLE TMDB_Movie ADD ImdbMovieID INT NULL DEFAULT NULL;"),
         new DatabaseCommand(124, 4, AlterImdbMovieIDType),
+        new DatabaseCommand(124, 5, "CREATE INDEX IX_TMDB_Overview ON TMDB_Overview(ParentType, ParentID)"),
+        new DatabaseCommand(124, 6, "CREATE INDEX IX_TMDB_Title ON TMDB_Title(ParentType, ParentID)"),
+        new DatabaseCommand(124, 7, "CREATE UNIQUE INDEX UIX_TMDB_Episode_TmdbEpisodeID ON TMDB_Episode(TmdbEpisodeID)"),
     };
 
     private static void AlterImdbMovieIDType()

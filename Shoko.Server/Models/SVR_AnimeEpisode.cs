@@ -200,8 +200,14 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(AniDB_EpisodeID);
 
+    /// <summary>
+    /// Cached reference to all TMDB episodes for the series, so we won't have to hit
+    /// the database twice to get all episodes.
+    /// </summary>
+    private IReadOnlyList<TMDB_Episode>? _tmdbEpisodes;
+
     public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
-        TmdbEpisodeCrossReferences
+        _tmdbEpisodes ??= TmdbEpisodeCrossReferences
             .Select(xref => xref.TmdbEpisode)
             .WhereNotNull()
             .ToList();

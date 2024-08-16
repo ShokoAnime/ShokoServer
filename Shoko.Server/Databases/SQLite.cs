@@ -740,6 +740,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(117, 5, "ALTER TABLE TMDB_Movie ADD COLUMN ImdbMovieID INTEGER NULL DEFAULT NULL;"),
         new(117, 6, "ALTER TABLE TMDB_Movie DROP COLUMN ImdbMovieID;"),
         new(117, 7, "ALTER TABLE TMDB_Movie ADD COLUMN ImdbMovieID TEXT NULL DEFAULT NULL;"),
+        new(117, 8, "CREATE INDEX IX_TMDB_Overview ON TMDB_Overview(ParentType, ParentID)"),
+        new(117, 9, "CREATE INDEX IX_TMDB_Title ON TMDB_Title(ParentType, ParentID)"),
+        new(117, 10, "CREATE UNIQUE INDEX UIX_TMDB_Episode_TmdbEpisodeID ON TMDB_Episode(TmdbEpisodeID)"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
