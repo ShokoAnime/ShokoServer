@@ -214,7 +214,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true -f net8.0-windows Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh

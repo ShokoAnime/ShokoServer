@@ -128,7 +128,7 @@ jobs:
         dotnet: [ '8.x' ]
         build_type: ['Standalone', 'Framework']
         include:
-          - build_props: '-r win-x64 --self-contained true -f net8.0-windows'
+          - build_props: '-r win-x64 --self-contained true'
             build_type: 'Standalone'
           - build_dir: '/net8.0-windows/win-x64'
             build_type: 'Standalone'
