@@ -36,7 +36,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_CompanyRepository>();
         services.AddDirectRepository<TMDB_Episode_CastRepository>();
         services.AddDirectRepository<TMDB_Episode_CrewRepository>();
-        services.AddDirectRepository<TMDB_EpisodeRepository>();
         services.AddDirectRepository<TMDB_Movie_CastRepository>();
         services.AddDirectRepository<TMDB_Movie_CrewRepository>();
         services.AddDirectRepository<TMDB_MovieRepository>();
@@ -45,7 +44,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_PersonRepository>();
         services.AddDirectRepository<TMDB_SeasonRepository>();
         services.AddDirectRepository<TMDB_Show_NetworkRepository>();
-        services.AddDirectRepository<TMDB_ShowRepository>();
         services.AddDirectRepository<TMDB_TitleRepository>();
         services.AddDirectRepository<Trakt_EpisodeRepository>();
         services.AddDirectRepository<Trakt_SeasonRepository>();
@@ -95,7 +93,9 @@ public static class RepositoryStartup
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();
+        services.AddCachedRepository<TMDB_EpisodeRepository>();
         services.AddCachedRepository<TMDB_ImageRepository>();
+        services.AddCachedRepository<TMDB_ShowRepository>();
         services.AddCachedRepository<TvDB_EpisodeRepository>();
         services.AddCachedRepository<TvDB_ImageFanartRepository>();
         services.AddCachedRepository<TvDB_ImagePosterRepository>();
@@ -113,7 +113,7 @@ public static class RepositoryStartup
         services.AddSingleton<IDirectRepository, Repo>();
         services.AddSingleton(s => (Repo)s.GetServices(typeof(IDirectRepository)).FirstOrDefault(a => a?.GetType() == typeof(Repo)));
     }
-    
+
     private static void AddCachedRepository<Repo>(this IServiceCollection services) where Repo : class, ICachedRepository
     {
         services.AddSingleton<ICachedRepository, Repo>();
