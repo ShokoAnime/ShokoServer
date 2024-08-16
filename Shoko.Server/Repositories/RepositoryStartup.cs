@@ -34,6 +34,7 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_CollectionRepository>();
         services.AddDirectRepository<TMDB_Company_EntityRepository>();
         services.AddDirectRepository<TMDB_CompanyRepository>();
+        services.AddDirectRepository<TMDB_EpisodeRepository>();
         services.AddDirectRepository<TMDB_Episode_CastRepository>();
         services.AddDirectRepository<TMDB_Episode_CrewRepository>();
         services.AddDirectRepository<TMDB_Movie_CastRepository>();
@@ -93,7 +94,6 @@ public static class RepositoryStartup
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();
-        services.AddCachedRepository<TMDB_EpisodeRepository>();
         services.AddCachedRepository<TMDB_ImageRepository>();
         services.AddCachedRepository<TMDB_ShowRepository>();
         services.AddCachedRepository<TvDB_EpisodeRepository>();
