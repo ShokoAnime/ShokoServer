@@ -3,10 +3,13 @@ using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
 using MessagePack;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases.NHibernate;
 
@@ -26,7 +29,16 @@ public class TypelessMessagePackConverter : TypeConverter, IUserType
         object value)
     {
         var s = value as byte[] ?? throw new ArgumentException("Can only convert from byte[]");
-        return MessagePackSerializer.Typeless.Deserialize(s);
+        try
+        {
+            return MessagePackSerializer.Typeless.Deserialize(s);
+        }
+        catch(Exception ex)
+        {
+            Utils.ServiceContainer.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to deserialize {Type} from {Value}",
+                value.GetType(), Convert.ToBase64String((byte[])value));
+            return null;
+        }
     }
 
     /// <summary>
@@ -45,7 +57,16 @@ public class TypelessMessagePackConverter : TypeConverter, IUserType
         object value, Type destinationType)
     {
         if (value == null) return null;
-        return MessagePackSerializer.Typeless.Serialize(value);
+        try
+        {
+            return MessagePackSerializer.Typeless.Serialize(value);
+        }
+        catch(Exception ex)
+        {
+            Utils.ServiceContainer.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to serialize {Type} from {Value}",
+                value.GetType(), Convert.ToBase64String((byte[])value));
+            return null;
+        }
     }
 
 
@@ -106,7 +127,7 @@ public class TypelessMessagePackConverter : TypeConverter, IUserType
     /// </summary>
     /// <param name="x">The x.</param>
     /// <returns>
-    /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+    /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table.
     /// </returns>
     public int GetHashCode(object x)
     {
