@@ -98,7 +98,7 @@ namespace Shoko.Models.MediaInfo
             return array.Aggregate((current, next) =>
                 Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
         }
-        
+
         [SuppressMessage("ReSharper", "StringLiteralTypo")]
         private static readonly Dictionary<string, Tuple<string, string>> LanguageMapping_2_1_Name = new Dictionary<string, Tuple<string, string>>
         {
@@ -307,7 +307,7 @@ namespace Shoko.Models.MediaInfo
         {
             return LanguageMapping_1_2_Name.Contains(code) ? LanguageMapping_1_2_Name[code].FirstOrDefault()?.Item1 : null;
         }
-        
+
         public static string GetLanguageFromName(string code)
         {
             code = code.ToLowerInvariant();
@@ -673,6 +673,7 @@ namespace Shoko.Models.MediaInfo
             {"v_mpeg4/iso/asp", "mpeg4"},
             {"v_mpeg4/iso/avc", "h264"},
             {"v_mpegh/iso/hevc", "hevc"},
+            {"v_ms/vfw/fourcc / dx50", "dx50"},
             {"vc-1", "vc1"},
             {"xvid", "mpeg4"}
         };
