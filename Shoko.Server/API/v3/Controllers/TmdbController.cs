@@ -1790,7 +1790,7 @@ public class TmdbController : BaseController
                             anidbEpisodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
                         else
                             anidbEpisodeNumber = $"{((InternalEpisodeType)anidbEpisode.EpisodeType).ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
-                    var tmdbShow = xref.GetTmdbShow();
+                    var tmdbShow = xref.TmdbShow;
                     var tmdbEpisode = xref.TmdbEpisode;
                     var tmdbEpisodeNumber = "??? ????";
                     if (tmdbEpisode is not null)
