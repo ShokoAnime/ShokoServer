@@ -27,6 +27,7 @@ public class ImageController : BaseController
     /// <param name="value">The image ID.</param>
     /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
     [HttpGet("{source}/{type}/{value}")]
+    [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
     public ActionResult GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type,
