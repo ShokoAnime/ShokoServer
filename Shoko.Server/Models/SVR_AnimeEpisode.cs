@@ -74,7 +74,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
                     DataSourceType.TvDB =>
                         TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName,
                     DataSourceType.TMDB =>
-                        (TmdbEpisodes is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
+                        (TmdbEpisodes is { Count: > 0 } tmdbEpisodes ? tmdbEpisodes[0].GetPreferredTitle(false)?.Value : null) ??
                         (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
                     _ => null,
                 };
@@ -101,7 +101,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
                     DataSourceType.TvDB =>
                         TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview,
                     DataSourceType.TMDB =>
-                        (TmdbEpisodes is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredOverview(false)?.Value : null) ??
+                        (TmdbEpisodes is { Count: > 0 } tmdbEpisodes ? tmdbEpisodes[0].GetPreferredOverview(false)?.Value : null) ??
                         (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredOverview(false)?.Value : null),
                     _ => null,
                 };
@@ -137,10 +137,10 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
                     : poster
                 );
         }
-        foreach (var tmdbEpisode in TmdbEpisodes)
-            images.AddRange(tmdbEpisode.GetImages(entityType, preferredImages));
-        foreach (var tmdbMovie in TmdbMovies)
-            images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
+        foreach (var xref in TmdbEpisodeCrossReferences)
+            images.AddRange(xref.GetImages(entityType, preferredImages));
+        foreach (var xref in TmdbMovieCrossReferences)
+            images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var tvdbEpisode in TvDBEpisodes)
             images.AddRange(tvdbEpisode.GetImages(entityType, preferredImages));
 

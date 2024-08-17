@@ -250,10 +250,10 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
                     : poster
                 );
         }
-        foreach (var tmdbShow in TmdbShows)
-            images.AddRange(tmdbShow.GetImages(entityType, preferredImages));
-        foreach (var tmdbMovie in TmdbMovies)
-            images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
+        foreach (var xref in TmdbShowCrossReferences)
+            images.AddRange(xref.GetImages(entityType, preferredImages));
+        foreach (var xref in TmdbMovieCrossReferences)
+            images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var tvdbShow in TvDBSeries)
             images.AddRange(tvdbShow.GetImages(entityType, preferredImages));
 
