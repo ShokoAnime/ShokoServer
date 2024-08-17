@@ -743,6 +743,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(117, 8, "CREATE INDEX IX_TMDB_Overview ON TMDB_Overview(ParentType, ParentID)"),
         new(117, 9, "CREATE INDEX IX_TMDB_Title ON TMDB_Title(ParentType, ParentID)"),
         new(117, 10, "CREATE UNIQUE INDEX UIX_TMDB_Episode_TmdbEpisodeID ON TMDB_Episode(TmdbEpisodeID)"),
+        new(117, 11, "CREATE UNIQUE INDEX UIX_TMDB_Show_TmdbShowID ON TMDB_Show(TmdbShowID)"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

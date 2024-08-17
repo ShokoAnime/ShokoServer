@@ -744,6 +744,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(124, 5, "CREATE INDEX IX_TMDB_Overview ON TMDB_Overview(ParentType, ParentID)"),
         new DatabaseCommand(124, 6, "CREATE INDEX IX_TMDB_Title ON TMDB_Title(ParentType, ParentID)"),
         new DatabaseCommand(124, 7, "CREATE UNIQUE INDEX UIX_TMDB_Episode_TmdbEpisodeID ON TMDB_Episode(TmdbEpisodeID)"),
+        new DatabaseCommand(124, 8, "CREATE UNIQUE INDEX UIX_TMDB_Show_TmdbShowID ON TMDB_Show(TmdbShowID)"),
     };
 
     private static void AlterImdbMovieIDType()

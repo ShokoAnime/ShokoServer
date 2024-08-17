@@ -815,6 +815,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(132, 6, "ALTER TABLE `TMDB_Overview` ADD INDEX `IX_TMDB_Overview` (ParentType, ParentID)"),
         new(132, 7, "ALTER TABLE `TMDB_Title` ADD INDEX `IX_TMDB_Title` (ParentType, ParentID)"),
         new(132, 8, "ALTER TABLE `TMDB_Episode` ADD UNIQUE INDEX `UIX_TMDB_Episode_TmdbEpisodeID` (TmdbEpisodeID)"),
+        new(132, 9, "ALTER TABLE `TMDB_Show` ADD UNIQUE INDEX `UIX_TMDB_Show_TmdbShowID` (TmdbShowID)"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
