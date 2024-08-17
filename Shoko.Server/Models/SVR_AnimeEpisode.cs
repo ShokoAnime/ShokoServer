@@ -64,7 +64,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     public void ResetPreferredTitle()
     {
         _preferredTitle = null;
-        LoadPreferredTitle();
     }
 
     private string LoadPreferredTitle()
