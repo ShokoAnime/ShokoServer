@@ -19,6 +19,8 @@ public class Vote
         MaxValue = maxValue;
     }
 
+    public Vote() { }
+
     /// <summary>
     /// The normalised user-submitted rating in the range [0, <paramref name="maxValue" />].
     /// </summary>
