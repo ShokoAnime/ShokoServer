@@ -333,11 +333,6 @@ public class TmdbMetadataService
                 if (overviewsUpdated)
                     series.ResetPreferredOverview();
             }
-
-            if (titlesUpdated && xref.AnimeEpisode is { } episode)
-            {
-                episode.ResetPreferredTitle();
-            }
         }
 
         if (newlyAdded || updated)

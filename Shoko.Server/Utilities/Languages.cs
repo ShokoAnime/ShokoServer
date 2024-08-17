@@ -102,9 +102,6 @@ public static class Languages
                     .Select(l => new NamingLanguage(l))
                     .ExceptBy(_invalidLanguages, l => l.Language)
                     .ToList();
-
-                // Reset all preferred titles when the language setting has been updated.
-                Task.Run(() => RepoFactory.AnimeEpisode.GetAll().AsParallel().ForAll(episode => episode.ResetPreferredTitle()));
             }
         }
     }

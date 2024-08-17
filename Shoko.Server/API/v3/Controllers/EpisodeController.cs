@@ -352,7 +352,6 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (!string.Equals(episode.EpisodeNameOverride, body.Title))
         {
             episode.EpisodeNameOverride = body.Title;
-            episode.ResetPreferredTitle();
 
             RepoFactory.AnimeEpisode.Save(episode);
 

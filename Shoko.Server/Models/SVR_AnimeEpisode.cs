@@ -57,43 +57,34 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
         }
     }
 
-    private string? _preferredTitle = null;
-
-    public string PreferredTitle => LoadPreferredTitle();
-
-    public void ResetPreferredTitle()
+    public string PreferredTitle
     {
-        _preferredTitle = null;
-    }
-
-    private string LoadPreferredTitle()
-    {
-        if (_preferredTitle is not null)
-            return _preferredTitle;
-
-        // Return the override if it's set.
-        if (!string.IsNullOrEmpty(EpisodeNameOverride))
-            return _preferredTitle = EpisodeNameOverride;
-        // Check each provider in the given order.
-        foreach (var source in Utils.SettingsProvider.GetSettings().Language.EpisodeTitleSourceOrder)
+        get
         {
-            var title = source switch
+            // Return the override if it's set.
+            if (!string.IsNullOrEmpty(EpisodeNameOverride))
+                return EpisodeNameOverride;
+            // Check each provider in the given order.
+            foreach (var source in Utils.SettingsProvider.GetSettings().Language.EpisodeTitleSourceOrder)
             {
-                DataSourceType.AniDB =>
-                    AniDB_Episode?.PreferredTitle?.Title,
-                DataSourceType.TvDB =>
-                    TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName,
-                DataSourceType.TMDB =>
-                    (TmdbEpisodes is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
-                    (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
-                _ => null,
-            };
-            if (!string.IsNullOrEmpty(title))
-                return _preferredTitle = title;
-        }
+                var title = source switch
+                {
+                    DataSourceType.AniDB =>
+                        AniDB_Episode?.PreferredTitle?.Title,
+                    DataSourceType.TvDB =>
+                        TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName,
+                    DataSourceType.TMDB =>
+                        (TmdbEpisodes is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
+                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
+                    _ => null,
+                };
+                if (!string.IsNullOrEmpty(title))
+                    return title;
+            }
 
-        // The most "default" title we have, even if AniDB isn't a preferred source.
-        return _preferredTitle = DefaultTitle;
+            // The most "default" title we have, even if AniDB isn't a preferred source.
+            return DefaultTitle;
+        }
     }
 
     public string PreferredOverview
