@@ -44,7 +44,7 @@ public class TmdbMetadataService
 
     private static string? _imageServerUrl = null;
 
-    public static string ImageServerUrl
+    public static string? ImageServerUrl
     {
         get
         {
@@ -52,7 +52,7 @@ public class TmdbMetadataService
             if (_imageServerUrl is not null)
                 return _imageServerUrl;
             if (_instance is null)
-                throw new NullReferenceException("Tmdb Metadata Service instance is not initialized yet!");
+                return null;
             try
             {
                 var config = _instance.Client.GetAPIConfiguration().Result;
