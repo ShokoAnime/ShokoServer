@@ -48,7 +48,8 @@ public class DownloadTmdbMovieImagesJob : BaseJob
     public override async Task Process()
     {
         _logger.LogInformation("Processing CommandRequest_TMDB_Movie_DownloadImages: {TmdbMovieId}", TmdbMovieID);
-        await Task.Run(() => _tmdbService.DownloadMovieImages(TmdbMovieID, ForceDownload)).ConfigureAwait(false);
+        var language = RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbMovieID)?.OriginalLanguage;
+        await Task.Run(() => _tmdbService.DownloadMovieImages(TmdbMovieID, language, ForceDownload)).ConfigureAwait(false);
     }
 
     public DownloadTmdbMovieImagesJob(TmdbMetadataService tmdbService)

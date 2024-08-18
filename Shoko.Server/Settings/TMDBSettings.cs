@@ -1,8 +1,9 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
-using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.Server;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -37,6 +38,27 @@ public class TMDBSettings
     /// which overviews should be stored locally.
     /// </summary>
     public bool DownloadAllOverviews { get; set; } = false;
+
+    /// <summary>
+    /// Image language preference order, in text form for storage.
+    /// </summary>
+    public List<string> InternalImageLanguageOrder
+    {
+        get => ImageLanguageOrder
+            .Select(x => x.ToString())
+            .ToList();
+        set => ImageLanguageOrder = value
+            .Select(x => x.GetTitleLanguage())
+            .Distinct()
+            .Where(x => x is not TitleLanguage.Unknown)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Image language preference order, as enum values for consumption.
+    /// </summary>
+    [JsonIgnore]
+    public List<TitleLanguage> ImageLanguageOrder { get; set; } = [TitleLanguage.None, TitleLanguage.Main, TitleLanguage.English];
 
     /// <summary>
     /// Automagically download crew and cast for movies and tv shows in the

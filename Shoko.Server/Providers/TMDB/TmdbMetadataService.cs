@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
@@ -309,13 +310,8 @@ public class TmdbMetadataService
             RepoFactory.TMDB_Movie.Save(tmdbMovie);
         }
 
-        if (downloadImages && downloadCollections)
-            await Task.WhenAll(
-                DownloadMovieImages(movieId),
-                UpdateMovieCollections(movie)
-            );
         else if (downloadImages)
-            await DownloadMovieImages(movieId);
+            await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage);
         else if (downloadCollections)
             await UpdateMovieCollections(movie);
 
@@ -583,19 +579,20 @@ public class TmdbMetadataService
         }
     }
 
-    public async Task DownloadMovieImages(int movieId, bool forceDownload = false)
+    public async Task DownloadMovieImages(int movieId, TitleLanguage? mainLanguage = null, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
             return;
 
         var images = await Client.GetMovieImagesAsync(movieId);
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
         if (settings.TMDB.AutoDownloadPosters)
-            await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoPosters, forceDownload);
+            await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await DownloadImagesByType(images.Logos, ImageEntityType.Logo, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoLogos, forceDownload);
+            await DownloadImagesByType(images.Logos, ImageEntityType.Logo, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoLogos, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await DownloadImagesByType(images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoBackdrops, forceDownload);
+            await DownloadImagesByType(images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     #endregion
@@ -1010,7 +1007,7 @@ public class TmdbMetadataService
         updated = titlesUpdated || overviewsUpdated || updated;
         updated = await UpdateShowExternalIDs(tmdbShow) || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
-        var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, forceRefresh);
+        var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, tmdbShow.OriginalLanguage, forceRefresh);
         updated = episodesOrSeasonsUpdated || updated;
         if (downloadAlternateOrdering)
             updated = await UpdateShowAlternateOrdering(show) || updated;
@@ -1021,7 +1018,7 @@ public class TmdbMetadataService
         }
 
         if (downloadImages)
-            await DownloadShowImages(showId, forceRefresh);
+            await DownloadShowImages(showId, tmdbShow.OriginalLanguage);
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(showId))
         {
@@ -1048,7 +1045,7 @@ public class TmdbMetadataService
         return updated;
     }
 
-    private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadImages, bool downloadCrewAndCast = false, bool forceRefresh = false)
+    private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadImages, bool downloadCrewAndCast = false, TitleLanguage language = TitleLanguage.None, bool forceRefresh = false)
     {
         var settings = _settingsProvider.GetSettings();
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -1086,7 +1083,7 @@ public class TmdbMetadataService
             }
 
             if (downloadImages)
-                await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, forceRefresh);
+                await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, language, forceRefresh);
 
             seasonsToSkip.Add(tmdbSeason.Id);
 
@@ -1116,7 +1113,7 @@ public class TmdbMetadataService
 
                 // Update images.
                 if (downloadImages)
-                    await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber, forceRefresh);
+                    await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber, language, forceRefresh);
 
                 if (episodeNew || episodeUpdated)
                     episodeEventsToEmit.Add((tmdbEpisode, episodeNew ? UpdateReason.Added : UpdateReason.Updated));
@@ -1511,39 +1508,42 @@ public class TmdbMetadataService
             peopleToRemove > 0;
     }
 
-    public async Task DownloadShowImages(int showId, bool forceDownload = false)
+    public async Task DownloadShowImages(int showId, TitleLanguage? mainLanguage = null, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
             return;
 
         var images = await Client.GetTvShowImagesAsync(showId);
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
         if (settings.TMDB.AutoDownloadPosters)
-            await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, forceDownload);
+            await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await DownloadImagesByType(images.Logos, ImageEntityType.Logo, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, forceDownload);
+            await DownloadImagesByType(images.Logos, ImageEntityType.Logo, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await DownloadImagesByType(images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, forceDownload);
+            await DownloadImagesByType(images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
-    private async Task DownloadSeasonImages(int seasonId, int showId, int seasonNumber, bool forceDownload = false)
+    private async Task DownloadSeasonImages(int seasonId, int showId, int seasonNumber, TitleLanguage? mainLanguage = null, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TMDB.AutoDownloadPosters)
             return;
 
         var images = await Client.GetTvSeasonImagesAsync(showId, seasonNumber);
-        await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoBackdrops, forceDownload);
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
+        await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
-    private async Task DownloadEpisodeImages(int episodeId, int showId, int seasonNumber, int episodeNumber, bool forceDownload)
+    private async Task DownloadEpisodeImages(int episodeId, int showId, int seasonNumber, int episodeNumber, TitleLanguage mainLanguage, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TMDB.AutoDownloadThumbnails)
             return;
 
         var images = await Client.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber);
-        await DownloadImagesByType(images.Stills, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoBackdrops, forceDownload);
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
+        await DownloadImagesByType(images.Stills, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false)
@@ -1926,10 +1926,21 @@ public class TmdbMetadataService
         });
     }
 
-    private async Task DownloadImagesByType(IReadOnlyList<ImageData> images, ImageEntityType type, ForeignEntityType foreignType, int foreignId, int maxCount, bool forceDownload = false)
+    private async Task DownloadImagesByType(IReadOnlyList<ImageData> images, ImageEntityType type, ForeignEntityType foreignType, int foreignId, int maxCount, List<TitleLanguage> languages, bool forceDownload = false)
     {
         var count = 0;
         var isLimitEnabled = maxCount > 0;
+        if (languages.Count > 0)
+            images = isLimitEnabled
+                ? images
+                    .Select(image => (Image: image, Language: (image.Iso_639_1 ?? string.Empty).GetTitleLanguage()))
+                    .Where(x => languages.Contains(x.Language))
+                    .OrderBy(x => languages.IndexOf(x.Language))
+                    .Select(x => x.Image)
+                    .ToList()
+                : images
+                    .Where(x => languages.Contains((x.Iso_639_1 ?? string.Empty).GetTitleLanguage()))
+                    .ToList();
         foreach (var imageData in images)
         {
             if (isLimitEnabled && count >= maxCount)
@@ -2332,7 +2343,7 @@ public class TmdbMetadataService
             return;
 
         var images = await Client.GetPersonImagesAsync(personId);
-        await DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, forceDownload);
+        await DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
     }
 
     private void PurgePerson(int personId, bool removeImageFiles = true)
