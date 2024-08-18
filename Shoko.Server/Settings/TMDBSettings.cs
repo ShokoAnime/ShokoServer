@@ -39,22 +39,6 @@ public class TMDBSettings
     public bool DownloadAllOverviews { get; set; } = false;
 
     /// <summary>
-    /// Download and save external IDs for the TMDB entities.
-    /// </summary>
-    [JsonProperty(nameof(DownloadExternalIDs))]
-    public ForeignEntityType[] InternalDownloadExternalIDs
-    {
-        get => ModelHelper.UnCombineFlags(DownloadExternalIDs).ToArray();
-        set => DownloadExternalIDs = value.CombineFlags();
-    }
-
-    /// <summary>
-    /// Download and save external IDs for the TMDB entities.
-    /// </summary>
-    [JsonIgnore]
-    public ForeignEntityType DownloadExternalIDs { get; set; } = ForeignEntityType.None;
-
-    /// <summary>
     /// Automagically download crew and cast for movies and tv shows in the
     /// local collection.
     /// </summary>

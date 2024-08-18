@@ -299,11 +299,10 @@ public class TmdbMetadataService
         var updated = tmdbMovie.Populate(movie);
         var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages);
         updated = titlesUpdated || overviewsUpdated || updated;
+        updated = await UpdateMovieExternalIDs(tmdbMovie) || updated;
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
         if (downloadCrewAndCast)
             updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
-        if (settings.TMDB.DownloadExternalIDs.HasFlag(ForeignEntityType.Movie))
-            updated = await UpdateMovieImdb(tmdbMovie) || updated;
         if (updated)
         {
             tmdbMovie.LastUpdatedAt = DateTime.Now;
@@ -1009,14 +1008,12 @@ public class TmdbMetadataService
         var updated = tmdbShow.Populate(show);
         var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
         updated = titlesUpdated || overviewsUpdated || updated;
+        updated = await UpdateShowExternalIDs(tmdbShow) || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
         var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, forceRefresh);
-        if (episodesOrSeasonsUpdated)
-            updated = true;
+        updated = episodesOrSeasonsUpdated || updated;
         if (downloadAlternateOrdering)
             updated = await UpdateShowAlternateOrdering(show) || updated;
-        if (settings.TMDB.DownloadExternalIDs.HasFlag(ForeignEntityType.Show))
-            updated = await UpdateShowTvdb(tmdbShow) || updated;
         if (updated)
         {
             tmdbShow.LastUpdatedAt = DateTime.Now;
@@ -1107,6 +1104,7 @@ public class TmdbMetadataService
                 var episodeTranslations = await Client.GetTvEpisodeTranslationsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
                 var episodeUpdated = tmdbEpisode.Populate(show, season, episode, episodeTranslations!);
                 episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!, preferredTitleLanguages, preferredOverviewLanguages) || episodeUpdated;
+                episodeUpdated = await UpdateEpisodeExternalIDs(tmdbEpisode) || episodeUpdated;
 
                 // Update crew & cast.
                 if (downloadCrewAndCast)
@@ -1115,9 +1113,6 @@ public class TmdbMetadataService
                     episodeUpdated = await UpdateEpisodeCastAndCrew(tmdbEpisode, credits, downloadImages) || episodeUpdated;
                 }
 
-                // Store TvDB ID if needed and available.
-                if (settings.TMDB.DownloadExternalIDs.HasFlag(ForeignEntityType.Episode))
-                    episodeUpdated = await UpdateEpisodeTvdb(tmdbEpisode) || episodeUpdated;
 
                 // Update images.
                 if (downloadImages)
@@ -2473,7 +2468,7 @@ public class TmdbMetadataService
     /// </summary>
     /// <param name="show">TMDB Show.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private async Task<bool> UpdateShowTvdb(TMDB_Show show)
+    private async Task<bool> UpdateShowExternalIDs(TMDB_Show show)
     {
         var externalIds = await Client.GetTvShowExternalIdsAsync(show.TmdbShowID);
         if (string.IsNullOrEmpty(externalIds.TvdbId))
@@ -2497,7 +2492,7 @@ public class TmdbMetadataService
     /// </summary>
     /// <param name="episode">TMDB Episode.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private async Task<bool> UpdateEpisodeTvdb(TMDB_Episode episode)
+    private async Task<bool> UpdateEpisodeExternalIDs(TMDB_Episode episode)
     {
         var externalIds = await Client.GetTvEpisodeExternalIdsAsync(episode.TmdbShowID, episode.SeasonNumber, episode.EpisodeNumber);
         if (string.IsNullOrEmpty(externalIds.TvdbId))
@@ -2521,7 +2516,7 @@ public class TmdbMetadataService
     /// </summary>
     /// <param name="movie">TMDB Movie.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private async Task<bool> UpdateMovieImdb(TMDB_Movie movie)
+    private async Task<bool> UpdateMovieExternalIDs(TMDB_Movie movie)
     {
         var externalIds = await Client.GetMovieExternalIdsAsync(movie.TmdbMovieID);
         if (movie.ImdbMovieID == externalIds.ImdbId)
