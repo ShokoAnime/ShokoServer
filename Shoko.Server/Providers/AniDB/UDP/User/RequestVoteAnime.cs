@@ -28,7 +28,7 @@ public class RequestVoteAnime : UDPRequest<ResponseVote>
     /// </summary>
     public bool Temporary { get; set; }
 
-    protected override string BaseCommand => $"VOTE type={(Temporary ? 2 : 1)}&aid={AnimeID}&value={AniDBValue}";
+    protected override string BaseCommand => $"VOTE type={(Temporary ? 2 : 1)}&id={AnimeID}&value={AniDBValue}";
 
     protected override UDPResponse<ResponseVote> ParseResponse(UDPResponse<string> response)
     {
