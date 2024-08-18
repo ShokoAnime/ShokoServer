@@ -531,7 +531,7 @@ public class VideoLocal_PlaceService
         // Actually move it.
         return await DirectlyRelocateFile(place, new()
         {
-            DeleteEmptyDirectories = false,
+            DeleteEmptyDirectories = request.DeleteEmptyDirectories,
             ImportFolder = result.ImportFolder,
             RelativePath = result.RelativePath,
         });
