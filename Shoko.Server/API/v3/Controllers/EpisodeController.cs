@@ -40,6 +40,8 @@ public class EpisodeController : BaseController
 
     private readonly AnimeGroupService _groupService;
 
+    private readonly AnimeEpisodeService _episodeService;
+
     private readonly WatchedStatusService _watchedService;
 
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
@@ -476,7 +478,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="vote"></param>
     /// <returns></returns>
     [HttpPost("{episodeID}/Vote")]
-    public ActionResult PostEpisodeVote([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] Vote vote)
+    public async Task<ActionResult> PostEpisodeVote([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] Vote vote)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -492,7 +494,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        Episode.AddEpisodeVote(HttpContext, episode, User.JMMUserID, vote);
+        await _episodeService.AddEpisodeVote(episode, vote.GetRating());
 
         return NoContent();
     }
@@ -838,10 +840,11 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
             .ToListResult(episode => new Episode(HttpContext, episode, withXRefs: includeXRefs), page, pageSize);
     }
 
-    public EpisodeController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeGroupService groupService, WatchedStatusService watchedService) : base(settingsProvider)
+    public EpisodeController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeGroupService groupService, AnimeEpisodeService episodeService, WatchedStatusService watchedService) : base(settingsProvider)
     {
         _seriesService = seriesService;
         _groupService = groupService;
+        _episodeService = episodeService;
         _watchedService = watchedService;
     }
 }

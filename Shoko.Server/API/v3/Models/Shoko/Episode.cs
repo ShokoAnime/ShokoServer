@@ -78,6 +78,11 @@ public class Episode : BaseModel
     /// </summary>
     public bool IsHidden { get; set; }
 
+    /// <summary>
+    /// The user's rating
+    /// </summary>
+    public Rating? UserRating { get; set; }
+
 #pragma warning disable IDE1006
     /// <summary>
     /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
@@ -128,6 +133,7 @@ public class Episode : BaseModel
             .Select(file => (file, userRecord: RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID)))
             .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
             .FirstOrDefault();
+        var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(episode.AniDB_EpisodeID, AniDBVoteType.Episode);
         IDs = new EpisodeIDs
         {
             ID = episode.AnimeEpisodeID,
@@ -166,6 +172,17 @@ public class Episode : BaseModel
         Description = episode.PreferredOverview;
         Size = files.Count;
 
+        if (vote is not null)
+        {
+            UserRating = new()
+            {
+                Value = (decimal)Math.Round(vote.VoteValue / 100D, 1),
+                MaxValue = 10,
+                Type = AniDBVoteType.Episode.ToString(),
+                Source = "User"
+            };
+        }
+
         if (includeDataFrom.Contains(DataSource.AniDB))
             _AniDB = new AniDB(anidbEpisode);
         if (includeDataFrom.Contains(DataSource.TvDB))
@@ -199,20 +216,6 @@ public class Episode : BaseModel
             AniDBEpisodeType.Other => EpisodeType.Other,
             _ => EpisodeType.Unknown,
         };
-
-#pragma warning disable IDE0060
-    public static void AddEpisodeVote(HttpContext context, SVR_AnimeEpisode ep, int userID, Vote vote)
-    {
-        var dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode) ??
-            new AniDB_Vote { EntityID = ep.AnimeEpisodeID, VoteType = (int)AniDBVoteType.Episode };
-        dbVote.VoteValue = (int)Math.Floor(vote.GetRating(1000));
-
-        RepoFactory.AniDB_Vote.Save(dbVote);
-
-        //var cmdVote = new CommandRequest_VoteAnimeEpisode(ep.AniDB_EpisodeID, voteType, vote.GetRating());
-        //cmdVote.Save();
-    }
-#pragma warning restore IDE0060
 
     /// <summary>
     /// AniDB specific data for an Episode

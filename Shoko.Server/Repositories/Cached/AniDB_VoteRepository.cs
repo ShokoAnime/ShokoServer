@@ -26,7 +26,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
                     jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = cr.EntityID).Process().GetAwaiter().GetResult();
                     break;
                 case (int)AniDBVoteType.Episode:
-                    var ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(cr.EntityID);
                     RepoFactory.AnimeEpisode.Save(ep);
                     break;
             }
@@ -40,7 +40,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
                     jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = cr.EntityID).Process().GetAwaiter().GetResult();
                     break;
                 case (int)AniDBVoteType.Episode:
-                    var ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                    var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(cr.EntityID);
                     RepoFactory.AnimeEpisode.Save(ep);
                     break;
             }
