@@ -166,10 +166,11 @@ public class RenamerController : BaseController
         return _renamerConfigRepository.GetAll().Select(GetRenamerConfig).WhereNotNull().ToList();
     }
 
-    private static RenamerConfig? GetRenamerConfig(Shoko.Server.Models.RenamerConfig p)
+    private static RenamerConfig GetRenamerConfig(Shoko.Server.Models.RenamerConfig p)
     {
         // p.Type can be null if the config exists but the renamer doesn't
-        if (p.Type == null) return null;
+        if (p.Type is null)
+            return new RenamerConfig { RenamerID = string.Empty, Name = p.Name };
 
         // we can suppress nullability, because we check this when loading
         var attribute = p.Type.GetCustomAttributes<RenamerIDAttribute>().FirstOrDefault()!;
@@ -286,16 +287,27 @@ public class RenamerController : BaseController
         if (!_renameFileService.RenamersByKey.TryGetValue(body.RenamerID, out var renamer))
             return NotFound("Renamer not found");
 
+        var oldName = renamerConfig.Name;
         var temp = renamerConfig.DeepClone();
 
         temp.Type = renamer.GetType();
         if (body.Settings == null || body.Settings.Count == 0)
             return BadRequest("Settings are required for a put request");
+
         if (!ApplyRenamerConfigSettings(body, temp))
             return ValidationProblem(ModelState);
 
         temp.DeepCloneTo(renamerConfig);
         _renamerConfigRepository.Save(renamerConfig);
+
+        // update default renamer in settings.
+        var settings = _settingsProvider.GetSettings();
+        var nameChanged = renamerConfig.Name != oldName;
+        if (nameChanged && settings.Plugins.Renamer.DefaultRenamer == oldName)
+        {
+            settings.Plugins.Renamer.DefaultRenamer = renamerConfig.Name;
+            _settingsProvider.SaveSettings(settings);
+        }
 
         return GetRenamerConfig(renamerConfig);
     }
@@ -360,6 +372,7 @@ public class RenamerController : BaseController
 
         // Patch the renamer in the v3 model and merge it back into the
         // settings.
+        var oldName = renamerConfig.Name;
         var modifyRenamer = GetRenamerConfig(renamerConfig);
         patchDocument.ApplyTo(modifyRenamer, ModelState);
 
@@ -384,6 +397,15 @@ public class RenamerController : BaseController
 
         _renamerConfigRepository.Save(renamerConfig);
 
+        // update default renamer in settings.
+        var settings = _settingsProvider.GetSettings();
+        var nameChanged = modifyRenamer.Name != oldName;
+        if (nameChanged && settings.Plugins.Renamer.DefaultRenamer == oldName)
+        {
+            settings.Plugins.Renamer.DefaultRenamer = modifyRenamer.Name;
+            _settingsProvider.SaveSettings(settings);
+        }
+
         return GetRenamerConfig(renamerConfig);
     }
 
@@ -396,12 +418,13 @@ public class RenamerController : BaseController
     [HttpDelete("Config/{configName}")]
     public ActionResult DeleteRenamerConfig([FromRoute] string configName)
     {
-        if (configName.Equals("Default"))
-            return BadRequest("Default config cannot be deleted!");
-
         var renamerConfig = _renamerConfigRepository.GetByName(configName);
         if (renamerConfig == null)
             return NotFound("Config not found");
+
+        var settings = _settingsProvider.GetSettings();
+        if (settings.Plugins.Renamer.DefaultRenamer == configName)
+            return ValidationProblem("Default renamer config cannot be deleted!");
 
         _renamerConfigRepository.Delete(renamerConfig);
 
