@@ -43,11 +43,12 @@ public class TMDBSettings
     /// <summary>
     /// Image language preference order, in text form for storage.
     /// </summary>
+    [JsonProperty(nameof(ImageLanguageOrder))]
     [UsedImplicitly]
     public List<string> InternalImageLanguageOrder
     {
         get => ImageLanguageOrder
-            .Select(x => x.ToString())
+            .Select(x => x.GetString())
             .ToList();
         set => ImageLanguageOrder = value
             .Select(x => x.GetTitleLanguage())
