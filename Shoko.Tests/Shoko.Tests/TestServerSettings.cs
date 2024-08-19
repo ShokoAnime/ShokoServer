@@ -17,7 +17,6 @@ public class TestServerSettings
     public LogRotatorSettings LogRotator { get; set; } = new();
     public DatabaseSettings Database { get; set; } = new();
     public AniDbSettings AniDb { get; set; } = new();
-    public WebCacheSettings WebCache { get; set; } = new();
     public TvDBSettings TvDB { get; set; } = new();
     public TMDBSettings TMDB { get; set; } = new();
     public ImportSettings Import { get; set; } = new();

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Polly;
@@ -128,7 +129,8 @@ public class VideoLocal_PlaceService
 
         // Check if the import folder can accept the file.
         var settings = _settingsProvider.GetSettings();
-        if (!settings.Import.SkipDiskSpaceChecks && !request.ImportFolder.CanAcceptFile(place))
+        var relocationService = Utils.ServiceContainer.GetRequiredService<RelocationService>();
+        if (!settings.Import.SkipDiskSpaceChecks && !relocationService.ImportFolderHasSpace(request.ImportFolder, place))
         {
             _logger.LogWarning("The import folder cannot accept the file due to too little space available: {FilePath}", oldFullPath);
             return new()

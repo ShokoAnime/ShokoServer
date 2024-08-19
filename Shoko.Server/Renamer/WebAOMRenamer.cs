@@ -8,11 +8,14 @@ using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Events;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.Renamer;
 
@@ -21,10 +24,14 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 {
     private const string RENAMER_ID = "WebAOM";
     private readonly ILogger<WebAOMRenamer> _logger;
+    private readonly ISettingsProvider _settingsProvider;
+    private readonly IRelocationService _relocationService;
 
-    public WebAOMRenamer(ILogger<WebAOMRenamer> logger)
+    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, ISettingsProvider settingsProviderProvider, IRelocationService relocationService)
     {
         _logger = logger;
+        _settingsProvider = settingsProviderProvider;
+        _relocationService = relocationService;
     }
 
     public string Name => "WebAOM Renamer";
@@ -2099,7 +2106,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         if (args.Settings.GroupAwareSorting)
             return GetGroupAwareDestination(args);
 
-        return GetFlatFolderDestination(args, args.Settings);
+        return GetFlatFolderDestination(args);
     }
 
     private (IImportFolder dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
@@ -2159,22 +2166,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return dest.DropFolderType.HasFlag(DropFolderType.Destination);
     }
 
-    private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args, WebAOMSettings settings)
+    private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
         // TODO make this only dependent on PluginAbstractions
-        IImportFolder destFolder = null;
-        foreach (var folder in args.AvailableFolders)
-        {
-            if (!folder.DropFolderType.HasFlag(DropFolderType.Destination)) continue;
-            if (!Directory.Exists(folder.Path)) continue;
-
-            // Continue if on a separate drive and there's no space
-            if (!settings.SkipDiskSpaceChecks && !folder.CanAcceptFile(args.File))
-                continue;
-
-            destFolder = folder;
-            break;
-        }
+        var destFolder = _relocationService.GetFirstDestinationWithSpace(args);
 
         var xrefs = args.Episodes;
         if (xrefs.Count == 0)
@@ -2194,6 +2189,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             return (null, "Series not Found");
         }
 
+        // TODO move this into the RelocationService
         // sort the episodes by air date, so that we will move the file to the location of the latest episode
         var allEps = series.AllAnimeEpisodes
             .OrderByDescending(a => a.AniDB_Episode.AirDate)
@@ -2215,6 +2211,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             if (crossOver) continue;
 
+            var settings = _settingsProvider.GetSettings();
             foreach (var vid in ep.VideoLocals.Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
             {
                 if (vid.Hash == args.File.Video.Hashes.ED2K) continue;
@@ -2229,7 +2226,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 if (dstImportFolder == null) continue;
 
                 // check space
-                if (!settings.SkipDiskSpaceChecks && !dstImportFolder.CanAcceptFile(args.File))
+                if (!settings.Import.SkipDiskSpaceChecks && !_relocationService.ImportFolderHasSpace(dstImportFolder, args.File))
                     continue;
 
                 if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName))) continue;
