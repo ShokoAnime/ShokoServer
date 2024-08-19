@@ -139,7 +139,7 @@ public static class LanguageExtensions
             "" => TitleLanguage.None,
             "X-MAIN" => TitleLanguage.Main,
             null => TitleLanguage.None,
-            _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), out var titleLanguage) ?
+            _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage) ?
                 titleLanguage : TitleLanguage.Unknown,
         };
     }
