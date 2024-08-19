@@ -13,6 +13,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
@@ -129,7 +130,7 @@ public class VideoLocal_PlaceService
 
         // Check if the import folder can accept the file.
         var settings = _settingsProvider.GetSettings();
-        var relocationService = Utils.ServiceContainer.GetRequiredService<RelocationService>();
+        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
         if (!settings.Import.SkipDiskSpaceChecks && !relocationService.ImportFolderHasSpace(request.ImportFolder, place))
         {
             _logger.LogWarning("The import folder cannot accept the file due to too little space available: {FilePath}", oldFullPath);
