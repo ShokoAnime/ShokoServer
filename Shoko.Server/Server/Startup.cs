@@ -51,7 +51,7 @@ public class Startup
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<RelocationService>();
+            services.AddSingleton<IRelocationService, RelocationService>();
             services.AddSingleton<RenameFileService>();
             services.AddSingleton<ISettingsProvider, SettingsProvider>();
             services.AddSingleton<FileWatcherService>();
