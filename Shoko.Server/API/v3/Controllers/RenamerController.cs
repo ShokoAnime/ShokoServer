@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.Enums;
@@ -162,11 +163,14 @@ public class RenamerController : BaseController
     [HttpGet("Config")]
     public ActionResult<List<RenamerConfig>> GetAllRenamerConfigs()
     {
-        return _renamerConfigRepository.GetAll().Select(GetRenamerConfig).ToList();
+        return _renamerConfigRepository.GetAll().Select(GetRenamerConfig).WhereNotNull().ToList();
     }
 
-    private static RenamerConfig GetRenamerConfig(Shoko.Server.Models.RenamerConfig p)
+    private static RenamerConfig? GetRenamerConfig(Shoko.Server.Models.RenamerConfig p)
     {
+        // p.Type can be null if the config exists but the renamer doesn't
+        if (p.Type == null) return null;
+
         // we can suppress nullability, because we check this when loading
         var attribute = p.Type.GetCustomAttributes<RenamerIDAttribute>().FirstOrDefault()!;
         var settingsType = p.Type.GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))

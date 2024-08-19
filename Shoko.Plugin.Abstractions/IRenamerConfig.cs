@@ -17,7 +17,7 @@ namespace Shoko.Plugin.Abstractions
         /// <summary>
         /// The type of the renamer, always should be checked against the Renamer ID to ensure that the script should be executable against your renamer.
         /// </summary>
-        public Type Type { get; }
+        public Type? Type { get; }
     }
 
     public interface IRenamerConfig<T> : IRenamerConfig where T : class
