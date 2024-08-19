@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.Enums;
@@ -34,6 +35,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class RenamerController : BaseController
 {
+    private readonly ILogger<RenamerController> _logger;
     private readonly ImportFolderRepository _importFolderRepository;
     private readonly VideoLocalRepository _vlRepository;
     private readonly VideoLocal_PlaceRepository _vlpRepository;
@@ -42,8 +44,9 @@ public class RenamerController : BaseController
     private readonly RenameFileService _renameFileService;
     private readonly ISettingsProvider _settingsProvider;
 
-    public RenamerController(ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerConfigRepository renamerConfigRepository, RenameFileService renameFileService, ImportFolderRepository importFolderRepository, VideoLocal_PlaceRepository vlpRepository) : base(settingsProvider)
+    public RenamerController(ILogger<RenamerController> logger, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerConfigRepository renamerConfigRepository, RenameFileService renameFileService, ImportFolderRepository importFolderRepository, VideoLocal_PlaceRepository vlpRepository) : base(settingsProvider)
     {
+        _logger = logger;
         _settingsProvider = settingsProvider;
         _vlpService = vlpService;
         _vlRepository = vlRepository;
@@ -312,13 +315,18 @@ public class RenamerController : BaseController
             if (property == null)
                 continue;
 
-            if (setting.Value?.GetType() != property.PropertyType)
+            try
             {
+                var convertedValue = Convert.ChangeType(setting.Value, property.PropertyType);
+                property.SetValue(renamerConfig.Settings, convertedValue);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Setting {Setting} has an invalid type {ActualPropertyType}, but should be of type {PropertyType}", setting.Name, setting.Value?.GetType().Name, property.PropertyType.Name);
                 ModelState.AddModelError("Settings[" + setting.Name + "].Value", "Value must be of type " + property.PropertyType.Name);
                 result = false;
                 continue;
             }
-            property.SetValue(renamerConfig.Settings, Convert.ChangeType(setting.Value, property.PropertyType));
         }
 
         return result;
