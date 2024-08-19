@@ -25,9 +25,9 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     private const string RENAMER_ID = "WebAOM";
     private readonly ILogger<WebAOMRenamer> _logger;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly IRelocationService _relocationService;
+    private readonly RelocationService _relocationService;
 
-    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, ISettingsProvider settingsProviderProvider, IRelocationService relocationService)
+    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, ISettingsProvider settingsProviderProvider, RelocationService relocationService)
     {
         _logger = logger;
         _settingsProvider = settingsProviderProvider;
