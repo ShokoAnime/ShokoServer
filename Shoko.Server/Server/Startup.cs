@@ -38,7 +38,7 @@ public class Startup
     private readonly ILogger<Startup> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private IWebHost _webHost;
-    public event EventHandler<ServerAboutToStartEventArgs> AboutToStart; 
+    public event EventHandler<ServerAboutToStartEventArgs> AboutToStart;
 
     public Startup(ILogger<Startup> logger, ISettingsProvider settingsProvider)
     {
@@ -51,7 +51,7 @@ public class Startup
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<RelocationService>();
+            services.AddSingleton<IRelocationService, RelocationService>();
             services.AddSingleton<RenameFileService>();
             services.AddSingleton<ISettingsProvider, SettingsProvider>();
             services.AddSingleton<FileWatcherService>();
@@ -174,7 +174,7 @@ public class Startup
             .UseSentryConfig();
 
         var result = builder.Build();
-        
+
         Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         Utils.ServiceContainer = result.Services;
         return result;
