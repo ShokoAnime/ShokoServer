@@ -8,8 +8,6 @@ public class TraktSettings
 
     public bool AutoLink { get; set; } = false;
 
-    public string PIN { get; set; } = string.Empty;
-
     public string AuthToken { get; set; } = string.Empty;
 
     public string RefreshToken { get; set; } = string.Empty;

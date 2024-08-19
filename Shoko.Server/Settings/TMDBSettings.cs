@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
@@ -42,6 +43,7 @@ public class TMDBSettings
     /// <summary>
     /// Image language preference order, in text form for storage.
     /// </summary>
+    [UsedImplicitly]
     public List<string> InternalImageLanguageOrder
     {
         get => ImageLanguageOrder

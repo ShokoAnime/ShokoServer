@@ -11,11 +11,13 @@ public class DatabaseSettings
 {
     public string MySqliteDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "SQLite");
 
-    public string DatabaseBackupDirectory { get; set; } =
-        Path.Combine(Utils.ApplicationPath, "DatabaseBackup");
+    public string DatabaseBackupDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "DatabaseBackup");
 
-    [JsonIgnore] public string DefaultUserUsername { get; set; } = "Default";
-    [JsonIgnore] public string DefaultUserPassword { get; set; } = string.Empty;
+    [JsonIgnore]
+    public string DefaultUserUsername { get; set; } = "Default";
+
+    [JsonIgnore]
+    public string DefaultUserPassword { get; set; } = string.Empty;
 
     /// <summary>
     /// Use Constants.DatabaseType
@@ -23,9 +25,13 @@ public class DatabaseSettings
     public string Type { get; set; } = Constants.DatabaseType.Sqlite;
 
     public bool UseDatabaseLock { get; set; } = true;
+
     public string Username { get; set; } = string.Empty;
+
     public string Password { get; set; } = string.Empty;
+
     public string Schema { get; set; } = string.Empty;
+
     public string Host { get; set; } = string.Empty;
 
     [JsonIgnore]
@@ -57,7 +63,7 @@ public class DatabaseSettings
 
     public string SQLite_DatabaseFile
     {
-        get => sqlite_file;
+        get => _sqliteFile;
         set
         {
             string prefix = null;
@@ -73,7 +79,7 @@ public class DatabaseSettings
             var parts = value.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length <= 1)
             {
-                sqlite_file = value;
+                _sqliteFile = value;
                 return;
             }
 
@@ -84,9 +90,10 @@ public class DatabaseSettings
             }
 
             MySqliteDirectory = directory;
-            sqlite_file = parts.LastOrDefault();
+            _sqliteFile = parts.LastOrDefault();
         }
     }
 
-    [JsonIgnore] private string sqlite_file { get; set; } = "JMMServer.db3";
+    [JsonIgnore]
+    private string _sqliteFile = "JMMServer.db3";
 }

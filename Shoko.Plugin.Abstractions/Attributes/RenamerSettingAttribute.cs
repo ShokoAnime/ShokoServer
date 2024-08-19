@@ -4,6 +4,10 @@ using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.Attributes;
 
+/// <summary>
+/// An attribute for defining a renamer setting on a renamer settings object.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
 public class RenamerSettingAttribute : Attribute
 {
     /// <summary>
@@ -26,7 +30,12 @@ public class RenamerSettingAttribute : Attribute
     /// </summary>
     public string? Description { get; set; }
 
-    
+    /// <summary>
+    /// Create a new setting definition for a property.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="type"></param>
+    /// <param name="description"></param>
     public RenamerSettingAttribute([CallerMemberName] string? name = null, RenamerSettingType type = RenamerSettingType.Auto, string? description = null)
     {
         // the nullability is suppressed because [CallerMemberName] is used

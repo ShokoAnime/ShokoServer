@@ -100,6 +100,7 @@ public class RenamerController : BaseController
         foreach (var property in properties)
         {
             var renamerSettingAttribute = property.GetCustomAttribute<RenamerSettingAttribute>();
+            var rangeAttribute = property.GetCustomAttribute<RangeAttribute>();
             var settingType = renamerSettingAttribute?.Type ?? RenamerSettingType.Auto;
             if (settingType == RenamerSettingType.Auto)
             {
@@ -118,8 +119,10 @@ public class RenamerController : BaseController
             {
                 Name = renamerSettingAttribute?.Name ?? property.Name,
                 Description = renamerSettingAttribute?.Description,
-                Language = renamerSettingAttribute?.Language,
-                SettingType = settingType
+                Language = settingType is RenamerSettingType.Code ? renamerSettingAttribute?.Language : null,
+                SettingType = settingType,
+                MinimumValue = rangeAttribute?.Minimum,
+                MaximumValue = rangeAttribute?.Maximum,
             });
         }
 

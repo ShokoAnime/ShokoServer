@@ -24,7 +24,7 @@ public class LanguageSettings
         set
         {
             _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredNamingLanguages = null;
+            Languages.PreferredNamingLanguages = [];
         }
     }
 
@@ -50,7 +50,7 @@ public class LanguageSettings
         set
         {
             _episodeLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredEpisodeNamingLanguages = null;
+            Languages.PreferredEpisodeNamingLanguages = [];
         }
     }
 
@@ -76,7 +76,7 @@ public class LanguageSettings
         set
         {
             _descriptionLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredDescriptionNamingLanguages = null;
+            Languages.PreferredDescriptionNamingLanguages = [];
         }
     }
 

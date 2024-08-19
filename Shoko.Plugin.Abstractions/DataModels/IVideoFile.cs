@@ -16,6 +16,11 @@ public interface IVideoFile
     int VideoID { get; }
 
     /// <summary>
+    /// The import folder id.
+    /// </summary>
+    int ImportFolderID { get; }
+
+    /// <summary>
     /// The file name.
     /// </summary>
     string FileName { get; }

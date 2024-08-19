@@ -423,15 +423,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.AniDb.DownloadCharacters = contractIn.AniDB_DownloadCharacters;
             settings.AniDb.DownloadCreators = contractIn.AniDB_DownloadCreators;
 
-            // Web Cache
-            settings.WebCache.Address = contractIn.WebCache_Address;
-            settings.WebCache.XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
-            settings.WebCache.XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
-            settings.WebCache.TvDB_Get = contractIn.WebCache_TvDB_Get;
-            settings.WebCache.TvDB_Send = contractIn.WebCache_TvDB_Send;
-            settings.WebCache.Trakt_Get = contractIn.WebCache_Trakt_Get;
-            settings.WebCache.Trakt_Send = contractIn.WebCache_Trakt_Send;
-
             // TvDB
             settings.TvDB.AutoLink = contractIn.TvDB_AutoLink;
             settings.TvDB.AutoFanart = contractIn.TvDB_AutoFanart;
@@ -465,9 +456,9 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             settings.Import.RunOnStart = contractIn.RunImportOnStart;
             settings.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
-            settings.Import.Hash_CRC32 = contractIn.Hash_CRC32;
-            settings.Import.Hash_MD5 = contractIn.Hash_MD5;
-            settings.Import.Hash_SHA1 = contractIn.Hash_SHA1;
+            settings.Import.Hasher.CRC = contractIn.Hash_CRC32;
+            settings.Import.Hasher.MD5 = contractIn.Hash_MD5;
+            settings.Import.Hasher.SHA1 = contractIn.Hash_SHA1;
             settings.Plugins.Renamer.RenameOnImport = contractIn.Import_RenameOnImport;
             settings.Plugins.Renamer.MoveOnImport = contractIn.Import_MoveOnImport;
             settings.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;

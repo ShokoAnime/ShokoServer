@@ -165,9 +165,7 @@ public static class Loader
             var obj = !File.Exists(settingsPath)
                 ? Activator.CreateInstance(t)
                 : SettingsProvider.Deserialize(t, File.ReadAllText(settingsPath));
-            // Plugins.Settings will be empty, since it's ignored by the serializer
             var settings = (IPluginSettings)obj;
-            serverSettings.Plugins.Settings.Add(settings);
 
             plugin.OnSettingsLoaded(settings);
         }

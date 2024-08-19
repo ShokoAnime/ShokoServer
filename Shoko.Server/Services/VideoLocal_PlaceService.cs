@@ -126,6 +126,19 @@ public class VideoLocal_PlaceService
             };
         }
 
+        // Check if the import folder can accept the file.
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.Import.SkipDiskSpaceChecks && !request.ImportFolder.CanAcceptFile(place))
+        {
+            _logger.LogWarning("The import folder cannot accept the file due to too little space available: {FilePath}", oldFullPath);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"The import folder cannot accept the file due to too little space available: \"{oldFullPath}\"",
+            };
+        }
+
         var dropFolder = (IImportFolder)place.ImportFolder!;
         var newRelativePath = Path.GetRelativePath(request.ImportFolder.Path, fullPath);
         var newFolderPath = Path.GetDirectoryName(newRelativePath);

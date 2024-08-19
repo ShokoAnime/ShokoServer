@@ -72,8 +72,6 @@ public class SettingsProvider : ISettingsProvider
         {
             ImagesPath = legacy.ImagesPath,
             ServerPort = (ushort)legacy.JMMServerPort,
-            PluginAutoWatchThreshold = double.Parse(legacy.PluginAutoWatchThreshold, CultureInfo.InvariantCulture),
-            Culture = legacy.Culture,
             WebUI_Settings = legacy.WebUI_Settings,
             FirstRun = legacy.FirstRun,
             LogRotator =
@@ -112,16 +110,6 @@ public class SettingsProvider : ISettingsProvider
                 DownloadCreators = legacy.AniDB_DownloadCreators,
                 MaxRelationDepth = legacy.AniDB_MaxRelationDepth
             },
-            WebCache = new WebCacheSettings
-            {
-                Address = legacy.WebCache_Address,
-                XRefFileEpisode_Get = legacy.WebCache_XRefFileEpisode_Get,
-                XRefFileEpisode_Send = legacy.WebCache_XRefFileEpisode_Send,
-                TvDB_Get = legacy.WebCache_TvDB_Get,
-                TvDB_Send = legacy.WebCache_TvDB_Send,
-                Trakt_Get = legacy.WebCache_Trakt_Get,
-                Trakt_Send = legacy.WebCache_Trakt_Send
-            },
             TvDB =
                 new TvDBSettings
                 {
@@ -147,21 +135,20 @@ public class SettingsProvider : ISettingsProvider
                 new ImportSettings
                 {
                     VideoExtensions = legacy.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-                    DefaultSeriesLanguage = legacy.DefaultSeriesLanguage,
-                    DefaultEpisodeLanguage = legacy.DefaultEpisodeLanguage,
                     RunOnStart = legacy.RunImportOnStart,
                     ScanDropFoldersOnStart = legacy.ScanDropFoldersOnStart,
-                    Hash_CRC32 = legacy.Hash_CRC32,
-                    Hash_MD5 = legacy.Hash_MD5,
-                    Hash_SHA1 = legacy.Hash_SHA1,
+                    Hasher = new()
+                    {
+                        CRC = legacy.Hash_CRC32,
+                        MD5 = legacy.Hash_MD5,
+                        SHA1 = legacy.Hash_SHA1,
+                    },
                     UseExistingFileWatchedStatus = legacy.Import_UseExistingFileWatchedStatus
                 },
             Plex =
                 new PlexSettings
                 {
-                    ThumbnailAspects = legacy.PlexThumbnailAspects,
                     Libraries = legacy.Plex_Libraries.ToList(),
-                    Token = legacy.Plex_Token,
                     Server = legacy.Plex_Server
                 },
             AutoGroupSeries = legacy.AutoGroupSeries,
@@ -181,17 +168,17 @@ public class SettingsProvider : ISettingsProvider
             TraktTv = new TraktSettings
             {
                 Enabled = legacy.Trakt_IsEnabled,
-                PIN = legacy.Trakt_PIN,
                 AuthToken = legacy.Trakt_AuthToken,
                 RefreshToken = legacy.Trakt_RefreshToken,
                 TokenExpirationDate = legacy.Trakt_TokenExpirationDate,
                 UpdateFrequency = legacy.Trakt_UpdateFrequency,
                 SyncFrequency = legacy.Trakt_SyncFrequency
             },
-            UpdateChannel = legacy.UpdateChannel,
             Linux = new LinuxSettings
             {
-                UID = legacy.Linux_UID, GID = legacy.Linux_GID, Permission = legacy.Linux_Permission
+                UID = legacy.Linux_UID,
+                GID = legacy.Linux_GID,
+                Permission = legacy.Linux_Permission
             },
             TraceLog = legacy.TraceLog,
             Database = new DatabaseSettings
@@ -308,7 +295,7 @@ public class SettingsProvider : ISettingsProvider
 
         if (!Validator.TryValidateObject(Instance, context, results))
         {
-            results.ForEach(s => _logger.LogError(s.ErrorMessage));
+            results.ForEach(s => _logger.LogError("{ex}", s.ErrorMessage));
             throw new ValidationException();
         }
 
@@ -386,22 +373,17 @@ public class SettingsProvider : ISettingsProvider
         return false;
     }
 
-    private static IEnumerable<object> ToEnum(Array a)
-    {
-        for (var i = 0; i < a.Length; i++) { yield return a.GetValue(i); }
-    }
-
     public void DebugSettingsToLog()
     {
         #region System Info
 
         _logger.LogInformation("-------------------- SYSTEM INFO -----------------------");
 
-        var a = Assembly.GetEntryAssembly();
         try
         {
+            var a = Assembly.GetEntryAssembly();
             var serverVersion = new ComponentVersion { Version = Utils.GetApplicationVersion() };
-            var extraVersionDict = Utils.GetApplicationExtraVersion();
+            var extraVersionDict = Utils.GetApplicationExtraVersion(a);
             if (extraVersionDict.TryGetValue("tag", out var tag))
                 serverVersion.Tag = tag;
             if (extraVersionDict.TryGetValue("commit", out var commit))
@@ -430,7 +412,7 @@ public class SettingsProvider : ISettingsProvider
         }
         catch (Exception ex)
         {
-            // oopps, can't create file
+            // whops, can't create file
             logger.Warn("Error in log (database version lookup: {0}", ex.Message);
         }
         */
@@ -442,13 +424,13 @@ public class SettingsProvider : ISettingsProvider
 
             var tempVersion = MediaInfo.GetVersion();
             if (tempVersion != null) mediaInfoVersion = $"MediaInfo: {tempVersion}";
-            _logger.LogInformation(mediaInfoVersion);
+            _logger.LogInformation("{msg}", mediaInfoVersion);
 
             var hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
             tempVersion = Hasher.GetVersion();
             if (tempVersion != null) hasherInfoVersion = $"RHash: {tempVersion}";
-            _logger.LogInformation(hasherInfoVersion);
+            _logger.LogInformation("{msg}", hasherInfoVersion);
         }
         catch (Exception ex)
         {

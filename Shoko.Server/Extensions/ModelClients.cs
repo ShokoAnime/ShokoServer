@@ -50,15 +50,6 @@ public static class ModelClients
             AniDB_DownloadCreators = settings.AniDb.DownloadCreators,
             AniDB_MaxRelationDepth = settings.AniDb.MaxRelationDepth,
 
-            // Web Cache
-            WebCache_Address = settings.WebCache.Address,
-            WebCache_XRefFileEpisode_Get = settings.WebCache.XRefFileEpisode_Get,
-            WebCache_XRefFileEpisode_Send = settings.WebCache.XRefFileEpisode_Send,
-            WebCache_TvDB_Get = settings.WebCache.TvDB_Get,
-            WebCache_TvDB_Send = settings.WebCache.TvDB_Send,
-            WebCache_Trakt_Get = settings.WebCache.Trakt_Get,
-            WebCache_Trakt_Send = settings.WebCache.Trakt_Send,
-
             // TvDB
             TvDB_AutoLink = settings.TvDB.AutoLink,
             TvDB_AutoFanart = settings.TvDB.AutoFanart,
@@ -88,9 +79,9 @@ public static class ModelClients
             Import_UseExistingFileWatchedStatus = settings.Import.UseExistingFileWatchedStatus,
             RunImportOnStart = settings.Import.RunOnStart,
             ScanDropFoldersOnStart = settings.Import.ScanDropFoldersOnStart,
-            Hash_CRC32 = settings.Import.Hash_CRC32,
-            Hash_MD5 = settings.Import.Hash_MD5,
-            Hash_SHA1 = settings.Import.Hash_SHA1,
+            Hash_CRC32 = settings.Import.Hasher.CRC,
+            Hash_MD5 = settings.Import.Hasher.MD5,
+            Hash_SHA1 = settings.Import.Hasher.SHA1,
             SkipDiskSpaceChecks = settings.Import.SkipDiskSpaceChecks,
 
             // Language

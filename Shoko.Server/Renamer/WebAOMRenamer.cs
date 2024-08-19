@@ -47,7 +47,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         Exception ex = null;
         try
         {
-            if (args.RenameEnabled) (success, newFilename) = GetNewFileName(args, script);
+            if (args.RenameEnabled) (success, newFilename) = GetNewFileName(args, args.Settings, script);
             if (args.MoveEnabled)
             {
                 destination = GetDestinationFolder(args);
@@ -1381,7 +1381,8 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    public (bool success, string name) GetNewFileName(RelocationEventArgs args, string script)
+
+    public (bool success, string name) GetNewFileName(RelocationEventArgs args, WebAOMSettings settings, string script)
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
         var sourceFolder = RepoFactory.ImportFolder.GetAll()
@@ -1436,7 +1437,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             if (thisLine.StartsWith(Constants.FileRenameReserved.Do, StringComparison.InvariantCultureIgnoreCase))
             {
                 var action = GetAction(thisLine);
-                PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
+                PerformActionOnFileName(ref newFileName, action, settings, vid, aniFile, episodes, anime);
             }
             else if (EvaluateTest(thisLine, vid, aniFile, episodes, anime))
             {
@@ -1447,7 +1448,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 if (action.ToUpper().Trim().Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
                     return (false, "The script called FAIL");
 
-                PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
+                PerformActionOnFileName(ref newFileName, action, settings, vid, aniFile, episodes, anime);
             }
         }
 
@@ -1463,7 +1464,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return (true, Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}"));
     }
 
-    private void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+    private void PerformActionOnFileName(ref string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         // find the first test
         var posStart = action.IndexOf(' ');
@@ -1475,7 +1476,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         // action is to add the new file name
         if (actionType.Trim().Equals(Constants.FileRenameReserved.Add, StringComparison.InvariantCultureIgnoreCase))
-            PerformActionOnFileNameADD(ref newFileName, parameter, vid, aniFile, episodes, anime);
+            PerformActionOnFileNameADD(ref newFileName, parameter, settings, vid, aniFile, episodes, anime);
 
         if (actionType.Trim().Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
             PerformActionOnFileNameREPLACE(ref newFileName, parameter);
@@ -1511,7 +1512,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private void PerformActionOnFileNameADD(ref string newFileName, string action, SVR_VideoLocal vid,
+    private void PerformActionOnFileNameADD(ref string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid,
         SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         newFileName += action;
@@ -1675,8 +1676,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             var epname = RepoFactory.AniDB_Episode_Title
                 .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.English)
                 .FirstOrDefault()?.Title;
-            var settings = Utils.SettingsProvider.GetSettings();
-            if (epname?.Length > settings.LegacyRenamerMaxEpisodeLength) epname = epname[..(settings.LegacyRenamerMaxEpisodeLength - 1)] + "…";
+            if (epname?.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
         }
@@ -1690,8 +1690,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             var epname = RepoFactory.AniDB_Episode_Title
                 .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.Romaji)
                 .FirstOrDefault()?.Title;
-            var settings = Utils.SettingsProvider.GetSettings();
-            if (epname?.Length > settings.LegacyRenamerMaxEpisodeLength) epname = epname[..(settings.LegacyRenamerMaxEpisodeLength - 1)] + "…";
+            if (epname?.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
         }
@@ -2100,7 +2099,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         if (args.Settings.GroupAwareSorting)
             return GetGroupAwareDestination(args);
 
-        return GetFlatFolderDestination(args);
+        return GetFlatFolderDestination(args, args.Settings);
     }
 
     private (IImportFolder dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
@@ -2160,34 +2159,20 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return dest.DropFolderType.HasFlag(DropFolderType.Destination);
     }
 
-    private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
+    private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args, WebAOMSettings settings)
     {
         // TODO make this only dependent on PluginAbstractions
         IImportFolder destFolder = null;
-        var settings = Utils.SettingsProvider.GetSettings();
-        foreach (var fldr in args.AvailableFolders)
+        foreach (var folder in args.AvailableFolders)
         {
-            if (!fldr.DropFolderType.HasFlag(DropFolderType.Destination)) continue;
-            if (!Directory.Exists(fldr.Path)) continue;
+            if (!folder.DropFolderType.HasFlag(DropFolderType.Destination)) continue;
+            if (!Directory.Exists(folder.Path)) continue;
 
             // Continue if on a separate drive and there's no space
-            // TODO refactor this into a shared helper
-            if (!settings.Import.SkipDiskSpaceChecks && !args.File.Path.StartsWith(Path.GetPathRoot(fldr.Path)))
-            {
-                var available = 0L;
-                try
-                {
-                    available = new DriveInfo(fldr.Path).AvailableFreeSpace;
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Error checking disk space for {ImportFolder}", fldr.Path);
-                }
+            if (!settings.SkipDiskSpaceChecks && !folder.CanAcceptFile(args.File))
+                continue;
 
-                if (available < args.File.Size) continue;
-            }
-
-            destFolder = fldr;
+            destFolder = folder;
             break;
         }
 
@@ -2244,20 +2229,8 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 if (dstImportFolder == null) continue;
 
                 // check space
-                if (!args.File.Path.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) && !settings.Import.SkipDiskSpaceChecks)
-                {
-                    var available = 0L;
-                    try
-                    {
-                        available = new DriveInfo(dstImportFolder.ImportFolderLocation).AvailableFreeSpace;
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e, "Error checking disk space for {ImportFolder}", dstImportFolder.ImportFolderLocation);
-                    }
-
-                    if (available < vid.FileSize) continue;
-                }
+                if (!settings.SkipDiskSpaceChecks && !dstImportFolder.CanAcceptFile(args.File))
+                    continue;
 
                 if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName))) continue;
 

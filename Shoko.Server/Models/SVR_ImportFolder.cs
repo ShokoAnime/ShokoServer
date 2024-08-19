@@ -60,10 +60,33 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
     [JsonIgnore, XmlIgnore]
     public bool FolderIsDropDestination => IsDropDestination == 1;
 
+    [JsonIgnore, XmlIgnore]
+    public long AvailableFreeSpace
+    {
+        get
+        {
+            var path = ImportFolderLocation;
+            if (!Directory.Exists(path))
+                return -1L;
+
+            try
+            {
+                return new DriveInfo(path).AvailableFreeSpace;
+            }
+            catch
+            {
+                return -2L;
+            }
+        }
+    }
+
     public override string ToString()
     {
         return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
     }
+
+    public bool CanAcceptFile(IVideoFile file)
+        => file is not null && (file.ImportFolderID == ImportFolderID || file.Size < AvailableFreeSpace);
 
     #region IImportFolder Implementation
 

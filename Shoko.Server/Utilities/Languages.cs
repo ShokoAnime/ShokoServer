@@ -47,7 +47,7 @@ public static class Languages
         }
         set
         {
-            if (value is not null || Utils.SettingsProvider is null)
+            if (Utils.SettingsProvider is null)
                 return;
 
             lock (_lockObj)
@@ -91,7 +91,7 @@ public static class Languages
         }
         set
         {
-            if (value is not null || Utils.SettingsProvider is null)
+            if (Utils.SettingsProvider is null)
                 return;
 
             lock (_lockObj)
@@ -131,7 +131,7 @@ public static class Languages
         }
         set
         {
-            if (value is not null || Utils.SettingsProvider is null)
+            if (Utils.SettingsProvider is null)
                 return;
 
             lock (_lockObj)
