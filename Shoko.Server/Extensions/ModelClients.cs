@@ -540,6 +540,23 @@ public static class ModelClients
                 StringComparer.InvariantCultureIgnoreCase)
         };
 
+    public static CL_AniDB_ReleaseGroup? ToClient(this AniDB_ReleaseGroup? group)
+        => group is null ? null : new CL_AniDB_ReleaseGroup
+        {
+            AniDB_ReleaseGroupID = group.AniDB_ReleaseGroupID,
+            AnimeCount = group.AnimeCount,
+            FileCount = group.FileCount,
+            GroupID = group.GroupID,
+            GroupName = group.GroupName,
+            GroupNameShort = group.GroupNameShort,
+            IRCChannel = group.IRCChannel,
+            IRCServer = group.IRCServer,
+            Picname = group.Picname,
+            Rating = group.Rating,
+            URL = group.URL,
+            Votes = group.Votes,
+        };
+
     //The resources need to be moved
     public static string GetAnimeTypeDescription(this AniDB_Anime anime)
         => anime.GetAnimeTypeEnum() switch

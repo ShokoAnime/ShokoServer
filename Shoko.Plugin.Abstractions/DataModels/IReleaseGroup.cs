@@ -1,8 +1,18 @@
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
-public interface IReleaseGroup
+/// <summary>
+/// Release group.
+/// </summary>
+public interface IReleaseGroup : IMetadata<int>
 {
-    string Name { get; }
-    string ShortName { get; }
+    /// <summary>
+    /// The name of the release group.
+    /// </summary>
+    string? Name { get; }
+
+    /// <summary>
+    /// The short name of the release group.
+    /// </summary>
+    string? ShortName { get; }
 }

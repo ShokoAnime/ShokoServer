@@ -269,7 +269,7 @@ public class VideoLocal_PlaceService
                 };
             }
 
-            if (destinationExistingAniDBFile.Anime_GroupName == aniDBFile.Anime_GroupName &&
+            if (destinationExistingAniDBFile.GroupID == aniDBFile.GroupID &&
                 destinationExistingAniDBFile.FileVersion < aniDBFile.FileVersion)
             {
                 // This is a V2 replacing a V1 with the same name.

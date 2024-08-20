@@ -5,16 +5,19 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_ReleaseGroupRepository : BaseCachedRepository<AniDB_ReleaseGroup, int>
 {
-    private PocoIndex<int, AniDB_ReleaseGroup, int> GroupIDs;
+    private PocoIndex<int, AniDB_ReleaseGroup, int> _groupIDs;
 
-    public AniDB_ReleaseGroup GetByGroupID(int id)
+    public AniDB_ReleaseGroup? GetByGroupID(int id)
     {
-        return ReadLock(() => GroupIDs.GetOne(id));
+        return ReadLock(() => _groupIDs.GetOne(id));
     }
 
     public IReadOnlyList<AniDB_ReleaseGroup> GetUsedReleaseGroups()
@@ -41,7 +44,7 @@ public class AniDB_ReleaseGroupRepository : BaseCachedRepository<AniDB_ReleaseGr
 
     public override void PopulateIndexes()
     {
-        GroupIDs = Cache.CreateIndex(a => a.GroupID);
+        _groupIDs = Cache.CreateIndex(a => a.GroupID);
     }
 
     public override void RegenerateDb()

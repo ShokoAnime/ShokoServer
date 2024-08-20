@@ -101,7 +101,7 @@ public class VideoLocalService
 
         var userRecord = _vlUsers.GetByUserIDAndVideoLocalID(userID, vl.VideoLocalID);
         var aniFile = vl.AniDBFile; // to prevent multiple db calls
-        var relGroup = vl.ReleaseGroup; // to prevent multiple db calls
+        var relGroup = vl.ReleaseGroup?.ToClient(); // to prevent multiple db calls
         var cl = new CL_VideoDetailed
         {
             Percentage = xrefs[0].Percentage,

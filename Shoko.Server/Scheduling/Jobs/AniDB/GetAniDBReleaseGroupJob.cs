@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Server;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
@@ -43,7 +42,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
 
         if (response?.Response == null) return Task.CompletedTask;
 
-        relGroup ??= new AniDB_ReleaseGroup();
+        relGroup ??= new();
         relGroup.GroupID = response.Response.ID;
         relGroup.Rating = (int)(response.Response.Rating * 100);
         relGroup.Votes = response.Response.Votes;
@@ -58,7 +57,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
         return Task.CompletedTask;
     }
-    
+
     public GetAniDBReleaseGroupJob(IRequestFactory requestFactory)
     {
         _requestFactory = requestFactory;
