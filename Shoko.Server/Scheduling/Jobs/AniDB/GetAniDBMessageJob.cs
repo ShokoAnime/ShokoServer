@@ -65,17 +65,13 @@ public class GetAniDBMessageJob : BaseJob
 
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
-
-        if (settings.AniDb.Notification_Acknowledge)
-        {
-            await scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
-                r =>
-                {
-                    r.NotifyType = AniDBNotifyType.Message;
-                    r.NotifyID = MessageID;
-                }
-            );
-        }
+        await scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
+            r =>
+            {
+                r.NotifyType = AniDBNotifyType.Message;
+                r.NotifyID = MessageID;
+            }
+        );
 
         if (message.IsFileMoved && settings.AniDb.Notification_HandleMovedFiles)
         {
