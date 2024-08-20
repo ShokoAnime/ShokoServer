@@ -1340,7 +1340,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("ep/vote")]
-    public ActionResult VoteOnEpisode(int id, int score)
+    public async Task<ActionResult> VoteOnEpisode(int id, int score)
     {
         JMMUser user = HttpContext.GetUser();
 
@@ -1348,7 +1348,7 @@ public class Common : BaseController
         {
             if (score != 0)
             {
-                return EpisodeVote(id, score, user.JMMUserID);
+                return await EpisodeVote(id, score, user.JMMUserID);
             }
 
             return BadRequest("missing 'score'");
@@ -1561,37 +1561,43 @@ public class Common : BaseController
     /// <param name="score">rating score as 1-10 or 100-1000</param>
     /// <param name="uid"></param>
     /// <returns>APIStatus</returns>
-    internal ActionResult EpisodeVote(int id, int score, int uid)
+    internal async Task<ActionResult> EpisodeVote(int id, int score, int uid)
     {
-        if (id > 0)
+        if (id <= 0)
         {
-            if (score > 0 && score < 1000)
-            {
-                var thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Episode);
+            return BadRequest("'id' value is wrong");
+        }
 
-                if (thisVote == null)
-                {
-                    thisVote = new AniDB_Vote { VoteType = (int)AniDBVoteType.Episode, EntityID = id };
-                }
-
-                if (score <= 10)
-                {
-                    score = score * 100;
-                }
-
-                thisVote.VoteValue = score;
-                RepoFactory.AniDB_Vote.Save(thisVote);
-
-                //CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, voteType, voteValue);
-                //cmdVote.Save();
-
-                return Ok();
-            }
-
+        if (score <= 0 || score > 1000)
+        {
             return BadRequest("'score' value is wrong");
         }
 
-        return BadRequest("'id' value is wrong");
+        var episode = RepoFactory.AnimeEpisode.GetByID(id);
+        if (episode == null)
+        {
+            return BadRequest($"Episode with id {id} was not found");
+        }
+
+        var thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Episode) ??
+                       new AniDB_Vote { EntityID = id, VoteType = (int)AniDBVoteType.Episode };
+
+        if (score <= 10)
+        {
+            score *= 100;
+        }
+
+        thisVote.VoteValue = score;
+        RepoFactory.AniDB_Vote.Save(thisVote);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<VoteAniDBEpisodeJob>(c =>
+        {
+            c.EpisodeID = episode.AniDB_EpisodeID;
+            c.VoteValue = Convert.ToDouble(thisVote);
+        });
+
+        return Ok();
     }
 
     #endregion
