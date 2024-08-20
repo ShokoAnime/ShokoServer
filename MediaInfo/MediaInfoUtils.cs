@@ -1,106 +1,48 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Linq;
 
 namespace Shoko.Models.MediaInfo
 {
     public static class MediaInfoUtils
     {
-        public static readonly Dictionary<int, string> ResolutionArea;
-        public static readonly Dictionary<int, string> ResolutionArea43;
-        public static readonly Dictionary<int, string> ResolutionArea219;
-
-        static MediaInfoUtils()
-        {
-            ResolutionArea219 = new Dictionary<int, string>
-            {
-                {2560 * 1080, "UWHD"},
-                {3440 * 1440, "UWQHD"}
-            };
-
-            ResolutionArea = new Dictionary<int, string>
-            {
-                {3840 * 2160, "2160p"},
-                {2560 * 1440, "1440p"},
-                {1920 * 1080, "1080p"},
-                {1280 * 720, "720p"},
-                {1024 * 576, "576p"},
-                {853 * 480, "480p"}
-            };
-
-            ResolutionArea43 = new Dictionary<int, string>
-            {
-                {1440 * 1080, "1080p"},
-                {960 * 720, "720p"},
-                {720 * 576, "576p"},
-                {720 * 480, "480p"},
-                {480 * 360, "360p"},
-                {320 * 240, "240p"}
-            };
-        }
-
         private const double SixteenNine = 1.777778;
-        public const double FourThirds = 1.333333;
-        public const double TwentyOneNine = 2.333333;
 
-        private static readonly double[] s_ratios =
+        private const double FourThirds = 1.333333;
+
+        private const double TwentyOneNine = 2.333333;
+
+        private static readonly double[] _ratios = [FourThirds, SixteenNine, TwentyOneNine];
+
+        public static readonly IReadOnlyDictionary<int, string> ResolutionArea169 = new Dictionary<int, string>
         {
-            FourThirds, SixteenNine, TwentyOneNine
+            {3840 * 2160, "2160p"},
+            {2560 * 1440, "1440p"},
+            {1920 * 1080, "1080p"},
+            {1280 * 720, "720p"},
+            {1024 * 576, "576p"},
+            {853 * 480, "480p"}
         };
 
-        public static string GetStandardResolution(Tuple<int, int> res)
+        public static readonly IReadOnlyDictionary<int, string> ResolutionArea43 = new Dictionary<int, string>
         {
-            if (res == null) return null;
-            // not precise, but we are rounding and calculating distance anyway
-            var ratio = (double) res.Item1 / res.Item2;
+            {1440 * 1080, "1080p"},
+            {960 * 720, "720p"},
+            {720 * 576, "576p"},
+            {720 * 480, "480p"},
+            {480 * 360, "360p"},
+            {320 * 240, "240p"}
+        };
 
-            var nearest = FindClosest(s_ratios, ratio);
-
-            switch (nearest)
-            {
-                default:
-                {
-                    var area = res.Item1 * res.Item2;
-                    var key = FindClosest(ResolutionArea.Keys.ToArray(), area);
-                    return ResolutionArea[key];
-                }
-                case FourThirds:
-                {
-                    var area = res.Item1 * res.Item2;
-                    var key = FindClosest(ResolutionArea43.Keys.ToArray(), area);
-                    return ResolutionArea43[key];
-                }
-                case TwentyOneNine:
-                {
-                    var area = res.Item1 * res.Item2;
-                    var key = FindClosest(ResolutionArea219.Keys.ToArray(), area);
-                    return ResolutionArea219[key];
-                }
-            }
-        }
-
-        private static long FindClosest(IEnumerable<long> array, long value)
+        public static readonly IReadOnlyDictionary<int, string> ResolutionArea219 = new Dictionary<int, string>
         {
-            return array.Aggregate((current, next) =>
-                Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
-        }
-
-        private static int FindClosest(IEnumerable<int> array, int value)
-        {
-            return array.Aggregate((current, next) =>
-                Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
-        }
-
-        private static double FindClosest(IEnumerable<double> array, double value)
-        {
-            return array.Aggregate((current, next) =>
-                Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
-        }
+            {2560 * 1080, "UWHD"},
+            {3440 * 1440, "UWQHD"}
+        };
 
         [SuppressMessage("ReSharper", "StringLiteralTypo")]
-        private static readonly Dictionary<string, Tuple<string, string>> LanguageMapping_2_1_Name = new Dictionary<string, Tuple<string, string>>
+        private static readonly Dictionary<string, Tuple<string, string>> _languageMapping_2_1_Name = new()
         {
             {"aa", Tuple.Create("aar", "Afar")},
             {"ab", Tuple.Create("abk", "Abkhazian")},
@@ -293,339 +235,17 @@ namespace Shoko.Models.MediaInfo
             {"zxx", Tuple.Create("unk", "Unknown")},
             {"unk", Tuple.Create("unk", "Unknown")},
             {"mis", Tuple.Create("mis", "Miscoded")},
-            {"mul", Tuple.Create("mis", "Multiple Languages")},
+            {"mul", Tuple.Create("mul", "Multiple Languages")},
             {"sgn", Tuple.Create("sgn", "Signs")},
         };
 
-        private static readonly ILookup<string, Tuple<string, string>> LanguageMapping_1_2_Name =
-            LanguageMapping_2_1_Name.ToLookup(a => a.Value.Item1, a => Tuple.Create(a.Key, a.Value.Item2));
+        private static readonly ILookup<string, Tuple<string, string>> _languageMapping_1_2_Name =
+            _languageMapping_2_1_Name.ToLookup(a => a.Value.Item1, a => Tuple.Create(a.Key, a.Value.Item2));
 
-        private static readonly ILookup<string, Tuple<string, string>> LanguageMapping_Name_2_1 =
-            LanguageMapping_2_1_Name.ToLookup(a => a.Value.Item2.ToLowerInvariant(), a => Tuple.Create(a.Key, a.Value.Item1));
+        private static readonly ILookup<string, Tuple<string, string>> _languageMapping_Name_2_1 =
+            _languageMapping_2_1_Name.ToLookup(a => a.Value.Item2.ToLowerInvariant(), a => Tuple.Create(a.Key, a.Value.Item1));
 
-        public static string GetLanguageFromCode(string code)
-        {
-            return LanguageMapping_1_2_Name.Contains(code) ? LanguageMapping_1_2_Name[code].FirstOrDefault()?.Item1 : null;
-        }
-
-        public static string GetLanguageFromName(string code)
-        {
-            code = code.ToLowerInvariant();
-            return LanguageMapping_Name_2_1.Contains(code) ? LanguageMapping_Name_2_1[code].FirstOrDefault()?.Item1 : null;
-        }
-
-        public static string GetLanguageCode(string language)
-        {
-            return LanguageMapping_2_1_Name.TryGetValue(language, out var value) ? value.Item1 : null;
-        }
-
-        public static string GetLanguageName(string language)
-        {
-            return LanguageMapping_2_1_Name.TryGetValue(language, out var value) ? value.Item1 : null;
-        }
-
-        public static Tuple<string, string> GetLanguageMapping(string language)
-        {
-            return LanguageMapping_2_1_Name.TryGetValue(language, out var mapping) ? mapping : null;
-        }
-    }
-
-    public static class LegacyMediaUtils
-    {
-        public static string TranslateCodec(Stream stream)
-        {
-            if (stream?.Codec == null && stream?.CodecID == null) return null;
-            var codec = stream.Codec?.ToLower();
-            if (codec != null && CodecIDs.TryGetValue(codec, out var d)) return d.ToUpper();
-            codec = stream.CodecID?.ToLower();
-            if (codec != null && CodecIDs.TryGetValue(codec, out var iD)) return iD.ToUpper();
-            if (stream is TextStream textStream)
-                return GetSubFormat(textStream.CodecID, textStream.Format)?.ToUpper();
-            return stream.CodecID?.ToUpper();
-        }
-
-        public static string TranslateFrameRate(MediaContainer m)
-        {
-            if ((m.VideoStream?.FrameRate ?? 0) == 0) return null;
-            var fr = System.Convert.ToSingle(m.VideoStream.FrameRate, CultureInfo.InvariantCulture);
-            var frs = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
-            if (!string.IsNullOrEmpty(m.VideoStream.ScanType))
-            {
-                if (m.VideoStream.ScanType.ToLower().Contains("int"))
-                    frs += "i";
-                else
-                    frs += "p";
-            }
-            else
-                frs += "p";
-
-            switch (frs)
-            {
-                case "25p":
-                case "25i":
-                    frs = "PAL";
-                    break;
-                case "30p":
-                case "30i":
-                    frs = "NTSC";
-                    break;
-            }
-
-            return frs;
-        }
-
-        private static string TranslateProfile(string codec, string profile)
-        {
-            profile = profile.ToLowerInvariant();
-
-            if (profile.Contains("advanced simple"))
-                return "asp";
-            if (codec == "mpeg4" && profile.Equals("simple"))
-                return "sp";
-            if (profile.StartsWith("m"))
-                return "main";
-            if (profile.StartsWith("s"))
-                return "simple";
-            if (profile.StartsWith("a"))
-                return "advanced";
-            return profile;
-        }
-
-        public static string TranslateLevel(string level)
-        {
-            level = level.Replace(".", string.Empty).ToLowerInvariant();
-            if (level.StartsWith("l"))
-            {
-                int.TryParse(level.Substring(1), out var lll);
-                if (lll != 0)
-                    level = lll.ToString(CultureInfo.InvariantCulture);
-                else if (level.StartsWith("lm"))
-                    level = "medium";
-                else if (level.StartsWith("lh"))
-                    level = "high";
-                else
-                    level = "low";
-            }
-            else if (level.StartsWith("m"))
-                level = "medium";
-            else if (level.StartsWith("h"))
-                level = "high";
-
-            return level;
-        }
-
-        public static string TranslateContainer(string container)
-        {
-            if (container == null) return null;
-            container = container.ToLowerInvariant();
-            foreach (var k in FileContainers.Keys)
-            {
-                if (container.Contains(k))
-                {
-                    return FileContainers[k];
-                }
-            }
-
-            return container;
-        }
-
-        public static PlexAndKodi.Stream TranslateVideoStream(MediaContainer c)
-        {
-            var m = c?.VideoStream;
-            if (m == null) return null;
-            var s = new PlexAndKodi.Stream
-            {
-                Id = m.ID,
-                Codec = TranslateCodec(m),
-                CodecID = m.CodecID,
-                StreamType = 1,
-                Width = m.Width,
-                Height = m.Height,
-                Duration = (long) (c.GeneralStream?.Duration * 1000 ?? 0),
-                Title = m.Title,
-                LanguageCode = m.LanguageCode,
-                Language = m.LanguageName,
-                BitDepth = (byte) m.BitDepth,
-                Index = (byte) m.ID,
-                QPel = (byte) (m.Format_Settings_QPel ? 1 : 0),
-                GMC = m.Format_Settings_GMC,
-                Default = (byte) (m.Default ? 1 : 0),
-                Forced = (byte) (m.Forced ? 1 : 0),
-                PA = (float) m.PixelAspectRatio,
-                Bitrate = (int) Math.Round(m.BitRate / 1000F),
-                ScanType = m.ScanType?.ToLower(),
-                RefFrames = (byte) m.Format_Settings_RefFrames,
-                HeaderStripping =
-                    (byte) (m.MuxingMode?.IndexOf("strip", StringComparison.InvariantCultureIgnoreCase) != -1
-                        ? 1
-                        : 0),
-                Cabac = (byte) (m.Format_Settings_CABAC ? 1 : 0),
-                FrameRateMode = m.FrameRate_Mode?.ToLower(CultureInfo.InvariantCulture),
-                FrameRate = (float) m.FrameRate,
-                ColorSpace = m.ColorSpace?.ToLower(CultureInfo.InvariantCulture),
-                ChromaSubsampling = m.ChromaSubsampling?.ToLower(CultureInfo.InvariantCulture),
-            };
-
-            s.HasScalingMatrix = (byte) (s.Codec == "h264" && s.Level == 31 && s.Cabac == 0 ? 1 : 0);
-            s.BVOP = (byte) (m.Format_Settings_BVOP && s.Codec != "mpeg1video" ? 1 : 0);
-
-            if (s.PA != 1.0 && s.Width != 0)
-            {
-                if (s.Width != 0)
-                {
-                    float width = s.Width;
-                    width *= s.PA;
-                    s.PixelAspectRatio = $"{(int) Math.Round(width)}:{s.Width}";
-                }
-            }
-
-
-            var fProfile = m.Format_Profile;
-            if (!string.IsNullOrEmpty(fProfile))
-            {
-                var a = fProfile.ToLower(CultureInfo.InvariantCulture).IndexOf("@", StringComparison.Ordinal);
-                if (a > 0)
-                {
-                    s.Profile = TranslateProfile(s.Codec,
-                        fProfile.ToLower(CultureInfo.InvariantCulture).Substring(0, a));
-                    if (int.TryParse(
-                        TranslateLevel(fProfile.ToLower(CultureInfo.InvariantCulture).Substring(a + 1)),
-                        out var level)) s.Level = level;
-                }
-                else
-                    s.Profile = TranslateProfile(s.Codec, fProfile.ToLower(CultureInfo.InvariantCulture));
-            }
-
-            // Removed Rotation, as MediaInfo doesn't actually list it as a possibility
-
-            return s;
-        }
-
-        public static List<PlexAndKodi.Stream> TranslateAudioStreams(MediaContainer c)
-        {
-            var output = new List<PlexAndKodi.Stream>();
-            if (c == null) return output;
-            foreach (var m in c.AudioStreams)
-            {
-                var s = new PlexAndKodi.Stream
-                {
-                    Id = m.ID,
-                    CodecID = m.CodecID,
-                    Codec = TranslateCodec(m),
-                    Title = m.Title,
-                    StreamType = 2,
-                    LanguageCode = m.LanguageCode,
-                    Language = m.LanguageName,
-                    Duration = (int) c.GeneralStream.Duration * 1000,
-                    Index = (byte) m.ID,
-                    Bitrate = (int) Math.Round(m.BitRate / 1000F),
-                    BitDepth = (byte) m.BitDepth,
-                    SamplingRate = m.SamplingRate,
-                    Channels = (byte) m.Channels,
-                    BitrateMode = m.BitRate_Mode?.ToLower(CultureInfo.InvariantCulture),
-                    DialogNorm = (m.extra?.dialnorm)?.ToString(),
-                    Default = (byte) (m.Default ? 1 : 0),
-                    Forced = (byte) (m.Forced ? 1 : 0)
-                };
-
-                var fProfile = m.Format_Profile;
-                if (!string.IsNullOrEmpty(fProfile))
-                {
-                    if ((fProfile.ToLower() != "layer 3") && (fProfile.ToLower() != "dolby digital") &&
-                        (fProfile.ToLower() != "pro") &&
-                        (fProfile.ToLower() != "layer 2"))
-                        s.Profile = fProfile.ToLower(CultureInfo.InvariantCulture);
-                    if (fProfile.ToLower().StartsWith("ma"))
-                        s.Profile = "ma";
-                }
-
-                var fSettings = m.Format_Settings;
-                if (!string.IsNullOrEmpty(fSettings))
-                {
-                    switch (fSettings)
-                    {
-                        case "Little / Signed" when s.Codec == "pcm" && m.BitDepth == 16:
-                            s.Profile = "pcm_s16le";
-                            break;
-                        case "Big / Signed" when s.Codec == "pcm" && m.BitDepth == 16:
-                            s.Profile = "pcm_s16be";
-                            break;
-                        case "Little / Unsigned" when s.Codec == "pcm" && m.BitDepth == 8:
-                            s.Profile = "pcm_u8";
-                            break;
-                    }
-                }
-
-                output.Add(s);
-            }
-
-            return output;
-        }
-
-        public static IEnumerable<PlexAndKodi.Stream> TranslateTextStreams(MediaContainer c)
-        {
-            if (c == null) return new List<PlexAndKodi.Stream>();
-            return c.TextStreams.Select(m => new {m, subFormat = GetSubFormat(m.CodecID, m.Format)})
-                .Select(t => new PlexAndKodi.Stream
-                {
-                    Id = t.m.ID,
-                    CodecID = t.m.CodecID,
-                    StreamType = 3,
-                    Title = t.m.SubTitle ?? t.m.Title,
-                    LanguageCode = t.m.LanguageCode,
-                    Language = t.m.LanguageName,
-                    Index = (byte) t.m.ID,
-                    Format = t.subFormat,
-                    Codec = t.subFormat,
-                    Default = (byte) (t.m.Default ? 1 : 0),
-                    Forced = (byte) (t.m.Forced ? 1 : 0),
-                    File = t.m.External ? t.m.Filename : null
-                }).ToList();
-        }
-
-        private static string GetSubFormat(string codecID, string format)
-        {
-            if (!string.IsNullOrEmpty(codecID))
-            {
-                var codec = codecID.ToLower();
-                if (SubFormats.TryGetValue(codec, out var subFormat)) return subFormat.ToUpper();
-            }
-
-            codecID = format;
-            return codecID?.ToUpper() == "APPLE TEXT" ? "ttxt" : null;
-        }
-
-        private static readonly Dictionary<string, string> SubFormats = new Dictionary<string, string>
-        {
-            {"c608", "eia-608"},
-            {"c708", "eia-708"},
-            {"s_ass", "ass"},
-            {"s_hdmv/pgs", "pgs"},
-            {"s_ssa", "ssa"},
-            {"s_text/ass", "ass"},
-            {"s_text/ssa", "ssa"},
-            {"s_text/usf", "usf"},
-            {"s_text/utf8", "srt"},
-            {"s_usf", "usf"},
-            {"s_vobsub", "vobsub"},
-            {"subp", "vobsub"},
-            {"s_image/bmp", "bmp"},
-        };
-
-        private static readonly Dictionary<string, string> FileContainers = new Dictionary<string, string>
-        {
-            {"cdxa/mpeg-ps", "mpeg"},
-            {"divx", "avi"},
-            {"flash video", "flv"},
-            {"mpeg video", "mpeg"},
-            {"mpeg-4", "mp4"},
-            {"mpeg-ps", "mpeg"},
-            {"realmedia", "rm"},
-            {"windows media", "asf"},
-            {"matroska", "mkv"},
-        };
-
-        public static readonly Dictionary<string, string> CodecIDs = new Dictionary<string, string>
+        private static readonly Dictionary<string, string> _codecIDs = new()
         {
             {"161", "wmav2"},
             {"162", "wmapro"},
@@ -677,5 +297,109 @@ namespace Shoko.Models.MediaInfo
             {"vc-1", "vc1"},
             {"xvid", "mpeg4"}
         };
+
+        private static readonly Dictionary<string, string> _subFormats = new()
+        {
+            {"c608", "eia-608"},
+            {"c708", "eia-708"},
+            {"s_ass", "ass"},
+            {"s_hdmv/pgs", "pgs"},
+            {"s_ssa", "ssa"},
+            {"s_text/ass", "ass"},
+            {"s_text/ssa", "ssa"},
+            {"s_text/usf", "usf"},
+            {"s_text/utf8", "srt"},
+            {"s_usf", "usf"},
+            {"s_vobsub", "vobsub"},
+            {"subp", "vobsub"},
+            {"s_image/bmp", "bmp"},
+        };
+
+        public static string GetLanguageFromCode(string code)
+        {
+            if (_languageMapping_1_2_Name.Contains(code)) return _languageMapping_1_2_Name[code].FirstOrDefault()?.Item1;
+            return null;
+        }
+
+        public static string GetLanguageFromName(string code)
+        {
+            code = code.ToLowerInvariant();
+            if (_languageMapping_Name_2_1.Contains(code)) return _languageMapping_Name_2_1[code].FirstOrDefault()?.Item1;
+            return null;
+        }
+
+        public static Tuple<string, string> GetLanguageMapping(string language)
+        {
+            if (_languageMapping_2_1_Name.TryGetValue(language, out var value)) return value;
+            return null;
+        }
+
+        public static string GetStandardResolution(Tuple<int, int> res)
+        {
+            if (res == null)
+                return null;
+
+            // not precise, but we are rounding and calculating distance anyway
+            var ratio = (double)res.Item1 / res.Item2;
+            var nearest = FindClosestRatio(_ratios, ratio);
+            switch (nearest)
+            {
+                default:
+                case SixteenNine:
+                    {
+                        var area = res.Item1 * res.Item2;
+                        var key = FindClosestRatio(ResolutionArea169.Keys, area);
+                        return ResolutionArea169[key];
+                    }
+                case FourThirds:
+                    {
+                        var area = res.Item1 * res.Item2;
+                        var key = FindClosestRatio(ResolutionArea43.Keys, area);
+                        return ResolutionArea43[key];
+                    }
+                case TwentyOneNine:
+                    {
+                        var area = res.Item1 * res.Item2;
+                        var key = FindClosestRatio(ResolutionArea219.Keys, area);
+                        return ResolutionArea219[key];
+                    }
+            }
+        }
+
+        private static double FindClosestRatio(IEnumerable<double> array, double value)
+        {
+            return array.Aggregate((current, next) =>
+                Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
+        }
+
+        private static int FindClosestRatio(IEnumerable<int> array, int value)
+        {
+            return array.Aggregate((current, next) =>
+                Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
+        }
+
+        public static string TranslateCodec(Stream stream)
+        {
+            if (stream?.Codec == null && stream?.CodecID == null)
+                return null;
+
+            var id = stream.Codec?.ToLower();
+            if (id != null && _codecIDs.TryGetValue(id, out var value))
+                return value.ToUpper();
+
+            id = stream.CodecID?.ToLower();
+            if (id != null && _codecIDs.TryGetValue(id, out value))
+                return value.ToUpper();
+
+            if (stream is TextStream textStream)
+            {
+                if (!string.IsNullOrEmpty(id) && _subFormats.TryGetValue(id, out var codecFormat))
+                    return codecFormat.ToUpper();
+
+                return textStream.Format?.ToLowerInvariant() == "apple text" ? "TTXT" : null;
+            }
+
+            return stream.CodecID?.ToUpper();
+        }
     }
 }

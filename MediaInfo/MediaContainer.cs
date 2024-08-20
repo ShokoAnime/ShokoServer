@@ -4,10 +4,14 @@ using System.Linq;
 using MessagePack;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Extensions;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable IdentifierTypo
-
+#pragma warning disable IDE0019
+#pragma warning disable IDE1006
+#nullable enable
 namespace Shoko.Models.MediaInfo
 {
     /// <summary>
@@ -16,86 +20,155 @@ namespace Shoko.Models.MediaInfo
     /// If the client is open source, then usually, they already have mappings, as most clients use MediaInfo, anyway.
     /// </summary>
     [MessagePackObject]
-    public class MediaContainer : IMediaContainer
+    public class MediaContainer : IMediaInfo
     {
         [Key(0)]
-        public Media media { get; set; }
+        public Media? media { get; set; }
 
         // Cache to prevent excessive enumeration on things that will be called A LOT
         [IgnoreMember]
-        private GeneralStream _general { get; set; }
+        private GeneralStream? _general = null;
+
         [IgnoreMember]
-        private VideoStream _video { get; set; }
+        private VideoStream? _video = null;
+
         [IgnoreMember]
-        private List<VideoStream> _videos { get; set; }
+        private List<VideoStream>? _videos = null;
+
         [IgnoreMember]
-        private List<AudioStream> _audios { get; set; }
+        private List<AudioStream>? _audios = null;
+
         [IgnoreMember]
-        private List<TextStream> _texts { get; set; }
+        private List<TextStream>? _texts = null;
+
         [IgnoreMember]
-        private List<MenuStream> _menus { get; set; }
+        private List<MenuStream>? _menus = null;
+
+        [IgnoreMember]
+        private List<ChapterInfo>? _chapters = null;
 
         [JsonIgnore]
         [IgnoreMember]
-        public GeneralStream GeneralStream =>
-            _general ?? (_general = media?.track?.FirstOrDefault(a => a?.type == StreamType.General) as GeneralStream);
+        public GeneralStream GeneralStream
+        {
+            get
+            {
+                if (_general != null)
+                    return _general;
+                var generalStream = media?.track?.FirstOrDefault(a => a?.type == StreamType.General) as GeneralStream ??
+                    throw new Exception("Unable to read general stream from media container.");
+                return _general = generalStream;
+            }
+        }
 
         [JsonIgnore]
         [IgnoreMember]
-        public VideoStream VideoStream =>
-            _video ?? (_video = media?.track?.FirstOrDefault(a => a?.type == StreamType.Video) as VideoStream);
+        public VideoStream? VideoStream =>
+            _video ??= media?.track?.FirstOrDefault(a => a?.type == StreamType.Video) as VideoStream;
 
         [JsonIgnore]
         [IgnoreMember]
         public List<VideoStream> VideoStreams =>
-            _videos ?? (_videos = media?.track?.Where(a => a?.type == StreamType.Video).Cast<VideoStream>().ToList());
+            _videos ??= media?.track?.Where(a => a?.type == StreamType.Video).Cast<VideoStream>().ToList() ?? [];
 
         [JsonIgnore]
         [IgnoreMember]
-        public List<AudioStream> AudioStreams => _audios ?? (_audios =
-            media?.track?.Where(a => a?.type == StreamType.Audio)
-                .Select(a => a as AudioStream).ToList());
+        public List<AudioStream> AudioStreams =>
+            _audios ??= media?.track?.Where(a => a?.type == StreamType.Audio).Cast<AudioStream>().ToList() ?? [];
 
         [JsonIgnore]
         [IgnoreMember]
-        public List<TextStream> TextStreams => _texts ?? (_texts =
-            media?.track?.Where(a => a?.type == StreamType.Text)
-                .Select(a => a as TextStream).ToList());
+        public List<TextStream> TextStreams =>
+            _texts ??= media?.track?.Where(a => a?.type == StreamType.Text).Cast<TextStream>().ToList() ?? [];
 
         [JsonIgnore]
         [IgnoreMember]
-        public List<MenuStream> MenuStreams => _menus ?? (_menus =
-            media?.track?.Where(a => a?.type == StreamType.Menu)
-                .Select(a => a as MenuStream).ToList());
+        public List<MenuStream> MenuStreams =>
+            _menus ??= media?.track?.Where(a => a?.type == StreamType.Menu).Cast<MenuStream>().ToList() ?? [];
 
-        [JsonIgnore]
-        [IgnoreMember]
-        public IGeneralStream General => GeneralStream;
-        [JsonIgnore]
-        [IgnoreMember]
-        public IVideoStream Video => VideoStream;
-        [JsonIgnore]
-        [IgnoreMember]
-        public IReadOnlyList<IAudioStream> Audio => AudioStreams.Cast<IAudioStream>().ToList();
-        [JsonIgnore]
-        [IgnoreMember]
-        public IReadOnlyList<ITextStream> Subs => TextStreams.Cast<ITextStream>().ToList();
-        [JsonIgnore]
-        [IgnoreMember]
-        public bool Chaptered => MenuStreams.Any();
+        string? IMediaInfo.Title => GeneralStream.Title;
+
+        TimeSpan IMediaInfo.Duration
+        {
+            get
+            {
+                var duration = GeneralStream?.Duration ?? 0;
+                var seconds = Math.Truncate(duration);
+                var milliseconds = (duration - seconds) * 1000;
+                return new TimeSpan(0, 0, 0, (int)seconds, (int)milliseconds);
+            }
+        }
+
+        int IMediaInfo.BitRate => GeneralStream.OverallBitRate;
+
+        decimal IMediaInfo.FrameRate => GeneralStream.FrameRate;
+
+        DateTime? IMediaInfo.Encoded => GeneralStream.Encoded_Date;
+
+        bool IMediaInfo.IsStreamable => GeneralStream.IsStreamable;
+
+        string IMediaInfo.FileExtension => GeneralStream.FileExtension;
+
+        string IMediaInfo.ContainerName => GeneralStream.Format;
+
+        int IMediaInfo.ContainerVersion =>
+            GeneralStream.Format_Version;
+
+        IVideoStream? IMediaInfo.VideoStream => VideoStream;
+
+        IReadOnlyList<IVideoStream> IMediaInfo.VideoStreams =>
+            VideoStreams;
+
+        IReadOnlyList<IAudioStream> IMediaInfo.AudioStreams =>
+            AudioStreams;
+
+        IReadOnlyList<ITextStream> IMediaInfo.TextStreams =>
+            TextStreams;
+
+        IReadOnlyList<string> IMediaInfo.Attachments =>
+            GeneralStream.extra?.Attachments?.Split("/", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+
+        IReadOnlyList<IChapterInfo> IMediaInfo.Chapters
+        {
+            get
+            {
+                if (_chapters != null)
+                    return _chapters;
+                var chapters = new List<ChapterInfo>();
+                var menu = MenuStreams.FirstOrDefault();
+                if (menu?.extra != null)
+                {
+                    foreach (var (key, value) in menu.extra)
+                    {
+                        if (string.IsNullOrEmpty(key))
+                            continue;
+                        var list = key[1..].Split('_');
+                        if (!TimeSpan.TryParse($"{list[0]}:{list[1]}:{list[2]}.{list[3]}", out var timestamp))
+                            continue;
+                        var index = value.IndexOf(':');
+                        var title = string.IsNullOrEmpty(value) ? string.Empty : index != -1 ? value[(index + 1)..].Trim() : value.Trim();
+                        var language = index is -1 or 0 ? null : value[..index];
+                        var chapterInfo = new ChapterInfo(title, language, timestamp);
+                        chapters.Add(chapterInfo);
+                    }
+                }
+                return _chapters = chapters;
+            }
+        }
 
         protected bool Equals(MediaContainer other) => Equals(media, other.media);
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
+            if (obj.GetType() != GetType()) return false;
             return Equals((MediaContainer)obj);
         }
 
         public override int GetHashCode() => (media != null ? media.GetHashCode() : 0);
     }
+#nullable disable
 
     [MessagePackObject]
     public class Media
@@ -107,9 +180,9 @@ namespace Shoko.Models.MediaInfo
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
+            if (obj.GetType() != GetType()) return false;
             return Equals((Media)obj);
         }
 
@@ -131,7 +204,7 @@ namespace Shoko.Models.MediaInfo
     [Union(2, typeof(AudioStream))]
     [Union(3, typeof(TextStream))]
     [Union(4, typeof(MenuStream))]
-    public abstract class Stream
+    public abstract class Stream : IStream
     {
         /// <summary>
         /// I would make this an int, as most things give this a value of like 1 or 5, but there exist situations such as
@@ -143,51 +216,60 @@ namespace Shoko.Models.MediaInfo
         public int ID { get; set; }
 
         public abstract StreamType type { get; }
-        
+
         public string Title { get; set; }
 
         public int StreamOrder { get; set; }
 
         public string Format { get; set; }
-        
+
         public string Format_Profile { get; set; }
-        
+
         public string Format_Settings { get; set; }
-        
+
         public string Format_Level { get; set; }
-        
+
         public string Format_Commercial_IfAny { get; set; }
-        
+
         public string Format_Tier { get; set; }
-        
+
         public string Format_AdditionalFeatures { get; set; }
-        
+
         public string Format_Settings_Endianness { get; set; }
-        
+
         public string Codec { get; set; }
-        
+
         public string CodecID { get; set; }
-        
+
         /// <summary>
         /// The Language code (ISO 639-1 in everything I've seen) from MediaInfo
         /// </summary>
         public string Language { get; set; }
-        
+
         /// <summary>
         /// This is the 3 character language code
         /// This is mapped from the Language, it is not MediaInfo data
         /// </summary>
         public string LanguageCode { get; set; }
-        
+
         /// <summary>
         /// This is the Language Name, "English"
         /// This is mapped from the Language, it is not MediaInfo data
         /// </summary>
         public string LanguageName { get; set; }
-        
+
         public bool Default { get; set; }
-        
+
         public bool Forced { get; set; }
+
+        string IStream.UID => UniqueID;
+        int IStream.ID => ID;
+        int IStream.Order => StreamOrder;
+        bool IStream.IsDefault => Default;
+        bool IStream.IsForced => Forced;
+        TitleLanguage IStream.Language => Language?.GetTitleLanguage() ?? TitleLanguage.None;
+        IStreamCodecInfo IStream.Codec => new StreamCodecInfoImpl(this);
+        IStreamFormatInfo IStream.Format => new StreamFormatInfoImpl(this);
 
         protected bool Equals(Stream other) =>
             UniqueID == other.UniqueID && ID == other.ID && type == other.type && Title == other.Title && StreamOrder == other.StreamOrder && Format == other.Format && Format_Profile == other.Format_Profile
@@ -233,23 +315,25 @@ namespace Shoko.Models.MediaInfo
     }
 
     [MessagePackObject(true)]
-    public class GeneralStream : Stream, IGeneralStream
+    public class GeneralStream : Stream
     {
         public override StreamType type => StreamType.General;
-        
+
         public double Duration { get; set; }
 
         public int OverallBitRate { get; set; }
-        
+
         public string FileExtension { get; set; }
-        
+
         public int Format_Version { get; set; }
-        
+
         public decimal FrameRate { get; set; }
-        
+
         public bool IsStreamable { get; set; }
-        
+
         public DateTime? Encoded_Date { get; set; }
+
+        public GeneralExtra extra { get; }
 
         protected bool Equals(GeneralStream other) =>
             base.Equals(other) && Duration.Equals(other.Duration) && OverallBitRate == other.OverallBitRate && FileExtension == other.FileExtension && Format_Version == other.Format_Version
@@ -280,17 +364,24 @@ namespace Shoko.Models.MediaInfo
         }
     }
 
+
+    [MessagePackObject(true)]
+    public class GeneralExtra
+    {
+        public string Attachments { get; set; }
+    }
+
     [MessagePackObject(true)]
     public class VideoStream : Stream, IVideoStream
     {
         public override StreamType type => StreamType.Video;
 
         public bool Format_Settings_CABAC { get; set; }
-        
+
         public bool Format_Settings_BVOP { get; set; }
-        
+
         public bool Format_Settings_QPel { get; set; }
-        
+
         public string Format_Settings_GMC { get; set; }
 
         public int Format_Settings_RefFrames { get; set; }
@@ -314,8 +405,6 @@ namespace Shoko.Models.MediaInfo
         public string ChromaSubsampling { get; set; }
 
         public int BitDepth { get; set; }
-        string IVideoStream.StandardizedResolution => MediaInfoUtils.GetStandardResolution(Tuple.Create(Width, Height));
-        string IVideoStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
 
         public string ScanType { get; set; }
 
@@ -324,7 +413,7 @@ namespace Shoko.Models.MediaInfo
         public string MuxingMode { get; set; }
 
         // HDR stuff. Can be on SD, but not as common, and not very useful
-        
+
         public string HDR_Format { get; set; }
 
         public string HDR_Format_Compatibility { get; set; }
@@ -344,6 +433,11 @@ namespace Shoko.Models.MediaInfo
         public string MaxCLL { get; set; }
 
         public string MaxFALL { get; set; }
+
+        string IVideoStream.MatrixCoefficients => matrix_coefficients;
+        string IVideoStream.FrameRateMode => FrameRate_Mode;
+        string IVideoStream.Resolution => MediaInfoUtils.GetStandardResolution(Tuple.Create(Width, Height));
+        IStreamMuxingInfo IVideoStream.Muxing => new StreamMuxingInfoImpl(this);
 
         protected bool Equals(VideoStream other) =>
             base.Equals(other) && Format_Settings_CABAC == other.Format_Settings_CABAC && Format_Settings_BVOP == other.Format_Settings_BVOP && Format_Settings_QPel == other.Format_Settings_QPel
@@ -422,7 +516,10 @@ namespace Shoko.Models.MediaInfo
         public int BitDepth { get; set; }
 
         public AudioExtra extra { get; set; }
-        string IAudioStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
+
+        string IAudioStream.CompressionMode => Compression_Mode;
+        string IAudioStream.BitRateMode => BitRate_Mode;
+        double? IAudioStream.DialogNorm => extra?.dialnorm;
 
         protected bool Equals(AudioStream other) =>
             base.Equals(other) && Channels == other.Channels && ChannelLayout == other.ChannelLayout && SamplesPerFrame == other.SamplesPerFrame && SamplingRate == other.SamplingRate
@@ -542,7 +639,7 @@ namespace Shoko.Models.MediaInfo
     public class TextStream : Stream, ITextStream
     {
         public override StreamType type => StreamType.Text;
-        
+
         /// <summary>
         /// Not a subtitle, but a secondary title
         /// </summary>
@@ -557,7 +654,9 @@ namespace Shoko.Models.MediaInfo
         /// Not from MediaInfo, this is the name of the external sub file
         /// </summary>
         public string Filename { get; set; }
-        string ITextStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
+
+        bool ITextStream.IsExternal => External;
+        string ITextStream.ExternalFilename => External && !string.IsNullOrEmpty(Filename) ? Filename : null;
 
         protected bool Equals(TextStream other) => base.Equals(other) && SubTitle == other.SubTitle && External == other.External && Filename == other.Filename;
 
@@ -588,7 +687,7 @@ namespace Shoko.Models.MediaInfo
         public override StreamType type => StreamType.Menu;
 
         /// <summary>
-        /// Chapters are stored in the format "_hh_mm_ss_fff" : "Chapter Name" 
+        /// Chapters are stored in the format "_hh_mm_ss_fff" : "Chapter Name"
         /// </summary>
         public Dictionary<string, string> extra { get; set; }
 
@@ -608,6 +707,129 @@ namespace Shoko.Models.MediaInfo
             {
                 return (base.GetHashCode() * 397) ^ (extra != null ? extra.GetHashCode() : 0);
             }
+        }
+    }
+
+#nullable enable
+    public class ChapterInfo : IChapterInfo
+    {
+        /// <inheritdoc/>
+        public string Title { get; }
+
+        /// <inheritdoc/>
+        public TitleLanguage Language => LanguageCode?.GetTitleLanguage() ?? TitleLanguage.None;
+
+        public string? LanguageCode { get; }
+
+        /// <inheritdoc/>
+        public TimeSpan Timestamp { get; }
+
+        public ChapterInfo(string title, string? languageCode, TimeSpan timestamp)
+        {
+            Title = title;
+            LanguageCode = languageCode;
+            Timestamp = timestamp;
+        }
+    }
+
+    internal class StreamFormatInfoImpl : IStreamFormatInfo
+    {
+        /// <inheritdoc/>
+        public string Name { get; }
+
+        /// <inheritdoc/>
+        public string? Profile { get; }
+
+        /// <inheritdoc/>
+        public string? Level { get; }
+
+        /// <inheritdoc/>
+        public string? Settings { get; }
+
+        /// <inheritdoc/>
+        public string? AdditionalFeatures { get; }
+
+        /// <inheritdoc/>
+        public string? Endianness { get; }
+
+        /// <inheritdoc/>
+        public string? Tier { get; }
+
+        /// <inheritdoc/>
+        public string? Commercial { get; }
+
+        /// <inheritdoc/>
+        public string? HDR { get; }
+
+        /// <inheritdoc/>
+        public string? HDRCompatibility { get; }
+
+        /// <inheritdoc/>
+        public bool CABAC { get; }
+
+        /// <inheritdoc/>
+        public bool BVOP { get; }
+
+        /// <inheritdoc/>
+        public bool QPel { get; }
+
+        /// <inheritdoc/>
+        public string? GMC { get; }
+
+        /// <inheritdoc/>
+        public int? ReferenceFrames { get; }
+
+        public StreamFormatInfoImpl(Stream stream)
+        {
+            Name = stream.Format.ToLowerInvariant();
+            Profile = stream.Format_Profile?.ToLowerInvariant();
+            Level = stream.Format_Level?.ToLowerInvariant();
+            Settings = stream.Format_Settings;
+            AdditionalFeatures = stream.Format_AdditionalFeatures;
+            Endianness = stream.Format_Settings_Endianness;
+            Tier = stream.Format_Tier;
+            Commercial = stream.Format_Commercial_IfAny;
+            if (stream is VideoStream videoStream)
+            {
+                HDR = videoStream.HDR_Format;
+                HDRCompatibility = videoStream.HDR_Format_Compatibility;
+                CABAC = videoStream.Format_Settings_CABAC;
+                BVOP = videoStream.Format_Settings_BVOP;
+                QPel = videoStream.Format_Settings_QPel;
+                GMC = videoStream.Format_Settings_GMC;
+                ReferenceFrames = videoStream.Format_Settings_RefFrames;
+            }
+        }
+    }
+
+    internal class StreamCodecInfoImpl : IStreamCodecInfo
+    {
+        /// <inheritdoc/>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Name { get; }
+
+        /// <inheritdoc/>
+        public string Simplified { get; }
+
+        /// <inheritdoc/>
+        public string? Raw { get; }
+
+        public StreamCodecInfoImpl(Stream stream)
+        {
+            Name = stream.Codec;
+            Simplified = MediaInfoUtils.TranslateCodec(stream)?.ToLowerInvariant() ?? "unknown";
+            Raw = stream.CodecID?.ToLowerInvariant();
+        }
+    }
+
+    internal class StreamMuxingInfoImpl : IStreamMuxingInfo
+    {
+        /// <inheritdoc/>
+        public string? Raw { get; }
+
+        public StreamMuxingInfoImpl(VideoStream stream)
+        {
+            Raw = stream.MuxingMode;
         }
     }
 }
