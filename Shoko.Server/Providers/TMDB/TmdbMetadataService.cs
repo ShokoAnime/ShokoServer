@@ -586,7 +586,7 @@ public class TmdbMetadataService
             return;
 
         var images = await Client.GetMovieImagesAsync(movieId);
-        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main ? mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : null : a).WhereNotNull().ToList();
         if (settings.TMDB.AutoDownloadPosters)
             await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
@@ -1515,7 +1515,7 @@ public class TmdbMetadataService
             return;
 
         var images = await Client.GetTvShowImagesAsync(showId);
-        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main ? mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : null : a).WhereNotNull().ToList();
         if (settings.TMDB.AutoDownloadPosters)
             await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
@@ -1531,7 +1531,7 @@ public class TmdbMetadataService
             return;
 
         var images = await Client.GetTvSeasonImagesAsync(showId, seasonNumber);
-        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main ? mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : null : a).WhereNotNull().ToList();
         await DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
@@ -1542,7 +1542,7 @@ public class TmdbMetadataService
             return;
 
         var images = await Client.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber);
-        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main && mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : a).WhereNotNull().ToList();
+        var languages = settings.TMDB.ImageLanguageOrder.Select(a => a is TitleLanguage.Main ? mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : null : a).WhereNotNull().ToList();
         await DownloadImagesByType(images.Stills, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
