@@ -354,8 +354,6 @@ public static class Utils
     {
         return freq switch
         {
-            ScheduledUpdateFrequency.HoursOne => 1,
-            ScheduledUpdateFrequency.HoursThree => 3,
             ScheduledUpdateFrequency.HoursSix => 6,
             ScheduledUpdateFrequency.HoursTwelve => 12,
             ScheduledUpdateFrequency.Daily => 24,
