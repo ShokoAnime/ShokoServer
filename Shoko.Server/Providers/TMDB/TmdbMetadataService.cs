@@ -1946,39 +1946,34 @@ public class TmdbMetadataService
             if (isLimitEnabled && count >= maxCount)
                 break;
 
+            count++;
             var image = RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(imageData.FilePath, type) ?? new(imageData.FilePath, type);
             var updated = image.Populate(imageData, foreignType, foreignId);
             if (updated)
                 RepoFactory.TMDB_Image.Save(image);
-
-            var path = image.LocalPath;
-            if (!string.IsNullOrEmpty(path) && File.Exists(path))
-                count++;
         }
 
+        count = 0;
         var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var image in RepoFactory.TMDB_Image.GetByForeignIDAndType(foreignId, foreignType, type))
+        var storedImages = RepoFactory.TMDB_Image.GetByForeignIDAndType(foreignId, foreignType, type);
+        if (languages.Count > 0 && isLimitEnabled)
+            storedImages = storedImages
+                .OrderBy(x => languages.IndexOf(x.Language))
+                .ToList();
+        foreach (var image in storedImages)
         {
-            var path = image.LocalPath;
-
             // Clean up invalid entries.
+            var path = image.LocalPath;
             if (string.IsNullOrEmpty(path))
             {
                 RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
                 continue;
             }
 
-            // Skip downloading if it already exists.
-            if (File.Exists(path))
+            // Skip downloading if it already exists and we're not forcing it.
+            var fileExists = File.Exists(path);
+            if (fileExists && !forceDownload)
             {
-                // Scheduled the image to be downloaded again if force download is enabled.
-                if (forceDownload)
-                    await scheduler.StartJob<DownloadTmdbImageJob>(c =>
-                    {
-                        c.ImageID = image.TMDB_ImageID;
-                        c.ImageType = image.ImageType;
-                        c.ForceDownload = true;
-                    });
                 count++;
                 continue;
             }
@@ -1996,8 +1991,8 @@ public class TmdbMetadataService
                 count++;
             }
             // TODO: check if the image is linked to any other entries, and keep it if the other entries are within the limit.
-            // Else delete the metadata since the data doesn't exist on disk.
-            else if (!File.Exists(path))
+            // Else delete the metadata since the data doesn't exist on disk, or we're forcing it and the limit is enabled and has been reached.
+            else if (!fileExists || forceDownload)
             {
                 RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
             }
