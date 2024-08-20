@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
 {
@@ -70,7 +69,7 @@ namespace Shoko.Models.Client
         public string LanguagesAudio { get; set; }
         public string LanguagesSubtitle { get; set; }
 
-        public AniDB_ReleaseGroup ReleaseGroup { get; set; }
+        public CL_AniDB_ReleaseGroup ReleaseGroup { get; set; }
 
         public Media Media { get; set; }
     }

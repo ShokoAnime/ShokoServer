@@ -1,8 +1,7 @@
-﻿using Shoko.Plugin.Abstractions.DataModels;
-
-namespace Shoko.Models.Server
+﻿
+namespace Shoko.Models.Client
 {
-    public class AniDB_ReleaseGroup : IReleaseGroup
+    public class CL_AniDB_ReleaseGroup
     {
         public int AniDB_ReleaseGroupID { get; set; }
         public int GroupID { get; set; }
@@ -16,7 +15,5 @@ namespace Shoko.Models.Server
         public string IRCServer { get; set; }
         public string URL { get; set; }
         public string Picname { get; set; }
-        public string Name => GroupName;
-        public string ShortName => GroupNameShort;
     }
 }
