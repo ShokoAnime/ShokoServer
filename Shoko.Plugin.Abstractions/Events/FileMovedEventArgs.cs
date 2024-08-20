@@ -6,6 +6,9 @@ using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.Events;
 
+/// <summary>
+/// Dispatched when a file is moved.
+/// </summary>
 public class FileMovedEventArgs : FileEventArgs
 {
     /// <summary>
@@ -19,22 +22,18 @@ public class FileMovedEventArgs : FileEventArgs
     /// </summary>
     public IImportFolder PreviousImportFolder { get; set; }
 
-    #region To-be-removed
-
-    [Obsolete("Use ImportFolder instead.")]
-    public IImportFolder NewImportFolder => ImportFolder;
-
-    [Obsolete("Use RelativePath instead.")]
-    public string NewRelativePath => RelativePath;
-
-    [Obsolete("Use PreviousImportFolder instead.")]
-    public IImportFolder OldImportFolder => PreviousImportFolder;
-
-    [Obsolete("Use PreviousRelativePath instead.")]
-    public string OldRelativePath => PreviousRelativePath;
-
-    #endregion
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FileMovedEventArgs"/> class.
+    /// </summary>
+    /// <param name="relativePath">Relative path to the file.</param>
+    /// <param name="importFolder">Import folder.</param>
+    /// <param name="previousRelativePath">Previous relative path to the file from the <paramref name="previousImportFolder"/>'s base location.</param>
+    /// <param name="previousImportFolder">Previous import folder that the file was in.</param>
+    /// <param name="fileInfo">File info.</param>
+    /// <param name="videoInfo">Video info.</param>
+    /// <param name="episodeInfo">Episode info.</param>
+    /// <param name="animeInfo">Series info.</param>
+    /// <param name="groupInfo">Group info.</param>
     public FileMovedEventArgs(string relativePath, IImportFolder importFolder, string previousRelativePath, IImportFolder previousImportFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo)
         : base(relativePath, importFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo)
     {

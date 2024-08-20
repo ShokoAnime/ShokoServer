@@ -5,8 +5,11 @@ using Shoko.Plugin.Abstractions.Enums;
 namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
-/// Currently, these will fire a lot in succession, as these are updated in batch with a series.
+/// Dispatched when episode data was updated.
 /// </summary>
+/// <remarks>
+/// Currently, these will fire a lot in succession, as these are updated in batch with a series.
+/// </remarks>
 public class EpisodeInfoUpdatedEventArgs : EventArgs
 {
     /// <summary>
@@ -21,10 +24,16 @@ public class EpisodeInfoUpdatedEventArgs : EventArgs
 
     /// <summary>
     /// This is the full data. A diff was not performed for this.
-    /// This is provided for convenience, use <see cref="IShokoEventHandler.SeriesUpdate"/>
+    /// This is provided for convenience, use <see cref="IShokoEventHandler.SeriesUpdated"/>
     /// </summary>
     public ISeries SeriesInfo { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EpisodeInfoUpdatedEventArgs"/> class.
+    /// </summary>
+    /// <param name="seriesInfo">The series info.</param>
+    /// <param name="episodeInfo">The episode info.</param>
+    /// <param name="reason">The reason it was updated.</param>
     public EpisodeInfoUpdatedEventArgs(ISeries seriesInfo, IEpisode episodeInfo, UpdateReason reason)
     {
         Reason = reason;

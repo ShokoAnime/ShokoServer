@@ -83,44 +83,28 @@ public class MediaInfo
     /// </summary>
     public List<ChapterInfo> Chapters { get; }
 
-    public MediaInfo(SVR_VideoLocal file, MediaContainer mediaContainer)
+    public MediaInfo(SVR_VideoLocal file, IMediaInfo mediaInfo)
     {
-        var general = mediaContainer.GeneralStream;
-        Title = general.Title;
+        Title = mediaInfo.Title;
         Duration = file.DurationTimeSpan;
-        BitRate = general.OverallBitRate;
-        FrameRate = general.FrameRate;
-        Encoded = general.Encoded_Date?.ToUniversalTime();
-        Audio = mediaContainer.AudioStreams
+        BitRate = mediaInfo.BitRate;
+        FrameRate = mediaInfo.FrameRate;
+        Encoded = mediaInfo.Encoded?.ToUniversalTime();
+        Audio = mediaInfo.AudioStreams
             .Select(audio => new AudioStreamInfo(audio))
             .ToList();
-        Video = mediaContainer.VideoStreams
+        Video = mediaInfo.VideoStreams
             .Select(video => new VideoStreamInfo(video))
             .ToList();
-        Subtitles = mediaContainer.TextStreams
+        Subtitles = mediaInfo.TextStreams
             .Select(text => new TextStreamInfo(text))
             .ToList();
-        Chapters = [];
-        FileExtension = general.FileExtension;
-        MediaContainer = general.Format;
-        MediaContainerVersion = general.Format_Version;
-        var menu = mediaContainer.MenuStreams.FirstOrDefault();
-        if (menu?.extra != null)
-        {
-            foreach (var (key, value) in menu.extra)
-            {
-                if (string.IsNullOrEmpty(key))
-                    continue;
-                var (hours, minutes, seconds, milliseconds) = key[1..].Split('_');
-                if (!TimeSpan.TryParse($"{hours}:{minutes}:{seconds}.{milliseconds}", out var timestamp))
-                    continue;
-                var index = value.IndexOf(':');
-                var title = string.IsNullOrEmpty(value) ? string.Empty : index != -1 ? value[(index + 1)..].Trim() : value.Trim();
-                var language = index == -1 || index == 0 ? TitleLanguage.Unknown : value[..index].GetTitleLanguage();
-                var chapterInfo = new ChapterInfo(title, language, timestamp);
-                Chapters.Add(chapterInfo);
-            }
-        }
+        Chapters = mediaInfo.Chapters
+            .Select(chapter => new ChapterInfo(chapter))
+            .ToList();
+        FileExtension = mediaInfo.FileExtension;
+        MediaContainer = mediaInfo.ContainerName;
+        MediaContainerVersion = mediaInfo.ContainerVersion;
     }
 
     public class StreamInfo
@@ -176,18 +160,18 @@ public class MediaInfo
         /// </summary>
         public StreamFormatInfo Format { get; }
 
-        public StreamInfo(Stream stream)
+        public StreamInfo(IStream stream)
         {
             ID = stream.ID;
-            UID = stream.UniqueID;
+            UID = stream.UID;
             Title = stream.Title;
-            Order = stream.StreamOrder;
-            IsDefault = stream.Default;
-            IsForced = stream.Forced;
-            Language = stream.Language?.GetTitleLanguage();
+            Order = stream.Order;
+            IsDefault = stream.IsDefault;
+            IsForced = stream.IsForced;
+            Language = stream.Language;
             LanguageCode = stream.LanguageCode;
-            Codec = new StreamCodecInfo(stream);
-            Format = new StreamFormatInfo(stream);
+            Codec = new StreamCodecInfo(stream.Codec);
+            Format = new StreamFormatInfo(stream.Format);
         }
     }
 
@@ -290,26 +274,23 @@ public class MediaInfo
         /// </remarks>
         public int? ReferenceFrames { get; }
 
-        public StreamFormatInfo(Stream stream)
+        public StreamFormatInfo(IStreamFormatInfo info)
         {
-            Name = stream.Format?.ToLowerInvariant() ?? "unknown";
-            Profile = stream.Format_Profile?.ToLowerInvariant();
-            Level = stream.Format_Level?.ToLowerInvariant();
-            Settings = stream.Format_Settings;
-            AdditionalFeatures = stream.Format_AdditionalFeatures;
-            Endianness = stream.Format_Settings_Endianness;
-            Tier = stream.Format_Tier;
-            Commercial = stream.Format_Commercial_IfAny;
-            if (stream is VideoStream videoStream)
-            {
-                HDR = videoStream.HDR_Format;
-                HDRCompatibility = videoStream.HDR_Format_Compatibility;
-                CABAC = videoStream.Format_Settings_CABAC;
-                BVOP = videoStream.Format_Settings_BVOP;
-                QPel = videoStream.Format_Settings_QPel;
-                GMC = videoStream.Format_Settings_GMC;
-                ReferenceFrames = videoStream.Format_Settings_RefFrames;
-            }
+            Name = info.Name;
+            Profile = info.Profile;
+            Level = info.Level;
+            Settings = info.Settings;
+            AdditionalFeatures = info.AdditionalFeatures;
+            Endianness = info.Endianness;
+            Tier = info.Tier;
+            Commercial = info.Commercial;
+            HDR = info.HDR;
+            HDRCompatibility = info.HDRCompatibility;
+            CABAC = info.CABAC;
+            BVOP = info.BVOP;
+            QPel = info.QPel;
+            GMC = info.GMC;
+            ReferenceFrames = info.ReferenceFrames;
         }
     }
 
@@ -331,11 +312,11 @@ public class MediaInfo
         /// </summary>
         public string? Raw { get; }
 
-        public StreamCodecInfo(Stream stream)
+        public StreamCodecInfo(IStreamCodecInfo codec)
         {
-            Name = stream.Codec;
-            Simplified = LegacyMediaUtils.TranslateCodec(stream)?.ToLowerInvariant() ?? "unknown";
-            Raw = stream.CodecID?.ToLowerInvariant();
+            Name = codec.Name;
+            Simplified = codec.Simplified;
+            Raw = codec.Raw;
         }
     }
 
@@ -407,19 +388,19 @@ public class MediaInfo
         /// </summary>
         public int BitDepth { get; }
 
-        public VideoStreamInfo(VideoStream stream) : base(stream)
+        public VideoStreamInfo(IVideoStream stream) : base(stream)
         {
             Width = stream.Width;
             Height = stream.Height;
-            Resolution = MediaInfoUtils.GetStandardResolution(new Tuple<int, int>(Width, Height));
+            Resolution = stream.Resolution;
             PixelAspectRatio = stream.PixelAspectRatio;
             FrameRate = stream.FrameRate;
-            FrameRateMode = stream.FrameRate_Mode;
+            FrameRateMode = stream.FrameRateMode;
             FrameCount = stream.FrameCount;
             ScanType = stream.ScanType;
             ColorSpace = stream.ColorSpace;
             ChromaSubsampling = stream.ChromaSubsampling;
-            MatrixCoefficients = stream.matrix_coefficients;
+            MatrixCoefficients = stream.MatrixCoefficients;
             BitRate = stream.BitRate;
             BitDepth = stream.BitDepth;
         }
@@ -468,15 +449,15 @@ public class MediaInfo
         /// </summary>
         public int BitDepth { get; }
 
-        public AudioStreamInfo(AudioStream stream) : base(stream)
+        public AudioStreamInfo(IAudioStream stream) : base(stream)
         {
             Channels = stream.Channels;
             ChannelLayout = stream.ChannelLayout;
             SamplesPerFrame = stream.SamplesPerFrame;
             SamplingRate = stream.SamplingRate;
-            CompressionMode = stream.Compression_Mode;
+            CompressionMode = stream.CompressionMode;
             BitRate = stream.BitRate;
-            BitRateMode = stream.BitRate_Mode;
+            BitRateMode = stream.BitRateMode;
             BitDepth = stream.BitDepth;
         }
     }
@@ -502,12 +483,12 @@ public class MediaInfo
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? ExternalFilename { get; }
 
-        public TextStreamInfo(TextStream stream) : base(stream)
+        public TextStreamInfo(ITextStream stream) : base(stream)
         {
             SubTitle = stream.SubTitle;
-            IsExternal = stream.External;
-            if (stream.External && !string.IsNullOrEmpty(stream.Filename))
-                ExternalFilename = stream.Filename;
+            IsExternal = stream.IsExternal;
+            if (stream.IsExternal && !string.IsNullOrEmpty(stream.ExternalFilename))
+                ExternalFilename = stream.ExternalFilename;
         }
     }
 
@@ -529,11 +510,11 @@ public class MediaInfo
         /// </summary>
         public TimeSpan Timestamp { get; }
 
-        public ChapterInfo(string title, TitleLanguage language, TimeSpan timestamp)
+        public ChapterInfo(IChapterInfo info)
         {
-            Title = title;
-            Language = language;
-            Timestamp = timestamp;
+            Title = info.Title;
+            Language = info.Language;
+            Timestamp = info.Timestamp;
         }
     }
 }

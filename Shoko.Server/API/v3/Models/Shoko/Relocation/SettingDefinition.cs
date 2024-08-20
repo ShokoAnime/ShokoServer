@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.Enums;
 
+#pragma warning disable CS8618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
 

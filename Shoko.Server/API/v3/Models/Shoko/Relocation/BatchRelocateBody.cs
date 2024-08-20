@@ -1,10 +1,11 @@
-#nullable enable
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
 
-public class BatchRelocateArgs
+public class BatchRelocateBody
 {
     /// <summary>
     /// The file IDs to preview

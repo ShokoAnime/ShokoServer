@@ -5,6 +5,9 @@ using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Image metadata.
+/// </summary>
 public interface IImageMetadata : IMetadata<int>, IEquatable<IImageMetadata>
 {
     /// <summary>

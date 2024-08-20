@@ -4,11 +4,18 @@ using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Extensions;
 
+/// <summary>
+/// Extensions for the <see cref="TitleLanguage"/> enum.
+/// </summary>
 public static class LanguageExtensions
 {
+    /// <summary>
+    /// Convert a language code to a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">The language code or name.</param>
+    /// <returns>The <see cref="TitleLanguage"/> or <see cref="TitleLanguage.Unknown"/> if not found.</returns>
     public static TitleLanguage GetTitleLanguage(this string lang)
-    {
-        return lang?.ToUpper() switch
+        => lang?.ToUpper() switch
         {
             "EN" or "ENG" => TitleLanguage.English,
             "X-JAT" => TitleLanguage.Romaji,
@@ -142,30 +149,36 @@ public static class LanguageExtensions
             _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage) ?
                 titleLanguage : TitleLanguage.Unknown,
         };
-    }
 
+    /// <summary>
+    /// Get a user friendly description of a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">Language value.</param>
+    /// <returns>The friendly description.</returns>
     public static string GetDescription(this TitleLanguage lang)
-    {
-        return lang switch
+        => lang switch
         {
-            TitleLanguage.Romaji => "Japanese (romanji/x-jat)",
-            TitleLanguage.Japanese => "Japanese (kanji)",
+            TitleLanguage.Romaji => "Japanese (Romaji / Transcription)",
+            TitleLanguage.Japanese => "Japanese (Kanji)",
             TitleLanguage.Bangladeshi => "Bangladesh",
             TitleLanguage.FrenchCanadian => "Canadian-French",
             TitleLanguage.BrazilianPortuguese => "Brazilian Portuguese",
             TitleLanguage.Chinese => "Chinese (any)",
-            TitleLanguage.ChineseSimplified => "Chinese (simplified)",
-            TitleLanguage.ChineseTraditional => "Chinese (traditional)",
-            TitleLanguage.Pinyin => "Chinese (pinyin/x-zhn)",
-            TitleLanguage.KoreanTranscription => "Korean (x-kot)",
-            TitleLanguage.ThaiTranscription => "Thai (x-tha)",
+            TitleLanguage.ChineseSimplified => "Chinese (Simplified)",
+            TitleLanguage.ChineseTraditional => "Chinese (Traditional)",
+            TitleLanguage.Pinyin => "Chinese (Pinyin / Transcription)",
+            TitleLanguage.KoreanTranscription => "Korean (Transcription)",
+            TitleLanguage.ThaiTranscription => "Thai (Transcription)",
             _ => lang.ToString(),
         };
-    }
 
+    /// <summary>
+    /// Get the preferred language-code for a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">Language value.</param>
+    /// <returns>The preferred language-code.</returns>
     public static string GetString(this TitleLanguage lang)
-    {
-        return lang switch
+        => lang switch
         {
             TitleLanguage.Main => "x-main",
             TitleLanguage.None => "none",
@@ -285,29 +298,29 @@ public static class LanguageExtensions
             TitleLanguage.Zulu => "zu",
             _ => "unk",
         };
-    }
 
+    /// <summary>
+    /// Get the text form of a title language.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
     public static string GetString(this TitleType type)
-    {
-        return type.ToString().ToLowerInvariant();
-    }
+        => type.ToString().ToLowerInvariant();
 
+    /// <summary>
+    /// Convert from a string to a <see cref="TitleType"/>.
+    /// </summary>
+    /// <param name="name">Name or value.</param>
+    /// <returns>The parse <see cref="TitleType"/> or <see cref="TitleType.None"/> if not found.</returns>
     public static TitleType GetTitleType(this string name)
-    {
-        foreach (var type in Enum.GetValues(typeof(TitleType)).Cast<TitleType>())
-        {
-            if (type.GetString().Equals(name.ToLowerInvariant())) return type;
-        }
-
-        return name.ToLowerInvariant() switch
+        => name.ToLowerInvariant() switch
         {
             "syn" => TitleType.Synonym,
             "card" => TitleType.TitleCard,
             "kana" => TitleType.KanjiReading,
             "kanareading" => TitleType.KanjiReading,
-            _ => TitleType.None,
+            _ => Enum.TryParse<TitleType>(name, true, out var type) ? type : TitleType.None,
         };
-    }
 
     /// <summary>
     /// Convert from an ISO3166 Alpha-2 or Alpha-3 country code to an ISO639-1
@@ -320,11 +333,10 @@ public static class LanguageExtensions
     /// between countries and languages, and with some minor modifications
     /// afterwards.
     /// </remarks>
-    /// <param name="countryCode">Aplha-2 or Aplha-3 country code.</param>
+    /// <param name="countryCode">Alpha-2 or Alpha-3 country code.</param>
     /// <returns></returns>
     public static string FromIso3166ToIso639(this string? countryCode)
-    {
-        return countryCode?.ToUpper() switch
+        => countryCode?.ToUpper() switch
         {
             "AD" or "AND" => "CA",
             "AE" or "ARE" => "AR",
@@ -578,5 +590,4 @@ public static class LanguageExtensions
             "ZW" or "ZWE" => "EN",
             _ => countryCode?.ToUpper() ?? "EN",
         };
-    }
 }

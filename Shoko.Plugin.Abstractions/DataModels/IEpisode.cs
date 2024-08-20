@@ -4,6 +4,9 @@ using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Episode metadata.
+/// </summary>
 public interface IEpisode : IWithTitles, IWithDescriptions, IWithImages, IMetadata<int>
 {
     /// <summary>

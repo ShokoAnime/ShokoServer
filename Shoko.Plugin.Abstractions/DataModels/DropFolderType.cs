@@ -8,8 +8,23 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 [Flags]
 public enum DropFolderType
 {
+    /// <summary>
+    /// None.
+    /// </summary>
     Excluded = 0,
+
+    /// <summary>
+    /// Source.
+    /// </summary>
     Source = 1,
+
+    /// <summary>
+    /// Destination.
+    /// </summary>
     Destination = 2,
-    Both = Source | Destination
+
+    /// <summary>
+    /// Both Source and Destination.
+    /// </summary>
+    Both = Source | Destination,
 }

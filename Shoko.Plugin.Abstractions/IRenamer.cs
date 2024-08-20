@@ -2,6 +2,9 @@
 
 namespace Shoko.Plugin.Abstractions;
 
+/// <summary>
+/// The base interface for any renamer.
+/// </summary>
 public interface IBaseRenamer
 {
     /// <summary>
@@ -40,7 +43,7 @@ public interface IRenamer : IBaseRenamer
     RelocationResult GetNewPath(RelocationEventArgs args);
 }
 /// <summary>
-/// A renamer with a settings model. <see cref="T"/> is the type of the settings model.
+/// A renamer with a settings model.
 /// </summary>
 /// <typeparam name="T">Type of the settings model</typeparam>
 public interface IRenamer<T> : IBaseRenamer where T : class
@@ -65,8 +68,9 @@ public interface IUnrecognizedRenamer : IRenamer;
 
 /// <summary>
 /// A renamer that knows how to operate on both recognized and unrecognized files.
-/// This version also takes in a settings model. <see cref="T"/> is the type of the settings model.
+/// This version also takes in a settings model.
 /// </summary>
+/// <typeparam name="T">Type of the settings model</typeparam>
 public interface IUnrecognizedRenamer<T> : IRenamer<T> where T : class;
 
 /// <summary>
@@ -78,6 +82,7 @@ public interface IFallbackRenamer : IRenamer;
 /// <summary>
 /// A renamer that should be used if the primary renamer does not support the operation.
 /// The Legacy/WebAOM renamer does not explicitly implement this, but will be used as a fallback if another is not provided and the primary renamer does not support the operation.
-/// This version also takes in a settings model. <see cref="T"/> is the type of the settings model.
+/// This version also takes in a settings model.
 /// </summary>
+/// <typeparam name="T">Type of the settings model</typeparam>
 public interface IFallbackRenamer<T> : IRenamer<T> where T : class;

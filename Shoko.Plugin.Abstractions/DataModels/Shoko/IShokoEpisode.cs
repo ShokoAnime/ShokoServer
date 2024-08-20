@@ -2,6 +2,9 @@ using System.Collections.Generic;
 
 namespace Shoko.Plugin.Abstractions.DataModels.Shoko;
 
+/// <summary>
+/// Shoko episode metadata.
+/// </summary>
 public interface IShokoEpisode : IEpisode
 {
     /// <summary>

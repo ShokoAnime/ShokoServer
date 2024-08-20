@@ -7,7 +7,7 @@ namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
 /// Represents the information required to create or move to a new file
 /// location.
 /// </summary>
-public class RelocateArgs
+public class RelocateBody
 {
     /// <summary>
     /// The id of the <see cref="ImportFolder"/> where this file should

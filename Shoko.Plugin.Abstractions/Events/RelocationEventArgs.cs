@@ -3,6 +3,7 @@ using System.ComponentModel;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
+#pragma warning disable CS8618
 namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>

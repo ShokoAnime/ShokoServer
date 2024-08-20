@@ -3,6 +3,9 @@ using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Plugin.Abstractions.Services;
 
+/// <summary>
+/// Relocation service.
+/// </summary>
 public interface IRelocationService
 {
     /// <summary>

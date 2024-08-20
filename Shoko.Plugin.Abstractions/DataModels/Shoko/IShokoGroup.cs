@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace Shoko.Plugin.Abstractions.DataModels.Shoko;
 
+/// <summary>
+/// Shoko group metadata.
+/// </summary>
 public interface IShokoGroup : IWithTitles, IWithDescriptions, IMetadata<int>
 {
     /// <summary>

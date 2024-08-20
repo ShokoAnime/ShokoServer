@@ -161,7 +161,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     IHashes IVideo.Hashes => this;
 
-    IMediaContainer? IVideo.MediaInfo => MediaInfo;
+    IMediaInfo? IVideo.MediaInfo => MediaInfo;
 
     IReadOnlyList<IVideoCrossReference> IVideo.CrossReferences => EpisodeCrossRefs;
 

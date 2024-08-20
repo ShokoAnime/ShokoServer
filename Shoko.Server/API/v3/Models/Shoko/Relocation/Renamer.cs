@@ -1,8 +1,9 @@
-﻿#nullable enable
-using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.Enums;
+﻿using System.Collections.Generic;
+
 using DefaultSetting = Shoko.Server.API.v3.Models.Shoko.Relocation.Setting;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
 
 public class Renamer

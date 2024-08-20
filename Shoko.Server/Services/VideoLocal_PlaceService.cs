@@ -748,7 +748,7 @@ public class VideoLocal_PlaceService
                 var subs = SubtitleHelper.GetSubtitleStreams(place.FullServerPath);
                 if (subs.Count > 0)
                 {
-                    m.media.track.AddRange(subs);
+                    m.media?.track.AddRange(subs);
                 }
 
                 info.MediaInfo = m;

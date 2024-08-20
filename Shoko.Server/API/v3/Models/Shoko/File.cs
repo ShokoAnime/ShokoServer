@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -128,11 +129,12 @@ public partial class File
 
     public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
+        var mediaInfo = file.MediaInfo as IMediaInfo;
         ID = file.VideoLocalID;
         Size = file.FileSize;
         IsVariation = file.IsVariation;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
-        Resolution = FileQualityFilter.GetResolution(file);
+        Resolution = mediaInfo?.VideoStream?.Resolution;
         Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
         Duration = file.DurationTimeSpan;
@@ -152,13 +154,8 @@ public partial class File
                 _AniDB = new AniDB(anidbFile);
         }
 
-        if (includeMediaInfo)
-        {
-            var mediaContainer = file?.MediaInfo;
-            if (mediaContainer == null)
-                return;
-            MediaInfo = new MediaInfo(file, mediaContainer);
-        }
+        if (includeMediaInfo && mediaInfo is not null)
+            MediaInfo = new MediaInfo(file, mediaInfo);
     }
 
 #nullable enable

@@ -1,10 +1,8 @@
 using System;
 
-namespace Shoko.Plugin.Abstractions.Attributes
-{
+namespace Shoko.Plugin.Abstractions.Attributes;
 
-    public class PluginSettingsAttribute : Attribute
-    {
-
-    }
-}
+/// <summary>
+/// An attribute for defining a plugin settings object.
+/// </summary>
+public class PluginSettingsAttribute : Attribute { }

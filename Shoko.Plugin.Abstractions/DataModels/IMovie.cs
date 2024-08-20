@@ -4,6 +4,9 @@ using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Movie metadata.
+/// </summary>
 public interface IMovie : IWithTitles, IWithDescriptions, IWithImages, IMetadata<int>
 {
     /// <summary>

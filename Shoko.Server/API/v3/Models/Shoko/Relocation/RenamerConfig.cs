@@ -1,6 +1,7 @@
-﻿#nullable enable
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
 
 public class RenamerConfig

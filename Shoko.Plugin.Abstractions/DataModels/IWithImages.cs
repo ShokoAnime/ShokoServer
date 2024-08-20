@@ -3,6 +3,9 @@ using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Container object with images.
+/// </summary>
 public interface IWithImages
 {
     /// <summary>

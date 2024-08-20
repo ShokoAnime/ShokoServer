@@ -440,7 +440,7 @@ public class RenamerController : BaseController
     /// <returns>A stream of relocate results.</returns>
     [Authorize("admin")]
     [HttpPost("Preview")]
-    public ActionResult<IEnumerable<RelocationResult>> BatchPreviewFilesByScriptID([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchRelocateArgs args, bool? move = null, bool? rename = null)
+    public ActionResult<IEnumerable<RelocationResult>> BatchPreviewFilesByScriptID([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchRelocateBody args, bool? move = null, bool? rename = null)
     {
         Shoko.Server.Models.RenamerConfig? config = null;
         if (args.Config != null)
@@ -553,7 +553,7 @@ public class RenamerController : BaseController
     /// <returns>A result object containing information about the relocation process.</returns>
     [Authorize("admin")]
     [HttpPost("Relocate/Location/{locationID}")]
-    public async Task<ActionResult<RelocationResult>> DirectlyRelocateFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RelocateArgs body)
+    public async Task<ActionResult<RelocationResult>> DirectlyRelocateFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RelocateBody body)
     {
         var fileLocation = _vlpRepository.GetByID(locationID);
         if (fileLocation == null)

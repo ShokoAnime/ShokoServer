@@ -33,9 +33,9 @@ public class RenamerSettingAttribute : Attribute
     /// <summary>
     /// Create a new setting definition for a property.
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="type"></param>
-    /// <param name="description"></param>
+    /// <param name="name">The name of the setting to be displayed. Will be inferred if not specified.</param>
+    /// <param name="type">The type of the setting, to be used in the UI. Will be inferred if not specified.</param>
+    /// <param name="description">The description of the setting and what it controls. Can be omitted.</param>
     public RenamerSettingAttribute([CallerMemberName] string? name = null, RenamerSettingType type = RenamerSettingType.Auto, string? description = null)
     {
         // the nullability is suppressed because [CallerMemberName] is used

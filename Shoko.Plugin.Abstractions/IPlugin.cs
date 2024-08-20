@@ -1,24 +1,27 @@
 ﻿
-namespace Shoko.Plugin.Abstractions
+namespace Shoko.Plugin.Abstractions;
+
+/// <summary>
+/// Interface for plugins to register themselves automagically.
+/// </summary>
+public interface IPlugin
 {
     /// <summary>
-    /// This can specify the static method
-    /// <code>static void ConfigureServices(IServiceCollection serviceCollection)</code>
-    /// This will allow you to inject other services to the Shoko DI container which can be accessed via <see cref="Utils.ServiceContainer">Utils.ServiceContainer</see>
-    /// if you want a Logger, you can use <see cref="Microsoft.Extensions.Logging.ILogger&lt;T&gt;"/>
+    /// Friendly name of the plugin.
     /// </summary>
-    public interface IPlugin
-    {
-        string Name { get; }
-        void Load();
+    string Name { get; }
 
-        /// <summary>
-        /// This will be called with the created settings object if you have an <see cref="IPluginSettings"/> in the Plugin.
-        /// You can cast to your desired type and set the settings within it.
-        /// </summary>
-        /// <param name="settings"></param>
-        void OnSettingsLoaded(IPluginSettings settings);
+    /// <summary>
+    /// Load event.
+    /// </summary>
+    void Load();
 
-        // static void ConfigureServices(IServiceCollection serviceCollection);
-    }
+    /// <summary>
+    /// This will be called with the created settings object if you have an <see cref="IPluginSettings"/> in the Plugin.
+    /// You can cast to your desired type and set the settings within it.
+    /// </summary>
+    /// <param name="settings"></param>
+    void OnSettingsLoaded(IPluginSettings settings);
+
+    // static void ConfigureServices(IServiceCollection serviceCollection);
 }

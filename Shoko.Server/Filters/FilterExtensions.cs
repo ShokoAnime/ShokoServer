@@ -114,10 +114,10 @@ public static class FilterExtensions
             ResolutionsDelegate = () =>
                 series.VideoLocals
                     .Where(a => a.MediaInfo?.VideoStream is not null)
-                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo.VideoStream.Width, a.MediaInfo.VideoStream.Height)))
+                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
             FilePathsDelegate = () =>
-                series.VideoLocals.Select(a => a.FirstValidPlace.FilePath).ToHashSet(),
+                series.VideoLocals.Select(a => a.FirstValidPlace?.FilePath).WhereNotNull().ToHashSet(),
         };
 
         return filterable;
@@ -249,10 +249,10 @@ public static class FilterExtensions
                 series
                     .SelectMany(a => a.VideoLocals)
                     .Where(a => a.MediaInfo?.VideoStream is not null)
-                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo.VideoStream.Width, a.MediaInfo.VideoStream.Height)))
+                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
             FilePathsDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace.FilePath)).ToHashSet(),
+                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.FilePath)).WhereNotNull().ToHashSet(),
         };
         return filterable;
     }

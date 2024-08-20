@@ -37,7 +37,7 @@ public interface IVideo : IMetadata<int>
     /// <summary>
     /// The MediaInfo data for the file. This can be null, but it shouldn't be.
     /// </summary>
-    IMediaContainer? MediaInfo { get; }
+    IMediaInfo? MediaInfo { get; }
 
     /// <summary>
     /// All cross-references linked to the video.
