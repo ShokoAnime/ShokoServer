@@ -14,12 +14,6 @@ public class WebAOMSettings
     public int MaxEpisodeLength { get; set; } = 33;
 
     /// <summary>
-    /// Whether to skip disk space checks.
-    /// </summary>
-    [RenamerSetting(Name = "Skip Disk Space Checks", Description = "Whether to skip disk space checks.")]
-    public bool SkipDiskSpaceChecks { get; set; }
-
-    /// <summary>
     /// Whether to place files in a folder structure based on the Shoko group structure.
     /// </summary>
     [RenamerSetting(Name = "Group Aware Sorting", Description = "Whether to place files in a folder structure based on the Shoko group structure.")]
