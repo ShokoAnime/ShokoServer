@@ -297,6 +297,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             .WhereNotNull()
             .Select(preferredImage => preferredImage.GetImageMetadata())
             .WhereNotNull()
+            .DistinctBy(image => image.ImageType)
             .ToDictionary(image => image.ImageType);
         var images = new List<IImageMetadata>();
         if (!entityType.HasValue || entityType.Value is ImageEntityType.Poster)
