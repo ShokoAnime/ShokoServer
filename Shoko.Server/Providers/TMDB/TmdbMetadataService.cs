@@ -261,7 +261,7 @@ public class TmdbMetadataService
                     c.ForceRefresh = force;
                     c.DownloadImages = saveImages;
                 }
-            );
+            ).ConfigureAwait(false);
     }
 
     public async Task ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadCollections = null)
@@ -274,7 +274,7 @@ public class TmdbMetadataService
             c.DownloadImages = downloadImages;
             c.DownloadCrewAndCast = downloadCrewAndCast;
             c.DownloadCollections = downloadCollections;
-        });
+        }).ConfigureAwait(false);
     }
 
     public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadCollections = false)
@@ -310,9 +310,7 @@ public class TmdbMetadataService
             RepoFactory.TMDB_Movie.Save(tmdbMovie);
         }
 
-        else if (downloadImages)
-            await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage);
-        else if (downloadCollections)
+        if (downloadCollections)
             await UpdateMovieCollections(movie);
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(movieId))
@@ -329,6 +327,9 @@ public class TmdbMetadataService
                     series.ResetPreferredOverview();
             }
         }
+
+        if (downloadImages)
+            await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage);
 
         if (newlyAdded || updated)
             ShokoEventHandler.Instance.OnMovieUpdated(tmdbMovie, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
@@ -577,6 +578,25 @@ public class TmdbMetadataService
             tmdbCollection.LastUpdatedAt = DateTime.Now;
             RepoFactory.TMDB_Collection.Save(tmdbCollection);
         }
+    }
+
+    public async Task ScheduleDownloadAllMovieImages(int movieId, bool forceDownload = false)
+    {
+        // Schedule the movie info to be downloaded or updated.
+        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<DownloadTmdbMovieImagesJob>(c =>
+        {
+            c.TmdbMovieID = movieId;
+            c.ForceDownload = forceDownload;
+        }).ConfigureAwait(false);
+    }
+
+    public async Task DownloadAllMovieImages(int movieId, bool forceDownload = false)
+    {
+        var tmdbMovie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieId);
+        if (tmdbMovie is null)
+            return;
+
+        await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage, forceDownload);
     }
 
     public async Task DownloadMovieImages(int movieId, TitleLanguage? mainLanguage = null, bool forceDownload = false)
@@ -966,7 +986,7 @@ public class TmdbMetadataService
                     c.ForceRefresh = force;
                     c.DownloadImages = downloadImages;
                 }
-            );
+            ).ConfigureAwait(false);
         }
     }
 
@@ -980,7 +1000,7 @@ public class TmdbMetadataService
             c.DownloadImages = downloadImages;
             c.DownloadCrewAndCast = downloadCrewAndCast;
             c.DownloadAlternateOrdering = downloadAlternateOrdering;
-        });
+        }).ConfigureAwait(false);
     }
 
     public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false)
@@ -1007,7 +1027,7 @@ public class TmdbMetadataService
         updated = titlesUpdated || overviewsUpdated || updated;
         updated = await UpdateShowExternalIDs(tmdbShow) || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
-        var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, tmdbShow.OriginalLanguage, forceRefresh);
+        var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast);
         updated = episodesOrSeasonsUpdated || updated;
         if (downloadAlternateOrdering)
             updated = await UpdateShowAlternateOrdering(show) || updated;
@@ -1016,9 +1036,6 @@ public class TmdbMetadataService
             tmdbShow.LastUpdatedAt = DateTime.Now;
             RepoFactory.TMDB_Show.Save(tmdbShow);
         }
-
-        if (downloadImages)
-            await DownloadShowImages(showId, tmdbShow.OriginalLanguage);
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(showId))
         {
@@ -1037,6 +1054,9 @@ public class TmdbMetadataService
             }
         }
 
+        if (downloadImages)
+            await DownloadAllShowImages(showId, false);
+
         if (newlyAdded || updated)
             ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
         foreach (var (episode, reason) in updatedEpisodes)
@@ -1045,7 +1065,7 @@ public class TmdbMetadataService
         return updated;
     }
 
-    private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadImages, bool downloadCrewAndCast = false, TitleLanguage language = TitleLanguage.None, bool forceRefresh = false)
+    private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false)
     {
         var settings = _settingsProvider.GetSettings();
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -1082,9 +1102,6 @@ public class TmdbMetadataService
                 seasonsToSave.Add(tmdbSeason);
             }
 
-            if (downloadImages)
-                await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, language, forceRefresh);
-
             seasonsToSkip.Add(tmdbSeason.Id);
 
             await ProcessWithConcurrencyAsync(5, season.Episodes, async (episode) =>
@@ -1107,13 +1124,8 @@ public class TmdbMetadataService
                 if (downloadCrewAndCast)
                 {
                     var credits = await Client.GetTvEpisodeCreditsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
-                    episodeUpdated = await UpdateEpisodeCastAndCrew(tmdbEpisode, credits, downloadImages) || episodeUpdated;
+                    episodeUpdated = await UpdateEpisodeCastAndCrew(tmdbEpisode, credits) || episodeUpdated;
                 }
-
-
-                // Update images.
-                if (downloadImages)
-                    await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber, language, forceRefresh);
 
                 if (episodeNew || episodeUpdated)
                     episodeEventsToEmit.Add((tmdbEpisode, episodeNew ? UpdateReason.Added : UpdateReason.Updated));
@@ -1309,7 +1321,7 @@ public class TmdbMetadataService
             episodesToRemove.Count > 0;
     }
 
-    private async Task<bool> UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits, bool downloadImages)
+    private async Task<bool> UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits)
     {
         var peopleToAdd = 0;
         var peopleToSave = new List<TMDB_Person>();
@@ -1343,8 +1355,6 @@ public class TmdbMetadataService
                     tmdbPerson.LastUpdatedAt = DateTime.Now;
                     peopleToSave.Add(tmdbPerson);
                 }
-                if (downloadImages)
-                    await DownloadPersonImages(tmdbPerson.Id);
 
                 knownPeopleDict.Add(cast.Id, tmdbPerson);
             }
@@ -1414,8 +1424,6 @@ public class TmdbMetadataService
                     tmdbPerson.LastUpdatedAt = DateTime.Now;
                     peopleToSave.Add(tmdbPerson);
                 }
-                if (downloadImages)
-                    await DownloadPersonImages(tmdbPerson.Id);
 
                 knownPeopleDict.Add(crew.Id, tmdbPerson);
             }
@@ -1506,6 +1514,43 @@ public class TmdbMetadataService
             crewToRemove.Count > 0 ||
             peopleToSave.Count > 0 ||
             peopleToRemove > 0;
+    }
+
+    public async Task ScheduleDownloadAllShowImages(int showId, bool forceDownload = false)
+    {
+        // Schedule the movie info to be downloaded or updated.
+        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<DownloadTmdbShowImagesJob>(c =>
+        {
+            c.TmdbShowID = showId;
+            c.ForceDownload = forceDownload;
+        }).ConfigureAwait(false);
+    }
+
+    public async Task DownloadAllShowImages(int showId, bool forceDownload = false)
+    {
+        // Abort if we're within a certain time frame as to not try and get us rate-limited.
+        var tmdbShow = RepoFactory.TMDB_Show.GetByTmdbShowID(showId);
+        if (tmdbShow is null)
+            return;
+
+        await DownloadShowImages(showId, tmdbShow.OriginalLanguage, forceDownload);
+
+        var peopleToDownload = new HashSet<int>();
+        foreach (var tmdbSeason in tmdbShow.TmdbSeasons)
+        {
+            await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, tmdbShow.OriginalLanguage, forceDownload);
+            foreach (var tmdbEpisode in tmdbSeason.TmdbEpisodes)
+            {
+                await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbSeason.SeasonNumber, tmdbEpisode.EpisodeNumber, tmdbShow.OriginalLanguage, forceDownload);
+                foreach (var cast in tmdbEpisode.Cast)
+                    peopleToDownload.Add(cast.TmdbPersonID);
+                foreach (var crew in tmdbEpisode.Crew)
+                    peopleToDownload.Add(crew.TmdbPersonID);
+            }
+        }
+
+        foreach (var personId in peopleToDownload)
+            await DownloadPersonImages(personId, forceDownload);
     }
 
     public async Task DownloadShowImages(int showId, TitleLanguage? mainLanguage = null, bool forceDownload = false)

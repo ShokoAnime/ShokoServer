@@ -122,11 +122,11 @@ public class Season
             Images = season.GetImages()
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
-            Cast = season.GetCast()
+            Cast = season.Cast
                 .Select(cast => new Role(cast))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
-            Crew = season.GetCrew()
+            Crew = season.Crew
                 .Select(crew => new Role(crew))
                 .ToList();
         SeasonNumber = season.SeasonNumber;

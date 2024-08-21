@@ -421,27 +421,59 @@ public class TmdbController : BaseController
     #region Actions
 
     /// <summary>
-    /// Refresh or download  the metadata for a TMDB movie.
+    /// Refresh or download the metadata for a TMDB movie.
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
-    /// <param name="force">Forcefully download an update even if we updated recently.</param>
-    /// <param name="downloadImages">Also download images.</param>
-    /// <param name="downloadCrewAndCast">Also download crew and cast. Will respect global option if not set.</param>
-    /// <param name="downloadCollections">Also download movie collection. Will respect global option if not set.</param>
-    /// <returns></returns>
+    /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
+    /// <returns>
+    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("Movie/{movieID}/Action/Refresh")]
     public async Task<ActionResult> RefreshTmdbMovieByMovieID(
         [FromRoute] int movieID,
-        [FromQuery] bool force = false,
-        [FromQuery] bool downloadImages = true,
-        [FromQuery] bool? downloadCrewAndCast = null,
-        [FromQuery] bool? downloadCollections = null
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshMovieBody body
     )
     {
-        await _tmdbService.ScheduleUpdateOfMovie(movieID, force, downloadImages, downloadCrewAndCast, downloadCollections);
+        if (body.Immediate)
+        {
+            await _tmdbService.UpdateMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCollections);
+            return Ok();
+        }
 
-        return Ok();
+        await _tmdbService.ScheduleUpdateOfMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadCollections);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Download images for a TMDB movie.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID.</param>
+    /// <param name="body">Body containing options for downloading images.</param>
+    /// <returns>
+    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("Movie/{movieID}/Action/DownloadImages")]
+    public async Task<ActionResult> DownloadImagesForTmdbMovieByMovieID(
+        [FromRoute] int movieID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie is null)
+            return NotFound(MovieNotFound);
+
+        if (body.Immediate)
+        {
+            await _tmdbService.DownloadAllMovieImages(movieID, body.Force);
+            return Ok();
+        }
+
+        await _tmdbService.ScheduleDownloadAllMovieImages(movieID, body.Force);
+        return NoContent();
     }
 
     #endregion
@@ -1038,24 +1070,54 @@ public class TmdbController : BaseController
     /// Refresh or download the metadata for a TMDB show.
     /// </summary>
     /// <param name="showID">TMDB Show ID.</param>
-    /// <param name="force">Forcefully download an update even if we updated recently.</param>
-    /// <param name="downloadImages">Also download images.</param>
-    /// <param name="downloadCrewAndCast">Also download crew and cast. Will respect global option if not set.</param>
-    /// <param name="downloadAlternateOrdering">Also download alternate ordering information. Will respect global option if not set.</param>
+    /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("Show/{showID}/Action/Refresh")]
     public async Task<ActionResult> RefreshTmdbShowByShowID(
         [FromRoute] int showID,
-        [FromQuery] bool force = false,
-        [FromQuery] bool downloadImages = true,
-        [FromQuery] bool? downloadCrewAndCast = null,
-        [FromQuery] bool? downloadAlternateOrdering = null
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
     )
     {
-        await _tmdbService.ScheduleUpdateOfShow(showID, force, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
+        if (body.Immediate)
+        {
+            var settings = SettingsProvider.GetSettings();
+            await _tmdbService.UpdateShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering);
+            return Ok();
+        }
 
-        return Ok();
+        await _tmdbService.ScheduleUpdateOfShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Download images for a TMDB show.
+    /// </summary>
+    /// <param name="showID">TMDB Show ID.</param>
+    /// <param name="body">Body containing options for downloading images.</param>
+    /// <returns>
+    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("Show/{showID}/Action/DownloadImages")]
+    public async Task<ActionResult> DownloadImagesForTmdbShowByShowID(
+        [FromRoute] int showID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        if (body.Immediate)
+        {
+            await _tmdbService.DownloadAllShowImages(showID, body.Force);
+            return Ok();
+        }
+
+        await _tmdbService.ScheduleDownloadAllShowImages(showID, body.Force);
+        return NoContent();
     }
 
     #endregion
@@ -1225,7 +1287,7 @@ public class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetCast()
+        return season.Cast
             .Select(cast => new Role(cast))
             .ToList();
     }
@@ -1251,7 +1313,7 @@ public class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetCrew()
+        return season.Crew
             .Select(crew => new Role(crew))
             .ToList();
     }
@@ -1285,7 +1347,7 @@ public class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        var show = season.GetTmdbShow();
+        var show = season.TmdbShow;
         if (show is null)
             return NotFound(ShowNotFoundBySeasonID);
 
@@ -1316,7 +1378,7 @@ public class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetTmdbEpisodes()
+        return season.TmdbEpisodes
             .ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
     }
 
@@ -1343,7 +1405,7 @@ public class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetTmdbEpisodes()
+        return season.TmdbEpisodes
             .SelectMany(episode => episode.CrossReferences)
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbAnime)
@@ -1373,7 +1435,7 @@ public class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetTmdbEpisodes()
+        return season.TmdbEpisodes
             .SelectMany(episode => episode.CrossReferences)
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnimeSeries)

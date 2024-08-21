@@ -24,6 +24,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.TMDB;
@@ -1257,19 +1258,16 @@ public class SeriesController : BaseController
     /// Refresh all TMDB Movies linked to the Shoko Series by ID.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID.</param>
-    /// <param name="force">Forcefully download an update even if we updated recently.</param>
-    /// <param name="downloadImages">Also download images.</param>
-    /// <param name="downloadCrewAndCast">Also download crew and cast. Will respect global option if not set.</param>
-    /// <param name="downloadCollections">Also download movie collections. Will respect the global option if not set.</param>
-    /// <returns>Void.</returns>
+    /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
+    /// <returns>
+    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Movie/Action/Refresh")]
     public async Task<ActionResult> RefreshTMDBMoviesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery] bool force = false,
-        [FromQuery] bool downloadImages = true,
-        [FromQuery] bool? downloadCrewAndCast = null,
-        [FromQuery] bool? downloadCollections = null
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshMovieBody body
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1279,9 +1277,56 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
-            await _tmdbMetadataService.ScheduleUpdateOfMovie(xref.TmdbMovieID, force, downloadImages, downloadCrewAndCast, downloadCollections);
+        if (body.Immediate)
+        {
+            var settings = SettingsProvider.GetSettings();
+            await Task.WhenAll(
+                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
+                    .Select(xref => _tmdbMetadataService.UpdateMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? settings.TMDB.AutoDownloadCollections))
+            );
+            return Ok();
+        }
 
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+            await _tmdbMetadataService.ScheduleUpdateOfMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadCollections);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Download all images for all TMDB Movies linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
+    /// <returns>
+    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Movie/Action/DownloadImages")]
+    public async Task<ActionResult> DownloadTMDBMovieImagesBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshMovieBody body
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        if (body.Immediate)
+        {
+            await Task.WhenAll(
+                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
+                    .Select(xref => _tmdbMetadataService.DownloadAllMovieImages(xref.TmdbMovieID, body.Force))
+            );
+            return Ok();
+        }
+
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+            await _tmdbMetadataService.ScheduleDownloadAllMovieImages(xref.TmdbMovieID, body.Force);
         return NoContent();
     }
 
@@ -1407,19 +1452,16 @@ public class SeriesController : BaseController
     /// Refresh all TMDB Shows linked to the Shoko Series by ID.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID.</param>
-    /// <param name="force">Forcefully refresh the shows, even if they've been recently updated.</param>
-    /// <param name="downloadImages">Also download images.</param>
-    /// /// <param name="downloadCrewAndCast">Also download crew and cast. Will respect global options if not set.</param>
-    /// <param name="downloadAlternateOrdering">Also download alternate ordering information. Will respect global options if not set.</param>
-    /// <returns></returns>
+    /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
+    /// <returns>
+    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Show/Action/Refresh")]
     public async Task<ActionResult> RefreshTMDBShowsBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery] bool force = false,
-        [FromQuery] bool downloadImages = true,
-        [FromQuery] bool? downloadCrewAndCast = null,
-        [FromQuery] bool? downloadAlternateOrdering = null
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1429,9 +1471,56 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
-            await _tmdbMetadataService.ScheduleUpdateOfShow(xref.TmdbShowID, force, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
+        if (body.Immediate)
+        {
+            var settings = SettingsProvider.GetSettings();
+            await Task.WhenAll(
+                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
+                    .Select(xref => _tmdbMetadataService.UpdateShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering))
+            );
+            return Ok();
+        }
 
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
+            await _tmdbMetadataService.ScheduleUpdateOfShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Download all images for all TMDB Shows linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
+    /// <returns>
+    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Show/Action/DownloadImages")]
+    public async Task<ActionResult> DownloadTMDBShowImagesBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        if (body.Immediate)
+        {
+            await Task.WhenAll(
+                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
+                    .Select(xref => _tmdbMetadataService.DownloadAllShowImages(xref.TmdbShowID, body.Force))
+            );
+            return Ok();
+        }
+
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
+            await _tmdbMetadataService.ScheduleDownloadAllShowImages(xref.TmdbShowID, body.Force);
         return NoContent();
     }
 

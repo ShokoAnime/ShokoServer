@@ -216,7 +216,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// Get all cast members that have worked on this season.
     /// </summary>
     /// <returns>All cast members that have worked on this season.</returns>
-    public IReadOnlyList<TMDB_Season_Cast> GetCast() =>
+    public IReadOnlyList<TMDB_Season_Cast> Cast =>
         RepoFactory.TMDB_Episode_Cast.GetByTmdbSeasonID(TmdbSeasonID)
             .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
             .Select(group =>
@@ -242,7 +242,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// Get all crew members that have worked on this season.
     /// </summary>
     /// <returns>All crew members that have worked on this season.</returns>
-    public IReadOnlyList<TMDB_Season_Crew> GetCrew() =>
+    public IReadOnlyList<TMDB_Season_Crew> Crew =>
         RepoFactory.TMDB_Episode_Crew.GetByTmdbSeasonID(TmdbSeasonID)
             .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
             .Select(group =>
@@ -269,7 +269,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// been purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB show, or null.</returns>
-    public TMDB_Show? GetTmdbShow() =>
+    public TMDB_Show? TmdbShow =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
     /// <summary>
@@ -278,7 +278,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// reason.
     /// </summary>
     /// <returns>The TMDB episodes.</returns>
-    public IReadOnlyList<TMDB_Episode> GetTmdbEpisodes() =>
+    public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
         RepoFactory.TMDB_Episode.GetByTmdbSeasonID(TmdbSeasonID);
 
     #endregion
