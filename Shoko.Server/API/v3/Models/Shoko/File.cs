@@ -154,8 +154,9 @@ public partial class File
 
         if (includeMediaInfo)
         {
-            var mediaContainer = file?.MediaInfo ??
-                throw new Exception("Unable to find media container for File");
+            var mediaContainer = file?.MediaInfo;
+            if (mediaContainer == null)
+                return;
             MediaInfo = new MediaInfo(file, mediaContainer);
         }
     }
