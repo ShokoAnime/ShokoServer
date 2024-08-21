@@ -162,8 +162,8 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         {
             UpdateProperty(TmdbSeasonID, season.Id!.Value, v => TmdbSeasonID = v),
             UpdateProperty(TmdbShowID, show.Id, v => TmdbShowID = v),
-            UpdateProperty(EnglishTitle, translation?.Data.Name ?? episode.Name, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, translation?.Data.Overview ?? episode.Overview, v => EnglishOverview = v),
+            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : episode.Name, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : episode.Overview, v => EnglishOverview = v),
             UpdateProperty(SeasonNumber, episode.SeasonNumber, v => SeasonNumber = v),
             UpdateProperty(EpisodeNumber, episode.EpisodeNumber, v => EpisodeNumber = v),
             UpdateProperty(Runtime, episode.Runtime.HasValue ? TimeSpan.FromMinutes(episode.Runtime.Value) : null, v => Runtime = v),

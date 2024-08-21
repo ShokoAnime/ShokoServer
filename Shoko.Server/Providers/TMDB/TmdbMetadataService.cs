@@ -2180,22 +2180,22 @@ public class TmdbMetadataService
             var currentTitle = translation.Data.Name ?? string.Empty;
             if (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode == tmdbEntity.OriginalLanguageCode)
             {
-                currentTitle = tmdbEntity.OriginalTitle ?? translation.Data.Name ?? string.Empty;
+                currentTitle = tmdbEntity.OriginalTitle;
                 alwaysInclude = true;
             }
             else if (languageCode == "en" && countryCode == "US")
             {
+                currentTitle = tmdbEntity.EnglishTitle;
                 alwaysInclude = true;
-                currentTitle = tmdbEntity.EnglishTitle ?? translation.Data.Name ?? string.Empty;
             }
 
             var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage());
             var existingTitle = existingTitles.FirstOrDefault(title => title.LanguageCode == languageCode && title.CountryCode == countryCode);
             if (shouldInclude && !string.IsNullOrEmpty(currentTitle) && !(
                 // Make sure the "translation" is not just the English Title or
-                (languageCode != "en" && languageCode != "US" && string.Equals(tmdbEntity.EnglishTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase)) ||
+                (languageCode != "en" && languageCode != "US" && !string.IsNullOrEmpty(tmdbEntity.EnglishTitle) && string.Equals(tmdbEntity.EnglishTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase)) ||
                 // the Original Title.
-                (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode != tmdbEntity.OriginalLanguageCode && string.Equals(tmdbEntity.OriginalTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase))
+                (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode != tmdbEntity.OriginalLanguageCode && !string.IsNullOrEmpty(tmdbEntity.OriginalTitle) && string.Equals(tmdbEntity.OriginalTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase))
             ))
             {
                 if (existingTitle == null)

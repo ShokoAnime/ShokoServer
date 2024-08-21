@@ -116,8 +116,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
             UpdateProperty(PosterPath, season.PosterPath, v => PosterPath = v),
             UpdateProperty(TmdbSeasonID, season.Id!.Value, v => TmdbSeasonID = v),
             UpdateProperty(TmdbShowID, show.Id, v => TmdbShowID = v),
-            UpdateProperty(EnglishTitle, translation?.Data.Name ?? season.Name, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, translation?.Data.Overview ?? season.Overview, v => EnglishOverview = v),
+            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : season.Name, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : season.Overview, v => EnglishOverview = v),
             UpdateProperty(EpisodeCount, season.Episodes.Count, v => EpisodeCount = v),
             UpdateProperty(SeasonNumber, season.SeasonNumber, v => SeasonNumber = v),
         };

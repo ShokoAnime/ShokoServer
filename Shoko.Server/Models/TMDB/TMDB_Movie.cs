@@ -200,8 +200,8 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         {
             UpdateProperty(PosterPath, movie.PosterPath, v => PosterPath = v),
             UpdateProperty(TmdbCollectionID, movie.BelongsToCollection?.Id, v => TmdbCollectionID = v),
-            UpdateProperty(EnglishTitle, translation?.Data.Name ?? movie.Title, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, translation?.Data.Overview ?? movie.Overview, v => EnglishOverview = v),
+            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : movie.Title, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : movie.Overview, v => EnglishOverview = v),
             UpdateProperty(OriginalTitle, movie.OriginalTitle, v => OriginalTitle = v),
             UpdateProperty(OriginalLanguageCode, movie.OriginalLanguage, v => OriginalLanguageCode = v),
             UpdateProperty(IsRestricted, movie.Adult, v => IsRestricted = v),

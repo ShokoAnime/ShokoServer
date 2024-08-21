@@ -188,8 +188,8 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             UpdateProperty(PosterPath, show.PosterPath, v => PosterPath = v),
             UpdateProperty(OriginalTitle, show.OriginalName, v => OriginalTitle = v),
             UpdateProperty(OriginalLanguageCode, show.OriginalLanguage, v => OriginalLanguageCode = v),
-            UpdateProperty(EnglishTitle, translation?.Data.Name ?? show.Name, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, translation?.Data.Overview ?? show.Name, v => EnglishOverview = v),
+            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : show.Name, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : show.Overview, v => EnglishOverview = v),
             UpdateProperty(IsRestricted, show.Adult, v => IsRestricted = v),
             UpdateProperty(
                 Genres,
