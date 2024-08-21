@@ -4,9 +4,11 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -18,6 +20,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.TMDB;
@@ -34,8 +37,8 @@ using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 using TmdbSearch = Shoko.Server.API.v3.Models.TMDB.Search;
 using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
 using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
-using System.Threading.Tasks;
 
+#pragma warning disable CA1822
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -137,6 +140,14 @@ public class TmdbController : BaseController
             .ThenBy(movie => movie.TmdbMovieID)
             .ToListResult(m => new TmdbMovie(m, include?.CombineFlags()), page, pageSize);
     }
+
+    [HttpPost("Movie/Bulk")]
+    public ActionResult<List<TmdbMovie>> BulkGetTmdbMoviesByMovieIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkFetchBody<TmdbMovie.IncludeDetails> body) =>
+        body.IDs
+            .Select(episodeID => episodeID <= 0 ? null : RepoFactory.TMDB_Movie.GetByTmdbMovieID(episodeID))
+            .WhereNotNull()
+            .Select(episode => new TmdbMovie(episode, body.Include?.CombineFlags(), body.Language))
+            .ToList();
 
     /// <summary>
     /// Get the local metadata for a TMDB movie.
@@ -677,6 +688,14 @@ public class TmdbController : BaseController
             .ThenBy(show => show.TmdbShowID)
             .ToListResult(m => new TmdbShow(m, include?.CombineFlags()), page, pageSize);
     }
+
+    [HttpPost("Show/Bulk")]
+    public ActionResult<List<TmdbShow>> BulkGetTmdbShowsByShowIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkFetchBody<TmdbShow.IncludeDetails> body) =>
+        body.IDs
+            .Select(episodeID => episodeID <= 0 ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(episodeID))
+            .WhereNotNull()
+            .Select(episode => new TmdbShow(episode, body.Include?.CombineFlags(), body.Language))
+            .ToList();
 
     /// <summary>
     /// Get the local metadata for a TMDB show.
@@ -1376,6 +1395,14 @@ public class TmdbController : BaseController
     #endregion
 
     #region Basics
+
+    [HttpPost("Episode/Bulk")]
+    public ActionResult<List<TmdbEpisode>> BulkGetTmdbEpisodesByEpisodeIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkFetchBody<TmdbEpisode.IncludeDetails> body) =>
+        body.IDs
+            .Select(episodeID => episodeID <= 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID))
+            .WhereNotNull()
+            .Select(episode => new TmdbEpisode(episode, body.Include?.CombineFlags(), body.Language))
+            .ToList();
 
     [HttpGet("Episode/{episodeID}")]
     public ActionResult<TmdbEpisode> GetTmdbEpisodeByEpisodeID(
