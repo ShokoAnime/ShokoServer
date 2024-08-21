@@ -2008,7 +2008,7 @@ public class TmdbMetadataService
         var storedImages = RepoFactory.TMDB_Image.GetByForeignIDAndType(foreignId, foreignType, type);
         if (languages.Count > 0 && isLimitEnabled)
             storedImages = storedImages
-                .OrderBy(x => languages.IndexOf(x.Language))
+                .OrderBy(x => languages.IndexOf(x.Language) is var index && index >= 0 ? index : int.MaxValue)
                 .ToList();
         foreach (var image in storedImages)
         {
@@ -2020,30 +2020,38 @@ public class TmdbMetadataService
                 continue;
             }
 
-            // Skip downloading if it already exists and we're not forcing it.
-            var fileExists = File.Exists(path);
-            if (fileExists && !forceDownload)
-            {
-                count++;
-                continue;
-            }
-
             // Download image if the limit is disabled or if we're below the limit.
+            var fileExists = File.Exists(path);
             if (!isLimitEnabled || count < maxCount)
             {
-                // Scheduled the image to be downloaded.
+                // Skip downloading if it already exists and we're not forcing it.
+                count++;
+                if (fileExists && !forceDownload)
+                    continue;
+
+                // Otherwise scheduled the image to be downloaded.
                 await scheduler.StartJob<DownloadTmdbImageJob>(c =>
                 {
                     c.ImageID = image.TMDB_ImageID;
                     c.ImageType = image.ImageType;
                     c.ForceDownload = forceDownload;
                 });
-                count++;
             }
             // TODO: check if the image is linked to any other entries, and keep it if the other entries are within the limit.
-            // Else delete the metadata since the data doesn't exist on disk, or we're forcing it and the limit is enabled and has been reached.
-            else if (!fileExists || forceDownload)
+            // Else delete it from the local cache and database.
+            else
             {
+                if (fileExists)
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to delete image file: {Path}", path);
+                    }
+                }
                 RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
             }
         }
