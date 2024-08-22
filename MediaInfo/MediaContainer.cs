@@ -126,7 +126,7 @@ namespace Shoko.Models.MediaInfo
             TextStreams;
 
         IReadOnlyList<string> IMediaInfo.Attachments =>
-            GeneralStream.extra?.Attachments?.Split("/", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+            GeneralStream.extra?.Attachments?.Split("/", StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray() ?? [];
 
         IReadOnlyList<IChapterInfo> IMediaInfo.Chapters
         {
