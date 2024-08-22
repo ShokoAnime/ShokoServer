@@ -6,6 +6,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
@@ -53,7 +54,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             // Fallback to English if available.
             return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
                 .FirstOrDefault()
-                ?.Title ?? $"AniDB Episode {AniDB_EpisodeID}";
+                ?.Title ?? $"<AniDB Episode {AniDB_EpisodeID}>";
         }
     }
 
@@ -64,23 +65,54 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             // Return the override if it's set.
             if (!string.IsNullOrEmpty(EpisodeNameOverride))
                 return EpisodeNameOverride;
-            // Check each provider in the given order.
-            foreach (var source in Utils.SettingsProvider.GetSettings().Language.EpisodeTitleSourceOrder)
-            {
-                var title = source switch
+
+            var settings = Utils.SettingsProvider.GetSettings();
+            var sourceOrder = settings.Language.SeriesTitleSourceOrder;
+            var languageOrder = Languages.PreferredEpisodeNamingLanguages;
+            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
+
+            // Lazy load AniDB titles if needed.
+            List<SVR_AniDB_Episode_Title>? anidbTitles = null;
+            List<SVR_AniDB_Episode_Title> GetAnidbTitles()
+                => anidbTitles ??= RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID);
+
+            // Lazy load TMDB titles if needed.
+            Dictionary<TitleLanguage, string>? tmdbTitles = null;
+            Dictionary<TitleLanguage, string> GetTmdbTitles()
+                => tmdbTitles ??= (
+                    TmdbEpisodes is { Count: > 0 } tmdbEpisodes
+                        ? tmdbEpisodes[0].GetAllTitles()
+                        : TmdbMovies is { Count: 1 } tmdbMovies
+                            ? tmdbMovies[0].GetAllTitles()
+                            : []
+                )
+                    .DistinctBy(x => x.Language)
+                    .ToDictionary(x => x.Language, x => x.Value);
+
+            // Loop through all languages and sources, first by language, then by source.
+            foreach (var language in languageOrder)
+                foreach (var source in sourceOrder)
                 {
-                    DataSourceType.AniDB =>
-                        AniDB_Episode?.PreferredTitle?.Title,
-                    DataSourceType.TvDB =>
-                        TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName,
-                    DataSourceType.TMDB =>
-                        (TmdbEpisodes is { Count: > 0 } tmdbEpisodes ? tmdbEpisodes[0].GetPreferredTitle(false)?.Value : null) ??
-                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
-                    _ => null,
-                };
-                if (!string.IsNullOrEmpty(title))
-                    return title;
-            }
+                    var title = source switch
+                    {
+                        DataSourceType.AniDB =>
+                            language.Language is TitleLanguage.Main
+                                ? GetAnidbTitles().FirstOrDefault(x => x.Language is TitleLanguage.English)?.Title ?? $"<AniDB Episode {AniDB_EpisodeID}>"
+                                : GetAnidbTitles().FirstOrDefault(x => x.Language == language.Language)?.Title,
+                        DataSourceType.TvDB =>
+                            tvdbLanguage == language.Language
+                                ? TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName
+                                : null,
+                        DataSourceType.TMDB =>
+                            GetTmdbTitles()
+                                .TryGetValue(language.Language, out var tmdbTitle)
+                                ? tmdbTitle
+                                : null,
+                        _ => null,
+                    };
+                    if (!string.IsNullOrEmpty(title))
+                        return title;
+                }
 
             // The most "default" title we have, even if AniDB isn't a preferred source.
             return DefaultTitle;
@@ -91,23 +123,48 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     {
         get
         {
-            // Check each provider in the given order.
-            foreach (var source in Utils.SettingsProvider.GetSettings().Language.DescriptionSourceOrder)
-            {
-                var overview = source switch
+            var settings = Utils.SettingsProvider.GetSettings();
+            var sourceOrder = settings.Language.DescriptionSourceOrder;
+            var languageOrder = Languages.PreferredDescriptionNamingLanguages;
+            var anidbOverview = AniDB_Anime?.Description;
+            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
+
+            // Lazy load TMDB overviews if needed.
+            Dictionary<TitleLanguage, string>? tmdbOverviews = null;
+            Dictionary<TitleLanguage, string> GetTmdbOverviews()
+                => tmdbOverviews ??= (
+                    TmdbEpisodes is { Count: > 0 } tmdbEpisodes
+                        ? tmdbEpisodes[0].GetAllOverviews()
+                        : TmdbMovies is { Count: 1 } tmdbMovies
+                            ? tmdbMovies[0].GetAllOverviews()
+                            : []
+                )
+                    .DistinctBy(x => x.Language)
+                    .ToDictionary(x => x.Language, x => x.Value);
+
+            // Check each language and source in the most preferred order.
+            foreach (var language in languageOrder)
+                foreach (var source in sourceOrder)
                 {
-                    DataSourceType.AniDB =>
-                        AniDB_Episode?.Description,
-                    DataSourceType.TvDB =>
-                        TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview,
-                    DataSourceType.TMDB =>
-                        (TmdbEpisodes is { Count: > 0 } tmdbEpisodes ? tmdbEpisodes[0].GetPreferredOverview(false)?.Value : null) ??
-                        (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredOverview(false)?.Value : null),
-                    _ => null,
-                };
-                if (!string.IsNullOrEmpty(overview))
-                    return overview;
-            }
+                    var overview = source switch
+                    {
+                        DataSourceType.AniDB =>
+                            language.Language is TitleLanguage.English && !string.IsNullOrEmpty(anidbOverview)
+                                ? anidbOverview
+                                : null,
+                        DataSourceType.TvDB =>
+                            language.Language == tvdbLanguage
+                                ? TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview
+                                : null,
+                        DataSourceType.TMDB =>
+                            GetTmdbOverviews().TryGetValue(language.Language, out var tmdbOverview)
+                                ? tmdbOverview
+                                : null,
+                        _ => null,
+                    };
+                    if (!string.IsNullOrEmpty(overview))
+                        return overview;
+                }
             // Return nothing if no provider had an overview in the preferred language.
             return string.Empty;
         }

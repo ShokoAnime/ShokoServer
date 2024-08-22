@@ -7,6 +7,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -156,28 +157,68 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         if (_preferredTitle is not null)
             return _preferredTitle;
 
-        // Return the override if it's set.
-        if (!string.IsNullOrEmpty(SeriesNameOverride))
-            return _preferredTitle = SeriesNameOverride;
-        // Check each provider in the given order.
-        foreach (var source in Utils.SettingsProvider.GetSettings().Language.SeriesTitleSourceOrder)
+        lock (this)
         {
-            var title = source switch
-            {
-                DataSourceType.AniDB =>
-                    AniDB_Anime?.PreferredTitle,
-                DataSourceType.TvDB =>
-                    TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName,
-                DataSourceType.TMDB =>
-                    (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredTitle(false)?.Value : null) ??
-                    (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredTitle(false)?.Value : null),
-                _ => null,
-            };
-            if (!string.IsNullOrEmpty(title))
-                return _preferredTitle = title;
+            if (_preferredTitle is not null)
+                return _preferredTitle;
+
+            // Return the override if it's set.
+            if (!string.IsNullOrEmpty(SeriesNameOverride))
+                return _preferredTitle = SeriesNameOverride;
+
+            var settings = Utils.SettingsProvider.GetSettings();
+            var sourceOrder = settings.Language.SeriesTitleSourceOrder;
+            var languageOrder = Languages.PreferredNamingLanguages;
+            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
+            var anime = AniDB_Anime;
+
+            // Lazy load AniDB titles if needed.
+            List<SVR_AniDB_Anime_Title>? anidbTitles = null;
+            List<SVR_AniDB_Anime_Title> GetAnidbTitles()
+                => anidbTitles ??= RepoFactory.AniDB_Anime_Title.GetByAnimeID(AniDB_ID);
+
+            // Lazy load TMDB titles if needed.
+            Dictionary<TitleLanguage, string>? tmdbTitles = null;
+            Dictionary<TitleLanguage, string> GetTmdbTitles()
+                => tmdbTitles ??= (
+                    TmdbShows is { Count: > 0 } tmdbShows
+                        ? tmdbShows[0].GetAllTitles()
+                        : TmdbMovies is { Count: 1 } tmdbMovies
+                            ? tmdbMovies[0].GetAllTitles()
+                            : []
+                )
+                    .DistinctBy(x => x.Language)
+                    .ToDictionary(x => x.Language, x => x.Value);
+
+            // Loop through all languages and sources, first by language, then by source.
+            foreach (var language in languageOrder)
+                foreach (var source in sourceOrder)
+                {
+                    var title = source switch
+                    {
+                        DataSourceType.AniDB =>
+                            language.Language is TitleLanguage.Main
+                                ? anime?.MainTitle ?? GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main)?.Title ?? $"<AniDB Anime {AniDB_ID}>"
+                                : GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main or TitleType.Official && x.Language == language.Language)?.Title ??
+                                    (settings.Language.UseSynonyms ? GetAnidbTitles().FirstOrDefault(x => x.Language == language.Language)?.Title : null),
+                        DataSourceType.TvDB =>
+                            tvdbLanguage == language.Language
+                                ? TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName
+                                : null,
+                        DataSourceType.TMDB =>
+                            GetTmdbTitles()
+                                .TryGetValue(language.Language, out var tmdbTitle)
+                                ? tmdbTitle
+                                : null,
+                        _ => null,
+                    };
+                    if (!string.IsNullOrEmpty(title))
+                        return _preferredTitle = title;
+                }
+
+            // The most "default" title we have, even if AniDB isn't a preferred source.
+            return _preferredTitle = anime?.MainTitle ?? GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main)?.Title ?? $"<AniDB Anime {AniDB_ID}>";
         }
-        // The most "default" title we have, even if AniDB isn't a preferred source.
-        return _preferredTitle = AniDB_Anime?.MainTitle ?? $"AniDB Anime {AniDB_ID}";
     }
 
     private List<AnimeTitle>? _animeTitles = null;
@@ -245,26 +286,59 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         if (_preferredOverview is not null)
             return _preferredOverview;
 
-        // Check each provider in the given order.
-        foreach (var source in Utils.SettingsProvider.GetSettings().Language.DescriptionSourceOrder)
+        lock (this)
         {
-            var overview = source switch
-            {
-                DataSourceType.AniDB =>
-                    AniDB_Anime?.Description,
-                DataSourceType.TvDB =>
-                    TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview,
-                DataSourceType.TMDB =>
-                    (TmdbShows is { Count: > 0 } tmdbShows ? tmdbShows[0].GetPreferredOverview(false)?.Value : null) ??
-                    (TmdbMovies is { Count: 1 } tmdbMovies ? tmdbMovies[0].GetPreferredOverview(false)?.Value : null),
-                _ => null,
-            };
-            if (!string.IsNullOrEmpty(overview))
-                return _preferredOverview = overview;
+            // Return the cached value if it's set.
+            if (_preferredOverview is not null)
+                return _preferredOverview;
+
+            var settings = Utils.SettingsProvider.GetSettings();
+            var sourceOrder = settings.Language.DescriptionSourceOrder;
+            var languageOrder = Languages.PreferredDescriptionNamingLanguages;
+            var anidbOverview = AniDB_Anime?.Description;
+            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
+
+            // Lazy load TMDB overviews if needed.
+            Dictionary<TitleLanguage, string>? tmdbOverviews = null;
+            Dictionary<TitleLanguage, string> GetTmdbOverviews()
+                => tmdbOverviews ??= (
+                    TmdbShows is { Count: > 0 } tmdbShows
+                        ? tmdbShows[0].GetAllOverviews()
+                        : TmdbMovies is { Count: 1 } tmdbMovies
+                            ? tmdbMovies[0].GetAllOverviews()
+                            : []
+                )
+                    .DistinctBy(x => x.Language)
+                    .ToDictionary(x => x.Language, x => x.Value);
+
+            // Check each language and source in the most preferred order.
+            foreach (var language in languageOrder)
+                foreach (var source in sourceOrder)
+                {
+                    var overview = source switch
+                    {
+                        DataSourceType.AniDB =>
+                            language.Language is TitleLanguage.English && !string.IsNullOrEmpty(anidbOverview)
+                                ? anidbOverview
+                                : null,
+                        DataSourceType.TvDB =>
+                            language.Language == tvdbLanguage
+                                ? TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview
+                                : null,
+                        DataSourceType.TMDB =>
+                            GetTmdbOverviews().TryGetValue(language.Language, out var tmdbOverview)
+                                ? tmdbOverview
+                                : null,
+                        _ => null,
+                    };
+                    if (!string.IsNullOrEmpty(overview))
+                        return _preferredOverview = overview;
+                }
+
+            // Return nothing if no provider had an overview in the preferred language.
+            return _preferredOverview = string.Empty;
         }
 
-        // Return nothing if no provider had an overview in the preferred language.
-        return _preferredOverview = string.Empty;
     }
 
     #endregion
