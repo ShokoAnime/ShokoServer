@@ -127,7 +127,7 @@ public class WebUI
         /// The first season this show was aired in.
         /// </summary>
         /// <value></value>
-        public Filter? FirstAirSeason { get; set; }
+        public string? FirstAirSeason { get; set; }
 
         /// <summary>
         /// A pre-filtered list of studios for the show.

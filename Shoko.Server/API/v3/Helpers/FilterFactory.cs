@@ -164,7 +164,7 @@ public class FilterFactory
 
         return result;
     }
-    
+
     public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
     {
         if (condition is null) return null;
@@ -261,7 +261,7 @@ public class FilterFactory
 
         return result;
     }
-    
+
     public SortingExpression GetSortingCriteria(Filter.SortingCriteria criteria)
     {
         if (!_sortingTypes.TryGetValue(criteria.Type, out var type))
@@ -273,7 +273,7 @@ public class FilterFactory
 
         return result;
     }
-    
+
     public Filter.Input.CreateOrUpdateFilterBody GetPostModel(FilterPreset groupFilter)
     {
         var result = new Filter.Input.CreateOrUpdateFilterBody
@@ -353,28 +353,5 @@ public class FilterFactory
         }
 
         return existing;
-    }
-
-    public Filter GetFirstAiringSeasonGroupFilter(SVR_AniDB_Anime anime)
-    {
-        var type = (AnimeType)anime.AnimeType;
-        if (type != AnimeType.TVSeries && type != AnimeType.Web)
-            return null;
-
-        var (year, season) = anime.Seasons
-            .FirstOrDefault();
-        if (year == 0)
-            return null;
-
-        var seasonName = $"{season} {year}";
-        var seasonsFilterID = RepoFactory.FilterPreset.GetTopLevel()
-            .FirstOrDefault(f => f.FilterType == (GroupFilterType.Directory | GroupFilterType.Season))?.FilterPresetID;
-        if (seasonsFilterID == null) return null;
-        var firstAirSeason = RepoFactory.FilterPreset.GetByParentID(seasonsFilterID.Value)
-            .FirstOrDefault(f => f.Name == seasonName);
-        if (firstAirSeason == null)
-            return null;
-
-        return GetFilter(firstAirSeason);
     }
 }
