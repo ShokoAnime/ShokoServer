@@ -126,7 +126,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             var settings = Utils.SettingsProvider.GetSettings();
             var sourceOrder = settings.Language.DescriptionSourceOrder;
             var languageOrder = Languages.PreferredDescriptionNamingLanguages;
-            var anidbOverview = AniDB_Anime?.Description;
+            var anidbOverview = AniDB_Episode?.Description;
             var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
 
             // Lazy load TMDB overviews if needed.
