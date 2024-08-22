@@ -817,8 +817,8 @@ namespace Shoko.Models.MediaInfo
         public StreamCodecInfoImpl(Stream stream)
         {
             Name = stream.Codec;
-            Simplified = MediaInfoUtils.TranslateCodec(stream)?.ToLowerInvariant() ?? "unknown";
-            Raw = stream.CodecID?.ToLowerInvariant();
+            Simplified = MediaInfoUtils.TranslateCodec(stream) ?? "UNKNOWN";
+            Raw = stream.CodecID;
         }
     }
 
