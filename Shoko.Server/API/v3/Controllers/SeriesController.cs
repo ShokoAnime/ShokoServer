@@ -1618,15 +1618,15 @@ public class SeriesController : BaseController
         var missingIDs = new HashSet<int>();
         foreach (var link in body.Mapping)
         {
-            var shokoEpisode = RepoFactory.AnimeEpisode.GetByID(link.ShokoID);
+            var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(link.AniDBID);
             if (shokoEpisode == null)
             {
-                ModelState.AddModelError("Mapping", $"Unable to find a Shoko Episode with id '{link.ShokoID}'");
+                ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
                 continue;
             }
             if (shokoEpisode.AnimeSeriesID != series.AnimeSeriesID)
             {
-                ModelState.AddModelError("Mapping", $"The Shoko Episode with id '{link.ShokoID}' is not part of the series.");
+                ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
                 continue;
             }
 
@@ -1638,8 +1638,6 @@ public class SeriesController : BaseController
             }
             if (link.TmdbID != 0 && !showIDs.Contains(tmdbEpisode.TmdbShowID))
                 missingIDs.Add(tmdbEpisode.TmdbShowID);
-
-            link.AnidbID = shokoEpisode.AniDB_EpisodeID;
         }
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -1654,7 +1652,7 @@ public class SeriesController : BaseController
 
         // Do the actual linking.
         foreach (var link in body.Mapping)
-            _tmdbMetadataService.SetEpisodeLink(link.AnidbID, link.TmdbID, !link.Replace);
+            _tmdbMetadataService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace);
 
         return NoContent();
     }
