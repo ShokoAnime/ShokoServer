@@ -18,6 +18,8 @@ public class Filterable : IFilterable
     private readonly Lazy<bool> _hasMissingTraktLink;
     private readonly Lazy<bool> _hasMissingTvDBLink;
     private readonly Lazy<bool> _hasTmdbLink;
+    private readonly Lazy<int> _automaticTmdbEpisodeLinks;
+    private readonly Lazy<int> _userVerifiedTmdbEpisodeLinks;
     private readonly Lazy<bool> _hasTraktLink;
     private readonly Lazy<bool> _hasTvDBLink;
     private readonly Lazy<decimal> _highestAniDBRating;
@@ -147,6 +149,20 @@ public class Filterable : IFilterable
     public Func<bool> HasMissingTmdbLinkDelegate
     {
         init => _hasMissingTmdbLink = new Lazy<bool>(value);
+    }
+
+    public int AutomaticTmdbEpisodeLinks => _automaticTmdbEpisodeLinks.Value;
+
+    public Func<int> AutomaticTmdbEpisodeLinksDelegate
+    {
+        init => _automaticTmdbEpisodeLinks = new Lazy<int>(value);
+    }
+
+    public int UserVerifiedTmdbEpisodeLinks => _userVerifiedTmdbEpisodeLinks.Value;
+
+    public Func<int> UserVerifiedTmdbEpisodeLinksDelegate
+    {
+        init => _userVerifiedTmdbEpisodeLinks = new Lazy<int>(value);
     }
 
     public bool HasTraktLink => _hasTraktLink.Value;
