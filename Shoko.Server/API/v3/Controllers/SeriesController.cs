@@ -1616,30 +1616,29 @@ public class SeriesController : BaseController
             .Select(xref => xref.TmdbShowID)
             .ToHashSet();
         var missingIDs = new HashSet<int>();
-        body.Mapping.RemoveAll(link =>
+        foreach (var link in body.Mapping)
         {
             var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(link.AniDBID);
             if (shokoEpisode == null)
             {
                 ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
-                return true;
+                continue;
             }
             if (shokoEpisode.AnimeSeriesID != series.AnimeSeriesID)
             {
                 ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
-                return true;
+                continue;
             }
 
             var tmdbEpisode = link.TmdbID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(link.TmdbID);
             if (link.TmdbID != 0 && tmdbEpisode == null)
             {
                 ModelState.AddModelError("Mapping", $"Unable to find TMDB Episode with the id '{link.TmdbID}' locally.");
-                return true;
+                continue;
             }
             if (link.TmdbID != 0 && !showIDs.Contains(tmdbEpisode.TmdbShowID))
                 missingIDs.Add(tmdbEpisode.TmdbShowID);
-            return false;
-        });
+        }
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 

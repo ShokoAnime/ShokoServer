@@ -798,7 +798,7 @@ public class Series : BaseModel
             /// Replacing existing links or add new additional links.
             /// </summary>
             [Required]
-            public List<OverrideEpisodeLinkBody> Mapping { get; set; } = [];
+            public IReadOnlyList<OverrideEpisodeLinkBody> Mapping { get; set; } = [];
         }
 
         public class OverrideEpisodeLinkBody
