@@ -1598,8 +1598,8 @@ public class TmdbMetadataService
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false)
     {
-        var animeSeries = RepoFactory.AnimeSeries.GetByAnimeID(anidbAnimeId);
-        if (animeSeries == null)
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeId);
+        if (anime == null)
             return [];
 
         // Mapping logic
@@ -1611,6 +1611,8 @@ public class TmdbMetadataService
             .ToDictionary(grouped => grouped.Key, grouped => grouped.ToList());
         var anidbEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(anidbAnimeId)
             .Where(episode => episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special)
+            .OrderBy(episode => episode.EpisodeTypeEnum)
+            .ThenBy(episode => episode.EpisodeNumber)
             .ToDictionary(episode => episode.EpisodeID);
         var tmdbEpisodes = RepoFactory.TMDB_Episode.GetByTmdbShowID(tmdbShowId)
             .Where(episode => episode.SeasonNumber == 0 || !tmdbSeasonId.HasValue || episode.TmdbSeasonID == tmdbSeasonId.Value)
@@ -1628,6 +1630,23 @@ public class TmdbMetadataService
         {
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks))
             {
+                // If hidden then return an empty link for the hidden episode.
+                if (episode.AnimeEpisode?.IsHidden ?? false)
+                {
+                    var link = existingLinks[0];
+                    if (link.TmdbEpisodeID is 0 && link.TmdbShowID is 0)
+                    {
+                        crossReferences.Add(link);
+                        toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
+                    }
+                    else
+                    {
+                        crossReferences.Add(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.SarahJessicaParker, 0));
+                    }
+                    continue;
+                }
+
+                // Else return all existing links.
                 foreach (var link in existingLinks.DistinctBy((link => (link.TmdbShowID, link.TmdbEpisodeID))))
                 {
                     crossReferences.Add(link);
@@ -1636,6 +1655,14 @@ public class TmdbMetadataService
             }
             else
             {
+                // If hidden then skip linking episode.
+                if (episode.AnimeEpisode?.IsHidden ?? false)
+                {
+                    crossReferences.Add(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.SarahJessicaParker, 0));
+                    continue;
+                }
+
+                // Else try find a match.
                 var isSpecial = episode.EpisodeType is (int)EpisodeType.Special;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(episode, episodeList, isSpecial);
@@ -1664,7 +1691,7 @@ public class TmdbMetadataService
             toAdd.Count,
             toRemove.Count,
             existing.Count - toRemove.Count,
-            animeSeries.PreferredTitle,
+            anime.PreferredTitle,
             anidbAnimeId,
             tmdbShowId);
         RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toAdd);
@@ -1687,7 +1714,7 @@ public class TmdbMetadataService
             .ToList();
         var titleSearchResults = anidbTitles.Count > 0 ? tmdbEpisodes
             .Select(episode => anidbTitles.Search(episode.EnglishTitle, title => new string[] { title.Title }, true, 1).FirstOrDefault()?.Map(episode))
-            .OfType<SeriesSearch.SearchResult<TMDB_Episode>>()
+            .WhereNotNull()
             .OrderBy(result => result)
             .ToList() : [];
 
