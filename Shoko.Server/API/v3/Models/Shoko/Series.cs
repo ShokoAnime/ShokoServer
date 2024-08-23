@@ -768,7 +768,7 @@ public class Series : BaseModel
         public class LinkMovieBody : LinkCommonBody
         {
             /// <summary>
-            /// Also link to the given shoko episode by ID.
+            /// Also link to the given AniDB episode by ID.
             /// </summary>
             public int? EpisodeID { get; set; }
         }
@@ -798,22 +798,16 @@ public class Series : BaseModel
             /// Replacing existing links or add new additional links.
             /// </summary>
             [Required]
-            public IReadOnlyList<OverrideEpisodeLinkBody> Mapping { get; set; } = [];
+            public List<OverrideEpisodeLinkBody> Mapping { get; set; } = [];
         }
 
         public class OverrideEpisodeLinkBody
         {
             /// <summary>
-            /// Used internally before linking.
-            /// </summary>
-            [JsonIgnore]
-            internal int AnidbID { get; set; }
-
-            /// <summary>
-            /// Shoko Episode ID.
+            /// AniDB Episode ID.
             /// </summary>
             [Required, Range(1, int.MaxValue)]
-            public int ShokoID { get; set; }
+            public int AniDBID { get; set; }
 
             /// <summary>
             /// TMDB Episode ID.

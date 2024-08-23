@@ -1616,31 +1616,30 @@ public class SeriesController : BaseController
             .Select(xref => xref.TmdbShowID)
             .ToHashSet();
         var missingIDs = new HashSet<int>();
-        foreach (var link in body.Mapping)
+        body.Mapping.RemoveAll(link =>
         {
-            var shokoEpisode = RepoFactory.AnimeEpisode.GetByID(link.ShokoID);
+            var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(link.AniDBID);
             if (shokoEpisode == null)
             {
-                ModelState.AddModelError("Mapping", $"Unable to find a Shoko Episode with id '{link.ShokoID}'");
-                continue;
+                ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
+                return true;
             }
             if (shokoEpisode.AnimeSeriesID != series.AnimeSeriesID)
             {
-                ModelState.AddModelError("Mapping", $"The Shoko Episode with id '{link.ShokoID}' is not part of the series.");
-                continue;
+                ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
+                return true;
             }
 
             var tmdbEpisode = link.TmdbID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(link.TmdbID);
             if (link.TmdbID != 0 && tmdbEpisode == null)
             {
                 ModelState.AddModelError("Mapping", $"Unable to find TMDB Episode with the id '{link.TmdbID}' locally.");
-                continue;
+                return true;
             }
             if (link.TmdbID != 0 && !showIDs.Contains(tmdbEpisode.TmdbShowID))
                 missingIDs.Add(tmdbEpisode.TmdbShowID);
-
-            link.AnidbID = shokoEpisode.AniDB_EpisodeID;
-        }
+            return false;
+        });
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -1654,7 +1653,7 @@ public class SeriesController : BaseController
 
         // Do the actual linking.
         foreach (var link in body.Mapping)
-            _tmdbMetadataService.SetEpisodeLink(link.AnidbID, link.TmdbID, !link.Replace);
+            _tmdbMetadataService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace);
 
         return NoContent();
     }
