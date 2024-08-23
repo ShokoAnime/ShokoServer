@@ -170,12 +170,15 @@ public class Image
     private static readonly List<DataSourceType> _bannerImageSources =
     [
         DataSourceType.TMDB,
+        DataSourceType.TMDB,
         DataSourceType.TvDB,
     ];
 
     private static readonly List<DataSourceType> _posterImageSources =
     [
         DataSourceType.AniDB,
+        DataSourceType.AniDB,
+        DataSourceType.TMDB,
         DataSourceType.TMDB,
         DataSourceType.TvDB,
     ];
@@ -183,11 +186,13 @@ public class Image
     private static readonly List<DataSourceType> _thumbImageSources =
     [
         DataSourceType.TMDB,
+        DataSourceType.TMDB,
         DataSourceType.TvDB,
     ];
 
     private static readonly List<DataSourceType> _backdropImageSources =
     [
+        DataSourceType.TMDB,
         DataSourceType.TMDB,
         DataSourceType.TvDB,
     ];
