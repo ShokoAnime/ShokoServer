@@ -29,11 +29,6 @@ public class TMDB_Episode_Crew : TMDB_Crew
     /// </summary>
     public int TmdbEpisodeID { get; set; }
 
-    /// <summary>
-    /// TMDB Credit ID for the production job.
-    /// </summary>
-    public string TmdbCreditID { get; set; } = string.Empty;
-
     #endregion
 
     #region Methods

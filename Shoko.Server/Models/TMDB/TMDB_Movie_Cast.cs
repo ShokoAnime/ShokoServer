@@ -16,11 +16,6 @@ public class TMDB_Movie_Cast : TMDB_Cast
     /// </summary>
     public int TmdbMovieID { get; set; }
 
-    /// <summary>
-    /// TMDB Credit ID for the acting job.
-    /// </summary>
-    public string TmdbCreditID { get; set; } = string.Empty;
-
     #endregion
 
     #region Methods

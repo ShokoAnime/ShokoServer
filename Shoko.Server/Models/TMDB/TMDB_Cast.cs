@@ -17,6 +17,11 @@ public class TMDB_Cast
     public int TmdbPersonID { get; set; }
 
     /// <summary>
+    /// TMDB Credit ID for the acting job.
+    /// </summary>
+    public string TmdbCreditID { get; set; } = string.Empty;
+
+    /// <summary>
     /// Character name.
     /// </summary>
     public string CharacterName { get; set; } = string.Empty;

@@ -17,6 +17,11 @@ public class TMDB_Crew
     public int TmdbPersonID { get; set; }
 
     /// <summary>
+    /// TMDB Credit ID for the production job.
+    /// </summary>
+    public string TmdbCreditID { get; set; } = string.Empty;
+
+    /// <summary>
     /// The job title.
     /// </summary>
     public string Job { get; set; } = string.Empty;

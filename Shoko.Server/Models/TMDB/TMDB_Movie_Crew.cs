@@ -19,11 +19,6 @@ public class TMDB_Movie_Crew : TMDB_Crew
     /// </summary>
     public int TmdbMovieID { get; set; }
 
-    /// <summary>
-    /// TMDB Credit ID for the production job.
-    /// </summary>
-    public string TmdbCreditID { get; set; } = string.Empty;
-
     #endregion
 
     #region Methods
