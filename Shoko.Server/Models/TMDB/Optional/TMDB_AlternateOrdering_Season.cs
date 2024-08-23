@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.TvShows;
 
@@ -102,9 +103,8 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     /// <returns>All cast members that have worked on this season.</returns>
     public IReadOnlyList<TMDB_Season_Cast> Cast =>
         TmdbAlternateOrderingEpisodes
-            .Select(episode => episode.GetTmdbEpisode()?.Cast)
-            .OfType<IReadOnlyList<TMDB_Episode_Cast>>()
-            .SelectMany(list => list)
+            .SelectMany(episode => episode.GetTmdbEpisode()?.Cast ?? [])
+            .WhereNotNull()
             .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
             .Select(group =>
             {
@@ -131,9 +131,8 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     /// <returns>All crew members that have worked on this season.</returns>
     public IReadOnlyList<TMDB_Season_Crew> Crew =>
         TmdbAlternateOrderingEpisodes
-            .Select(episode => episode.GetTmdbEpisode()?.Crew)
-            .OfType<IReadOnlyList<TMDB_Episode_Crew>>()
-            .SelectMany(list => list)
+            .SelectMany(episode => episode.GetTmdbEpisode()?.Crew ?? [])
+            .WhereNotNull()
             .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
             .Select(group =>
             {

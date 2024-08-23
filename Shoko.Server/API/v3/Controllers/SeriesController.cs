@@ -1186,7 +1186,7 @@ public class SeriesController : BaseController
 
         return series.TmdbMovieCrossReferences
             .Select(o => o.TmdbMovie)
-            .OfType<TMDB_Movie>()
+            .WhereNotNull()
             .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
             .ToList();
     }
@@ -1380,7 +1380,7 @@ public class SeriesController : BaseController
 
         return series.TmdbShowCrossReferences
             .Select(o => o.TmdbShow)
-            .OfType<TMDB_Show>()
+            .WhereNotNull()
             .Select(o => new TmdbShow(o, include?.CombineFlags(), language))
             .ToList();
     }
@@ -1833,10 +1833,10 @@ public class SeriesController : BaseController
 
         return series.TmdbEpisodeCrossReferences
             .Select(o => o.TmdbEpisode)
-            .OfType<TMDB_Episode>()
+            .WhereNotNull()
             .DistinctBy(o => o.TmdbSeasonID)
             .Select(o => o.TmdbSeason)
-            .OfType<TMDB_Season>()
+            .WhereNotNull()
             .OrderBy(season => season.TmdbShowID)
             .ThenBy(season => season.SeasonNumber)
             .Select(o => new TmdbSeason(o, include?.CombineFlags(), language))

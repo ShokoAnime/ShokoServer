@@ -235,7 +235,7 @@ public class Group : BaseModel
                 // Get the groups and validate the group ids.
                 var childGroups = GroupIDs == null ? [] : GroupIDs
                     .Select(groupID => groupID > 0 ? RepoFactory.AnimeGroup.GetByID(groupID) : null)
-                    .OfType<SVR_AnimeGroup>()
+                    .WhereNotNull()
                     .ToList();
                 if (childGroups.Count != (GroupIDs?.Count ?? 0))
                 {

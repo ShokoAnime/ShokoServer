@@ -420,7 +420,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID)
             .DistinctBy(xref => xref.Hash)
             .Select(xref => xref.VideoLocal)
-            .OfType<SVR_VideoLocal>()
+            .WhereNotNull()
             .ToList();
 
     #endregion

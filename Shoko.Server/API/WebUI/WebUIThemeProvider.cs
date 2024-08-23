@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Shoko.Commons.Extensions;
 using Shoko.Server.Utilities;
 
 #nullable enable
@@ -349,8 +350,8 @@ public static class WebUIThemeProvider
                 return new List<ThemeDefinition>();
 
             return Directory.GetFiles(dirPath)
-                .Select(filePath => FromPath(filePath))
-                .OfType<ThemeDefinition>()
+                .Select(FromPath)
+                .WhereNotNull()
                 .DistinctBy(theme => theme.ID)
                 .OrderBy(theme => theme.ID)
                 .ToList();

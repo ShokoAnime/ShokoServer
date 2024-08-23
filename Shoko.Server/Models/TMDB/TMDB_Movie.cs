@@ -361,7 +361,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     public IReadOnlyList<TMDB_Company> GetTmdbCompanies() =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany())
-            .OfType<TMDB_Company>()
+            .WhereNotNull()
             .ToList();
 
     /// <summary>

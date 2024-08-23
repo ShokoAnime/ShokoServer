@@ -239,7 +239,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID)
             .DistinctBy(xref => xref.Hash)
             .Select(xref => xref.VideoLocal)
-            .OfType<SVR_VideoLocal>()
+            .WhereNotNull()
             .ToList();
 
     IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is { } episode ? [episode.AnimeEpisodeID] : [];

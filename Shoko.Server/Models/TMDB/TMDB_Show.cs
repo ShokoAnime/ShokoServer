@@ -345,7 +345,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public IReadOnlyList<TMDB_Company> TmdbCompanies =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany())
-            .OfType<TMDB_Company>()
+            .WhereNotNull()
             .ToList();
 
     /// <summary>
@@ -362,7 +362,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public IReadOnlyList<TMDB_Network> TmdbNetworks =>
         TmdbNetworkCrossReferences
             .Select(xref => xref.GetTmdbNetwork())
-            .OfType<TMDB_Network>()
+            .WhereNotNull()
             .ToList();
 
     /// <summary>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.Interfaces;
@@ -80,19 +81,19 @@ public class TMDB_Company
     public IReadOnlyList<IEntityMetadata> GetTmdbEntities() =>
         GetTmdbCompanyCrossReferences()
             .Select(xref => xref.GetTmdbEntity())
-            .OfType<IEntityMetadata>()
+            .WhereNotNull()
             .ToList();
 
     public IReadOnlyList<IEntityMetadata> GetTmdbShows() =>
         GetTmdbCompanyCrossReferences()
             .Select(xref => xref.GetTmdbShow())
-            .OfType<TMDB_Show>()
+            .WhereNotNull()
             .ToList();
 
     public IReadOnlyList<IEntityMetadata> GetTmdbMovies() =>
         GetTmdbCompanyCrossReferences()
             .Select(xref => xref.GetTmdbMovie())
-            .OfType<TMDB_Movie>()
+            .WhereNotNull()
             .ToList();
 
     #endregion

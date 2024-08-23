@@ -523,7 +523,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
 
         return episode.TmdbMovieCrossReferences
             .Select(xref => xref.TmdbMovie)
-            .OfType<TMDB_Movie>()
+            .WhereNotNull()
             .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
             .ToList();
     }
@@ -568,7 +568,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
 
         return episode.TmdbEpisodeCrossReferences
             .Select(xref => xref.TmdbEpisode)
-            .OfType<TMDB_Episode>()
+            .WhereNotNull()
             .Select(tmdbEpisode => new TmdbEpisode(tmdbEpisode, include?.CombineFlags(), language))
             .ToList();
     }
