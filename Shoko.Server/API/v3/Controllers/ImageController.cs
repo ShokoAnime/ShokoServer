@@ -115,15 +115,28 @@ public class ImageController : BaseController
         if (imageEntityType == ImageEntityType.None)
             return InternalError("Could not generate a valid image type to fetch.");
 
-        var id = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
-        if (!id.HasValue)
-            return InternalError("Unable to find a random image to send.");
+        // Try 5 times to get a valid image.
+        var tries = 0;
+        do
+        {
+            var metadata = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
+            if (metadata is null)
+                break;
 
-        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, id.Value);
-        if (metadata is null || metadata.GetStream() is not { } stream)
-            return InternalError("Unable to load image from disk.");
+            if (!metadata.IsLocalAvailable)
+                continue;
 
-        return File(stream, metadata.ContentType);
+            var series = ImageUtils.GetFirstSeriesForImage(metadata);
+            if (series == null || series.AniDB_Anime?.Restricted != 0)
+                continue;
+
+            if (metadata.GetStream(allowRemote: false) is not { } stream)
+                continue;
+
+            return File(stream, metadata.ContentType);
+        } while (tries++ < 5);
+
+        return InternalError("Unable to find a random image to send.");
     }
 
     /// <summary>
@@ -149,18 +162,18 @@ public class ImageController : BaseController
         var tries = 0;
         do
         {
-            var id = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
-            if (!id.HasValue)
+            var metadata = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
+            if (metadata is null)
                 break;
 
-            var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, id.Value);
-            if (metadata is null || !metadata.IsLocalAvailable)
+            if (!metadata.IsLocalAvailable)
                 continue;
 
             var image = new Image(metadata);
-            var series = ImageUtils.GetFirstSeriesForImage(dataSource, imageEntityType, id.Value);
-            if (series == null)
+            var series = ImageUtils.GetFirstSeriesForImage(metadata);
+            if (series == null || series.AniDB_Anime?.Restricted != 0)
                 continue;
+
             image.Series = new(series.AnimeSeriesID, series.PreferredTitle);
 
             return image;

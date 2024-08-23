@@ -129,9 +129,8 @@ public class Image : BaseController
         var imageType = (CL_ImageEntityType)type;
         while (tries++ < 5)
         {
-            var randomID = ImageUtils.GetRandomImageID(imageType);
-            var metadata = randomID.HasValue ? ImageUtils.GetImageMetadata((CL_ImageEntityType)type, randomID.Value) : null;
-            if (metadata is not null && metadata.GetStream() is { } stream)
+            var metadata = ImageUtils.GetRandomImageID(imageType);
+            if (metadata is not null && metadata.GetStream(allowRemote: false) is { } stream)
                 return File(stream, metadata.ContentType);
         }
 
