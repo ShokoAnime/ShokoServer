@@ -398,7 +398,7 @@ public class AnimeSeriesService
                     RepoFactory.AnimeGroup.Save(oldGroup);
             }
 
-            // Update the top group 
+            // Update the top group
             var topGroup = oldGroup.TopLevelAnimeGroup;
             if (topGroup.AnimeGroupID != oldGroup.AnimeGroupID)
             {
@@ -609,9 +609,13 @@ public class AnimeSeriesService
         // This was always Episodes only. Maybe in the future, we'll have a reliable way to check specials.
         eps.AsParallel().Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).ForAll(ep =>
         {
+            var aniEp = ep.AniDB_Episode;
+
+            // Un-aired episodes should not be included in the stats.
+            if (aniEp is not { HasAired: true }) return;
+
             var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
 
-            var aniEp = ep.AniDB_Episode;
             var thisEpNum = aniEp.EpisodeNumber;
 
             if (thisEpNum > latestLocalEpNumber && vids.Any())
