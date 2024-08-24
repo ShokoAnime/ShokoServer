@@ -678,12 +678,12 @@ public class AnimeSeriesService
             {
                 lock (epReleasedList)
                 {
-                    epReleasedList.Add(ep, !epReleased || vids.Any());
+                    epReleasedList.Add(ep, epReleased || vids.Any());
                 }
 
                 lock (epGroupReleasedList)
                 {
-                    epGroupReleasedList.Add(ep, !epReleasedGroup || vids.Any());
+                    epGroupReleasedList.Add(ep, epReleasedGroup || vids.Any());
                 }
             }
             catch (Exception e)
