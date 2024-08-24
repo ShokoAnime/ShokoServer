@@ -44,7 +44,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly JobFactory _jobFactory;
     private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
-    private readonly TmdbMetadataService _tmdbService;
+    private readonly TmdbLinkingService _tmdbLinkingService;
+    private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
@@ -55,6 +56,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public ShokoServiceImplementation(
         TvDBApiHelper tvdbHelper,
         TraktTVHelper traktHelper,
+        TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbService,
         ISchedulerFactory schedulerFactory,
         ISettingsProvider settingsProvider,
@@ -62,7 +64,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         ActionService actionService,
         AnimeGroupCreator groupCreator,
         JobFactory jobFactory,
-        AnimeSeriesService seriesService,
         AnimeEpisodeService episodeService,
         WatchedStatusService watchedService,
         VideoLocalService videoLocalService
@@ -70,7 +71,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
-        _tmdbService = tmdbService;
+        _tmdbLinkingService = tmdbLinkingService;
+        _tmdbMetadataService = tmdbService;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
         _logger = logger;

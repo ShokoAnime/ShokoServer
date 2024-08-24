@@ -23,6 +23,8 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public partial class SearchTmdbJob : BaseJob
 {
+    private readonly TmdbLinkingService _tmdbLinkingService;
+
     private readonly TmdbMetadataService _tmdbMetadataService;
 
     private readonly TmdbSearchService _tmdbSearchService;
@@ -55,20 +57,25 @@ public partial class SearchTmdbJob : BaseJob
             if (result.IsMovie)
             {
                 _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}), episode {EpisodeName} ({EpisodeID}) to movie {MovieName} ({MovieID})", result.AnidbAnime.PreferredTitle, result.AnidbAnime.AnimeID, result.AnidbEpisode.PreferredTitle, result.AnidbEpisode.EpisodeID, result.TmdbMovie.OriginalTitle, result.TmdbMovie.Id);
-                await _tmdbMetadataService.AddMovieLink(result.AnidbAnime.AnimeID, result.TmdbMovie.Id, result.AnidbEpisode.EpisodeID, additiveLink: true, isAutomatic: true).ConfigureAwait(false);
+                await _tmdbLinkingService.AddMovieLink(result.AnidbAnime.AnimeID, result.TmdbMovie.Id, result.AnidbEpisode.EpisodeID, additiveLink: true, isAutomatic: true).ConfigureAwait(false);
                 await _tmdbMetadataService.ScheduleUpdateOfMovie(result.TmdbMovie.Id, forceRefresh: ForceRefresh, downloadImages: true).ConfigureAwait(false);
             }
             else
             {
                 _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}) to show {ShowName} ({ShowID})", result.AnidbAnime.PreferredTitle, result.AnidbAnime.AnimeID, result.TmdbShow.OriginalName, result.TmdbShow.Id);
-                await _tmdbMetadataService.AddShowLink(result.AnidbAnime.AnimeID, result.TmdbShow.Id, additiveLink: true, isAutomatic: true).ConfigureAwait(false);
+                await _tmdbLinkingService.AddShowLink(result.AnidbAnime.AnimeID, result.TmdbShow.Id, additiveLink: true, isAutomatic: true).ConfigureAwait(false);
                 await _tmdbMetadataService.ScheduleUpdateOfShow(result.TmdbShow.Id, forceRefresh: ForceRefresh, downloadImages: true).ConfigureAwait(false);
             }
         }
     }
 
-    public SearchTmdbJob(TmdbMetadataService metadataService, TmdbSearchService searchService)
+    public SearchTmdbJob(
+        TmdbLinkingService tmdbLinkingService,
+        TmdbMetadataService metadataService,
+        TmdbSearchService searchService
+    )
     {
+        _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = metadataService;
         _tmdbSearchService = searchService;
     }

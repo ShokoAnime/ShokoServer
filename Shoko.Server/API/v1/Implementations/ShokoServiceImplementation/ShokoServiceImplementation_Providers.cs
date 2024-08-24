@@ -1018,8 +1018,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-                    _tmdbService.AddMovieLink(animeID, id).ConfigureAwait(false).GetAwaiter().GetResult();
-                    _tmdbService.ScheduleUpdateOfMovie(id, downloadImages: true).ConfigureAwait(false).GetAwaiter().GetResult();
+                    _tmdbLinkingService.AddMovieLink(animeID, id).ConfigureAwait(false).GetAwaiter().GetResult();
+                    _tmdbMetadataService.ScheduleUpdateOfMovie(id, downloadImages: true).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
 
@@ -1048,7 +1048,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-                    _tmdbService.RemoveAllMovieLinks(animeID).ConfigureAwait(false).GetAwaiter().GetResult();
+                    _tmdbLinkingService.RemoveAllMovieLinksForAnime(animeID).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
 
@@ -1071,7 +1071,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var (movieResults, _) = _tmdbService.SearchMovies(System.Web.HttpUtility.UrlDecode(criteria)).ConfigureAwait(false).GetAwaiter().GetResult();
+            var (movieResults, _) = _tmdbMetadataService.SearchMovies(System.Web.HttpUtility.UrlDecode(criteria)).ConfigureAwait(false).GetAwaiter().GetResult();
 
             results.AddRange(movieResults.Select(movie => movie.ToContract()));
 
@@ -1131,7 +1131,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            _tmdbService.ScheduleUpdateOfMovie(movieID, downloadImages: true, forceRefresh: true).ConfigureAwait(false).GetAwaiter().GetResult();
+            _tmdbMetadataService.ScheduleUpdateOfMovie(movieID, downloadImages: true, forceRefresh: true).ConfigureAwait(false).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

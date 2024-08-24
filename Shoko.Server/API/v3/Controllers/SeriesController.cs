@@ -58,18 +58,38 @@ namespace Shoko.Server.API.v3.Controllers;
 public class SeriesController : BaseController
 {
     private readonly AnimeSeriesService _seriesService;
+
     private readonly AniDBTitleHelper _titleHelper;
+
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly TmdbLinkingService _tmdbLinkingService;
+
     private readonly TmdbMetadataService _tmdbMetadataService;
+
+
     private readonly TmdbSearchService _tmdbSearchService;
+
     private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
+
     private readonly WatchedStatusService _watchedService;
 
-    public SeriesController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AniDBTitleHelper titleHelper, ISchedulerFactory schedulerFactory, TmdbMetadataService tmdbMetadataService, TmdbSearchService tmdbSearchService, CrossRef_File_EpisodeRepository crossRefFileEpisode, WatchedStatusService watchedService) : base(settingsProvider)
+    public SeriesController(
+        ISettingsProvider settingsProvider,
+        AnimeSeriesService seriesService,
+        AniDBTitleHelper titleHelper,
+        ISchedulerFactory schedulerFactory,
+        TmdbLinkingService tmdbLinkingService,
+        TmdbMetadataService tmdbMetadataService,
+        TmdbSearchService tmdbSearchService,
+        CrossRef_File_EpisodeRepository crossRefFileEpisode,
+        WatchedStatusService watchedService
+    ) : base(settingsProvider)
     {
         _seriesService = seriesService;
         _titleHelper = titleHelper;
         _schedulerFactory = schedulerFactory;
+        _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
         _crossRefFileEpisode = crossRefFileEpisode;
@@ -1217,7 +1237,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        await _tmdbMetadataService.AddMovieLink(series.AniDB_ID, body.ID, body.EpisodeID, additiveLink: !body.Replace);
+        await _tmdbLinkingService.AddMovieLink(series.AniDB_ID, body.ID, body.EpisodeID, additiveLink: !body.Replace);
 
         var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
@@ -1247,9 +1267,9 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         if (body != null && body.ID > 0)
-            await _tmdbMetadataService.RemoveMovieLink(series.AniDB_ID, body.ID, body.Purge);
+            await _tmdbLinkingService.RemoveMovieLink(series.AniDB_ID, body.ID, body.Purge);
         else
-            await _tmdbMetadataService.RemoveAllMovieLinks(series.AniDB_ID, body?.Purge ?? false);
+            await _tmdbLinkingService.RemoveAllMovieLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
 
         return NoContent();
     }
@@ -1411,7 +1431,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        await _tmdbMetadataService.AddShowLink(series.AniDB_ID, body.ID, additiveLink: !body.Replace);
+        await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.ID, additiveLink: !body.Replace);
 
         var needRefresh = RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) is null || body.Refresh;
         if (needRefresh)
@@ -1441,9 +1461,9 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         if (body != null && body.ID > 0)
-            await _tmdbMetadataService.RemoveShowLink(series.AniDB_ID, body.ID, body.Purge);
+            await _tmdbLinkingService.RemoveShowLink(series.AniDB_ID, body.ID, body.Purge);
         else
-            await _tmdbMetadataService.RemoveAllShowLinks(series.AniDB_ID, body?.Purge ?? false);
+            await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
 
         return NoContent();
     }
@@ -1644,15 +1664,15 @@ public class SeriesController : BaseController
 
         // Add any missing links if needed.
         foreach (var showId in missingIDs)
-            await _tmdbMetadataService.AddShowLink(series.AniDB_ID, showId, additiveLink: true);
+            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, showId, additiveLink: true);
 
         // Reset the existing links if we wanted to replace all.
         if (body.ResetAll)
-            _tmdbMetadataService.ResetAllEpisodeLinks(series.AniDB_ID);
+            _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID);
 
         // Do the actual linking.
         foreach (var link in body.Mapping)
-            _tmdbMetadataService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace);
+            _tmdbLinkingService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace);
 
         return NoContent();
     }
@@ -1709,7 +1729,7 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
-        return _tmdbMetadataService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: false)
+        return _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: false)
             .ToListResult(x => new TmdbEpisode.CrossReference(x), page, pageSize);
     }
 
@@ -1762,7 +1782,7 @@ public class SeriesController : BaseController
 
         // Add the missing link if needed.
         if (isMissing)
-            await _tmdbMetadataService.AddShowLink(series.AniDB_ID, tmdbShowID.Value, additiveLink: true);
+            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, tmdbShowID.Value, additiveLink: true);
 
         if (tmdbSeasonID.HasValue)
         {
@@ -1774,7 +1794,7 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
-        _tmdbMetadataService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: true);
+        _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: true);
 
         return NoContent();
     }
@@ -1797,7 +1817,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TvdbForbiddenForUser);
 
-        _tmdbMetadataService.ResetAllEpisodeLinks(series.AniDB_ID);
+        _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID);
 
         return NoContent();
     }

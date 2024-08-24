@@ -59,6 +59,8 @@ public class Startup
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
+            services.AddSingleton<TmdbImageService>();
+            services.AddSingleton<TmdbLinkingService>();
             services.AddSingleton<TmdbMetadataService>();
             services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<FilterEvaluator>();
