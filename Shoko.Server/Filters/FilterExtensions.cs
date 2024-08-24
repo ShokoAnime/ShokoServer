@@ -66,6 +66,12 @@ public static class FilterExtensions
                 series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
             HasMissingTmdbLinkDelegate = () =>
                 HasMissingTmdbLink(series),
+            AutomaticTmdbEpisodeLinksDelegate = () =>
+                series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
+                series.TmdbMovieCrossReferences.Count(xref => xref.AnidbEpisodeID is not 0 && xref.Source is not CrossRefSource.User),
+            UserVerifiedTmdbEpisodeLinksDelegate = () =>
+                series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
+                series.TmdbMovieCrossReferences.Count(xref => xref.AnidbEpisodeID is not 0 && xref.Source is CrossRefSource.User),
             HasTraktLinkDelegate = () =>
                 series.TraktShowCrossReferences.Count is > 0,
             HasMissingTraktLinkDelegate = () =>
@@ -207,6 +213,16 @@ public static class FilterExtensions
                 series.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0),
             HasMissingTmdbLinkDelegate = () =>
                 series.Any(HasMissingTmdbLink),
+            AutomaticTmdbEpisodeLinksDelegate = () =>
+                series.Sum(a =>
+                    a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
+                    a.TmdbMovieCrossReferences.Count(xref => xref.AnidbEpisodeID is not 0 && xref.Source is not CrossRefSource.User)
+                ),
+            UserVerifiedTmdbEpisodeLinksDelegate = () =>
+                series.Sum(a =>
+                    a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
+                    a.TmdbMovieCrossReferences.Count(xref => xref.AnidbEpisodeID is not 0 && xref.Source is CrossRefSource.User)
+                ),
             HasTraktLinkDelegate = () =>
                 series.Any(a => a.TraktShowCrossReferences.Count is > 0),
             HasMissingTraktLinkDelegate = () =>

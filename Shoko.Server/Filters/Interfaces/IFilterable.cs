@@ -82,6 +82,16 @@ public interface IFilterable
     bool HasMissingTmdbLink { get; }
 
     /// <summary>
+    /// Number of automatic TMDB episode links.
+    /// </summary>
+    int AutomaticTmdbEpisodeLinks { get; }
+
+    /// <summary>
+    /// Number of user verified TMDB episode links.
+    /// </summary>
+    int UserVerifiedTmdbEpisodeLinks { get; }
+
+    /// <summary>
     /// Has at least one Trakt Link
     /// </summary>
     bool HasTraktLink { get; }
