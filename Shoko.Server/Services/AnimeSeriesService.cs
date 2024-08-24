@@ -596,7 +596,7 @@ public class AnimeSeriesService
 
                 return aniFiles.Select(b => b.GroupID);
             }
-        ).ToList();
+        ).Distinct().ToList();
 
         var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
                 a.VideoLocals.Select(b => new
@@ -610,13 +610,40 @@ public class AnimeSeriesService
         eps.AsParallel().Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).ForAll(ep =>
         {
             var aniEp = ep.AniDB_Episode;
-
             // Un-aired episodes should not be included in the stats.
             if (aniEp is not { HasAired: true }) return;
 
-            var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
-
             var thisEpNum = aniEp.EpisodeNumber;
+            // does this episode have a file released
+            var epReleased = false;
+            // does this episode have a file released by the group the user is collecting
+            var epReleasedGroup = false;
+
+            if (grpStatuses.Count == 0)
+            {
+                // If there are no group statuses, the UDP command has not been run yet or has failed
+                // The current has aired, as un-aired episodes are filtered out above
+                epReleased = true;
+                // We do not set epReleasedGroup here because we have no way to know
+            }
+            else
+            {
+                // Get all groups which have their status set to complete or finished or have released this episode
+                var filteredGroups = grpStatuses
+                    .Where(
+                        a => a.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished
+                             || a.HasGroupReleasedEpisode(thisEpNum))
+                    .ToList();
+                // Episode is released if any of the groups have released it
+                epReleased = filteredGroups.Count > 0;
+                // Episode is released by one of the groups user is collecting if one of the userReleaseGroups is included in filteredGroups
+                epReleasedGroup = filteredGroups.Any(a => userReleaseGroups.Contains(a.GroupID));
+            }
+
+            // If epReleased is false, then we consider the episode to be not released even if it has aired as no group has released it
+            if (!epReleased) return;
+
+            var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
 
             if (thisEpNum > latestLocalEpNumber && vids.Any())
             {
@@ -626,7 +653,7 @@ public class AnimeSeriesService
             var airdate = ep.AniDB_Episode.GetAirDateAsDate();
 
             // If episode air date is unknown, air date of the anime is used instead
-            airdate ??= ep.AniDB_Episode.AniDB_Anime.AirDate;
+            airdate ??= series.AniDB_Anime?.AirDate;
 
             // Only count episodes that have already aired
             // airdate could, in theory, only be null here if AniDB neither has information on the episode
@@ -658,36 +685,19 @@ public class AnimeSeriesService
                 }
             }
 
-            // does this episode have a file released
-            // does this episode have a file released by the group the user is collecting
-            var epReleased = false;
-            var epReleasedGroup = false;
-            foreach (var gs in grpStatuses)
-            {
-                // if it's complete, then assume the episode is included
-                if (gs.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished)
-                {
-                    epReleased = true;
-                    if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
-                    continue;
-                }
-
-                if (!gs.HasGroupReleasedEpisode(thisEpNum)) continue;
-
-                epReleased = true;
-                if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
-            }
-
             try
             {
                 lock (epReleasedList)
                 {
-                    epReleasedList.Add(ep, epReleased || vids.Any());
+                    epReleasedList.Add(ep, vids.Count > 0);
                 }
+
+                // Skip adding to epGroupReleasedList if the episode has not been released by one of the groups user is collecting
+                if (!epReleasedGroup) return;
 
                 lock (epGroupReleasedList)
                 {
-                    epGroupReleasedList.Add(ep, epReleasedGroup || vids.Any());
+                    epGroupReleasedList.Add(ep, vids.Count > 0);
                 }
             }
             catch (Exception e)
