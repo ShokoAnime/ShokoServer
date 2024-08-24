@@ -196,7 +196,7 @@ public static class FilterExtensions
             MissingEpisodesDelegate = () =>
                 group.MissingEpisodeCount,
             MissingEpisodesCollectingDelegate = () =>
-                group.MissingEpisodeCount,
+                group.MissingEpisodeCountGroups,
             TagsDelegate = () =>
                 group.Tags.Select(a => a.TagName).ToHashSet(),
             CustomTagsDelegate = () =>
