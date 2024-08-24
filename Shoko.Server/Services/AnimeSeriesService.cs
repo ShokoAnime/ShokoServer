@@ -640,7 +640,7 @@ public class AnimeSeriesService
                 epReleasedGroup = filteredGroups.Any(a => userReleaseGroups.Contains(a.GroupID));
             }
 
-            // If epReleased is false, then we consider the episode to be not released even if it has aired as no group has released it
+            // If epReleased is false, then we consider the episode to be not released, even if it has aired, as no group has released it
             if (!epReleased) return;
 
             var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
