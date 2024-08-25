@@ -2,8 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.RateLimit;
@@ -132,16 +134,28 @@ public class TmdbMetadataService
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
             ? Constants.TMDB.ApiKey
             : throw new Exception("You need to provide an api key before using the TMDB provider!")
-    ))
-    {
-        MaxRetryCount = 5,
-    };
-
-    private static readonly TimeSpan[] _retryTimeSpans = [TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(40)];
+    ));
 
     private readonly AsyncRetryPolicy _retryPolicy = Policy
         .Handle<TaskCanceledException>()
-        .WaitAndRetryAsync(_retryTimeSpans);
+        .WaitAndRetryAsync(10, _ => TimeSpan.Zero, async (ex, ts) =>
+        {
+            // Retry on rate limit exceptions, throw on everything else.
+            switch (ex)
+            {
+                case RateLimitRejectedException rlrEx:
+                    await Task.Delay(rlrEx.RetryAfter).ConfigureAwait(false);
+                    break;
+                case HttpRequestException hrEx:
+                    if (hrEx.StatusCode is not HttpStatusCode.TooManyRequests)
+                        goto default;
+                    // We don't have the retry-after time from the response headers, so just wait 10 seconds and try again.
+                    await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                    break;
+                default:
+                    throw ex;
+            }
+        });
 
     private readonly AsyncRateLimitPolicy _rateLimitPolicy = Policy
         .RateLimitAsync(40, TimeSpan.FromSeconds(10));
