@@ -22,6 +22,8 @@ public class TestFilterable : IFilterable
     public bool HasMissingTvDbLink { get; init; }
     public bool HasTmdbLink { get; init; }
     public bool HasMissingTmdbLink { get; init; }
+    public int AutomaticTmdbEpisodeLinks { get; init; }
+    public int UserVerifiedTmdbEpisodeLinks { get; init; }
     public bool HasTraktLink { get; init; }
     public bool HasMissingTraktLink { get; init; }
     public bool IsFinished { get; init; }
