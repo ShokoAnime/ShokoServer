@@ -11,11 +11,11 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using TMDbLib.Objects.General;
 
 // Suggestions we don't need in this file.
@@ -28,32 +28,36 @@ namespace Shoko.Server.Providers.TMDB;
 public class TmdbImageService
 {
     private readonly ILogger<TmdbImageService> _logger;
-    
-    private readonly ISettingsProvider _settingsProvider;
-    
+
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly TMDB_ImageRepository _tmdbImages;
+
+    private readonly AniDB_Anime_PreferredImageRepository _preferredImages;
 
     public TmdbImageService(
         ILogger<TmdbImageService> logger,
-        ISettingsProvider settingsProvider,
-        ISchedulerFactory schedulerFactory
+        ISchedulerFactory schedulerFactory,
+        TMDB_ImageRepository tmdbImages,
+        AniDB_Anime_PreferredImageRepository preferredImages
     )
     {
         _logger = logger;
-        _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _tmdbImages = tmdbImages;
+        _preferredImages = preferredImages;
     }
 
     #region Image
 
     public async Task DownloadImageByType(string filePath, ImageEntityType type, ForeignEntityType foreignType, int foreignId, bool forceDownload = false)
     {
-        var image = RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(filePath, type) ?? new(filePath, type);
+        var image = _tmdbImages.GetByRemoteFileNameAndType(filePath, type) ?? new(filePath, type);
         image.Populate(foreignType, foreignId);
         if (string.IsNullOrEmpty(image.LocalPath))
             return;
 
-        RepoFactory.TMDB_Image.Save(image);
+        _tmdbImages.Save(image);
 
         // Skip downloading if it already exists and we're not forcing it.
         if (File.Exists(image.LocalPath) && !forceDownload)
@@ -88,15 +92,15 @@ public class TmdbImageService
                 break;
 
             count++;
-            var image = RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(imageData.FilePath, type) ?? new(imageData.FilePath, type);
+            var image = _tmdbImages.GetByRemoteFileNameAndType(imageData.FilePath, type) ?? new(imageData.FilePath, type);
             var updated = image.Populate(imageData, foreignType, foreignId);
             if (updated)
-                RepoFactory.TMDB_Image.Save(image);
+                _tmdbImages.Save(image);
         }
 
         count = 0;
         var scheduler = await _schedulerFactory.GetScheduler();
-        var storedImages = RepoFactory.TMDB_Image.GetByForeignIDAndType(foreignId, foreignType, type);
+        var storedImages = _tmdbImages.GetByForeignIDAndType(foreignId, foreignType, type);
         if (languages.Count > 0 && isLimitEnabled)
             storedImages = storedImages
                 .OrderBy(x => languages.IndexOf(x.Language) is var index && index >= 0 ? index : int.MaxValue)
@@ -107,7 +111,7 @@ public class TmdbImageService
             var path = image.LocalPath;
             if (string.IsNullOrEmpty(path))
             {
-                RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
+                _tmdbImages.Delete(image.TMDB_ImageID);
                 continue;
             }
 
@@ -143,14 +147,14 @@ public class TmdbImageService
                         _logger.LogError(ex, "Failed to delete image file: {Path}", path);
                     }
                 }
-                RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
+                _tmdbImages.Delete(image.TMDB_ImageID);
             }
         }
     }
 
     public void PurgeImages(ForeignEntityType foreignType, int foreignId, bool removeImageFiles)
     {
-        var imagesToRemove = RepoFactory.TMDB_Image.GetByForeignID(foreignId, foreignType);
+        var imagesToRemove = _tmdbImages.GetByForeignID(foreignId, foreignType);
 
         _logger.LogDebug(
             "Removing {count} images for {type} with id {EntityId}",
@@ -176,7 +180,7 @@ public class TmdbImageService
             if (removeFile && !string.IsNullOrEmpty(image.LocalPath) && File.Exists(image.LocalPath))
                 File.Delete(image.LocalPath);
 
-            RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
+            _tmdbImages.Delete(image.TMDB_ImageID);
         }
         // Remove the ID since we're keeping the metadata a little bit longer.
         else
@@ -204,21 +208,21 @@ public class TmdbImageService
 
     public void ResetPreferredImage(int anidbAnimeId, ForeignEntityType foreignType, int foreignId)
     {
-        var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(anidbAnimeId);
+        var images = _preferredImages.GetByAnimeID(anidbAnimeId);
         foreach (var defaultImage in images)
         {
             if (defaultImage.ImageSource == DataSourceType.TMDB)
             {
-                var image = RepoFactory.TMDB_Image.GetByID(defaultImage.ImageID);
+                var image = _tmdbImages.GetByID(defaultImage.ImageID);
                 if (image == null)
                 {
                     _logger.LogTrace("Removing preferred image for anime {AnimeId} because the preferred image could not be found.", anidbAnimeId);
-                    RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
+                    _preferredImages.Delete(defaultImage);
                 }
                 else if (image.ForeignType.HasFlag(foreignType) && image.GetForeignID(foreignType) == foreignId)
                 {
                     _logger.LogTrace("Removing preferred image for anime {AnimeId} because it belongs to now TMDB {Type} {Id}", anidbAnimeId, foreignType.ToString(), foreignId);
-                    RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
+                    _preferredImages.Delete(defaultImage);
                 }
             }
         }
