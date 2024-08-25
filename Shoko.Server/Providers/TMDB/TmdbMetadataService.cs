@@ -161,6 +161,8 @@ public class TmdbMetadataService
                     // then retrying, we should be able to hit the rate limit again.
                     await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
                     break;
+                default:
+                    throw ex;
             }
         });
 
