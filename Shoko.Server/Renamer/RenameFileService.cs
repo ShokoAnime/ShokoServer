@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -46,6 +46,25 @@ public class RenameFileService
         var settings = _settingsProvider.GetSettings();
         var shouldMove = move ?? settings.Plugins.Renamer.MoveOnImport;
         var shouldRename = rename ?? settings.Plugins.Renamer.RenameOnImport;
+
+        // Make sure the import folder is reachable.
+        var importFolder = place.ImportFolder;
+        if (importFolder is null)
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"Unable to find import folder for file with ID {place.VideoLocal}.",
+            };
+
+        // If we try to run on a file that's not in a drop source or destination, then fail.
+        if (importFolder.IsDropSource == 0 && importFolder.IsDropDestination == 0)
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = "Not relocating file as it is not in a drop source or drop destination.",
+            };
 
         var videoLocal = place.VideoLocal ??
                          throw new NullReferenceException(nameof(place.VideoLocal));
