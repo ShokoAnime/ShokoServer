@@ -11,12 +11,13 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 // Suggestions we don't need in this file.
@@ -30,23 +31,51 @@ public class TmdbLinkingService
 {
     private readonly ILogger<TmdbLinkingService> _logger;
 
-    private readonly ISettingsProvider _settingsProvider;
-    
     private readonly ISchedulerFactory _schedulerFactory;
 
     private readonly TmdbImageService _imageService;
 
+    private readonly AnimeSeriesRepository _animeSeries;
+
+    private readonly AniDB_AnimeRepository _anidbAnime;
+
+    private readonly AniDB_EpisodeRepository _anidbEpisodes;
+
+    private readonly AniDB_Episode_TitleRepository _anidbEpisodeTitles;
+
+    private readonly TMDB_EpisodeRepository _tmdbEpisodes;
+
+    private readonly CrossRef_AniDB_TMDB_MovieRepository _xrefAnidbTmdbMovies;
+
+    private readonly CrossRef_AniDB_TMDB_ShowRepository _xrefAnidbTmdbShows;
+
+    private readonly CrossRef_AniDB_TMDB_EpisodeRepository _xrefAnidbTmdbEpisodes;
+
     public TmdbLinkingService(
         ILogger<TmdbLinkingService> logger,
-        ISettingsProvider settingsProvider,
         ISchedulerFactory schedulerFactory,
-        TmdbImageService imageService
+        TmdbImageService imageService,
+        AnimeSeriesRepository animeSeries,
+        AniDB_AnimeRepository anidbAnime,
+        AniDB_EpisodeRepository anidbEpisodes,
+        AniDB_Episode_TitleRepository anidbEpisodeTitles,
+        TMDB_EpisodeRepository tmdbEpisodes,
+        CrossRef_AniDB_TMDB_MovieRepository xrefAnidbTmdbMovies,
+        CrossRef_AniDB_TMDB_ShowRepository xrefAnidbTmdbShows,
+        CrossRef_AniDB_TMDB_EpisodeRepository xrefAnidbTmdbEpisodes
     )
     {
         _logger = logger;
-        _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
         _imageService = imageService;
+        _animeSeries = animeSeries;
+        _anidbAnime = anidbAnime;
+        _anidbEpisodes = anidbEpisodes;
+        _anidbEpisodeTitles = anidbEpisodeTitles;
+        _tmdbEpisodes = tmdbEpisodes;
+        _xrefAnidbTmdbMovies = xrefAnidbTmdbMovies;
+        _xrefAnidbTmdbShows = xrefAnidbTmdbShows;
+        _xrefAnidbTmdbEpisodes = xrefAnidbTmdbEpisodes;
     }
 
     #region Movie Links
@@ -59,25 +88,25 @@ public class TmdbLinkingService
 
         // Add or update the link.
         _logger.LogInformation("Adding TMDB Movie Link: AniDB (ID:{AnidbID}) → TMDB Movie (ID:{TmdbID})", animeId, movieId);
-        var xref = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId) ??
+        var xref = _xrefAnidbTmdbMovies.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId) ??
             new(animeId, movieId);
         xref.AnidbEpisodeID = episodeId;
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.Save(xref);
+        _xrefAnidbTmdbMovies.Save(xref);
     }
 
     public async Task RemoveMovieLink(int animeId, int movieId, bool purge = false, bool removeImageFiles = true)
     {
-        var xref = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId);
+        var xref = _xrefAnidbTmdbMovies.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId);
         if (xref == null)
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeId);
+        var series = _animeSeries.GetByAnimeID(animeId);
         if (series != null && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            RepoFactory.AnimeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, true);
         }
 
         await RemoveMovieLink(xref, removeImageFiles, purge ? true : null);
@@ -86,16 +115,16 @@ public class TmdbLinkingService
     public async Task RemoveAllMovieLinksForAnime(int animeId, bool purge = false, bool removeImageFiles = true)
     {
         _logger.LogInformation("Removing All TMDB Movie Links for: {AnimeID}", animeId);
-        var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(animeId);
+        var xrefs = _xrefAnidbTmdbMovies.GetByAnidbAnimeID(animeId);
         if (xrefs.Count == 0)
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeId);
+        var series = _animeSeries.GetByAnimeID(animeId);
         if (series != null && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            RepoFactory.AnimeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, true);
         }
 
         foreach (var xref in xrefs)
@@ -104,7 +133,7 @@ public class TmdbLinkingService
 
     public async Task RemoveAllMovieLinksForMovie(int movieId)
     {
-        var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(movieId);
+        var xrefs = _xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId);
         if (xrefs.Count == 0)
             return;
 
@@ -117,9 +146,9 @@ public class TmdbLinkingService
         _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Movie, xref.TmdbMovieID);
 
         _logger.LogInformation("Removing TMDB Movie Link: AniDB ({AnidbID}) → TMDB Movie (ID:{TmdbID})", xref.AnidbAnimeID, xref.TmdbMovieID);
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.Delete(xref);
+        _xrefAnidbTmdbMovies.Delete(xref);
 
-        if (purge ?? RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID).Count == 0)
+        if (purge ?? _xrefAnidbTmdbMovies.GetByTmdbMovieID(xref.TmdbMovieID).Count == 0)
             await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbMovieJob>(c =>
             {
                 c.TmdbMovieID = xref.TmdbMovieID;
@@ -139,24 +168,24 @@ public class TmdbLinkingService
 
         // Add or update the link.
         _logger.LogInformation("Adding TMDB Show Link: AniDB (ID:{AnidbID}) → TMDB Show (ID:{TmdbID})", animeId, showId);
-        var xref = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId) ??
+        var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId) ??
             new(animeId, showId);
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
-        RepoFactory.CrossRef_AniDB_TMDB_Show.Save(xref);
+        _xrefAnidbTmdbShows.Save(xref);
     }
 
     public async Task RemoveShowLink(int animeId, int showId, bool purge = false, bool removeImageFiles = true)
     {
-        var xref = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId);
+        var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId);
         if (xref == null)
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeId);
+        var series = _animeSeries.GetByAnimeID(animeId);
         if (series != null && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            RepoFactory.AnimeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, true);
         }
 
         await RemoveShowLink(xref, removeImageFiles, purge ? true : null);
@@ -165,16 +194,16 @@ public class TmdbLinkingService
     public async Task RemoveAllShowLinksForAnime(int animeId, bool purge = false, bool removeImageFiles = true)
     {
         _logger.LogInformation("Removing All TMDB Show Links for: {AnimeID}", animeId);
-        var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(animeId);
+        var xrefs = _xrefAnidbTmdbShows.GetByAnidbAnimeID(animeId);
         if (xrefs == null || xrefs.Count == 0)
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeId);
+        var series = _animeSeries.GetByAnimeID(animeId);
         if (series != null && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            RepoFactory.AnimeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, true);
         }
 
         foreach (var xref in xrefs)
@@ -183,7 +212,7 @@ public class TmdbLinkingService
 
     public async Task RemoveAllShowLinksForShow(int showId)
     {
-        var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(showId);
+        var xrefs = _xrefAnidbTmdbShows.GetByTmdbShowID(showId);
         if (xrefs.Count == 0)
             return;
 
@@ -196,14 +225,14 @@ public class TmdbLinkingService
         _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Show, xref.TmdbShowID);
 
         _logger.LogInformation("Removing TMDB Show Link: AniDB ({AnidbID}) → TMDB Show (ID:{TmdbID})", xref.AnidbAnimeID, xref.TmdbShowID);
-        RepoFactory.CrossRef_AniDB_TMDB_Show.Delete(xref);
+        _xrefAnidbTmdbShows.Delete(xref);
 
-        var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, xref.TmdbShowID);
+        var xrefs = _xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, xref.TmdbShowID);
         _logger.LogInformation("Removing {XRefsCount} Show Episodes for AniDB Anime ({AnidbID})", xrefs.Count, xref.AnidbAnimeID);
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(xrefs);
+        _xrefAnidbTmdbEpisodes.Delete(xrefs);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        if (purge ?? RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(xref.TmdbShowID).Count == 0)
+        if (purge ?? _xrefAnidbTmdbShows.GetByTmdbShowID(xref.TmdbShowID).Count == 0)
             await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbShowJob>(c =>
             {
                 c.TmdbShowID = xref.TmdbShowID;
@@ -213,11 +242,11 @@ public class TmdbLinkingService
 
     public void ResetAllEpisodeLinks(int anidbAnimeId)
     {
-        var showId = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(anidbAnimeId)
+        var showId = _xrefAnidbTmdbShows.GetByAnidbAnimeID(anidbAnimeId)
             .FirstOrDefault()?.TmdbShowID;
         if (showId.HasValue)
         {
-            var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(anidbAnimeId);
+            var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbAnimeID(anidbAnimeId);
             var toSave = new List<CrossRef_AniDB_TMDB_Episode>();
             var toDelete = new List<CrossRef_AniDB_TMDB_Episode>();
 
@@ -237,71 +266,71 @@ public class TmdbLinkingService
             }
 
             // Add missing xrefs.
-            var anidbEpisodesWithoutXrefs = RepoFactory.AniDB_Episode.GetByAnimeID(anidbAnimeId)
+            var anidbEpisodesWithoutXrefs = _anidbEpisodes.GetByAnimeID(anidbAnimeId)
                 .Where(episode => !existingIDs.Contains(episode.AniDB_EpisodeID) && episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special);
             foreach (var anidbEpisode in anidbEpisodesWithoutXrefs)
                 toSave.Add(new(anidbEpisode.AniDB_EpisodeID, anidbAnimeId, 0, showId.Value, MatchRating.UserVerified));
 
             // Save the changes.
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toDelete);
+            _xrefAnidbTmdbEpisodes.Save(toSave);
+            _xrefAnidbTmdbEpisodes.Delete(toDelete);
         }
         else
         {
             // Remove all episode cross-references if no show is linked.
-            var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(anidbAnimeId);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(xrefs);
+            var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbAnimeID(anidbAnimeId);
+            _xrefAnidbTmdbEpisodes.Delete(xrefs);
         }
     }
 
     public bool SetEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null)
     {
-        var anidbEpisode = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeId);
+        var anidbEpisode = _anidbEpisodes.GetByEpisodeID(anidbEpisodeId);
         if (anidbEpisode == null)
             return false;
 
         // Set an empty link.
         if (tmdbEpisodeId == 0)
         {
-            var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(anidbEpisodeId);
+            var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId);
             var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, 0, 0);
             toSave.TmdbShowID = 0;
             toSave.TmdbEpisodeID = 0;
             toSave.Ordering = 0;
             var toDelete = xrefs.Skip(1).ToList();
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toDelete);
+            _xrefAnidbTmdbEpisodes.Save(toSave);
+            _xrefAnidbTmdbEpisodes.Delete(toDelete);
 
             return true;
         }
 
-        var tmdbEpisode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeId);
+        var tmdbEpisode = _tmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeId);
         if (tmdbEpisode == null)
             return false;
 
         // Add another link
         if (additiveLink)
         {
-            var toSave = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeAndTmdbEpisodeIDs(anidbEpisodeId, tmdbEpisodeId)
+            var toSave = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeAndTmdbEpisodeIDs(anidbEpisodeId, tmdbEpisodeId)
                 ?? new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
-            var existingAnidbLinks = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(anidbEpisodeId).Count;
-            var existingTmdbLinks = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeId).Count;
+            var existingAnidbLinks = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId).Count;
+            var existingTmdbLinks = _xrefAnidbTmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeId).Count;
             if (toSave.CrossRef_AniDB_TMDB_EpisodeID == 0 && !index.HasValue)
                 index = existingAnidbLinks > 0 ? existingAnidbLinks - 1 : existingTmdbLinks > 0 ? existingTmdbLinks - 1 : 0;
             if (index.HasValue)
                 toSave.Ordering = index.Value;
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
+            _xrefAnidbTmdbEpisodes.Save(toSave);
         }
         else
         {
-            var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(anidbEpisodeId);
+            var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId);
             var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
             toSave.TmdbShowID = tmdbEpisode.TmdbShowID;
             toSave.TmdbEpisodeID = tmdbEpisode.TmdbEpisodeID;
             toSave.Ordering = 0;
             var toDelete = xrefs.Skip(1).ToList();
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
-            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toDelete);
+            _xrefAnidbTmdbEpisodes.Save(toSave);
+            _xrefAnidbTmdbEpisodes.Delete(toDelete);
         }
 
         return true;
@@ -313,7 +342,7 @@ public class TmdbLinkingService
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false)
     {
-        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeId);
+        var anime = _anidbAnime.GetByAnimeID(anidbAnimeId);
         if (anime == null)
             return [];
 
@@ -321,15 +350,15 @@ public class TmdbLinkingService
         var toSkip = new HashSet<int>();
         var toAdd = new List<CrossRef_AniDB_TMDB_Episode>();
         var crossReferences = new List<CrossRef_AniDB_TMDB_Episode>();
-        var existing = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAllByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId)
+        var existing = _xrefAnidbTmdbEpisodes.GetAllByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId)
             .GroupBy(xref => xref.AnidbEpisodeID)
             .ToDictionary(grouped => grouped.Key, grouped => grouped.ToList());
-        var anidbEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(anidbAnimeId)
+        var anidbEpisodes = _anidbEpisodes.GetByAnimeID(anidbAnimeId)
             .Where(episode => episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special)
             .OrderBy(episode => episode.EpisodeTypeEnum)
             .ThenBy(episode => episode.EpisodeNumber)
             .ToDictionary(episode => episode.EpisodeID);
-        var tmdbEpisodes = RepoFactory.TMDB_Episode.GetByTmdbShowID(tmdbShowId)
+        var tmdbEpisodes = _tmdbEpisodes.GetByTmdbShowID(tmdbShowId)
             .Where(episode => episode.SeasonNumber == 0 || !tmdbSeasonId.HasValue || episode.TmdbSeasonID == tmdbSeasonId.Value)
             .ToList();
         var tmdbNormalEpisodes = tmdbEpisodes
@@ -409,16 +438,16 @@ public class TmdbLinkingService
             anime.PreferredTitle,
             anidbAnimeId,
             tmdbShowId);
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toAdd);
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toRemove);
+        _xrefAnidbTmdbEpisodes.Save(toAdd);
+        _xrefAnidbTmdbEpisodes.Delete(toRemove);
 
         return crossReferences;
     }
 
-    private static CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(SVR_AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(SVR_AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
     {
         var anidbDate = anidbEpisode.GetAirDateAsDateOnly();
-        var anidbTitles = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
+        var anidbTitles = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
             .Where(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
             .ToList();
 

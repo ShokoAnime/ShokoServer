@@ -14,7 +14,8 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
@@ -76,6 +77,54 @@ public class TmdbMetadataService
 
     private readonly TmdbLinkingService _linkingService;
 
+    private readonly AnimeSeriesRepository _animeSeries;
+
+    private readonly TMDB_AlternateOrderingRepository _tmdbAlternateOrdering;
+
+    private readonly TMDB_AlternateOrdering_EpisodeRepository _tmdbAlternateOrderingEpisodes;
+
+    private readonly TMDB_AlternateOrdering_SeasonRepository _tmdbAlternateOrderingSeasons;
+
+    private readonly TMDB_CollectionRepository _tmdbCollections;
+
+    private readonly TMDB_CompanyRepository _tmdbCompany;
+
+    private readonly TMDB_EpisodeRepository _tmdbEpisodes;
+
+    private readonly TMDB_Episode_CastRepository _tmdbEpisodeCast;
+
+    private readonly TMDB_Episode_CrewRepository _tmdbEpisodeCrew;
+
+    private readonly TMDB_ImageRepository _tmdbImages;
+
+    private readonly TMDB_MovieRepository _tmdbMovies;
+
+    private readonly TMDB_Movie_CastRepository _tmdbMovieCast;
+
+    private readonly TMDB_Movie_CrewRepository _tmdbMovieCrew;
+
+    private readonly TMDB_NetworkRepository _tmdbNetwork;
+
+    private readonly TMDB_OverviewRepository _tmdbOverview;
+
+    private readonly TMDB_PersonRepository _tmdbPeople;
+
+    private readonly TMDB_SeasonRepository _tmdbSeasons;
+
+    private readonly TMDB_ShowRepository _tmdbShows;
+
+    private readonly TMDB_TitleRepository _tmdbTitle;
+
+    private readonly CrossRef_AniDB_TMDB_MovieRepository _xrefAnidbTmdbMovies;
+
+    private readonly CrossRef_AniDB_TMDB_ShowRepository _xrefAnidbTmdbShows;
+
+    private readonly TMDB_Collection_MovieRepository _xrefTmdbCollectionMovies;
+
+    private readonly TMDB_Company_EntityRepository _xrefTmdbCompanyEntity;
+
+    private readonly TMDB_Show_NetworkRepository _xrefTmdbShowNetwork;
+
     private TMDbClient? _rawClient = null;
 
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
@@ -102,7 +151,31 @@ public class TmdbMetadataService
         ISchedulerFactory commandFactory,
         ISettingsProvider settingsProvider,
         TmdbImageService imageService,
-        TmdbLinkingService linkingService
+        TmdbLinkingService linkingService,
+        AnimeSeriesRepository animeSeries,
+        TMDB_AlternateOrderingRepository tmdbAlternateOrdering,
+        TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisodes,
+        TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeasons,
+        TMDB_CollectionRepository tmdbCollections,
+        TMDB_CompanyRepository tmdbCompany,
+        TMDB_EpisodeRepository tmdbEpisodes,
+        TMDB_Episode_CastRepository tmdbEpisodeCast,
+        TMDB_Episode_CrewRepository tmdbEpisodeCrew,
+        TMDB_ImageRepository tmdbImages,
+        TMDB_MovieRepository tmdbMovies,
+        TMDB_Movie_CastRepository tmdbMovieCast,
+        TMDB_Movie_CrewRepository tmdbMovieCrew,
+        TMDB_NetworkRepository tmdbNetwork,
+        TMDB_OverviewRepository tmdbOverview,
+        TMDB_PersonRepository tmdbPeople,
+        TMDB_SeasonRepository tmdbSeasons,
+        TMDB_ShowRepository tmdbShows,
+        TMDB_TitleRepository tmdbTitle,
+        CrossRef_AniDB_TMDB_MovieRepository xrefAnidbTmdbMovies,
+        CrossRef_AniDB_TMDB_ShowRepository xrefAnidbTmdbShows,
+        TMDB_Collection_MovieRepository xrefTmdbCollectionMovies,
+        TMDB_Company_EntityRepository xrefTmdbCompanyEntity,
+        TMDB_Show_NetworkRepository xrefTmdbShowNetwork
     )
     {
         _logger = logger;
@@ -110,6 +183,30 @@ public class TmdbMetadataService
         _settingsProvider = settingsProvider;
         _imageService = imageService;
         _linkingService = linkingService;
+        _animeSeries = animeSeries;
+        _tmdbAlternateOrdering = tmdbAlternateOrdering;
+        _tmdbAlternateOrderingEpisodes = tmdbAlternateOrderingEpisodes;
+        _tmdbAlternateOrderingSeasons = tmdbAlternateOrderingSeasons;
+        _tmdbCollections = tmdbCollections;
+        _tmdbCompany = tmdbCompany;
+        _tmdbEpisodes = tmdbEpisodes;
+        _tmdbEpisodeCast = tmdbEpisodeCast;
+        _tmdbEpisodeCrew = tmdbEpisodeCrew;
+        _tmdbImages = tmdbImages;
+        _tmdbMovies = tmdbMovies;
+        _tmdbMovieCast = tmdbMovieCast;
+        _tmdbMovieCrew = tmdbMovieCrew;
+        _tmdbNetwork = tmdbNetwork;
+        _tmdbOverview = tmdbOverview;
+        _tmdbPeople = tmdbPeople;
+        _tmdbSeasons = tmdbSeasons;
+        _tmdbShows = tmdbShows;
+        _tmdbTitle = tmdbTitle;
+        _xrefAnidbTmdbMovies = xrefAnidbTmdbMovies;
+        _xrefAnidbTmdbShows = xrefAnidbTmdbShows;
+        _xrefTmdbCollectionMovies = xrefTmdbCollectionMovies;
+        _xrefTmdbCompanyEntity = xrefTmdbCompanyEntity;
+        _xrefTmdbShowNetwork = xrefTmdbShowNetwork;
         _instance ??= this;
     }
 
@@ -128,7 +225,7 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoLink)
             return;
 
-        var allSeries = RepoFactory.AnimeSeries.GetAll();
+        var allSeries = _animeSeries.GetAll();
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var ser in allSeries)
         {
@@ -198,7 +295,7 @@ public class TmdbMetadataService
 
     public async Task UpdateAllMovies(bool force, bool saveImages)
     {
-        var allXRefs = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll();
+        var allXRefs = _xrefAnidbTmdbMovies.GetAll();
         _logger.LogInformation("Scheduling {Count} movies to be updated.", allXRefs.Count);
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
@@ -228,7 +325,7 @@ public class TmdbMetadataService
     public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadCollections = false)
     {
         // Abort if we're within a certain time frame as to not try and get us rate-limited.
-        var tmdbMovie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieId) ?? new(movieId);
+        var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId) ?? new(movieId);
         var newlyAdded = tmdbMovie.TMDB_MovieID == 0;
         if (!forceRefresh && tmdbMovie.CreatedAt != tmdbMovie.LastUpdatedAt && tmdbMovie.LastUpdatedAt > DateTime.Now.AddHours(-1))
             return false;
@@ -255,13 +352,13 @@ public class TmdbMetadataService
         if (updated)
         {
             tmdbMovie.LastUpdatedAt = DateTime.Now;
-            RepoFactory.TMDB_Movie.Save(tmdbMovie);
+            _tmdbMovies.Save(tmdbMovie);
         }
 
         if (downloadCollections)
             await UpdateMovieCollections(movie);
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(movieId))
+        foreach (var xref in _xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId))
         {
             if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
             {
@@ -295,7 +392,7 @@ public class TmdbMetadataService
         var castToAdd = 0;
         var castToKeep = new HashSet<string>();
         var castToSave = new List<TMDB_Movie_Cast>();
-        var existingCastDict = RepoFactory.TMDB_Movie_Cast.GetByTmdbMovieID(tmdbMovie.Id)
+        var existingCastDict = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
             .ToDictionary(cast => cast.TmdbCreditID);
         foreach (var cast in credits.Cast)
         {
@@ -306,7 +403,7 @@ public class TmdbMetadataService
                 var person = await UseClient(c => c.GetPersonAsync(cast.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Movie={tmdbMovie.Id},Person={cast.Id})");
 
-                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
+                tmdbPerson = _tmdbPeople.GetByTmdbPersonID(cast.Id);
                 if (tmdbPerson == null)
                 {
                     tmdbPerson = new(cast.Id);
@@ -357,7 +454,7 @@ public class TmdbMetadataService
         var crewToAdd = 0;
         var crewToKeep = new HashSet<string>();
         var crewToSave = new List<TMDB_Movie_Crew>();
-        var existingCrewDict = RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(tmdbMovie.Id)
+        var existingCrewDict = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
             .ToDictionary(crew => crew.TmdbCreditID);
         foreach (var crew in credits.Crew)
         {
@@ -367,7 +464,7 @@ public class TmdbMetadataService
                 var person = await UseClient(c => c.GetPersonAsync(crew.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Movie={tmdbMovie.Id},Person={crew.Id})");
 
-                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
+                tmdbPerson = _tmdbPeople.GetByTmdbPersonID(crew.Id);
                 if (tmdbPerson == null)
                 {
                     tmdbPerson = new(crew.Id);
@@ -422,11 +519,11 @@ public class TmdbMetadataService
             .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
             .ToList();
 
-        RepoFactory.TMDB_Person.Save(peopleToSave);
-        RepoFactory.TMDB_Movie_Cast.Save(castToSave);
-        RepoFactory.TMDB_Movie_Crew.Save(crewToSave);
-        RepoFactory.TMDB_Movie_Cast.Delete(castToRemove);
-        RepoFactory.TMDB_Movie_Crew.Delete(crewToRemove);
+        _tmdbPeople.Save(peopleToSave);
+        _tmdbMovieCast.Save(castToSave);
+        _tmdbMovieCrew.Save(crewToSave);
+        _tmdbMovieCast.Delete(castToRemove);
+        _tmdbMovieCrew.Delete(crewToRemove);
 
         var peopleToRemove = 0;
         var peopleToCheck = existingCastDict.Values
@@ -476,8 +573,8 @@ public class TmdbMetadataService
             return;
         }
 
-        var movieXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(collectionId);
-        var tmdbCollection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
+        var movieXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(collectionId);
+        var tmdbCollection = _tmdbCollections.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
         var collection = await UseClient(c => c.GetCollectionAsync(collectionId, CollectionMethods.Images | CollectionMethods.Translations)).ConfigureAwait(false);
         if (collection == null)
         {
@@ -518,13 +615,13 @@ public class TmdbMetadataService
             movieXRefs.Count + xrefsToAdd - xrefsToRemove.Count - xrefsToSave.Count,
             tmdbCollection.EnglishTitle,
             tmdbCollection.Id);
-        RepoFactory.TMDB_Collection_Movie.Save(xrefsToSave);
-        RepoFactory.TMDB_Collection_Movie.Delete(xrefsToRemove);
+        _xrefTmdbCollectionMovies.Save(xrefsToSave);
+        _xrefTmdbCollectionMovies.Delete(xrefsToRemove);
 
         if (updated || xrefsToSave.Count > 0 || xrefsToRemove.Count > 0)
         {
             tmdbCollection.LastUpdatedAt = DateTime.Now;
-            RepoFactory.TMDB_Collection.Save(tmdbCollection);
+            _tmdbCollections.Save(tmdbCollection);
         }
     }
 
@@ -540,7 +637,7 @@ public class TmdbMetadataService
 
     public async Task DownloadAllMovieImages(int movieId, bool forceDownload = false)
     {
-        var tmdbMovie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieId);
+        var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId);
         if (tmdbMovie is null)
             return;
 
@@ -569,16 +666,16 @@ public class TmdbMetadataService
 
     public async Task PurgeAllUnusedMovies()
     {
-        var allMovies = RepoFactory.TMDB_Movie.GetAll().Select(movie => movie.TmdbMovieID)
-            .Concat(RepoFactory.TMDB_Image.GetAll().Where(image => image.TmdbMovieID.HasValue).Select(image => image.TmdbMovieID!.Value))
-            .Concat(RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll().Select(xref => xref.TmdbMovieID))
-            .Concat(RepoFactory.TMDB_Company_Entity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Movie).Select(x => x.TmdbEntityID))
-            .Concat(RepoFactory.TMDB_Movie_Cast.GetAll().Select(x => x.TmdbMovieID))
-            .Concat(RepoFactory.TMDB_Movie_Crew.GetAll().Select(x => x.TmdbMovieID))
-            .Concat(RepoFactory.TMDB_Collection.GetAll().Select(collection => collection.TmdbCollectionID))
-            .Concat(RepoFactory.TMDB_Collection_Movie.GetAll().Select(collectionMovie => collectionMovie.TmdbMovieID))
+        var allMovies = _tmdbMovies.GetAll().Select(movie => movie.TmdbMovieID)
+            .Concat(_tmdbImages.GetAll().Where(image => image.TmdbMovieID.HasValue).Select(image => image.TmdbMovieID!.Value))
+            .Concat(_xrefAnidbTmdbMovies.GetAll().Select(xref => xref.TmdbMovieID))
+            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Movie).Select(x => x.TmdbEntityID))
+            .Concat(_tmdbMovieCast.GetAll().Select(x => x.TmdbMovieID))
+            .Concat(_tmdbMovieCrew.GetAll().Select(x => x.TmdbMovieID))
+            .Concat(_tmdbCollections.GetAll().Select(collection => collection.TmdbCollectionID))
+            .Concat(_xrefTmdbCollectionMovies.GetAll().Select(collectionMovie => collectionMovie.TmdbMovieID))
             .ToHashSet();
-        var toKeep = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
+        var toKeep = _xrefAnidbTmdbMovies.GetAll()
             .Select(xref => xref.TmdbMovieID)
             .ToHashSet();
         var toBePurged = allMovies
@@ -611,11 +708,11 @@ public class TmdbMetadataService
 
         _imageService.PurgeImages(ForeignEntityType.Movie, movieId, removeImageFiles);
 
-        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieId);
+        var movie = _tmdbMovies.GetByTmdbMovieID(movieId);
         if (movie != null)
         {
             _logger.LogTrace("Removing movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
-            RepoFactory.TMDB_Movie.Delete(movie);
+            _tmdbMovies.Delete(movie);
         }
 
         PurgeMovieCompanies(movieId, removeImageFiles);
@@ -629,13 +726,13 @@ public class TmdbMetadataService
 
     private void PurgeMovieCompanies(int movieId, bool removeImageFiles = true)
     {
-        var xrefsToRemove = RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(ForeignEntityType.Movie, movieId);
+        var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(ForeignEntityType.Movie, movieId);
         foreach (var xref in xrefsToRemove)
         {
             // Delete xref or purge company.
-            var xrefs = RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(xref.TmdbCompanyID);
+            var xrefs = _xrefTmdbCompanyEntity.GetByTmdbCompanyID(xref.TmdbCompanyID);
             if (xrefs.Count > 1)
-                RepoFactory.TMDB_Company_Entity.Delete(xref);
+                _xrefTmdbCompanyEntity.Delete(xref);
             else
                 PurgeCompany(xref.TmdbCompanyID, removeImageFiles);
         }
@@ -643,11 +740,11 @@ public class TmdbMetadataService
 
     private void PurgeMovieCastAndCrew(int movieId, bool removeImageFiles = true)
     {
-        var castMembers = RepoFactory.TMDB_Movie_Cast.GetByTmdbMovieID(movieId);
-        var crewMembers = RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(movieId);
+        var castMembers = _tmdbMovieCast.GetByTmdbMovieID(movieId);
+        var crewMembers = _tmdbMovieCrew.GetByTmdbMovieID(movieId);
 
-        RepoFactory.TMDB_Movie_Cast.Delete(castMembers);
-        RepoFactory.TMDB_Movie_Crew.Delete(crewMembers);
+        _tmdbMovieCast.Delete(castMembers);
+        _tmdbMovieCrew.Delete(crewMembers);
 
         var allPeopleSet = castMembers
             .Select(c => c.TmdbPersonID)
@@ -661,21 +758,21 @@ public class TmdbMetadataService
 
     private void CleanupMovieCollection(int movieId, bool removeImageFiles = true)
     {
-        var xref = RepoFactory.TMDB_Collection_Movie.GetByTmdbMovieID(movieId);
+        var xref = _xrefTmdbCollectionMovies.GetByTmdbMovieID(movieId);
         if (xref == null)
             return;
 
-        var allXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(xref.TmdbCollectionID);
+        var allXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(xref.TmdbCollectionID);
         if (allXRefs.Count > 1)
-            RepoFactory.TMDB_Collection_Movie.Delete(xref);
+            _xrefTmdbCollectionMovies.Delete(xref);
         else
             PurgeMovieCollection(xref.TmdbCollectionID, removeImageFiles);
     }
 
     private void PurgeMovieCollection(int collectionId, bool removeImageFiles = true)
     {
-        var collection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionId);
-        var collectionXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(collectionId);
+        var collection = _tmdbCollections.GetByTmdbCollectionID(collectionId);
+        var collectionXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(collectionId);
         if (collectionXRefs.Count > 0)
         {
             _logger.LogTrace(
@@ -683,7 +780,7 @@ public class TmdbMetadataService
                 collectionXRefs.Count, collection?.EnglishTitle ?? string.Empty,
                 collectionId
             );
-            RepoFactory.TMDB_Collection_Movie.Delete(collectionXRefs);
+            _xrefTmdbCollectionMovies.Delete(collectionXRefs);
         }
 
         _imageService.PurgeImages(ForeignEntityType.Collection, collectionId, removeImageFiles);
@@ -697,7 +794,7 @@ public class TmdbMetadataService
                 collection.EnglishTitle,
                 collectionId
             );
-            RepoFactory.TMDB_Collection.Delete(collection);
+            _tmdbCollections.Delete(collection);
         }
     }
 
@@ -749,7 +846,7 @@ public class TmdbMetadataService
 
     public async Task UpdateAllShows(bool force = false, bool downloadImages = false)
     {
-        var allXRefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll();
+        var allXRefs = _xrefAnidbTmdbShows.GetAll();
         _logger.LogInformation("Scheduling {Count} shows to be updated.", allXRefs.Count);
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
@@ -781,7 +878,7 @@ public class TmdbMetadataService
     public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false)
     {
         // Abort if we're within a certain time frame as to not try and get us rate-limited.
-        var tmdbShow = RepoFactory.TMDB_Show.GetByTmdbShowID(showId) ?? new(showId);
+        var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
         var newlyAdded = tmdbShow.TMDB_ShowID == 0;
         if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt > DateTime.Now.AddHours(-1))
             return false;
@@ -809,10 +906,10 @@ public class TmdbMetadataService
         if (updated)
         {
             tmdbShow.LastUpdatedAt = DateTime.Now;
-            RepoFactory.TMDB_Show.Save(tmdbShow);
+            _tmdbShows.Save(tmdbShow);
         }
 
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(showId))
+        foreach (var xref in _xrefAnidbTmdbShows.GetByTmdbShowID(showId))
         {
             _linkingService.MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
 
@@ -846,14 +943,14 @@ public class TmdbMetadataService
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
         var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
 
-        var existingSeasons = RepoFactory.TMDB_Season.GetByTmdbShowID(show.Id)
+        var existingSeasons = _tmdbSeasons.GetByTmdbShowID(show.Id)
             .ToDictionary(season => season.Id);
         var seasonsToAdd = 0;
         var seasonsToSkip = new HashSet<int>();
         var seasonsToSave = new List<TMDB_Season>();
 
         var existingEpisodes = new ConcurrentDictionary<int, TMDB_Episode>();
-        foreach (var episode in RepoFactory.TMDB_Episode.GetByTmdbShowID(show.Id))
+        foreach (var episode in _tmdbEpisodes.GetByTmdbShowID(show.Id))
             existingEpisodes.TryAdd(episode.Id, episode);
         var episodesToAdd = 0;
         var episodesToSkip = new ConcurrentBag<int>();
@@ -929,12 +1026,12 @@ public class TmdbMetadataService
             existingSeasons.Count + seasonsToAdd - seasonsToRemove.Count - seasonsToSave.Count,
             show.Name,
             show.Id);
-        RepoFactory.TMDB_Season.Save(seasonsToSave);
+        _tmdbSeasons.Save(seasonsToSave);
 
         foreach (var season in seasonsToRemove)
             PurgeShowSeason(season);
 
-        RepoFactory.TMDB_Season.Delete(seasonsToRemove);
+        _tmdbSeasons.Delete(seasonsToRemove);
 
         _logger.LogDebug(
             "Added/updated/removed/skipped {a}/{u}/{r}/{s} episodes for show {ShowTitle} (Show={ShowId})",
@@ -944,12 +1041,12 @@ public class TmdbMetadataService
             existingEpisodes.Count + episodesToAdd - episodesToRemove.Count - episodesToSave.Count,
             show.Name,
             show.Id);
-        RepoFactory.TMDB_Episode.Save(episodesToSave);
+        _tmdbEpisodes.Save(episodesToSave);
 
         foreach (var episode in episodesToRemove)
             PurgeShowEpisode(episode);
 
-        RepoFactory.TMDB_Episode.Delete(episodesToRemove);
+        _tmdbEpisodes.Delete(episodesToRemove);
 
         foreach (var episode in episodesToRemove)
             episodeEventsToEmit.Add((episode, UpdateReason.Removed));
@@ -968,19 +1065,19 @@ public class TmdbMetadataService
             show.Name,
             show.Id);
 
-        var existingOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbShowID(show.Id)
+        var existingOrdering = _tmdbAlternateOrdering.GetByTmdbShowID(show.Id)
             .ToDictionary(ordering => ordering.Id);
         var orderingToAdd = 0;
         var orderingToSkip = new HashSet<string>();
         var orderingToSave = new List<TMDB_AlternateOrdering>();
 
-        var existingSeasons = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbShowID(show.Id)
+        var existingSeasons = _tmdbAlternateOrderingSeasons.GetByTmdbShowID(show.Id)
             .ToDictionary(season => season.Id);
         var seasonsToAdd = 0;
         var seasonsToSkip = new HashSet<string>();
         var seasonsToSave = new HashSet<TMDB_AlternateOrdering_Season>();
 
-        var existingEpisodes = RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbShowID(show.Id)
+        var existingEpisodes = _tmdbAlternateOrderingEpisodes.GetByTmdbShowID(show.Id)
             .ToDictionary(episode => episode.Id);
         var episodesToAdd = 0;
         var episodesToSkip = new HashSet<string>();
@@ -1079,14 +1176,14 @@ public class TmdbMetadataService
             show.Name,
             show.Id);
 
-        RepoFactory.TMDB_AlternateOrdering.Save(orderingToSave);
-        RepoFactory.TMDB_AlternateOrdering.Delete(orderingToRemove);
+        _tmdbAlternateOrdering.Save(orderingToSave);
+        _tmdbAlternateOrdering.Delete(orderingToRemove);
 
-        RepoFactory.TMDB_AlternateOrdering_Season.Save(seasonsToSave);
-        RepoFactory.TMDB_AlternateOrdering_Season.Delete(seasonsToRemove);
+        _tmdbAlternateOrderingSeasons.Save(seasonsToSave);
+        _tmdbAlternateOrderingSeasons.Delete(seasonsToRemove);
 
-        RepoFactory.TMDB_AlternateOrdering_Episode.Save(episodesToSave);
-        RepoFactory.TMDB_AlternateOrdering_Episode.Delete(episodesToRemove);
+        _tmdbAlternateOrderingEpisodes.Save(episodesToSave);
+        _tmdbAlternateOrderingEpisodes.Delete(episodesToRemove);
 
         return orderingToSave.Count > 0 ||
             orderingToRemove.Count > 0 ||
@@ -1106,7 +1203,7 @@ public class TmdbMetadataService
         var castToAdd = 0;
         var castToKeep = new HashSet<string>();
         var castToSave = new List<TMDB_Episode_Cast>();
-        var existingCastDict = RepoFactory.TMDB_Episode_Cast.GetByTmdbEpisodeID(tmdbEpisode.Id)
+        var existingCastDict = _tmdbEpisodeCast.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(cast => cast.TmdbCreditID);
         var guestOffset = credits.Cast.Count;
         foreach (var cast in credits.Cast.Concat(credits.GuestStars))
@@ -1119,7 +1216,7 @@ public class TmdbMetadataService
                 var person = await UseClient(c => c.GetPersonAsync(cast.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={cast.Id})");
 
-                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
+                tmdbPerson = _tmdbPeople.GetByTmdbPersonID(cast.Id);
                 if (tmdbPerson == null)
                 {
                     tmdbPerson = new(cast.Id);
@@ -1178,7 +1275,7 @@ public class TmdbMetadataService
         var crewToAdd = 0;
         var crewToKeep = new HashSet<string>();
         var crewToSave = new List<TMDB_Episode_Crew>();
-        var existingCrewDict = RepoFactory.TMDB_Episode_Crew.GetByTmdbEpisodeID(tmdbEpisode.Id)
+        var existingCrewDict = _tmdbEpisodeCrew.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(crew => crew.TmdbCreditID);
         foreach (var crew in credits.Crew)
         {
@@ -1188,7 +1285,7 @@ public class TmdbMetadataService
                 var person = await UseClient(c => c.GetPersonAsync(crew.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={crew.Id})");
 
-                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
+                tmdbPerson = _tmdbPeople.GetByTmdbPersonID(crew.Id);
                 if (tmdbPerson == null)
                 {
                     tmdbPerson = new(crew.Id);
@@ -1243,11 +1340,11 @@ public class TmdbMetadataService
             .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
             .ToList();
 
-        RepoFactory.TMDB_Person.Save(peopleToSave);
-        RepoFactory.TMDB_Episode_Cast.Save(castToSave);
-        RepoFactory.TMDB_Episode_Crew.Save(crewToSave);
-        RepoFactory.TMDB_Episode_Cast.Delete(castToRemove);
-        RepoFactory.TMDB_Episode_Crew.Delete(crewToRemove);
+        _tmdbPeople.Save(peopleToSave);
+        _tmdbEpisodeCast.Save(castToSave);
+        _tmdbEpisodeCrew.Save(crewToSave);
+        _tmdbEpisodeCast.Delete(castToRemove);
+        _tmdbEpisodeCrew.Delete(crewToRemove);
 
         var peopleToRemove = 0;
         var peopleToCheck = existingCastDict.Values
@@ -1304,7 +1401,7 @@ public class TmdbMetadataService
     public async Task DownloadAllShowImages(int showId, bool forceDownload = false)
     {
         // Abort if we're within a certain time frame as to not try and get us rate-limited.
-        var tmdbShow = RepoFactory.TMDB_Show.GetByTmdbShowID(showId);
+        var tmdbShow = _tmdbShows.GetByTmdbShowID(showId);
         if (tmdbShow is null)
             return;
 
@@ -1377,18 +1474,18 @@ public class TmdbMetadataService
 
     public async Task PurgeAllUnusedShows()
     {
-        var allShows = RepoFactory.TMDB_Show.GetAll().Select(show => show.TmdbShowID)
-            .Concat(RepoFactory.TMDB_Image.GetAll().Where(image => image.TmdbShowID.HasValue).Select(image => image.TmdbShowID!.Value))
-            .Concat(RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll().Select(xref => xref.TmdbShowID))
-            .Concat(RepoFactory.TMDB_Company_Entity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Show).Select(x => x.TmdbEntityID))
-            .Concat(RepoFactory.TMDB_Show_Network.GetAll().Select(x => x.TmdbShowID))
-            .Concat(RepoFactory.TMDB_Season.GetAll().Select(x => x.TmdbShowID))
-            .Concat(RepoFactory.TMDB_Episode.GetAll().Select(x => x.TmdbShowID))
-            .Concat(RepoFactory.TMDB_AlternateOrdering.GetAll().Select(ordering => ordering.TmdbShowID))
-            .Concat(RepoFactory.TMDB_AlternateOrdering_Season.GetAll().Select(season => season.TmdbShowID))
-            .Concat(RepoFactory.TMDB_AlternateOrdering_Episode.GetAll().Select(episode => episode.TmdbShowID))
+        var allShows = _tmdbShows.GetAll().Select(show => show.TmdbShowID)
+            .Concat(_tmdbImages.GetAll().Where(image => image.TmdbShowID.HasValue).Select(image => image.TmdbShowID!.Value))
+            .Concat(_xrefAnidbTmdbShows.GetAll().Select(xref => xref.TmdbShowID))
+            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Show).Select(x => x.TmdbEntityID))
+            .Concat(_xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbShowID))
+            .Concat(_tmdbSeasons.GetAll().Select(x => x.TmdbShowID))
+            .Concat(_tmdbEpisodes.GetAll().Select(x => x.TmdbShowID))
+            .Concat(_tmdbAlternateOrdering.GetAll().Select(ordering => ordering.TmdbShowID))
+            .Concat(_tmdbAlternateOrderingSeasons.GetAll().Select(season => season.TmdbShowID))
+            .Concat(_tmdbAlternateOrderingEpisodes.GetAll().Select(episode => episode.TmdbShowID))
             .ToHashSet();
-        var toKeep = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
+        var toKeep = _xrefAnidbTmdbShows.GetAll()
             .Select(xref => xref.TmdbShowID)
             .ToHashSet();
         var toBePurged = allShows
@@ -1412,7 +1509,7 @@ public class TmdbMetadataService
 
     public async Task<bool> PurgeShow(int showId, bool removeImageFiles = true)
     {
-        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showId);
+        var show = _tmdbShows.GetByTmdbShowID(showId);
 
         await _linkingService.RemoveAllShowLinksForShow(showId);
 
@@ -1439,7 +1536,7 @@ public class TmdbMetadataService
                 show.EnglishTitle,
                 showId
             );
-            RepoFactory.TMDB_Show.Delete(show);
+            _tmdbShows.Delete(show);
         }
 
         return false;
@@ -1447,13 +1544,13 @@ public class TmdbMetadataService
 
     private void PurgeShowCompanies(int showId, bool removeImageFiles = true)
     {
-        var xrefsToRemove = RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(ForeignEntityType.Show, showId);
+        var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(ForeignEntityType.Show, showId);
         foreach (var xref in xrefsToRemove)
         {
             // Delete xref or purge company.
-            var xrefs = RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(xref.TmdbCompanyID);
+            var xrefs = _xrefTmdbCompanyEntity.GetByTmdbCompanyID(xref.TmdbCompanyID);
             if (xrefs.Count > 1)
-                RepoFactory.TMDB_Company_Entity.Delete(xref);
+                _xrefTmdbCompanyEntity.Delete(xref);
             else
                 PurgeCompany(xref.TmdbCompanyID, removeImageFiles);
         }
@@ -1461,13 +1558,13 @@ public class TmdbMetadataService
 
     private void PurgeShowNetworks(int showId, bool removeImageFiles = true)
     {
-        var xrefsToRemove = RepoFactory.TMDB_Show_Network.GetByTmdbShowID(showId);
+        var xrefsToRemove = _xrefTmdbShowNetwork.GetByTmdbShowID(showId);
         foreach (var xref in xrefsToRemove)
         {
             // Delete xref or purge company.
-            var xrefs = RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(xref.TmdbNetworkID);
+            var xrefs = _xrefTmdbShowNetwork.GetByTmdbNetworkID(xref.TmdbNetworkID);
             if (xrefs.Count > 1)
-                RepoFactory.TMDB_Show_Network.Delete(xref);
+                _xrefTmdbShowNetwork.Delete(xref);
             else
                 PurgeShowNetwork(xref.TmdbNetworkID, removeImageFiles);
         }
@@ -1475,29 +1572,29 @@ public class TmdbMetadataService
 
     private void PurgeShowNetwork(int networkId, bool removeImageFiles = true)
     {
-        var tmdbNetwork = RepoFactory.TMDB_Network.GetByTmdbNetworkID(networkId);
+        var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(networkId);
         if (tmdbNetwork != null)
         {
             _logger.LogDebug("Removing TMDB Network (Network={NetworkId})", networkId);
-            RepoFactory.TMDB_Network.Delete(tmdbNetwork);
+            _tmdbNetwork.Delete(tmdbNetwork);
         }
 
-        var images = RepoFactory.TMDB_Image.GetByTmdbCompanyID(networkId);
+        var images = _tmdbImages.GetByTmdbCompanyID(networkId);
         if (images.Count > 0)
             foreach (var image in images)
                 _imageService.PurgeImage(image, ForeignEntityType.Company, removeImageFiles);
 
-        var xrefs = RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(networkId);
+        var xrefs = _xrefTmdbShowNetwork.GetByTmdbNetworkID(networkId);
         if (xrefs.Count > 0)
         {
             _logger.LogDebug("Removing {count} cross-references for TMDB Network (Network={NetworkId})", xrefs.Count, networkId);
-            RepoFactory.TMDB_Show_Network.Delete(xrefs);
+            _xrefTmdbShowNetwork.Delete(xrefs);
         }
     }
 
     private void PurgeShowEpisodes(int showId, bool removeImageFiles = true)
     {
-        var episodesToRemove = RepoFactory.TMDB_Episode.GetByTmdbShowID(showId);
+        var episodesToRemove = _tmdbEpisodes.GetByTmdbShowID(showId);
 
         _logger.LogDebug(
             "Removing {count} episodes for show (Show={ShowId})",
@@ -1507,7 +1604,7 @@ public class TmdbMetadataService
         foreach (var episode in episodesToRemove)
             PurgeShowEpisode(episode, removeImageFiles);
 
-        RepoFactory.TMDB_Episode.Delete(episodesToRemove);
+        _tmdbEpisodes.Delete(episodesToRemove);
     }
 
     private void PurgeShowEpisode(TMDB_Episode episode, bool removeImageFiles = true)
@@ -1519,7 +1616,7 @@ public class TmdbMetadataService
 
     private void PurgeShowSeasons(int showId, bool removeImageFiles = true)
     {
-        var seasonsToRemove = RepoFactory.TMDB_Season.GetByTmdbShowID(showId);
+        var seasonsToRemove = _tmdbSeasons.GetByTmdbShowID(showId);
 
         _logger.LogDebug(
             "Removing {count} seasons for show (Show={ShowId})",
@@ -1529,7 +1626,7 @@ public class TmdbMetadataService
         foreach (var season in seasonsToRemove)
             PurgeShowSeason(season, removeImageFiles);
 
-        RepoFactory.TMDB_Season.Delete(seasonsToRemove);
+        _tmdbSeasons.Delete(seasonsToRemove);
     }
 
     private void PurgeShowSeason(TMDB_Season season, bool removeImageFiles = true)
@@ -1541,11 +1638,11 @@ public class TmdbMetadataService
 
     private void PurgeShowCastAndCrew(int showId, bool removeImageFiles = true)
     {
-        var castMembers = RepoFactory.TMDB_Episode_Cast.GetByTmdbShowID(showId);
-        var crewMembers = RepoFactory.TMDB_Episode_Crew.GetByTmdbShowID(showId);
+        var castMembers = _tmdbEpisodeCast.GetByTmdbShowID(showId);
+        var crewMembers = _tmdbEpisodeCrew.GetByTmdbShowID(showId);
 
-        RepoFactory.TMDB_Episode_Cast.Delete(castMembers);
-        RepoFactory.TMDB_Episode_Crew.Delete(crewMembers);
+        _tmdbEpisodeCast.Delete(castMembers);
+        _tmdbEpisodeCrew.Delete(crewMembers);
 
         var allPeopleSet = castMembers
             .Select(c => c.TmdbPersonID)
@@ -1559,14 +1656,14 @@ public class TmdbMetadataService
 
     private void PurgeShowEpisodeGroups(int showId)
     {
-        var episodes = RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbShowID(showId);
-        var seasons = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbShowID(showId);
-        var orderings = RepoFactory.TMDB_AlternateOrdering.GetByTmdbShowID(showId);
+        var episodes = _tmdbAlternateOrderingEpisodes.GetByTmdbShowID(showId);
+        var seasons = _tmdbAlternateOrderingSeasons.GetByTmdbShowID(showId);
+        var orderings = _tmdbAlternateOrdering.GetByTmdbShowID(showId);
 
         _logger.LogDebug("Removing {EpisodeCount} episodes and {SeasonCount} seasons across {OrderingCount} alternate orderings for show. (Show={ShowId})", episodes.Count, seasons.Count, orderings.Count, showId);
-        RepoFactory.TMDB_AlternateOrdering_Episode.Delete(episodes);
-        RepoFactory.TMDB_AlternateOrdering_Season.Delete(seasons);
-        RepoFactory.TMDB_AlternateOrdering.Delete(orderings);
+        _tmdbAlternateOrderingEpisodes.Delete(episodes);
+        _tmdbAlternateOrderingSeasons.Delete(seasons);
+        _tmdbAlternateOrdering.Delete(orderings);
     }
 
     #endregion
@@ -1603,8 +1700,8 @@ public class TmdbMetadataService
     /// <returns>A tuple indicating if any changes were made to the titles and/or overviews.</returns>
     private (bool titlesUpdated, bool overviewsUpdated) UpdateTitlesAndOverviewsWithTuple(IEntityMetadata tmdbEntity, TranslationsContainer translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages)
     {
-        var existingOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
-        var existingTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
+        var existingOverviews = _tmdbOverview.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
+        var existingTitles = _tmdbTitle.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
         var overviewsToAdd = 0;
         var overviewsToSkip = new HashSet<int>();
         var overviewsToSave = new List<TMDB_Overview>();
@@ -1699,10 +1796,10 @@ public class TmdbMetadataService
             tmdbEntity.OriginalTitle ?? tmdbEntity.EnglishTitle ?? $"<untitled {tmdbEntity.Type.ToString().ToLowerInvariant()}>",
             tmdbEntity.Type.ToString(),
             tmdbEntity.Id);
-        RepoFactory.TMDB_Overview.Save(overviewsToSave);
-        RepoFactory.TMDB_Overview.Delete(overviewsToRemove);
-        RepoFactory.TMDB_Title.Save(titlesToSave);
-        RepoFactory.TMDB_Title.Delete(titlesToRemove);
+        _tmdbOverview.Save(overviewsToSave);
+        _tmdbOverview.Delete(overviewsToRemove);
+        _tmdbTitle.Save(titlesToSave);
+        _tmdbTitle.Delete(titlesToRemove);
 
         return (
             titlesToSave.Count > 0 || titlesToRemove.Count > 0,
@@ -1712,8 +1809,8 @@ public class TmdbMetadataService
 
     private void PurgeTitlesAndOverviews(ForeignEntityType foreignType, int foreignId)
     {
-        var overviewsToRemove = RepoFactory.TMDB_Overview.GetByParentTypeAndID(foreignType, foreignId);
-        var titlesToRemove = RepoFactory.TMDB_Title.GetByParentTypeAndID(foreignType, foreignId);
+        var overviewsToRemove = _tmdbOverview.GetByParentTypeAndID(foreignType, foreignId);
+        var titlesToRemove = _tmdbTitle.GetByParentTypeAndID(foreignType, foreignId);
 
         _logger.LogDebug(
             "Removing {tr} titles and {or} overviews for {type} with id {EntityId}",
@@ -1721,8 +1818,8 @@ public class TmdbMetadataService
             overviewsToRemove.Count,
             foreignType.ToString().ToLowerInvariant(),
             foreignId);
-        RepoFactory.TMDB_Overview.Delete(overviewsToRemove);
-        RepoFactory.TMDB_Title.Delete(titlesToRemove);
+        _tmdbOverview.Delete(overviewsToRemove);
+        _tmdbTitle.Delete(titlesToRemove);
     }
 
     #endregion
@@ -1731,7 +1828,7 @@ public class TmdbMetadataService
 
     private async Task<bool> UpdateCompanies(IEntityMetadata tmdbEntity, List<ProductionCompany> companies)
     {
-        var existingXrefs = RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(tmdbEntity.Type, tmdbEntity.Id)
+        var existingXrefs = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(tmdbEntity.Type, tmdbEntity.Id)
             .ToDictionary(xref => xref.TmdbCompanyID);
         var xrefsToAdd = 0;
         var xrefsToSkip = new HashSet<int>();
@@ -1773,13 +1870,13 @@ public class TmdbMetadataService
             tmdbEntity.Type.ToString(),
             tmdbEntity.Id);
 
-        RepoFactory.TMDB_Company_Entity.Save(xrefsToSave);
+        _xrefTmdbCompanyEntity.Save(xrefsToSave);
         foreach (var xref in xrefsToRemove)
         {
             // Delete xref or purge company.
-            var xrefs = RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(xref.TmdbCompanyID);
+            var xrefs = _xrefTmdbCompanyEntity.GetByTmdbCompanyID(xref.TmdbCompanyID);
             if (xrefs.Count > 1)
-                RepoFactory.TMDB_Company_Entity.Delete(xref);
+                _xrefTmdbCompanyEntity.Delete(xref);
             else
                 PurgeCompany(xref.TmdbCompanyID);
         }
@@ -1790,12 +1887,12 @@ public class TmdbMetadataService
 
     private async Task UpdateCompany(ProductionCompany company)
     {
-        var tmdbCompany = RepoFactory.TMDB_Company.GetByTmdbCompanyID(company.Id) ?? new(company.Id);
+        var tmdbCompany = _tmdbCompany.GetByTmdbCompanyID(company.Id) ?? new(company.Id);
         var updated = tmdbCompany.Populate(company);
         if (updated)
         {
             _logger.LogDebug("Updating TMDB Company (Company={CompanyId})", company.Id);
-            RepoFactory.TMDB_Company.Save(tmdbCompany);
+            _tmdbCompany.Save(tmdbCompany);
         }
 
         var settings = _settingsProvider.GetSettings();
@@ -1805,23 +1902,23 @@ public class TmdbMetadataService
 
     private void PurgeCompany(int companyId, bool removeImageFiles = true)
     {
-        var tmdbCompany = RepoFactory.TMDB_Company.GetByTmdbCompanyID(companyId);
+        var tmdbCompany = _tmdbCompany.GetByTmdbCompanyID(companyId);
         if (tmdbCompany != null)
         {
             _logger.LogDebug("Removing TMDB Company (Company={CompanyId})", companyId);
-            RepoFactory.TMDB_Company.Delete(tmdbCompany);
+            _tmdbCompany.Delete(tmdbCompany);
         }
 
-        var images = RepoFactory.TMDB_Image.GetByTmdbCompanyID(companyId);
+        var images = _tmdbImages.GetByTmdbCompanyID(companyId);
         if (images.Count > 0)
             foreach (var image in images)
                 _imageService.PurgeImage(image, ForeignEntityType.Company, removeImageFiles);
 
-        var xrefs = RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(companyId);
+        var xrefs = _xrefTmdbCompanyEntity.GetByTmdbCompanyID(companyId);
         if (xrefs.Count > 0)
         {
             _logger.LogDebug("Removing {count} cross-references for TMDB Company (Company={CompanyId})", xrefs.Count, companyId);
-            RepoFactory.TMDB_Company_Entity.Delete(xrefs);
+            _xrefTmdbCompanyEntity.Delete(xrefs);
         }
     }
 
@@ -1841,62 +1938,62 @@ public class TmdbMetadataService
 
     private void PurgePerson(int personId, bool removeImageFiles = true)
     {
-        var person = RepoFactory.TMDB_Person.GetByTmdbPersonID(personId);
+        var person = _tmdbPeople.GetByTmdbPersonID(personId);
         if (person != null)
         {
             _logger.LogDebug("Removing TMDB Person (Person={PersonId})", personId);
-            RepoFactory.TMDB_Person.Delete(person);
+            _tmdbPeople.Delete(person);
         }
 
-        var images = RepoFactory.TMDB_Image.GetByTmdbPersonID(personId);
+        var images = _tmdbImages.GetByTmdbPersonID(personId);
         if (images.Count > 0)
             foreach (var image in images)
                 _imageService.PurgeImage(image, ForeignEntityType.Person, removeImageFiles);
 
-        var movieCast = RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(personId);
+        var movieCast = _tmdbMovieCast.GetByTmdbPersonID(personId);
         if (movieCast.Count > 0)
         {
             _logger.LogDebug("Removing {count} movie cast roles for TMDB Person (Person={PersonId})", movieCast.Count, personId);
-            RepoFactory.TMDB_Movie_Cast.Delete(movieCast);
+            _tmdbMovieCast.Delete(movieCast);
         }
 
-        var movieCrew = RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(personId);
+        var movieCrew = _tmdbMovieCrew.GetByTmdbPersonID(personId);
         if (movieCrew.Count > 0)
         {
             _logger.LogDebug("Removing {count} movie crew roles for TMDB Person (Person={PersonId})", movieCrew.Count, personId);
-            RepoFactory.TMDB_Movie_Crew.Delete(movieCrew);
+            _tmdbMovieCrew.Delete(movieCrew);
         }
 
-        var episodeCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
+        var episodeCast = _tmdbEpisodeCast.GetByTmdbPersonID(personId);
         if (episodeCast.Count > 0)
         {
             _logger.LogDebug("Removing {count} show cast roles for TMDB Person (Person={PersonId})", episodeCast.Count, personId);
-            RepoFactory.TMDB_Episode_Cast.Delete(episodeCast);
+            _tmdbEpisodeCast.Delete(episodeCast);
         }
 
-        var episodeCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
+        var episodeCrew = _tmdbEpisodeCrew.GetByTmdbPersonID(personId);
         if (episodeCrew.Count > 0)
         {
             _logger.LogDebug("Removing {count} show crew roles for TMDB Person (Person={PersonId})", episodeCrew.Count, personId);
-            RepoFactory.TMDB_Episode_Crew.Delete(episodeCrew);
+            _tmdbEpisodeCrew.Delete(episodeCrew);
         }
     }
 
-    private static bool IsPersonLinkedToOtherEntities(int tmdbPersonId)
+    private bool IsPersonLinkedToOtherEntities(int tmdbPersonId)
     {
-        var movieCastLinks = RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(tmdbPersonId);
+        var movieCastLinks = _tmdbMovieCast.GetByTmdbPersonID(tmdbPersonId);
         if (movieCastLinks.Any())
             return true;
 
-        var movieCrewLinks = RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(tmdbPersonId);
+        var movieCrewLinks = _tmdbMovieCrew.GetByTmdbPersonID(tmdbPersonId);
         if (movieCrewLinks.Any())
             return true;
 
-        var episodeCastLinks = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(tmdbPersonId);
+        var episodeCastLinks = _tmdbEpisodeCast.GetByTmdbPersonID(tmdbPersonId);
         if (episodeCastLinks.Any())
             return true;
 
-        var episodeCrewLinks = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(tmdbPersonId);
+        var episodeCrewLinks = _tmdbEpisodeCrew.GetByTmdbPersonID(tmdbPersonId);
         if (episodeCrewLinks.Any())
             return true;
 
