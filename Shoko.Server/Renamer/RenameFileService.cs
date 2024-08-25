@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -61,7 +61,7 @@ public class RenameFileService
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes. Aborting.",
+                ErrorMessage = $"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes.",
             };
 
         if (renamerConfig == null)
@@ -72,7 +72,7 @@ public class RenameFileService
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = "No default renamer configured and no renamer config given",
+                    ErrorMessage = "No default renamer configured and no renamer config given.",
                 };
 
             var defaultRenamer = _renamers.GetByName(defaultRenamerName);
@@ -81,7 +81,7 @@ public class RenameFileService
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = "The specified default renamer does not exist",
+                    ErrorMessage = "The specified default renamer does not exist.",
                 };
 
             renamerConfig = defaultRenamer;
@@ -92,7 +92,7 @@ public class RenameFileService
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"No renamers configured for {renamerConfig.Type}",
+                ErrorMessage = $"No renamers configured for \"{renamerConfig.Type}\".",
             };
 
         // Check if it's unrecognized.
@@ -101,7 +101,7 @@ public class RenameFileService
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = "Configured renamer does not support unrecognized files, and the file is unrecognized",
+                ErrorMessage = "Configured renamer does not support unrecognized files, and the file is unrecognized.",
             };
 
         var anime = xrefs
@@ -132,7 +132,7 @@ public class RenameFileService
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = $"Configured renamer has settings of type {settingsType} but the renamer config has settings of type {renamerConfig.Settings.GetType()}",
+                    ErrorMessage = $"Configured renamer has settings of type \"{settingsType}\" but the renamer config has settings of type \"{renamerConfig.Settings.GetType()}\".",
                 };
 
             var argsType = typeof(RelocationEventArgs<>).MakeGenericType(settingsType);
@@ -154,7 +154,7 @@ public class RenameFileService
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = $"Cannot find Settings setter on {renamerInterface}",
+                    ErrorMessage = $"Cannot find Settings setter on \"{renamerInterface}\".",
                 };
             settingsSetter.Invoke(args, [renamerConfig.Settings]);
 
@@ -167,7 +167,7 @@ public class RenameFileService
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = "Cannot find GetNewPath method",
+                    ErrorMessage = $"Cannot find \"GetNewPath\" method on \"{renamerInterface}\".",
                 };
 
             return UnAbstractResult(place, GetNewPath((r, a) => (AbstractRelocationResult)method.Invoke(r, [a])!, renamer, args, shouldRename, shouldMove), shouldMove, shouldRename);
@@ -317,7 +317,7 @@ public class RenameFileService
         {
             var attributes = implementation.GetCustomAttributes<RenamerIDAttribute>();
             if (!attributes.Any())
-                _logger.LogWarning("Warning {ImplementationName} has no RenamerIDAttribute and cannot be loaded", implementation.Name);
+                _logger.LogWarning("Warning {ImplementationName} has no RenamerIDAttribute and cannot be loaded.", implementation.Name);
             foreach (var id in attributes.Select(a => a.RenamerId))
             {
                 var version = implementation.Assembly.GetName().Version;
