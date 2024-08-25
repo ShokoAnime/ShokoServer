@@ -137,9 +137,12 @@ public class TmdbMetadataService
             : throw new Exception("You need to provide an api key before using the TMDB provider!")
     ));
 
+    // This policy will ensure only 10 requests can be in-flight at the same time.
     private readonly AsyncBulkheadPolicy _bulkheadPolicy = Policy
         .BulkheadAsync(10);
 
+    // This policy, together with the next policy, will ensure the rate limits are enforced, while also throwing if we
+    // catch an exception that's not rate-limit related or if we exceed 10 attempts at fetching the resource.
     private readonly AsyncRetryPolicy _retryPolicy = Policy
         .Handle<TaskCanceledException>()
         .WaitAndRetryAsync(10, _ => TimeSpan.Zero, async (ex, ts) =>
@@ -161,9 +164,16 @@ public class TmdbMetadataService
             }
         });
 
+    // This policy will ensure we can only make 40 requests per 10 seconds.
     private readonly AsyncRateLimitPolicy _rateLimitPolicy = Policy
         .RateLimitAsync(40, TimeSpan.FromSeconds(10));
 
+    /// <summary>
+    /// Execute the given function with the TMDb client, applying rate limiting and retry policies.
+    /// </summary>
+    /// <typeparam name="T">The type of the result of the function.</typeparam>
+    /// <param name="func">The function to execute with the TMDb client.</param>
+    /// <returns>A task that will complete with the result of the function, after applying the rate limiting and retry policies.</returns>
     protected Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func) =>
         _bulkheadPolicy.ExecuteAsync(() => _retryPolicy.ExecuteAsync(() => _rateLimitPolicy.ExecuteAsync(() => func(CachedClient))));
 
