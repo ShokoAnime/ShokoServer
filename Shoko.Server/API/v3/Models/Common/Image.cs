@@ -97,7 +97,7 @@ public class Image
             Width = tmdbImage.Width;
             Height = tmdbImage.Height;
         }
-        else if (imageMetadata.IsLocalAvailable || Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+        else if (imageMetadata.IsLocalAvailable && Utils.SettingsProvider.GetSettings().LoadImageMetadata)
         {
             Width = imageMetadata.Width;
             Height = imageMetadata.Height;
