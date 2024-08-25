@@ -5,6 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.RateLimit;
+using Polly.Retry;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
@@ -52,7 +55,7 @@ public class TmdbMetadataService
                 return null;
             try
             {
-                var config = _instance.Client.GetAPIConfiguration().Result;
+                var config = _instance.UseClient(c => c.GetAPIConfiguration()).Result;
                 return _imageServerUrl = config.Images.SecureBaseUrl;
             }
             catch (Exception ex)
@@ -73,17 +76,26 @@ public class TmdbMetadataService
 
     private readonly TmdbLinkingService _linkingService;
 
-    private readonly TMDbClient? _client = null;
+    private TMDbClient? _rawClient = null;
 
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
-    protected TMDbClient Client => _client ?? new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
+    private TMDbClient _cachedClient => _rawClient ?? new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
             ? Constants.TMDB.ApiKey
             : throw new Exception("You need to provide an api key before using the TMDB provider!")
-    ))
-    {
-        MaxRetryCount = 3,
-    };
+    ));
+
+    private static readonly TimeSpan[] _retryTimeSpans = [TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(40)];
+
+    private readonly AsyncRetryPolicy _retryPolicy = Policy
+        .Handle<TaskCanceledException>()
+        .WaitAndRetryAsync(_retryTimeSpans);
+
+    private readonly AsyncRateLimitPolicy _rateLimitPolicy = Policy
+        .RateLimitAsync(40, TimeSpan.FromSeconds(10));
+
+    protected Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func) =>
+        _retryPolicy.ExecuteAsync<T>(() => _rateLimitPolicy.ExecuteAsync<T>(() => func(_cachedClient)));
 
     public TmdbMetadataService(
         ILogger<TmdbMetadataService> logger,
@@ -149,7 +161,7 @@ public class TmdbMetadataService
     public async Task<(List<SearchMovie> Page, int TotalCount)> SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
     {
         var results = new List<SearchMovie>();
-        var firstPage = await Client.SearchMovieAsync(query, 1, includeRestricted, year).ConfigureAwait(false);
+        var firstPage = await UseClient(c => c.SearchMovieAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
         var total = firstPage.TotalResults;
         if (total == 0)
             return (results, total);
@@ -162,7 +174,7 @@ public class TmdbMetadataService
         var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
         for (var i = startPage; i <= endPage; i++)
         {
-            var actualPage = await Client.SearchMovieAsync(query, i, includeRestricted, year).ConfigureAwait(false);
+            var actualPage = await UseClient(c => c.SearchMovieAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
             results.AddRange(actualPage.Results);
         }
 
@@ -225,7 +237,7 @@ public class TmdbMetadataService
         var methods = MovieMethods.Translations | MovieMethods.ReleaseDates;
         if (downloadCrewAndCast)
             methods |= MovieMethods.Credits;
-        var movie = await Client.GetMovieAsync(movieId, "en-US", null, methods);
+        var movie = await UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods)).ConfigureAwait(false);
         if (movie == null)
             return false;
 
@@ -291,7 +303,7 @@ public class TmdbMetadataService
             castToKeep.Add(cast.CreditId);
             if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
             {
-                var person = await Client.GetPersonAsync(cast.Id, PersonMethods.Translations) ??
+                var person = await UseClient(c => c.GetPersonAsync(cast.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Movie={tmdbMovie.Id},Person={cast.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
@@ -352,7 +364,7 @@ public class TmdbMetadataService
             crewToKeep.Add(crew.CreditId);
             if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
             {
-                var person = await Client.GetPersonAsync(crew.Id, PersonMethods.Translations) ??
+                var person = await UseClient(c => c.GetPersonAsync(crew.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Movie={tmdbMovie.Id},Person={crew.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
@@ -466,7 +478,7 @@ public class TmdbMetadataService
 
         var movieXRefs = RepoFactory.TMDB_Collection_Movie.GetByTmdbCollectionID(collectionId);
         var tmdbCollection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
-        var collection = await Client.GetCollectionAsync(collectionId, CollectionMethods.Images | CollectionMethods.Translations);
+        var collection = await UseClient(c => c.GetCollectionAsync(collectionId, CollectionMethods.Images | CollectionMethods.Translations)).ConfigureAwait(false);
         if (collection == null)
         {
             PurgeMovieCollection(collectionId);
@@ -541,7 +553,7 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
             return;
 
-        var images = await Client.GetMovieImagesAsync(movieId);
+        var images = await UseClient(c => c.GetMovieImagesAsync(movieId)).ConfigureAwait(false);
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
             await _imageService.DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
@@ -700,7 +712,7 @@ public class TmdbMetadataService
     public async Task<(List<SearchTv> Page, int TotalCount)> SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
     {
         var results = new List<SearchTv>();
-        var firstPage = await Client.SearchTvShowAsync(query, 1, includeRestricted, year).ConfigureAwait(false);
+        var firstPage = await UseClient(c => c.SearchTvShowAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
         var total = firstPage.TotalResults;
         if (total == 0)
             return (results, total);
@@ -713,7 +725,7 @@ public class TmdbMetadataService
         var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
         for (var i = startPage; i <= endPage; i++)
         {
-            var actualPage = await Client.SearchTvShowAsync(query, i, includeRestricted, year).ConfigureAwait(false);
+            var actualPage = await UseClient(c => c.SearchTvShowAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
             results.AddRange(actualPage.Results);
         }
 
@@ -777,7 +789,7 @@ public class TmdbMetadataService
         var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations;
         if (downloadAlternateOrdering)
             methods |= TvShowMethods.EpisodeGroups;
-        var show = await Client.GetTvShowAsync(showId, methods, "en-US");
+        var show = await UseClient(c => c.GetTvShowAsync(showId, methods, "en-US")).ConfigureAwait(false);
         if (show == null)
             return false;
 
@@ -849,7 +861,7 @@ public class TmdbMetadataService
         var episodeEventsToEmit = new List<(TMDB_Episode, UpdateReason)>();
         foreach (var reducedSeason in show.Seasons)
         {
-            var season = await Client.GetTvSeasonAsync(show.Id, reducedSeason.SeasonNumber, TvSeasonMethods.Translations) ??
+            var season = await UseClient(c => c.GetTvSeasonAsync(show.Id, reducedSeason.SeasonNumber, TvSeasonMethods.Translations)).ConfigureAwait(false) ??
                 throw new Exception($"Unable to fetch season {reducedSeason.SeasonNumber} for show \"{show.Name}\".");
             if (!existingSeasons.TryGetValue(reducedSeason.Id, out var tmdbSeason))
             {
@@ -878,7 +890,7 @@ public class TmdbMetadataService
                 }
 
                 // Update base episode and titles/overviews.
-                var episodeTranslations = await Client.GetTvEpisodeTranslationsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
+                var episodeTranslations = await UseClient(c => c.GetTvEpisodeTranslationsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber)).ConfigureAwait(false);
                 var episodeUpdated = tmdbEpisode.Populate(show, season, episode, episodeTranslations!);
                 episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!, preferredTitleLanguages, preferredOverviewLanguages) || episodeUpdated;
                 episodeUpdated = await UpdateEpisodeExternalIDs(tmdbEpisode) || episodeUpdated;
@@ -886,7 +898,7 @@ public class TmdbMetadataService
                 // Update crew & cast.
                 if (downloadCrewAndCast)
                 {
-                    var credits = await Client.GetTvEpisodeCreditsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
+                    var credits = await UseClient(c => c.GetTvEpisodeCreditsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber)).ConfigureAwait(false);
                     episodeUpdated = await UpdateEpisodeCastAndCrew(tmdbEpisode, credits) || episodeUpdated;
                 }
 
@@ -979,7 +991,7 @@ public class TmdbMetadataService
             // The object sent from the show endpoint doesn't have the groups,
             // we need to send another request for the full episode group
             // collection to get the groups.
-            var collection = await Client.GetTvEpisodeGroupsAsync(reducedCollection.Id) ??
+            var collection = await UseClient(c => c.GetTvEpisodeGroupsAsync(reducedCollection.Id)).ConfigureAwait(false) ??
                 throw new Exception($"Unable to fetch alternate ordering \"{reducedCollection.Name}\" for show \"{show.Name}\".");
 
             if (!existingOrdering.TryGetValue(collection.Id, out var tmdbOrdering))
@@ -1104,7 +1116,7 @@ public class TmdbMetadataService
             castToKeep.Add(cast.CreditId);
             if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
             {
-                var person = await Client.GetPersonAsync(cast.Id, PersonMethods.Translations) ??
+                var person = await UseClient(c => c.GetPersonAsync(cast.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={cast.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
@@ -1173,7 +1185,7 @@ public class TmdbMetadataService
             crewToKeep.Add(crew.CreditId);
             if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
             {
-                var person = await Client.GetPersonAsync(crew.Id, PersonMethods.Translations) ??
+                var person = await UseClient(c => c.GetPersonAsync(crew.Id, PersonMethods.Translations)).ConfigureAwait(false) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={crew.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
@@ -1322,7 +1334,7 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
             return;
 
-        var images = await Client.GetTvShowImagesAsync(showId);
+        var images = await UseClient(c => c.GetTvShowImagesAsync(showId)).ConfigureAwait(false);
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
             await _imageService.DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
@@ -1338,7 +1350,7 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadPosters)
             return;
 
-        var images = await Client.GetTvSeasonImagesAsync(showId, seasonNumber);
+        var images = await UseClient(c => c.GetTvSeasonImagesAsync(showId, seasonNumber)).ConfigureAwait(false);
         var languages = GetLanguages(mainLanguage);
         await _imageService.DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
@@ -1349,7 +1361,7 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadThumbnails)
             return;
 
-        var images = await Client.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber);
+        var images = await UseClient(c => c.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber)).ConfigureAwait(false);
         var languages = GetLanguages(mainLanguage);
         await _imageService.DownloadImagesByType(images.Stills, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
@@ -1823,7 +1835,7 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadStaffImages)
             return;
 
-        var images = await Client.GetPersonImagesAsync(personId);
+        var images = await UseClient(c => c.GetPersonImagesAsync(personId)).ConfigureAwait(false);
         await _imageService.DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
     }
 
@@ -1962,7 +1974,7 @@ public class TmdbMetadataService
     /// <returns>Indicates that the ID was updated.</returns>
     private async Task<bool> UpdateShowExternalIDs(TMDB_Show show)
     {
-        var externalIds = await Client.GetTvShowExternalIdsAsync(show.TmdbShowID);
+        var externalIds = await UseClient(c => c.GetTvShowExternalIdsAsync(show.TmdbShowID)).ConfigureAwait(false);
         if (string.IsNullOrEmpty(externalIds.TvdbId))
         {
             if (!show.TvdbShowID.HasValue)
@@ -1986,7 +1998,7 @@ public class TmdbMetadataService
     /// <returns>Indicates that the ID was updated.</returns>
     private async Task<bool> UpdateEpisodeExternalIDs(TMDB_Episode episode)
     {
-        var externalIds = await Client.GetTvEpisodeExternalIdsAsync(episode.TmdbShowID, episode.SeasonNumber, episode.EpisodeNumber);
+        var externalIds = await UseClient(c => c.GetTvEpisodeExternalIdsAsync(episode.TmdbShowID, episode.SeasonNumber, episode.EpisodeNumber)).ConfigureAwait(false);
         if (string.IsNullOrEmpty(externalIds.TvdbId))
         {
             if (!episode.TvdbEpisodeID.HasValue)
@@ -2010,7 +2022,7 @@ public class TmdbMetadataService
     /// <returns>Indicates that the ID was updated.</returns>
     private async Task<bool> UpdateMovieExternalIDs(TMDB_Movie movie)
     {
-        var externalIds = await Client.GetMovieExternalIdsAsync(movie.TmdbMovieID);
+        var externalIds = await UseClient(c => c.GetMovieExternalIdsAsync(movie.TmdbMovieID)).ConfigureAwait(false);
         if (movie.ImdbMovieID == externalIds.ImdbId)
             return false;
 
