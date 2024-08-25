@@ -141,12 +141,12 @@ public class TmdbMetadataService
     private readonly AsyncBulkheadPolicy _bulkheadPolicy = Policy
         .BulkheadAsync(10);
 
-    // This policy, together with the next policy, will ensure the rate limits are enforced, while also throwing if we
-    // catch an exception that's not rate-limit related or if we exceed 10 attempts at fetching the resource.
+    // This policy, together with the next policy, will ensure the rate limits are enforced, while also ensuring we
+    // throw if an exception that's not rate-limit related is thrown.
     private readonly AsyncRetryPolicy _retryPolicy = Policy
         .Handle<RateLimitRejectedException>()
         .Or<HttpRequestException>()
-        .WaitAndRetryAsync(10, _ => TimeSpan.Zero, async (ex, ts) =>
+        .WaitAndRetryAsync(int.MaxValue, _ => TimeSpan.Zero, async (ex, ts) =>
         {
             // Retry on rate limit exceptions, throw on everything else.
             switch (ex)
