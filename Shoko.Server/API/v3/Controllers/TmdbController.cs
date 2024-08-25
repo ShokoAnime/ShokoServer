@@ -360,7 +360,6 @@ public class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.CrossReferences
-            .Where(xref => xref.AnidbEpisodeID.HasValue)
             .Select(xref => xref.AnidbEpisode)
             .WhereNotNull()
             .Select(episode => new Episode.AniDB(episode))
@@ -409,7 +408,6 @@ public class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.CrossReferences
-            .Where(xref => xref.AnidbEpisodeID.HasValue)
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
             .Select(episode => new Episode(HttpContext, episode, includeDataFrom))
@@ -1788,13 +1786,6 @@ public class TmdbController : BaseController
                         if (isAutomatic != includeAutomatic)
                             return false;
                     }
-                    if (withEpisodes != IncludeOnlyFilter.True)
-                    {
-                        var includeWithEpisode = withEpisodes == IncludeOnlyFilter.Only;
-                        var hasEpisode = xref.AnidbEpisodeID.HasValue;
-                        if (hasEpisode != includeWithEpisode)
-                            return false;
-                    }
                     return true;
                 })
                 .OrderBy(xref => xref.AnidbAnimeID)
@@ -1802,24 +1793,21 @@ public class TmdbController : BaseController
                 .ThenBy(xref => xref.TmdbMovieID)
                 .SelectMany(xref =>
                 {
-                    var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID ?? 0},{xref.TmdbMovieID},{xref.Source == CrossRefSource.Automatic}";
+                    var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID},{xref.TmdbMovieID},{xref.Source == CrossRefSource.Automatic}";
                     if (!comments)
                         return new string[1] { entry };
 
                     var anidbAnime = xref.AnidbAnime;
                     var tmdbMovie = xref.TmdbMovie;
                     var episodeNumber = "---";
-                    if (xref.AnidbEpisodeID.HasValue)
-                    {
-                        var anidbEpisode = xref.AnidbEpisode;
-                        if (anidbEpisode is null)
-                            episodeNumber = "???";
-                        else if (anidbEpisode.EpisodeType == (int)InternalEpisodeType.Episode)
-                            episodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
-                        else
-                            episodeNumber = $"{((InternalEpisodeType)anidbEpisode.EpisodeType).ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
-                        episodeNumber += $" (e{xref.AnidbEpisodeID.Value})";
-                    }
+                    var anidbEpisode = xref.AnidbEpisode;
+                    if (anidbEpisode is null)
+                        episodeNumber = "???";
+                    else if (anidbEpisode.EpisodeType == (int)InternalEpisodeType.Episode)
+                        episodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
+                    else
+                        episodeNumber = $"{((InternalEpisodeType)anidbEpisode.EpisodeType).ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
+                    episodeNumber += $" (e{xref.AnidbEpisodeID})";
                     return new string[3]
                     {
                         "",
@@ -1944,7 +1932,7 @@ public class TmdbController : BaseController
         string? line;
         var lineNumber = 0;
         var currentHeader = "";
-        var movieIdXrefs = new List<(int anidbAnime, int? anidbEpisode, int tmdbMovie, bool isAutomatic)>();
+        var movieIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbMovie, bool isAutomatic)>();
         var episodeIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbShow, int tmdbEpisode, MatchRating rating)>();
         while (!string.IsNullOrEmpty(line = stream.ReadLine()))
         {
@@ -1978,7 +1966,7 @@ public class TmdbController : BaseController
                         var (animeId, episodeId, movieId, automatic) = line.Split(",");
                         if (
                             !int.TryParse(animeId, out var anidbAnimeId) || anidbAnimeId <= 0 ||
-                            !int.TryParse(episodeId, out var anidbEpisodeId) || anidbEpisodeId < 0 ||
+                            !int.TryParse(episodeId, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
                             !int.TryParse(movieId, out var tmdbMovieId) || tmdbMovieId <= 0 ||
                             !bool.TryParse(automatic, out var isAutomatic)
                         )
@@ -1987,7 +1975,8 @@ public class TmdbController : BaseController
                             continue;
                         }
 
-                        movieIdXrefs.Add((anidbAnimeId, anidbEpisodeId == 0 ? null : anidbEpisodeId, tmdbMovieId, isAutomatic));
+                        movieIdXrefs.Add((anidbAnimeId, anidbEpisodeId, tmdbMovieId, isAutomatic));
+
                         break;
                     }
                 case EpisodeCrossReferenceWithIdHeader:
@@ -2024,13 +2013,13 @@ public class TmdbController : BaseController
         var moviesToUpdate = new HashSet<int>();
         var usedMovieIdsWithZeroSet = new HashSet<string>();
         var exitingMovieXrefs = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
-            .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID ?? 0}");
+            .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}");
         var movieXrefsToAdd = 0;
         var movieXrefsToSave = new List<CrossRef_AniDB_TMDB_Movie>();
         foreach (var (animeId, episodeId, movieId, isAutomatic) in movieIdXrefs)
         {
             var idWithZero = $"{animeId}:0";
-            var id = $"{animeId}:{episodeId ?? 0}";
+            var id = $"{animeId}:{episodeId}";
             var updated = false;
             var source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
             if (!exitingMovieXrefs.TryGetValue(id, out var xref))

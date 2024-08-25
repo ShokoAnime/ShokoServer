@@ -11,7 +11,7 @@ namespace Shoko.Server.Repositories.Cached;
 public class CrossRef_AniDB_TMDB_MovieRepository : BaseCachedRepository<CrossRef_AniDB_TMDB_Movie, int>
 {
     private PocoIndex<int, CrossRef_AniDB_TMDB_Movie, int>? _anidbAnimeIDs;
-    private PocoIndex<int, CrossRef_AniDB_TMDB_Movie, int?>? _anidbEpisodeIDs;
+    private PocoIndex<int, CrossRef_AniDB_TMDB_Movie, int>? _anidbEpisodeIDs;
     private PocoIndex<int, CrossRef_AniDB_TMDB_Movie, int>? _tmdbMovieIDs;
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetByAnidbAnimeID(int animeId)
@@ -28,9 +28,6 @@ public class CrossRef_AniDB_TMDB_MovieRepository : BaseCachedRepository<CrossRef
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetByTmdbMovieID(int movieId)
         => ReadLock(() => _tmdbMovieIDs!.GetMultiple(movieId));
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetMissingEpisodeLinks()
-        => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(null));
 
     public ILookup<int, CrossRef_AniDB_TMDB_Movie> GetByAnimeIDsAndType(IReadOnlyCollection<int> animeIds)
     {

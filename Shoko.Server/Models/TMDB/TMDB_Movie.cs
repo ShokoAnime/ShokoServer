@@ -494,13 +494,11 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     IReadOnlyList<IRelatedMetadata<IMovie>> IMovie.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> IMovie.CrossReferences => CrossReferences
-        .Where(xref => xref.AnidbEpisodeID.HasValue)
-        .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID!.Value))
+        .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
         .ToList();
 
     IReadOnlyList<IVideo> IMovie.VideoList => CrossReferences
-        .Where(xref => xref.AnidbEpisodeID.HasValue)
-        .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID!.Value))
+        .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()
         .ToList();

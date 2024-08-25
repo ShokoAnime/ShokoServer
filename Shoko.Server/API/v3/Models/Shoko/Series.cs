@@ -770,7 +770,8 @@ public class Series : BaseModel
             /// <summary>
             /// Also link to the given AniDB episode by ID.
             /// </summary>
-            public int? EpisodeID { get; set; }
+            [Required, Range(1, int.MaxValue)]
+            public int EpisodeID { get; set; }
         }
 
         public class UnlinkCommonBody

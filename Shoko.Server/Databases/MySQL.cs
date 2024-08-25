@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 132;
+    public override int RequiredVersion { get; } = 133;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -816,6 +816,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(132, 7, "ALTER TABLE `TMDB_Title` ADD INDEX `IX_TMDB_Title` (ParentType, ParentID)"),
         new(132, 8, "ALTER TABLE `TMDB_Episode` ADD UNIQUE INDEX `UIX_TMDB_Episode_TmdbEpisodeID` (TmdbEpisodeID)"),
         new(132, 9, "ALTER TABLE `TMDB_Show` ADD UNIQUE INDEX `UIX_TMDB_Show_TmdbShowID` (TmdbShowID)"),
+        new(133, 1, "UPDATE CrossRef_AniDB_TMDB_Movie SET AnidbEpisodeID = (SELECT EpisodeID FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID ORDER BY EpisodeType, EpisodeNumber LIMIT 1) WHERE AnidbEpisodeID IS NULL AND EXISTS (SELECT 1 FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID);"),
+        new(133, 2, "DELETE FROM CrossRef_AniDB_TMDB_Movie WHERE AnidbEpisodeID IS NULL;"),
+        new(133, 3, "ALTER TABLE CrossRef_AniDB_TMDB_Movie CHANGE COLUMN AnidbEpisodeID AnidbEpisodeID INT NOT NULL DEFAULT 0;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

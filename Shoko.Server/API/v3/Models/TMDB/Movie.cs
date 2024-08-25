@@ -312,7 +312,7 @@ public class Movie
         /// <summary>
         /// AniDB Episode ID.
         /// </summary>
-        public int? AnidbEpisodeID { get; init; }
+        public int AnidbEpisodeID { get; init; }
 
         /// <summary>
         /// TMDB Show ID.

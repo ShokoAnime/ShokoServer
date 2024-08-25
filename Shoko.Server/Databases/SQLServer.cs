@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 124;
+    public override int RequiredVersion { get; } = 125;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -745,6 +745,10 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(124, 6, "CREATE INDEX IX_TMDB_Title ON TMDB_Title(ParentType, ParentID)"),
         new DatabaseCommand(124, 7, "CREATE UNIQUE INDEX UIX_TMDB_Episode_TmdbEpisodeID ON TMDB_Episode(TmdbEpisodeID)"),
         new DatabaseCommand(124, 8, "CREATE UNIQUE INDEX UIX_TMDB_Show_TmdbShowID ON TMDB_Show(TmdbShowID)"),
+        new DatabaseCommand(125, 1, "UPDATE CrossRef_AniDB_TMDB_Movie SET AnidbEpisodeID = (SELECT TOP 1 EpisodeID FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID ORDER BY EpisodeType, EpisodeNumber) WHERE AnidbEpisodeID IS NULL AND EXISTS (SELECT 1 FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID);"),
+        new DatabaseCommand(125, 2, "DELETE FROM CrossRef_AniDB_TMDB_Movie WHERE AnidbEpisodeID IS NULL;"),
+        new DatabaseCommand(125, 3, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ALTER COLUMN AnidbEpisodeID INT NOT NULL;"),
+        new DatabaseCommand(125, 4, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD CONSTRAINT DF_CrossRef_AniDB_TMDB_Movie_AnidbEpisodeID DEFAULT 0 FOR AnidbEpisodeID;"),
     };
 
     private static void AlterImdbMovieIDType()

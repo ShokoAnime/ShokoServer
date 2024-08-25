@@ -1237,7 +1237,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        await _tmdbLinkingService.AddMovieLink(series.AniDB_ID, body.ID, body.EpisodeID, additiveLink: !body.Replace);
+        await _tmdbLinkingService.AddMovieLink(series.AniDB_ID, body.EpisodeID, body.ID, additiveLink: !body.Replace);
 
         var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)

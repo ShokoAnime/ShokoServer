@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 117;
+    public override int RequiredVersion => 118;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -744,6 +744,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(117, 9, "CREATE INDEX IX_TMDB_Title ON TMDB_Title(ParentType, ParentID)"),
         new(117, 10, "CREATE UNIQUE INDEX UIX_TMDB_Episode_TmdbEpisodeID ON TMDB_Episode(TmdbEpisodeID)"),
         new(117, 11, "CREATE UNIQUE INDEX UIX_TMDB_Show_TmdbShowID ON TMDB_Show(TmdbShowID)"),
+        new(118, 1, "UPDATE CrossRef_AniDB_TMDB_Movie SET AnidbEpisodeID = (SELECT EpisodeID FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID ORDER BY EpisodeType, EpisodeNumber LIMIT 1) WHERE AnidbEpisodeID IS NULL AND EXISTS (SELECT 1 FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID);"),
+        new(118, 2, "DELETE FROM CrossRef_AniDB_TMDB_Movie WHERE AnidbEpisodeID IS NULL;"),
+        new(118, 3, "ALTER TABLE CrossRef_AniDB_TMDB_Movie RENAME AnidbEpisodeID TO AniDBEpisodeID_OLD; ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD COLUMN AnidbEpisodeID INT NOT NULL DEFAULT 0; UPDATE CrossRef_AniDB_TMDB_Movie SET AnidbEpisodeID = AniDBEpisodeID_OLD WHERE AniDBEpisodeID_OLD > 0; ALTER TABLE CrossRef_AniDB_TMDB_Movie DROP COLUMN AniDBEpisodeID_OLD;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

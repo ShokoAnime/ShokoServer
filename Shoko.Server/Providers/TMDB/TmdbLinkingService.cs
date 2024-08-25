@@ -51,7 +51,7 @@ public class TmdbLinkingService
 
     #region Movie Links
 
-    public async Task AddMovieLink(int animeId, int movieId, int? episodeId = null, bool additiveLink = false, bool isAutomatic = false)
+    public async Task AddMovieLink(int animeId, int episodeId, int movieId, bool additiveLink = false, bool isAutomatic = false)
     {
         // Remove all existing links.
         if (!additiveLink)
@@ -61,8 +61,7 @@ public class TmdbLinkingService
         _logger.LogInformation("Adding TMDB Movie Link: AniDB (ID:{AnidbID}) → TMDB Movie (ID:{TmdbID})", animeId, movieId);
         var xref = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId) ??
             new(animeId, movieId);
-        if (episodeId.HasValue)
-            xref.AnidbEpisodeID = episodeId.Value <= 0 ? null : episodeId.Value;
+        xref.AnidbEpisodeID = episodeId;
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
         RepoFactory.CrossRef_AniDB_TMDB_Movie.Save(xref);
     }

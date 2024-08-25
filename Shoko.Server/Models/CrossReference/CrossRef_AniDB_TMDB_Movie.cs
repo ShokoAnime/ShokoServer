@@ -17,7 +17,7 @@ public class CrossRef_AniDB_TMDB_Movie
 
     public int AnidbAnimeID { get; set; }
 
-    public int? AnidbEpisodeID { get; set; }
+    public int AnidbEpisodeID { get; set; }
 
     public int TmdbMovieID { get; set; }
 
@@ -39,16 +39,12 @@ public class CrossRef_AniDB_TMDB_Movie
 
     #region Methods
 
-    public SVR_AniDB_Episode? AnidbEpisode => AnidbEpisodeID.HasValue
-        ? RepoFactory.AniDB_Episode.GetByEpisodeID(AnidbEpisodeID.Value)
-        : null;
+    public SVR_AniDB_Episode? AnidbEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(AnidbEpisodeID);
 
     public SVR_AniDB_Anime? AnidbAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
-    public SVR_AnimeEpisode? AnimeEpisode => AnidbEpisodeID.HasValue
-        ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(AnidbEpisodeID.Value)
-        : null;
+    public SVR_AnimeEpisode? AnimeEpisode => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);
 
     public SVR_AnimeSeries? AnimeSeries =>
         RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
