@@ -128,7 +128,7 @@ public class TmdbMetadataService
     private TMDbClient? _rawClient = null;
 
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
-    private TMDbClient _cachedClient => _rawClient ?? new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
+    private TMDbClient CachedClient => _rawClient ??= new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
             ? Constants.TMDB.ApiKey
             : throw new Exception("You need to provide an api key before using the TMDB provider!")
@@ -144,7 +144,7 @@ public class TmdbMetadataService
         .RateLimitAsync(40, TimeSpan.FromSeconds(10));
 
     protected Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func) =>
-        _retryPolicy.ExecuteAsync<T>(() => _rateLimitPolicy.ExecuteAsync<T>(() => func(_cachedClient)));
+        _retryPolicy.ExecuteAsync<T>(() => _rateLimitPolicy.ExecuteAsync<T>(() => func(CachedClient)));
 
     public TmdbMetadataService(
         ILogger<TmdbMetadataService> logger,
