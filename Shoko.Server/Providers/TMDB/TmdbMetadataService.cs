@@ -144,7 +144,8 @@ public class TmdbMetadataService
     // This policy, together with the next policy, will ensure the rate limits are enforced, while also throwing if we
     // catch an exception that's not rate-limit related or if we exceed 10 attempts at fetching the resource.
     private readonly AsyncRetryPolicy _retryPolicy = Policy
-        .Handle<TaskCanceledException>()
+        .Handle<RateLimitRejectedException>()
+        .Or<HttpRequestException>()
         .WaitAndRetryAsync(10, _ => TimeSpan.Zero, async (ex, ts) =>
         {
             // Retry on rate limit exceptions, throw on everything else.
@@ -153,14 +154,13 @@ public class TmdbMetadataService
                 case RateLimitRejectedException rlrEx:
                     await Task.Delay(rlrEx.RetryAfter).ConfigureAwait(false);
                     break;
-                case HttpRequestException hrEx:
-                    if (hrEx.StatusCode is not HttpStatusCode.TooManyRequests)
-                        goto default;
-                    // We don't have the retry-after time from the response headers, so just wait 10 seconds and try again.
+                // If we timed out or got a too many requests exception, just wait and try again.
+                case HttpRequestException hrEx when hrEx.StatusCode is HttpStatusCode.TooManyRequests || hrEx.InnerException is not TaskCanceledException:
+                    // Since we don't have the retry-after time from the response headers, then we just wait 10 seconds and hope it's fixed.
+                    // And in case it wasn't obvious, 10 seconds is the rate limit window set by TMDB, so by waiting 10 seconds and
+                    // then retrying, we should be able to hit the rate limit again.
                     await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
                     break;
-                default:
-                    throw ex;
             }
         });
 
