@@ -132,7 +132,10 @@ public class TmdbMetadataService
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
             ? Constants.TMDB.ApiKey
             : throw new Exception("You need to provide an api key before using the TMDB provider!")
-    ));
+    ))
+    {
+        MaxRetryCount = 5,
+    };
 
     private static readonly TimeSpan[] _retryTimeSpans = [TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(40)];
 
