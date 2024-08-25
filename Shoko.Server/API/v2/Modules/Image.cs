@@ -40,10 +40,10 @@ public class Image : BaseController
     /// <param name="type">image type</param>
     /// <returns>image body inside stream</returns>
     [HttpGet("{type}/{id}")]
-    public FileResult GetImage(int type, int id)
+    public async Task<FileResult> GetImage(int type, int id)
     {
         var metadata = ImageUtils.GetImageMetadata((CL_ImageEntityType)type, id);
-        if (metadata is null || metadata.GetStream() is not { } stream)
+        if (metadata is null || await metadata.GetStream() is not { } stream)
         {
             Response.StatusCode = 404;
             return File(MissingImage(), "image/png");
@@ -60,14 +60,14 @@ public class Image : BaseController
     /// <param name="ratio">new image ratio</param>
     /// <returns>resize image body inside stream</returns>
     [HttpGet("thumb/{type}/{id}/{ratio?}")]
-    public FileResult GetThumb(int type, int id, string ratio = "0")
+    public async Task<FileResult> GetThumb(int type, int id, string ratio = "0")
     {
         ratio = ratio.Replace(',', '.');
         if (!float.TryParse(ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out var newRatio))
             newRatio = 0.6667f;
 
         var metadata = ImageUtils.GetImageMetadata((CL_ImageEntityType)type, id);
-        if (metadata is null || metadata.GetStream() is not { } stream)
+        if (metadata is null || await metadata.GetStream() is not { } stream)
         {
             Response.StatusCode = 404;
             return File(MissingImage(), "image/png");
@@ -122,7 +122,7 @@ public class Image : BaseController
     /// <param name="type">image type</param>
     /// <returns>image body inside stream</returns>
     [HttpGet("{type}/random")]
-    public FileResult GetRandomImage(int type)
+    public async Task<FileResult> GetRandomImage(int type)
     {
         // Try 5 times to find a **valid** random image.
         var tries = 0;
@@ -130,7 +130,7 @@ public class Image : BaseController
         while (tries++ < 5)
         {
             var metadata = ImageUtils.GetRandomImageID(imageType);
-            if (metadata is not null && metadata.GetStream(allowRemote: false) is { } stream)
+            if (metadata is not null && await metadata.GetStream(allowRemote: false) is { } stream)
                 return File(stream, metadata.ContentType);
         }
 

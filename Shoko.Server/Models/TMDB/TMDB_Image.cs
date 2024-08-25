@@ -9,7 +9,7 @@ using TMDbLib.Objects.General;
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Image : Image_Base, IImageMetadata
+public class TMDB_Image : Image_Base
 {
     #region Properties
 
@@ -18,12 +18,6 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     /// <inheritdoc/>
     public override bool IsLocked => false;
-
-    /// <inheritdoc/>
-    public override int Width { get; set; } = 0;
-
-    /// <inheritdoc/>
-    public override int Height { get; set; } = 0;
 
     /// <summary>
     /// Local id for image.

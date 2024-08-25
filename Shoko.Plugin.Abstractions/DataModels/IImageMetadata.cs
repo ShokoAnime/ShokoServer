@@ -108,7 +108,7 @@ public interface IImageMetadata : IMetadata<int>, IEquatable<IImageMetadata>
     /// A stream of the image content, or null. The stream will never be
     /// interrupted partway through.
     /// </returns>
-    Stream? GetStream(bool allowLocal = true, bool allowRemote = true);
+    Task<Stream?> GetStream(bool allowLocal = true, bool allowRemote = true);
 
     /// <summary>
     /// Will attempt to download the remote copy of the image available at

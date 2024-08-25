@@ -161,7 +161,9 @@ public class Image_Base : IImageMetadata
         {
             var stream = await _retryPolicy.ExecuteAsync(async () => await Client.GetStreamAsync(RemoteURL));
             var bytes = new byte[12];
-            stream.Read(bytes, 0, 12);
+            // we validate the response in IsImageValid, so we don't need the number of bytes read
+            // ReSharper disable once MustUseReturnValue
+            await stream.ReadAsync(bytes, 0, 12);
             stream.Close();
             _urlExists = Misc.IsImageValid(bytes);
             return _urlExists.Value;
@@ -176,41 +178,13 @@ public class Image_Base : IImageMetadata
 
     /// <inheritdoc/>
     public double AspectRatio
-        => Width / Height;
-
-    private int? _width = null;
+        => (double)Width / Height;
 
     /// <inheritdoc/>
-    public virtual int Width
-    {
-        get
-        {
-            if (_width.HasValue)
-                return _width.Value;
-
-            RefreshMetadata();
-
-            return _width ?? 0;
-        }
-        set { }
-    }
-
-    private int? _height = null;
+    public int Width { get; set; }
 
     /// <inheritdoc/>
-    public virtual int Height
-    {
-        get
-        {
-            if (_height.HasValue)
-                return _height.Value;
-
-            RefreshMetadata();
-
-            return _height ?? 0;
-        }
-        set { }
-    }
+    public int Height { get; set; }
 
     /// <inheritdoc/>
     public string? LanguageCode
@@ -231,8 +205,6 @@ public class Image_Base : IImageMetadata
         set
         {
             _contentType = null;
-            _width = null;
-            _height = null;
             _urlExists = null;
             _remoteURL = value;
         }
@@ -247,8 +219,6 @@ public class Image_Base : IImageMetadata
         set
         {
             _contentType = null;
-            _width = null;
-            _height = null;
             _localPath = value;
         }
     }
@@ -264,43 +234,25 @@ public class Image_Base : IImageMetadata
         Source = source;
     }
 
-    private void RefreshMetadata()
+    private (int Width, int Height) GetDimensions(byte[] bytes)
     {
         try
         {
-            var stream = GetStream();
-            if (stream == null)
-            {
-                _width = 0;
-                _height = 0;
-                return;
-            }
-
-            var info = new MagickImageInfo(stream);
-            if (info == null)
-            {
-                _width = 0;
-                _height = 0;
-                return;
-            }
-
-            _width = info.Width;
-            _height = info.Height;
+            var info = new MagickImageInfo(bytes);
+            return (info.Width, info.Height);
         }
         catch
         {
-            _width = 0;
-            _height = 0;
-            return;
+            return default;
         }
     }
 
-    public Stream? GetStream(bool allowLocal = true, bool allowRemote = true)
+    public async Task<Stream?> GetStream(bool allowLocal = true, bool allowRemote = true)
     {
         if (allowLocal && IsLocalAvailable)
             return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
 
-        if (allowRemote && DownloadImage().ConfigureAwait(false).GetAwaiter().GetResult() && IsLocalAvailable)
+        if (allowRemote && await DownloadImage() && IsLocalAvailable)
             return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
 
         return null;
@@ -328,7 +280,8 @@ public class Image_Base : IImageMetadata
             File.Delete(LocalPath);
 
         // Write the memory-cached image onto the disk.
-        File.WriteAllBytes(LocalPath, binary);
+        await File.WriteAllBytesAsync(LocalPath, binary);
+        (Width, Height) = GetDimensions(binary);
 
         // "Flush" the cached image.
         _urlExists = null;

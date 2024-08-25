@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -30,7 +31,7 @@ public class ImageController : BaseController
     [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
-    public ActionResult GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type,
+    public async Task<ActionResult> GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type,
         [FromRoute, Range(1, int.MaxValue)] int value)
     {
         // Unrecognized combination of source, type and/or value.
@@ -50,7 +51,7 @@ public class ImageController : BaseController
         }
 
         var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, value);
-        if (metadata is null || metadata.GetStream() is not { } stream)
+        if (metadata is null || await metadata.GetStream() is not { } stream)
             return NotFound(ImageNotFound);
 
         return File(stream, metadata.ContentType);
@@ -105,7 +106,7 @@ public class ImageController : BaseController
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public ActionResult GetRandomImageForType([FromRoute] Image.ImageType imageType)
+    public async Task<ActionResult> GetRandomImageForType([FromRoute] Image.ImageType imageType)
     {
         if (imageType == Image.ImageType.Avatar)
             return ValidationProblem("Unsupported image type for random image.", "imageType");
@@ -130,7 +131,7 @@ public class ImageController : BaseController
             if (series == null || series.AniDB_Anime?.Restricted != 0)
                 continue;
 
-            if (metadata.GetStream(allowRemote: false) is not { } stream)
+            if (await metadata.GetStream(allowRemote: false) is not { } stream)
                 continue;
 
             return File(stream, metadata.ContentType);
