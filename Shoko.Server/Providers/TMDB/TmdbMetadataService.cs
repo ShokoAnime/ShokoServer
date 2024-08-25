@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Polly;
+using Polly.Bulkhead;
 using Polly.RateLimit;
 using Polly.Retry;
 using Quartz;
@@ -136,6 +137,9 @@ public class TmdbMetadataService
             : throw new Exception("You need to provide an api key before using the TMDB provider!")
     ));
 
+    private readonly AsyncBulkheadPolicy _bulkheadPolicy = Policy
+        .BulkheadAsync(10);
+
     private readonly AsyncRetryPolicy _retryPolicy = Policy
         .Handle<TaskCanceledException>()
         .WaitAndRetryAsync(10, _ => TimeSpan.Zero, async (ex, ts) =>
@@ -161,7 +165,7 @@ public class TmdbMetadataService
         .RateLimitAsync(40, TimeSpan.FromSeconds(10));
 
     protected Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func) =>
-        _retryPolicy.ExecuteAsync<T>(() => _rateLimitPolicy.ExecuteAsync<T>(() => func(CachedClient)));
+        _bulkheadPolicy.ExecuteAsync(() => _retryPolicy.ExecuteAsync(() => _rateLimitPolicy.ExecuteAsync(() => func(CachedClient))));
 
     public TmdbMetadataService(
         ILogger<TmdbMetadataService> logger,
