@@ -277,7 +277,7 @@ public class RenameFileService
             if (shouldMove && !result.SkipMove && (result.DestinationImportFolder is null || result.Path is null || result.Path.StartsWith("*Error:")))
             {
                 var errorMessage = !string.IsNullOrWhiteSpace(result.Path)
-                    ? result.Path[7..].Trim()
+                    ? result.Path.StartsWith("*Error:") ? result.Path[7..].Trim() : result.Path
                     : $"The renamer \"{renamer.GetType().Name}\" could not find a valid destination.";
                 _logger.LogWarning("An error occurred while trying to find a destination for {FilePath}: {ErrorMessage}", args.File.Path, errorMessage);
                 return new() { Error = new RelocationError(errorMessage) };
