@@ -23,7 +23,7 @@ namespace Shoko.Server.Providers.AniDB.UDP;
 #nullable enable
 public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
 {
-    /**** 
+    /****
     * From Anidb wiki:
     * The virtual UDP connection times out if no data was received from the client for 35 minutes.
     * A client should issue a UPTIME command once every 30 minutes to keep the connection alive should that be required.
@@ -150,7 +150,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         _isLoggedOn = false;
 
         IsNetworkAvailable = await _socketHandler.TryConnection();
-        _pingTimer = new Timer { Interval = settings.AniDb.UDPPingFrequency * 60 * 1000, Enabled = true, AutoReset = true };
+        _pingTimer = new Timer { Interval = settings.AniDb.UDPPingFrequency * 1000, Enabled = true, AutoReset = true };
         _pingTimer.Elapsed += PingTimerElapsed;
         _logoutTimer = new Timer { Interval = LogoutPeriod, Enabled = true, AutoReset = false };
         _logoutTimer.Elapsed += LogoutTimerElapsed;
