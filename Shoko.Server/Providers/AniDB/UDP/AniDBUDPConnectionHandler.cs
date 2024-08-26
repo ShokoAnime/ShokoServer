@@ -228,13 +228,13 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         // if we got here, and it's invalid session, then it already failed to re-log
         if (IsInvalidSession)
         {
-            throw new NotLoggedInException();
+            throw new LoginFailedException();
         }
 
         // Check Login State
         if (!await Login())
         {
-            throw new NotLoggedInException();
+            throw new LoginFailedException();
         }
 
         // Actually Call AniDB
@@ -379,6 +379,14 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             // ignore
         }
 
+        _isLoggedOn = false;
+        SessionID = null;
+    }
+
+    public void ClearSession()
+    {
+        StopPinging();
+        IsInvalidSession = false;
         _isLoggedOn = false;
         SessionID = null;
     }

@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
+using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
@@ -30,8 +31,14 @@ public abstract class BaseJob : IJob
         {
             await Process();
         }
+        catch (NotLoggedInException ex)
+        {
+            // INVALID SESSION or UNKNOWN COMMAND returned, re-fire job immediately to try again with re-login
+            throw new JobExecutionException(ex.Message, ex, refireImmediately: true);
+        }
         catch (Exception ex)
         {
+            // TODO: Reschedule job on AniDBBannedException
             // _logger.LogError(ex, "Job threw an error on Execution: {Job} | Error -> {Ex}", context.JobDetail.Key, ex);
             throw new JobExecutionException(ex.Message, ex);
         }

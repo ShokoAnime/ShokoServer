@@ -14,6 +14,7 @@ public interface IUDPConnectionHandler : IConnectionHandler
     bool ValidAniDBCredentials(string user, string pass);
     Task<bool> Login();
     void ForceLogout();
+    void ClearSession();
     Task CloseConnections();
     Task ForceReconnection();
     void StartBackoffTimer(int time, string message);
