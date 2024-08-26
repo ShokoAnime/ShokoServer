@@ -19,6 +19,10 @@ public class AniDbSettings
 
     public ushort UDPServerPort { get; set; } = 9000;
 
+    // We set it to 60 seconds due to issues with UDP timeouts behind NAT.
+    // 60 seconds is a good default for most users.
+    public int UDPPingFrequency { get; set; } = 60;
+
     public ushort ClientPort { get; set; } = 4556;
 
     public string AVDumpKey { get; set; }

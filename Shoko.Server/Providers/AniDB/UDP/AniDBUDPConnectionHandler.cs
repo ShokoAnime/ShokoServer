@@ -32,8 +32,6 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     ****/
     // 25 minutes
     private const int LogoutPeriod = 25 * 60 * 1000;
-    // 10 minutes
-    private const int PingFrequency = 10 * 60 * 1000;
     private readonly IRequestFactory _requestFactory;
     private readonly IConnectivityService _connectivityService;
     private IAniDBSocketHandler? _socketHandler;
@@ -152,7 +150,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         _isLoggedOn = false;
 
         IsNetworkAvailable = await _socketHandler.TryConnection();
-        _pingTimer = new Timer { Interval = PingFrequency, Enabled = true, AutoReset = true };
+        _pingTimer = new Timer { Interval = settings.AniDb.UDPPingFrequency * 60 * 1000, Enabled = true, AutoReset = true };
         _pingTimer.Elapsed += PingTimerElapsed;
         _logoutTimer = new Timer { Interval = LogoutPeriod, Enabled = true, AutoReset = false };
         _logoutTimer.Elapsed += LogoutTimerElapsed;
