@@ -238,6 +238,8 @@ public class WebUI
                         groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
                         groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
+                        groupByDetails.ImportFolder = location.ImportFolder.ImportFolderName;
 
                     // Video criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoCodecs))
@@ -386,6 +388,7 @@ public class WebUI
                         FileSource = details.FileSource,
                         FileLocation = details.FileLocation,
                         FileIsDeprecated = details.FileIsDeprecated,
+                        ImportFolder = details.ImportFolder,
                         VideoCodecs = details.VideoCodecs,
                         VideoBitDepth = details.VideoBitDepth,
                         VideoResolution = details.VideoResolution,
@@ -441,6 +444,7 @@ public class WebUI
             SubtitleStreamCount = 4096,
             VideoHasChapters = 8192,
             FileIsDeprecated = 16384,
+            ImportFolder = 32768,
         }
 
         /// <summary>
@@ -488,6 +492,12 @@ public class WebUI
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public bool? FileIsDeprecated { get; set; }
+
+            /// <summary>
+            /// The import folder name of the files in this range.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string? ImportFolder { get; set; }
 
             /// <summary>
             /// The video codecs used in the files of this range (e.g., h264, h265, etc.).
@@ -747,6 +757,8 @@ public class WebUI
 
             public bool? FileIsDeprecated { get; set; }
 
+            public string? ImportFolder { get; set; }
+
             public override bool Equals(object? obj)
             {
                 return Equals(obj as GroupByDetails);
@@ -764,6 +776,7 @@ public class WebUI
                     FileSource == other.FileSource &&
                     FileLocation == other.FileLocation &&
                     FileIsDeprecated == other.FileIsDeprecated &&
+                    ImportFolder == other.ImportFolder &&
 
                     VideoCodecs == other.VideoCodecs &&
                     VideoBitDepth == other.VideoBitDepth &&
@@ -792,6 +805,7 @@ public class WebUI
                 hash = hash * 31 + FileSource.GetHashCode();
                 hash = hash * 31 + (FileLocation?.GetHashCode() ?? 0);
                 hash = hash * 31 + (FileIsDeprecated?.GetHashCode() ?? 0);
+                hash = hash * 31 + (ImportFolder?.GetHashCode() ?? 0);
 
                 hash = hash * 31 + (VideoCodecs?.GetHashCode() ?? 0);
                 hash = hash * 31 + VideoBitDepth.GetHashCode();
