@@ -26,6 +26,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using TMDbLib.Client;
 using TMDbLib.Objects.Collections;
+using TMDbLib.Objects.Exceptions;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
@@ -138,37 +139,14 @@ public class TmdbMetadataService
     ));
 
     // This policy will ensure only 10 requests can be in-flight at the same time.
-    private readonly AsyncBulkheadPolicy _bulkheadPolicy = Policy
-        .BulkheadAsync(10);
-
-    // This policy, together with the next policy, will ensure the rate limits are enforced, while also ensuring we
-    // throw if an exception that's not rate-limit related is thrown.
-    private readonly AsyncRetryPolicy _retryPolicy = Policy
-        .Handle<RateLimitRejectedException>()
-        .Or<HttpRequestException>()
-        .WaitAndRetryAsync(int.MaxValue, _ => TimeSpan.Zero, async (ex, ts) =>
-        {
-            // Retry on rate limit exceptions, throw on everything else.
-            switch (ex)
-            {
-                case RateLimitRejectedException rlrEx:
-                    await Task.Delay(rlrEx.RetryAfter).ConfigureAwait(false);
-                    break;
-                // If we timed out or got a too many requests exception, just wait and try again.
-                case HttpRequestException hrEx when hrEx.StatusCode is HttpStatusCode.TooManyRequests || hrEx.InnerException is not TaskCanceledException:
-                    // Since we don't have the retry-after time from the response headers, then we just wait 10 seconds and hope it's fixed.
-                    // And in case it wasn't obvious, 10 seconds is the rate limit window set by TMDB, so by waiting 10 seconds and
-                    // then retrying, we should be able to hit the rate limit again.
-                    await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-                    break;
-                default:
-                    throw ex;
-            }
-        });
+    private readonly AsyncBulkheadPolicy _bulkheadPolicy;
 
     // This policy will ensure we can only make 40 requests per 10 seconds.
-    private readonly AsyncRateLimitPolicy _rateLimitPolicy = Policy
-        .RateLimitAsync(40, TimeSpan.FromSeconds(10));
+    private readonly AsyncRateLimitPolicy _rateLimitPolicy;
+
+    // This policy, together with the above policy, will ensure the rate limits are enforced, while also ensuring we
+    // throw if an exception that's not rate-limit related is thrown.
+    private readonly AsyncRetryPolicy _retryPolicy;
 
     /// <summary>
     /// Execute the given function with the TMDb client, applying rate limiting and retry policies.
@@ -241,6 +219,61 @@ public class TmdbMetadataService
         _xrefTmdbCompanyEntity = xrefTmdbCompanyEntity;
         _xrefTmdbShowNetwork = xrefTmdbShowNetwork;
         _instance ??= this;
+        _bulkheadPolicy = Policy.BulkheadAsync(10);
+        _rateLimitPolicy = Policy.RateLimitAsync(40, TimeSpan.FromSeconds(10));
+        _retryPolicy = Policy
+            .Handle<RateLimitRejectedException>()
+            .Or<HttpRequestException>()
+            .Or<RequestLimitExceededException>()
+            .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, async (ex, ts, retryCount, ctx) =>
+            {
+                // Retry on rate limit exceptions, throw on everything else.
+                switch (ex)
+                {
+                    // If we got a _local_ rate limit exception, wait and try again.
+                    case RateLimitRejectedException rlrEx:
+                        {
+                            var retryAfter = rlrEx.RetryAfter;
+                            if (retryAfter.TotalSeconds < 1)
+                                retryAfter = TimeSpan.FromSeconds(1);
+                            _logger.LogTrace("Hit local rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
+                            await Task.Delay(retryAfter).ConfigureAwait(false);
+                            break;
+                        }
+                    // If we got a _remote_ rate limit exception, wait and try again.
+                    case RequestLimitExceededException rleEx:
+                        {
+                            var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
+                            if (retryAfter.TotalSeconds < 1)
+                                retryAfter = TimeSpan.FromSeconds(1);
+                            _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
+                            await Task.Delay(retryAfter).ConfigureAwait(false);
+                            break;
+                        }
+                    // If we timed out or got a too many requests exception, just wait and try again.
+                    case HttpRequestException hrEx when hrEx.StatusCode is HttpStatusCode.TooManyRequests || hrEx.InnerException is TaskCanceledException:
+                        {
+                            // If we timed out more than 3 times, just throw the exception, since the exceptions were likely caused by other network issues.
+                            if (hrEx.InnerException is TaskCanceledException)
+                            {
+                                var timeoutRetryCount = ctx.TryGetValue("timeoutRetryCount", out var timeoutRetryCountValue) ? (int)timeoutRetryCountValue : 0;
+                                if (timeoutRetryCount >= 3)
+                                    goto default;
+                                ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
+                            }
+
+                            var retryAfter = TimeSpan.FromSeconds(10);
+                            _logger.LogTrace("Timed out or got too many requests. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
+
+                            // Since we don't have the retry-after time from the response headers, then we just wait 10 seconds and try again,
+                            // because 10 seconds is the rate limit window set by TMDB, which will land us in the next rate limit window.
+                            await Task.Delay(retryAfter).ConfigureAwait(false);
+                            break;
+                        }
+                    default:
+                        throw ex;
+                }
+            });
     }
 
     public async Task ScheduleSearchForMatch(int anidbId, bool force)
