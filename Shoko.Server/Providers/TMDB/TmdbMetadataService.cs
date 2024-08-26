@@ -1456,6 +1456,7 @@ public class TmdbMetadataService
     private List<TitleLanguage> GetLanguages(TitleLanguage? mainLanguage = null) => _settingsProvider.GetSettings().TMDB.ImageLanguageOrder
         .Select(a => a is TitleLanguage.Main ? mainLanguage is not TitleLanguage.None and not TitleLanguage.Unknown ? mainLanguage : null : a)
         .WhereNotNull()
+        .Distinct()
         .ToList();
 
     #endregion
