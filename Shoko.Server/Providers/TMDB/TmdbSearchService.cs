@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
+using TMDbLib.Objects.Search;
 
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
@@ -33,15 +34,49 @@ public partial class TmdbSearchService
     {
         if (anime.AnimeType == (int)AnimeType.Movie)
         {
-            return await SearchForMovies(anime).ConfigureAwait(false);
+            return await AutoSearchForMovies(anime).ConfigureAwait(false);
         }
 
-        return await SearchForShow(anime).ConfigureAwait(false);
+        return await AutoSearchForShow(anime).ConfigureAwait(false);
     }
 
     #region Movie
 
-    private async Task<IReadOnlyList<TmdbAutoSearchResult>> SearchForMovies(SVR_AniDB_Anime anime)
+    public async Task<(List<SearchMovie> Page, int TotalCount)> SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
+    {
+        var results = new List<SearchMovie>();
+        var firstPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
+        var total = firstPage.TotalResults;
+        if (total == 0)
+            return (results, total);
+
+        var lastPage = firstPage.TotalPages;
+        var actualPageSize = firstPage.Results.Count;
+        var startIndex = (page - 1) * pageSize;
+        var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
+        var endIndex = Math.Min(startIndex + pageSize, total);
+        var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
+        for (var i = startPage; i <= endPage; i++)
+        {
+            var actualPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
+            results.AddRange(actualPage.Results);
+        }
+
+        var skipCount = startIndex - (startPage - 1) * actualPageSize;
+        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
+
+        _logger.LogTrace(
+            "Got {Count} movies from {Results} total movies at {IndexRange} across {PageRange}.",
+            pagedResults.Count,
+            total,
+            startIndex == endIndex ? $"index {startIndex}" : $"indexes {startIndex}-{endIndex}",
+            startPage == endPage ? $"{startPage} actual page" : $"{startPage}-{endPage} actual pages"
+        );
+
+        return (pagedResults, total);
+    }
+
+    private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForMovies(SVR_AniDB_Anime anime)
     {
         // Find the official title in the origin language, to compare it against
         // the original language stored in the offline tmdb search dump.
@@ -77,7 +112,7 @@ public partial class TmdbSearchService
             var airDate = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
             if (!airDate.HasValue || (airDate.Value > now && airDate.Value - now > _maxDaysIntoTheFuture))
                 return [];
-            await SearchForMovie(list, anime, episodes[0], officialTitle.Title, airDate.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+            await AutoSearchForMovie(list, anime, episodes[0], officialTitle.Title, airDate.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
             return list;
         }
 
@@ -92,7 +127,7 @@ public partial class TmdbSearchService
                 var airDateForAnime = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
                 if (!airDateForAnime.HasValue || (airDateForAnime.Value > now && airDateForAnime.Value - now > _maxDaysIntoTheFuture))
                     continue;
-                await SearchForMovie(list, anime, episode, officialTitle.Title, airDateForAnime.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+                await AutoSearchForMovie(list, anime, episode, officialTitle.Title, airDateForAnime.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
                 continue;
             }
 
@@ -105,15 +140,15 @@ public partial class TmdbSearchService
                 // TODO: Improve logic when no sub-title is found.
                 continue;
             var query = $"{officialTitle.Title} {subTitle.Title}".TrimEnd();
-            await SearchForMovie(list, anime, episode, query, airDateForEpisode.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+            await AutoSearchForMovie(list, anime, episode, query, airDateForEpisode.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
         }
 
         return list;
     }
 
-    private async Task<bool> SearchForMovie(List<TmdbAutoSearchResult> list, SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, string query, int year, bool isRestricted)
+    private async Task<bool> AutoSearchForMovie(List<TmdbAutoSearchResult> list, SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, string query, int year, bool isRestricted)
     {
-        var (results, _) = await _tmdbService.SearchMovies(query, includeRestricted: isRestricted, year: year).ConfigureAwait(false);
+        var (results, _) = await SearchMovies(query, includeRestricted: isRestricted, year: year).ConfigureAwait(false);
         if (results.Count == 0)
             return false;
 
@@ -127,13 +162,47 @@ public partial class TmdbSearchService
 
     #region Show
 
+    public async Task<(List<SearchTv> Page, int TotalCount)> SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
+    {
+        var results = new List<SearchTv>();
+        var firstPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
+        var total = firstPage.TotalResults;
+        if (total == 0)
+            return (results, total);
+
+        var lastPage = firstPage.TotalPages;
+        var actualPageSize = firstPage.Results.Count;
+        var startIndex = (page - 1) * pageSize;
+        var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
+        var endIndex = Math.Min(startIndex + pageSize, total);
+        var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
+        for (var i = startPage; i <= endPage; i++)
+        {
+            var actualPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
+            results.AddRange(actualPage.Results);
+        }
+
+        var skipCount = startIndex - (startPage - 1) * actualPageSize;
+        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
+
+        _logger.LogTrace(
+            "Got {Count} shows from {Results} total shows at {IndexRange} across {PageRange}.",
+            pagedResults.Count,
+            total,
+            startIndex == endIndex ? $"index {startIndex}" : $"indexes {startIndex}-{endIndex}",
+            startPage == endPage ? $"{startPage} actual page" : $"{startPage}-{endPage} actual pages"
+        );
+
+        return (pagedResults, total);
+    }
+
     /// <summary>
     /// This regex might save the day if the local database doesn't contain any prequel metadata, but the title itself contains a suffix that indicates it's a sequel of sorts.
     /// </summary>
     [GeneratedRegex(@"\(\d{4}\)$|\bs(?:eason)? (?:\d+|(?=[MDCLXVI])M*(?:C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3}))$|\bs\d+$|第(零〇一二三四五六七八九十百千萬億兆京垓點)+季$|\b(?:second|2nd|third|3rd|fourth|4th|fifth|5th|sixth|6th) season$", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Multiline)]
     private partial Regex SequelSuffixRemovalRegex();
 
-    private async Task<IReadOnlyList<TmdbAutoSearchResult>> SearchForShow(SVR_AniDB_Anime anime)
+    private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForShow(SVR_AniDB_Anime anime)
     {
         // TODO: Improve this logic to take tmdb seasons into account, and maybe also take better anidb series relations into account in cases where the tmdb show name and anidb series name are too different.
 
@@ -200,7 +269,7 @@ continuePrequelWhileLoop:
                     : series.Titles.FirstOrDefault(title => title.Type == TitleType.Official && title.Language == language)?.Title
             );
         var match = !string.IsNullOrEmpty(originalTitle)
-            ? await SearchForShowUsingTitle(anime, originalTitle, airDate.Value, series.Restricted)
+            ? await AutoSearchForShowUsingTitle(anime, originalTitle, airDate.Value, series.Restricted)
             : null;
 
         // And if that failed, then try the official english title.
@@ -210,18 +279,18 @@ continuePrequelWhileLoop:
                 ? allTitles.FirstOrDefault(l => l.TitleType == TitleType.Official && l.Language == TitleLanguage.English)?.Title
                 : series.Titles.FirstOrDefault(l => l.Type == TitleType.Official && l.Language == TitleLanguage.English)?.Title;
             if (!string.IsNullOrEmpty(englishTitle) && (string.IsNullOrEmpty(originalTitle) || !string.Equals(englishTitle, originalTitle, StringComparison.Ordinal)))
-                match = await SearchForShowUsingTitle(anime, englishTitle, airDate.Value, series.Restricted);
+                match = await AutoSearchForShowUsingTitle(anime, englishTitle, airDate.Value, series.Restricted);
         }
 
         // And the last ditch attempt will be to use the main title. We won't try other languages.
-        match ??= await SearchForShowUsingTitle(anime, mainTitle.Title, airDate.Value, series.Restricted);
+        match ??= await AutoSearchForShowUsingTitle(anime, mainTitle.Title, airDate.Value, series.Restricted);
         return match is not null ? [match] : [];
     }
 
-    private async Task<TmdbAutoSearchResult?> SearchForShowUsingTitle(SVR_AniDB_Anime anime, string title, DateTime airDate, bool restricted)
+    private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(SVR_AniDB_Anime anime, string title, DateTime airDate, bool restricted)
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
-        var (results, totalFound) = await _tmdbService.SearchShows(title, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
+        var (results, totalFound) = await SearchShows(title, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
         if (results.Count > 0)
         {
             _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
@@ -230,7 +299,7 @@ continuePrequelWhileLoop:
         }
 
         // Brute force attempt #2: With the original title but without the earliest known aired year.
-        (results, totalFound) = await _tmdbService.SearchShows(title, includeRestricted: restricted).ConfigureAwait(false);
+        (results, totalFound) = await SearchShows(title, includeRestricted: restricted).ConfigureAwait(false);
         if (totalFound > 0)
         {
             _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
@@ -243,14 +312,14 @@ continuePrequelWhileLoop:
             ? title[..^regexResult.Length].TrimEnd() : null;
         if (!string.IsNullOrEmpty(strippedTitle))
         {
-            (results, totalFound) = await _tmdbService.SearchShows(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
+            (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
             if (results.Count > 0)
             {
                 _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
 
                 return new(anime, results[0]);
             }
-            (results, totalFound) = await _tmdbService.SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
+            (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
             if (results.Count > 0)
             {
                 _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);

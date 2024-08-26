@@ -50,12 +50,15 @@ public class TmdbController : BaseController
 {
     private readonly ILogger<TmdbController> _logger;
 
-    private readonly TmdbMetadataService _tmdbService;
+    private readonly TmdbSearchService _tmdbSearchService;
 
-    public TmdbController(ISettingsProvider settingsProvider, ILogger<TmdbController> logger, TmdbMetadataService tmdbService) : base(settingsProvider)
+    private readonly TmdbMetadataService _tmdbMetadataService;
+
+    public TmdbController(ISettingsProvider settingsProvider, ILogger<TmdbController> logger, TmdbSearchService tmdbSearchService, TmdbMetadataService tmdbService) : base(settingsProvider)
     {
         _logger = logger;
-        _tmdbService = tmdbService;
+        _tmdbSearchService = tmdbSearchService;
+        _tmdbMetadataService = tmdbService;
     }
 
     #region Movies
@@ -183,7 +186,7 @@ public class TmdbController : BaseController
         [FromQuery] bool removeImageFiles = true
     )
     {
-        await _tmdbService.SchedulePurgeOfMovie(movieID, removeImageFiles);
+        await _tmdbMetadataService.SchedulePurgeOfMovie(movieID, removeImageFiles);
 
         return NoContent();
     }
@@ -436,11 +439,11 @@ public class TmdbController : BaseController
     {
         if (body.Immediate)
         {
-            await _tmdbService.UpdateMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCollections);
+            await _tmdbMetadataService.UpdateMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCollections);
             return Ok();
         }
 
-        await _tmdbService.ScheduleUpdateOfMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadCollections);
+        await _tmdbMetadataService.ScheduleUpdateOfMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadCollections);
         return NoContent();
     }
 
@@ -466,11 +469,11 @@ public class TmdbController : BaseController
 
         if (body.Immediate)
         {
-            await _tmdbService.DownloadAllMovieImages(movieID, body.Force);
+            await _tmdbMetadataService.DownloadAllMovieImages(movieID, body.Force);
             return Ok();
         }
 
-        await _tmdbService.ScheduleDownloadAllMovieImages(movieID, body.Force);
+        await _tmdbMetadataService.ScheduleDownloadAllMovieImages(movieID, body.Force);
         return NoContent();
     }
 
@@ -497,7 +500,7 @@ public class TmdbController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalMovies) = _tmdbService.SearchMovies(query, includeRestricted, year, page, pageSize)
+        var (pageView, totalMovies) = _tmdbSearchService.SearchMovies(query, includeRestricted, year, page, pageSize)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -768,7 +771,7 @@ public class TmdbController : BaseController
         [FromQuery] bool removeImageFiles = true
     )
     {
-        await _tmdbService.SchedulePurgeOfShow(showID, removeImageFiles);
+        await _tmdbMetadataService.SchedulePurgeOfShow(showID, removeImageFiles);
 
         return NoContent();
     }
@@ -1080,11 +1083,11 @@ public class TmdbController : BaseController
         if (body.Immediate)
         {
             var settings = SettingsProvider.GetSettings();
-            await _tmdbService.UpdateShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering);
+            await _tmdbMetadataService.UpdateShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering);
             return Ok();
         }
 
-        await _tmdbService.ScheduleUpdateOfShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering);
+        await _tmdbMetadataService.ScheduleUpdateOfShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering);
         return NoContent();
     }
 
@@ -1110,11 +1113,11 @@ public class TmdbController : BaseController
 
         if (body.Immediate)
         {
-            await _tmdbService.DownloadAllShowImages(showID, body.Force);
+            await _tmdbMetadataService.DownloadAllShowImages(showID, body.Force);
             return Ok();
         }
 
-        await _tmdbService.ScheduleDownloadAllShowImages(showID, body.Force);
+        await _tmdbMetadataService.ScheduleDownloadAllShowImages(showID, body.Force);
         return NoContent();
     }
 
@@ -1141,7 +1144,7 @@ public class TmdbController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalShows) = _tmdbService.SearchShows(query, includeRestricted, year, page, pageSize)
+        var (pageView, totalShows) = _tmdbSearchService.SearchShows(query, includeRestricted, year, page, pageSize)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -2145,7 +2148,7 @@ public class TmdbController : BaseController
             RepoFactory.CrossRef_AniDB_TMDB_Movie.Save(movieXrefsToSave);
 
             foreach (var movieId in moviesToUpdate)
-                await _tmdbService.SchedulePurgeOfMovie(movieId);
+                await _tmdbMetadataService.ScheduleUpdateOfMovie(movieId);
         }
 
         if (episodeXrefsToSave.Count > 0 || showXrefsToSave.Count > 0 || showsToUpdate.Count > 0)
@@ -2163,7 +2166,7 @@ public class TmdbController : BaseController
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(episodeXrefsToSave);
 
             foreach (var showId in showsToUpdate)
-                await _tmdbService.SchedulePurgeOfShow(showId);
+                await _tmdbMetadataService.ScheduleUpdateOfShow(showId);
         }
 
         return NoContent();

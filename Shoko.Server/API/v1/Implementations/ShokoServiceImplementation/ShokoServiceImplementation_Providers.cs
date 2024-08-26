@@ -1074,7 +1074,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var (movieResults, _) = _tmdbMetadataService.SearchMovies(System.Web.HttpUtility.UrlDecode(criteria)).ConfigureAwait(false).GetAwaiter().GetResult();
+            var (movieResults, _) = _tmdbSearchService.SearchMovies(System.Web.HttpUtility.UrlDecode(criteria)).ConfigureAwait(false).GetAwaiter().GetResult();
 
             results.AddRange(movieResults.Select(movie => movie.ToContract()));
 

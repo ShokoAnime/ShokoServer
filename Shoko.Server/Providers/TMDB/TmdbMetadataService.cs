@@ -154,7 +154,7 @@ public class TmdbMetadataService
     /// <typeparam name="T">The type of the result of the function.</typeparam>
     /// <param name="func">The function to execute with the TMDb client.</param>
     /// <returns>A task that will complete with the result of the function, after applying the rate limiting and retry policies.</returns>
-    protected Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func) =>
+    public Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func) =>
         _bulkheadPolicy.ExecuteAsync(() => _retryPolicy.ExecuteAsync(() => _rateLimitPolicy.ExecuteAsync(() => func(CachedClient))));
 
     public TmdbMetadataService(
@@ -319,45 +319,7 @@ public class TmdbMetadataService
 
     #region Movies
 
-    #region Search
-
-    public async Task<(List<SearchMovie> Page, int TotalCount)> SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
-    {
-        var results = new List<SearchMovie>();
-        var firstPage = await UseClient(c => c.SearchMovieAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
-        var total = firstPage.TotalResults;
-        if (total == 0)
-            return (results, total);
-
-        var lastPage = firstPage.TotalPages;
-        var actualPageSize = firstPage.Results.Count;
-        var startIndex = (page - 1) * pageSize;
-        var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
-        var endIndex = Math.Min(startIndex + pageSize, total);
-        var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
-        for (var i = startPage; i <= endPage; i++)
-        {
-            var actualPage = await UseClient(c => c.SearchMovieAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
-            results.AddRange(actualPage.Results);
-        }
-
-        var skipCount = startIndex - (startPage - 1) * actualPageSize;
-        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
-
-        _logger.LogTrace(
-            "Got {Count} movies from {Results} total movies at {IndexRange} across {PageRange}.",
-            pagedResults.Count,
-            total,
-            startIndex == endIndex ? $"index {startIndex}" : $"indexes {startIndex}-{endIndex}",
-            startPage == endPage ? $"{startPage} actual page" : $"{startPage}-{endPage} actual pages"
-        );
-
-        return (pagedResults, total);
-    }
-
-    #endregion
-
-    #region Update
+    #region Update (Movies)
 
     public async Task UpdateAllMovies(bool force, bool saveImages)
     {
@@ -728,7 +690,7 @@ public class TmdbMetadataService
 
     #endregion
 
-    #region Purge
+    #region Purge (Movies)
 
     public async Task PurgeAllUnusedMovies()
     {
@@ -868,47 +830,9 @@ public class TmdbMetadataService
 
     #endregion
 
-    #region Show
+    #region Shows
 
-    #region Search
-
-    public async Task<(List<SearchTv> Page, int TotalCount)> SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
-    {
-        var results = new List<SearchTv>();
-        var firstPage = await UseClient(c => c.SearchTvShowAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
-        var total = firstPage.TotalResults;
-        if (total == 0)
-            return (results, total);
-
-        var lastPage = firstPage.TotalPages;
-        var actualPageSize = firstPage.Results.Count;
-        var startIndex = (page - 1) * pageSize;
-        var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
-        var endIndex = Math.Min(startIndex + pageSize, total);
-        var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
-        for (var i = startPage; i <= endPage; i++)
-        {
-            var actualPage = await UseClient(c => c.SearchTvShowAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
-            results.AddRange(actualPage.Results);
-        }
-
-        var skipCount = startIndex - (startPage - 1) * actualPageSize;
-        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
-
-        _logger.LogTrace(
-            "Got {Count} shows from {Results} total shows at {IndexRange} across {PageRange}.",
-            pagedResults.Count,
-            total,
-            startIndex == endIndex ? $"index {startIndex}" : $"indexes {startIndex}-{endIndex}",
-            startPage == endPage ? $"{startPage} actual page" : $"{startPage}-{endPage} actual pages"
-        );
-
-        return (pagedResults, total);
-    }
-
-    #endregion
-
-    #region Update
+    #region Update (Shows)
 
     public async Task UpdateAllShows(bool force = false, bool downloadImages = false)
     {
@@ -1536,7 +1460,7 @@ public class TmdbMetadataService
 
     #endregion
 
-    #region Purge
+    #region Purge (Shows)
 
     public async Task PurgeAllUnusedShows()
     {
@@ -1738,7 +1662,7 @@ public class TmdbMetadataService
 
     #region Shared
 
-    #region Titles & Overviews
+    #region Titles & Overviews (Shared)
 
     /// <summary>
     /// Updates the titles and overviews for the <paramref name="tmdbEntity"/>
@@ -1890,7 +1814,7 @@ public class TmdbMetadataService
 
     #endregion
 
-    #region Companies
+    #region Companies (Shared)
 
     private async Task<bool> UpdateCompanies(IEntityMetadata tmdbEntity, List<ProductionCompany> companies)
     {
@@ -1990,7 +1914,7 @@ public class TmdbMetadataService
 
     #endregion
 
-    #region People
+    #region People (Shared)
 
     public async Task DownloadPersonImages(int personId, bool forceDownload = false)
     {
@@ -2069,7 +1993,7 @@ public class TmdbMetadataService
 
     #endregion
 
-    #region Helpers
+    #region Helpers (Shared)
 
     private static async Task ProcessWithConcurrencyAsync<T>(
         int maxConcurrent,
@@ -2128,7 +2052,7 @@ public class TmdbMetadataService
 
     #endregion
 
-    #region External IDs
+    #region External IDs (Shared)
 
     /// <summary>
     /// Update TvDB ID for the TMDB show if needed and the ID is available.
