@@ -206,7 +206,7 @@ public static class APIExtensions
     {
         return genericType.Name.Replace("+", ".").Replace("`1", "") + "[" + string.Join(",", genericType.GetGenericArguments().Select(GetTypeName)) + "]";
     }
-    
+
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
     {
         var info = new OpenApiInfo
@@ -271,8 +271,13 @@ public static class APIExtensions
             DefaultContentType = "text/html",
             OnPrepareResponse = ctx =>
             {
-                ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-                ctx.Context.Response.Headers.Append("Expires", "0");
+                var requestPath = ctx.File.PhysicalPath;
+                // We set the cache headers only for index.html file because it doesn't have a different hash when changed
+                if (requestPath?.EndsWith("index.html", StringComparison.OrdinalIgnoreCase) ?? false)
+                {
+                    ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                    ctx.Context.Response.Headers.Append("Expires", "0");
+                }
             }
         });
 
@@ -331,7 +336,7 @@ public static class APIExtensions
 
         return app;
     }
-    
+
     private static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
     {
         foreach (var dir in source.GetDirectories())
