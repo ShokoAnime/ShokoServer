@@ -30,8 +30,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     * If the client does not use any of the notification/push features of the API it should NOT keep the connection alive, furthermore it should explicitly terminate the connection by issuing a LOGOUT command once it finished it's work.
     * If it is very likely that another command will be issued shortly (within the next 20 minutes) a client SHOULD keep the current connection open, by not sending a LOGOUT command.
     ****/
-    // 25 minutes
-    private const int LogoutPeriod = 25 * 60 * 1000;
+    // 5 minutes
+    private const int LogoutPeriod = 5 * 60 * 1000;
     private readonly IRequestFactory _requestFactory;
     private readonly IConnectivityService _connectivityService;
     private IAniDBSocketHandler? _socketHandler;
