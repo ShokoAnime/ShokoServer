@@ -158,10 +158,10 @@ public static class Search
             IsVideo = movie.Video;
             ReleasedAt = movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null;
             Poster = !string.IsNullOrEmpty(movie.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}/original/{movie.PosterPath}"
+                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}/original/{movie.BackdropPath}"
+                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
@@ -234,10 +234,10 @@ public static class Search
             Overview = show.Overview ?? string.Empty;
             FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
             Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}/original/{show.PosterPath}"
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}/original/{show.BackdropPath}"
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
