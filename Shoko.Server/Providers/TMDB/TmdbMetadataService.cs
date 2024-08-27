@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Bulkhead;
@@ -56,7 +57,13 @@ public class TmdbMetadataService
             if (_imageServerUrl is not null)
                 return _imageServerUrl;
             if (_instance is null)
-                return null;
+            {
+                // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available.
+                _instance = Utils.ServiceContainer?.GetService<TmdbMetadataService>();
+                if (_instance is null)
+                    return null;
+            }
+
             try
             {
                 var config = _instance.UseClient(c => c.GetAPIConfiguration()).Result;
