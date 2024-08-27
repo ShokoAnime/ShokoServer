@@ -182,7 +182,7 @@ public class AnimeGroupService
         var seriesList = group.AllSeries;
 
         // Reset the name/description for the group if needed.
-        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries ?? group.AllSeries.FirstOrDefault() : null;
+        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries ?? seriesList.FirstOrDefault() : null;
         if (mainSeries is not null)
         {
             if (group.IsManuallyNamed == 0)
