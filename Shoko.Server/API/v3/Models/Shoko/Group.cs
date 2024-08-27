@@ -319,7 +319,7 @@ public class Group : BaseModel
 
                 // Check if the names have changed if we omit the value, or if
                 // we set it to true.
-                if (!HasCustomName.HasValue || HasCustomName.Value)
+                if (HasCustomName ?? true)
                 {
                     // Lock the name if it's set to true.
                     if (HasCustomName.HasValue)
@@ -341,7 +341,7 @@ public class Group : BaseModel
                 }
 
                 // Same as above, but for the description.
-                if (!HasCustomDescription.HasValue || HasCustomDescription.Value)
+                if (HasCustomDescription ?? true)
                 {
                     if (HasCustomDescription.HasValue)
                         group.OverrideDescription = 1;
