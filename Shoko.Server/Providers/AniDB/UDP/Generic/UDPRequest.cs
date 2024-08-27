@@ -36,7 +36,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         Command = BaseCommand.Trim();
         if (string.IsNullOrEmpty(Handler.SessionID) && !Handler.Login().Result)
         {
-            throw new NotLoggedInException();
+            throw new LoginFailedException();
         }
 
         PreExecute(Handler.SessionID);
@@ -115,13 +115,11 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
 
         switch (status)
         {
-            // 506 INVALID SESSION
             // 505 ILLEGAL INPUT OR ACCESS DENIED
             // reset login status to start again
-            case UDPReturnCode.INVALID_SESSION:
             case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
                 Handler.IsInvalidSession = true;
-                throw new NotLoggedInException();
+                throw new LoginFailedException();
             // 600 INTERNAL SERVER ERROR
             // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
             // 602 SERVER BUSY - TRY AGAIN LATER
@@ -136,8 +134,17 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
                     Handler.StartBackoffTimer(300, errorMessage);
                     break;
                 }
+            // 506 INVALID SESSION
+            // 598 UNKNOWN COMMAND
+            case UDPReturnCode.INVALID_SESSION:
             case UDPReturnCode.UNKNOWN_COMMAND:
-                throw new UnexpectedUDPResponseException(response: response, code: status, request: Command);
+                if (status == UDPReturnCode.UNKNOWN_COMMAND)
+                {
+                    Logger.LogWarning("AniDB returned \"UNKNOWN COMMAND\" which likely means your session has expired." +
+                                      "Please check your router's settings for how long it keeps track of active connections and adjust UDPPingFrequency in the settings accordingly");
+                }
+                Handler.ClearSession();
+                throw new NotLoggedInException();
         }
 
         if (truncated)
