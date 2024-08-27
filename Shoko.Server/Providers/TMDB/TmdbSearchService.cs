@@ -45,7 +45,7 @@ public partial class TmdbSearchService
     public async Task<(List<SearchMovie> Page, int TotalCount)> SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
     {
         var results = new List<SearchMovie>();
-        var firstPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
+        var firstPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, 1, includeRestricted, year), $"Searching{(includeRestricted ? " all" : string.Empty)} movies for \"{query}\"{(year > 0 ? $" at year {year}" : string.Empty)}").ConfigureAwait(false);
         var total = firstPage.TotalResults;
         if (total == 0)
             return (results, total);
@@ -58,7 +58,7 @@ public partial class TmdbSearchService
         var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
         for (var i = startPage; i <= endPage; i++)
         {
-            var actualPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
+            var actualPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, i, includeRestricted, year), $"Searching{(includeRestricted ? " all" : string.Empty)} movies for \"{query}\"{(year > 0 ? $" at year {year}" : string.Empty)}").ConfigureAwait(false);
             results.AddRange(actualPage.Results);
         }
 
@@ -165,7 +165,7 @@ public partial class TmdbSearchService
     public async Task<(List<SearchTv> Page, int TotalCount)> SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
     {
         var results = new List<SearchTv>();
-        var firstPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, 1, includeRestricted, year)).ConfigureAwait(false);
+        var firstPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, 1, includeRestricted, year), $"Searching{(includeRestricted ? " all" : "")} shows for \"{query}\"{(year > 0 ? $" at year {year}" : "")}").ConfigureAwait(false);
         var total = firstPage.TotalResults;
         if (total == 0)
             return (results, total);
@@ -178,7 +178,7 @@ public partial class TmdbSearchService
         var endPage = total == endIndex ? lastPage : Math.Min((int)Math.Floor((decimal)endIndex / actualPageSize) + (endIndex % actualPageSize > 0 ? 1 : 0), lastPage);
         for (var i = startPage; i <= endPage; i++)
         {
-            var actualPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, i, includeRestricted, year)).ConfigureAwait(false);
+            var actualPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, i, includeRestricted, year), $"Searching{(includeRestricted ? " all" : "")} shows for \"{query}\"{(year > 0 ? $" at year {year}" : "")}").ConfigureAwait(false);
             results.AddRange(actualPage.Results);
         }
 
