@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -301,6 +302,7 @@ public class Group : BaseModel
                         continue;
 
                     childGroup.AnimeGroupParentID = group.AnimeGroupID;
+                    childGroup.DateTimeUpdated = DateTime.Now;
                     RepoFactory.AnimeGroup.Save(childGroup, false);
                 }
 

@@ -208,6 +208,7 @@ public class AnimeGroupService
             });
         }
 
+        group.DateTimeUpdated = DateTime.Now;
         _groups.Save(group, false);
         _logger.LogTrace($"Finished Updating STATS for GROUP {group.GroupName} in {(DateTime.Now - start).TotalMilliseconds}ms");
     }
