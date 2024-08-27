@@ -226,7 +226,7 @@ public class TmdbMetadataService
         _xrefTmdbShowNetwork = xrefTmdbShowNetwork;
         _instance ??= this;
         _bulkheadPolicy = Policy.BulkheadAsync(10);
-        _rateLimitPolicy = Policy.RateLimitAsync(40, TimeSpan.FromSeconds(10));
+        _rateLimitPolicy = Policy.RateLimitAsync(40, TimeSpan.FromSeconds(10), 40);
         _retryPolicy = Policy
             .Handle<RateLimitRejectedException>()
             .Or<HttpRequestException>()
