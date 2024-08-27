@@ -2804,7 +2804,7 @@ public class SeriesController : BaseController
                 .Select(result =>
                 {
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
-                    if (local.HasValue && series == null == local.Value)
+                    if (local.HasValue && series is null == local.Value)
                         return null;
 
                     return new Series.AniDB(result, series, includeTitles);
@@ -2817,7 +2817,7 @@ public class SeriesController : BaseController
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
-                if (local.HasValue && series == null == local.Value)
+                if (local.HasValue && series is null == local.Value)
                     return null;
 
                 return new Series.AniDB(result, series, includeTitles);
