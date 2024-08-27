@@ -221,7 +221,7 @@ public class SeriesController : BaseController
             series.ResetPreferredTitle();
             series.ResetAnimeTitles();
 
-            RepoFactory.AnimeSeries.Save(series);
+            RepoFactory.AnimeSeries.Save(series, true);
 
             ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
         }
