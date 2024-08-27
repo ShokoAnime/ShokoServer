@@ -140,7 +140,8 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
             case UDPReturnCode.UNKNOWN_COMMAND:
                 if (status == UDPReturnCode.UNKNOWN_COMMAND)
                 {
-                    Logger.LogWarning("AniDB returned UNKNOWN COMMAND. Try to increase UDPPingFrequency in the settings!");
+                    Logger.LogWarning("AniDB returned \"UNKNOWN COMMAND\" which likely means your session has expired." +
+                                      "Please check your router's settings for how long it keeps track of active connections and adjust UDPPingFrequency in the settings accordingly");
                 }
                 Handler.ClearSession();
                 throw new NotLoggedInException();
