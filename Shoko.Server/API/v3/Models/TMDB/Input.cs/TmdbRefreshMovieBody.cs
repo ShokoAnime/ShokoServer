@@ -1,3 +1,4 @@
+using System.ComponentModel;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB.Input;
@@ -12,6 +13,7 @@ public class TmdbRefreshMovieBody
     /// <summary>
     /// Also download images.
     /// </summary>
+    [DefaultValue(true)]
     public bool DownloadImages { get; set; } = true;
 
     /// <summary>
