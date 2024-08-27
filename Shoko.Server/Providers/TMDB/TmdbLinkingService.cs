@@ -43,6 +43,8 @@ public class TmdbLinkingService
 
     private readonly AniDB_Episode_TitleRepository _anidbEpisodeTitles;
 
+    private readonly TMDB_ShowRepository _tmdbShows;
+
     private readonly TMDB_EpisodeRepository _tmdbEpisodes;
 
     private readonly CrossRef_AniDB_TMDB_MovieRepository _xrefAnidbTmdbMovies;
@@ -59,6 +61,7 @@ public class TmdbLinkingService
         AniDB_AnimeRepository anidbAnime,
         AniDB_EpisodeRepository anidbEpisodes,
         AniDB_Episode_TitleRepository anidbEpisodeTitles,
+        TMDB_ShowRepository tmdbShows,
         TMDB_EpisodeRepository tmdbEpisodes,
         CrossRef_AniDB_TMDB_MovieRepository xrefAnidbTmdbMovies,
         CrossRef_AniDB_TMDB_ShowRepository xrefAnidbTmdbShows,
@@ -72,6 +75,7 @@ public class TmdbLinkingService
         _anidbAnime = anidbAnime;
         _anidbEpisodes = anidbEpisodes;
         _anidbEpisodeTitles = anidbEpisodeTitles;
+        _tmdbShows = tmdbShows;
         _tmdbEpisodes = tmdbEpisodes;
         _xrefAnidbTmdbMovies = xrefAnidbTmdbMovies;
         _xrefAnidbTmdbShows = xrefAnidbTmdbShows;
@@ -346,6 +350,13 @@ public class TmdbLinkingService
         if (anime == null)
             return [];
 
+        var show = _tmdbShows.GetByTmdbShowID(tmdbShowId);
+        if (show == null)
+            return [];
+
+        var startedAt = DateTime.Now;
+        _logger.LogTrace("Mapping AniDB Anime {AnidbAnimeId} to TMDB Show {TmdbShowId} (Season: {TmdbSeasonId}, Use Existing: {UseExisting}, Save To Database: {SaveToDatabase})", anidbAnimeId, tmdbShowId, tmdbSeasonId, useExisting, saveToDatabase);
+
         // Mapping logic
         var toSkip = new HashSet<int>();
         var toAdd = new List<CrossRef_AniDB_TMDB_Episode>();
@@ -370,13 +381,17 @@ public class TmdbLinkingService
             .Where(episode => episode.SeasonNumber == 0)
             .OrderBy(episode => episode.EpisodeNumber)
             .ToList();
+        var current = 0;
         foreach (var episode in anidbEpisodes.Values)
         {
+            current++;
+            _logger.LogTrace("Checking episode {EpisodeType} {EpisodeNumber} (ID: {EpisodeID}, Progress: {Current}/{Total})", episode.EpisodeTypeEnum, episode.EpisodeNumber, episode.EpisodeID, current, anidbEpisodes.Count);
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks))
             {
                 // If hidden then return an empty link for the hidden episode.
                 if (episode.AnimeEpisode?.IsHidden ?? false)
                 {
+                    _logger.LogTrace("Skipping hidden episode {EpisodeID}", episode.EpisodeID);
                     var link = existingLinks[0];
                     if (link.TmdbEpisodeID is 0 && link.TmdbShowID is 0)
                     {
@@ -391,6 +406,7 @@ public class TmdbLinkingService
                 }
 
                 // Else return all existing links.
+                _logger.LogTrace("Skipping existing links for episode {EpisodeID}", episode.EpisodeID);
                 foreach (var link in existingLinks.DistinctBy((link => (link.TmdbShowID, link.TmdbEpisodeID))))
                 {
                     crossReferences.Add(link);
@@ -402,19 +418,26 @@ public class TmdbLinkingService
                 // If hidden then skip linking episode.
                 if (episode.AnimeEpisode?.IsHidden ?? false)
                 {
+                    _logger.LogTrace("Skipping hidden episode {EpisodeID}", episode.EpisodeID);
                     crossReferences.Add(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.SarahJessicaParker, 0));
                     continue;
                 }
 
                 // Else try find a match.
+                _logger.LogTrace("Linking episode {EpisodeID}", episode.EpisodeID);
                 var isSpecial = episode.EpisodeTypeEnum is EpisodeType.Special;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(episode, episodeList, isSpecial);
                 if (crossRef.TmdbEpisodeID != 0)
                 {
+                    _logger.LogTrace("Found match for episode {EpisodeID} (TMDB ID: {TMDbEpisodeID})", episode.EpisodeID, crossRef.TmdbEpisodeID);
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
                     if (index != -1)
                         episodeList.RemoveAt(index);
+                }
+                else
+                {
+                    _logger.LogTrace("No match found for episode {EpisodeID}", episode.EpisodeID);
                 }
                 crossReferences.Add(crossRef);
                 toAdd.Add(crossRef);
@@ -422,7 +445,17 @@ public class TmdbLinkingService
         }
 
         if (!saveToDatabase)
+        {
+            _logger.LogDebug(
+                "Found {a} anidb/tmdb episode cross-references for show {ShowTitle} in {Delta}ms (Anime={AnimeId},Show={ShowId})",
+                crossReferences.Count,
+                anime.PreferredTitle,
+                (DateTime.Now - startedAt).TotalMilliseconds,
+                anidbAnimeId,
+                tmdbShowId
+            );
             return crossReferences;
+        }
 
         // Remove the current anidb episodes that does not overlap with the show.
         var toRemove = existing.Values
@@ -431,11 +464,12 @@ public class TmdbLinkingService
             .ToList();
 
         _logger.LogDebug(
-            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} (Anime={AnimeId},Show={ShowId})",
+            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} in {Delta}ms (Anime={AnimeId},Show={ShowId})",
             toAdd.Count,
             toRemove.Count,
             existing.Count - toRemove.Count,
             anime.PreferredTitle,
+            (DateTime.Now - startedAt).TotalMilliseconds,
             anidbAnimeId,
             tmdbShowId);
         _xrefAnidbTmdbEpisodes.Save(toAdd);
