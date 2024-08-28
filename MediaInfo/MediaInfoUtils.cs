@@ -293,8 +293,8 @@ namespace Shoko.Models.MediaInfo
             {"v_mpeg4/iso/asp", "mpeg4"},
             {"v_mpeg4/iso/avc", "h264"},
             {"v_mpegh/iso/hevc", "hevc"},
-            {"v_ms/vfw/fourcc / dx50", "dx50"},
             {"vc-1", "vc1"},
+            {"wmv3", "wmv"},
             {"xvid", "mpeg4"}
         };
 
@@ -386,9 +386,13 @@ namespace Shoko.Models.MediaInfo
             var id = stream.Codec?.ToLower();
             if (id != null && _codecIDs.TryGetValue(id, out var value))
                 return value.ToUpper();
+            if (id != null && id.Contains('/') && _codecIDs.TryGetValue(id.Split('/')[^1].Trim(), out value))
+                return value.ToUpper();
 
             id = stream.CodecID?.ToLower();
             if (id != null && _codecIDs.TryGetValue(id, out value))
+                return value.ToUpper();
+            if (id != null && id.Contains('/') && _codecIDs.TryGetValue(id.Split('/')[^1].Trim(), out value))
                 return value.ToUpper();
 
             if (stream is TextStream textStream)
@@ -399,7 +403,7 @@ namespace Shoko.Models.MediaInfo
                 return textStream.Format?.ToLowerInvariant() == "apple text" ? "TTXT" : null;
             }
 
-            return stream.CodecID?.ToUpper();
+            return id?.Split('/')[^1].Trim().ToUpper();
         }
     }
 }
