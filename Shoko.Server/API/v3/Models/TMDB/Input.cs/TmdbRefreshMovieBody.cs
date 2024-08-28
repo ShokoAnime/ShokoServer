@@ -30,4 +30,9 @@ public class TmdbRefreshMovieBody
     /// If true, the refresh will be ran immediately.
     /// </summary>
     public bool Immediate { get; set; } = false;
+
+    /// <summary>
+    /// If true, the refresh will be skipped if the movie already exists.
+    /// </summary>
+    public bool SkipIfExists { get; set; } = false;
 }

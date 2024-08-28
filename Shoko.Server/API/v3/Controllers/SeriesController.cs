@@ -1302,7 +1302,10 @@ public class SeriesController : BaseController
             var settings = SettingsProvider.GetSettings();
             await Task.WhenAll(
                 RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => _tmdbMetadataService.UpdateMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? settings.TMDB.AutoDownloadCollections))
+                    .Select(xref => body.SkipIfExists && RepoFactory.TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID) is not null
+                        ? Task.CompletedTask
+                        : _tmdbMetadataService.UpdateMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? settings.TMDB.AutoDownloadCollections)
+                    )
             );
             return Ok();
         }
@@ -1326,7 +1329,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/TMDB/Movie/Action/DownloadImages")]
     public async Task<ActionResult> DownloadTMDBMovieImagesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshMovieBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1496,7 +1499,10 @@ public class SeriesController : BaseController
             var settings = SettingsProvider.GetSettings();
             await Task.WhenAll(
                 RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => _tmdbMetadataService.UpdateShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering))
+                    .Select(xref => body.SkipIfExists && RepoFactory.TMDB_Show.GetByTmdbShowID(xref.TmdbShowID) is not null
+                        ? Task.CompletedTask
+                        : _tmdbMetadataService.UpdateShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering)
+                    )
             );
             return Ok();
         }
@@ -1520,7 +1526,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/TMDB/Show/Action/DownloadImages")]
     public async Task<ActionResult> DownloadTMDBShowImagesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);

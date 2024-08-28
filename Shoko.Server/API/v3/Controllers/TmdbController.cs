@@ -437,6 +437,13 @@ public class TmdbController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshMovieBody body
     )
     {
+        if (body.SkipIfExists)
+        {
+            var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+            if (movie is not null)
+                return Ok();
+        }
+
         if (body.Immediate)
         {
             await _tmdbMetadataService.UpdateMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCollections);
@@ -1080,6 +1087,13 @@ public class TmdbController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
     )
     {
+        if (body.SkipIfExists)
+        {
+            var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+            if (show is not null)
+                return Ok();
+        }
+
         if (body.Immediate)
         {
             var settings = SettingsProvider.GetSettings();
