@@ -1703,7 +1703,7 @@ public class SeriesController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] int? tmdbShowID,
         [FromQuery] int? tmdbSeasonID,
-        [FromQuery] bool keepExisting = true,
+        [FromQuery] bool keepExisting = false,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -1757,7 +1757,7 @@ public class SeriesController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] int? tmdbShowID,
         [FromQuery] int? tmdbSeasonID,
-        [FromQuery] bool keepExisting = true
+        [FromQuery] bool keepExisting = false
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
