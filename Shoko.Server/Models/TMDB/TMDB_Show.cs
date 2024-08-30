@@ -49,9 +49,16 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public int? TvdbShowID { get; set; }
 
     /// <summary>
-    /// The default poster path. Used to determine the default poster for the show.
+    /// The default poster path. Used to determine the default poster for the
+    /// show.
     /// </summary>
     public string PosterPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The default backdrop path. Used to determine the default backdrop for
+    /// the show.
+    /// </summary>
+    public string BackdropPath { get; set; } = string.Empty;
 
     /// <summary>
     /// The english title of the show, used as a fallback for when no title is
@@ -186,6 +193,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         var updates = new[]
         {
             UpdateProperty(PosterPath, show.PosterPath, v => PosterPath = v),
+            UpdateProperty(BackdropPath, show.BackdropPath, v => BackdropPath = v),
             UpdateProperty(OriginalTitle, show.OriginalName, v => OriginalTitle = v),
             UpdateProperty(OriginalLanguageCode, show.OriginalLanguage, v => OriginalLanguageCode = v),
             UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : show.Name, v => EnglishTitle = v),
@@ -303,6 +311,8 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID);
 
     public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(PosterPath, ImageEntityType.Poster);
+
+    public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(BackdropPath, ImageEntityType.Backdrop);
 
     /// <summary>
     /// Get all images for the show, or all images for the given

@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 133;
+    public override int RequiredVersion { get; } = 134;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -819,6 +819,10 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(133, 1, "UPDATE CrossRef_AniDB_TMDB_Movie SET AnidbEpisodeID = (SELECT EpisodeID FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID ORDER BY EpisodeType, EpisodeNumber LIMIT 1) WHERE AnidbEpisodeID IS NULL AND EXISTS (SELECT 1 FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID);"),
         new(133, 2, "DELETE FROM CrossRef_AniDB_TMDB_Movie WHERE AnidbEpisodeID IS NULL;"),
         new(133, 3, "ALTER TABLE CrossRef_AniDB_TMDB_Movie CHANGE COLUMN AnidbEpisodeID AnidbEpisodeID INT NOT NULL DEFAULT 0;"),
+        new(134, 1, "ALTER TABLE `TMDB_Movie` ADD COLUMN `PosterPath` VARCHAR(64) NULL DEFAULT NULL;"),
+        new(134, 2, "ALTER TABLE `TMDB_Movie` ADD COLUMN `BackdropPath` VARCHAR(64) NULL DEFAULT NULL;"),
+        new(134, 3, "ALTER TABLE `TMDB_Show` ADD COLUMN `PosterPath` VARCHAR(64) NULL DEFAULT NULL;"),
+        new(134, 4, "ALTER TABLE `TMDB_Show` ADD COLUMN `BackdropPath` VARCHAR(64) NULL DEFAULT NULL;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

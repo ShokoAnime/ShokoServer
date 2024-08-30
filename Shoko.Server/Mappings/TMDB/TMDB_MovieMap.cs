@@ -16,6 +16,8 @@ public class TMDB_MovieMap : ClassMap<TMDB_Movie>
         Map(x => x.TmdbMovieID).Not.Nullable();
         Map(x => x.TmdbCollectionID).Nullable();
         Map(x => x.ImdbMovieID).Nullable();
+        Map(x => x.PosterPath).Nullable();
+        Map(x => x.BackdropPath).Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
         Map(x => x.OriginalTitle).Not.Nullable();

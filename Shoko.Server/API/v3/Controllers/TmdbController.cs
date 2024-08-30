@@ -37,6 +37,8 @@ using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 using TmdbSearch = Shoko.Server.API.v3.Models.TMDB.Search;
 using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
 using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
+using Movie = TMDbLib.Objects.Movies.Movie;
+using TvShow = TMDbLib.Objects.TvShows.TvShow;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -486,7 +488,7 @@ public class TmdbController : BaseController
 
     #endregion
 
-    #region Search
+    #region Online (Search / Bulk / Single)
 
     /// <summary>
     /// Search TMDB for movies using the offline or online search.
@@ -498,7 +500,7 @@ public class TmdbController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpGet("Movie/Search/Online")]
+    [HttpGet("Movie/Online/Search")]
     public ListResult<TmdbSearch.RemoteSearchMovie> SearchOnlineForTmdbMovies(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
@@ -513,6 +515,76 @@ public class TmdbController : BaseController
             .GetResult();
 
         return new ListResult<TmdbSearch.RemoteSearchMovie>(totalMovies, pageView.Select(a => new TmdbSearch.RemoteSearchMovie(a)));
+    }
+
+    /// <summary>
+    /// Search for multiple TMDB movies by their IDs.
+    /// </summary>
+    /// <remarks>
+    /// If any of the IDs are not found, a <see cref="ValidationProblemDetails"/> is returned.
+    /// </remarks>
+    /// <param name="body">Body containing the IDs of the movies to search for.</param>
+    /// <returns>
+    /// A list of <see cref="TmdbSearch.RemoteSearchMovie"/> containing the search results.
+    /// The order of the returned movies is determined by the order of the IDs in <paramref name="body"/>.
+    /// </returns>
+    [HttpPost("Movie/Online/Bulk")]
+    public async Task<ActionResult<List<TmdbSearch.RemoteSearchMovie>>> SearchBulkForTmdbMovies(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkSearchBody body
+    )
+    {
+        // We don't care if the inputs are non-unique, but we don't want to double fetch,
+        // so we do a distinct here, then at the end we map back to the original order.
+        var uniqueIds = body.IDs.Distinct().ToList();
+        var movieDict = uniqueIds
+            .Select(id => id <= 0 ? null : RepoFactory.TMDB_Movie.GetByTmdbMovieID(id))
+            .WhereNotNull()
+            .Select(movie => new TmdbSearch.RemoteSearchMovie(movie))
+            .ToDictionary(movie => movie.ID);
+        foreach (var id in uniqueIds.Except(movieDict.Keys))
+        {
+            var movie = id <= 0 ? null : await _tmdbMetadataService.UseClient(c => c.GetMovieAsync(id), $"Get movie {id}");
+            if (movie is null)
+                continue;
+
+            movieDict[movie.Id] = new TmdbSearch.RemoteSearchMovie(movie);
+        }
+
+        var unknownMovies = uniqueIds.Except(movieDict.Keys).ToList();
+        if (unknownMovies.Count > 0)
+        {
+            foreach (var id in unknownMovies)
+                ModelState.AddModelError(nameof(body.IDs), $"Movie with id '{id}' not found.");
+
+            return ValidationProblem(ModelState);
+        }
+
+        return body.IDs
+            .Select(id => movieDict[id])
+            .ToList();
+    }
+
+    /// <summary>
+    /// Search TMDB for a movie.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID.</param>
+    /// <returns>
+    /// If the movie is already in the database, returns the local copy.
+    /// Otherwise, returns the remote copy from TMDB.
+    /// If the movie is not found on TMDB, returns 404.
+    /// </returns>
+    [HttpGet("Movie/Online/{movieID}")]
+    public async Task<ActionResult<TmdbSearch.RemoteSearchMovie>> SearchOnlineForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        if (RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID) is { } localMovie)
+            return new TmdbSearch.RemoteSearchMovie(localMovie);
+
+        if (await _tmdbMetadataService.UseClient(c => c.GetMovieAsync(movieID), $"Get movie {movieID}") is not { } remoteMovie)
+            return NotFound("Movie not found on TMDB.");
+
+        return new TmdbSearch.RemoteSearchMovie(remoteMovie);
     }
 
     #endregion
@@ -1137,7 +1209,7 @@ public class TmdbController : BaseController
 
     #endregion
 
-    #region Search
+    #region Online (Search / Bulk / Single)
 
     /// <summary>
     /// Search TMDB for shows using the online search.
@@ -1149,7 +1221,7 @@ public class TmdbController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpGet("Show/Search/Online")]
+    [HttpGet("Show/Online/Search")]
     public ListResult<TmdbSearch.RemoteSearchShow> SearchOnlineForTmdbShows(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
@@ -1164,6 +1236,76 @@ public class TmdbController : BaseController
             .GetResult();
 
         return new ListResult<TmdbSearch.RemoteSearchShow>(totalShows, pageView.Select(a => new TmdbSearch.RemoteSearchShow(a)));
+    }
+
+    /// <summary>
+    /// Search for multiple TMDB shows by their IDs.
+    /// </summary>
+    /// <remarks>
+    /// If any of the IDs are not found, a <see cref="ValidationProblemDetails"/> is returned.
+    /// </remarks>
+    /// <param name="body">Body containing the IDs of the shows to search for.</param>
+    /// <returns>
+    /// A list of <see cref="TmdbSearch.RemoteSearchShow"/> containing the search results.
+    /// The order of the returned shows is determined by the order of the IDs in <paramref name="body"/>.
+    /// </returns>
+    [HttpPost("Show/Online/Bulk")]
+    public async Task<ActionResult<List<TmdbSearch.RemoteSearchShow>>> SearchBulkForTmdbShows(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkSearchBody body
+    )
+    {
+        // We don't care if the inputs are non-unique, but we don't want to double fetch,
+        // so we do a distinct here, then at the end we map back to the original order.
+        var uniqueIds = body.IDs.Distinct().ToList();
+        var showDict = uniqueIds
+            .Select(id => id <= 0 ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(id))
+            .WhereNotNull()
+            .Select(show => new TmdbSearch.RemoteSearchShow(show))
+            .ToDictionary(show => show.ID);
+        foreach (var id in uniqueIds.Except(showDict.Keys))
+        {
+            var show = id <= 0 ? null : await _tmdbMetadataService.UseClient(c => c.GetTvShowAsync(id), $"Get show {id}");
+            if (show is null)
+                continue;
+
+            showDict[show.Id] = new TmdbSearch.RemoteSearchShow(show);
+        }
+
+        var unknownShows = uniqueIds.Except(showDict.Keys).ToList();
+        if (unknownShows.Count > 0)
+        {
+            foreach (var id in unknownShows)
+                ModelState.AddModelError(nameof(body.IDs), $"Show with id '{id}' not found.");
+
+            return ValidationProblem(ModelState);
+        }
+
+        return body.IDs
+            .Select(id => showDict[id])
+            .ToList();
+    }
+
+    /// <summary>
+    /// Search TMDB for a show.
+    /// </summary>
+    /// <param name="showID">TMDB Show ID.</param>
+    /// <returns>
+    /// If the show is already in the database, returns the local copy.
+    /// Otherwise, returns the remote copy from TMDB.
+    /// If the show is not found on TMDB, returns 404.
+    /// </returns>
+    [HttpGet("Show/Online/{showID}")]
+    public async Task<ActionResult<TmdbSearch.RemoteSearchShow>> SearchOnlineForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        if (RepoFactory.TMDB_Show.GetByTmdbShowID(showID) is { } localShow)
+            return new TmdbSearch.RemoteSearchShow(localShow);
+
+        if (await _tmdbMetadataService.UseClient(c => c.GetTvShowAsync(showID), $"Get show {showID}") is not { } remoteShow)
+            return NotFound("Show not found on TMDB.");
+
+        return new TmdbSearch.RemoteSearchShow(remoteShow);
     }
 
     #endregion

@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 125;
+    public override int RequiredVersion { get; } = 126;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -749,6 +749,10 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(125, 2, "DELETE FROM CrossRef_AniDB_TMDB_Movie WHERE AnidbEpisodeID IS NULL;"),
         new DatabaseCommand(125, 3, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ALTER COLUMN AnidbEpisodeID INT NOT NULL;"),
         new DatabaseCommand(125, 4, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD CONSTRAINT DF_CrossRef_AniDB_TMDB_Movie_AnidbEpisodeID DEFAULT 0 FOR AnidbEpisodeID;"),
+        new DatabaseCommand(126, 1, "ALTER TABLE TMDB_Movie ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(126, 2, "ALTER TABLE TMDB_Movie ADD BackdropPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(126, 3, "ALTER TABLE TMDB_Show ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(126, 4, "ALTER TABLE TMDB_Show ADD BackdropPath NVARCHAR(64) NULL DEFAULT NULL;"),
     };
 
     private static void AlterImdbMovieIDType()

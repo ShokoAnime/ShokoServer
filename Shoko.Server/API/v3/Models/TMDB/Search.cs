@@ -6,8 +6,12 @@ using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using TMDbLib.Objects.Search;
+
+using RemoteMovie = TMDbLib.Objects.Movies.Movie;
+using RemoteShow = TMDbLib.Objects.TvShows.TvShow;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -147,6 +151,58 @@ public static class Search
         /// </summary>
         public Rating UserRating { get; init; }
 
+        public RemoteSearchMovie(TMDB_Movie movie)
+        {
+            ID = movie.Id;
+            Title = movie.EnglishTitle;
+            OriginalTitle = movie.OriginalTitle;
+            OriginalLanguage = movie.OriginalLanguage;
+            Overview = movie.EnglishOverview ?? string.Empty;
+            IsRestricted = movie.IsRestricted;
+            IsVideo = movie.IsVideo;
+            ReleasedAt = movie.ReleasedAt;
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+                : null;
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+                : null;
+            UserRating = new Rating()
+            {
+                Value = (decimal)movie.UserRating,
+                MaxValue = 10,
+                Source = "TMDB",
+                Type = "User",
+                Votes = movie.UserVotes,
+            };
+        }
+
+        public RemoteSearchMovie(RemoteMovie movie)
+        {
+            ID = movie.Id;
+            Title = movie.Title;
+            OriginalTitle = movie.OriginalTitle;
+            OriginalLanguage = movie.OriginalLanguage.GetTitleLanguage();
+            Overview = movie.Overview ?? string.Empty;
+            IsRestricted = movie.Adult;
+            IsVideo = movie.Video;
+            ReleasedAt = movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null;
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+                : null;
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+                : null;
+            UserRating = new Rating()
+            {
+                Value = (decimal)movie.VoteAverage,
+                MaxValue = 10,
+                Source = "TMDB",
+                Type = "User",
+                Votes = movie.VoteCount,
+            };
+        }
+
         public RemoteSearchMovie(SearchMovie movie)
         {
             ID = movie.Id;
@@ -224,6 +280,54 @@ public static class Search
         /// User rating of the movie from TMDB users.
         /// </summary>
         public Rating UserRating { get; init; }
+
+        public RemoteSearchShow(TMDB_Show show)
+        {
+            ID = show.Id;
+            Title = show.EnglishTitle;
+            OriginalTitle = show.OriginalTitle;
+            OriginalLanguage = show.OriginalLanguage;
+            Overview = show.EnglishOverview ?? string.Empty;
+            FirstAiredAt = show.FirstAiredAt;
+            Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
+                : null;
+            Backdrop = !string.IsNullOrEmpty(show.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
+                : null;
+            UserRating = new Rating()
+            {
+                Value = (decimal)show.UserRating,
+                MaxValue = 10,
+                Source = "TMDB",
+                Type = "User",
+                Votes = show.UserVotes,
+            };
+        }
+
+        public RemoteSearchShow(RemoteShow show)
+        {
+            ID = show.Id;
+            Title = show.Name;
+            OriginalTitle = show.OriginalName;
+            OriginalLanguage = show.OriginalLanguage.GetTitleLanguage();
+            Overview = show.Overview ?? string.Empty;
+            FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
+            Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
+                : null;
+            Backdrop = !string.IsNullOrEmpty(show.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
+                : null;
+            UserRating = new Rating()
+            {
+                Value = (decimal)show.VoteAverage,
+                MaxValue = 10,
+                Source = "TMDB",
+                Type = "User",
+                Votes = show.VoteCount,
+            };
+        }
 
         public RemoteSearchShow(SearchTv show)
         {

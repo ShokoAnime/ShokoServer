@@ -54,9 +54,16 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     public string? ImdbMovieID { get; set; }
 
     /// <summary>
-    /// The default poster path. Used to determine the default poster for the show.
+    /// The default poster path. Used to determine the default poster for the
+    /// movie.
     /// </summary>
     public string PosterPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The default backdrop path. Used to determine the default backdrop for
+    /// the movie.
+    /// </summary>
+    public string BackdropPath { get; set; } = string.Empty;
 
     /// <summary>
     /// The english title of the movie, used as a fallback for when no title
@@ -76,7 +83,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     public string OriginalTitle { get; set; } = string.Empty;
 
     /// <summary>
-    /// The original language this show was shot in, just as a title language
+    /// The original language this movie was shot in, just as a title language
     /// enum instead.
     /// </summary>
     public TitleLanguage OriginalLanguage
@@ -85,7 +92,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     }
 
     /// <summary>
-    /// The original language this show was shot in.
+    /// The original language this movie was shot in.
     /// </summary>
     public string OriginalLanguageCode { get; set; } = string.Empty;
 
@@ -119,7 +126,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     public List<string> Genres { get; set; } = [];
 
     /// <summary>
-    /// Content ratings for different countries for this show.
+    /// Content ratings for different countries for this movie.
     /// </summary>
     public List<TMDB_ContentRating> ContentRatings { get; set; } = [];
 
@@ -143,7 +150,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     public double UserRating { get; set; }
 
     /// <summary>
-    /// Number of users that cast a vote for a rating of this show.
+    /// Number of users that cast a vote for a rating of this movie.
     /// </summary>
     /// <value></value>
     public int UserVotes { get; set; }
@@ -199,6 +206,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         var updatedList = new[]
         {
             UpdateProperty(PosterPath, movie.PosterPath, v => PosterPath = v),
+            UpdateProperty(BackdropPath, movie.BackdropPath, v => BackdropPath = v),
             UpdateProperty(TmdbCollectionID, movie.BelongsToCollection?.Id, v => TmdbCollectionID = v),
             UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : movie.Title, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : movie.Overview, v => EnglishOverview = v),
@@ -318,6 +326,8 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID);
 
     public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(PosterPath, ImageEntityType.Poster);
+
+    public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(BackdropPath, ImageEntityType.Backdrop);
 
     /// <summary>
     /// Get all images for the movie, or all images for the given
