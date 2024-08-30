@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
@@ -11,29 +12,34 @@ namespace Shoko.Server.API.v3.Models.TMDB.Input;
 public class TmdbExportBody
 {
     /// <summary>
-    /// Include only cross-references with the given AniDB episode(s).
+    /// Include only cross-references with the given AniDB episode.
     /// </summary>
-    public HashSet<int>? AnidbEpisodeIDs { get; set; } = null;
+    [Range(1, int.MaxValue)]
+    public int? AnidbEpisodeID { get; set; } = null;
 
     /// <summary>
-    /// Include only cross-references with the given AniDB anime(s).
+    /// Include only cross-references with the given AniDB anime.
     /// </summary>
-    public HashSet<int>? AnidbAnimeIDs { get; set; } = null;
+    [Range(1, int.MaxValue)]
+    public int? AnidbAnimeID { get; set; } = null;
 
     /// <summary>
-    /// Include only cross-references with the given TMDB show(s).
+    /// Include only cross-references with the given TMDB show.
     /// </summary>
-    public HashSet<int>? TmdbShowIDs { get; set; } = null;
+    [Range(1, int.MaxValue)]
+    public int? TmdbShowID { get; set; } = null;
 
     /// <summary>
-    /// Include only cross-references with the given TMDB episode(s).
+    /// Include only cross-references with the given TMDB episode.
     /// </summary>
-    public HashSet<int>? TmdbEpisodeIDs { get; set; } = null;
+    [Range(0, int.MaxValue)]
+    public int? TmdbEpisodeID { get; set; } = null;
 
     /// <summary>
-    /// Include only cross-references with the given TMDB movie(s).
+    /// Include only cross-references with the given TMDB movie.
     /// </summary>
-    public HashSet<int>? TmdbMovieIDs { get; set; } = null;
+    [Range(1, int.MaxValue)]
+    public int? TmdbMovieID { get; set; } = null;
 
     /// <summary>
     /// Include/exclude automatically made cross-references.
@@ -61,7 +67,7 @@ public class TmdbExportBody
     /// Determines whether the movie filter is enabled.
     /// </summary>
     [JsonIgnore]
-    public bool MovieFilerEnabled => AnidbAnimeIDs is not null || AnidbEpisodeIDs is not null || TmdbMovieIDs is not null;
+    public bool MovieFilerEnabled => AnidbAnimeID is not null || AnidbEpisodeID is not null || TmdbMovieID is not null;
 
     /// <summary>
     /// Determines whether the given movie cross-reference should be included in the export.
@@ -72,20 +78,20 @@ public class TmdbExportBody
     {
         if (!MovieFilerEnabled)
             return true;
-        if (AnidbAnimeIDs is not null && AnidbAnimeIDs.Contains(xref.AnidbAnimeID))
-            return true;
-        if (AnidbEpisodeIDs is not null && AnidbEpisodeIDs.Contains(xref.AnidbEpisodeID))
-            return true;
-        if (TmdbMovieIDs is not null && TmdbMovieIDs.Contains(xref.TmdbMovieID))
-            return true;
-        return false;
+        if (AnidbAnimeID is not null && AnidbAnimeID != xref.AnidbAnimeID)
+            return false;
+        if (AnidbEpisodeID is not null && AnidbEpisodeID != xref.AnidbEpisodeID)
+            return false;
+        if (TmdbMovieID is not null && TmdbMovieID != xref.TmdbMovieID)
+            return false;
+        return true;
     }
 
     /// <summary>
     /// Determines whether episode filtering is enabled.
     /// </summary>
     [JsonIgnore]
-    public bool EpisodeFilterEnabled => AnidbAnimeIDs is not null || AnidbEpisodeIDs is not null || TmdbShowIDs is not null || TmdbEpisodeIDs is not null;
+    public bool EpisodeFilterEnabled => AnidbAnimeID is not null || AnidbEpisodeID is not null || TmdbShowID is not null || TmdbEpisodeID is not null;
 
     /// <summary>
     /// Determines whether the given episode cross-reference should be included in the export.
@@ -96,14 +102,14 @@ public class TmdbExportBody
     {
         if (!EpisodeFilterEnabled)
             return true;
-        if (AnidbAnimeIDs is not null && AnidbAnimeIDs.Contains(xref.AnidbAnimeID))
-            return true;
-        if (AnidbEpisodeIDs is not null && AnidbEpisodeIDs.Contains(xref.AnidbEpisodeID))
-            return true;
-        if (TmdbShowIDs is not null && TmdbShowIDs.Contains(xref.TmdbShowID))
-            return true;
-        if (TmdbEpisodeIDs is not null && TmdbEpisodeIDs.Contains(xref.TmdbEpisodeID))
-            return true;
-        return false;
+        if (AnidbAnimeID is not null && AnidbAnimeID != xref.AnidbAnimeID)
+            return false;
+        if (AnidbEpisodeID is not null && AnidbEpisodeID != xref.AnidbEpisodeID)
+            return false;
+        if (TmdbShowID is not null && TmdbShowID != xref.TmdbShowID)
+            return false;
+        if (TmdbEpisodeID is not null && TmdbEpisodeID != xref.TmdbEpisodeID)
+            return false;
+        return true;
     }
 }
