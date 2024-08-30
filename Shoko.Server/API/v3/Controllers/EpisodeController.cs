@@ -17,7 +17,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -36,13 +36,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class EpisodeController : BaseController
 {
-    private readonly AnimeSeriesService _seriesService;
-
-    private readonly AnimeGroupService _groupService;
-
-    private readonly AnimeEpisodeService _episodeService;
-
-    private readonly WatchedStatusService _watchedService;
 
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
@@ -55,6 +48,36 @@ public class EpisodeController : BaseController
     internal const string EpisodeForbiddenForUser = "Accessing Episode is not allowed for the current user";
 
     internal const string EpisodeNoSeriesForEpisodeID = "Unable to find a Series entry for given episodeID";
+
+    private readonly AnimeSeriesService _seriesService;
+
+    private readonly AnimeGroupService _groupService;
+
+    private readonly AnimeEpisodeService _episodeService;
+
+    private readonly WatchedStatusService _watchedService;
+
+    private readonly TmdbLinkingService _tmdbLinkingService;
+
+    private readonly TmdbMetadataService _tmdbMetadataService;
+
+    public EpisodeController(
+        ISettingsProvider settingsProvider,
+        AnimeSeriesService seriesService,
+        AnimeGroupService groupService,
+        AnimeEpisodeService episodeService,
+        WatchedStatusService watchedService,
+        TmdbLinkingService tmdbLinkingService,
+        TmdbMetadataService tmdbMetadataService
+    ) : base(settingsProvider)
+    {
+        _seriesService = seriesService;
+        _groupService = groupService;
+        _episodeService = episodeService;
+        _watchedService = watchedService;
+        _tmdbLinkingService = tmdbLinkingService;
+        _tmdbMetadataService = tmdbMetadataService;
+    }
 
     /// <summary>
     /// Get all <see cref="Episode"/>s for the given filter.
@@ -113,7 +136,7 @@ public class EpisodeController : BaseController
                 if (anidb == null || shoko == null)
                     return false;
 
-                // Filter by hidden state, if spesified
+                // Filter by hidden state, if specified
                 if (includeHidden != IncludeOnlyFilter.True)
                 {
                     // If we should hide hidden episodes and the episode is hidden, then hide it.
@@ -521,11 +544,84 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
         return episode.TmdbMovieCrossReferences
             .Select(xref => xref.TmdbMovie)
             .WhereNotNull()
             .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
             .ToList();
+    }
+
+
+    /// <summary>
+    /// Add a new TMDB Movie cross-reference to the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="body">Body containing the information about the new cross-reference to be made.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{episodeID}/TMDB/Movie")]
+    public async Task<ActionResult> AddLinkToTMDBMoviesByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        await _tmdbLinkingService.AddMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, additiveLink: !body.Replace);
+
+        var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
+        if (needRefresh)
+            await _tmdbMetadataService.ScheduleUpdateOfMovie(body.ID, forceRefresh: body.Refresh, downloadImages: true);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Remove one or all TMDB Movie links from the episode.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="body">Optional. Body containing information about the link to be removed.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("{episodeID}/TMDB/Movie")]
+    public async Task<ActionResult> RemoveLinkToTMDBMoviesByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkMovieBody body
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        if (body != null && body.ID > 0)
+            await _tmdbLinkingService.RemoveMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, body.Purge);
+        else
+            await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episode.AniDB_EpisodeID, body?.Purge ?? false);
+
+        return NoContent();
     }
 
     /// <summary>
@@ -541,6 +637,13 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
 
         return episode.TmdbMovieCrossReferences
             .Select(xref => new TmdbMovie.CrossReference(xref))
@@ -566,6 +669,13 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
         return episode.TmdbEpisodeCrossReferences
             .Select(xref => xref.TmdbEpisode)
             .WhereNotNull()
@@ -586,6 +696,13 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
 
         return episode.TmdbEpisodeCrossReferences
             .Select(xref => new TmdbEpisode.CrossReference(xref))
@@ -838,13 +955,5 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, withXRefs: includeXRefs), page, pageSize);
-    }
-
-    public EpisodeController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeGroupService groupService, AnimeEpisodeService episodeService, WatchedStatusService watchedService) : base(settingsProvider)
-    {
-        _seriesService = seriesService;
-        _groupService = groupService;
-        _episodeService = episodeService;
-        _watchedService = watchedService;
     }
 }

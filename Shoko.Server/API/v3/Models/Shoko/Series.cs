@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
@@ -747,7 +748,7 @@ public class Series : BaseModel
             /// <summary>
             /// Provider ID to add.
             /// </summary>
-            [Required]
+            [Required, Range(1, int.MaxValue)]
             public int ID { get; set; }
 
             /// <summary>
@@ -779,13 +780,24 @@ public class Series : BaseModel
             /// <summary>
             /// Provider ID to remove.
             /// </summary>
-            [Required]
+            [DefaultValue(0)]
+            [Range(0, int.MaxValue)]
             public int ID { get; set; }
 
             /// <summary>
             /// Purge the provider metadata from the database.
             /// </summary>
             public bool Purge { get; set; } = false;
+        }
+
+        public class UnlinkMovieBody : UnlinkCommonBody
+        {
+            /// <summary>
+            /// Only unlink to the given AniDB episode by ID.
+            /// </summary>
+            [DefaultValue(0)]
+            [Range(0, int.MaxValue)]
+            public int EpisodeID { get; set; }
         }
 
         public class OverrideEpisodeMappingBody

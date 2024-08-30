@@ -84,60 +84,81 @@ public class TmdbLinkingService
 
     #region Movie Links
 
-    public async Task AddMovieLink(int animeId, int episodeId, int movieId, bool additiveLink = false, bool isAutomatic = false)
+    public async Task AddMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool additiveLink = false, bool isAutomatic = false)
     {
         // Remove all existing links.
         if (!additiveLink)
-            await RemoveAllMovieLinksForAnime(animeId);
+            await RemoveAllMovieLinksForEpisode(anidbEpisodeId);
+
+        var episode = _anidbEpisodes.GetByEpisodeID(anidbEpisodeId);
+        if (episode == null)
+        {
+            _logger.LogWarning("AniDB Episode (ID:{AnidbID}) not found", anidbEpisodeId);
+            return;
+        }
 
         // Add or update the link.
-        _logger.LogInformation("Adding TMDB Movie Link: AniDB (ID:{AnidbID}) → TMDB Movie (ID:{TmdbID})", animeId, movieId);
-        var xref = _xrefAnidbTmdbMovies.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId) ??
-            new(animeId, movieId);
-        xref.AnidbEpisodeID = episodeId;
+        _logger.LogInformation("Adding TMDB Movie Link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB movie (MovieID={TmdbID})", anidbEpisodeId, episode.AnimeID, tmdbMovieId);
+        var xref = _xrefAnidbTmdbMovies.GetByAnidbEpisodeAndTmdbMovieIDs(anidbEpisodeId, tmdbMovieId) ?? new(anidbEpisodeId, episode.AnimeID, tmdbMovieId);
+        xref.AnidbAnimeID = episode.AnimeID;
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
         _xrefAnidbTmdbMovies.Save(xref);
     }
 
-    public async Task RemoveMovieLink(int animeId, int movieId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool purge = false, bool removeImageFiles = true)
     {
-        var xref = _xrefAnidbTmdbMovies.GetByAnidbAnimeAndTmdbMovieIDs(animeId, movieId);
+        var xref = _xrefAnidbTmdbMovies.GetByAnidbEpisodeAndTmdbMovieIDs(anidbEpisodeId, tmdbMovieId);
         if (xref == null)
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        var series = _animeSeries.GetByAnimeID(animeId);
-        if (series != null && !series.IsTMDBAutoMatchingDisabled)
+        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
             _animeSeries.Save(series, false, true, true);
         }
 
-        await RemoveMovieLink(xref, removeImageFiles, purge ? true : null);
+        await RemoveMovieLink(xref, removeImageFiles, purge);
     }
 
-    public async Task RemoveAllMovieLinksForAnime(int animeId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveAllMovieLinksForAnime(int anidbAnimeId, bool purge = false, bool removeImageFiles = true)
     {
-        _logger.LogInformation("Removing All TMDB Movie Links for: {AnimeID}", animeId);
-        var xrefs = _xrefAnidbTmdbMovies.GetByAnidbAnimeID(animeId);
-        if (xrefs.Count == 0)
-            return;
+        var xrefs = _xrefAnidbTmdbMovies.GetByAnidbAnimeID(anidbAnimeId);
+        _logger.LogInformation("Removing {Count} TMDB movie links for AniDB anime. (AnimeID={AnimeID})", xrefs.Count, anidbAnimeId);
 
         // Disable auto-matching when we remove an existing match for the series.
-        var series = _animeSeries.GetByAnimeID(animeId);
-        if (series != null && !series.IsTMDBAutoMatchingDisabled)
+        if (_animeSeries.GetByAnimeID(anidbAnimeId) is { } series && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
             _animeSeries.Save(series, false, true, true);
         }
 
         foreach (var xref in xrefs)
-            await RemoveMovieLink(xref, removeImageFiles, purge ? true : null);
+            await RemoveMovieLink(xref, removeImageFiles, purge);
     }
 
-    public async Task RemoveAllMovieLinksForMovie(int movieId)
+    public async Task RemoveAllMovieLinksForEpisode(int anidbEpisodeId, bool purge = false, bool removeImageFiles = true)
     {
-        var xrefs = _xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId);
+        var xrefs = _xrefAnidbTmdbMovies.GetByAnidbEpisodeID(anidbEpisodeId);
+        _logger.LogInformation("Removing {Count} TMDB movie links for AniDB episode. (EpisodeID={EpisodeID})", xrefs.Count, anidbEpisodeId);
+        if (xrefs.Count == 0)
+            return;
+
+        // Disable auto-matching when we remove an existing match for the series.
+        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
+        {
+            series.IsTMDBAutoMatchingDisabled = true;
+            _animeSeries.Save(series, false, true, true);
+        }
+
+        foreach (var xref in xrefs)
+            await RemoveMovieLink(xref, removeImageFiles, purge);
+    }
+
+    public async Task RemoveAllMovieLinksForMovie(int tmdbMovieId)
+    {
+        var xrefs = _xrefAnidbTmdbMovies.GetByTmdbMovieID(tmdbMovieId);
+        _logger.LogInformation("Removing {Count} TMDB movie links for TMDB movie. (MovieID={MovieID})", xrefs.Count, tmdbMovieId);
         if (xrefs.Count == 0)
             return;
 
@@ -145,14 +166,14 @@ public class TmdbLinkingService
             await RemoveMovieLink(xref, false, false);
     }
 
-    private async Task RemoveMovieLink(CrossRef_AniDB_TMDB_Movie xref, bool removeImageFiles = true, bool? purge = null)
+    private async Task RemoveMovieLink(CrossRef_AniDB_TMDB_Movie xref, bool removeImageFiles = true, bool purge = false)
     {
         _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Movie, xref.TmdbMovieID);
 
-        _logger.LogInformation("Removing TMDB Movie Link: AniDB ({AnidbID}) → TMDB Movie (ID:{TmdbID})", xref.AnidbAnimeID, xref.TmdbMovieID);
+        _logger.LogInformation("Removing TMDB movie link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB movie (ID:{TmdbID})", xref.AnidbEpisodeID, xref.AnidbAnimeID, xref.TmdbMovieID);
         _xrefAnidbTmdbMovies.Delete(xref);
 
-        if (purge ?? _xrefAnidbTmdbMovies.GetByTmdbMovieID(xref.TmdbMovieID).Count == 0)
+        if (purge)
             await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbMovieJob>(c =>
             {
                 c.TmdbMovieID = xref.TmdbMovieID;
@@ -171,7 +192,7 @@ public class TmdbLinkingService
             await RemoveAllShowLinksForAnime(animeId);
 
         // Add or update the link.
-        _logger.LogInformation("Adding TMDB Show Link: AniDB (ID:{AnidbID}) → TMDB Show (ID:{TmdbID})", animeId, showId);
+        _logger.LogInformation("Adding TMDB show link: AniDB (AnimeID={AnidbID}) → TMDB Show (ID={TmdbID})", animeId, showId);
         var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId) ??
             new(animeId, showId);
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
@@ -197,7 +218,7 @@ public class TmdbLinkingService
 
     public async Task RemoveAllShowLinksForAnime(int animeId, bool purge = false, bool removeImageFiles = true)
     {
-        _logger.LogInformation("Removing All TMDB Show Links for: {AnimeID}", animeId);
+        _logger.LogInformation("Removing All TMDB show links for AniDB anime. (AnimeID={AnimeID})", animeId);
         var xrefs = _xrefAnidbTmdbShows.GetByAnidbAnimeID(animeId);
         if (xrefs == null || xrefs.Count == 0)
             return;
@@ -228,11 +249,11 @@ public class TmdbLinkingService
     {
         _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Show, xref.TmdbShowID);
 
-        _logger.LogInformation("Removing TMDB Show Link: AniDB ({AnidbID}) → TMDB Show (ID:{TmdbID})", xref.AnidbAnimeID, xref.TmdbShowID);
+        _logger.LogInformation("Removing TMDB show link: AniDB anime (AnimeID={AnidbID}) → TMDB show (ID={TmdbID})", xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbShows.Delete(xref);
 
         var xrefs = _xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, xref.TmdbShowID);
-        _logger.LogInformation("Removing {XRefsCount} Show Episodes for AniDB Anime ({AnidbID})", xrefs.Count, xref.AnidbAnimeID);
+        _logger.LogInformation("Removing {XRefsCount} episodes cross-references for AniDB anime (AnimeID={AnidbID}) and TMDB show (ID={TmdbID})", xrefs.Count, xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbEpisodes.Delete(xrefs);
 
         var scheduler = await _schedulerFactory.GetScheduler();

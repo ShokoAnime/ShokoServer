@@ -28,8 +28,9 @@ public class CrossRef_AniDB_TMDB_Movie
 
     public CrossRef_AniDB_TMDB_Movie() { }
 
-    public CrossRef_AniDB_TMDB_Movie(int anidbAnimeId, int tmdbMovieId, MatchRating rating = MatchRating.UserVerified, CrossRefSource source = CrossRefSource.User)
+    public CrossRef_AniDB_TMDB_Movie(int anidbEpisodeId, int anidbAnimeId, int tmdbMovieId, CrossRefSource source = CrossRefSource.User)
     {
+        AnidbEpisodeID = anidbEpisodeId;
         AnidbAnimeID = anidbAnimeId;
         TmdbMovieID = tmdbMovieId;
         Source = source;

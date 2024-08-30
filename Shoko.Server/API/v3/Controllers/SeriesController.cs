@@ -1224,12 +1224,6 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkMovieBody body
     )
     {
-        if (body.ID <= 0)
-        {
-            ModelState.AddModelError(nameof(body.ID), "The provider ID cannot be zero or a negative value.");
-            return ValidationProblem(ModelState);
-        }
-
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -1237,7 +1231,13 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        await _tmdbLinkingService.AddMovieLink(series.AniDB_ID, body.EpisodeID, body.ID, additiveLink: !body.Replace);
+        if (RepoFactory.AniDB_Episode.GetByEpisodeID(body.EpisodeID) is not { } episode)
+            return ValidationProblem("Episode not found.", nameof(body.EpisodeID));
+
+        if (episode.AnimeID != series.AniDB_ID)
+            return ValidationProblem("Episode does not belong to the series.", nameof(body.EpisodeID));
+
+        await _tmdbLinkingService.AddMovieLinkForEpisode(body.EpisodeID, body.ID, additiveLink: !body.Replace);
 
         var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
@@ -1256,7 +1256,7 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/TMDB/Movie")]
     public async Task<ActionResult> RemoveLinkToTMDBMoviesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkMovieBody body
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1265,11 +1265,21 @@ public class SeriesController : BaseController
 
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
+        var episodeIDs = series.AllAnimeEpisodes.Select(e => e.AniDB_EpisodeID).ToList();
+        if (body.EpisodeID > 0)
+        {
+            if (!episodeIDs.Contains(body.EpisodeID))
+                return ValidationProblem("The specified episode is not part of the series.", nameof(body.EpisodeID));
+            episodeIDs = [body.EpisodeID];
+        }
 
-        if (body != null && body.ID > 0)
-            await _tmdbLinkingService.RemoveMovieLink(series.AniDB_ID, body.ID, body.Purge);
-        else
-            await _tmdbLinkingService.RemoveAllMovieLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
+        foreach (var episodeID in episodeIDs)
+        {
+            if (body != null && body.ID > 0)
+                await _tmdbLinkingService.RemoveMovieLinkForEpisode(episodeID, body.ID, body.Purge);
+            else
+                await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episodeID, body?.Purge ?? false);
+        }
 
         return NoContent();
     }
@@ -1421,12 +1431,6 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkShowBody body
     )
     {
-        if (body.ID <= 0)
-        {
-            ModelState.AddModelError(nameof(body.ID), "The provider ID cannot be zero or a negative value.");
-            return ValidationProblem(ModelState);
-        }
-
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);

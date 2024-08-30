@@ -17,9 +17,6 @@ public class CrossRef_AniDB_TMDB_MovieRepository : BaseCachedRepository<CrossRef
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetByAnidbAnimeID(int animeId)
         => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeId));
 
-    public CrossRef_AniDB_TMDB_Movie? GetByAnidbAnimeAndTmdbMovieIDs(int animeId, int movieId)
-        => GetByAnidbAnimeID(animeId).FirstOrDefault(xref => xref.TmdbMovieID == movieId);
-
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetByAnidbEpisodeID(int episodeId)
         => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeId));
 

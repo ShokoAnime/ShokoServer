@@ -1021,7 +1021,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     var episodeId = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(animeID, EpisodeType.Episode, 1).FirstOrDefault()?.EpisodeID;
                     if (!episodeId.HasValue || episodeId <= 0)
                         return $"Could not find first episode for AniDB Anime {animeID} to link to for TMDB Movie {id}";
-                    _tmdbLinkingService.AddMovieLink(animeID, episodeId.Value, id).ConfigureAwait(false).GetAwaiter().GetResult();
+                    _tmdbLinkingService.AddMovieLinkForEpisode(episodeId.Value, id).ConfigureAwait(false).GetAwaiter().GetResult();
                     _tmdbMetadataService.ScheduleUpdateOfMovie(id, downloadImages: true).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
