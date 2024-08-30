@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Shoko.Plugin.Abstraction;
+namespace Shoko.Plugin.Abstractions;
 
 /// <summary>
 /// An attribute for defining a plugin.
