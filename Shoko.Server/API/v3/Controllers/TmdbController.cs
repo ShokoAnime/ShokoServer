@@ -86,7 +86,7 @@ public class TmdbController : BaseController
     /// <returns></returns>
     [HttpGet("Movie")]
     public ActionResult<ListResult<TmdbMovie>> GetTmdbMovies(
-        [FromRoute] string? search = null,
+        [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null,
         [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.True,
@@ -749,7 +749,7 @@ public class TmdbController : BaseController
     /// <returns></returns>
     [HttpGet("Show")]
     public ActionResult<ListResult<TmdbShow>> GetTmdbShows(
-        [FromRoute] string? search = null,
+        [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
