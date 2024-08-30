@@ -281,7 +281,9 @@ public class TmdbLinkingService
             {
                 if (existingIDs.Add(xref.AnidbEpisodeID))
                 {
+                    xref.TmdbShowID = showId.Value;
                     xref.TmdbEpisodeID = 0;
+                    xref.Ordering = 0;
                     toSave.Add(xref);
                 }
                 else
