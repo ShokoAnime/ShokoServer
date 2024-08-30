@@ -1915,6 +1915,18 @@ public class TmdbController : BaseController
 
     private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeType,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
 
+    private string MapAnimeType(AnimeType? type) =>
+        type switch
+        {
+            AnimeType.Movie => "MV",
+            AnimeType.OVA => "VA",
+            AnimeType.TVSeries => "TV",
+            AnimeType.TVSpecial => "SP",
+            AnimeType.Web => "WB",
+            AnimeType.Other => "OT",
+            _ => "??",
+        };
+
     /// <summary>
     /// Export all or selected AniDB/TMDB cross-references in the specified sections.
     /// </summary>
@@ -1965,7 +1977,7 @@ public class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {anidbAnime?.MainTitle ?? "<missing title>"} (a{xref.AnidbAnimeID}) {episodeNumber} (e{xref.AnidbEpisodeID}) → TMDB: {tmdbMovie?.EnglishTitle ?? "<missing title>"} (m{xref.TmdbMovieID})",
+                        $"# AniDB: {MapAnimeType((AnimeType?)anidbAnime?.AnimeType)} ``{anidbAnime?.MainTitle ?? "<missing title>"}`` (a{xref.AnidbAnimeID}) {episodeNumber} (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbMovie?.EnglishTitle ?? "<missing title>"}`` (m{xref.TmdbMovieID})",
                         entry,
                     ];
                 })
