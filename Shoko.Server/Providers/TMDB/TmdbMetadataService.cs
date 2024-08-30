@@ -156,6 +156,8 @@ public class TmdbMetadataService
     // throw if an exception that's not rate-limit related is thrown.
     private readonly AsyncRetryPolicy _retryPolicy;
 
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _concurrencyGuards = new();
+
     /// <summary>
     /// Execute the given function with the TMDb client, applying rate limiting and retry policies.
     /// </summary>
@@ -378,69 +380,72 @@ public class TmdbMetadataService
 
     public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadCollections = false)
     {
-        // Abort if we're within a certain time frame as to not try and get us rate-limited.
-        var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId) ?? new(movieId);
-        var newlyAdded = tmdbMovie.TMDB_MovieID == 0;
-        if (!forceRefresh && tmdbMovie.CreatedAt != tmdbMovie.LastUpdatedAt && tmdbMovie.LastUpdatedAt > DateTime.Now.AddHours(-1))
+        using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "metadata"))
         {
-            _logger.LogInformation("Skipping update of movie {MovieID} as it was last updated {LastUpdatedAt}", movieId, tmdbMovie.LastUpdatedAt);
-            return false;
-        }
-
-        // Abort if we couldn't find the movie by id.
-        var startedAt = DateTime.Now;
-        _logger.LogInformation("Updating movie {MovieID}", movieId);
-        var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds;
-        if (downloadCrewAndCast)
-            methods |= MovieMethods.Credits;
-        var movie = await UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods), $"Get movie {movieId}").ConfigureAwait(false);
-        if (movie == null)
-            return false;
-
-        var settings = _settingsProvider.GetSettings();
-        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
-        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
-
-        var updated = tmdbMovie.Populate(movie);
-        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages);
-        updated = titlesUpdated || overviewsUpdated || updated;
-        updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds) || updated;
-        updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
-        if (downloadCrewAndCast)
-            updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
-        if (updated)
-        {
-            tmdbMovie.LastUpdatedAt = DateTime.Now;
-            _tmdbMovies.Save(tmdbMovie);
-        }
-
-        if (downloadCollections)
-            await UpdateMovieCollections(movie);
-
-        foreach (var xref in _xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId))
-        {
-            if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+            // Abort if we're within a certain time frame as to not try and get us rate-limited.
+            var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId) ?? new(movieId);
+            var newlyAdded = tmdbMovie.TMDB_MovieID == 0;
+            if (!forceRefresh && tmdbMovie.CreatedAt != tmdbMovie.LastUpdatedAt && tmdbMovie.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
-                if (titlesUpdated)
-                {
-                    series.ResetPreferredTitle();
-                    series.ResetAnimeTitles();
-                }
-
-                if (overviewsUpdated)
-                    series.ResetPreferredOverview();
+                _logger.LogInformation("Skipping update of movie {MovieID} as it was last updated {LastUpdatedAt}", movieId, tmdbMovie.LastUpdatedAt);
+                return false;
             }
+
+            // Abort if we couldn't find the movie by id.
+            var startedAt = DateTime.Now;
+            _logger.LogInformation("Updating movie {MovieID}", movieId);
+            var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds;
+            if (downloadCrewAndCast)
+                methods |= MovieMethods.Credits;
+            var movie = await UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods), $"Get movie {movieId}").ConfigureAwait(false);
+            if (movie == null)
+                return false;
+
+            var settings = _settingsProvider.GetSettings();
+            var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+            var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
+            var updated = tmdbMovie.Populate(movie);
+            var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages);
+            updated = titlesUpdated || overviewsUpdated || updated;
+            updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds) || updated;
+            updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies) || updated;
+            if (downloadCrewAndCast)
+                updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages) || updated;
+            if (updated)
+            {
+                tmdbMovie.LastUpdatedAt = DateTime.Now;
+                _tmdbMovies.Save(tmdbMovie);
+            }
+
+            if (downloadCollections)
+                await UpdateMovieCollections(movie);
+
+            foreach (var xref in _xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId))
+            {
+                if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+                {
+                    if (titlesUpdated)
+                    {
+                        series.ResetPreferredTitle();
+                        series.ResetAnimeTitles();
+                    }
+
+                    if (overviewsUpdated)
+                        series.ResetPreferredOverview();
+                }
+            }
+
+            if (downloadImages)
+                await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage);
+
+            if (newlyAdded || updated)
+                ShokoEventHandler.Instance.OnMovieUpdated(tmdbMovie, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
+
+            _logger.LogInformation("Updated movie {MovieID} in {Duration}", movieId, DateTime.Now - startedAt);
+
+            return updated;
         }
-
-        if (downloadImages)
-            await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage);
-
-        if (newlyAdded || updated)
-            ShokoEventHandler.Instance.OnMovieUpdated(tmdbMovie, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
-
-        _logger.LogInformation("Updated movie {MovieID} in {Duration}", movieId, DateTime.Now - startedAt);
-
-        return updated;
     }
 
     private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits credits, bool downloadImages)
@@ -698,14 +703,17 @@ public class TmdbMetadataService
 
     public async Task DownloadAllMovieImages(int movieId, bool forceDownload = false)
     {
-        var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId);
-        if (tmdbMovie is null)
-            return;
+        using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "images"))
+        {
+            var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId);
+            if (tmdbMovie is null)
+                return;
 
-        await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage, forceDownload);
+            await DownloadMovieImages(movieId, tmdbMovie.OriginalLanguage, forceDownload);
+        }
     }
 
-    public async Task DownloadMovieImages(int movieId, TitleLanguage? mainLanguage = null, bool forceDownload = false)
+    private async Task DownloadMovieImages(int movieId, TitleLanguage? mainLanguage = null, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
@@ -765,24 +773,27 @@ public class TmdbMetadataService
     /// <param name="removeImageFiles">Remove image files.</param>
     public async Task PurgeMovie(int movieId, bool removeImageFiles = true)
     {
-        await _linkingService.RemoveAllMovieLinksForMovie(movieId);
-
-        _imageService.PurgeImages(ForeignEntityType.Movie, movieId, removeImageFiles);
-
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieId);
-        if (movie != null)
+        using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "metadata"))
         {
-            _logger.LogTrace("Removing movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
-            _tmdbMovies.Delete(movie);
+            await _linkingService.RemoveAllMovieLinksForMovie(movieId);
+
+            _imageService.PurgeImages(ForeignEntityType.Movie, movieId, removeImageFiles);
+
+            var movie = _tmdbMovies.GetByTmdbMovieID(movieId);
+            if (movie != null)
+            {
+                _logger.LogTrace("Removing movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
+                _tmdbMovies.Delete(movie);
+            }
+
+            PurgeMovieCompanies(movieId, removeImageFiles);
+
+            PurgeMovieCastAndCrew(movieId, removeImageFiles);
+
+            CleanupMovieCollection(movieId);
+
+            PurgeTitlesAndOverviews(ForeignEntityType.Movie, movieId);
         }
-
-        PurgeMovieCompanies(movieId, removeImageFiles);
-
-        PurgeMovieCastAndCrew(movieId, removeImageFiles);
-
-        CleanupMovieCollection(movieId);
-
-        PurgeTitlesAndOverviews(ForeignEntityType.Movie, movieId);
     }
 
     private void PurgeMovieCompanies(int movieId, bool removeImageFiles = true)
@@ -900,72 +911,74 @@ public class TmdbMetadataService
 
     public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false)
     {
-
-        // Abort if we're within a certain time frame as to not try and get us rate-limited.
-        var startedAt = DateTime.Now;
-        var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
-        var newlyAdded = tmdbShow.TMDB_ShowID == 0;
-        if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt > DateTime.Now.AddHours(-1))
+        using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata"))
         {
-            _logger.LogInformation("Skipping update of show {ShowID} as it was last updated {LastUpdatedAt}", showId, tmdbShow.LastUpdatedAt);
-            return false;
-        }
-
-        _logger.LogInformation("Updating show {ShowID}", showId);
-        var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds;
-        if (downloadAlternateOrdering)
-            methods |= TvShowMethods.EpisodeGroups;
-        var show = await UseClient(c => c.GetTvShowAsync(showId, methods, "en-US"), $"Get Show {showId}").ConfigureAwait(false);
-        if (show == null)
-            return false;
-
-        var settings = _settingsProvider.GetSettings();
-        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
-        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
-
-        var updated = tmdbShow.Populate(show);
-        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
-        updated = titlesUpdated || overviewsUpdated || updated;
-        updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;
-        updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
-        var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast);
-        updated = episodesOrSeasonsUpdated || updated;
-        if (downloadAlternateOrdering)
-            updated = await UpdateShowAlternateOrdering(show) || updated;
-        if (updated)
-        {
-            tmdbShow.LastUpdatedAt = DateTime.Now;
-            _tmdbShows.Save(tmdbShow);
-        }
-
-        foreach (var xref in _xrefAnidbTmdbShows.GetByTmdbShowID(showId))
-        {
-            _linkingService.MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
-
-            if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+            // Abort if we're within a certain time frame as to not try and get us rate-limited.
+            var startedAt = DateTime.Now;
+            var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
+            var newlyAdded = tmdbShow.TMDB_ShowID == 0;
+            if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
-                if (titlesUpdated)
-                {
-                    series.ResetPreferredTitle();
-                    series.ResetAnimeTitles();
-                }
-
-                if (overviewsUpdated)
-                    series.ResetPreferredOverview();
+                _logger.LogInformation("Skipping update of show {ShowID} as it was last updated {LastUpdatedAt}", showId, tmdbShow.LastUpdatedAt);
+                return false;
             }
+
+            _logger.LogInformation("Updating show {ShowID}", showId);
+            var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds;
+            if (downloadAlternateOrdering)
+                methods |= TvShowMethods.EpisodeGroups;
+            var show = await UseClient(c => c.GetTvShowAsync(showId, methods, "en-US"), $"Get Show {showId}").ConfigureAwait(false);
+            if (show == null)
+                return false;
+
+            var settings = _settingsProvider.GetSettings();
+            var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+            var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
+            var updated = tmdbShow.Populate(show);
+            var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
+            updated = titlesUpdated || overviewsUpdated || updated;
+            updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;
+            updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
+            var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast);
+            updated = episodesOrSeasonsUpdated || updated;
+            if (downloadAlternateOrdering)
+                updated = await UpdateShowAlternateOrdering(show) || updated;
+            if (updated)
+            {
+                tmdbShow.LastUpdatedAt = DateTime.Now;
+                _tmdbShows.Save(tmdbShow);
+            }
+
+            foreach (var xref in _xrefAnidbTmdbShows.GetByTmdbShowID(showId))
+            {
+                _linkingService.MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
+
+                if ((titlesUpdated || overviewsUpdated) && xref.AnimeSeries is { } series)
+                {
+                    if (titlesUpdated)
+                    {
+                        series.ResetPreferredTitle();
+                        series.ResetAnimeTitles();
+                    }
+
+                    if (overviewsUpdated)
+                        series.ResetPreferredOverview();
+                }
+            }
+
+            if (downloadImages)
+                await DownloadAllShowImages(showId, false);
+
+            if (newlyAdded || updated)
+                ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
+            foreach (var (episode, reason) in updatedEpisodes)
+                ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, reason);
+
+            _logger.LogInformation("Updated show {ShowID} in {Duration}", showId, DateTime.Now - startedAt);
+
+            return updated;
         }
-
-        if (downloadImages)
-            await DownloadAllShowImages(showId, false);
-
-        if (newlyAdded || updated)
-            ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
-        foreach (var (episode, reason) in updatedEpisodes)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, reason);
-
-        _logger.LogInformation("Updated show {ShowID} in {Duration}", showId, DateTime.Now - startedAt);
-
-        return updated;
     }
 
     private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false)
@@ -1439,34 +1452,37 @@ public class TmdbMetadataService
 
     public async Task DownloadAllShowImages(int showId, bool forceDownload = false)
     {
-        // Abort if we're within a certain time frame as to not try and get us rate-limited.
-        var tmdbShow = _tmdbShows.GetByTmdbShowID(showId);
-        if (tmdbShow is null)
-            return;
-
-        _logger.LogDebug("Downloading all images for show {ShowTitle} (Show={ShowId})", tmdbShow.EnglishTitle, showId);
-
-        await DownloadShowImages(showId, tmdbShow.OriginalLanguage, forceDownload);
-
-        var peopleToDownload = new HashSet<int>();
-        foreach (var tmdbSeason in tmdbShow.TmdbSeasons)
+        using (await GetLockForEntity(ForeignEntityType.Show, showId, "images"))
         {
-            await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, tmdbShow.OriginalLanguage, forceDownload);
-            foreach (var tmdbEpisode in tmdbSeason.TmdbEpisodes)
-            {
-                await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbSeason.SeasonNumber, tmdbEpisode.EpisodeNumber, tmdbShow.OriginalLanguage, forceDownload);
-                foreach (var cast in tmdbEpisode.Cast)
-                    peopleToDownload.Add(cast.TmdbPersonID);
-                foreach (var crew in tmdbEpisode.Crew)
-                    peopleToDownload.Add(crew.TmdbPersonID);
-            }
-        }
+            // Abort if we're within a certain time frame as to not try and get us rate-limited.
+            var tmdbShow = _tmdbShows.GetByTmdbShowID(showId);
+            if (tmdbShow is null)
+                return;
 
-        foreach (var personId in peopleToDownload)
-            await DownloadPersonImages(personId, forceDownload);
+            _logger.LogDebug("Downloading all images for show {ShowTitle} (Show={ShowId})", tmdbShow.EnglishTitle, showId);
+
+            await DownloadShowImages(showId, tmdbShow.OriginalLanguage, forceDownload);
+
+            var peopleToDownload = new HashSet<int>();
+            foreach (var tmdbSeason in tmdbShow.TmdbSeasons)
+            {
+                await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, tmdbShow.OriginalLanguage, forceDownload);
+                foreach (var tmdbEpisode in tmdbSeason.TmdbEpisodes)
+                {
+                    await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbSeason.SeasonNumber, tmdbEpisode.EpisodeNumber, tmdbShow.OriginalLanguage, forceDownload);
+                    foreach (var cast in tmdbEpisode.Cast)
+                        peopleToDownload.Add(cast.TmdbPersonID);
+                    foreach (var crew in tmdbEpisode.Crew)
+                        peopleToDownload.Add(crew.TmdbPersonID);
+                }
+            }
+
+            foreach (var personId in peopleToDownload)
+                await DownloadPersonImages(personId, forceDownload);
+        }
     }
 
-    public async Task DownloadShowImages(int showId, TitleLanguage? mainLanguage = null, bool forceDownload = false)
+    private async Task DownloadShowImages(int showId, TitleLanguage? mainLanguage = null, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
@@ -1555,39 +1571,41 @@ public class TmdbMetadataService
         });
     }
 
-    public async Task<bool> PurgeShow(int showId, bool removeImageFiles = true)
+    public async Task PurgeShow(int showId, bool removeImageFiles = true)
     {
-        var show = _tmdbShows.GetByTmdbShowID(showId);
-
-        await _linkingService.RemoveAllShowLinksForShow(showId);
-
-        _imageService.PurgeImages(ForeignEntityType.Show, showId, removeImageFiles);
-
-        PurgeTitlesAndOverviews(ForeignEntityType.Show, showId);
-
-        PurgeShowCompanies(showId, removeImageFiles);
-
-        PurgeShowNetworks(showId, removeImageFiles);
-
-        PurgeShowEpisodes(showId, removeImageFiles);
-
-        PurgeShowSeasons(showId, removeImageFiles);
-
-        PurgeShowCastAndCrew(showId, removeImageFiles);
-
-        PurgeShowEpisodeGroups(showId);
-
-        if (show != null)
+        using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata"))
         {
-            _logger.LogTrace(
-                "Removing show {ShowName} (Show={ShowId})",
-                show.EnglishTitle,
-                showId
-            );
-            _tmdbShows.Delete(show);
-        }
+            _logger.LogInformation("Purging show {ShowID}", showId);
+            var show = _tmdbShows.GetByTmdbShowID(showId);
 
-        return false;
+            await _linkingService.RemoveAllShowLinksForShow(showId);
+
+            _imageService.PurgeImages(ForeignEntityType.Show, showId, removeImageFiles);
+
+            if (show != null)
+            {
+                _logger.LogTrace(
+                    "Removing show {ShowName} (Show={ShowId})",
+                    show.EnglishTitle,
+                    showId
+                );
+                _tmdbShows.Delete(show);
+            }
+
+            PurgeTitlesAndOverviews(ForeignEntityType.Show, showId);
+
+            PurgeShowCompanies(showId, removeImageFiles);
+
+            PurgeShowNetworks(showId, removeImageFiles);
+
+            PurgeShowEpisodes(showId, removeImageFiles);
+
+            PurgeShowSeasons(showId, removeImageFiles);
+
+            PurgeShowCastAndCrew(showId, removeImageFiles);
+
+            PurgeShowEpisodeGroups(showId);
+        }
     }
 
     private void PurgeShowCompanies(int showId, bool removeImageFiles = true)
@@ -1974,7 +1992,7 @@ public class TmdbMetadataService
 
     #region People (Shared)
 
-    public async Task DownloadPersonImages(int personId, bool forceDownload = false)
+    private async Task DownloadPersonImages(int personId, bool forceDownload = false)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TMDB.AutoDownloadStaffImages)
@@ -2049,6 +2067,7 @@ public class TmdbMetadataService
 
         return false;
     }
+
     #endregion
 
     #endregion
@@ -2175,6 +2194,51 @@ public class TmdbMetadataService
 
         movie.ImdbMovieID = externalIds.ImdbId;
         return true;
+    }
+
+    #endregion
+
+    #region Locking
+
+    private async Task<IDisposable> GetLockForEntity(ForeignEntityType entityType, int id, string metadataKey)
+    {
+        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
+        _logger.LogDebug("Acquiring lock '{MetadataKey}' for {EntityType} {Id}", metadataKey, entityType, id);
+        var semaphore = _concurrencyGuards.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        var acquiredLock = await semaphore.WaitAsync(500).ConfigureAwait(false);
+        if (!acquiredLock)
+        {
+            var waitStart = DateTime.Now;
+            _logger.LogDebug("Waiting for lock '{MetadataKey}' for {EntityType} {Id}", metadataKey, entityType, id);
+            await semaphore.WaitAsync().ConfigureAwait(false);
+            var deltaTime = DateTime.Now - waitStart;
+            _logger.LogDebug("Waited {Waited} for lock '{MetadataKey}' for {EntityType} {Id}", deltaTime, metadataKey, entityType, id);
+        }
+        _logger.LogDebug("Acquired lock '{MetadataKey}' for {EntityType} {Id}", metadataKey, entityType, id);
+
+        var released = false;
+        return new DisposableAction(() =>
+        {
+            if (released) return;
+            released = true;
+            // We remove the semaphore from the dictionary before releasing it
+            // so new threads will acquire a new semaphore instead.
+            _concurrencyGuards.TryRemove(key, out _);
+            semaphore.Release();
+            _logger.LogDebug("Released lock '{MetadataKey}' for {EntityType} {Id}", metadataKey, entityType, id);
+        });
+    }
+
+    private class DisposableAction : IDisposable
+    {
+        private readonly Action _action;
+
+        public DisposableAction(Action action)
+        {
+            _action = action;
+        }
+
+        public void Dispose() => _action();
     }
 
     #endregion
