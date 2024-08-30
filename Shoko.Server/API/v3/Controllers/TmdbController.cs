@@ -1916,36 +1916,31 @@ public class TmdbController : BaseController
     private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeType,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
 
     /// <summary>
-    /// Export any and all AniDB/TMDB cross-references in the specified sections.
+    /// Export all or selected AniDB/TMDB cross-references in the specified sections.
     /// </summary>
-    /// <param name="automatic">Include/exclude automatically made cross-references</param>
-    /// <param name="withEpisodes">Include/exclude cross-references with an episode. That is movie cross-references with an anidb episode set, or episode cross-references with a tmdb episode set.</param>
-    /// <param name="comments">Append human friendly comments in the output file. They serve no purpose other than to enlighten the humans reading the file what each cross-reference is for.</param>
-    /// <param name="sectionSet">Sections to include in the output file, if we have anything to fill in in the selected sections.</param>
+    /// <param name="body">Optional. Export options.</param>
     /// <returns></returns>
     [HttpPost("Export")]
     public ActionResult ExportCrossReferences(
-        [FromQuery] IncludeOnlyFilter automatic = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter withEpisodes = IncludeOnlyFilter.True,
-        [FromQuery] bool comments = false,
-        [FromQuery(Name = "sections"), ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<CrossReferenceExportType>? sectionSet = null
+        [FromBody] TmdbExportBody? body
     )
     {
-        var sections = sectionSet?.CombineFlags() ?? default;
+        body ??= new();
+        var sections = body.SectionSet?.CombineFlags() ?? default;
         var stringBuilder = new StringBuilder();
         if (sections.HasFlag(CrossReferenceExportType.Movie))
         {
             var crossReferences = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
                 .Where(xref =>
                 {
-                    if (automatic != IncludeOnlyFilter.True)
+                    if (body.Automatic != IncludeOnlyFilter.True)
                     {
-                        var includeAutomatic = automatic == IncludeOnlyFilter.Only;
+                        var includeAutomatic = body.Automatic == IncludeOnlyFilter.Only;
                         var isAutomatic = xref.Source == CrossRefSource.Automatic;
                         if (isAutomatic != includeAutomatic)
                             return false;
                     }
-                    return true;
+                    return body.ShouldKeep(xref);
                 })
                 .OrderBy(xref => xref.AnidbAnimeID)
                 .ThenBy(xref => xref.AnidbEpisodeID)
@@ -1953,7 +1948,7 @@ public class TmdbController : BaseController
                 .SelectMany(xref =>
                 {
                     var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID},{xref.TmdbMovieID},{xref.Source == CrossRefSource.Automatic}";
-                    if (!comments)
+                    if (!body.IncludeComments)
                         return new string[1] { entry };
 
                     var anidbAnime = xref.AnidbAnime;
@@ -1967,21 +1962,21 @@ public class TmdbController : BaseController
                     else
                         episodeNumber = $"{((InternalEpisodeType)anidbEpisode.EpisodeType).ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
                     episodeNumber += $" (e{xref.AnidbEpisodeID})";
-                    return new string[3]
-                    {
+                    return
+                    [
                         "",
-                        $"# AniDB: {anidbAnime?.MainTitle ?? "<missing title>"} (a{xref.AnidbAnimeID}) {episodeNumber} → TMDB: {tmdbMovie?.EnglishTitle ?? "<missing title>"} (m{xref.TmdbMovieID})",
+                        $"# AniDB: {anidbAnime?.MainTitle ?? "<missing title>"} (a{xref.AnidbAnimeID}) {episodeNumber} (e{xref.AnidbEpisodeID}) → TMDB: {tmdbMovie?.EnglishTitle ?? "<missing title>"} (m{xref.TmdbMovieID})",
                         entry,
-                    };
+                    ];
                 })
                 .ToList();
             if (crossReferences.Count > 0)
             {
-                if (comments)
+                if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(MovieCrossReferenceWithIdHeader.Length, '-'))
                         .AppendLine("# AniDB/TMDB Movie Cross-References");
                 stringBuilder.AppendLine(MovieCrossReferenceWithIdHeader);
-                if (comments)
+                if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(MovieCrossReferenceWithIdHeader.Length, '-'))
                         .AppendLine();
                 foreach (var line in crossReferences)
@@ -1994,58 +1989,58 @@ public class TmdbController : BaseController
             var crossReferences = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
                 .Where(xref =>
                 {
-                    if (automatic != IncludeOnlyFilter.True)
+                    if (body.Automatic != IncludeOnlyFilter.True)
                     {
-                        var includeAutomatic = automatic == IncludeOnlyFilter.Only;
+                        var includeAutomatic = body.Automatic == IncludeOnlyFilter.Only;
                         var isAutomatic = xref.MatchRating != MatchRating.UserVerified;
                         if (isAutomatic != includeAutomatic)
                             return false;
                     }
-                    if (withEpisodes != IncludeOnlyFilter.True)
+                    if (body.WithEpisodes != IncludeOnlyFilter.True)
                     {
-                        var includeWithEpisode = withEpisodes == IncludeOnlyFilter.Only;
+                        var includeWithEpisode = body.WithEpisodes == IncludeOnlyFilter.Only;
                         var hasEpisode = xref.TmdbEpisodeID != 0;
                         if (hasEpisode != includeWithEpisode)
                             return false;
                     }
-                    return true;
+                    return body.ShouldKeep(xref);
                 })
                 .SelectMany(xref =>
                 {
                     // NOTE: Internal easter eggs should stay internally.
-                    var rating = xref.MatchRating == MatchRating.SarahJessicaParker ? "None" : xref.MatchRating.ToString();
+                    var rating = xref.MatchRating is MatchRating.SarahJessicaParker ? "None" : xref.MatchRating.ToString();
                     var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID},{xref.TmdbShowID},{xref.TmdbEpisodeID},{rating}";
-                    if (!comments)
+                    if (!body.IncludeComments)
                         return new string[1] { entry };
 
                     var anidbAnime = xref.AnidbAnime;
                     var anidbEpisode = xref.AnidbEpisode;
                     var anidbEpisodeNumber = "???";
                     if (anidbEpisode is not null)
-                        if (anidbEpisode.EpisodeType == (int)InternalEpisodeType.Episode)
+                        if (anidbEpisode.EpisodeTypeEnum == InternalEpisodeType.Episode)
                             anidbEpisodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
                         else
-                            anidbEpisodeNumber = $"{((InternalEpisodeType)anidbEpisode.EpisodeType).ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
+                            anidbEpisodeNumber = $"{anidbEpisode.EpisodeTypeEnum.ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
                     var tmdbShow = xref.TmdbShow;
                     var tmdbEpisode = xref.TmdbEpisode;
                     var tmdbEpisodeNumber = "??? ????";
                     if (tmdbEpisode is not null)
                         tmdbEpisodeNumber = $"S{tmdbEpisode.SeasonNumber.ToString().PadLeft(2, '0')} E{tmdbEpisode.EpisodeNumber.ToString().PadLeft(3, '0')}";
-                    return new string[3]
-                    {
+                    return
+                    [
                         "",
-                        $"# AniDB: {anidbAnime?.MainTitle ?? "<missing title>"} (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} → TMDB: {tmdbShow?.EnglishTitle ?? "<missing title>"} (s{xref.TmdbShowID}) {tmdbEpisodeNumber}",
+                        $"# AniDB: {anidbAnime?.MainTitle ?? "<missing title>"} (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} (e{xref.AnidbEpisodeID}) → TMDB: {tmdbShow?.EnglishTitle ?? "<missing title>"} (s{xref.TmdbShowID}) {tmdbEpisodeNumber} (e{xref.TmdbEpisodeID})",
                         entry,
-                    };
+                    ];
                 })
                 .ToList();
             if (crossReferences.Count > 0)
             {
-                if (comments)
+                if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(EpisodeCrossReferenceWithIdHeader.Length, '-'))
                         .AppendLine("# AniDB/TMDB Show/Episode Cross-References");
                 stringBuilder.AppendLine(EpisodeCrossReferenceWithIdHeader);
-                if (comments)
+                if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(EpisodeCrossReferenceWithIdHeader.Length, '-'))
                         .AppendLine();
                 foreach (var line in crossReferences)
@@ -2143,13 +2138,13 @@ public class TmdbController : BaseController
                         var (anime, anidbEpisode, show, tmdbEpisode, rating) = line.Split(",");
                         if (
                             !int.TryParse(anime, out var anidbAnimeId) || anidbAnimeId <= 0 ||
-                            !int.TryParse(anidbEpisode, out var anidbEpisodeId) || anidbEpisodeId < 0 ||
+                            !int.TryParse(anidbEpisode, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
                             !int.TryParse(show, out var tmdbShowId) || tmdbShowId < 0 ||
-                            !int.TryParse(tmdbEpisode, out var tmdbEpisodeId) || tmdbEpisodeId < -1 ||
+                            !int.TryParse(tmdbEpisode, out var tmdbEpisodeId) || tmdbEpisodeId < 0 ||
                             // NOTE: Internal easter eggs should stay internally.
                             !(
-                                (Enum.TryParse<MatchRating>(rating, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
-                                (rating == "None" && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
+                                (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
+                                (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
                             )
                         )
                         {
@@ -2169,52 +2164,33 @@ public class TmdbController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var moviesToUpdate = new HashSet<int>();
-        var usedMovieIdsWithZeroSet = new HashSet<string>();
+        var moviesToPull = new HashSet<int>();
         var exitingMovieXrefs = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
-            .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}");
+            .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}:{xref.TmdbMovieID}");
         var movieXrefsToAdd = 0;
         var movieXrefsToSave = new List<CrossRef_AniDB_TMDB_Movie>();
         foreach (var (animeId, episodeId, movieId, isAutomatic) in movieIdXrefs)
         {
-            var idWithZero = $"{animeId}:0";
-            var id = $"{animeId}:{episodeId}";
+            var id = $"{animeId}:{episodeId}:{movieId}";
             var updated = false;
+            var isNew = false;
             var source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
             if (!exitingMovieXrefs.TryGetValue(id, out var xref))
             {
-                // Also check the zero id if we haven't already.
-                if (!usedMovieIdsWithZeroSet.Contains(idWithZero) && (id == idWithZero || !exitingMovieXrefs.TryGetValue(idWithZero, out xref) || true))
-                    usedMovieIdsWithZeroSet.Add(idWithZero);
-
                 // Make sure an xref exists.
-                if (xref is null)
+                movieXrefsToAdd++;
+                updated = true;
+                isNew = true;
+                xref = new()
                 {
-                    movieXrefsToAdd++;
-                    updated = true;
-                    xref = new()
-                    {
-                        AnidbAnimeID = animeId,
-                        AnidbEpisodeID = episodeId,
-                        TmdbMovieID = movieId,
-                        Source = source,
-                    };
-                }
+                    AnidbAnimeID = animeId,
+                    AnidbEpisodeID = episodeId,
+                    TmdbMovieID = movieId,
+                    Source = source,
+                };
             }
 
-            if (xref.AnidbEpisodeID != episodeId)
-            {
-                xref.AnidbEpisodeID = episodeId;
-                updated = true;
-            }
-
-            if (xref.TmdbMovieID != movieId)
-            {
-                xref.TmdbMovieID = movieId;
-                updated = true;
-            }
-
-            if (xref.Source != source)
+            if (!isNew && xref.Source is not CrossRefSource.User && source is CrossRefSource.User)
             {
                 xref.Source = source;
                 updated = true;
@@ -2223,13 +2199,13 @@ public class TmdbController : BaseController
             if (updated)
                 movieXrefsToSave.Add(xref);
 
-            var animeExists = xref.AnidbAnime is not null;
+            var seriesExists = xref.AnimeSeries is not null;
             var tmdbMovieExists = xref.TmdbMovie is not null;
-            if (animeExists && !tmdbMovieExists)
-                moviesToUpdate.Add(xref.TmdbMovieID);
+            if (seriesExists && !tmdbMovieExists)
+                moviesToPull.Add(xref.TmdbMovieID);
         }
 
-        var showsToUpdate = new HashSet<int>();
+        var showsToPull = new HashSet<int>();
         var usedEpisodeIdsWithZeroSet = new HashSet<string>();
         var existingShowXrefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
             .Select(xref => $"{xref.AnidbAnimeID}:{xref.TmdbShowID}")
@@ -2238,7 +2214,7 @@ public class TmdbController : BaseController
             .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}:{xref.TmdbShowID}:{xref.TmdbEpisodeID}");
         var episodeXrefsToAdd = 0;
         var episodeXrefsToSave = new List<CrossRef_AniDB_TMDB_Episode>();
-        var showXrefsToSave = new List<CrossRef_AniDB_TMDB_Show>();
+        var showXrefsToSave = new Dictionary<string, CrossRef_AniDB_TMDB_Show>();
         foreach (var (animeId, anidbEpisodeId, showId, tmdbEpisodeId, matchRating) in episodeIdXrefs)
         {
             var idWithZero = $"{animeId}:{anidbEpisodeId}:{showId}:0";
@@ -2282,32 +2258,32 @@ public class TmdbController : BaseController
             if (updated)
                 episodeXrefsToSave.Add(xref);
 
-            var animeExists = xref.AnidbAnime is not null;
+            var seriesExists = xref.AnimeSeries is not null;
             var tmdbEpisodeExists = xref.TmdbEpisode is not null;
-            if (animeExists && !tmdbEpisodeExists)
-                showsToUpdate.Add(xref.TmdbShowID);
+            if (seriesExists && !tmdbEpisodeExists)
+                showsToPull.Add(xref.TmdbShowID);
 
             if (!existingShowXrefs.Contains($"{animeId}:{showId}"))
-                showXrefsToSave.Add(new(animeId, showId, CrossRefSource.User));
+                showXrefsToSave.TryAdd($"{animeId}:{showId}", new(animeId, showId, CrossRefSource.User));
         }
 
-        if (movieXrefsToSave.Count > 0 || moviesToUpdate.Count > 0)
+        if (movieXrefsToSave.Count > 0 || moviesToPull.Count > 0)
         {
             _logger.LogDebug(
                 "Inserted {InsertedCount} and updated {UpdatedCount} out of {TotalCount} movie cross-references in the imported file, and scheduling {MovieCount} movies for update.",
                 movieXrefsToAdd,
                 movieXrefsToSave.Count - movieXrefsToAdd,
                 movieIdXrefs.Count,
-                moviesToUpdate.Count
+                moviesToPull.Count
             );
 
             RepoFactory.CrossRef_AniDB_TMDB_Movie.Save(movieXrefsToSave);
 
-            foreach (var movieId in moviesToUpdate)
+            foreach (var movieId in moviesToPull)
                 await _tmdbMetadataService.ScheduleUpdateOfMovie(movieId);
         }
 
-        if (episodeXrefsToSave.Count > 0 || showXrefsToSave.Count > 0 || showsToUpdate.Count > 0)
+        if (episodeXrefsToSave.Count > 0 || showXrefsToSave.Count > 0 || showsToPull.Count > 0)
         {
             _logger.LogDebug(
                 "Inserted {InsertedCount} and updated {UpdatedCount} out of {TotalCount} episode cross-references in the imported file, inserted {TotalCount} show cross-references and scheduling {ShowCount} shows for update.",
@@ -2315,13 +2291,13 @@ public class TmdbController : BaseController
                 episodeXrefsToSave.Count - episodeXrefsToAdd,
                 episodeIdXrefs.Count,
                 showXrefsToSave.Count,
-                showsToUpdate.Count
+                showsToPull.Count
             );
 
-            RepoFactory.CrossRef_AniDB_TMDB_Show.Save(showXrefsToSave);
+            RepoFactory.CrossRef_AniDB_TMDB_Show.Save(showXrefsToSave.Values.ToList());
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(episodeXrefsToSave);
 
-            foreach (var showId in showsToUpdate)
+            foreach (var showId in showsToPull)
                 await _tmdbMetadataService.ScheduleUpdateOfShow(showId);
         }
 
