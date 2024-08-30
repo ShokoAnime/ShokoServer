@@ -1984,6 +1984,11 @@ public class TmdbController : BaseController
             }
         }
 
+        if (body.IncludeComments && sections.HasFlag(CrossReferenceExportType.Movie) && sections.HasFlag(CrossReferenceExportType.Show))
+            stringBuilder
+                .AppendLine()
+                .AppendLine();
+
         if (sections.HasFlag(CrossReferenceExportType.Show))
         {
             var crossReferences = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
