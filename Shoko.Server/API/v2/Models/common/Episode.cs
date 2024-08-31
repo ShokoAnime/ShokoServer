@@ -115,7 +115,7 @@ public class Episode : BaseDirectory
                     ep.art.thumb.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.Id),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.TvDB_EpisodeID),
                     });
                 }
 
@@ -135,7 +135,7 @@ public class Episode : BaseDirectory
                     ep.art.fanart.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.Id),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.TvDB_EpisodeID),
                     });
                 }
             }

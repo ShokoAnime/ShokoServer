@@ -937,7 +937,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             var tvdbEpisode = RepoFactory.TvDB_Episode.GetByTvDBID(override_link.FirstOrDefault().TvDBEpisodeID);
             contract.EpisodeName = tvdbEpisode.EpisodeName;
             contract.EpisodeOverview = tvdbEpisode.Overview;
-            contract.ImageID = tvdbEpisode.Id;
+            contract.ImageID = tvdbEpisode.TvDB_EpisodeID;
             contract.ImageType = (int)CL_ImageEntityType.TvDB_Episode;
             return;
         }
@@ -948,7 +948,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             var tvdbEpisode = RepoFactory.TvDB_Episode.GetByTvDBID(link.FirstOrDefault().TvDBEpisodeID);
             contract.EpisodeName = tvdbEpisode.EpisodeName;
             contract.EpisodeOverview = tvdbEpisode.Overview;
-            contract.ImageID = tvdbEpisode.Id;
+            contract.ImageID = tvdbEpisode.TvDB_EpisodeID;
             contract.ImageType = (int)CL_ImageEntityType.TvDB_Episode;
         }
     }
