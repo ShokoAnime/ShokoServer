@@ -454,7 +454,8 @@ public static class ModelHelper
         include_only ??= [];
 
         var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) ||
-                               (sortOrder?.Any(criteria => criteria.Contains(File.FileSortCriteria.DuplicateCount.ToString())) ?? false);
+            include_only.Contains(FileIncludeOnlyType.Duplicates) ||
+            (sortOrder?.Any(criteria => criteria.Contains(File.FileSortCriteria.DuplicateCount.ToString())) ?? false);
         var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
             criteria.Contains(File.FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(File.FileSortCriteria.WatchedAt.ToString())) ?? false);
         var enumerable = input
