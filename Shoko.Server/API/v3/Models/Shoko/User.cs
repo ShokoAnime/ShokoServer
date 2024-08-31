@@ -77,7 +77,7 @@ public class User
             .Select(tag => tag.TagID)
             .ToList();
 
-        Avatar = user.HasAvatarImage ? ModelHelper.ToDataURL(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType) : string.Empty;
+        Avatar = user.HasAvatarImage ? ModelHelper.ToDataURL(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType) ?? string.Empty : string.Empty;
     }
 
     public class Input

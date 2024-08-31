@@ -15,11 +15,12 @@ using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
 using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using SeriesType = Shoko.Server.API.v3.Models.Shoko.SeriesType;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Helpers;
 
 public static class ModelHelper
 {
-    public static T CombineFlags<T>(this IEnumerable<T> flags) where T : Enum
+    public static T CombineFlags<T>(this IEnumerable<T> flags) where T : struct, Enum
     {
         T combinedFlags = default;
         foreach (var flag in flags)
@@ -147,7 +148,7 @@ public static class ModelHelper
             _ => SeriesType.Unknown,
         };
 
-    public static (int, EpisodeType?, string) GetEpisodeNumberAndTypeFromInput(string input)
+    public static (int, EpisodeType?, string?) GetEpisodeNumberAndTypeFromInput(string input)
     {
         EpisodeType? episodeType = null;
         if (!int.TryParse(input, out var episodeNumber))
@@ -185,7 +186,7 @@ public static class ModelHelper
             .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
     }
 
-    public static string ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary modelState = null)
+    public static string? ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary? modelState = null)
     {
         if (byteArray == null || string.IsNullOrEmpty(contentType))
         {
@@ -195,7 +196,7 @@ public static class ModelHelper
 
         try
         {
-            string base64 = Convert.ToBase64String(byteArray);
+            var base64 = Convert.ToBase64String(byteArray);
             return $"data:{contentType};base64,{base64}";
         }
         catch (Exception)
@@ -205,9 +206,12 @@ public static class ModelHelper
         }
     }
 
-    public static (byte[] byteArray, string contentType) FromDataURL(string dataUrl, string fieldName = "DataUrlToByteArray", ModelStateDictionary modelState = null)
+    private static readonly string[] _dataUrlSeparators = [":", ";", ","];
+
+
+    public static (byte[]? byteArray, string? contentType) FromDataURL(string dataUrl, string fieldName = "DataUrlToByteArray", ModelStateDictionary? modelState = null)
     {
-        var parts = dataUrl.Split(new[] { ":", ";", "," }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = dataUrl.Split(_dataUrlSeparators, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length != 4 || parts[0] != "data")
         {
             modelState?.AddModelError(fieldName, $"Invalid data URL format for field '{fieldName}'.");
@@ -442,12 +446,12 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[] include,
-        FileExcludeTypes[] exclude, FileIncludeOnlyType[] include_only, List<string> sortOrder, HashSet<DataSource> includeDataFrom, bool skipSort = false)
+    public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[]? include,
+        FileExcludeTypes[]? exclude, FileIncludeOnlyType[]? include_only, List<string>? sortOrder, HashSet<DataSource>? includeDataFrom, bool skipSort = false)
     {
-        include ??= Array.Empty<FileNonDefaultIncludeType>();
-        exclude ??= Array.Empty<FileExcludeTypes>();
-        include_only ??= Array.Empty<FileIncludeOnlyType>();
+        include ??= [];
+        exclude ??= [];
+        include_only ??= [];
 
         var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) ||
                                (sortOrder?.Any(criteria => criteria.Contains(File.FileSortCriteria.DuplicateCount.ToString())) ?? false);
@@ -477,8 +481,8 @@ public static class ModelHelper
                 if (!include_only.Contains(FileIncludeOnlyType.Ignored) && !include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
 
-                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
+                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations!.Count > 1) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations!.Count <= 1) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0 && xrefs.Any(x =>
