@@ -932,6 +932,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// </summary>
     /// <param name="includeSpecials">Include specials in the list.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="onlyAiredEpisodes">Only show episodes which has aired.</param>
     /// <param name="onlyFinishedSeries">Only show episodes for completed series.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
@@ -940,11 +941,12 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     public ActionResult<ListResult<Episode>> GetMissingEpisodes(
         [FromQuery] bool includeSpecials = false,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool onlyAiredEpisodes = false,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials);
+        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials, onlyAiredEpisodes);
         if (onlyFinishedSeries)
         {
             var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()

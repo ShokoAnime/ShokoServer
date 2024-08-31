@@ -148,7 +148,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
         return list;
     }
 
-    public List<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials)
+    public List<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials, bool includeOnlyAired = false)
     {
         var all = GetAll().Where(a =>
             {
@@ -166,6 +166,11 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
 
                 if (!includeSpecials &&
                     aniep.EpisodeType == (int)EpisodeType.Special)
+                {
+                    return false;
+                }
+
+                if (includeOnlyAired && !aniep.HasAired)
                 {
                     return false;
                 }
