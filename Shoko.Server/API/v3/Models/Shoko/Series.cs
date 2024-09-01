@@ -800,6 +800,29 @@ public class Series : BaseModel
             public int EpisodeID { get; set; }
         }
 
+        /// <summary>
+        /// Body for auto-matching AniDB episodes to TMDB episodes.
+        /// </summary>
+        public class AutoMatchTmdbEpisodesBody
+        {
+            /// <summary>
+            /// The specified TMDB Show ID to search for links. This parameter is used to select a specific show.
+            /// </summary>
+            [Range(1, int.MaxValue)]
+            public int? TmdbShowID { get; set; }
+
+            /// <summary>
+            /// The specified TMDB Season ID to search for links. If not provided, links are searched for any season of the selected or first linked show.
+            /// </summary>
+            [Range(1, int.MaxValue)]
+            public int? TmdbSeasonID { get; set; }
+
+            /// <summary>
+            /// Determines whether to retain any and all existing links.
+            /// </summary>
+            public bool KeepExisting { get; set; } = false;
+        }
+
         public class OverrideEpisodeMappingBody
         {
             /// <summary>

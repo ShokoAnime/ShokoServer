@@ -1749,19 +1749,16 @@ public class SeriesController : BaseController
     /// episodes that currently lack any.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID.</param>
-    /// <param name="tmdbShowID">The specified TMDB Show ID to search for links. This parameter is used to select a specific show.</param>
-    /// <param name="tmdbSeasonID">The specified TMDB Season ID to search for links. If not provided, links are searched for any season of the selected or first linked show.</param>
-    /// <param name="keepExisting">Determines whether to retain any and all existing links.</param>
+    /// <param name="body">Optional. Any auto-match options.</param>
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Show/CrossReferences/Episode/Auto")]
     public async Task<ActionResult> AutoTMDBEpisodeMappingsBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery] int? tmdbShowID,
-        [FromQuery] int? tmdbSeasonID,
-        [FromQuery] bool keepExisting = false
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.AutoMatchTmdbEpisodesBody body = null
     )
     {
+        body ??= new();
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TvdbNotFoundForSeriesID);
@@ -1771,9 +1768,9 @@ public class SeriesController : BaseController
 
         var isMissing = false;
         var xrefs = series.TmdbShowCrossReferences;
-        if (tmdbShowID.HasValue)
+        if (body.TmdbShowID.HasValue)
         {
-            isMissing = xrefs.Any(s => s.TmdbShowID == tmdbShowID.Value);
+            isMissing = xrefs.Any(s => s.TmdbShowID == body.TmdbShowID.Value);
         }
         else
         {
@@ -1781,28 +1778,28 @@ public class SeriesController : BaseController
             if (xref == null)
                 return ValidationProblem("Unable to find an existing cross-reference for the series to use. Make sure at least one TMDB Show is linked to the Shoko Series.", "tmdbShowID");
 
-            tmdbShowID = xref.TmdbShowID;
+            body.TmdbShowID = xref.TmdbShowID;
         }
 
         // Hard bail if the TMDB show isn't locally available.
-        if (RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID.Value) == null)
+        if (RepoFactory.TMDB_Show.GetByTmdbShowID(body.TmdbShowID.Value) == null)
             return ValidationProblem("Unable to find the selected TMDB Show locally. Add the TMDB Show locally first.", "tmdbShowID");
 
         // Add the missing link if needed.
         if (isMissing)
-            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, tmdbShowID.Value, additiveLink: true);
+            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.TmdbShowID.Value, additiveLink: true);
 
-        if (tmdbSeasonID.HasValue)
+        if (body.TmdbSeasonID.HasValue)
         {
-            var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(tmdbSeasonID.Value);
+            var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(body.TmdbSeasonID.Value);
             if (season == null)
                 return ValidationProblem("Unable to find existing TMDB Season with the given season ID.", "tmdbSeasonID");
 
-            if (season.TmdbShowID != tmdbShowID.Value)
+            if (season.TmdbShowID != body.TmdbShowID.Value)
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
-        _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: true);
+        _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, body.TmdbShowID.Value, body.TmdbSeasonID, body.KeepExisting, saveToDatabase: true);
 
         return NoContent();
     }
