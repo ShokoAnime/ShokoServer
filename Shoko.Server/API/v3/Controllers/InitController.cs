@@ -2,16 +2,20 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Databases;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
 using Constants = Shoko.Server.Server.Constants;
 using ServerStatus = Shoko.Server.API.v3.Models.Shoko.ServerStatus;
 
@@ -27,12 +31,22 @@ namespace Shoko.Server.API.v3.Controllers;
 public class InitController : BaseController
 {
     private readonly ILogger<InitController> _logger;
-    private readonly ShokoServer _shokoServer;
+    private readonly IConnectivityService _connectivityService;
+    private readonly IUDPConnectionHandler _udpHandler;
+    private readonly IHttpConnectionHandler _httpHandler;
 
-    public InitController(ILogger<InitController> logger, ISettingsProvider settingsProvider, ShokoServer shokoServer) : base(settingsProvider)
+    public InitController(
+        ISettingsProvider settingsProvider,
+        ILogger<InitController> logger,
+        IConnectivityService connectivityService,
+        IUDPConnectionHandler udpHandler,
+        IHttpConnectionHandler httpHandler
+    ) : base(settingsProvider)
     {
         _logger = logger;
-        _shokoServer = shokoServer;
+        _connectivityService = connectivityService;
+        _udpHandler = udpHandler;
+        _httpHandler = httpHandler;
     }
 
     /// <summary>
@@ -120,6 +134,38 @@ public class InitController : BaseController
     }
 
     /// <summary>
+    /// Gets the current network connectivity details for the server.
+    /// </summary>
+    /// <returns></returns>
+    [InitFriendly]
+    [HttpGet("Connectivity")]
+    public ActionResult<ConnectivityDetails> GetNetworkAvailability()
+    {
+        return new ConnectivityDetails
+        {
+            NetworkAvailability = _connectivityService.NetworkAvailability,
+            LastChangedAt = _connectivityService.LastChangedAt,
+            IsAniDBUdpReachable = _udpHandler.IsAlive && _udpHandler.IsNetworkAvailable,
+            IsAniDBUdpBanned = _udpHandler.IsBanned,
+            IsAniDBHttpBanned = _httpHandler.IsBanned
+        };
+    }
+
+    /// <summary>
+    /// Forcefully re-checks the current network connectivity, then returns the
+    /// updated details for the server.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("Connectivity")]
+    public async Task<ActionResult<object>> CheckNetworkAvailability()
+    {
+        await _connectivityService.CheckAvailability();
+
+        return GetNetworkAvailability();
+    }
+
+    /// <summary>
     /// Gets whether anything is actively using the API
     /// </summary>
     /// <returns></returns>
@@ -128,7 +174,7 @@ public class InitController : BaseController
     {
         return ServerState.Instance.ApiInUse;
     }
-        
+
     /// <summary>
     /// Gets the Default user's credentials. Will only return on first run
     /// </summary>
