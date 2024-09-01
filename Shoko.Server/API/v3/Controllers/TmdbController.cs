@@ -1159,17 +1159,14 @@ public class TmdbController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
     )
     {
-        if (body.SkipIfExists)
-        {
-            var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
-            if (show is not null)
-                return Ok();
-        }
-
         if (body.Immediate)
         {
+            // If we want quick results, we're already running an update, and we already have episodes to use, then just return early.
+            if (body.QuickRefresh && _tmdbMetadataService.IsShowUpdating(showID) && RepoFactory.TMDB_Episode.GetByTmdbShowID(showID).Count > 0)
+                return Ok();
+
             var settings = SettingsProvider.GetSettings();
-            await _tmdbMetadataService.UpdateShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering);
+            await _tmdbMetadataService.UpdateShow(showID, !body.QuickRefresh && body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering, body.QuickRefresh);
             return Ok();
         }
 

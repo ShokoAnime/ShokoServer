@@ -35,7 +35,10 @@ public class TmdbRefreshShowBody
     public bool Immediate { get; set; } = false;
 
     /// <summary>
-    /// If true, the refresh will be skipped if the show already exists.
+    /// If set to <see langword="true"/> and <see cref="Immediate"/> is also set
+    /// to <see langword="true"/>, then the heavy operations will be postponed
+    /// to run later in the background while the essential data necessary for a
+    /// preview will be downloaded immediately.
     /// </summary>
-    public bool SkipIfExists { get; set; } = false;
+    public bool QuickRefresh { get; set; } = false;
 }

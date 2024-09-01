@@ -154,15 +154,16 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// <param name="episode">The raw TMDB Tv Episode object.</param>
     /// <param name="translations">The translation container for the Tv Episode object (fetched separately).</param>
     /// <returns>True if any of the fields have been updated.</returns>
-    public bool Populate(TvShow show, TvSeason season, TvSeasonEpisode episode, TranslationsContainer translations)
+    public bool Populate(TvShow show, TvSeason season, TvSeasonEpisode episode, TranslationsContainer? translations)
     {
-        var translation = translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+        var translation = translations?.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
 
         var updates = new[]
         {
             UpdateProperty(TmdbSeasonID, season.Id!.Value, v => TmdbSeasonID = v),
             UpdateProperty(TmdbShowID, show.Id, v => TmdbShowID = v),
-            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : episode.Name, v => EnglishTitle = v),
+            // If the translations aren't provided and we have an English title, then don't update it.
+            UpdateProperty(EnglishTitle, translations is null && !string.IsNullOrEmpty(EnglishTitle) ? EnglishTitle : !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : episode.Name, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : episode.Overview, v => EnglishOverview = v),
             UpdateProperty(SeasonNumber, episode.SeasonNumber, v => SeasonNumber = v),
             UpdateProperty(EpisodeNumber, episode.EpisodeNumber, v => EpisodeNumber = v),

@@ -1503,9 +1503,7 @@ public class SeriesController : BaseController
             var settings = SettingsProvider.GetSettings();
             await Task.WhenAll(
                 RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => body.SkipIfExists && RepoFactory.TMDB_Show.GetByTmdbShowID(xref.TmdbShowID) is not null
-                        ? Task.CompletedTask
-                        : _tmdbMetadataService.UpdateShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering)
+                    .Select(xref => _tmdbMetadataService.UpdateShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering, body.QuickRefresh)
                     )
             );
             return Ok();
