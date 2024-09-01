@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 119;
+    public override int RequiredVersion => 120;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -750,6 +750,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(119, 2, "ALTER TABLE TMDB_Movie ADD COLUMN BackdropPath TEXT NULL DEFAULT NULL;"),
         new(119, 3, "ALTER TABLE TMDB_Show ADD COLUMN PosterPath TEXT NULL DEFAULT NULL;"),
         new(119, 4, "ALTER TABLE TMDB_Show ADD COLUMN BackdropPath TEXT NULL DEFAULT NULL;"),
+        new(120, 1, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'MissingTMDbLinkExpression', 'MissingTmdbLinkExpression');"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

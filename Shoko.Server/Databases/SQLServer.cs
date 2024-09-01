@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 126;
+    public override int RequiredVersion { get; } = 127;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -753,6 +753,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(126, 2, "ALTER TABLE TMDB_Movie ADD BackdropPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new DatabaseCommand(126, 3, "ALTER TABLE TMDB_Show ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new DatabaseCommand(126, 4, "ALTER TABLE TMDB_Show ADD BackdropPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(127, 1, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'MissingTMDbLinkExpression', 'MissingTmdbLinkExpression');"),
     };
 
     private static void AlterImdbMovieIDType()
