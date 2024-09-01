@@ -487,12 +487,12 @@ public class TmdbLinkingService
             .ToList();
 
         _logger.LogDebug(
-            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} in {Delta}ms (Anime={AnimeId},Show={ShowId})",
+            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} in {Delta} (Anime={AnimeId},Show={ShowId})",
             toAdd.Count,
             toRemove.Count,
             existing.Count - toRemove.Count,
             anime.PreferredTitle,
-            (DateTime.Now - startedAt).TotalMilliseconds,
+            DateTime.Now - startedAt,
             anidbAnimeId,
             tmdbShowId);
         _xrefAnidbTmdbEpisodes.Save(toAdd);
