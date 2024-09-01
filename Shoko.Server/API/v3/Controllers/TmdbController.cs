@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -23,6 +24,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -37,8 +39,6 @@ using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 using TmdbSearch = Shoko.Server.API.v3.Models.TMDB.Search;
 using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
 using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
-using Movie = TMDbLib.Objects.Movies.Movie;
-using TvShow = TMDbLib.Objects.TvShows.TvShow;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -48,7 +48,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class TmdbController : BaseController
+public partial class TmdbController : BaseController
 {
     private readonly ILogger<TmdbController> _logger;
 
@@ -1064,6 +1064,22 @@ public class TmdbController : BaseController
             .ToListResult(season => new TmdbSeason(season, include?.CombineFlags(), language), page, pageSize);
     }
 
+
+    [GeneratedRegex(@"^\s*(?=[SsEe])(?:[Ss](?<seasonNumber>\d+))?\s*(?:[Ee](?<episodeNumber>\d+))?\b", RegexOptions.Compiled)]
+    private static partial Regex SeasonEpisodeRegex();
+
+    /// <summary>
+    /// Get the episodes for a TMDB show.
+    /// </summary>
+    /// <param name="showID">The ID of the show.</param>
+    /// <param name="include">The optional details to include in the response.</param>
+    /// <param name="language">The optional language to use for the episode titles.</param>
+    /// <param name="alternateOrderingID">The optional ID of an alternate ordering.</param>
+    /// <param name="pageSize">The number of entries to return per page.</param>
+    /// <param name="page">The page of entries to return.</param>
+    /// <param name="search">The optional search string to filter the results by.</param>
+    /// <param name="fuzzy">Whether or not to search fuzzily.</param>
+    /// <returns>The list of episodes.</returns>
     [HttpGet("Show/{showID}/Episode")]
     public ActionResult<ListResult<TmdbEpisode>> GetTmdbEpisodesByTmdbShowID(
         [FromRoute] int showID,
@@ -1071,12 +1087,29 @@ public class TmdbController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] string? search = null,
+        [FromQuery] bool fuzzy = false
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
         if (show is null)
             return NotFound(ShowNotFound);
+
+        int? seasonNumber = null;
+        int? episodeNumber = null;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var match = SeasonEpisodeRegex().Match(search);
+            if (match.Success)
+            {
+                if (match.Groups["seasonNumber"].Success)
+                    seasonNumber = int.Parse(match.Groups["seasonNumber"].Value);
+                if (match.Groups["episodeNumber"].Success)
+                    episodeNumber = int.Parse(match.Groups["episodeNumber"].Value);
+                search = search[match.Length..];
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
@@ -1084,12 +1117,32 @@ public class TmdbController : BaseController
             if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return alternateOrdering.TmdbAlternateOrderingEpisodes
-                .ToListResult(e => new TmdbEpisode(e.TmdbEpisode!, e, include?.CombineFlags(), language), page, pageSize);
+            var altEpisodes = alternateOrdering.TmdbAlternateOrderingEpisodes
+                .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
+                .Where(tuple => tuple.episode is not null)
+                .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
+            if (seasonNumber is not null && episodeNumber is not null)
+                altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber && t.episode.EpisodeNumber == episodeNumber);
+            else if (seasonNumber is not null)
+                altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber);
+            else if (episodeNumber is not null)
+                altEpisodes = altEpisodes.Where(t => t.episode.EpisodeNumber == episodeNumber);
+            if (!string.IsNullOrWhiteSpace(search))
+                altEpisodes = altEpisodes.Search(search, t => t.episode.GetAllPreferredTitles().Select(t => t.Value), fuzzy).Select(r => r.Result);
+            return altEpisodes
+                .ToListResult(t => new TmdbEpisode(t.episode, t.ordering, include?.CombineFlags(), language), page, pageSize);
         }
 
-        return show.TmdbEpisodes
-            .ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
+        IEnumerable<TMDB_Episode> episodes = show.TmdbEpisodes;
+        if (seasonNumber is not null && episodeNumber is not null)
+            episodes = episodes.Where(e => e.SeasonNumber == seasonNumber && e.EpisodeNumber == episodeNumber);
+        else if (seasonNumber is not null)
+            episodes = episodes.Where(e => e.SeasonNumber == seasonNumber);
+        else if (episodeNumber is not null)
+            episodes = episodes.Where(e => e.EpisodeNumber == episodeNumber);
+        if (!string.IsNullOrWhiteSpace(search))
+            episodes = episodes.Search(search, ep => ep.GetAllPreferredTitles().Select(t => t.Value), fuzzy).Select(r => r.Result);
+        return episodes.ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
     }
 
     #endregion

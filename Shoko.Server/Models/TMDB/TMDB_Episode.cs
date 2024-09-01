@@ -221,6 +221,19 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID);
 
     /// <summary>
+    /// Get all episode titles in the preferred episode title languages.
+    /// </summary>
+    /// <param name="force">Forcefully re-fetch all episode titles if they're
+    /// already cached from a previous call.</param>
+    /// <returns>All episode titles in the preferred episode title languages.</returns>
+    public IReadOnlyList<TMDB_Title> GetAllPreferredTitles(bool force = false)
+    {
+        var allTitles = GetAllTitles(force);
+        var preferredLanguages = Languages.PreferredEpisodeNamingLanguages;
+        return allTitles.Where(title => preferredLanguages.Any(language => language.Language == title.Language || title.Language == TitleLanguage.English)).ToList();
+    }
+
+    /// <summary>
     /// Get the preferred overview using the preferred episode title preference
     /// from the application settings.
     /// </summary>
