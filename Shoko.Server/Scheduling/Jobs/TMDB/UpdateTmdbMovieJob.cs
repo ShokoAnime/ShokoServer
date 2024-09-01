@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -60,9 +59,8 @@ public class UpdateTmdbMovieJob : BaseJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing CommandRequest_TMDB_Movie_Update: {TmdbMovieId}", TmdbMovieID);
         var settings = _settingsProvider.GetSettings();
-        await Task.Run(() => _tmdbService.UpdateMovie(TmdbMovieID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadCollections ?? settings.TMDB.AutoDownloadCollections)).ConfigureAwait(false);
+        await _tmdbService.UpdateMovie(TmdbMovieID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadCollections ?? settings.TMDB.AutoDownloadCollections).ConfigureAwait(false);
     }
 
     public UpdateTmdbMovieJob(TmdbMetadataService tmdbService, ISettingsProvider settingsProvider)
