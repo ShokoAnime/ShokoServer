@@ -143,7 +143,7 @@ namespace Shoko.Models.MediaInfo
                         if (string.IsNullOrEmpty(key))
                             continue;
                         var list = key[1..].Split('_');
-                        if (!TimeSpan.TryParse($"{list[0]}:{list[1]}:{list[2]}.{list[3]}", out var timestamp))
+                        if (list.Length < 4 || !TimeSpan.TryParse($"{list[0]}:{list[1]}:{list[2]}.{list[3]}", out var timestamp))
                             continue;
                         var index = value.IndexOf(':');
                         var title = string.IsNullOrEmpty(value) ? string.Empty : index != -1 ? value[(index + 1)..].Trim() : value.Trim();
