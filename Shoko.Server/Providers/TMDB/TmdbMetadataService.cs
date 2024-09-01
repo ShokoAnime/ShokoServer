@@ -946,7 +946,7 @@ public class TmdbMetadataService
                 ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, reason);
 
             if (quickRefresh)
-                await ScheduleUpdateOfShow(showId, forceRefresh, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
+                await ScheduleUpdateOfShow(showId, true, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
 
             return updated;
         }
@@ -2234,7 +2234,7 @@ public class TmdbMetadataService
         });
     }
 
-    private class DisposableAction : IDisposable
+    internal class DisposableAction : IDisposable
     {
         private readonly Action _action;
 
