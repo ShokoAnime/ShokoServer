@@ -17,7 +17,8 @@ public class TMDB_AlternateOrdering_SeasonRepository : BaseDirectRepository<TMDB
                 .Query<TMDB_AlternateOrdering_Season>()
                 .Where(a => a.TmdbShowID == showId)
                 .OrderBy(a => a.TmdbEpisodeGroupCollectionID)
-                .ThenBy(a => a.SeasonNumber)
+                .ThenBy(e => e.SeasonNumber == 0)
+                .ThenBy(e => e.SeasonNumber)
                 .ToList();
         });
     }
@@ -30,7 +31,8 @@ public class TMDB_AlternateOrdering_SeasonRepository : BaseDirectRepository<TMDB
             return session
                 .Query<TMDB_AlternateOrdering_Season>()
                 .Where(a => a.TmdbEpisodeGroupCollectionID == collectionId)
-                .OrderBy(a => a.SeasonNumber)
+                .OrderBy(e => e.SeasonNumber == 0)
+                .ThenBy(e => e.SeasonNumber)
                 .ToList();
         });
     }
