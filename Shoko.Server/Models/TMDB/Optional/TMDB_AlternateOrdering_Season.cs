@@ -103,7 +103,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     /// <returns>All cast members that have worked on this season.</returns>
     public IReadOnlyList<TMDB_Season_Cast> Cast =>
         TmdbAlternateOrderingEpisodes
-            .SelectMany(episode => episode.GetTmdbEpisode()?.Cast ?? [])
+            .SelectMany(episode => episode.TmdbEpisode?.Cast ?? [])
             .WhereNotNull()
             .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
             .Select(group =>
@@ -131,7 +131,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     /// <returns>All crew members that have worked on this season.</returns>
     public IReadOnlyList<TMDB_Season_Crew> Crew =>
         TmdbAlternateOrderingEpisodes
-            .SelectMany(episode => episode.GetTmdbEpisode()?.Crew ?? [])
+            .SelectMany(episode => episode.TmdbEpisode?.Crew ?? [])
             .WhereNotNull()
             .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
             .Select(group =>

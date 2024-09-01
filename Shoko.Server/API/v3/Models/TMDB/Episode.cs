@@ -269,8 +269,8 @@ public class Episode
 
         public OrderingInformation(TMDB_AlternateOrdering_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
         {
-            var ordering = episode.GetTmdbAlternateOrdering();
-            var season = episode.GetTmdbAlternateOrderingSeason();
+            var ordering = episode.TmdbAlternateOrdering;
+            var season = episode.TmdbAlternateOrderingSeason;
             OrderingID = episode.TmdbEpisodeGroupCollectionID;
             OrderingName = ordering?.EnglishTitle ?? "<unknown name>";
             OrderingType = ordering?.Type ?? AlternateOrderingType.Unknown;

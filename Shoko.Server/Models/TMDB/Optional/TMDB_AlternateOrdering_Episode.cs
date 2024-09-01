@@ -86,16 +86,16 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>
         return updates.Any(updated => updated);
     }
 
-    public TMDB_Show? GetTmdbShow() =>
+    public TMDB_Show? TmdbShow =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
-    public TMDB_AlternateOrdering? GetTmdbAlternateOrdering() =>
+    public TMDB_AlternateOrdering? TmdbAlternateOrdering =>
         RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(TmdbEpisodeGroupCollectionID);
 
-    public TMDB_AlternateOrdering_Season? GetTmdbAlternateOrderingSeason() =>
+    public TMDB_AlternateOrdering_Season? TmdbAlternateOrderingSeason =>
         RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(TmdbEpisodeGroupID);
 
-    public TMDB_Episode? GetTmdbEpisode() =>
+    public TMDB_Episode? TmdbEpisode =>
         RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     #endregion

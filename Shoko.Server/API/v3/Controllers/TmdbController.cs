@@ -1085,7 +1085,7 @@ public class TmdbController : BaseController
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
             return alternateOrdering.TmdbAlternateOrderingEpisodes
-                .ToListResult(e => new TmdbEpisode(e.GetTmdbEpisode()!, e, include?.CombineFlags(), language), page, pageSize);
+                .ToListResult(e => new TmdbEpisode(e.TmdbEpisode!, e, include?.CombineFlags(), language), page, pageSize);
         }
 
         return show.TmdbEpisodes
@@ -1524,7 +1524,7 @@ public class TmdbController : BaseController
                 return NotFound(SeasonNotFound);
 
             return altOrderSeason.TmdbAlternateOrderingEpisodes
-                .ToListResult(e => new TmdbEpisode(e.GetTmdbEpisode()!, e, include?.CombineFlags(), language), page, pageSize);
+                .ToListResult(e => new TmdbEpisode(e.TmdbEpisode!, e, include?.CombineFlags(), language), page, pageSize);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -1804,7 +1804,7 @@ public class TmdbController : BaseController
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
             var alternateOrderingEpisode = RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
-            var altOrderSeason = alternateOrderingEpisode?.GetTmdbAlternateOrderingSeason();
+            var altOrderSeason = alternateOrderingEpisode?.TmdbAlternateOrderingSeason;
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFoundByEpisodeID);
 
