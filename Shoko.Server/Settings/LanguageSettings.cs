@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using Shoko.Models.Enums;
 using Shoko.Server.Utilities;
 
@@ -33,6 +36,7 @@ public class LanguageSettings
     /// <summary>
     /// Series / group title source preference order.
     /// </summary>
+    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> SeriesTitleSourceOrder
     {
         get => _seriesTitleSourceOrder;
@@ -59,6 +63,7 @@ public class LanguageSettings
     /// <summary>
     /// Episode / season title source preference order.
     /// </summary>
+    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> EpisodeTitleSourceOrder
     {
         get => _episodeTitleSourceOrder;
@@ -85,6 +90,7 @@ public class LanguageSettings
     /// <summary>
     /// Description source preference order.
     /// </summary>
+    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> DescriptionSourceOrder
     {
         get => _descriptionSourceOrder;
