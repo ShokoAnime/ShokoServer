@@ -823,7 +823,7 @@ public class Series : BaseModel
             public int AniDBID { get; set; }
 
             /// <summary>
-            /// TMDB Episode ID.
+            /// TMDB Episode ID. Set to <c>0</c> to not link to any episode.
             /// </summary>
             [Required, Range(0, int.MaxValue)]
             public int TmdbID { get; set; }
