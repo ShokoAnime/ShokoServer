@@ -284,6 +284,7 @@ public class TmdbLinkingService
                     xref.TmdbShowID = showId.Value;
                     xref.TmdbEpisodeID = 0;
                     xref.Ordering = 0;
+                    xref.MatchRating = MatchRating.SarahJessicaParker;
                     toSave.Add(xref);
                 }
                 else
@@ -324,6 +325,7 @@ public class TmdbLinkingService
             toSave.TmdbShowID = 0;
             toSave.TmdbEpisodeID = 0;
             toSave.Ordering = 0;
+            toSave.MatchRating = MatchRating.SarahJessicaParker;
             var toDelete = xrefs.Skip(1).ToList();
             _xrefAnidbTmdbEpisodes.Save(toSave);
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
@@ -346,6 +348,7 @@ public class TmdbLinkingService
                 index = existingAnidbLinks > 0 ? existingAnidbLinks - 1 : existingTmdbLinks > 0 ? existingTmdbLinks - 1 : 0;
             if (index.HasValue)
                 toSave.Ordering = index.Value;
+            toSave.MatchRating = MatchRating.UserVerified;
             _xrefAnidbTmdbEpisodes.Save(toSave);
         }
         else
@@ -355,6 +358,7 @@ public class TmdbLinkingService
             toSave.TmdbShowID = tmdbEpisode.TmdbShowID;
             toSave.TmdbEpisodeID = tmdbEpisode.TmdbEpisodeID;
             toSave.Ordering = 0;
+            toSave.MatchRating = MatchRating.UserVerified;
             var toDelete = xrefs.Skip(1).ToList();
             _xrefAnidbTmdbEpisodes.Save(toSave);
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
