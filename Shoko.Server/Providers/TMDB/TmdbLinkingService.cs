@@ -345,7 +345,7 @@ public class TmdbLinkingService
             var existingAnidbLinks = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId).Count;
             var existingTmdbLinks = _xrefAnidbTmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeId).Count;
             if (toSave.CrossRef_AniDB_TMDB_EpisodeID == 0 && !index.HasValue)
-                index = existingAnidbLinks > 0 ? existingAnidbLinks - 1 : existingTmdbLinks > 0 ? existingTmdbLinks - 1 : 0;
+                index = existingAnidbLinks > 0 ? existingAnidbLinks : existingTmdbLinks > 0 ? existingTmdbLinks : 0;
             if (index.HasValue)
                 toSave.Ordering = index.Value;
             toSave.MatchRating = MatchRating.UserVerified;
