@@ -1440,7 +1440,7 @@ public class SeriesController : BaseController
 
         await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.ID, additiveLink: !body.Replace);
 
-        var needRefresh = RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) is null || body.Refresh;
+        var needRefresh = body.Refresh || RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
         if (needRefresh)
             await _tmdbMetadataService.ScheduleUpdateOfShow(body.ID, forceRefresh: body.Refresh, downloadImages: true);
 
@@ -1631,6 +1631,11 @@ public class SeriesController : BaseController
         if (body == null || (body.Mapping.Count == 0 && !body.ResetAll))
             return ValidationProblem("Empty body.");
 
+        if (body.Mapping.Count > 0)
+        {
+            body.Mapping = body.Mapping.DistinctBy(x => (x.AniDBID, x.TmdbID)).ToList();
+        }
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TvdbNotFoundForSeriesID);
@@ -1681,6 +1686,10 @@ public class SeriesController : BaseController
         // Do the actual linking.
         foreach (var link in body.Mapping)
             _tmdbLinkingService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace);
+
+        foreach (var showId in missingIDs)
+            if (RepoFactory.TMDB_Show.GetByTmdbShowID(showId) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
+                await _tmdbMetadataService.ScheduleUpdateOfShow(showId, downloadImages: true);
 
         return NoContent();
     }
@@ -1782,12 +1791,8 @@ public class SeriesController : BaseController
         }
 
         // Hard bail if the TMDB show isn't locally available.
-        if (RepoFactory.TMDB_Show.GetByTmdbShowID(body.TmdbShowID.Value) == null)
+        if (RepoFactory.TMDB_Show.GetByTmdbShowID(body.TmdbShowID.Value) is not { } tmdbShow)
             return ValidationProblem("Unable to find the selected TMDB Show locally. Add the TMDB Show locally first.", "tmdbShowID");
-
-        // Add the missing link if needed.
-        if (isMissing)
-            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.TmdbShowID.Value, additiveLink: true);
 
         if (body.TmdbSeasonID.HasValue)
         {
@@ -1799,7 +1804,14 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
+        // Add the missing link if needed.
+        if (isMissing)
+            await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.TmdbShowID.Value, additiveLink: true);
+
         _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, body.TmdbShowID.Value, body.TmdbSeasonID, body.KeepExisting, saveToDatabase: true);
+
+        if (tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
+            await _tmdbMetadataService.ScheduleUpdateOfShow(tmdbShow.Id, downloadImages: true);
 
         return NoContent();
     }

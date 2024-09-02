@@ -885,7 +885,7 @@ public class TmdbMetadataService
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
             var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
-            var newlyAdded = tmdbShow.TMDB_ShowID == 0;
+            var newlyAdded = tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
             if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
                 _logger.LogInformation("Skipping update of show {ShowID} as it was last updated {LastUpdatedAt}", showId, tmdbShow.LastUpdatedAt);
@@ -903,22 +903,25 @@ public class TmdbMetadataService
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
 
+            var xrefs = _xrefAnidbTmdbShows.GetByTmdbShowID(showId);
+            var shouldFireEvents = !quickRefresh || xrefs.Count > 0;
             var updated = tmdbShow.Populate(show);
             var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;
             updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
-            var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh);
+            var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh, shouldFireEvents);
             updated = episodesOrSeasonsUpdated || updated;
             if (downloadAlternateOrdering && !quickRefresh)
                 updated = await UpdateShowAlternateOrdering(show) || updated;
-            if (updated)
+            if (newlyAdded || updated)
             {
-                tmdbShow.LastUpdatedAt = DateTime.Now;
+                if (!shouldFireEvents)
+                    tmdbShow.LastUpdatedAt = DateTime.Now;
                 _tmdbShows.Save(tmdbShow);
             }
 
-            foreach (var xref in _xrefAnidbTmdbShows.GetByTmdbShowID(showId))
+            foreach (var xref in xrefs)
             {
                 // Don't do the auto-matching if we're just doing a quick refresh.
                 if (!quickRefresh)
@@ -937,22 +940,22 @@ public class TmdbMetadataService
                 }
             }
 
-            if (downloadImages)
+            if (downloadImages && !quickRefresh)
                 await ScheduleDownloadAllShowImages(showId, false);
 
-            if (newlyAdded || updated)
-                ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
-            foreach (var (episode, reason) in updatedEpisodes)
-                ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, reason);
-
-            if (quickRefresh)
-                await ScheduleUpdateOfShow(showId, true, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
+            if (shouldFireEvents)
+            {
+                if (newlyAdded || updated)
+                    ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
+                foreach (var (episode, reason) in updatedEpisodes)
+                    ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, reason);
+            }
 
             return updated;
         }
     }
 
-    private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false)
+    private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
     {
         var settings = _settingsProvider.GetSettings();
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -997,13 +1000,12 @@ public class TmdbMetadataService
             await ProcessWithConcurrencyAsync(_maxConcurrency, season.Episodes, async (reducedEpisode) =>
             {
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
-                var episodeNew = false;
                 if (!existingEpisodes.TryGetValue(reducedEpisode.Id, out var tmdbEpisode))
                 {
                     episodesToAdd++;
                     tmdbEpisode = new(reducedEpisode.Id);
-                    episodeNew = true;
                 }
+                var newlyAddedEpisode = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
 
                 // If quick refresh is enabled then skip the API call per episode. (Part 1)
                 TvEpisode? episode = null;
@@ -1035,12 +1037,11 @@ public class TmdbMetadataService
                     }
                 }
 
-                if (episodeNew || episodeUpdated)
-                    episodeEventsToEmit.Add((tmdbEpisode, episodeNew ? UpdateReason.Added : UpdateReason.Updated));
-
-                if (episodeUpdated)
+                if (newlyAddedEpisode || episodeUpdated)
                 {
-                    tmdbEpisode.LastUpdatedAt = DateTime.Now;
+                    episodeEventsToEmit.Add((tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated));
+                    if (shouldFireEvents)
+                        tmdbEpisode.LastUpdatedAt = DateTime.Now;
                     episodesToSave.Add(tmdbEpisode);
                 }
 
