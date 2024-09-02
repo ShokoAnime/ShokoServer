@@ -58,7 +58,7 @@ public class LanguageSettings
         }
     }
 
-    private List<DataSourceType> _episodeTitleSourceOrder = [DataSourceType.TMDB, DataSourceType.TvDB, DataSourceType.AniDB];
+    private List<DataSourceType> _episodeTitleSourceOrder = [DataSourceType.TMDB, DataSourceType.AniDB];
 
     /// <summary>
     /// Episode / season title source preference order.
@@ -85,7 +85,7 @@ public class LanguageSettings
         }
     }
 
-    private List<DataSourceType> _descriptionSourceOrder = [DataSourceType.TMDB, DataSourceType.TvDB, DataSourceType.AniDB];
+    private List<DataSourceType> _descriptionSourceOrder = [DataSourceType.TMDB, DataSourceType.AniDB];
 
     /// <summary>
     /// Description source preference order.

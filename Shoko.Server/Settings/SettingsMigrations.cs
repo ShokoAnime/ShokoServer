@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 
@@ -47,6 +48,7 @@ public static class SettingsMigrations
         { 7, MigrateLanguageSettings },
         { 8, MigrateRenamerFromImportToPluginsSettings },
         { 9, MigrateFixDefaultRenamer },
+        { 10, MigrateLanguageSourceOrders },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -170,6 +172,30 @@ public static class SettingsMigrations
 
         if (string.IsNullOrEmpty(renamerSettings["DefaultRenamer"]?.Value<string>()))
             renamerSettings["DefaultRenamer"] = "Default";
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateLanguageSourceOrders(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        var languageSettings = currentSettings["Language"] ?? (currentSettings["Language"] = new JObject());
+
+        languageSettings["SeriesTitleSourceOrder"] = new JArray
+        {
+            DataSourceType.AniDB, DataSourceType.TMDB
+        };
+;
+        languageSettings["EpisodeTitleSourceOrder"] = new JArray
+        {
+            DataSourceType.AniDB, DataSourceType.TMDB
+        };
+
+        languageSettings["DescriptionSourceOrder"] = new JArray
+        {
+            DataSourceType.AniDB, DataSourceType.TMDB
+        };
 
         return currentSettings.ToString();
     }
