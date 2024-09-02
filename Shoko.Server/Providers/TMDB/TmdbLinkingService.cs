@@ -544,6 +544,15 @@ public class TmdbLinkingService
         // date first, then title
         else
         {
+            // Exact match first.
+            if (titleSearchResults.Count > 0 && titleSearchResults[0].ExactMatch && titleSearchResults[0].LengthDifference == 0)
+            {
+                var tmdbEpisode = titleSearchResults[0]!.Result;
+                var dateAndTitleMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
+                var rating = dateAndTitleMatches ? MatchRating.DateAndTitleMatches : MatchRating.TitleMatches;
+                return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
+            }
+
             if (airdateProbability.Count > 0)
             {
                 var tmdbEpisode = airdateProbability[0]!.episode;
