@@ -326,6 +326,7 @@ public class Episode
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbShowID = xref.TmdbShowID;
             TmdbEpisodeID = xref.TmdbEpisodeID == 0 ? null : xref.TmdbEpisodeID;
+            Index = xref.Ordering;
             Rating = "None";
             // NOTE: Internal easter-eggs stays internally.
             if (xref.MatchRating != MatchRatingEnum.SarahJessicaParker)
