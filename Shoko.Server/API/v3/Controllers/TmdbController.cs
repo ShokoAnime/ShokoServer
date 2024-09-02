@@ -1065,7 +1065,7 @@ public partial class TmdbController : BaseController
     }
 
 
-    [GeneratedRegex(@"^\s*(?=[SsEe])(?:[Ss](?<seasonNumber>\d+))?\s*(?:[Ee](?<episodeNumber>\d+))?\b", RegexOptions.Compiled)]
+    [GeneratedRegex(@"^\s*(?=[SsEe])(?:(?<isSpecial>[Ss]pecial(?:s|\s*(?<specialNumber>\d+))?)|(?:[Ss](?<seasonNumber>\d+))?((?=[Ee])\s+)?(?:[Ee](?<episodeNumber>\d+))?)", RegexOptions.Compiled)]
     private static partial Regex SeasonEpisodeRegex();
 
     /// <summary>
@@ -1103,11 +1103,20 @@ public partial class TmdbController : BaseController
             var match = SeasonEpisodeRegex().Match(search);
             if (match.Success)
             {
-                if (match.Groups["seasonNumber"].Success)
-                    seasonNumber = int.Parse(match.Groups["seasonNumber"].Value);
-                if (match.Groups["episodeNumber"].Success)
-                    episodeNumber = int.Parse(match.Groups["episodeNumber"].Value);
-                search = search[match.Length..];
+                if (match.Groups["isSpecial"].Success)
+                {
+                    seasonNumber = 0;
+                    if (match.Groups["specialNumber"].Success)
+                        episodeNumber = int.Parse(match.Groups["specialNumber"].Value);
+                }
+                else
+                {
+                    if (match.Groups["seasonNumber"].Success)
+                        seasonNumber = int.Parse(match.Groups["seasonNumber"].Value);
+                    if (match.Groups["episodeNumber"].Success)
+                        episodeNumber = int.Parse(match.Groups["episodeNumber"].Value);
+                }
+                search = search[match.Length..].Trim();
             }
         }
 
