@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -245,6 +246,7 @@ public class WebUIController : BaseController
                 return _webUIFactory.GetWebUIGroupExtra(group, anime, body.TagFilter, body.OrderByName,
                     body.TagLimit);
             })
+            .WhereNotNull()
             .ToList();
     }
 
