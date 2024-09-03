@@ -1019,8 +1019,12 @@ public class TmdbMetadataService
 
                 var episodeUpdated = tmdbEpisode.Populate(show, season, reducedEpisode, episode?.Translations);
 
-                // If quick refresh is enabled then skip the API call per episode. (Part 2)
-                if (!quickRefresh)
+                // If quick refresh is enabled then skip the API call per episode, but do add the titles/overviews. (Part 2)
+                if (quickRefresh)
+                {
+                    episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, null, preferredTitleLanguages, preferredOverviewLanguages) || episodeUpdated;
+                }
+                else
                 {
                     episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episode!.Translations, preferredTitleLanguages, preferredOverviewLanguages) || episodeUpdated;
                     episodeUpdated = UpdateEpisodeExternalIDs(tmdbEpisode, episode.ExternalIds) || episodeUpdated;
