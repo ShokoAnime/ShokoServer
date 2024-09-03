@@ -228,6 +228,7 @@ public class WebUIController : BaseController
         // Check user permissions for each requested group and return extra information.
         var user = User;
         return body.GroupIDs
+            .Distinct()
             .Select(groupID =>
             {
                 var group = RepoFactory.AnimeGroup.GetByID(groupID);
