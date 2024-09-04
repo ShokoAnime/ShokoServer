@@ -1649,10 +1649,12 @@ public class SeriesController : BaseController
             .Select(xref => xref.TmdbShowID)
             .ToHashSet();
         var missingIDs = new HashSet<int>();
+        var mapping = new List<(Series.Input.OverrideTmdbEpisodeLinkBody link, SVR_AniDB_Episode aniDBEpisode)>();
         foreach (var link in body.Mapping)
         {
             var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(link.AniDBID);
-            if (shokoEpisode == null)
+            var anidbEpisode = shokoEpisode?.AniDB_Episode;
+            if (anidbEpisode == null)
             {
                 ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
                 continue;
@@ -1662,7 +1664,6 @@ public class SeriesController : BaseController
                 ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
                 continue;
             }
-
             var tmdbEpisode = link.TmdbID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(link.TmdbID);
             if (link.TmdbID != 0 && tmdbEpisode == null)
             {
@@ -1671,6 +1672,8 @@ public class SeriesController : BaseController
             }
             if (link.TmdbID != 0 && !showIDs.Contains(tmdbEpisode.TmdbShowID))
                 missingIDs.Add(tmdbEpisode.TmdbShowID);
+
+            mapping.Add((link, anidbEpisode));
         }
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -1683,8 +1686,15 @@ public class SeriesController : BaseController
         if (body.ResetAll)
             _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID);
 
+        // Make sure the mappings are in the correct order before linking.
+        mapping = mapping
+            .OrderByDescending(x => x.link.Replace)
+            .ThenBy(x => x.aniDBEpisode.EpisodeTypeEnum)
+            .ThenBy(x => x.aniDBEpisode.EpisodeNumber)
+            .ToList();
+
         // Do the actual linking.
-        foreach (var link in body.Mapping)
+        foreach (var (link, _) in mapping)
             _tmdbLinkingService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace, link.Index);
 
         var scheduled = false;

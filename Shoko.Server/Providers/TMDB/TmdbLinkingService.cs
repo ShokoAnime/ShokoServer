@@ -362,6 +362,13 @@ public class TmdbLinkingService
             var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
             toSave.TmdbShowID = tmdbEpisode.TmdbShowID;
             toSave.TmdbEpisodeID = tmdbEpisode.TmdbEpisodeID;
+            if (!index.HasValue && anidbEpisode.EpisodeNumber is > 0 &&
+                _anidbEpisodes.GetByAnimeIDAndEpisodeTypeNumber(anidbEpisode.AnimeID, anidbEpisode.EpisodeTypeEnum, anidbEpisode.EpisodeNumber - 1).FirstOrDefault() is { } previousEpisode)
+            {
+                var previousXrefs = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(previousEpisode.EpisodeID);
+                if (previousXrefs.Count is 1 && previousXrefs[0].TmdbEpisodeID == tmdbEpisodeId)
+                    index = previousXrefs[0].Ordering + 1;
+            }
             toSave.Ordering = index ?? 0;
             toSave.MatchRating = MatchRating.UserVerified;
             var toDelete = xrefs.Skip(1).ToList();
