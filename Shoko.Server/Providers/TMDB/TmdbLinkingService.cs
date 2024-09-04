@@ -415,8 +415,17 @@ public class TmdbLinkingService
             _logger.LogTrace("Checking episode {EpisodeType} {EpisodeNumber} (ID: {EpisodeID}, Progress: {Current}/{Total})", episode.EpisodeTypeEnum, episode.EpisodeNumber, episode.EpisodeID, current, anidbEpisodes.Count);
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks))
             {
-                // If hidden then return an empty link for the hidden episode.
-                if (episode.AnimeEpisode?.IsHidden ?? false)
+                // Remove empty links if we have one or more empty links and at least one non-empty link.
+                if (existingLinks.Any(a => a.TmdbEpisodeID is 0 && a.TmdbShowID is 0) && existingLinks.Any(a => a.TmdbEpisodeID is not 0 || a.TmdbShowID is not 0))
+                    existingLinks = existingLinks
+                        .Where(link => link.TmdbEpisodeID is not 0 || link.TmdbShowID is not 0)
+                        .ToList();
+
+                // Remove duplicates, if any.
+                existingLinks = existingLinks.DistinctBy(link => (link.TmdbShowID, link.TmdbEpisodeID)).ToList();
+
+                // If hidden and no user verified links, then unset the auto link.
+                if ((episode.AnimeEpisode?.IsHidden ?? false) && !existingLinks.Any(link => link.MatchRating is MatchRating.UserVerified))
                 {
                     _logger.LogTrace("Skipping hidden episode {EpisodeID}", episode.EpisodeID);
                     var link = existingLinks[0];
@@ -434,7 +443,7 @@ public class TmdbLinkingService
 
                 // Else return all existing links.
                 _logger.LogTrace("Skipping existing links for episode {EpisodeID}", episode.EpisodeID);
-                foreach (var link in existingLinks.DistinctBy((link => (link.TmdbShowID, link.TmdbEpisodeID))))
+                foreach (var link in existingLinks)
                 {
                     crossReferences.Add(link);
                     toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
