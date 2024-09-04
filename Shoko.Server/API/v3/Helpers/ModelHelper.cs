@@ -162,12 +162,12 @@ public static class ModelHelper
                 return list;
             });
         var tmdbXrefs = remainingXrefs
-            .Select(xref => (xref, tmdb: xref.TmdbEpisode))
+            .Select(xref => (xref, tmdb: xref.TmdbEpisode, anidb: anidbEpisodeDictionary[xref.AnidbEpisodeID]!))
             .Where(tuple => tuple.tmdb is not null)
-            .OfType<(CrossRef_AniDB_TMDB_Episode xref, TMDB_Episode tmdb)>()
-            .OrderBy(tuple => tuple.tmdb.SeasonNumber)
-            .ThenBy(tuple => tuple.tmdb.EpisodeNumber)
-            .ThenBy(tuple => tuple.xref.Ordering)
+            .OrderBy(tuple => tuple.tmdb!.SeasonNumber)
+            .ThenBy(tuple => tuple.tmdb!.EpisodeNumber)
+            .ThenBy(tuple => tuple.anidb.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidb.EpisodeNumber)
             .Select(tuple => tuple.xref)
             .GroupBy(tuple => tuple.TmdbEpisodeID)
             .Aggregate(new List<List<CrossRef_AniDB_TMDB_Episode>>(), (list, group) =>

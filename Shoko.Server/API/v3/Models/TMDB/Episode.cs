@@ -320,13 +320,13 @@ public class Episode
         /// </summary>
         public string Rating { get; init; }
 
-        public CrossReference(CrossRef_AniDB_TMDB_Episode xref)
+        public CrossReference(CrossRef_AniDB_TMDB_Episode xref, int? index = null)
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbShowID = xref.TmdbShowID;
             TmdbEpisodeID = xref.TmdbEpisodeID == 0 ? null : xref.TmdbEpisodeID;
-            Index = xref.Ordering;
+            Index = index ?? xref.Ordering;
             Rating = "None";
             // NOTE: Internal easter-eggs stays internally.
             if (xref.MatchRating != MatchRatingEnum.SarahJessicaParker)

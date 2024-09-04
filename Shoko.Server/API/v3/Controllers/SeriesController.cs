@@ -1894,7 +1894,7 @@ public class SeriesController : BaseController
 
         return series.GetTmdbEpisodeCrossReferences(tmdbShowID)
             .GroupByCrossReferenceType()
-            .ToListResult(list => list.Select(xref => new TmdbEpisode.CrossReference(xref)).ToList(), page, pageSize);
+            .ToListResult(list => list.Select((xref, index) => new TmdbEpisode.CrossReference(xref, index)).ToList(), page, pageSize);
     }
 
     #endregion
