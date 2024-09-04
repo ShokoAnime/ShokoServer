@@ -820,7 +820,8 @@ public class Series : BaseModel
             /// <summary>
             /// Determines whether to retain any and all existing links.
             /// </summary>
-            public bool KeepExisting { get; set; } = false;
+            [DefaultValue(true)]
+            public bool KeepExisting { get; set; } = true;
         }
 
         public class OverrideTmdbEpisodeMappingBody
