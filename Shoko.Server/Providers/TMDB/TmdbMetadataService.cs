@@ -916,7 +916,7 @@ public class TmdbMetadataService
                 updated = await UpdateShowAlternateOrdering(show) || updated;
             if (newlyAdded || updated)
             {
-                if (!shouldFireEvents)
+                if (shouldFireEvents)
                     tmdbShow.LastUpdatedAt = DateTime.Now;
                 _tmdbShows.Save(tmdbShow);
             }
@@ -1041,7 +1041,7 @@ public class TmdbMetadataService
                     }
                 }
 
-                if (newlyAddedEpisode || episodeUpdated)
+                if ((newlyAddedEpisode && shouldFireEvents) || episodeUpdated)
                 {
                     episodeEventsToEmit.Add((tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated));
                     if (shouldFireEvents)

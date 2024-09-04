@@ -1687,9 +1687,16 @@ public class SeriesController : BaseController
         foreach (var link in body.Mapping)
             _tmdbLinkingService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace, link.Index);
 
+        var scheduled = false;
         foreach (var showId in missingIDs)
             if (RepoFactory.TMDB_Show.GetByTmdbShowID(showId) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
+            {
+                scheduled = true;
                 await _tmdbMetadataService.ScheduleUpdateOfShow(showId, downloadImages: true);
+            }
+
+        if (scheduled)
+            return Created();
 
         return NoContent();
     }
@@ -1779,7 +1786,7 @@ public class SeriesController : BaseController
         var xrefs = series.TmdbShowCrossReferences;
         if (body.TmdbShowID.HasValue)
         {
-            isMissing = xrefs.Any(s => s.TmdbShowID == body.TmdbShowID.Value);
+            isMissing = !xrefs.Any(s => s.TmdbShowID == body.TmdbShowID.Value);
         }
         else
         {
@@ -1807,11 +1814,14 @@ public class SeriesController : BaseController
         // Add the missing link if needed.
         if (isMissing)
             await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.TmdbShowID.Value, additiveLink: true);
-
-        _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, body.TmdbShowID.Value, body.TmdbSeasonID, body.KeepExisting, saveToDatabase: true);
+        else
+            _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, body.TmdbShowID.Value, body.TmdbSeasonID, body.KeepExisting, saveToDatabase: true);
 
         if (tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
+        {
             await _tmdbMetadataService.ScheduleUpdateOfShow(tmdbShow.Id, downloadImages: true);
+            return Created();
+        }
 
         return NoContent();
     }

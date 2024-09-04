@@ -185,28 +185,29 @@ public class TmdbLinkingService
 
     #region Show Links
 
-    public async Task AddShowLink(int animeId, int showId, bool additiveLink = true, bool isAutomatic = false)
+    public async Task AddShowLink(int anidbAnimeId, int tmdbShowId, bool additiveLink = true, bool isAutomatic = false)
     {
         // Remove all existing links.
         if (!additiveLink)
-            await RemoveAllShowLinksForAnime(animeId);
+            await RemoveAllShowLinksForAnime(anidbAnimeId);
 
         // Add or update the link.
-        _logger.LogInformation("Adding TMDB show link: AniDB (AnimeID={AnidbID}) → TMDB Show (ID={TmdbID})", animeId, showId);
-        var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId) ??
-            new(animeId, showId);
+        _logger.LogInformation("Adding TMDB show link: AniDB (AnimeID={AnidbID}) → TMDB Show (ID={TmdbID})", anidbAnimeId, tmdbShowId);
+        var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId) ??
+            new(anidbAnimeId, tmdbShowId);
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
         _xrefAnidbTmdbShows.Save(xref);
+        await Task.Run(() => MatchAnidbToTmdbEpisodes(anidbAnimeId, tmdbShowId, null, true, true));
     }
 
-    public async Task RemoveShowLink(int animeId, int showId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveShowLink(int anidbAnimeId, int tmdbShowId, bool purge = false, bool removeImageFiles = true)
     {
-        var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId);
+        var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId);
         if (xref == null)
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        var series = _animeSeries.GetByAnimeID(animeId);
+        var series = _animeSeries.GetByAnimeID(anidbAnimeId);
         if (series != null && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
