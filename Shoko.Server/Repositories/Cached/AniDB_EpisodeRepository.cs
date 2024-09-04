@@ -51,14 +51,14 @@ public class AniDB_EpisodeRepository : BaseCachedRepository<SVR_AniDB_Episode, i
     public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
     {
         return GetByAnimeID(animeid)
-            .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode)
+            .Where(a => a.EpisodeNumber == epnumber && a.EpisodeTypeEnum == EpisodeType.Episode)
             .ToList();
     }
 
     public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
     {
         return GetByAnimeID(animeid)
-            .Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType)
+            .Where(a => a.EpisodeNumber == epnumber && a.EpisodeTypeEnum == epType)
             .ToList();
     }
 
