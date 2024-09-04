@@ -522,64 +522,46 @@ public class TmdbLinkingService
             .ToList();
 
         var airdateProbability = tmdbEpisodes
-            .Select(episode => (episode, probability: CalculateAirDateProbability(anidbDate, episode.AiredAt)))
+            .Select(episode => new { episode, probability = CalculateAirDateProbability(anidbDate, episode.AiredAt) })
             .Where(result => result.probability != 0)
             .Reverse()
             .OrderByDescending(result => result.probability)
             .ToList();
         var titleSearchResults = anidbTitles.Count > 0 ? tmdbEpisodes
-            .Select(episode => anidbTitles.Search(episode.EnglishTitle, title => new string[] { title.Title }, true, 1).FirstOrDefault()?.Map(episode))
-            .WhereNotNull()
+            .Search(anidbTitles[0].Title, episode => [episode.EnglishTitle], true, 1)
             .OrderBy(result => result)
             .ToList() : [];
 
-        // title first, then date
-        if (isSpecial)
+        // Exact or almost exact match first.
+        if (titleSearchResults.Count > 0 && titleSearchResults[0] is { } firstMatch && ((firstMatch.ExactMatch && firstMatch.LengthDifference == 0) || (firstMatch.Distance < 0.2D && firstMatch.LengthDifference < 6)))
         {
-            if (titleSearchResults.Count > 0)
-            {
-                var tmdbEpisode = titleSearchResults[0]!.Result;
-                var dateAndTitleMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
-                var rating = dateAndTitleMatches ? MatchRating.DateAndTitleMatches : MatchRating.TitleMatches;
-                return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
-            }
-
-            if (airdateProbability.Count > 0)
-            {
-                var tmdbEpisode = airdateProbability[0]!.episode;
-                return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.DateMatches);
-            }
-        }
-        // date first, then title
-        else
-        {
-            // Exact match first.
-            if (titleSearchResults.Count > 0 && titleSearchResults[0].ExactMatch && titleSearchResults[0].LengthDifference == 0)
-            {
-                var tmdbEpisode = titleSearchResults[0]!.Result;
-                var dateAndTitleMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
-                var rating = dateAndTitleMatches ? MatchRating.DateAndTitleMatches : MatchRating.TitleMatches;
-                return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
-            }
-
-            if (airdateProbability.Count > 0)
-            {
-                var tmdbEpisode = airdateProbability[0]!.episode;
-                var dateAndTitleMatches = titleSearchResults.Any(result => result.Result == tmdbEpisode);
-                var rating = dateAndTitleMatches ? MatchRating.DateAndTitleMatches : MatchRating.DateMatches;
-                return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
-            }
-
-            if (titleSearchResults.Count > 0)
-            {
-                var tmdbEpisode = titleSearchResults[0]!.Result;
-                return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.TitleMatches);
-            }
+            var tmdbEpisode = titleSearchResults.FirstOrDefault(r => airdateProbability.Any(result => result.episode == r.Result))?.Result;
+            var rating = tmdbEpisode is null ? MatchRating.TitleMatches : MatchRating.DateAndTitleMatches;
+            tmdbEpisode ??= titleSearchResults[0]!.Result;
+            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
-        if (tmdbEpisodes.Count > 0)
+        // Followed by checking the air date.
+        if (airdateProbability.Count > 0)
+        {
+            var tmdbEpisode = airdateProbability.FirstOrDefault(r => titleSearchResults.Any(result => result.Result == r.episode))?.episode;
+            var rating = tmdbEpisode is null ? MatchRating.DateMatches : MatchRating.DateAndTitleMatches;
+            tmdbEpisode ??= airdateProbability[0].episode;
+            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
+        }
+
+        // Followed by _any_ title match.
+        if (titleSearchResults.Count > 0)
+        {
+            var tmdbEpisode = titleSearchResults[0]!.Result;
+            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.TitleMatches);
+        }
+
+        // And finally, just pick the first available episode if it's not a special.
+        if (!isSpecial && tmdbEpisodes.Count > 0)
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisodes[0].TmdbEpisodeID, tmdbEpisodes[0].TmdbShowID, MatchRating.FirstAvailable);
 
+        // And if all above failed, then return an empty link.
         return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.SarahJessicaParker);
     }
 
