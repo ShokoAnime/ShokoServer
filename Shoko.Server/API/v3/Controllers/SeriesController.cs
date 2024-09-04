@@ -1839,6 +1839,44 @@ public class SeriesController : BaseController
         return NoContent();
     }
 
+    /// <summary>
+    /// Shows all existing episode cross-references for a Shoko Series grouped
+    /// by their corresponding cross-reference groups. Optionally allows
+    /// filtering it to a specific TMDB show. 
+    /// </summary>
+    /// <param name="seriesID">The Shoko Series ID.</param>
+    /// <param name="tmdbShowID">The TMDB Show ID to filter the episode mappings. If not specified, mappings for any show may be included.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>The list of grouped episode cross-references.</returns>
+    [HttpGet("{seriesID}/TMDB/Show/CrossReferences/EpisodeGroups")]
+    public ActionResult<ListResult<List<TmdbEpisode.CrossReference>>> GetGroupedTMDBEpisodeMappingsBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] int? tmdbShowID,
+        [FromQuery, Range(0, 1000)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        if (tmdbShowID.HasValue)
+        {
+            var xrefs = series.TmdbShowCrossReferences;
+            var xref = xrefs.FirstOrDefault(s => s.TmdbShowID == tmdbShowID.Value);
+            if (xref == null)
+                return ValidationProblem("Unable to find an existing cross-reference for the given TMDB Show ID. Please first link the TMDB Show to the Shoko Series.", "tmdbShowID");
+        }
+
+        return series.GetTmdbEpisodeCrossReferences(tmdbShowID)
+            .GroupByCrossReferenceType()
+            .ToListResult(list => list.Select(xref => new TmdbEpisode.CrossReference(xref)).ToList(), page, pageSize);
+    }
+
     #endregion
 
     #endregion

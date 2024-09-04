@@ -1154,6 +1154,52 @@ public partial class TmdbController : BaseController
         return episodes.ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
     }
 
+    /// <summary>
+    /// Get all episode cross-references for the specified TMDB show.
+    /// </summary>
+    /// <param name="showID">The TMDB show ID.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>The list of episode cross-references.</returns>
+    [HttpGet("Show/{showID}/Episode/CrossReferences")]
+    public ActionResult<ListResult<TmdbEpisode.CrossReference>> GetTmdbEpisodeCrossReferencesByTmdbShowID(
+        [FromRoute] int showID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        return show.EpisodeCrossReferences
+            .ToListResult(x => new TmdbEpisode.CrossReference(x), page, pageSize);
+    }
+
+    /// <summary>
+    /// Shows all existing episode cross-references for a TMDB Show grouped by
+    /// their corresponding cross-reference groups.
+    /// </summary>
+    /// <param name="showID">The TMDB Show ID.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>The list of grouped episode cross-references.</returns>
+    [HttpGet("Show/{showID}/Episode/CrossReferences/EpisodeGroups")]
+    public ActionResult<ListResult<List<TmdbEpisode.CrossReference>>> GetGroupedTmdbEpisodeCrossReferencesByTmdbShowID(
+        [FromRoute] int showID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        return show.EpisodeCrossReferences
+            .GroupByCrossReferenceType()
+            .ToListResult(list => list.Select(xref => new TmdbEpisode.CrossReference(xref)).ToList(), page, pageSize);
+    }
+
     #endregion
 
     #region Cross-Source Linked Entries

@@ -6,6 +6,8 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 
 using File = Shoko.Server.API.v3.Models.Shoko.File;
@@ -131,6 +133,67 @@ public static class ModelHelper
                 .Select(mapper)
                 .ToList()
         };
+    }
+
+    public static List<List<CrossRef_AniDB_TMDB_Episode>> GroupByCrossReferenceType(this IEnumerable<CrossRef_AniDB_TMDB_Episode> episodes)
+    {
+        var episodeList = episodes is IReadOnlyList<CrossRef_AniDB_TMDB_Episode> readOnlyList ? readOnlyList : episodes.ToList();
+        var remainingXrefs = new List<CrossRef_AniDB_TMDB_Episode>();
+        var anidbEpisodeDictionary = episodeList
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .Select(xref => (xref, anidb: xref.AnidbEpisode))
+            .Where(tuple => tuple.anidb is not null)
+            .ToDictionary(tuple => tuple.xref.AnidbEpisodeID, tuple => tuple.anidb);
+        var anidbXrefs = episodeList
+            .Select(xref => (xref, anidb: anidbEpisodeDictionary.GetValueOrDefault(xref.AnidbEpisodeID)))
+            .Where(tuple => tuple.anidb is not null)
+            .OrderBy(tuple => tuple.anidb!.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidb!.EpisodeNumber)
+            .ThenBy(tuple => tuple.xref.Ordering)
+            .Select(tuple => tuple.xref)
+            .GroupBy(tuple => tuple.AnidbEpisodeID)
+            .Aggregate(new List<List<CrossRef_AniDB_TMDB_Episode>>(), (list, group) =>
+            {
+                var grouped = group.ToList();
+                if (grouped.Count > 1)
+                    list.Add(grouped);
+                else
+                    remainingXrefs.Add(grouped[0]);
+                return list;
+            });
+        var tmdbXrefs = remainingXrefs
+            .Select(xref => (xref, tmdb: xref.TmdbEpisode))
+            .Where(tuple => tuple.tmdb is not null)
+            .OfType<(CrossRef_AniDB_TMDB_Episode xref, TMDB_Episode tmdb)>()
+            .OrderBy(tuple => tuple.tmdb.SeasonNumber)
+            .ThenBy(tuple => tuple.tmdb.EpisodeNumber)
+            .ThenBy(tuple => tuple.xref.Ordering)
+            .Select(tuple => tuple.xref)
+            .GroupBy(tuple => tuple.TmdbEpisodeID)
+            .Aggregate(new List<List<CrossRef_AniDB_TMDB_Episode>>(), (list, group) =>
+            {
+                var currentList = new List<CrossRef_AniDB_TMDB_Episode>();
+                foreach (var xref in group)
+                {
+                    if (currentList.Count > 0 && xref.Ordering == 0)
+                    {
+                        list.Add(currentList);
+                        currentList = [];
+                    }
+                    currentList.Add(xref);
+                }
+                if (currentList.Count > 0)
+                    list.Add(currentList);
+                return list;
+            });
+        var allXrefs = anidbXrefs.Concat(tmdbXrefs)
+            .Select(xref => (xref, anidb: anidbEpisodeDictionary[xref[0].AnidbEpisodeID]!))
+            .OrderBy(tuple => tuple.anidb.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidb.EpisodeNumber)
+            .ThenBy(tuple => tuple.xref[0].Ordering)
+            .Select(tuple => tuple.xref)
+            .ToList();
+        return allXrefs;
     }
 
     public static SeriesType ToAniDBSeriesType(this int animeType)

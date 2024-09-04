@@ -462,6 +462,13 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> CrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
+    /// <summary>
+    /// Get AniDB/TMDB episode cross-references for the show.
+    /// </summary>
+    /// <returns>The episode cross-references.</returns>
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> EpisodeCrossReferences =>
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbShowID(TmdbShowID);
+
     #endregion
 
     #region IEntityMetadata
