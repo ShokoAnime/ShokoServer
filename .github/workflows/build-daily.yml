@@ -117,7 +117,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}.zip
+          name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}
           path: Shoko.Server/bin/Release/net8.0/${{matrix.rid}}/publish/
 
   tray-service-daily:
@@ -166,7 +166,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Shoko.TrayService_${{ matrix.build_type }}_win-x64.zip
+          name: Shoko.TrayService_${{ matrix.build_type }}_win-x64
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
 
       - name: Upload to shokoanime.com
