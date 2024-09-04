@@ -823,7 +823,7 @@ public class Series : BaseModel
             public bool KeepExisting { get; set; } = false;
         }
 
-        public class OverrideEpisodeMappingBody
+        public class OverrideTmdbEpisodeMappingBody
         {
             /// <summary>
             /// Reset all existing links.
@@ -834,10 +834,10 @@ public class Series : BaseModel
             /// Replacing existing links or add new additional links.
             /// </summary>
             [Required]
-            public IReadOnlyList<OverrideEpisodeLinkBody> Mapping { get; set; } = [];
+            public IReadOnlyList<OverrideTmdbEpisodeLinkBody> Mapping { get; set; } = [];
         }
 
-        public class OverrideEpisodeLinkBody
+        public class OverrideTmdbEpisodeLinkBody
         {
             /// <summary>
             /// AniDB Episode ID.
@@ -855,6 +855,13 @@ public class Series : BaseModel
             /// Replace existing episode links.
             /// </summary>
             public bool Replace { get; set; } = false;
+
+            /// <summary>
+            /// Episode index. Set to <c>null</c> to automatically calculate the
+            /// index.
+            /// </summary>
+            [Range(0, int.MaxValue)]
+            public int? Index { get; set; } = null;
         }
 
         public class TitleOverrideBody

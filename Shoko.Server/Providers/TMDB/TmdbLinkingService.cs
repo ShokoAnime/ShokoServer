@@ -265,6 +265,10 @@ public class TmdbLinkingService
             });
     }
 
+    #endregion
+
+    #region Episode Links
+
     public void ResetAllEpisodeLinks(int anidbAnimeId)
     {
         var showId = _xrefAnidbTmdbShows.GetByAnidbAnimeID(anidbAnimeId)
@@ -342,8 +346,8 @@ public class TmdbLinkingService
         {
             var toSave = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeAndTmdbEpisodeIDs(anidbEpisodeId, tmdbEpisodeId)
                 ?? new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
-            var existingAnidbLinks = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId).Count;
-            var existingTmdbLinks = _xrefAnidbTmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeId).Count;
+            var existingAnidbLinks = _xrefAnidbTmdbEpisodes.GetByAnidbEpisodeID(anidbEpisodeId).MaxBy(x => x.Ordering) is { } x1 ? x1.Ordering + 1 : 0;
+            var existingTmdbLinks = _xrefAnidbTmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeId).MaxBy(x => x.Ordering) is { } x2 ? x2.Ordering + 1 : 0;
             if (toSave.CrossRef_AniDB_TMDB_EpisodeID == 0 && !index.HasValue)
                 index = existingAnidbLinks > 0 ? existingAnidbLinks : existingTmdbLinks > 0 ? existingTmdbLinks : 0;
             if (index.HasValue)
@@ -357,7 +361,7 @@ public class TmdbLinkingService
             var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
             toSave.TmdbShowID = tmdbEpisode.TmdbShowID;
             toSave.TmdbEpisodeID = tmdbEpisode.TmdbEpisodeID;
-            toSave.Ordering = 0;
+            toSave.Ordering = index ?? 0;
             toSave.MatchRating = MatchRating.UserVerified;
             var toDelete = xrefs.Skip(1).ToList();
             _xrefAnidbTmdbEpisodes.Save(toSave);
@@ -366,10 +370,6 @@ public class TmdbLinkingService
 
         return true;
     }
-
-    #endregion
-
-    #region Episode Links
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false)
     {

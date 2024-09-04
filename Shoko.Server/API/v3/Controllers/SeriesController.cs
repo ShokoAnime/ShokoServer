@@ -1625,7 +1625,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/TMDB/Show/CrossReferences/Episode")]
     public async Task<ActionResult> OverrideTMDBEpisodeMappingsBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.OverrideEpisodeMappingBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.OverrideTmdbEpisodeMappingBody body
     )
     {
         if (body == null || (body.Mapping.Count == 0 && !body.ResetAll))
@@ -1685,7 +1685,7 @@ public class SeriesController : BaseController
 
         // Do the actual linking.
         foreach (var link in body.Mapping)
-            _tmdbLinkingService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace);
+            _tmdbLinkingService.SetEpisodeLink(link.AniDBID, link.TmdbID, !link.Replace, link.Index);
 
         foreach (var showId in missingIDs)
             if (RepoFactory.TMDB_Show.GetByTmdbShowID(showId) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
