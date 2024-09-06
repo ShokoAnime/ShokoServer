@@ -67,13 +67,13 @@ public class WebUI
         /// <summary>
         /// The URL for where the theme definition lives. Used for updates.
         /// </summary>
-        public string? URL { get; init; } = definition.URL;
+        public string? URL { get; init; } = definition.UpdateUrl;
 
         /// <summary>
         /// The CSS representation of the theme.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? CSS { get; init; } = withCSS ? definition.ToCSS() : null;
+        public string? CSS { get; init; } = withCSS ? definition.ToCSS(true) : null;
     }
 
     public class WebUIGroupExtra

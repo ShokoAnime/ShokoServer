@@ -17,11 +17,13 @@ namespace Shoko.Server.API.WebUI;
 
 public static class WebUIThemeProvider
 {
-    private static Regex VersionRegex = new Regex(@"^\s*(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+)(?:\.(?<revision>\d+))?)?)?\s*$", RegexOptions.ECMAScript | RegexOptions.Compiled);
+    private static readonly Regex VersionRegex = new Regex(@"^\s*(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+)(?:\.(?<revision>\d+))?)?)?\s*$", RegexOptions.ECMAScript | RegexOptions.Compiled);
 
-    private static Regex FileNameRegex = new Regex(@"^\b[A-Za-z][A-Za-z0-9_\-]*\b$", RegexOptions.ECMAScript | RegexOptions.Compiled);
+    private static readonly Regex FileNameRegex = new Regex(@"^\b[A-Za-z][A-Za-z0-9_\-]*\b$", RegexOptions.ECMAScript | RegexOptions.Compiled);
 
-    private static ISet<string> AllowedMIMEs = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "application/json", "text/json", "text/plain" };
+    private static readonly ISet<string> AllowedJsonMime = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "application/json", "text/json", "text/plain" };
+
+    private static readonly ISet<string> AllowedCssMime = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "text/css", "text/plain" };
 
     private static DateTime? NextRefreshAfter = null;
 
@@ -48,7 +50,7 @@ public static class WebUIThemeProvider
     }
 
     /// <summary>
-    /// Get a spesified theme from the theme folder.
+    /// Get a specified theme from the theme folder.
     /// </summary>
     /// <param name="themeId">The id of the theme to get.</param>
     /// <param name="forceRefresh">Forcefully refresh the theme dict. before checking for the theme.</param>
@@ -84,13 +86,13 @@ public static class WebUIThemeProvider
     public static async Task<ThemeDefinition> UpdateTheme(ThemeDefinition theme, bool preview = false)
     {
         // Return the local theme if we don't have an update url.
-        if (string.IsNullOrEmpty(theme.URL))
+        if (string.IsNullOrEmpty(theme.UpdateUrl))
             if (preview)
                 throw new ValidationException("No update URL in existing theme definition.");
             else
                 return theme;
 
-        if (!(Uri.TryCreate(theme.URL, UriKind.Absolute, out var updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
+        if (!(Uri.TryCreate(theme.UpdateUrl, UriKind.Absolute, out var updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
             throw new ValidationException("Invalid update URL in existing theme definition.");
 
         using var httpClient = new HttpClient();
@@ -103,7 +105,7 @@ public static class WebUIThemeProvider
 
         // Check if the response is using the correct content-type.
         var contentType = response.Content.Headers.ContentType?.MediaType;
-        if (string.IsNullOrEmpty(contentType) || !AllowedMIMEs.Contains(contentType))
+        if (string.IsNullOrEmpty(contentType) || !AllowedJsonMime.Contains(contentType))
             throw new HttpRequestException("Invalid content-type. Expected JSON.");
 
         // Simple sanity check before parsing the response content.
@@ -116,12 +118,52 @@ public static class WebUIThemeProvider
         var updatedTheme = ThemeDefinition.FromJson(content, theme.ID, theme.FileName, preview) ??
             throw new HttpRequestException("Failed to parse the updated theme.");
 
+        if (!(Uri.TryCreate(updatedTheme.UpdateUrl, UriKind.Absolute, out updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
+            throw new ValidationException("Invalid update URL in new theme definition.");
+
+        if (!string.IsNullOrEmpty(updatedTheme.CssUrl))
+        {
+            if (!Uri.TryCreate(updatedTheme.CssUrl, UriKind.RelativeOrAbsolute, out var cssUrl))
+                throw new ValidationException("Invalid CSS URL in new theme definition.");
+
+            if (!cssUrl.IsAbsoluteUri)
+            {
+                if (updateUrl is null)
+                    throw new ValidationException("Unable to resolve CSS URL in new theme definition because it is relative and no update URL was provided.");
+                cssUrl = new Uri(updateUrl, cssUrl);
+                updatedTheme.CssUrl = cssUrl.AbsoluteUri;
+            }
+
+            if (cssUrl.Scheme != Uri.UriSchemeHttp && cssUrl.Scheme != Uri.UriSchemeHttps)
+                throw new ValidationException("Invalid CSS URL in existing theme definition.");
+
+            var cssResponse = await httpClient.GetAsync(theme.CssUrl);
+            if (cssResponse.StatusCode != HttpStatusCode.OK)
+                throw new HttpRequestException($"Failed to retrieve CSS file with status code {cssResponse.StatusCode}.", null, cssResponse.StatusCode);
+
+            var cssContentType = cssResponse.Content.Headers.ContentType?.MediaType;
+            if (string.IsNullOrEmpty(cssContentType) || !AllowedCssMime.Contains(cssContentType))
+                throw new ValidationException("Invalid css content-type for resource. Expected \"text/css\" or \"text/plain\".");
+
+            var cssContent = (await cssResponse.Content.ReadAsStringAsync())?.Trim();
+            if (string.IsNullOrEmpty(cssContent))
+                throw new ValidationException("The css url cannot resolve to an empty resource if it is provided in the theme definition.");
+
+            updatedTheme.CssContent = cssContent;
+        }
+
         // Save the updated theme file if we're not pre-viewing.
         if (!preview)
         {
             var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
             if (!Directory.Exists(dirPath))
                 Directory.CreateDirectory(dirPath);
+
+            if (!string.IsNullOrEmpty(theme.CssContent))
+            {
+                var cssFilePath = Path.Combine(dirPath, theme.CssFileName);
+                await File.WriteAllTextAsync(cssFilePath, theme.CssContent);
+            }
 
             var filePath = Path.Combine(dirPath, theme.FileName);
             await File.WriteAllTextAsync(filePath, content);
@@ -173,7 +215,7 @@ public static class WebUIThemeProvider
 
         // Check if the response is using the correct content-type.
         var contentType = response.Content.Headers.ContentType?.MediaType;
-        if (string.IsNullOrEmpty(contentType) || !AllowedMIMEs.Contains(contentType))
+        if (string.IsNullOrEmpty(contentType) || !AllowedJsonMime.Contains(contentType))
             throw new HttpRequestException("Invalid content-type. Expected JSON.");
 
         // Simple sanity check before parsing the response content.
@@ -187,12 +229,52 @@ public static class WebUIThemeProvider
         var theme = ThemeDefinition.FromJson(content, id, fileName + extName, preview) ??
             throw new HttpRequestException("Failed to parse the new theme.");
 
+        if (!string.IsNullOrEmpty(theme.UpdateUrl) && !(Uri.TryCreate(theme.UpdateUrl, UriKind.Absolute, out updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
+            throw new ValidationException("Invalid update URL in new theme definition.");
+
+        if (!string.IsNullOrEmpty(theme.CssUrl))
+        {
+            if (!Uri.TryCreate(theme.CssUrl, UriKind.RelativeOrAbsolute, out var cssUrl))
+                throw new ValidationException("Invalid CSS URL in new theme definition.");
+
+            if (!cssUrl.IsAbsoluteUri)
+            {
+                if (updateUrl is null)
+                    throw new ValidationException("Unable to resolve CSS URL in theme definition because it is relative and no update URL was provided.");
+                cssUrl = new Uri(updateUrl, cssUrl);
+                theme.CssUrl = cssUrl.AbsoluteUri;
+            }
+
+            if (cssUrl.Scheme != Uri.UriSchemeHttp && cssUrl.Scheme != Uri.UriSchemeHttps)
+                throw new ValidationException("Invalid CSS URL in theme definition.");
+
+            var cssResponse = await httpClient.GetAsync(theme.CssUrl);
+            if (cssResponse.StatusCode != HttpStatusCode.OK)
+                throw new HttpRequestException($"Failed to retrieve CSS file with status code {cssResponse.StatusCode}.", null, cssResponse.StatusCode);
+
+            var cssContentType = cssResponse.Content.Headers.ContentType?.MediaType;
+            if (string.IsNullOrEmpty(cssContentType) || !AllowedCssMime.Contains(cssContentType))
+                throw new ValidationException("Invalid css content-type for resource. Expected \"text/css\" or \"text/plain\".");
+
+            var cssContent = (await cssResponse.Content.ReadAsStringAsync())?.Trim();
+            if (string.IsNullOrEmpty(cssContent))
+                throw new ValidationException("The css url cannot resolve to an empty resource if it is provided in the theme definition.");
+
+            theme.CssContent = cssContent;
+        }
+
         // Save the new theme file if we're not pre-viewing.
         if (!preview)
         {
             var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
             if (!Directory.Exists(dirPath))
                 Directory.CreateDirectory(dirPath);
+
+            if (!string.IsNullOrEmpty(theme.CssContent))
+            {
+                var cssFilePath = Path.Combine(dirPath, theme.CssFileName);
+                await File.WriteAllTextAsync(cssFilePath, theme.CssContent);
+            }
 
             var filePath = Path.Combine(dirPath, fileName + extName);
             await File.WriteAllTextAsync(filePath, content);
@@ -209,43 +291,57 @@ public static class WebUIThemeProvider
         /// <summary>
         ///  The display name of the theme. Will be inferred from the filename if omitted.
         /// </summary>
-        public string? Name = null;
+        [JsonProperty("name")]
+        public string? Name { get; set; } = null;
 
         /// <summary>
         /// The theme version.
         /// </summary>
         [Required]
         [RegularExpression(@"^\s*(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+)(?:\.(?<revision>\d+))?)?)?\s*$")]
-        public string Version = string.Empty;
+        [JsonProperty("version")]
+        public string Version { get; set; } = string.Empty;
 
         /// <summary>
         /// Optional description for the theme, if any.
         /// </summary>
-        public string? Description = null;
+        [JsonProperty("description")]
+        public string? Description { get; set; } = null;
 
-        /**
-         * Optional tags to make it easier to search for the theme.
-         */
-        public IReadOnlyList<string>? Tags;
+        /// <summary>
+        /// Optional tags to make it easier to search for the theme.
+        /// </summary>
+        [JsonProperty("tags")]
+        public IReadOnlyList<string>? Tags { get; set; }
 
         /// <summary>
         /// The author's name.
         /// </summary>
         [Required]
-        public string Author = string.Empty;
+        [JsonProperty("author")]
+        public string Author { get; set; } = string.Empty;
 
         /// <summary>
         /// The CSS variables defined in the theme.
         /// </summary>
         [Required]
         [MinLength(1)]
-        public IReadOnlyDictionary<string, string> Values = new Dictionary<string, string>();
+        [JsonProperty("values")]
+        public IReadOnlyDictionary<string, string> Values { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// The URL for where the theme definition lives. Used for updates.
         /// </summary>
         [Url]
-        public string? URL;
+        [JsonProperty("update")]
+        public string? UpdateUrl { get; set; }
+
+        /// <summary>
+        /// The URL for where the theme CSS overrides file lives. Will be downloaded locally if provided. It must end in ".css" and the content type must be "text/plain" or "text/css".
+        /// </summary>
+        [Url]
+        [JsonProperty("css")]
+        public string? CssUrl { get; set; }
     }
 
     public class ThemeDefinition
@@ -259,9 +355,14 @@ public static class WebUIThemeProvider
         public readonly string ID;
 
         /// <summary>
-        /// The file name assosiated with the theme.
+        /// The file name associated with the theme.
         /// </summary>
         public readonly string FileName;
+
+        /// <summary>
+        /// The name of the CSS file associated with the theme.
+        /// </summary>
+        public string CssFileName => FileName[..^Path.GetExtension(FileName).Length] + ".css";
 
         /// <summary>
         /// The display name of the theme.
@@ -274,7 +375,7 @@ public static class WebUIThemeProvider
         public readonly string? Description;
 
         /// <summary>
-        /// Author-defined tags assosiated with the theme.
+        /// Author-defined tags associated with the theme.
         /// </summary>
         public readonly IReadOnlyList<string> Tags;
 
@@ -298,13 +399,24 @@ public static class WebUIThemeProvider
         public readonly IReadOnlyDictionary<string, string> Values;
 
         /// <summary>
+        /// The CSS content to define for the theme.
+        /// </summary>
+        [JsonIgnore]
+        public string? CssContent { get; internal set; } = string.Empty;
+
+        /// <summary>
+        /// The URL for where the theme CSS overrides file lives. Will be downloaded locally if provided. It must end in ".css" and the content type must be "text/plain" or "text/css".
+        /// </summary>
+        public string? CssUrl { get; internal set; }
+
+        /// <summary>
         /// The URL for where the theme definition lives. Used for updates.
         /// </summary>
-        public readonly string? URL;
+        public readonly string? UpdateUrl;
 
         /// <summary>
         /// Indicates this is only a preview of the theme metadata and the theme
-        /// might not actaully be installed yet.
+        /// might not actually be installed yet.
         /// </summary>
         public readonly bool IsPreview;
 
@@ -333,13 +445,24 @@ public static class WebUIThemeProvider
             Author = input.Author;
             Version = new Version(major, minor, build, revision);
             Values = input.Values ?? new Dictionary<string, string>();
-            URL = input.URL;
+            CssUrl = input.CssUrl;
+            UpdateUrl = input.UpdateUrl;
             IsPreview = preview;
             IsInstalled = File.Exists(Path.Combine(Utils.ApplicationPath, "themes", fileName));
         }
 
-        public string ToCSS()
-            => $".theme-{ID} {{{string.Join(" ", Values.Select(pair => $" --{pair.Key}: {pair.Value};"))} }}";
+        public string ToCSS(bool all = false)
+        {
+            if (!all)
+                return $".theme-{ID} {{{string.Join(" ", Values.Select(pair => $" --{pair.Key}: {pair.Value};"))} }}";
+            var cssFile = Path.Combine(Utils.ApplicationPath, "themes", CssFileName);
+            var css = $".theme-{ID} {{\n  {string.Join("\n  ", Values.Select(pair => $" --{pair.Key}: {pair.Value};"))}\n}}";
+            if (File.Exists(cssFile))
+            {
+                css += "\n\n" + File.ReadAllText(cssFile);
+            }
+            return css;
+        }
 
         internal static IReadOnlyList<ThemeDefinition> FromDirectory(string dirPath)
         {
@@ -386,7 +509,15 @@ public static class WebUIThemeProvider
                 return null;
 
             var id = FileNameToID(fileName);
-            return FromJson(fileContents, id, Path.GetFileName(filePath));
+            var theme = FromJson(fileContents, id, Path.GetFileName(filePath));
+            if (theme is not null)
+            {
+                var cssFileName = Path.Combine(Path.GetDirectoryName(filePath)!, theme.CssFileName);
+                if (File.Exists(cssFileName))
+                    theme.CssContent = File.ReadAllText(cssFileName);
+            }
+
+            return theme;
         }
 
         internal static ThemeDefinition? FromJson(string json, string id, string fileName, bool preview = false)
