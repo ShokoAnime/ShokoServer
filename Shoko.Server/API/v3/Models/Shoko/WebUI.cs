@@ -73,7 +73,7 @@ public class WebUI
         /// The CSS representation of the theme.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? CSS { get; init; } = withCSS ? definition.ToCSS(true) : null;
+        public string? CSS { get; init; } = withCSS ? definition.ToCSS() : null;
     }
 
     public class WebUIGroupExtra

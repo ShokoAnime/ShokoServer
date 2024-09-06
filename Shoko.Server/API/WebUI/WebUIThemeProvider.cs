@@ -6,10 +6,12 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Shoko.Commons.Extensions;
+using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
 #nullable enable
@@ -420,10 +422,24 @@ public static class WebUIThemeProvider
         /// </summary>
         public readonly bool IsPreview;
 
+        private bool? _isInstalled;
+
         /// <summary>
         /// Indicates the theme is installed locally.
         /// </summary>
-        public readonly bool IsInstalled;
+        public bool IsInstalled => _isInstalled ??= File.Exists(Path.Combine(Utils.ApplicationPath, "themes", FileName)) || File.Exists(Path.Combine(Utils.ApplicationPath, "themes", CssFileName));
+
+        public ThemeDefinition(string id)
+        {
+            ID = id;
+            FileName = $"{id}.json";
+            Name = NameFromID(ID);
+            Tags = [];
+            Author = "<unknown>";
+            Version = new Version(1, 0, 0, 0);
+            Values = new Dictionary<string, string>();
+            IsPreview = false;
+        }
 
         public ThemeDefinition(ThemeDefinitionInput input, string id, string fileName, bool preview = false)
         {
@@ -441,27 +457,34 @@ public static class WebUIThemeProvider
             FileName = fileName;
             Name = string.IsNullOrEmpty(input.Name) ? NameFromID(ID) : input.Name;
             Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description;
-            Tags = input.Tags ?? new List<string>();
+            Tags = input.Tags ?? [];
             Author = input.Author;
             Version = new Version(major, minor, build, revision);
             Values = input.Values ?? new Dictionary<string, string>();
             CssUrl = input.CssUrl;
             UpdateUrl = input.UpdateUrl;
             IsPreview = preview;
-            IsInstalled = File.Exists(Path.Combine(Utils.ApplicationPath, "themes", fileName));
         }
 
-        public string ToCSS(bool all = false)
+        public string ToCSS()
         {
-            if (!all)
-                return $".theme-{ID} {{{string.Join(" ", Values.Select(pair => $" --{pair.Key}: {pair.Value};"))} }}";
             var cssFile = Path.Combine(Utils.ApplicationPath, "themes", CssFileName);
-            var css = $".theme-{ID} {{\n  {string.Join("\n  ", Values.Select(pair => $" --{pair.Key}: {pair.Value};"))}\n}}";
-            if (File.Exists(cssFile))
-            {
-                css += "\n\n" + File.ReadAllText(cssFile);
-            }
-            return css;
+            var css = new StringBuilder()
+                .Append('\n')
+                .Append($".theme-{ID} {{\n");
+            if (Values.Count > 0)
+                css.Append("  " + Values.Select(pair => $" --{pair.Key}: {pair.Value};").Join("\n  ") + "\n");
+
+            if (Values.Count == 0 && !string.IsNullOrWhiteSpace(CssContent))
+                css.Append('\n');
+
+            if (!string.IsNullOrWhiteSpace(CssContent))
+                css
+                    .Append("  " + CssContent.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).Select(line => string.IsNullOrWhiteSpace(line) ? string.Empty : $"  {line.TrimEnd()}").Join("\n  ") + "\n");
+
+            return css
+                .AppendLine("}\n")
+                .ToString();
         }
 
         internal static IReadOnlyList<ThemeDefinition> FromDirectory(string dirPath)
@@ -472,7 +495,10 @@ public static class WebUIThemeProvider
             if (!Directory.Exists(dirPath))
                 return new List<ThemeDefinition>();
 
+            var allowedExtensions = new HashSet<string>() { ".json", ".css" };
             return Directory.GetFiles(dirPath)
+                .GroupBy(a => Path.GetFileNameWithoutExtension(a))
+                .Where(a => !string.IsNullOrEmpty(a.Key) && FileNameRegex.IsMatch(a.Key) && a.Any(b => allowedExtensions.Contains(Path.GetExtension(b))))
                 .Select(FromPath)
                 .WhereNotNull()
                 .DistinctBy(theme => theme.ID)
@@ -480,39 +506,16 @@ public static class WebUIThemeProvider
                 .ToList();
         }
 
-        internal static ThemeDefinition? FromPath(string filePath)
+        internal static ThemeDefinition? FromPath(IGrouping<string, string> fileDetails)
         {
             // Check file extension.
-            var extName = Path.GetExtension(filePath);
-            if (string.IsNullOrEmpty(extName) || !string.Equals(extName, ".json", StringComparison.InvariantCultureIgnoreCase))
-                return null;
-
-            var fileName = Path.GetFileNameWithoutExtension(filePath);
-            if (string.IsNullOrEmpty(fileName) || !FileNameRegex.IsMatch(fileName))
-                return null;
-
-            if (!File.Exists(filePath))
-                return null;
-
-            // Safely try to read
-            string? fileContents;
-            try
-            {
-                fileContents = File.ReadAllText(filePath)?.Trim();
-            }
-            catch
-            {
-                return null;
-            }
-            // Simple sanity check before parsing the file contents.
-            if (string.IsNullOrWhiteSpace(fileContents) || fileContents[0] != '{' || fileContents[^1] != '}')
-                return null;
-
-            var id = FileNameToID(fileName);
-            var theme = FromJson(fileContents, id, Path.GetFileName(filePath));
+            var id = FileNameToID(fileDetails.Key);
+            var jsonFile = fileDetails.FirstOrDefault(a => string.Equals(Path.GetExtension(a), ".json", StringComparison.InvariantCultureIgnoreCase));
+            var theme = string.IsNullOrEmpty(jsonFile) ? new(id) : FromJson(File.ReadAllText(jsonFile)?.Trim(), id, Path.GetFileName(jsonFile));
             if (theme is not null)
             {
-                var cssFileName = Path.Combine(Path.GetDirectoryName(filePath)!, theme.CssFileName);
+                var cssFileName = fileDetails.FirstOrDefault(a => string.Equals(Path.GetExtension(a), ".css", StringComparison.InvariantCultureIgnoreCase)) ??
+                    Path.Combine(Path.GetDirectoryName(jsonFile)!, theme.CssFileName);
                 if (File.Exists(cssFileName))
                     theme.CssContent = File.ReadAllText(cssFileName);
             }
@@ -520,10 +523,13 @@ public static class WebUIThemeProvider
             return theme;
         }
 
-        internal static ThemeDefinition? FromJson(string json, string id, string fileName, bool preview = false)
+        internal static ThemeDefinition? FromJson(string? json, string id, string fileName, bool preview = false)
         {
             try
             {
+                // Simple sanity check before parsing the file contents.
+                if (string.IsNullOrWhiteSpace(json) || json[0] != '{' || json[^1] != '}')
+                    return null;
                 var input = JsonConvert.DeserializeObject<ThemeDefinitionInput>(json);
                 if (input == null)
                     return null;
@@ -551,5 +557,5 @@ public static class WebUIThemeProvider
         );
 
     public static string ToCSS(this IEnumerable<ThemeDefinition> list)
-        => string.Join(" ", list.Select(theme => theme.ToCSS()));
+        => list.Select(theme => theme.ToCSS()).Join("");
 }

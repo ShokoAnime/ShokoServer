@@ -141,7 +141,7 @@ public class WebUIController : BaseController
         if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
-        return Content(theme.ToCSS(true), "text/css");
+        return Content(theme.ToCSS(), "text/css");
     }
 
     /// <summary>
