@@ -827,9 +827,13 @@ public class Series : BaseModel
         public class OverrideTmdbEpisodeMappingBody
         {
             /// <summary>
-            /// Reset all existing links.
+            /// Unset all existing links before applying the overrides.
             /// </summary>
-            public bool ResetAll { get; set; } = false;
+            /// <remarks>
+            /// This will ensure the auto-links won't override the new unset
+            /// links, unlink if you had reset them through the DELETE endpoint.
+            /// </remarks>
+            public bool UnsetAll { get; set; } = false;
 
             /// <summary>
             /// Replacing existing links or add new additional links.

@@ -253,7 +253,9 @@ public class TmdbLinkingService
         _logger.LogInformation("Removing TMDB show link: AniDB anime (AnimeID={AnidbID}) → TMDB show (ID={TmdbID})", xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbShows.Delete(xref);
 
-        var xrefs = _xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, xref.TmdbShowID);
+        var xrefs = _xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, xref.TmdbShowID).ToList();
+        if (_xrefAnidbTmdbShows.GetByAnidbAnimeID(xref.AnidbAnimeID).Count > 0 && _xrefAnidbTmdbEpisodes.GetByAnidbAnimeID(xref.AnidbAnimeID) is { Count: > 0 } extraXrefs)
+            xrefs.AddRange(extraXrefs);
         _logger.LogInformation("Removing {XRefsCount} episodes cross-references for AniDB anime (AnimeID={AnidbID}) and TMDB show (ID={TmdbID})", xrefs.Count, xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbEpisodes.Delete(xrefs);
 
@@ -270,11 +272,10 @@ public class TmdbLinkingService
 
     #region Episode Links
 
-    public void ResetAllEpisodeLinks(int anidbAnimeId)
+    public void ResetAllEpisodeLinks(int anidbAnimeId, bool allowAuto)
     {
-        var showId = _xrefAnidbTmdbShows.GetByAnidbAnimeID(anidbAnimeId)
-            .FirstOrDefault()?.TmdbShowID;
-        if (showId.HasValue)
+        var hasXrefs = _xrefAnidbTmdbShows.GetByAnidbAnimeID(anidbAnimeId).Count > 0;
+        if (hasXrefs)
         {
             var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbAnimeID(anidbAnimeId);
             var toSave = new List<CrossRef_AniDB_TMDB_Episode>();
@@ -286,10 +287,10 @@ public class TmdbLinkingService
             {
                 if (existingIDs.Add(xref.AnidbEpisodeID))
                 {
-                    xref.TmdbShowID = showId.Value;
+                    xref.TmdbShowID = 0;
                     xref.TmdbEpisodeID = 0;
                     xref.Ordering = 0;
-                    xref.MatchRating = MatchRating.SarahJessicaParker;
+                    xref.MatchRating = allowAuto ? MatchRating.SarahJessicaParker : MatchRating.UserVerified;
                     toSave.Add(xref);
                 }
                 else
@@ -300,9 +301,10 @@ public class TmdbLinkingService
 
             // Add missing xrefs.
             var anidbEpisodesWithoutXrefs = _anidbEpisodes.GetByAnimeID(anidbAnimeId)
-                .Where(episode => !existingIDs.Contains(episode.AniDB_EpisodeID) && episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special);
+                .Where(episode => !existingIDs.Contains(episode.AniDB_EpisodeID) && episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special)
+                .ToList();
             foreach (var anidbEpisode in anidbEpisodesWithoutXrefs)
-                toSave.Add(new(anidbEpisode.AniDB_EpisodeID, anidbAnimeId, 0, showId.Value, MatchRating.UserVerified));
+                toSave.Add(new(anidbEpisode.AniDB_EpisodeID, anidbAnimeId, 0, 0, allowAuto ? MatchRating.SarahJessicaParker : MatchRating.UserVerified));
 
             // Save the changes.
             _xrefAnidbTmdbEpisodes.Save(toSave);
@@ -330,7 +332,7 @@ public class TmdbLinkingService
             toSave.TmdbShowID = 0;
             toSave.TmdbEpisodeID = 0;
             toSave.Ordering = 0;
-            toSave.MatchRating = MatchRating.SarahJessicaParker;
+            toSave.MatchRating = MatchRating.UserVerified;
             var toDelete = xrefs.Skip(1).ToList();
             _xrefAnidbTmdbEpisodes.Save(toSave);
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
@@ -379,7 +381,7 @@ public class TmdbLinkingService
         return true;
     }
 
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false)
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false, bool useExistingOtherShows = true)
     {
         var anime = _anidbAnime.GetByAnimeID(anidbAnimeId);
         if (anime == null)
@@ -421,6 +423,7 @@ public class TmdbLinkingService
         {
             current++;
             _logger.LogTrace("Checking episode {EpisodeType} {EpisodeNumber} (ID: {EpisodeID}, Progress: {Current}/{Total})", episode.EpisodeTypeEnum, episode.EpisodeNumber, episode.EpisodeID, current, anidbEpisodes.Count);
+            var shouldAddNewLinks = true;
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks))
             {
                 // Remove empty links if we have one or more empty links and at least one non-empty link.
@@ -432,7 +435,11 @@ public class TmdbLinkingService
                 // Remove duplicates, if any.
                 existingLinks = existingLinks.DistinctBy(link => (link.TmdbShowID, link.TmdbEpisodeID)).ToList();
 
+                if (existingLinks.Count == 1 && existingLinks[0].TmdbEpisodeID is 0 && existingLinks[0].TmdbShowID is 0 && existingLinks[0].MatchRating is not MatchRating.UserVerified)
+                    goto skipExistingLinks;
+
                 // If hidden and no user verified links, then unset the auto link.
+                shouldAddNewLinks = false;
                 if ((episode.AnimeEpisode?.IsHidden ?? false) && !existingLinks.Any(link => link.MatchRating is MatchRating.UserVerified))
                 {
                     _logger.LogTrace("Skipping hidden episode {EpisodeID}", episode.EpisodeID);
@@ -456,8 +463,10 @@ public class TmdbLinkingService
                     crossReferences.Add(link);
                     toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
                 }
+                skipExistingLinks:;
             }
-            else
+
+            if (shouldAddNewLinks)
             {
                 // If hidden then skip linking episode.
                 if (episode.AnimeEpisode?.IsHidden ?? false)

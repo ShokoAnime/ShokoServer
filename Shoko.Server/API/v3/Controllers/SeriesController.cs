@@ -1628,7 +1628,7 @@ public class SeriesController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.OverrideTmdbEpisodeMappingBody body
     )
     {
-        if (body == null || (body.Mapping.Count == 0 && !body.ResetAll))
+        if (body == null || (body.Mapping.Count == 0 && !body.UnsetAll))
             return ValidationProblem("Empty body.");
 
         if (body.Mapping.Count > 0)
@@ -1682,9 +1682,9 @@ public class SeriesController : BaseController
         foreach (var showId in missingIDs)
             await _tmdbLinkingService.AddShowLink(series.AniDB_ID, showId, additiveLink: true);
 
-        // Reset the existing links if we wanted to replace all.
-        if (body.ResetAll)
-            _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID);
+        // Unset all links if we want to manually replace some or all of them.
+        if (body.UnsetAll)
+            _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID, false);
 
         // Make sure the mappings are in the correct order before linking.
         mapping = mapping
@@ -1854,7 +1854,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TvdbForbiddenForUser);
 
-        _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID);
+        _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID, true);
 
         return NoContent();
     }
