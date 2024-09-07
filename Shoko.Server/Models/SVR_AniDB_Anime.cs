@@ -52,7 +52,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
                 result.Add((Type: "wiki", Name: "Wikipedia (JP)", URL: $"https://en.wikipedia.org/{WikipediaJP_ID}"));
 
             if (!string.IsNullOrEmpty(CrunchyrollID))
-                result.Add((Type: "streaming", Name: "Crunchyroll", URL: $"https://crunchyroll.com/anime/{CrunchyrollID}"));
+                result.Add((Type: "streaming", Name: "Crunchyroll", URL: $"https://crunchyroll.com/series/{CrunchyrollID}"));
 
             if (!string.IsNullOrEmpty(FunimationID))
                 result.Add((Type: "streaming", Name: "Funimation", URL: FunimationID));
