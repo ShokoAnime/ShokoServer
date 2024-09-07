@@ -1589,7 +1589,7 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/TMDB/Show/CrossReferences/Episode")]
     public ActionResult<ListResult<TmdbEpisode.CrossReference>> GetTMDBEpisodeMappingsBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery] int? tmdbShowID,
+        [FromQuery, Range(0, int.MaxValue)] int? tmdbShowID,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -1601,7 +1601,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TvdbForbiddenForUser);
 
-        if (tmdbShowID.HasValue)
+        if (tmdbShowID.HasValue && tmdbShowID.Value > 0)
         {
             var xrefs = series.TmdbShowCrossReferences;
             var xref = xrefs.FirstOrDefault(s => s.TmdbShowID == tmdbShowID.Value);
