@@ -40,17 +40,17 @@ public class AnimeCreator
 
 
 #pragma warning disable CS0618
-    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, ISet<int> episodesAddedOrUpdated)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, Dictionary<SVR_AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
-        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, new HashSet<int>());
+        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, []);
         var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
         try
         {
             // check if we updated in a lock
             var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, new HashSet<int>());
+            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, []);
 
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
@@ -66,7 +66,7 @@ public class AnimeCreator
                 _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                                  "This is not an error on our end. It is AniDB's issue, " +
                                  "as they did not return either an ID or a title for the anime");
-                return (false, false, false, new HashSet<int>());
+                return (false, false, false, []);
             }
 
             var taskTimer = Stopwatch.StartNew();
@@ -136,7 +136,7 @@ public class AnimeCreator
             _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
             _logger.LogTrace("------------------------------------------------");
 
-            return (updated, titlesUpdated, descriptionUpdated, updated ? response.Episodes.Select(ep => ep.EpisodeID).ToHashSet() : updatedEpisodes);
+            return (updated, titlesUpdated, descriptionUpdated, updatedEpisodes);
         }
         catch (Exception ex)
         {
@@ -308,10 +308,10 @@ public class AnimeCreator
         return (isUpdated, descriptionUpdated);
     }
 
-    private async Task<(bool, ISet<int>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task<(bool, Dictionary<SVR_AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
-            return (false, new HashSet<int>());
+            return (false, []);
 
         var episodeCountSpecial = 0;
         var episodeCountNormal = 0;
@@ -600,15 +600,13 @@ public class AnimeCreator
         anime.EpisodeCountSpecial = episodeCountSpecial;
         anime.EpisodeCount = episodeCount;
 
-        // Emit anidb episode updated events.
-        foreach (var (episode, reason) in episodeEventsToEmit)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, reason);
+        // Add removed episodes to the dictionary.
         foreach (var episode in epsToRemove)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, UpdateReason.Removed);
+            episodeEventsToEmit.Add(episode, UpdateReason.Removed);
 
         return (
             episodeEventsToEmit.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0,
-            episodeEventsToEmit.Keys.Select(a => a.EpisodeID).ToHashSet()
+            episodeEventsToEmit
         );
     }
 

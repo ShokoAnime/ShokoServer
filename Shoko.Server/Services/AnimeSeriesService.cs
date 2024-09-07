@@ -136,11 +136,11 @@ public class AnimeSeriesService
         return false;
     }
 
-    public async Task<bool> CreateAnimeEpisodes(SVR_AnimeSeries series)
+    public async Task<(bool, Dictionary<SVR_AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(SVR_AnimeSeries series)
     {
         var anime = series.AniDB_Anime;
         if (anime == null)
-            return false;
+            return (false, []);
         var anidbEpisodes = anime.AniDBEpisodes;
         // Cleanup deleted episodes
         var epsToRemove = RepoFactory.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID)
@@ -196,13 +196,14 @@ public class AnimeSeriesService
 
         RepoFactory.AnimeEpisode.Delete(epsToRemove);
 
-        // Emit shoko episode updated events.
-        foreach (var (episode, reason) in episodeDict)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, reason);
+        // Add removed episodes to the dictionary.
         foreach (var episode in epsToRemove)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Removed);
+            episodeDict.Add(episode, UpdateReason.Removed);
 
-        return episodeDict.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0;
+        return (
+            episodeDict.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0,
+            episodeDict
+        );
     }
 
     private (SVR_AnimeEpisode episode, bool isNew, bool isUpdated) CreateAnimeEpisode(SVR_AniDB_Episode episode, int animeSeriesID)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -189,22 +190,58 @@ public class ShokoEventHandler : IShokoEventHandler
         AniDBBanned?.Invoke(null, new(type, time, resumeTime));
     }
 
-    public void OnSeriesUpdated(SVR_AnimeSeries series, UpdateReason reason)
+    public void OnSeriesUpdated(SVR_AnimeSeries series, UpdateReason reason, IEnumerable<(SVR_AnimeEpisode episode, UpdateReason reason)>? episodes = null)
     {
         ArgumentNullException.ThrowIfNull(series, nameof(series));
-        SeriesUpdated?.Invoke(null, new(series, reason));
+        var episodeEvents = episodes?.Select(e => new EpisodeInfoUpdatedEventArgs(series, e.episode, e.reason)).ToList() ?? [];
+        SeriesUpdated?.Invoke(null, new(series, reason, episodeEvents));
+        foreach (var e in episodeEvents)
+            EpisodeUpdated?.Invoke(null, e);
     }
 
-    public void OnSeriesUpdated(SVR_AniDB_Anime anime, UpdateReason reason)
+    public void OnSeriesUpdated(SVR_AnimeSeries series, UpdateReason reason, IEnumerable<KeyValuePair<SVR_AnimeEpisode, UpdateReason>> episodes)
+    {
+        ArgumentNullException.ThrowIfNull(series, nameof(series));
+        var episodeEvents = episodes.Select(e => new EpisodeInfoUpdatedEventArgs(series, e.Key, e.Value)).ToList();
+        SeriesUpdated?.Invoke(null, new(series, reason, episodeEvents));
+        foreach (var e in episodeEvents)
+            EpisodeUpdated?.Invoke(null, e);
+    }
+
+    public void OnSeriesUpdated(SVR_AniDB_Anime anime, UpdateReason reason, IEnumerable<(SVR_AniDB_Episode episode, UpdateReason reason)>? episodes = null)
     {
         ArgumentNullException.ThrowIfNull(anime, nameof(anime));
-        SeriesUpdated?.Invoke(null, new(anime, reason));
+        var episodeEvents = episodes?.Select(e => new EpisodeInfoUpdatedEventArgs(anime, e.episode, e.reason)).ToList() ?? [];
+        SeriesUpdated?.Invoke(null, new(anime, reason, episodeEvents));
+        foreach (var e in episodeEvents)
+            EpisodeUpdated?.Invoke(null, e);
     }
 
-    public void OnSeriesUpdated(TMDB_Show show, UpdateReason reason)
+    public void OnSeriesUpdated(SVR_AniDB_Anime anime, UpdateReason reason, IEnumerable<KeyValuePair<SVR_AniDB_Episode, UpdateReason>> episodes)
+    {
+        ArgumentNullException.ThrowIfNull(anime, nameof(anime));
+        var episodeEvents = episodes.Select(e => new EpisodeInfoUpdatedEventArgs(anime, e.Key, e.Value)).ToList();
+        SeriesUpdated?.Invoke(null, new(anime, reason, episodeEvents));
+        foreach (var e in episodeEvents)
+            EpisodeUpdated?.Invoke(null, e);
+    }
+
+    public void OnSeriesUpdated(TMDB_Show show, UpdateReason reason, IEnumerable<(TMDB_Episode episode, UpdateReason reason)>? episodes = null)
     {
         ArgumentNullException.ThrowIfNull(show, nameof(show));
-        SeriesUpdated?.Invoke(null, new(show, reason));
+        var episodeEvents = episodes?.Select(e => new EpisodeInfoUpdatedEventArgs(show, e.episode, e.reason)).ToList() ?? [];
+        SeriesUpdated?.Invoke(null, new(show, reason, episodeEvents));
+        foreach (var e in episodeEvents)
+            EpisodeUpdated?.Invoke(null, e);
+    }
+
+    public void OnSeriesUpdated(TMDB_Show show, UpdateReason reason, IEnumerable<KeyValuePair<TMDB_Episode, UpdateReason>> episodes)
+    {
+        ArgumentNullException.ThrowIfNull(show, nameof(show));
+        var episodeEvents = episodes.Select(e => new EpisodeInfoUpdatedEventArgs(show, e.Key, e.Value)).ToList();
+        SeriesUpdated?.Invoke(null, new(show, reason, episodeEvents));
+        foreach (var e in episodeEvents)
+            EpisodeUpdated?.Invoke(null, e);
     }
 
     public void OnEpisodeUpdated(SVR_AnimeSeries series, SVR_AnimeEpisode episode, UpdateReason reason)

@@ -943,19 +943,14 @@ public class TmdbMetadataService
             if (downloadImages && !quickRefresh)
                 await ScheduleDownloadAllShowImages(showId, false);
 
-            if (shouldFireEvents)
-            {
-                if (newlyAdded || updated)
-                    ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated);
-                foreach (var (episode, reason) in updatedEpisodes)
-                    ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, reason);
-            }
+            if (shouldFireEvents && (newlyAdded || updated || updatedEpisodes.Count > 0))
+                ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated, updatedEpisodes);
 
             return updated;
         }
     }
 
-    private async Task<(bool episodesOrSeasonsUpdated, List<(TMDB_Episode, UpdateReason)> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
+    private async Task<(bool episodesOrSeasonsUpdated, Dictionary<TMDB_Episode, UpdateReason> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
     {
         var settings = _settingsProvider.GetSettings();
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -973,7 +968,7 @@ public class TmdbMetadataService
         var episodesToAdd = 0;
         var episodesToSkip = new ConcurrentBag<int>();
         var episodesToSave = new ConcurrentBag<TMDB_Episode>();
-        var episodeEventsToEmit = new List<(TMDB_Episode, UpdateReason)>();
+        var episodeEventsToEmit = new Dictionary<TMDB_Episode, UpdateReason>();
         var allPeopleToCheck = new ConcurrentBag<int>();
         var allPeopleToRemove = new ConcurrentBag<int>();
         foreach (var reducedSeason in show.Seasons)
@@ -1043,7 +1038,7 @@ public class TmdbMetadataService
 
                 if ((newlyAddedEpisode && shouldFireEvents) || episodeUpdated)
                 {
-                    episodeEventsToEmit.Add((tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated));
+                    episodeEventsToEmit.Add(tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated);
                     if (shouldFireEvents)
                         tmdbEpisode.LastUpdatedAt = DateTime.Now;
                     episodesToSave.Add(tmdbEpisode);
@@ -1088,7 +1083,7 @@ public class TmdbMetadataService
         foreach (var episode in episodesToRemove)
         {
             PurgeShowEpisode(episode);
-            episodeEventsToEmit.Add((episode, UpdateReason.Removed));
+            episodeEventsToEmit.Add(episode, UpdateReason.Removed);
         }
 
         _tmdbEpisodes.Delete(episodesToRemove);
