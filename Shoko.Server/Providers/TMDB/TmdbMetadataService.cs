@@ -275,29 +275,29 @@ public class TmdbMetadataService
                 {
                     // If we got a _local_ rate limit exception, wait and try again.
                     case RateLimitRejectedException rlrEx:
-                        {
-                            var retryAfter = rlrEx.RetryAfter;
-                            await Task.Delay(retryAfter).ConfigureAwait(false);
-                            break;
-                        }
+                    {
+                        var retryAfter = rlrEx.RetryAfter;
+                        await Task.Delay(retryAfter).ConfigureAwait(false);
+                        break;
+                    }
                     // If we got a _remote_ rate limit exception, wait and try again.
                     case RequestLimitExceededException rleEx:
-                        {
-                            // Note: We don't actually wait here since the library has already waited for us.
-                            var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
-                            _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
-                            break;
-                        }
+                    {
+                        // Note: We don't actually wait here since the library has already waited for us.
+                        var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
+                        _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
+                        break;
+                    }
                     // If we timed out or got a too many requests exception, just wait and try again.
                     case HttpRequestException hrEx when hrEx.InnerException is TaskCanceledException:
-                        {
-                            // If we timed out more than 3 times, just throw the exception, since the exceptions were likely caused by other network issues.
-                            var timeoutRetryCount = ctx.TryGetValue("timeoutRetryCount", out var timeoutRetryCountValue) ? (int)timeoutRetryCountValue : 0;
-                            if (timeoutRetryCount >= 3)
-                                goto default;
-                            ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
-                            break;
-                        }
+                    {
+                        // If we timed out more than 3 times, just throw the exception, since the exceptions were likely caused by other network issues.
+                        var timeoutRetryCount = ctx.TryGetValue("timeoutRetryCount", out var timeoutRetryCountValue) ? (int)timeoutRetryCountValue : 0;
+                        if (timeoutRetryCount >= 3)
+                            goto default;
+                        ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
+                        break;
+                    }
                     default:
                         throw ex;
                 }
