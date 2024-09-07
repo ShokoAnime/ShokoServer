@@ -543,8 +543,10 @@ public class TmdbLinkingService
         var airdateProbability = tmdbEpisodes
             .Select(episode => new { episode, probability = CalculateAirDateProbability(anidbDate, episode.AiredAt) })
             .Where(result => result.probability != 0)
-            .Reverse()
             .OrderByDescending(result => result.probability)
+            .ThenBy(result => result.episode.SeasonNumber == 0)
+            .ThenBy(result => result.episode.SeasonNumber)
+            .ThenBy(result => result.episode.EpisodeNumber)
             .ToList();
         var titleSearchResults = anidbTitles.Count > 0 ? tmdbEpisodes
             .Search(anidbTitles[0].Title, episode => [episode.EnglishTitle], true, 1)
