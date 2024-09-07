@@ -125,6 +125,8 @@ public class TmdbLinkingService
     {
         var xrefs = _xrefAnidbTmdbMovies.GetByAnidbAnimeID(anidbAnimeId);
         _logger.LogInformation("Removing {Count} TMDB movie links for AniDB anime. (AnimeID={AnimeID})", xrefs.Count, anidbAnimeId);
+        if (xrefs.Count == 0)
+            return;
 
         // Disable auto-matching when we remove an existing match for the series.
         if (_animeSeries.GetByAnimeID(anidbAnimeId) is { } series && !series.IsTMDBAutoMatchingDisabled)
@@ -219,9 +221,9 @@ public class TmdbLinkingService
 
     public async Task RemoveAllShowLinksForAnime(int animeId, bool purge = false, bool removeImageFiles = true)
     {
-        _logger.LogInformation("Removing All TMDB show links for AniDB anime. (AnimeID={AnimeID})", animeId);
         var xrefs = _xrefAnidbTmdbShows.GetByAnidbAnimeID(animeId);
-        if (xrefs == null || xrefs.Count == 0)
+        _logger.LogInformation("Removing {Count} TMDB show links for AniDB anime. (AnimeID={AnimeID})", xrefs.Count, animeId);
+        if (xrefs.Count == 0)
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
