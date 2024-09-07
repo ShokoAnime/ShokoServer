@@ -304,10 +304,10 @@ public class Episode
         public int TmdbShowID { get; init; }
 
         /// <summary>
-        /// TMDB Episode ID. May be null if the <see cref="AnidbEpisodeID"/> is
-        /// not mapped to a TMDB Episode yet.
+        /// TMDB Episode ID. Will be <c>0</c> if the <see cref="AnidbEpisodeID"/>
+        /// is not mapped to a TMDB Episode yet.
         /// </summary>
-        public int? TmdbEpisodeID { get; init; }
+        public int TmdbEpisodeID { get; init; }
 
         /// <summary>
         /// The index to order the cross-references if multiple references
@@ -325,7 +325,7 @@ public class Episode
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbShowID = xref.TmdbShowID;
-            TmdbEpisodeID = xref.TmdbEpisodeID == 0 ? null : xref.TmdbEpisodeID;
+            TmdbEpisodeID = xref.TmdbEpisodeID;
             Index = index ?? xref.Ordering;
             Rating = "None";
             // NOTE: Internal easter-eggs stays internally.
