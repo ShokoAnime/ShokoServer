@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -245,6 +246,92 @@ public class ActionController : BaseController
     #endregion
 
     #region Admin Actions
+
+    private static readonly object _tvdbLock = new();
+
+    private static bool _tvdbPurged = false;
+
+    /// <summary>
+    /// Purges all TVDB data, including images and episode/series links.
+    /// This is a one-time action and will be blocked if ran again.
+    /// <br/>
+    /// This action is only accessible to admins.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("PurgeAllOfTvDB")]
+    public ActionResult PurgeAllTvdbData()
+    {
+        Task.Run(() =>
+        {
+            if (_tvdbPurged)
+                return;
+            lock (_tvdbLock)
+            {
+                if (_tvdbPurged)
+                    return;
+                _tvdbPurged = true;
+
+                var startedAt = DateTime.Now;
+                _logger.LogInformation("Starting TVDB purging at {StartedAt}", startedAt);
+
+                _logger.LogInformation("Resetting all TvDB settings.");
+                var settings = SettingsProvider.GetSettings();
+                settings.TvDB.AutoLink = false;
+                settings.TvDB.AutoFanart = false;
+                settings.TvDB.AutoFanartAmount = 0;
+                settings.TvDB.AutoPosters = false;
+                settings.TvDB.AutoPostersAmount = 0;
+                settings.TvDB.AutoWideBanners = false;
+                settings.TvDB.AutoWideBannersAmount = 0;
+                settings.TvDB.UpdateFrequency = Shoko.Models.Enums.ScheduledUpdateFrequency.Never;
+                settings.TvDB.Language = "en";
+                SettingsProvider.SaveSettings(settings);
+
+                var tvdbPath = ImageUtils.GetBaseTvDBImagesPath();
+                _logger.LogInformation("Deleting TVDB images directory at {Path}", tvdbPath);
+                if (Directory.Exists(tvdbPath))
+                    Directory.Delete(tvdbPath, true);
+
+                var allTvdbEpisodes = RepoFactory.TvDB_Episode.GetAll();
+                _logger.LogInformation("Deleting {Count} TvDB episodes", allTvdbEpisodes.Count);
+                RepoFactory.TvDB_Episode.Delete(allTvdbEpisodes);
+
+                var allTvdbSeries = RepoFactory.TvDB_Series.GetAll();
+                _logger.LogInformation("Deleting {Count} TvDB series", allTvdbSeries.Count);
+                RepoFactory.TvDB_Series.Delete(allTvdbSeries);
+
+                var allTvdbSeriesXrefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
+
+                _logger.LogInformation("Deleting {Count} TvDB series xrefs", allTvdbSeriesXrefs.Count);
+                RepoFactory.CrossRef_AniDB_TvDB.Delete(allTvdbSeriesXrefs);
+
+                var allTvdbEpisodeXrefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetAll();
+                _logger.LogInformation("Deleting {Count} TvDB episode xrefs", allTvdbEpisodeXrefs.Count);
+                RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(allTvdbEpisodeXrefs);
+
+                var allTvdbEpisodeOverrideXrefs = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetAll();
+                _logger.LogInformation("Deleting {Count} TvDB episode override xrefs", allTvdbEpisodeOverrideXrefs.Count);
+                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(allTvdbEpisodeOverrideXrefs);
+
+                var allTvdbImageFanart = RepoFactory.TvDB_ImageFanart.GetAll();
+                _logger.LogInformation("Deleting {Count} TvDB image fanarts", allTvdbImageFanart.Count);
+                RepoFactory.TvDB_ImageFanart.Delete(allTvdbImageFanart);
+
+                var allTvdbImagePoster = RepoFactory.TvDB_ImagePoster.GetAll();
+                _logger.LogInformation("Deleting {Count} TvDB image posters", allTvdbImagePoster.Count);
+                RepoFactory.TvDB_ImagePoster.Delete(allTvdbImagePoster);
+
+                var allTvdbImageWideBanner = RepoFactory.TvDB_ImageWideBanner.GetAll();
+                _logger.LogInformation("Deleting {Count} TvDB image wide banners", allTvdbImageWideBanner.Count);
+                RepoFactory.TvDB_ImageWideBanner.Delete(allTvdbImageWideBanner);
+
+                _logger.LogInformation("Purged all TvDB data in {Elapsed}", DateTime.Now - startedAt);
+            }
+        });
+
+        return Ok();
+    }
 
     /// <summary>
     /// Gets files whose data does not match AniDB
