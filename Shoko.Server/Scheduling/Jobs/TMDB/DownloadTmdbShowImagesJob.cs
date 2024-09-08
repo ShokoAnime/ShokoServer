@@ -47,7 +47,7 @@ public class DownloadTmdbShowImagesJob : BaseJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing CommandRequest_TMDB_Show_DownloadImages: {TmdbShowId}", TmdbShowID);
+        _logger.LogInformation("Processing DownloadTmdbShowImagesJob: {TmdbShowId}", TmdbShowID);
         await Task.Run(() => _tmdbService.DownloadAllShowImages(TmdbShowID, ForceDownload)).ConfigureAwait(false);
     }
 

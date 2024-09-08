@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -46,6 +47,7 @@ public class PurgeTmdbShowJob : BaseJob
 
     public override async Task Process()
     {
+        _logger.LogInformation("Processing PurgeTmdbShowJob: {TmdbShowId}", TmdbShowID);
         await _tmdbService.PurgeShow(TmdbShowID, RemoveImageFiles).ConfigureAwait(false);
     }
 
