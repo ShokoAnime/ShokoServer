@@ -2068,8 +2068,10 @@ public partial class TmdbController : BaseController
                     if (!body.IncludeComments)
                         return new string[1] { entry };
 
-                    var anidbAnime = xref.AnidbAnime;
-                    var tmdbMovie = xref.TmdbMovie;
+                    var anime = xref.AnidbAnime;
+                    var animeTitle = anime?.MainTitle ?? "<missing title>";
+                    var movie = xref.TmdbMovie;
+                    var movieTitle = movie?.EnglishTitle ?? "<missing title>";
                     var episodeNumber = "---";
                     var anidbEpisode = xref.AnidbEpisode;
                     if (anidbEpisode is null)
@@ -2079,10 +2081,11 @@ public partial class TmdbController : BaseController
                     else
                         episodeNumber = $"{((InternalEpisodeType)anidbEpisode.EpisodeType).ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
                     episodeNumber += $" (e{xref.AnidbEpisodeID})";
+                    var episodeTitle = anidbEpisode?.DefaultTitle is { AniDB_Episode_TitleID: > 0 } defaultTile ? defaultTile.Title : "<missing title>";
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType((AnimeType?)anidbAnime?.AnimeType)} ``{anidbAnime?.MainTitle ?? "<missing title>"}`` (a{xref.AnidbAnimeID}) {episodeNumber} (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbMovie?.EnglishTitle ?? "<missing title>"}`` (m{xref.TmdbMovieID})",
+                        $"# AniDB: {MapAnimeType((AnimeType?)anime?.AnimeType)} ``{animeTitle}`` (a{xref.AnidbAnimeID}) {episodeNumber} ``{episodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{movieTitle}`` (m{xref.TmdbMovieID})",
                         entry,
                     ];
                 })
@@ -2136,6 +2139,7 @@ public partial class TmdbController : BaseController
                         return new string[1] { entry };
 
                     var anidbAnime = xref.AnidbAnime;
+                    var anidbAnimeTitle = anidbAnime?.MainTitle ?? "<missing title>";
                     var anidbEpisode = xref.AnidbEpisode;
                     var anidbEpisodeNumber = "???";
                     if (anidbEpisode is not null)
@@ -2143,15 +2147,18 @@ public partial class TmdbController : BaseController
                             anidbEpisodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
                         else
                             anidbEpisodeNumber = $"{anidbEpisode.EpisodeTypeEnum.ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
+                    var anidbEpisodeTitle = anidbEpisode?.DefaultTitle is { AniDB_Episode_TitleID: > 0 } defaultTile ? defaultTile.Title : "<missing title>";
                     var tmdbShow = xref.TmdbShow;
+                    var tmdbShowTitle = tmdbShow?.EnglishTitle ?? "<missing title>";
                     var tmdbEpisode = xref.TmdbEpisode;
                     var tmdbEpisodeNumber = "??? ????";
                     if (tmdbEpisode is not null)
                         tmdbEpisodeNumber = $"S{tmdbEpisode.SeasonNumber.ToString().PadLeft(2, '0')} E{tmdbEpisode.EpisodeNumber.ToString().PadLeft(3, '0')}";
+                    var tmdbEpisodeTitle = tmdbEpisode?.EnglishTitle ?? "<missing title>";
                     return
                     [
                         "",
-                        $"# AniDB: {anidbAnime?.MainTitle ?? "<missing title>"} (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} (e{xref.AnidbEpisodeID}) → TMDB: {tmdbShow?.EnglishTitle ?? "<missing title>"} (s{xref.TmdbShowID}) {tmdbEpisodeNumber} (e{xref.TmdbEpisodeID})",
+                        $"# AniDB: {MapAnimeType((AnimeType?)anidbAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
                         entry,
                     ];
                 })
