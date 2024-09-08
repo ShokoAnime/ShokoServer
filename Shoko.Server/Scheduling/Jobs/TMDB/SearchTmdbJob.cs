@@ -49,7 +49,16 @@ public partial class SearchTmdbJob : BaseJob
         _logger.LogInformation("Processing SearchTmdbJob for {Anime}: AniDB ID {ID}", _animeTitle ?? AnimeID.ToString(), AnimeID);
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
         if (anime == null)
+        {
+            _logger.LogWarning("Anime not found locally: {AnimeID}", AnimeID);
             return;
+        }
+
+        if (anime.TmdbShowCrossReferences is { Count: > 0 } || anime.TmdbMovieCrossReferences is { Count: > 0 })
+        {
+            _logger.LogInformation("Anime already has TMDB links: {AnimeID}", AnimeID);
+            return;
+        }
 
         var results = await _tmdbSearchService.SearchForAutoMatch(anime);
         foreach (var result in results)
