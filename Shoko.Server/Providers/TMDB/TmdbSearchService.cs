@@ -352,7 +352,7 @@ public partial class TmdbSearchService
                     : series.Titles.FirstOrDefault(title => title.Type == TitleType.Official && title.Language == language)?.Title
             );
         var match = !string.IsNullOrEmpty(originalTitle)
-            ? await AutoSearchForShowUsingTitle(anime, originalTitle, airDate.Value, series.Restricted)
+            ? await AutoSearchForShowUsingTitle(anime, originalTitle, airDate.Value, series.Restricted, language == TitleLanguage.Japanese)
             : null;
 
         // And if that failed, then try the official english title.
@@ -362,11 +362,11 @@ public partial class TmdbSearchService
                 ? allTitles.FirstOrDefault(l => l.TitleType == TitleType.Official && l.Language == TitleLanguage.English)?.Title
                 : series.Titles.FirstOrDefault(l => l.Type == TitleType.Official && l.Language == TitleLanguage.English)?.Title;
             if (!string.IsNullOrEmpty(englishTitle) && (string.IsNullOrEmpty(originalTitle) || !string.Equals(englishTitle, originalTitle, StringComparison.Ordinal)))
-                match = await AutoSearchForShowUsingTitle(anime, englishTitle, airDate.Value, series.Restricted);
+                match = await AutoSearchForShowUsingTitle(anime, englishTitle, airDate.Value, series.Restricted, false);
         }
 
         // And the last ditch attempt will be to use the main title. We won't try other languages.
-        match ??= await AutoSearchForShowUsingTitle(anime, mainTitle.Title, airDate.Value, series.Restricted);
+        match ??= await AutoSearchForShowUsingTitle(anime, mainTitle.Title, airDate.Value, series.Restricted, false);
 
         // Also add all locally known matches for the current anime and first prequel anime if available.
         var existingXrefs = anime.TmdbShowCrossReferences.ToList();
@@ -414,7 +414,7 @@ public partial class TmdbSearchService
         return match is not null ? [match] : [];
     }
 
-    private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(SVR_AniDB_Anime anime, string title, DateTime airDate, bool restricted)
+    private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(SVR_AniDB_Anime anime, string title, DateTime airDate, bool restricted, bool isJapanese)
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
         var (results, totalFound) = await SearchShows(title, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
@@ -450,6 +450,29 @@ public partial class TmdbSearchService
             if (results.Count > 0)
             {
                 _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
+
+                return new(anime, results[0]) { IsRemote = true };
+            }
+        }
+
+        // Brute force attempt #5-6: Same as 1-2, but with stripped of any sub-titles.
+        var titleWithoutSubTitle = strippedTitle ?? title;
+        var columIndex = titleWithoutSubTitle.IndexOf(isJapanese ? ' ' : ':');
+        if (columIndex > 0)
+        {
+            titleWithoutSubTitle = titleWithoutSubTitle[..columIndex];
+            (results, totalFound) = await SearchShows(titleWithoutSubTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
+            if (results.Count > 0)
+            {
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, results[0].OriginalName, results[0].Id);
+
+                return new(anime, results[0]);
+            }
+
+            (results, totalFound) = await SearchShows(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
+            if (results.Count > 0)
+            {
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, results[0].OriginalName, results[0].Id);
 
                 return new(anime, results[0]) { IsRemote = true };
             }
