@@ -133,15 +133,12 @@ public class DashboardController : BaseController
 
     private static bool MissingBothTvDBAndMovieDBLink(SVR_AnimeSeries ser)
     {
-        if (ser.AniDB_Anime.Restricted > 0)
-        {
+        if (ser.IsTMDBAutoMatchingDisabled)
             return false;
-        }
 
         var tmdbMovieLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
         var tmdbShowLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
-        var tvdbLinkMissing = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
-        return tmdbMovieLinkMissing && tmdbShowLinkMissing && tvdbLinkMissing;
+        return tmdbMovieLinkMissing && tmdbShowLinkMissing;
     }
 
     /// <summary>
