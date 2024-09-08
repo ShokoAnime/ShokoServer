@@ -8,6 +8,17 @@ namespace Shoko.Server.Providers.TMDB;
 
 public class TmdbAutoSearchResult
 {
+    /// <summary>
+    /// Indicates that this is a local match using existing data instead of a
+    /// remote match.
+    /// </summary>
+    public bool IsLocal { get; set; } = false;
+
+    /// <summary>
+    /// Indicates that this is a remote match.
+    /// </summary>
+    public bool IsRemote { get; set; } = false;
+
     [MemberNotNullWhen(true, nameof(AnidbEpisode))]
     [MemberNotNullWhen(true, nameof(TmdbMovie))]
     [MemberNotNullWhen(false, nameof(TmdbShow))]
@@ -34,5 +45,13 @@ public class TmdbAutoSearchResult
         AnidbAnime = anime;
         AnidbEpisode = episode;
         TmdbMovie = movie;
+    }
+
+    public TmdbAutoSearchResult(TmdbAutoSearchResult result)
+    {
+        AnidbAnime = result.AnidbAnime;
+        AnidbEpisode = result.AnidbEpisode;
+        TmdbMovie = result.TmdbMovie;
+        TmdbShow = result.TmdbShow;
     }
 }

@@ -41,6 +41,17 @@ public static class Search
         public int? EpisodeID { get; set; }
 
         /// <summary>
+        /// Indicates that this is a local match using existing data instead of a
+        /// remote match.
+        /// </summary>
+        public bool IsLocal { get; set; }
+
+        /// <summary>
+        /// Indicates that this is a remote match.
+        /// </summary>
+        public bool IsRemote { get; set; }
+
+        /// <summary>
         /// Indicates that the result is for a movie auto-magic match.
         /// </summary>
         [MemberNotNullWhen(true, nameof(EpisodeID))]
@@ -63,6 +74,8 @@ public static class Search
         public AutoMatchResult(TmdbAutoSearchResult result)
         {
             AnimeID = result.AnidbAnime.AnimeID;
+            IsLocal = result.IsLocal;
+            IsRemote = result.IsRemote;
             if (result.IsMovie)
             {
                 IsMovie = true;

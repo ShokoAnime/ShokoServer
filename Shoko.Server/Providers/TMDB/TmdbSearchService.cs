@@ -211,7 +211,7 @@ public partial class TmdbSearchService
         {
             _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, results[0].OriginalTitle, results[0].Id);
 
-            return new(anime, episode, results[0]);
+            return new(anime, episode, results[0]) { IsRemote = true };
         }
 
         // Brute force attempt #2: With the original title but without the earliest known aired year.
@@ -220,7 +220,7 @@ public partial class TmdbSearchService
         {
             _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, results[0].OriginalTitle, results[0].Id);
 
-            return new(anime, episode, results[0]);
+            return new(anime, episode, results[0]) { IsRemote = true };
         }
 
         // Brute force attempt #3-4: Same as above, but after stripping the title of common "sequel endings"
@@ -233,14 +233,14 @@ public partial class TmdbSearchService
             {
                 _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, results[0].OriginalTitle, results[0].Id);
 
-                return new(anime, episode, results[0]);
+                return new(anime, episode, results[0]) { IsRemote = true };
             }
             (results, totalCount) = await SearchMovies(strippedTitle, includeRestricted: includeRestricted).ConfigureAwait(false);
             if (results.Count > 0)
             {
                 _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, results[0].OriginalTitle, results[0].Id);
 
-                return new(anime, episode, results[0]);
+                return new(anime, episode, results[0]) { IsRemote = true };
             }
         }
 
@@ -339,7 +339,7 @@ public partial class TmdbSearchService
                 goto continuePrequelWhileLoop;
             }
             break;
-continuePrequelWhileLoop:
+            continuePrequelWhileLoop:
             continue;
         }
 
@@ -367,6 +367,50 @@ continuePrequelWhileLoop:
 
         // And the last ditch attempt will be to use the main title. We won't try other languages.
         match ??= await AutoSearchForShowUsingTitle(anime, mainTitle.Title, airDate.Value, series.Restricted);
+
+        // Also add all locally known matches for the current anime and first prequel anime if available.
+        var existingXrefs = anime.TmdbShowCrossReferences.ToList();
+        if (series.ID != anime.AnimeID && series is SVR_AniDB_Anime secondAnime && secondAnime.TmdbShowCrossReferences is { Count: > 0 } seriesXrefs)
+            existingXrefs.AddRange(seriesXrefs);
+        if (existingXrefs is { Count: > 0 })
+        {
+            var remoteSeries = existingXrefs
+                .DistinctBy(x => x.TmdbShowID)
+                .Select(x => x.TmdbShow)
+                .WhereNotNull()
+                .Select(x => new TmdbAutoSearchResult(
+                    anime,
+                    new()
+                    {
+                        Id = x.Id,
+                        OriginalName = x.OriginalTitle,
+                        Name = x.EnglishTitle,
+                        FirstAirDate = x.FirstAiredAt?.ToDateTime(),
+                        BackdropPath = x.BackdropPath,
+                        GenreIds = [],
+                        MediaType = TMDbLib.Objects.General.MediaType.Tv,
+                        OriginalLanguage = x.OriginalLanguageCode,
+                        OriginCountry = x.TmdbCompanies.Select(x => x.CountryOfOrigin).Distinct().ToList(),
+                        Overview = x.EnglishOverview,
+                        PosterPath = x.PosterPath,
+                        Popularity = x.UserRating,
+                        VoteAverage = x.UserRating,
+                        VoteCount = x.UserVotes,
+                    }
+                )
+                {
+                    IsLocal = true,
+                })
+                .ToList();
+            if (match is not null)
+                remoteSeries.Insert(0, match);
+
+            return remoteSeries
+                .GroupBy(x => (x.IsMovie, x.IsMovie ? x.TmdbMovie.Id : x.TmdbShow.Id))
+                .Select(x => new TmdbAutoSearchResult(x.First()) { IsLocal = x.Any(y => y.IsLocal), IsRemote = x.Any(y => y.IsRemote) })
+                .ToList();
+        }
+
         return match is not null ? [match] : [];
     }
 
@@ -376,18 +420,18 @@ continuePrequelWhileLoop:
         var (results, totalFound) = await SearchShows(title, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
         if (results.Count > 0)
         {
-            _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
+            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
 
-            return new(anime, results[0]);
+            return new(anime, results[0]) { IsRemote = true };
         }
 
         // Brute force attempt #2: With the original title but without the earliest known aired year.
         (results, totalFound) = await SearchShows(title, includeRestricted: restricted).ConfigureAwait(false);
         if (totalFound > 0)
         {
-            _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
+            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
 
-            return new(anime, results[0]);
+            return new(anime, results[0]) { IsRemote = true };
         }
 
         // Brute force attempt #3-4: Same as above, but after stripping the title of common "sequel endings"
@@ -398,16 +442,16 @@ continuePrequelWhileLoop:
             (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
             if (results.Count > 0)
             {
-                _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
 
                 return new(anime, results[0]);
             }
             (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
             if (results.Count > 0)
             {
-                _logger.LogTrace("Found {Count} results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
 
-                return new(anime, results[0]);
+                return new(anime, results[0]) { IsRemote = true };
             }
         }
 
