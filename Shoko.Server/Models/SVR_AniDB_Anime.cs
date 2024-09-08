@@ -28,6 +28,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #region General
 
+    public AnimeType AbstractAnimeType => (AnimeType)AnimeType;
+
     [XmlIgnore]
     public AniDB_Vote? UserVote
         => RepoFactory.AniDB_Vote.GetByAnimeID(AnimeID);
@@ -425,7 +427,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #region ISeries Implementation
 
-    AnimeType ISeries.Type => (AnimeType)AnimeType;
+    AnimeType ISeries.Type => AbstractAnimeType;
 
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series.AnimeSeriesID] : [];
 

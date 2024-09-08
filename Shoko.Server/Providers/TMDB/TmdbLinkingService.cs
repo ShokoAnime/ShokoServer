@@ -5,8 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
@@ -18,7 +16,8 @@ using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-using EpisodeType = Shoko.Models.Enums.EpisodeType;
+using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
+using MatchRating = Shoko.Models.Enums.MatchRating;
 
 // Suggestions we don't need in this file.
 #pragma warning disable CA1822
@@ -480,9 +479,9 @@ public class TmdbLinkingService
 
                 // Else try find a match.
                 _logger.LogTrace("Linking episode {EpisodeID}", episode.EpisodeID);
-                var isSpecial = episode.EpisodeTypeEnum is EpisodeType.Special;
+                var isSpecial = episode.AbstractEpisodeType is EpisodeType.Special || anime.AbstractAnimeType is not AnimeType.TVSeries and not AnimeType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
-                var crossRef = TryFindAnidbAndTmdbMatch(episode, episodeList, isSpecial);
+                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial);
                 if (crossRef.TmdbEpisodeID != 0)
                 {
                     _logger.LogTrace("Found match for episode {EpisodeID} (TMDB ID: {TMDbEpisodeID})", episode.EpisodeID, crossRef.TmdbEpisodeID);
@@ -533,12 +532,32 @@ public class TmdbLinkingService
         return crossReferences;
     }
 
-    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(SVR_AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(SVR_AniDB_Anime anime, SVR_AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
     {
+        // Skip matching if it's a special and unknown air date.
         var anidbDate = anidbEpisode.GetAirDateAsDateOnly();
-        var anidbTitles = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
+        if (anidbEpisode.AbstractEpisodeType is EpisodeType.Special && anidbDate is null)
+            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.SarahJessicaParker);
+
+        // Also skip matching if we try to match a music video or complete movie.
+        var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
             .Where(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
-            .ToList();
+            .FirstOrDefault()?.Title;
+        var titlesToNotSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "Complete Movie", "Music Video" };
+        if (!string.IsNullOrEmpty(anidbTitle) && titlesToNotSearch.Any(title => anidbTitle.Contains(title, StringComparison.InvariantCultureIgnoreCase)))
+            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.SarahJessicaParker);
+
+        // Fix up the title for the first/single episode of a few anime types.
+        var titlesToSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "OAD", "OVA", "Short Movie", "Special", "TV Special", "Web" };
+        if (!string.IsNullOrEmpty(anidbTitle) && titlesToSearch.Contains(anidbTitle))
+        {
+            var englishAnimeTitle = anime.Titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == TitleLanguage.English)?.Title;
+            if (englishAnimeTitle is not null)
+            {
+                var i = englishAnimeTitle.IndexOf(':');
+                anidbTitle = i > 0 && i < englishAnimeTitle.Length - 1 ? englishAnimeTitle[(i + 1)..].TrimStart() : englishAnimeTitle;
+            }
+        }
 
         var airdateProbability = tmdbEpisodes
             .Select(episode => new { episode, probability = CalculateAirDateProbability(anidbDate, episode.AiredAt) })
@@ -548,8 +567,8 @@ public class TmdbLinkingService
             .ThenBy(result => result.episode.SeasonNumber)
             .ThenBy(result => result.episode.EpisodeNumber)
             .ToList();
-        var titleSearchResults = anidbTitles.Count > 0 ? tmdbEpisodes
-            .Search(anidbTitles[0].Title, episode => [episode.EnglishTitle], true, 1)
+        var titleSearchResults = !string.IsNullOrEmpty(anidbTitle) ? tmdbEpisodes
+            .Search(anidbTitle, episode => [episode.EnglishTitle], true, 1)
             .OrderBy(result => result)
             .ToList() : [];
 
