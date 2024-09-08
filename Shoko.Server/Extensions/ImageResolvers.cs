@@ -70,7 +70,7 @@ public static class ImageResolvers
             return string.Empty;
 
         var fname = episode.Filename.Replace('/', Path.DirectorySeparatorChar);
-        return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+        return Path.Combine(ImageUtils.GetBaseTvDBImagesPath(), fname);
     }
 
     public static IImageMetadata? GetImageMetadata(this TvDB_ImageFanart fanart, bool preferred = false)
@@ -88,7 +88,7 @@ public static class ImageResolvers
             return string.Empty;
 
         var fname = fanart.BannerPath.Replace('/', Path.DirectorySeparatorChar);
-        return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+        return Path.Combine(ImageUtils.GetBaseTvDBImagesPath(), fname);
     }
 
     public static IImageMetadata? GetImageMetadata(this TvDB_ImagePoster poster, bool preferred = false)
@@ -106,7 +106,7 @@ public static class ImageResolvers
             return string.Empty;
 
         var fname = poster.BannerPath.Replace('/', Path.DirectorySeparatorChar);
-        return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+        return Path.Combine(ImageUtils.GetBaseTvDBImagesPath(), fname);
     }
 
     public static IImageMetadata? GetImageMetadata(this TvDB_ImageWideBanner banner, bool preferred = false)
@@ -124,7 +124,7 @@ public static class ImageResolvers
             return string.Empty;
 
         var fname = banner.BannerPath.Replace('/', Path.DirectorySeparatorChar);
-        return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+        return Path.Combine(ImageUtils.GetBaseTvDBImagesPath(), fname);
     }
 
     public static IImageMetadata? GetImageMetadata(this AniDB_Character character, bool preferred = false)

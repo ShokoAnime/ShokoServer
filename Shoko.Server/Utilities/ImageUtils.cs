@@ -85,16 +85,6 @@ public class ImageUtils
         return dirPath;
     }
 
-    public static string GetImagesTempFolder()
-    {
-        var dirPath = Path.Combine(GetBaseImagesPath(), "_Temp_");
-
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
-
     public static string GetAniDBCharacterImagePath(int charID)
     {
         var sid = charID.ToString();
@@ -122,15 +112,6 @@ public class ImageUtils
         var sid = animeID.ToString();
         var subFolder = sid.Length == 1 ? sid : sid[..2];
         var dirPath = Path.Combine(GetBaseAniDBImagesPath(), subFolder);
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
-
-    public static string GetTvDBImagePath()
-    {
-        var dirPath = GetBaseTvDBImagesPath();
         if (!Directory.Exists(dirPath))
             Directory.CreateDirectory(dirPath);
 
