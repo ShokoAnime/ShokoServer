@@ -19,6 +19,8 @@ namespace Shoko.Server.Models;
 
 public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
 {
+    public EpisodeType AbstractEpisodeType => (EpisodeType)EpisodeType;
+
     public EpisodeTypeEnum EpisodeTypeEnum => (EpisodeTypeEnum)EpisodeType;
 
     public TimeSpan Runtime => TimeSpan.FromSeconds(LengthSeconds);

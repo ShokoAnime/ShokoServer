@@ -15,6 +15,13 @@ namespace Shoko.Server.Providers.TMDB;
 
 public partial class TmdbSearchService
 {
+
+    /// <summary>
+    /// This regex might save the day if the local database doesn't contain any prequel metadata, but the title itself contains a suffix that indicates it's a sequel of sorts.
+    /// </summary>
+    [GeneratedRegex(@"\(\d{4}\)$|\bs(?:eason)? (?:\d+|(?=[MDCLXVI])M*(?:C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3}))$|\bs\d+$|第(零〇一二三四五六七八九十百千萬億兆京垓點)+季$|\b(?:second|2nd|third|3rd|fourth|4th|fifth|5th|sixth|6th) season$", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Multiline)]
+    private partial Regex SequelSuffixRemovalRegex();
+
     private readonly ILogger<TmdbSearchService> _logger;
 
     private readonly TmdbMetadataService _tmdbService;
@@ -92,8 +99,10 @@ public partial class TmdbSearchService
             TitleLanguage.ThaiTranscription => TitleLanguage.Thai,
             _ => mainTitle.Language,
         };
-        var officialTitle = language == mainTitle.Language ? mainTitle :
-            allTitles.FirstOrDefault(title => title.Language == language) ?? mainTitle;
+        var title = mainTitle.Title;
+        var officialTitle = language == mainTitle.Language ? mainTitle.Title :
+            allTitles.FirstOrDefault(title => title.Language == language)?.Title;
+        var englishTitle = allTitles.FirstOrDefault(title => title.Language == TitleLanguage.English)?.Title;
 
         // Try to establish a link for every movie (episode) in the movie
         // collection (anime).
@@ -112,7 +121,7 @@ public partial class TmdbSearchService
             var airDate = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
             if (!airDate.HasValue || (airDate.Value > now && airDate.Value - now > _maxDaysIntoTheFuture))
                 return [];
-            await AutoSearchForMovie(list, anime, episodes[0], officialTitle.Title, airDate.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+            await AutoSearchForMovie(list, anime, episodes[0], officialTitle, englishTitle, title, airDate.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
             return list;
         }
 
@@ -127,35 +136,115 @@ public partial class TmdbSearchService
                 var airDateForAnime = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
                 if (!airDateForAnime.HasValue || (airDateForAnime.Value > now && airDateForAnime.Value - now > _maxDaysIntoTheFuture))
                     continue;
-                await AutoSearchForMovie(list, anime, episode, officialTitle.Title, airDateForAnime.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+                await AutoSearchForMovie(list, anime, episode, officialTitle, englishTitle, title, airDateForAnime.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
                 continue;
             }
 
             var airDateForEpisode = episode.GetAirDateAsDate() ?? anime.AirDate ?? null;
             if (!airDateForEpisode.HasValue || (airDateForEpisode.Value > now && airDateForEpisode.Value - now > _maxDaysIntoTheFuture))
                 continue;
-            var subTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == language) ??
-                allEpisodeTitles.FirstOrDefault(title => title.Language == mainTitle.Language);
-            if (subTitle == null)
-                // TODO: Improve logic when no sub-title is found.
-                continue;
-            var query = $"{officialTitle.Title} {subTitle.Title}".TrimEnd();
-            await AutoSearchForMovie(list, anime, episode, query, airDateForEpisode.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+
+            var officialSubTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == language)?.Title ??
+                allEpisodeTitles.FirstOrDefault(title => title.Language == mainTitle.Language)?.Title;
+            var officialFullTitle = !string.IsNullOrEmpty(officialSubTitle)
+                ? $"{officialTitle} {officialSubTitle}" : null;
+            var englishSubTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == TitleLanguage.English && !string.Equals(title.Title, $"Episode {episode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))?.Title;
+            var englishFullTitle = !string.IsNullOrEmpty(englishSubTitle)
+                ? $"{englishTitle} {englishSubTitle}" : null;
+            var mainFullTitle = !string.IsNullOrEmpty(englishSubTitle)
+                ? $"{title} {englishSubTitle}" : null;
+
+            // ~~Stolen~~ _Borrowed_ from the Shokofin code-base since we don't want to try linking extras to movies.
+            if (episode.AbstractEpisodeType is EpisodeType.Special or EpisodeType.Other && !string.IsNullOrEmpty(englishSubTitle))
+            {
+                // Interviews
+                if (englishSubTitle.Contains("interview", StringComparison.InvariantCultureIgnoreCase))
+                    continue;
+
+                // Cinema/theatrical intro/outro
+                if (
+                    (
+                        (englishSubTitle.StartsWith("cinema ", StringComparison.InvariantCultureIgnoreCase) || englishSubTitle.StartsWith("theatrical ", StringComparison.InvariantCultureIgnoreCase)) &&
+                        (englishSubTitle.Contains("intro", StringComparison.InvariantCultureIgnoreCase) || englishSubTitle.Contains("outro", StringComparison.InvariantCultureIgnoreCase))
+                    ) ||
+                    englishSubTitle.Contains("manners movie", StringComparison.InvariantCultureIgnoreCase)
+                )
+                    continue;
+
+                // Behind the Scenes
+                if (englishSubTitle.Contains("behind the scenes", StringComparison.InvariantCultureIgnoreCase) ||
+                    englishSubTitle.Contains("making of", StringComparison.InvariantCultureIgnoreCase) ||
+                    englishSubTitle.Contains("music in", StringComparison.InvariantCultureIgnoreCase) ||
+                    englishSubTitle.Contains("advance screening", StringComparison.InvariantCultureIgnoreCase) ||
+                    englishSubTitle.Contains("premiere", StringComparison.InvariantCultureIgnoreCase))
+                    continue;
+            }
+
+            await AutoSearchForMovie(list, anime, episode, officialFullTitle, englishFullTitle, mainFullTitle, airDateForEpisode.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
         }
 
         return list;
     }
 
-    private async Task<bool> AutoSearchForMovie(List<TmdbAutoSearchResult> list, SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, string query, int year, bool isRestricted)
+    private async Task<bool> AutoSearchForMovie(List<TmdbAutoSearchResult> list, SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, string? officialTitle, string? englishTitle, string? mainTitle, int year, bool isRestricted)
     {
-        var (results, _) = await SearchMovies(query, includeRestricted: isRestricted, year: year).ConfigureAwait(false);
-        if (results.Count == 0)
-            return false;
+        TmdbAutoSearchResult? result = null;
+        if (!string.IsNullOrEmpty(officialTitle))
+            result = await AutoSearchMovieUsingTitle(anime, episode, officialTitle, includeRestricted: isRestricted, year: year).ConfigureAwait(false);
 
-        _logger.LogTrace("Found {Count} results for search on {Query}, best match: {MovieName} ({ID})", results.Count, query, results[0].OriginalTitle, results[0].Id);
-        list.Add(new(anime, episode, results[0]));
+        if (result is null && !string.IsNullOrEmpty(englishTitle))
+            result = await AutoSearchMovieUsingTitle(anime, episode, englishTitle, includeRestricted: isRestricted, year: year).ConfigureAwait(false);
 
-        return true;
+        if (result is null && !string.IsNullOrEmpty(mainTitle))
+            result = await AutoSearchMovieUsingTitle(anime, episode, mainTitle, includeRestricted: isRestricted, year: year).ConfigureAwait(false);
+
+        if (result is not null)
+            list.Add(result);
+        return result is not null;
+    }
+
+    private async Task<TmdbAutoSearchResult?> AutoSearchMovieUsingTitle(SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, string query, bool includeRestricted = false, int year = 0)
+    {
+        // Brute force attempt #1: With the original title and earliest known aired year.
+        var (results, totalCount) = await SearchMovies(query, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
+        if (results.Count > 0)
+        {
+            _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, results[0].OriginalTitle, results[0].Id);
+
+            return new(anime, episode, results[0]);
+        }
+
+        // Brute force attempt #2: With the original title but without the earliest known aired year.
+        (results, totalCount) = await SearchMovies(query, includeRestricted: includeRestricted).ConfigureAwait(false);
+        if (results.Count > 0)
+        {
+            _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, results[0].OriginalTitle, results[0].Id);
+
+            return new(anime, episode, results[0]);
+        }
+
+        // Brute force attempt #3-4: Same as above, but after stripping the title of common "sequel endings"
+        var strippedTitle = SequelSuffixRemovalRegex().Match(query) is { Success: true } regexResult
+            ? query[..^regexResult.Length].TrimEnd() : null;
+        if (!string.IsNullOrEmpty(strippedTitle))
+        {
+            (results, totalCount) = await SearchMovies(strippedTitle, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
+            if (results.Count > 0)
+            {
+                _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, results[0].OriginalTitle, results[0].Id);
+
+                return new(anime, episode, results[0]);
+            }
+            (results, totalCount) = await SearchMovies(strippedTitle, includeRestricted: includeRestricted).ConfigureAwait(false);
+            if (results.Count > 0)
+            {
+                _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, results[0].OriginalTitle, results[0].Id);
+
+                return new(anime, episode, results[0]);
+            }
+        }
+
+        return null;
     }
 
     #endregion
@@ -195,12 +284,6 @@ public partial class TmdbSearchService
 
         return (pagedResults, total);
     }
-
-    /// <summary>
-    /// This regex might save the day if the local database doesn't contain any prequel metadata, but the title itself contains a suffix that indicates it's a sequel of sorts.
-    /// </summary>
-    [GeneratedRegex(@"\(\d{4}\)$|\bs(?:eason)? (?:\d+|(?=[MDCLXVI])M*(?:C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3}))$|\bs\d+$|第(零〇一二三四五六七八九十百千萬億兆京垓點)+季$|\b(?:second|2nd|third|3rd|fourth|4th|fifth|5th|sixth|6th) season$", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Multiline)]
-    private partial Regex SequelSuffixRemovalRegex();
 
     private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForShow(SVR_AniDB_Anime anime)
     {
