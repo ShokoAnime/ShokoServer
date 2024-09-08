@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
@@ -60,11 +62,11 @@ public class Episode : BaseDirectory
     {
         var ep = new Episode { id = aep.AnimeEpisodeID, art = new ArtCollection() };
 
-        if (aep.AniDB_Episode is not null)
+        if (aep.AniDB_Episode is { } anidbEpisode)
         {
-            ep.eptype = aep.EpisodeTypeEnum.ToString();
-            ep.aid = aep.AniDB_Episode.AnimeID;
-            ep.eid = aep.AniDB_Episode.EpisodeID;
+            ep.eptype = anidbEpisode.EpisodeTypeEnum.ToString();
+            ep.aid = anidbEpisode.AnimeID;
+            ep.eid = anidbEpisode.EpisodeID;
         }
 
         var userRating = aep.UserRating;
@@ -83,8 +85,7 @@ public class Episode : BaseDirectory
         }
 
         var epService = Utils.ServiceContainer.GetRequiredService<AnimeEpisodeService>();
-        var cae = epService.GetV1Contract(aep, uid);
-        if (cae != null)
+        if (epService.GetV1Contract(aep, uid) is { } cae)
         {
             ep.name = cae.AniDB_EnglishName;
             ep.summary = cae.Description;
@@ -100,44 +101,39 @@ public class Episode : BaseDirectory
             ep.epnumber = cae.EpisodeNumber;
         }
 
-        var tvdbEpisode = aep.TvDBEpisode;
-        if (tvdbEpisode != null)
+        // Grab thumbnails/backdrops from first available source.
+        if (pic > 0 && aep.GetImages() is { } tmdbImages && tmdbImages.Count > 0)
+        {
+            var thumbnail = tmdbImages
+                .Where(image => image.ImageType == ImageEntityType.Thumbnail && image.IsLocalAvailable)
+                .OrderByDescending(image => image.IsPreferred)
+                .FirstOrDefault();
+            var backdrop = tmdbImages.Where(image => image.ImageType == ImageEntityType.Backdrop && image.IsLocalAvailable).GetRandomElement() ??
+                aep.AnimeSeries?.GetImages(ImageEntityType.Backdrop).Where(image => image.IsLocalAvailable).GetRandomElement();
+            if (thumbnail is not null)
+            {
+                backdrop ??= thumbnail;
+                ep.art.thumb.Add(new Art
+                {
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, thumbnail.ImageType, thumbnail.Source, thumbnail.ID),
+                });
+            }
+            if (backdrop is not null)
+            {
+                ep.art.fanart.Add(new Art
+                {
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
+                });
+            }
+        }
+
+        if (aep.TvDBEpisode is { } tvdbEpisode)
         {
             if (!string.IsNullOrEmpty(tvdbEpisode.EpisodeName))
             {
                 ep.name = tvdbEpisode.EpisodeName;
-            }
-
-            if (pic > 0)
-            {
-                if (Misc.IsImageValid(tvdbEpisode.GetFullImagePath()))
-                {
-                    ep.art.thumb.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.TvDB_EpisodeID),
-                    });
-                }
-
-                var fanarts = aep.AnimeSeries?.AniDB_Anime?.GetImages(ImageEntityType.Backdrop);
-                if (fanarts is { Count: > 0 })
-                {
-                    var cont_image =
-                        fanarts[new Random().Next(fanarts.Count)];
-                    ep.art.fanart.Add(new Art
-                    {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType, cont_image.Source, cont_image.ID),
-                        index = 0
-                    });
-                }
-                else
-                {
-                    ep.art.fanart.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Thumbnail, DataSourceEnum.TvDB, tvdbEpisode.TvDB_EpisodeID),
-                    });
-                }
             }
 
             if (!string.IsNullOrEmpty(tvdbEpisode.Overview))
@@ -166,8 +162,7 @@ public class Episode : BaseDirectory
 
         if (pic > 0 && ep.art.thumb.Count == 0)
         {
-            ep.art.thumb.Add(
-                new Art { index = 0, url = APIV2Helper.ConstructSupportImageLink(ctx, "plex_404.png") });
+            ep.art.thumb.Add(new Art { index = 0, url = APIV2Helper.ConstructSupportImageLink(ctx, "plex_404.png") });
             ep.art.fanart.Add(new Art { index = 0, url = APIV2Helper.ConstructSupportImageLink(ctx, "plex_404.png") });
         }
 
