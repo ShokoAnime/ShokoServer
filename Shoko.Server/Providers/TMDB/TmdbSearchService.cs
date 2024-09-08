@@ -146,13 +146,14 @@ public partial class TmdbSearchService
 
             var officialSubTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == language)?.Title ??
                 allEpisodeTitles.FirstOrDefault(title => title.Language == mainTitle.Language)?.Title;
+            var englishSubTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == TitleLanguage.English)?.Title;
+            var isGenericTitle = string.Equals(englishSubTitle, $"Movie {episode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase);
             var officialFullTitle = !string.IsNullOrEmpty(officialSubTitle)
-                ? $"{officialTitle} {officialSubTitle}" : null;
-            var englishSubTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == TitleLanguage.English && !string.Equals(title.Title, $"Episode {episode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))?.Title;
+                ? isGenericTitle ? $"{officialTitle} {episode.EpisodeNumber}" : $"{officialTitle} {officialSubTitle}" : null;
             var englishFullTitle = !string.IsNullOrEmpty(englishSubTitle)
-                ? $"{englishTitle} {englishSubTitle}" : null;
+                ? isGenericTitle ? $"{englishTitle} {episode.EpisodeNumber}" : $"{englishTitle} {englishSubTitle}" : null;
             var mainFullTitle = !string.IsNullOrEmpty(englishSubTitle)
-                ? $"{title} {englishSubTitle}" : null;
+                ? isGenericTitle ? $"{title} {episode.EpisodeNumber}" : $"{title} {englishSubTitle}" : null;
 
             // ~~Stolen~~ _Borrowed_ from the Shokofin code-base since we don't want to try linking extras to movies.
             if (episode.AbstractEpisodeType is EpisodeType.Special or EpisodeType.Other && !string.IsNullOrEmpty(englishSubTitle))
