@@ -259,6 +259,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [HttpGet("PurgeAllOfTvDB")]
     [HttpPost("PurgeAllOfTvDB")]
     public ActionResult PurgeAllTvdbData()
     {
