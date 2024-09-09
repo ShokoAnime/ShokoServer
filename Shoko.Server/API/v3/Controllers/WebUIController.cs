@@ -427,63 +427,63 @@ public class WebUIController : BaseController
             {
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
+                {
+                    var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
+                    foreach (var release in releases)
                     {
-                        var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
-                        foreach (var release in releases)
+                        string tagName = release.tag_name;
+                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                        foreach (var asset in release.assets)
                         {
-                            string tagName = release.tag_name;
-                            var version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                            foreach (var asset in release.assets)
+                            // We don't care what the zip is named, only that it is attached.
+                            // This is because we changed the signature from "latest.zip" to
+                            // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
+                            string fileName = asset.name;
+                            if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{tagName}.zip")
                             {
-                                // We don't care what the zip is named, only that it is attached.
-                                // This is because we changed the signature from "latest.zip" to
-                                // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
-                                string fileName = asset.name;
-                                if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{tagName}.zip")
+                                var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
+                                string commit = tag["object"].sha;
+                                DateTime releaseDate = release.published_at;
+                                releaseDate = releaseDate.ToUniversalTime();
+                                string description = release.body;
+                                return _cache.Set(key, new ComponentVersion
                                 {
-                                    var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
-                                    string commit = tag["object"].sha;
-                                    DateTime releaseDate = release.published_at;
-                                    releaseDate = releaseDate.ToUniversalTime();
-                                    string description = release.body;
-                                    return _cache.Set(key, new ComponentVersion
-                                    {
-                                        Version = version,
-                                        Commit = commit[..7],
-                                        ReleaseChannel = ReleaseChannel.Dev,
-                                        ReleaseDate = releaseDate,
-                                        Tag = tagName,
-                                        Description = description.Trim(),
-                                    }, _cacheTTL);
-                                }
+                                    Version = version,
+                                    Commit = commit[..7],
+                                    ReleaseChannel = ReleaseChannel.Dev,
+                                    ReleaseDate = releaseDate,
+                                    Tag = tagName,
+                                    Description = description.Trim(),
+                                }, _cacheTTL);
                             }
                         }
-
-                        // Fallback to stable.
-                        goto default;
                     }
+
+                    // Fallback to stable.
+                    goto default;
+                }
 
                 // Check for stable channel updates.
                 default:
+                {
+                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest");
+                    string tagName = latestRelease.tag_name;
+                    var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                    var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
+                    string commit = tag["object"].sha;
+                    DateTime releaseDate = latestRelease.published_at;
+                    releaseDate = releaseDate.ToUniversalTime();
+                    string description = latestRelease.body;
+                    return _cache.Set<ComponentVersion>(key, new ComponentVersion
                     {
-                        var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest");
-                        string tagName = latestRelease.tag_name;
-                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                        var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
-                        string commit = tag["object"].sha;
-                        DateTime releaseDate = latestRelease.published_at;
-                        releaseDate = releaseDate.ToUniversalTime();
-                        string description = latestRelease.body;
-                        return _cache.Set<ComponentVersion>(key, new ComponentVersion
-                        {
-                            Version = version,
-                            Commit = commit[0..7],
-                            ReleaseChannel = ReleaseChannel.Stable,
-                            ReleaseDate = releaseDate,
-                            Tag = tagName,
-                            Description = description.Trim(),
-                        }, _cacheTTL);
-                    }
+                        Version = version,
+                        Commit = commit[0..7],
+                        ReleaseChannel = ReleaseChannel.Stable,
+                        ReleaseDate = releaseDate,
+                        Tag = tagName,
+                        Description = description.Trim(),
+                    }, _cacheTTL);
+                }
             }
         }
         catch (WebException ex)
@@ -518,86 +518,86 @@ public class WebUIController : BaseController
             {
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
+                {
+                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
+                    var masterBranch = WebUIHelper.DownloadApiResponse("git/ref/heads/master", WebUIHelper.ServerRepoName);
+                    string commitSha = masterBranch["object"].sha;
+                    var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", WebUIHelper.ServerRepoName);
+                    string tagName = latestRelease.tag_name;
+                    var version = tagName[1..] + ".0";
+                    DateTime releaseDate = latestCommit.commit.author.date;
+                    releaseDate = releaseDate.ToUniversalTime();
+                    string description;
+                    // We're on a local build.
+                    if (!Utils.GetApplicationExtraVersion().TryGetValue("commit", out var currentCommit))
                     {
-                        var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
-                        var masterBranch = WebUIHelper.DownloadApiResponse("git/ref/heads/master", WebUIHelper.ServerRepoName);
-                        string commitSha = masterBranch["object"].sha;
-                        var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", WebUIHelper.ServerRepoName);
-                        string tagName = latestRelease.tag_name;
-                        var version = tagName[1..] + ".0";
-                        DateTime releaseDate = latestCommit.commit.author.date;
-                        releaseDate = releaseDate.ToUniversalTime();
-                        string description;
-                        // We're on a local build.
-                        if (!Utils.GetApplicationExtraVersion().TryGetValue("commit", out var currentCommit))
-                        {
-                            description = "Local build detected. Unable to determine the relativeness of the latest daily release.";
-                        }
-                        // We're not on the latest daily release.
-                        else if (!string.Equals(currentCommit, commitSha))
-                        {
-                            var diff = WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", WebUIHelper.ServerRepoName);
-                            var aheadBy = (int)diff.ahead_by;
-                            var behindBy = (int)diff.behind_by;
-                            description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
-                        }
-                        // We're on the latest daily release.
-                        else
-                        {
-                            description = "All caught up! You are running the latest daily release.";
-                        }
-                        return _cache.Set(key, new ComponentVersion
-                        {
-                            Version = version,
-                            Commit = commitSha,
-                            ReleaseChannel = ReleaseChannel.Dev,
-                            ReleaseDate = releaseDate,
-                            Description = description,
-                        }, _cacheTTL);
+                        description = "Local build detected. Unable to determine the relativeness of the latest daily release.";
                     }
+                    // We're not on the latest daily release.
+                    else if (!string.Equals(currentCommit, commitSha))
+                    {
+                        var diff = WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", WebUIHelper.ServerRepoName);
+                        var aheadBy = (int)diff.ahead_by;
+                        var behindBy = (int)diff.behind_by;
+                        description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
+                    }
+                    // We're on the latest daily release.
+                    else
+                    {
+                        description = "All caught up! You are running the latest daily release.";
+                    }
+                    return _cache.Set(key, new ComponentVersion
+                    {
+                        Version = version,
+                        Commit = commitSha,
+                        ReleaseChannel = ReleaseChannel.Dev,
+                        ReleaseDate = releaseDate,
+                        Description = description,
+                    }, _cacheTTL);
+                }
 
 #if DEBUG
                 // Spoof update if debugging and requesting the latest debug version.
                 case ReleaseChannel.Debug:
-                    {
-                        componentVersion = new ComponentVersion() { Version = Utils.GetApplicationVersion(), Description = "Local debug version." };
-                        var extraVersionDict = Utils.GetApplicationExtraVersion();
-                        if (extraVersionDict.TryGetValue("tag", out var tag))
-                            componentVersion.Tag = tag;
-                        if (extraVersionDict.TryGetValue("commit", out var commit))
-                            componentVersion.Commit = commit;
-                        if (extraVersionDict.TryGetValue("channel", out var rawChannel))
-                            if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
-                                componentVersion.ReleaseChannel = parsedChannel;
-                            else
-                                componentVersion.ReleaseChannel = ReleaseChannel.Debug;
-                        if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-                            componentVersion.ReleaseDate = releaseDate.ToUniversalTime();
-                        return _cache.Set<ComponentVersion>(key, componentVersion, _cacheTTL);
-                    }
+                {
+                    componentVersion = new ComponentVersion() { Version = Utils.GetApplicationVersion(), Description = "Local debug version." };
+                    var extraVersionDict = Utils.GetApplicationExtraVersion();
+                    if (extraVersionDict.TryGetValue("tag", out var tag))
+                        componentVersion.Tag = tag;
+                    if (extraVersionDict.TryGetValue("commit", out var commit))
+                        componentVersion.Commit = commit;
+                    if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+                        if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
+                            componentVersion.ReleaseChannel = parsedChannel;
+                        else
+                            componentVersion.ReleaseChannel = ReleaseChannel.Debug;
+                    if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+                        componentVersion.ReleaseDate = releaseDate.ToUniversalTime();
+                    return _cache.Set<ComponentVersion>(key, componentVersion, _cacheTTL);
+                }
 #endif
 
                 // Check for stable channel updates.
                 default:
+                {
+                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
+                    string tagName = latestRelease.tag_name;
+                    var tagResponse = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}", WebUIHelper.ServerRepoName);
+                    var version = tagName[1..] + ".0";
+                    string commit = tagResponse["object"].sha;
+                    DateTime releaseDate = latestRelease.published_at;
+                    releaseDate = releaseDate.ToUniversalTime();
+                    string description = latestRelease.body;
+                    return _cache.Set(key, new ComponentVersion
                     {
-                        var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
-                        string tagName = latestRelease.tag_name;
-                        var tagResponse = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}", WebUIHelper.ServerRepoName);
-                        var version = tagName[1..] + ".0";
-                        string commit = tagResponse["object"].sha;
-                        DateTime releaseDate = latestRelease.published_at;
-                        releaseDate = releaseDate.ToUniversalTime();
-                        string description = latestRelease.body;
-                        return _cache.Set(key, new ComponentVersion
-                        {
-                            Version = version,
-                            Commit = commit,
-                            ReleaseChannel = ReleaseChannel.Stable,
-                            ReleaseDate = releaseDate,
-                            Tag = tagName,
-                            Description = description.Trim()
-                        }, _cacheTTL);
-                    }
+                        Version = version,
+                        Commit = commit,
+                        ReleaseChannel = ReleaseChannel.Stable,
+                        ReleaseDate = releaseDate,
+                        Tag = tagName,
+                        Description = description.Trim()
+                    }, _cacheTTL);
+                }
             }
         }
         catch (WebException ex)
