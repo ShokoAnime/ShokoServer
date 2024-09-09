@@ -121,7 +121,12 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
 
         return ids
             .Select(GetByAniDBEpisodeID)
-            .Where(a => a != null)
+            .Select(episode => (episode, anidbEpisode: episode?.AniDB_Episode))
+            .Where(tuple => tuple.anidbEpisode is not null)
+            .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
+            .Select(tuple => tuple.episode!)
             .ToList();
     }
 
