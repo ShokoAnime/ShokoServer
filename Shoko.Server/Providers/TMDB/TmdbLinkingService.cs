@@ -534,12 +534,7 @@ public class TmdbLinkingService
 
     private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(SVR_AniDB_Anime anime, SVR_AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
     {
-        // Skip matching if it's a special and unknown air date.
-        var anidbDate = anidbEpisode.GetAirDateAsDateOnly();
-        if (anidbEpisode.AbstractEpisodeType is EpisodeType.Special && anidbDate is null)
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.SarahJessicaParker);
-
-        // Also skip matching if we try to match a music video or complete movie.
+        // Skip matching if we try to match a music video or complete movie.
         var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
             .Where(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
             .FirstOrDefault()?.Title;
@@ -559,6 +554,7 @@ public class TmdbLinkingService
             }
         }
 
+        var anidbDate = anidbEpisode.GetAirDateAsDateOnly();
         var airdateProbability = tmdbEpisodes
             .Select(episode => new { episode, probability = CalculateAirDateProbability(anidbDate, episode.AiredAt) })
             .Where(result => result.probability != 0)
