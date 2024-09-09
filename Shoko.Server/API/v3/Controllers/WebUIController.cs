@@ -7,7 +7,9 @@ using System.Net.Http;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
@@ -82,22 +84,69 @@ public class WebUIController : BaseController
     }
 
     /// <summary>
-    /// Adds a new theme to the application.
+    /// Adds a new theme to the application from a theme URL.
     /// </summary>
     /// <param name="body">The body of the request containing the theme URL and preview flag.</param>
     /// <returns>The added theme.</returns>
     [Authorize("admin")]
-    [HttpPost("Theme")]
-    public async Task<ActionResult<WebUITheme>> AddTheme([FromBody] Input.WebUIAddThemeBody body)
+    [HttpPost("Theme/AddFromURL")]
+    public async Task<ActionResult<WebUITheme>> AddThemeFromUrl([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Input.WebUIAddThemeBody body)
     {
         try
         {
-            var theme = await WebUIThemeProvider.InstallTheme(body.URL, body.Preview);
-            return new WebUITheme(theme);
+            var theme = await WebUIThemeProvider.InstallThemeFromUrl(body.URL, body.Preview);
+            return new WebUITheme(theme, true);
         }
         catch (ValidationException valEx)
         {
             return ValidationProblem(valEx.Message, nameof(body.URL));
+        }
+        catch (HttpRequestException httpEx)
+        {
+            return InternalError(httpEx.Message);
+        }
+    }
+
+    /// <summary>
+    /// Adds a new theme to the application by uploading a theme file.
+    /// </summary>
+    /// <param name="file">The theme file to add.</param>
+    /// <param name="preview">Flag indicating whether to enable preview mode, which just validates the file contents without installing the theme.</param>
+    /// <returns>The added or previewed theme.</returns>
+    [Authorize("admin")]
+    [HttpPost("Theme/AddFromFile")]
+    public async Task<ActionResult<WebUITheme>> AddThemeFromFile(IFormFile file, [FromForm] bool preview = false)
+    {
+        var fileName = Path.GetFileName(file.FileName);
+        if (string.IsNullOrEmpty(fileName))
+            return ValidationProblem("File name cannot be empty or omitted.", nameof(file));
+
+        try
+        {
+            // Check if the file name conforms to our specified format.
+            switch (Path.GetExtension(fileName))
+            {
+                case ".css":
+                {
+                    using var fileReader = new StreamReader(file.OpenReadStream());
+                    var content = await fileReader.ReadToEndAsync();
+                    var theme = await WebUIThemeProvider.CreateOrUpdateThemeFromCss(content, Path.GetFileNameWithoutExtension(fileName), preview);
+                    return new WebUITheme(theme, true);
+                }
+                case ".json":
+                {
+                    using var fileReader = new StreamReader(file.OpenReadStream());
+                    var content = await fileReader.ReadToEndAsync();
+                    var theme = await WebUIThemeProvider.InstallOrUpdateThemeFromJson(content, Path.GetFileNameWithoutExtension(fileName), preview);
+                    return new WebUITheme(theme, true);
+                }
+                default:
+                    return ValidationProblem("Unsupported file extension.", nameof(file));
+            }
+        }
+        catch (ValidationException valEx)
+        {
+            return ValidationProblem(valEx.Message);
         }
         catch (HttpRequestException httpEx)
         {
@@ -121,7 +170,7 @@ public class WebUIController : BaseController
         if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
-        return new WebUITheme(theme);
+        return new WebUITheme(theme, true);
     }
 
     /// <summary>
@@ -154,10 +203,8 @@ public class WebUIController : BaseController
     public ActionResult RemoveTheme([FromRoute] string themeID)
     {
         var theme = WebUIThemeProvider.GetTheme(themeID, true);
-        if (theme is null)
+        if (theme is null || !WebUIThemeProvider.RemoveTheme(theme))
             return NotFound("A theme with the given id was not found.");
-
-        WebUIThemeProvider.RemoveTheme(theme);
 
         return NoContent();
     }
@@ -176,8 +223,8 @@ public class WebUIController : BaseController
 
         try
         {
-            theme = await WebUIThemeProvider.UpdateTheme(theme, true);
-            return new WebUITheme(theme);
+            theme = await WebUIThemeProvider.UpdateThemeOnline(theme, true);
+            return new WebUITheme(theme, true);
         }
         catch (ValidationException valEx)
         {
@@ -204,8 +251,8 @@ public class WebUIController : BaseController
 
         try
         {
-            theme = await WebUIThemeProvider.UpdateTheme(theme);
-            return new WebUITheme(theme);
+            theme = await WebUIThemeProvider.UpdateThemeOnline(theme);
+            return new WebUITheme(theme, true);
         }
         catch (ValidationException valEx)
         {
