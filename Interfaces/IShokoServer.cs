@@ -553,7 +553,7 @@ namespace Shoko.Models.Interfaces
         List <CL_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID);
 
         [Rest("AniDB/Seiyuu/{seiyuuID}", Verbs.Get)]
-        AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID);
+        CL_AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID);
 
         [Rest("AniDB/Episode/ForAnime/{animeID}", Verbs.Get)]
         List<CL_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID);

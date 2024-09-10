@@ -2,7 +2,7 @@
 
 namespace Shoko.Models.Server
 {
-    public class AniDB_Seiyuu : ICloneable
+    public class CL_AniDB_Seiyuu : ICloneable
     {
         public int AniDB_SeiyuuID { get; set; }
         public int SeiyuuID { get; set; }
@@ -11,7 +11,7 @@ namespace Shoko.Models.Server
 
         public object Clone()
         {
-            return new AniDB_Seiyuu
+            return new CL_AniDB_Seiyuu
             {
                 AniDB_SeiyuuID = AniDB_SeiyuuID,
                 SeiyuuID = SeiyuuID,

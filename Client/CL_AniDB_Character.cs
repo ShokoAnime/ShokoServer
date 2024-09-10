@@ -8,7 +8,7 @@ namespace Shoko.Models.Client
         // from AniDB_Anime_Character
         public string CharType { get; set; }
 
-        public AniDB_Seiyuu Seiyuu { get; set; }
+        public CL_AniDB_Seiyuu Seiyuu { get; set; }
 
         public CL_AniDB_Character()
         {
@@ -29,7 +29,8 @@ namespace Shoko.Models.Client
         {
             var character = new CL_AniDB_Character(this)
             {
-                Seiyuu = (AniDB_Seiyuu) Seiyuu?.Clone(), CharType = CharType
+                Seiyuu = (CL_AniDB_Seiyuu)Seiyuu?.Clone(),
+                CharType = CharType,
             };
 
             return character;
