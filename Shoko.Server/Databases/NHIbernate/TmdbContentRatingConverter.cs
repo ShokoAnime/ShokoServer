@@ -36,7 +36,7 @@ public class TmdbContentRatingConverter : TypeConverter, IUserType
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object? value)
         => value switch
         {
-            string i => i.Split("|||").Select(s => TMDB_ContentRating.FromString(s)).ToList(),
+            string i => i.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(s => TMDB_ContentRating.FromString(s)).ToList(),
             List<TMDB_ContentRating> l => l,
             _ => throw new ArgumentException($"DestinationType must be {nameof(String)}.")
         };
@@ -45,7 +45,7 @@ public class TmdbContentRatingConverter : TypeConverter, IUserType
         => value switch
         {
             string i => i,
-            List<TMDB_ContentRating> l => l.Select(r => r.ToString()).Join("|||"),
+            List<TMDB_ContentRating> l => l.Select(r => r.ToString()).Join('|'),
             _ => throw new ArgumentException($"DestinationType must be {typeof(List<TMDB_ContentRating>).FullName}."),
         };
 
