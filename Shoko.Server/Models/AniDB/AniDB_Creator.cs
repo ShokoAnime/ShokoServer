@@ -7,13 +7,12 @@ namespace Shoko.Server.Models.AniDB;
 public class AniDB_Creator
 {
     #region DB Columns
-    
+
     /// <summary>
     /// The local ID of the creator.
     /// </summary>
     public int AniDB_CreatorID { get; set; }
 
-    
     /// <summary>
     /// The global ID of the creator.
     /// </summary>
