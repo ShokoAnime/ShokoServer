@@ -50,6 +50,11 @@ public class User
     /// </summary>
     public string Avatar { get; set; }
 
+    /// <summary>
+    /// The user's Plex usernames.
+    /// </summary>
+    public List<string> PlexUsernames { get; set; }
+
     public User(SVR_JMMUser user)
     {
         ID = user.JMMUserID;
@@ -78,6 +83,8 @@ public class User
             .ToList();
 
         Avatar = user.HasAvatarImage ? ModelHelper.ToDataURL(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType) ?? string.Empty : string.Empty;
+
+        PlexUsernames = user.PlexUsers.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).ToList();
     }
 
     public class Input
@@ -138,6 +145,11 @@ public class User
             /// string to remove the current avatar image.
             /// </summary>
             public string? Avatar { get; set; } = null;
+
+            /// <summary>
+            /// The new user's Plex usernames.
+            /// </summary>
+            public List<string>? PlexUsernames { get; set; }
 
             public CreateOrUpdateUserBody() { }
 
@@ -228,6 +240,11 @@ public class User
                 {
                     user.IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0;
                     user.IsAniDBUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.AniDB) ? 1 : 0;
+                }
+
+                if (PlexUsernames != null)
+                {
+                    user.PlexUsers = string.Join(',', PlexUsernames.Select(username => username.Trim()).Where(username => !string.IsNullOrEmpty(username)));
                 }
 
                 // Save the model now.
