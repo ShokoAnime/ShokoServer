@@ -84,7 +84,7 @@ public class User
 
         Avatar = user.HasAvatarImage ? ModelHelper.ToDataURL(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType) ?? string.Empty : string.Empty;
 
-        PlexUsernames = user.PlexUsers.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).ToList();
+        PlexUsernames = user.PlexUsers?.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).ToList() ?? [];
     }
 
     public class Input
@@ -244,7 +244,8 @@ public class User
 
                 if (PlexUsernames != null)
                 {
-                    user.PlexUsers = string.Join(',', PlexUsernames.Select(username => username.Trim()).Where(username => !string.IsNullOrEmpty(username)));
+                    var plexUsers = string.Join(',', PlexUsernames.Select(username => username.Trim()).Where(username => !string.IsNullOrEmpty(username)));
+                    user.PlexUsers = string.IsNullOrWhiteSpace(plexUsers) ? null : plexUsers;
                 }
 
                 // Save the model now.
