@@ -1,3 +1,4 @@
+using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Databases;
@@ -12,6 +13,18 @@ public class AniDB_CreatorRepository : BaseCachedRepository<AniDB_Creator, int>
     public AniDB_Creator? GetByCreatorID(int id)
     {
         return ReadLock(() => _seiyuuIDs!.GetOne(id));
+    }
+
+    public AniDB_Creator? GetByName(string creatorName)
+    {
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+            return session.Query<AniDB_Creator>()
+                .Where(a => a.Name == creatorName)
+                .Take(1)
+                .SingleOrDefault();
+        });
     }
 
     public override void PopulateIndexes()
