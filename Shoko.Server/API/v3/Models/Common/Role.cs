@@ -1,9 +1,8 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -47,14 +46,14 @@ public class Role
             Name = character.Name,
             AlternateName = character.AlternateName,
             Description = character.Description,
-            Image = new Image(character.CharacterID, ImageEntityType.Character, DataSourceType.Shoko),
+            Image = character.GetImageMetadata() is { } characterImage ? new Image(characterImage) : null,
         };
         Staff = new()
         {
             Name = staff.Name,
             AlternateName = staff.AlternateName,
             Description = staff.Description,
-            Image = staff.ImagePath != null ? new Image(staff.StaffID, ImageEntityType.Person, DataSourceType.Shoko) : null,
+            Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
         };
         RoleName = (CreatorRoleType)xref.RoleType;
         RoleDetails = xref.Role;
