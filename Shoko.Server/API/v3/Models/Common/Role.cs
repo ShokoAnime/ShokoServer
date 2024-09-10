@@ -43,6 +43,7 @@ public class Role
     {
         Character = character == null ? null : new()
         {
+            ID = character.AniDBID,
             Name = character.Name,
             AlternateName = character.AlternateName,
             Description = character.Description,
@@ -50,6 +51,7 @@ public class Role
         };
         Staff = new()
         {
+            ID = staff.AniDBID,
             Name = staff.Name,
             AlternateName = staff.AlternateName,
             Description = staff.Description,
@@ -83,6 +85,10 @@ public class Role
     {
         var person = cast.GetTmdbPerson();
         var personImages = person.GetImages();
+        Character = new()
+        {
+            Name = cast.CharacterName,
+        };
         Staff = new()
         {
             ID = person.Id,
@@ -99,6 +105,10 @@ public class Role
     {
         var person = cast.GetTmdbPerson();
         var personImages = person.GetImages();
+        Character = new()
+        {
+            Name = cast.CharacterName,
+        };
         Staff = new()
         {
             ID = person.Id,
@@ -115,6 +125,10 @@ public class Role
     {
         var person = cast.GetTmdbPerson();
         var personImages = person.GetImages();
+        Character = new()
+        {
+            Name = cast.CharacterName,
+        };
         Staff = new()
         {
             ID = person.Id,
