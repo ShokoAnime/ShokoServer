@@ -889,6 +889,7 @@ public class AnimeCreator
                     }
                 }
 
+                var settings = _settingsProvider.GetSettings();
                 foreach (var seiyuuGrouping in seiyuuLookup)
                 {
                     try
@@ -908,7 +909,7 @@ public class AnimeCreator
                         };
 
                         creatorsToSave[creator.CreatorID] = creator;
-                        if (creator.Type is CreatorType.Unknown)
+                        if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
                             creatorsToSchedule.Add(creator.CreatorID);
 
                         var staff = RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID);
@@ -1007,6 +1008,7 @@ public class AnimeCreator
             }
         }
 
+        var settings = _settingsProvider.GetSettings();
         foreach (var grouping in staffLookup)
         {
             try
@@ -1030,7 +1032,7 @@ public class AnimeCreator
                     };
                     creatorsToSave.Add(creator);
                 }
-                if (creator.Type is CreatorType.Unknown)
+                if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
                     creatorsToSchedule.Add(rawStaff.CreatorID);
 
                 var staff = RepoFactory.AnimeStaff.GetByAniDBID(rawStaff.CreatorID);
@@ -1105,6 +1107,7 @@ public class AnimeCreator
         try
         {
             var creatorList = creatorIDs.ToList();
+            if (creatorList.Count == 0) return;
             var scheduler = await _schedulerFactory.GetScheduler();
             _logger.LogInformation("Scheduling {Count} creators to be updated for {MainTitle}", creatorList.Count, mainTitle);
             foreach (var creatorId in creatorList)

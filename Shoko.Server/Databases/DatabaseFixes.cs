@@ -820,6 +820,8 @@ public class DatabaseFixes
 
     public static void ScheduleAnidbCreators()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (!settings.AniDb.DownloadCreators) return;
         var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
         var scheduler = schedulerFactory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
         var creators = RepoFactory.AniDB_Creator.GetAll().Select(c => c.CreatorID)
