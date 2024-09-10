@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 135;
+    public override int RequiredVersion { get; } = 136;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -824,6 +824,17 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(134, 3, "ALTER TABLE `TMDB_Show` ADD COLUMN `PosterPath` VARCHAR(64) NULL DEFAULT NULL;"),
         new(134, 4, "ALTER TABLE `TMDB_Show` ADD COLUMN `BackdropPath` VARCHAR(64) NULL DEFAULT NULL;"),
         new(135, 1, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'MissingTMDbLinkExpression', 'MissingTmdbLinkExpression');"),
+        new(136, 1, "CREATE TABLE `AniDB_Creator` (`AniDB_CreatorID` INT NOT NULL AUTO_INCREMENT, `CreatorID` INT NOT NULL, `Name` VARCHAR(512) CHARACTER SET UTF8 NOT NULL, `OriginalName` VARCHAR(512) CHARACTER SET UTF8 NULL, `Type` INT NOT NULL DEFAULT 0, `ImagePath` VARCHAR(512) CHARACTER SET UTF8 NULL, `EnglishHomepageUrl` VARCHAR(512) CHARACTER SET UTF8 NULL, `JapaneseHomepageUrl` VARCHAR(512) CHARACTER SET UTF8 NULL, `EnglishWikiUrl` VARCHAR(512) CHARACTER SET UTF8 NULL, `JapaneseWikiUrl` VARCHAR(512) CHARACTER SET UTF8 NULL, `LastUpdatedAt` DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00', PRIMARY KEY (`AniDB_CreatorID`) );"),
+        new(136, 2, "CREATE TABLE `AniDB_Character_Creator` (`AniDB_Character_CreatorID` INT NOT NULL AUTO_INCREMENT, `CharacterID` INT NOT NULL, `CreatorID` INT NOT NULL, PRIMARY KEY (`AniDB_Character_CreatorID`) );"),
+        new(136, 3, "CREATE UNIQUE INDEX `UIX_AniDB_Creator_CreatorID` ON `AniDB_Creator`(`CreatorID`);"),
+        new(136, 4, "CREATE INDEX `UIX_AniDB_Character_Creator_CreatorID` ON `AniDB_Character_Creator`(`CreatorID`);"),
+        new(136, 5, "CREATE INDEX `UIX_AniDB_Character_Creator_CharacterID` ON `AniDB_Character_Creator`(`CharacterID`);"),
+        new(136, 6, "CREATE UNIQUE INDEX `UIX_AniDB_Character_Creator_CharacterID_CreatorID` ON `AniDB_Character_Creator`(`CharacterID`, `CreatorID`);"),
+        new(136, 7, "INSERT INTO `AniDB_Creator` (`CreatorID`, `Name`, `ImagePath`) SELECT `SeiyuuID`, `SeiyuuName`, `PicName` FROM `AniDB_Seiyuu`;"),
+        new(136, 8, "INSERT INTO `AniDB_Character_Creator` (`CharacterID`, `CreatorID`) SELECT `CharID`, `SeiyuuID` FROM `AniDB_Character_Seiyuu`;"),
+        new(136, 9, "DROP TABLE IF EXISTS `AniDB_Seiyuu`"),
+        new(136, 10, "DROP TABLE IF EXISTS `AniDB_Character_Seiyuu`"),
+        new(136, 11, DatabaseFixes.ScheduleAnidbCreators),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

@@ -130,7 +130,7 @@ public class ImageUtils
             DataSourceType.AniDB => imageType switch
             {
                 ImageEntityType.Character => RepoFactory.AniDB_Character.GetByCharID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Person => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(imageId)?.GetImageMetadata(),
+                ImageEntityType.Person => RepoFactory.AniDB_Creator.GetByCreatorID(imageId)?.GetImageMetadata(),
                 ImageEntityType.Poster => RepoFactory.AniDB_Anime.GetByAnimeID(imageId)?.GetImageMetadata(),
                 _ => null,
             },
@@ -171,8 +171,8 @@ public class ImageUtils
                 ImageEntityType.Person => RepoFactory.AniDB_Anime.GetAll()
                     .Where(a => a is not null && !a.GetAllTags().Contains("18 restricted"))
                     .SelectMany(a => a.Characters)
-                    .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
-                    .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).WhereNotNull()
+                    .SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID))
+                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull()
                     .GetRandomElement()?.GetImageMetadata(),
                 _ => null,
             },

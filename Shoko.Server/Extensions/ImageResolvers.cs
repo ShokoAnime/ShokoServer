@@ -7,6 +7,7 @@ using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -163,21 +164,21 @@ public static class ImageResolvers
         return Path.Combine(ImageUtils.GetAniDBCharacterImagePath(character.CharID), character.PicName);
     }
 
-    public static IImageMetadata? GetImageMetadata(this AniDB_Seiyuu seiyuu, bool preferred = false)
-        => !string.IsNullOrEmpty(seiyuu.PicName)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Person, seiyuu.SeiyuuID, seiyuu.GetFullImagePath(), ResolveAnidbImageUrl(seiyuu.PicName))
+    public static IImageMetadata? GetImageMetadata(this AniDB_Creator seiyuu, bool preferred = false)
+        => !string.IsNullOrEmpty(seiyuu.ImagePath)
+            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Person, seiyuu.CreatorID, seiyuu.GetFullImagePath(), ResolveAnidbImageUrl(seiyuu.ImagePath))
             {
                 IsEnabled = true,
                 IsPreferred = preferred,
             }
             : null;
 
-    public static string GetFullImagePath(this AniDB_Seiyuu seiyuu)
+    public static string GetFullImagePath(this AniDB_Creator seiyuu)
     {
-        if (string.IsNullOrEmpty(seiyuu.PicName))
+        if (string.IsNullOrEmpty(seiyuu.ImagePath))
             return string.Empty;
 
-        return Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.SeiyuuID), seiyuu.PicName);
+        return Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.CreatorID), seiyuu.ImagePath);
     }
 
     public static IImageMetadata? GetImageMetadata(this AnimeCharacter character, bool preferred = false)

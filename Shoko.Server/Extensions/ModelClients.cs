@@ -448,7 +448,16 @@ public static class ModelClients
             CharName = character.CharName,
             CharKanjiName = character.CharKanjiName,
             CharDescription = character.CharDescription,
-            Seiyuu = character.GetSeiyuu(),
+            Seiyuu = character.GetCreator()?.ToClient(),
+        };
+
+    public static CL_AniDB_Seiyuu ToClient(this AniDB_Creator creator)
+        => new()
+        {
+            AniDB_SeiyuuID = creator.AniDB_CreatorID,
+            SeiyuuID = creator.CreatorID,
+            SeiyuuName = creator.Name,
+            PicName = creator.ImagePath,
         };
 
     public static CL_AniDB_Episode ToClient(this SVR_AniDB_Episode ep)

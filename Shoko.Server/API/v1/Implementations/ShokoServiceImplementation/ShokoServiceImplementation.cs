@@ -1290,17 +1290,17 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
         try
         {
-            var seiyuu = RepoFactory.AniDB_Seiyuu.GetByID(seiyuuID);
+            var seiyuu = RepoFactory.AniDB_Creator.GetByID(seiyuuID);
             if (seiyuu == null)
             {
                 return chars;
             }
 
-            var links = RepoFactory.AniDB_Character_Seiyuu.GetBySeiyuuID(seiyuu.SeiyuuID);
+            var links = RepoFactory.AniDB_Character_Creator.GetByCreatorID(seiyuu.CreatorID);
 
             foreach (var chrSei in links)
             {
-                var chr = RepoFactory.AniDB_Character.GetByID(chrSei.CharID);
+                var chr = RepoFactory.AniDB_Character.GetByID(chrSei.CharacterID);
                 if (chr != null)
                 {
                     var aniChars =
@@ -1326,11 +1326,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     }
 
     [HttpGet("AniDB/Seiyuu/{seiyuuID}")]
-    public AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID)
+    public CL_AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID)
     {
         try
         {
-            return RepoFactory.AniDB_Seiyuu.GetByID(seiyuuID);
+            return RepoFactory.AniDB_Creator.GetByCreatorID(seiyuuID)?.ToClient();
         }
         catch (Exception ex)
         {

@@ -60,13 +60,13 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_Anime_TagRepository>();
         services.AddCachedRepository<AniDB_Anime_TitleRepository>();
         services.AddCachedRepository<AniDB_CharacterRepository>();
-        services.AddCachedRepository<AniDB_Character_SeiyuuRepository>();
+        services.AddCachedRepository<AniDB_Character_CreatorRepository>();
         services.AddCachedRepository<AniDB_EpisodeRepository>();
         services.AddCachedRepository<AniDB_Episode_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
         services.AddCachedRepository<AniDB_FileRepository>();
         services.AddCachedRepository<AniDB_ReleaseGroupRepository>();
-        services.AddCachedRepository<AniDB_SeiyuuRepository>();
+        services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
         services.AddCachedRepository<AniDB_VoteRepository>();
         services.AddCachedRepository<AnimeCharacterRepository>();

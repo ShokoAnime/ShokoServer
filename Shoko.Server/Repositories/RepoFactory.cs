@@ -26,8 +26,9 @@ public class RepoFactory
     public static AniDB_Anime_TitleRepository AniDB_Anime_Title;
     public static AniDB_AnimeRepository AniDB_Anime;
     public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate;
-    public static AniDB_Character_SeiyuuRepository AniDB_Character_Seiyuu;
+    public static AniDB_Character_CreatorRepository AniDB_Character_Creator;
     public static AniDB_CharacterRepository AniDB_Character;
+    public static AniDB_CreatorRepository AniDB_Creator;
     public static AniDB_Episode_PreferredImageRepository AniDB_Episode_PreferredImage;
     public static AniDB_Episode_TitleRepository AniDB_Episode_Title;
     public static AniDB_EpisodeRepository AniDB_Episode;
@@ -37,7 +38,6 @@ public class RepoFactory
     public static AniDB_MessageRepository AniDB_Message;
     public static AniDB_NotifyQueueRepository AniDB_NotifyQueue;
     public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup;
-    public static AniDB_SeiyuuRepository AniDB_Seiyuu;
     public static AniDB_TagRepository AniDB_Tag;
     public static AniDB_VoteRepository AniDB_Vote;
     public static AnimeCharacterRepository AnimeCharacter;
@@ -120,8 +120,9 @@ public class RepoFactory
         AniDB_Anime_TitleRepository anidbAnimeTitle,
         AniDB_AnimeRepository anidbAnime,
         AniDB_AnimeUpdateRepository anidbAnimeUpdate,
-        AniDB_Character_SeiyuuRepository anidbCharacterSeiyuu,
+        AniDB_Character_CreatorRepository anidbCharacterCreator,
         AniDB_CharacterRepository anidbCharacter,
+        AniDB_CreatorRepository anidbCreator,
         AniDB_Episode_PreferredImageRepository anidbEpisodePreferredImage,
         AniDB_Episode_TitleRepository anidbEpisodeTitle,
         AniDB_EpisodeRepository anidbEpisode,
@@ -131,7 +132,6 @@ public class RepoFactory
         AniDB_MessageRepository anidbMessage,
         AniDB_NotifyQueueRepository anidbNotifyQueue,
         AniDB_ReleaseGroupRepository anidbReleaseGroup,
-        AniDB_SeiyuuRepository anidbSeiyuu,
         AniDB_TagRepository anidbTag,
         AniDB_VoteRepository anidbVote,
         AnimeCharacterRepository animeCharacter,
@@ -215,7 +215,8 @@ public class RepoFactory
         AniDB_Anime_Title = anidbAnimeTitle;
         AniDB_AnimeUpdate = anidbAnimeUpdate;
         AniDB_Character = anidbCharacter;
-        AniDB_Character_Seiyuu = anidbCharacterSeiyuu;
+        AniDB_Character_Creator = anidbCharacterCreator;
+        AniDB_Creator = anidbCreator;
         AniDB_Episode = anidbEpisode;
         AniDB_Episode_PreferredImage = anidbEpisodePreferredImage;
         AniDB_Episode_Title = anidbEpisodeTitle;
@@ -225,7 +226,6 @@ public class RepoFactory
         AniDB_Message = anidbMessage;
         AniDB_NotifyQueue = anidbNotifyQueue;
         AniDB_ReleaseGroup = anidbReleaseGroup;
-        AniDB_Seiyuu = anidbSeiyuu;
         AniDB_Tag = anidbTag;
         AniDB_Vote = anidbVote;
         AnimeCharacter = animeCharacter;

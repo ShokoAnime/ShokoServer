@@ -868,8 +868,8 @@ label0:;
 
             var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID);
             var characters = characterXrefs.Select(a => RepoFactory.AniDB_Character.GetByCharID(a.CharID)).ToList();
-            var seiyuuXrefs = characters.SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID)).ToList();
-            RepoFactory.AniDB_Character_Seiyuu.Delete(seiyuuXrefs);
+            var seiyuuXrefs = characters.SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID)).ToList();
+            RepoFactory.AniDB_Character_Creator.Delete(seiyuuXrefs);
             RepoFactory.AniDB_Character.Delete(characters);
             RepoFactory.AniDB_Anime_Character.Delete(characterXrefs);
 

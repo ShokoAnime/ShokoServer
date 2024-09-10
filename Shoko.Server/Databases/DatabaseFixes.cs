@@ -173,9 +173,9 @@ public class DatabaseFixes
     public static void PopulateCharactersAndStaff()
     {
         var allCharacters = RepoFactory.AniDB_Character.GetAll();
-        var allStaff = RepoFactory.AniDB_Seiyuu.GetAll();
+        var allStaff = RepoFactory.AniDB_Creator.GetAll();
         var allAnimeCharacters = RepoFactory.AniDB_Anime_Character.GetAll().ToLookup(a => a.CharID, b => b);
-        var allCharacterStaff = RepoFactory.AniDB_Character_Seiyuu.GetAll();
+        var allCharacterStaff = RepoFactory.AniDB_Character_Creator.GetAll();
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
         var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
 
@@ -190,8 +190,8 @@ public class DatabaseFixes
 
         var staffToSave = allStaff.Select(a => new AnimeStaff
         {
-            Name = a.SeiyuuName?.Replace("`", "'"),
-            AniDBID = a.SeiyuuID,
+            Name = a.Name?.Replace("`", "'"),
+            AniDBID = a.CreatorID,
             ImagePath = a.GetFullImagePath()?.Replace(creatorBasePath, ""),
         }).ToList();
         RepoFactory.AnimeStaff.Save(staffToSave);
@@ -199,7 +199,7 @@ public class DatabaseFixes
         // This is not accurate. There was a mistake in DB design
         var xrefsToSave = (
             from xref in allCharacterStaff
-            let animeList = allAnimeCharacters[xref.CharID].ToList()
+            let animeList = allAnimeCharacters[xref.CharacterID].ToList()
             from anime in animeList
             select new CrossRef_Anime_Staff
             {
@@ -207,8 +207,8 @@ public class DatabaseFixes
                 Language = "Japanese",
                 RoleType = (int)StaffRoleType.Seiyuu,
                 Role = anime.CharType,
-                RoleID = RepoFactory.AnimeCharacter.GetByAniDBID(xref.CharID).CharacterID,
-                StaffID = RepoFactory.AnimeStaff.GetByAniDBID(xref.SeiyuuID).StaffID
+                RoleID = RepoFactory.AnimeCharacter.GetByAniDBID(xref.CharacterID).CharacterID,
+                StaffID = RepoFactory.AnimeStaff.GetByAniDBID(xref.CreatorID).StaffID
             }
         ).ToList();
         RepoFactory.CrossRef_Anime_Staff.Save(xrefsToSave);
@@ -816,5 +816,20 @@ public class DatabaseFixes
         };
 
         RepoFactory.RenamerConfig.Save(config);
+    }
+
+    public static void ScheduleAnidbCreators()
+    {
+        var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var scheduler = schedulerFactory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
+        var creators = RepoFactory.AniDB_Creator.GetAll().Select(c => c.CreatorID)
+            .Concat(RepoFactory.AnimeStaff.GetAll().Select(s => s.AniDBID))
+            .ToHashSet();
+        var startedAt = DateTime.Now;
+        _logger.Info($"Scheduling {creators.Count} AniDB Creators for a refresh.");
+        foreach (var creatorID in creators)
+            scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).GetAwaiter().GetResult();
+
+        _logger.Info($"Scheduled {creators.Count} AniDB Creators took {DateTime.Now - startedAt}");
     }
 }

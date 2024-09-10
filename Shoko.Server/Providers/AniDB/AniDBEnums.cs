@@ -265,6 +265,14 @@ public enum AnimeType
     Other = 5
 }
 
+public enum CreatorType
+{
+    Unknown = 0,
+    Person = 1,
+    Company = 2,
+    Collaboration = 3,
+}
+
 /// <summary>
 /// Explains how the main entry relates to the related entry.
 /// </summary>

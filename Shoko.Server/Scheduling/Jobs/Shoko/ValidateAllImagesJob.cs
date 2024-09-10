@@ -205,16 +205,16 @@ public class ValidateAllImagesJob : BaseJob
         {
             count = 0;
             UpdateProgress(" - AniDB Creators");
-            _logger.LogInformation(ScanForType, "AniDB Seiyuu");
-            var staff = RepoFactory.AniDB_Seiyuu.GetAll()
+            _logger.LogInformation(ScanForType, "AniDB Creator");
+            var staff = RepoFactory.AniDB_Creator.GetAll()
                 .Where(va => !Misc.IsImageValid(va.GetFullImagePath()))
                 .ToList();
 
-            _logger.LogInformation(FoundCorruptedOfType, staff.Count, "AniDB Seiyuu");
+            _logger.LogInformation(FoundCorruptedOfType, staff.Count, "AniDB Creator");
             foreach (var seiyuu in staff)
             {
                 _logger.LogTrace(CorruptImageFound, seiyuu.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Person, seiyuu.SeiyuuID);
+                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Person, seiyuu.CreatorID);
                 if (++count % 10 != 0) continue;
                 _logger.LogInformation(ReQueueingForDownload, count,
                     staff.Count);

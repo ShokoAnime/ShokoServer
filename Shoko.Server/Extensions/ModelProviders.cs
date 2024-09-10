@@ -172,13 +172,13 @@ public static class ModelProviders
             ImageType = (int)CL_ImageEntityType.AniDB_Character,
             ImageID = character.AniDB_CharacterID
         };
-        var seiyuu = character.GetSeiyuu();
+        var seiyuu = character.GetCreator();
         if (seiyuu != null)
         {
-            contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
-            contract.SeiyuuName = seiyuu.SeiyuuName;
+            contract.SeiyuuID = seiyuu.AniDB_CreatorID;
+            contract.SeiyuuName = seiyuu.Name;
             contract.SeiyuuImageType = (int)CL_ImageEntityType.AniDB_Creator;
-            contract.SeiyuuImageID = seiyuu.AniDB_SeiyuuID;
+            contract.SeiyuuImageID = seiyuu.CreatorID;
         }
 
         return contract;

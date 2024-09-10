@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 120;
+    public override int RequiredVersion => 121;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -751,6 +751,17 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(119, 3, "ALTER TABLE TMDB_Show ADD COLUMN PosterPath TEXT NULL DEFAULT NULL;"),
         new(119, 4, "ALTER TABLE TMDB_Show ADD COLUMN BackdropPath TEXT NULL DEFAULT NULL;"),
         new(120, 1, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'MissingTMDbLinkExpression', 'MissingTmdbLinkExpression');"),
+        new(121, 1, "CREATE TABLE AniDB_Creator ( AniDB_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, CreatorID INTEGER NOT NULL, Name TEXT NOT NULL, OriginalName TEXT, Type INTEGER NOT NULL DEFAULT 0, ImagePath TEXT, EnglishHomepageUrl TEXT, JapaneseHomepageUrl TEXT, EnglishWikiUrl TEXT, JapaneseWikiUrl TEXT, LastUpdatedAt DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00' );"),
+        new(121, 2, "CREATE TABLE AniDB_Character_Creator ( AniDB_Character_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, CharacterID INTEGER NOT NULL, CreatorID INTEGER NOT NULL );"),
+        new(121, 3, "CREATE UNIQUE INDEX UIX_AniDB_Creator_CreatorID ON AniDB_Creator(CreatorID);"),
+        new(121, 4, "CREATE INDEX UIX_AniDB_Character_Creator_CreatorID ON AniDB_Character_Creator(CreatorID);"),
+        new(121, 5, "CREATE INDEX UIX_AniDB_Character_Creator_CharacterID ON AniDB_Character_Creator(CharacterID);"),
+        new(121, 6, "CREATE UNIQUE INDEX UIX_AniDB_Character_Creator_CharacterID_CreatorID ON AniDB_Character_Creator(CharacterID, CreatorID);"),
+        new(121, 7, "INSERT INTO AniDB_Creator (CreatorID, Name, ImagePath) SELECT SeiyuuID, SeiyuuName, PicName FROM AniDB_Seiyuu;"),
+        new(121, 8, "INSERT INTO AniDB_Character_Creator (CharacterID, CreatorID) SELECT CharID, SeiyuuID FROM AniDB_Character_Seiyuu;"),
+        new(121, 9, "DROP TABLE AniDB_Seiyuu;"),
+        new(121, 10, "DROP TABLE AniDB_Character_Seiyuu;"),
+        new(121, 11, DatabaseFixes.ScheduleAnidbCreators),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

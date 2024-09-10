@@ -636,17 +636,17 @@ public class ActionService
         if (!settings.AniDb.DownloadCreators) return false;
 
         foreach (var seiyuu in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID)
-                    .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
-                    .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).WhereNotNull())
+                    .SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID))
+                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.PicName)) continue;
+            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
             if (!File.Exists(seiyuu.GetFullImagePath())) return true;
         }
 
         foreach (var seiyuu in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)
-                    .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.CreatorID)).WhereNotNull())
+                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.PicName)) continue;
+            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
             if (!File.Exists(seiyuu.GetFullImagePath())) return true;
         }
 

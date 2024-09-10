@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 127;
+    public override int RequiredVersion { get; } = 128;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -754,6 +754,17 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(126, 3, "ALTER TABLE TMDB_Show ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new DatabaseCommand(126, 4, "ALTER TABLE TMDB_Show ADD BackdropPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new DatabaseCommand(127, 1, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'MissingTMDbLinkExpression', 'MissingTmdbLinkExpression');"),
+        new DatabaseCommand(128, 1, "CREATE TABLE AniDB_Creator ( AniDB_CreatorID INT IDENTITY(1,1) NOT NULL, CreatorID INT NOT NULL, Name NVARCHAR(512) NOT NULL, OriginalName NVARCHAR(512) NULL, Type INT NOT NULL DEFAULT 0, ImagePath NVARCHAR(512) NULL, EnglishHomepageUrl NVARCHAR(512) NULL, JapaneseHomepageUrl NVARCHAR(512) NULL, EnglishWikiUrl NVARCHAR(512) NULL, JapaneseWikiUrl NVARCHAR(512) NULL, LastUpdatedAt DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00', PRIMARY KEY (AniDB_CreatorID) );"),
+        new DatabaseCommand(128, 2, "CREATE TABLE AniDB_Character_Creator ( AniDB_Character_CreatorID INT IDENTITY(1,1) NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, PRIMARY KEY (AniDB_Character_CreatorID) );"),
+        new DatabaseCommand(128, 3, "CREATE UNIQUE INDEX UIX_AniDB_Creator_CreatorID ON AniDB_Creator(CreatorID);"),
+        new DatabaseCommand(128, 4, "CREATE INDEX UIX_AniDB_Character_Creator_CreatorID ON AniDB_Character_Creator(CreatorID);"),
+        new DatabaseCommand(128, 5, "CREATE INDEX UIX_AniDB_Character_Creator_CharacterID ON AniDB_Character_Creator(CharacterID);"),
+        new DatabaseCommand(128, 6, "CREATE UNIQUE INDEX UIX_AniDB_Character_Creator_CharacterID_CreatorID ON AniDB_Character_Creator(CharacterID, CreatorID);"),
+        new DatabaseCommand(128, 7, "INSERT INTO AniDB_Creator (CreatorID, Name, ImagePath) SELECT SeiyuuID, SeiyuuName, PicName FROM AniDB_Seiyuu;"),
+        new DatabaseCommand(128, 8, "INSERT INTO AniDB_Character_Creator (CharacterID, CreatorID) SELECT CharID, SeiyuuID FROM AniDB_Character_Seiyuu;"),
+        new DatabaseCommand(128, 9, "DROP TABLE AniDB_Seiyuu;"),
+        new DatabaseCommand(128, 10, "DROP TABLE AniDB_Character_Seiyuu;"),
+        new DatabaseCommand(128, 11, DatabaseFixes.ScheduleAnidbCreators),
     };
 
     private static void AlterImdbMovieIDType()

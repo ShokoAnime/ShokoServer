@@ -14,10 +14,12 @@ using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -797,11 +799,11 @@ public class AnimeCreator
         }
 
         // delete existing relationships to seiyuu's
-        var charSeiyuusToDelete = chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharacterID)).ToList();
+        var charSeiyuusToDelete = chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Creator.GetByCharacterID(rawchar.CharacterID)).ToList();
 
         try
         {
-            RepoFactory.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
+            RepoFactory.AniDB_Character_Creator.Delete(charSeiyuusToDelete);
         }
         catch (Exception ex)
         {
@@ -811,8 +813,9 @@ public class AnimeCreator
         var chrsToSave = new List<AniDB_Character>();
         var xrefsToSave = new List<AniDB_Anime_Character>();
 
-        var seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
-        var seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
+        var creatorsToSchedule = new HashSet<int>();
+        var creatorsToSave = new Dictionary<int, AniDB_Creator>();
+        var creatorXrefToSave = new List<AniDB_Character_Creator>();
 
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
         var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
@@ -893,25 +896,30 @@ public class AnimeCreator
                         var rawSeiyuu = seiyuuGrouping.FirstOrDefault();
                         // save the link between character and seiyuu
                         // this should always be null
-                        seiyuuXrefToSave.Add(new AniDB_Character_Seiyuu { CharID = chr.CharID, SeiyuuID = rawSeiyuu.SeiyuuID });
+                        creatorXrefToSave.Add(new() { CharacterID = chr.CharID, CreatorID = rawSeiyuu.SeiyuuID });
 
                         // save the seiyuu
-                        var seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(rawSeiyuu.SeiyuuID) ?? new AniDB_Seiyuu();
+                        var creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawSeiyuu.SeiyuuID) ?? new()
+                        {
+                            CreatorID = rawSeiyuu.SeiyuuID,
+                            Name = rawSeiyuu.SeiyuuName,
+                            Type = CreatorType.Unknown,
+                            ImagePath = rawSeiyuu.PicName,
+                        };
 
-                        seiyuu.PicName = rawSeiyuu.PicName;
-                        seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
-                        seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
-                        seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
+                        creatorsToSave[creator.CreatorID] = creator;
+                        if (creator.Type is CreatorType.Unknown)
+                            creatorsToSchedule.Add(creator.CreatorID);
 
-                        var staff = RepoFactory.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
+                        var staff = RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID);
                         if (staff == null)
                         {
                             staff = new AnimeStaff
                             {
                                 // Unfortunately, most of the info is not provided
-                                AniDBID = seiyuu.SeiyuuID,
+                                AniDBID = creator.CreatorID,
                                 Name = rawSeiyuu.SeiyuuName,
-                                ImagePath = seiyuu.GetFullImagePath()?.Replace(creatorBasePath, "")
+                                ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, "")
                             };
                             // we need an ID for xref
                             RepoFactory.AnimeStaff.Save(staff);
@@ -958,13 +966,15 @@ public class AnimeCreator
         {
             RepoFactory.AniDB_Character.Save(chrsToSave);
             RepoFactory.AniDB_Anime_Character.Save(xrefsToSave);
-            RepoFactory.AniDB_Seiyuu.Save(seiyuuToSave.Values.ToList());
-            RepoFactory.AniDB_Character_Seiyuu.Save(seiyuuXrefToSave);
+            RepoFactory.AniDB_Creator.Save(creatorsToSave.Values.ToList());
+            RepoFactory.AniDB_Character_Creator.Save(creatorXrefToSave);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}", anime.MainTitle);
         }
+
+        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
     }
 
     private void CreateStaff(List<ResponseStaff> staffList, SVR_AniDB_Anime anime)
@@ -983,6 +993,8 @@ public class AnimeCreator
             _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}", anime.MainTitle);
         }
 
+        var creatorsToSchedule = new HashSet<int>();
+        var creatorsToSave = new List<AniDB_Creator>();
         var animeStaffToSave = new List<AniDB_Anime_Staff>();
         var xRefToSave = new List<CrossRef_Anime_Staff>();
 
@@ -1000,7 +1012,6 @@ public class AnimeCreator
             try
             {
                 var rawStaff = grouping.FirstOrDefault();
-                // save the link between character and seiyuu
                 animeStaffToSave.Add(new AniDB_Anime_Staff
                 {
                     AnimeID = rawStaff.AnimeID,
@@ -1008,12 +1019,25 @@ public class AnimeCreator
                     CreatorType = rawStaff.CreatorType
                 });
 
+                var creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawStaff.CreatorID);
+                if (creator is null)
+                {
+                    creator = new()
+                    {
+                        CreatorID = rawStaff.CreatorID,
+                        Name = rawStaff.CreatorName,
+                        Type = CreatorType.Unknown,
+                    };
+                    creatorsToSave.Add(creator);
+                }
+                if (creator.Type is CreatorType.Unknown)
+                    creatorsToSchedule.Add(rawStaff.CreatorID);
+
                 var staff = RepoFactory.AnimeStaff.GetByAniDBID(rawStaff.CreatorID);
                 if (staff == null)
                 {
                     staff = new AnimeStaff
                     {
-                        // Unfortunately, most of the info is not provided
                         AniDBID = rawStaff.CreatorID,
                         Name = rawStaff.CreatorName,
                     };
@@ -1034,8 +1058,7 @@ public class AnimeCreator
                     _ => StaffRoleType.Staff
                 };
 
-                var xrefAnimeStaff =
-                    RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID, null, staff.StaffID, roleType);
+                var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID, null, staff.StaffID, roleType);
                 if (xrefAnimeStaff != null)
                 {
                     continue;
@@ -1072,6 +1095,24 @@ public class AnimeCreator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unable to Save Staff for {MainTitle}", anime.MainTitle);
+        }
+
+        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+    }
+
+    private async void ScheduleCreators(IEnumerable<int> creatorIDs, string mainTitle)
+    {
+        try
+        {
+            var creatorList = creatorIDs.ToList();
+            var scheduler = await _schedulerFactory.GetScheduler();
+            _logger.LogInformation("Scheduling {Count} creators to be updated for {MainTitle}", creatorList.Count, mainTitle);
+            foreach (var creatorId in creatorList)
+                await scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unable to Schedule Creators for {MainTitle}", mainTitle);
         }
     }
 

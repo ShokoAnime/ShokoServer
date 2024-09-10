@@ -103,17 +103,17 @@ public class GetAniDBImagesJob : BaseJob
         {
             // Get all voice-actors working on this anime.
             var voiceActors = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                .SelectMany(xref => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(xref.CharID))
-                .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.SeiyuuID))
-                .Where(va => !string.IsNullOrEmpty(va?.PicName));
+                .SelectMany(xref => RepoFactory.AniDB_Character_Creator.GetByCharacterID(xref.CharID))
+                .Select(xref => RepoFactory.AniDB_Creator.GetByCreatorID(xref.CreatorID))
+                .Where(va => !string.IsNullOrEmpty(va?.ImagePath));
             // Get all staff members working on this anime.
             var staffMembers = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AnimeID)
-                .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.CreatorID))
-                .Where(staff => !string.IsNullOrEmpty(staff?.PicName));
+                .Select(xref => RepoFactory.AniDB_Creator.GetByCreatorID(xref.CreatorID))
+                .Where(staff => !string.IsNullOrEmpty(staff?.ImagePath));
             // Concatenate the streams into a single list.
             var creators = voiceActors
                 .Concat(staffMembers)
-                .DistinctBy(creator => creator.SeiyuuID)
+                .DistinctBy(creator => creator.CreatorID)
                 .ToList();
 
             if (creators.Count is not 0)
@@ -122,7 +122,7 @@ public class GetAniDBImagesJob : BaseJob
                     .Select(va => new Action<DownloadAniDBImageJob>(a =>
                 {
                     a.ParentName = _title;
-                    a.ImageID = va.SeiyuuID;
+                    a.ImageID = va.CreatorID;
                     a.ImageType = ImageEntityType.Person;
                     a.ForceDownload = ForceDownload;
                 })));
