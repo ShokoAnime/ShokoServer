@@ -1956,6 +1956,7 @@ public class SeriesController : BaseController
     /// <param name="includeMissing">Include missing episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
+    /// <param name="includeManuallyLinked">Include manually linked episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
@@ -1973,6 +1974,7 @@ public class SeriesController : BaseController
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeManuallyLinked = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
         [FromQuery] bool includeFiles = false,
@@ -1990,7 +1992,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        return GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, type, search, fuzzy)
+        return GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, includeManuallyLinked, type, search, fuzzy)
             .ToListResult(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
     }
 
@@ -2027,7 +2029,7 @@ public class SeriesController : BaseController
         var userId = User.JMMUserID;
         var now = DateTime.Now;
         // this has a parallel query to evaluate filters and data in parallel, but that makes awaiting the SetWatchedStatus calls more difficult, so we ToList() it
-        await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, type, search, fuzzy).ToList()
+        await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, IncludeOnlyFilter.True, type, search, fuzzy).ToList()
             .Select(episode => _watchedService.SetWatchedStatus(episode, value, true, now, false, userId, true)));
 
         _seriesService.UpdateStats(series, true, false);
@@ -2041,6 +2043,7 @@ public class SeriesController : BaseController
         IncludeOnlyFilter includeMissing,
         IncludeOnlyFilter includeHidden,
         IncludeOnlyFilter includeWatched,
+        IncludeOnlyFilter includeManuallyLinked,
         HashSet<EpisodeType> type,
         string search,
         bool fuzzy)
@@ -2085,6 +2088,17 @@ public class SeriesController : BaseController
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
                     var noFiles = shoko.VideoLocals.Count == 0;
                     if (shouldHideMissing == noFiles)
+                        return false;
+                }
+
+                // Filter by manually linked, if specified
+                if (includeManuallyLinked != IncludeOnlyFilter.True)
+                {
+                    // If we should hide manually linked episodes and the episode is manually linked, then hide it.
+                    // Or if we should only show manually linked episodes and the episode is not manually linked, then hide it.
+                    var shouldHideManuallyLinked = includeManuallyLinked == IncludeOnlyFilter.False;
+                    var isManuallyLinked = shoko.FileCrossReferences.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB);
+                    if (shouldHideManuallyLinked == isManuallyLinked)
                         return false;
                 }
 
