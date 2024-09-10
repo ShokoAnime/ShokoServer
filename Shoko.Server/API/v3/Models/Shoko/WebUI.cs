@@ -41,7 +41,7 @@ public class WebUI
         /// <summary>
         /// The name of the author of the theme definition.
         /// </summary>
-        public string Author { get; init; } = definition.Author;
+        public string Author { get; init; } = definition.Author ?? "<unknown>";
 
         /// <summary>
         /// Indicates this is only a preview of the theme metadata and the theme
