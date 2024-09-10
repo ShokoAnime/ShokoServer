@@ -69,6 +69,7 @@ public class Role
         };
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -84,6 +85,7 @@ public class Role
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -99,6 +101,7 @@ public class Role
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -114,6 +117,7 @@ public class Role
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -144,6 +148,7 @@ public class Role
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -159,6 +164,7 @@ public class Role
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -174,6 +180,7 @@ public class Role
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -188,6 +195,12 @@ public class Role
     /// </summary>
     public class Person
     {
+        /// <summary>
+        /// The provider id of the person object, if available and applicable.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? ID { get; set; }
+
         /// <summary>
         /// Main Name, romanized if needed
         /// ex. Sawano Hiroyuki
