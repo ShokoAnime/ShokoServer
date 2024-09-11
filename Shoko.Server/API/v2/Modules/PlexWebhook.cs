@@ -100,7 +100,7 @@ public class PlexWebhook : BaseController
         if (episode == null) return;
 
         var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
-        if (vl == null || vl.Duration == 0) return; 
+        if (vl == null || vl.Duration == 0) return;
 
         var per = 100 *
                   (metadata.ViewOffset /
@@ -208,10 +208,16 @@ public class PlexWebhook : BaseController
             return (result, anime);
         }
 
+        // Check for Tmdb matches
+        if ((result = animeEps.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == series))) != null)
+        {
+            return (result, anime);
+        }
+
 
         //catch all
         _logger.LogInformation(
-            $"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
+            $"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multiple episodes linked, but no tvdb/tmdb link.");
         return (null, anime);
     }
 
