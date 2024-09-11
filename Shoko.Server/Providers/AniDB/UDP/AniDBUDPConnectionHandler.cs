@@ -418,6 +418,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
         try
         {
+            if (IsBanned) return false;
             Logger.LogTrace("Failed to login to AniDB. Issuing a Logout command and retrying");
             ForceLogout();
             return await Login(settings.AniDb.Username, settings.AniDb.Password);
