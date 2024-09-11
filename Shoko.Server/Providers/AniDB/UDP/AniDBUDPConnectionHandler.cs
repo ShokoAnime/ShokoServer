@@ -82,9 +82,10 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             if (value)
             {
                 _isLoggedOn = false;
-                IsInvalidSession = false;
                 SessionID = null;
             }
+
+            IsInvalidSession = false;
 
             base.IsBanned = value;
         }
