@@ -5,20 +5,21 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
+#nullable enable
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
 
 /// <summary>
 /// Get File Info. Getting the file info will only return any data if the hashes match
 /// If there is MyList info, it will also return that
 /// </summary>
-public class RequestGetCreator : UDPRequest<ResponseGetCreator>
+public class RequestGetCreator : UDPRequest<ResponseGetCreator?>
 {
     // These are dependent on context
     protected override string BaseCommand => $"CREATOR creatorid={CreatorID}";
 
     public int CreatorID { get; set; }
 
-    protected override UDPResponse<ResponseGetCreator> ParseResponse(UDPResponse<string> response)
+    protected override UDPResponse<ResponseGetCreator?> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;
@@ -57,7 +58,7 @@ public class RequestGetCreator : UDPRequest<ResponseGetCreator>
                 var wikiUrlEnglish = string.IsNullOrEmpty(parts[7]) ? null : parts[7];
                 var wikiUrlJapanese = string.IsNullOrEmpty(parts[8]) ? null : parts[8];
                 var lastUpdatedAt = DateTime.UnixEpoch.AddSeconds(lastUpdated).ToLocalTime();
-                return new UDPResponse<ResponseGetCreator>
+                return new UDPResponse<ResponseGetCreator?>
                 {
                     Code = code,
                     Response = new ResponseGetCreator
@@ -75,6 +76,8 @@ public class RequestGetCreator : UDPRequest<ResponseGetCreator>
                     },
                 };
             }
+            case UDPReturnCode.NO_SUCH_CREATOR:
+                return new UDPResponse<ResponseGetCreator?> { Code = code, Response = null };
         }
 
         throw new UnexpectedUDPResponseException(code, receivedData, Command);

@@ -57,6 +57,12 @@ public class GetAniDBCreatorJob : BaseJob
 
         var request = _requestFactory.Create<RequestGetCreator>(r => r.CreatorID = CreatorID);
         var response = request.Send().Response;
+        if (response is null)
+        {
+            _logger.LogError("Unable to find an AniDB Creator with the given ID: {CreatorID}", CreatorID);
+            return;
+        }
+
         _logger.LogInformation("Found AniDB Creator: {Creator} (ID={CreatorID},Type={Type})", response.Name, response.ID, response.Type.ToString());
         var creator = RepoFactory.AniDB_Creator.GetByCreatorID(CreatorID) ?? new();
         creator.CreatorID = response.ID;
@@ -73,7 +79,7 @@ public class GetAniDBCreatorJob : BaseJob
 
         if (RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID) is { } staff)
         {
-            var creatorBasePath =  ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
+            var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
             staff.Name = creator.Name;
             staff.AlternateName = creator.OriginalName;
             staff.ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, "");
