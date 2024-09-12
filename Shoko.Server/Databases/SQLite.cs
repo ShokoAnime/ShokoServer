@@ -761,7 +761,6 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(121, 8, "INSERT INTO AniDB_Character_Creator (CharacterID, CreatorID) SELECT CharID, SeiyuuID FROM AniDB_Character_Seiyuu;"),
         new(121, 9, "DROP TABLE AniDB_Seiyuu;"),
         new(121, 10, "DROP TABLE AniDB_Character_Seiyuu;"),
-        new(121, 11, DatabaseFixes.ScheduleAnidbCreators),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

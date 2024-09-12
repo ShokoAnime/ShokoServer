@@ -764,7 +764,6 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(128, 8, "INSERT INTO AniDB_Character_Creator (CharacterID, CreatorID) SELECT CharID, SeiyuuID FROM AniDB_Character_Seiyuu;"),
         new DatabaseCommand(128, 9, "DROP TABLE AniDB_Seiyuu;"),
         new DatabaseCommand(128, 10, "DROP TABLE AniDB_Character_Seiyuu;"),
-        new DatabaseCommand(128, 11, DatabaseFixes.ScheduleAnidbCreators),
     };
 
     private static void AlterImdbMovieIDType()

@@ -834,7 +834,6 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(136, 8, "INSERT INTO `AniDB_Character_Creator` (`CharacterID`, `CreatorID`) SELECT `CharID`, `SeiyuuID` FROM `AniDB_Character_Seiyuu`;"),
         new(136, 9, "DROP TABLE IF EXISTS `AniDB_Seiyuu`"),
         new(136, 10, "DROP TABLE IF EXISTS `AniDB_Character_Seiyuu`"),
-        new(136, 11, DatabaseFixes.ScheduleAnidbCreators),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

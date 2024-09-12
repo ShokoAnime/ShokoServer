@@ -817,21 +817,4 @@ public class DatabaseFixes
 
         RepoFactory.RenamerConfig.Save(config);
     }
-
-    public static void ScheduleAnidbCreators()
-    {
-        var settings = Utils.SettingsProvider.GetSettings();
-        if (!settings.AniDb.DownloadCreators) return;
-        var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
-        var scheduler = schedulerFactory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
-        var creators = RepoFactory.AniDB_Creator.GetAll().Select(c => c.CreatorID)
-            .Concat(RepoFactory.AnimeStaff.GetAll().Select(s => s.AniDBID))
-            .ToHashSet();
-        var startedAt = DateTime.Now;
-        _logger.Info($"Scheduling {creators.Count} AniDB Creators for a refresh.");
-        foreach (var creatorID in creators)
-            scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).GetAwaiter().GetResult();
-
-        _logger.Info($"Scheduled {creators.Count} AniDB Creators took {DateTime.Now - startedAt}");
-    }
 }
