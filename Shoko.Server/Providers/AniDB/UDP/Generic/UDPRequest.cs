@@ -36,7 +36,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         Command = BaseCommand.Trim();
         if (string.IsNullOrEmpty(Handler.SessionID) && !Handler.Login().Result)
         {
-            throw new LoginFailedException();
+            throw new NotLoggedInException();
         }
 
         PreExecute(Handler.SessionID);
