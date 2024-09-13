@@ -53,7 +53,7 @@ public class User
     /// <summary>
     /// The user's Plex usernames.
     /// </summary>
-    public List<string> PlexUsernames { get; set; }
+    public string PlexUsernames { get; set; }
 
     public User(SVR_JMMUser user)
     {
@@ -84,7 +84,7 @@ public class User
 
         Avatar = user.HasAvatarImage ? ModelHelper.ToDataURL(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType) ?? string.Empty : string.Empty;
 
-        PlexUsernames = user.PlexUsers?.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).ToList() ?? [];
+        PlexUsernames = user.PlexUsers ?? string.Empty;
     }
 
     public class Input
@@ -149,7 +149,7 @@ public class User
             /// <summary>
             /// The new user's Plex usernames.
             /// </summary>
-            public List<string>? PlexUsernames { get; set; }
+            public string? PlexUsernames { get; set; }
 
             public CreateOrUpdateUserBody() { }
 
@@ -244,8 +244,7 @@ public class User
 
                 if (PlexUsernames != null)
                 {
-                    var plexUsers = string.Join(',', PlexUsernames.Select(username => username.Trim()).Where(username => !string.IsNullOrEmpty(username)));
-                    user.PlexUsers = string.IsNullOrWhiteSpace(plexUsers) ? null : plexUsers;
+                    user.PlexUsers = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
                 }
 
                 // Save the model now.
