@@ -15,7 +15,11 @@ internal class SVR_Episode : Episode
     }
 
     public SVR_AnimeEpisode AnimeEpisode =>
-        RepoFactory.AnimeEpisode.GetByFilename(Path.GetFileName(Media[0].Part[0].File));
+        RepoFactory.AnimeEpisode.GetByFilename(
+            Path.GetFileName(Media[0].Part[0].File
+                .Replace('\\', Path.DirectorySeparatorChar)
+                .Replace('/', Path.DirectorySeparatorChar)
+            ));
 
     public void Unscrobble()
     {
