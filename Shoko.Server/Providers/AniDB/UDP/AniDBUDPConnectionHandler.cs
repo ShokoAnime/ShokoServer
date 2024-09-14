@@ -494,7 +494,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             );
             return login.Send();
         }
-        catch (UnexpectedUDPResponseException)
+        catch (Exception e) when (e is UnexpectedUDPResponseException or NotLoggedInException)
         {
             Logger.LogTrace(
                 "Received an UnexpectedUDPResponseException on Login. This usually happens because of an unexpected shutdown. Relogging using Unicode");
