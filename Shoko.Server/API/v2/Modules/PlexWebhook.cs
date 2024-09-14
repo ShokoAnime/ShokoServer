@@ -301,6 +301,13 @@ public class PlexWebhook : BaseController
     {
         return CallPlexHelper(h =>
         {
+            if (ids.Count == 0)
+            {
+                SettingsProvider.GetSettings().Plex.Libraries = new ();
+                SettingsProvider.SaveSettings();
+                return APIStatus.OK();
+            }
+            
             var dirs = h.GetDirectories();
             var selected = dirs.Where(d => ids.Contains(d.Key)).ToList();
             if (selected.Count == 0)
