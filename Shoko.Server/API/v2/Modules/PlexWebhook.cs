@@ -307,6 +307,7 @@ public class PlexWebhook : BaseController
                 return APIStatus.BadRequest("No directories found please ensure server token is set and try again");
 
             SettingsProvider.GetSettings().Plex.Libraries = selected.Select(s => s.Key).ToList();
+            SettingsProvider.SaveSettings();
             return APIStatus.OK();
         });
     }
