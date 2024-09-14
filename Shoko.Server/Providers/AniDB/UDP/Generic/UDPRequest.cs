@@ -119,7 +119,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
             // reset login status to start again
             case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
                 Handler.IsInvalidSession = true;
-                throw new LoginFailedException();
+                throw new NotLoggedInException();
             // 600 INTERNAL SERVER ERROR
             // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
             // 602 SERVER BUSY - TRY AGAIN LATER

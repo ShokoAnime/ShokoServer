@@ -226,10 +226,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
         // It wasn't handled before, and it's not caused serious problems
 
+        // login doesn't use this method, so this check won't interfere with it
         // if we got here, and it's invalid session, then it already failed to re-log
         if (IsInvalidSession)
         {
-            throw new LoginFailedException();
+            throw new NotLoggedInException();
         }
 
         // Check Login State

@@ -36,13 +36,16 @@ public abstract class BaseJob : IJob
         {
             await context.RescheduleJob();
         }
+        catch (LoginFailedException)
+        {
+            await context.RescheduleJob();
+        }
         catch (AniDBBannedException)
         {
             await context.RescheduleJob();
         }
         catch (Exception ex)
         {
-            // TODO: Reschedule job on AniDBBannedException
             // _logger.LogError(ex, "Job threw an error on Execution: {Job} | Error -> {Ex}", context.JobDetail.Key, ex);
             throw new JobExecutionException(ex.Message, ex);
         }
