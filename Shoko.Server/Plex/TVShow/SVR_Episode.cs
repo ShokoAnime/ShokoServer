@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using Shoko.Models.Plex.TVShow;
 using Shoko.Server.Models;
@@ -27,13 +28,17 @@ internal class SVR_Episode : Episode
                 "macos" => '/',
                 "darwin" => '/',
                 "android" => '/',
-                
+
                 _ => Path.DirectorySeparatorChar,
             };
-            
-            var filename = Media[0].Part[0].File.Split(separator).LastOrDefault();
-            
-            return filename is null ? null : RepoFactory.AnimeEpisode.GetByFilename(filename);
+
+            var filenameWithParent = Path.Join(Media[0].Part[0].File.Split(separator)[^2..]);
+
+            var file = RepoFactory.VideoLocalPlace
+                .GetAll()
+                .FirstOrDefault(location => location.FullServerPath?.EndsWith(filenameWithParent, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            return file is null ? null : RepoFactory.AnimeEpisode.GetByHash(file.Hashes.ED2K).FirstOrDefault();
 
         }
     }
