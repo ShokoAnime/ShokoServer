@@ -40,7 +40,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     public Shoko.Plugin.Abstractions.Events.RelocationResult GetNewPath(RelocationEventArgs<WebAOMSettings> args)
     {
         var script = args.Settings.Script;
-        if (script == null)
+        if (args.RenameEnabled && script == null)
         {
             return new Shoko.Plugin.Abstractions.Events.RelocationResult
             {
