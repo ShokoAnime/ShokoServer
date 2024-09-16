@@ -360,18 +360,15 @@ public class VideoLocal_PlaceService
 
         if (renamed)
         {
-            // Add a new lookup entry.
-            var filenameHash = RepoFactory.FileNameHash.GetByHash(place.VideoLocal.Hash);
-            if (!filenameHash.Any(a => a.FileName.Equals(newFileName)))
+            // Add a new or update an existing lookup entry.
+            var video = place.VideoLocal;
+            var existingEntries = RepoFactory.FileNameHash.GetByHash(video.Hash);
+            if (!existingEntries.Any(a => a.FileName.Equals(newFileName)))
             {
-                var file = place.VideoLocal;
-                var hash = new FileNameHash
-                {
-                    DateTimeUpdated = DateTime.Now,
-                    FileName = newFileName,
-                    FileSize = file.FileSize,
-                    Hash = file.Hash,
-                };
+                var hash = RepoFactory.FileNameHash.GetByFileNameAndSize(newFileName, video.FileSize).FirstOrDefault() ??
+                    new() { FileName = newFileName, FileSize = video.FileSize };
+                hash.DateTimeUpdated = DateTime.Now;
+                hash.Hash = video.Hash;
                 RepoFactory.FileNameHash.Save(hash);
             }
         }
