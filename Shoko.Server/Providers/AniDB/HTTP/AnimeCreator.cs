@@ -907,6 +907,8 @@ public class AnimeCreator
                             Type = CreatorType.Unknown,
                             ImagePath = rawSeiyuu.PicName,
                         };
+                        if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
+                            creator.Name = rawSeiyuu.SeiyuuName;
 
                         creatorsToSave[creator.CreatorID] = creator;
                         if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
@@ -1030,6 +1032,11 @@ public class AnimeCreator
                         Name = rawStaff.CreatorName,
                         Type = CreatorType.Unknown,
                     };
+                    creatorsToSave.Add(creator);
+                }
+                else if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
+                {
+                    creator.Name = rawStaff.CreatorName;
                     creatorsToSave.Add(creator);
                 }
                 if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)

@@ -2,6 +2,7 @@ using System;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
+
 /// <summary>
 /// Response to the GetCreator UDP command.
 /// </summary>
@@ -13,14 +14,17 @@ public class ResponseGetCreator
     public int ID { get; set; }
 
     /// <summary>
-    /// The name of the creator, transcribed to use the latin alphabet.
+    /// The name of the creator, transcribed to use the latin alphabet. Will
+    /// always be the 'x-jat' language for the creator, if set. Otherwise, it
+    /// will be an empty string.
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// The original name of the creator.
+    /// The original name of the creator. Will always be the 'ja' language for
+    /// the creator, if set. Otherwise, it will be an empty string.
     /// </summary>
-    public string? OriginalName { get; set; }
+    public string OriginalName { get; set; }
 
     /// <summary>
     /// The type of creator.

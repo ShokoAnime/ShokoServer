@@ -23,64 +23,54 @@ public class RequestGetCreator : UDPRequest<ResponseGetCreator?>
     {
         var code = response.Code;
         var receivedData = response.Response;
-        switch (code)
+        if (code is UDPReturnCode.NO_SUCH_CREATOR)
+            return new UDPResponse<ResponseGetCreator?> { Code = code };
+        if (code is not UDPReturnCode.CREATOR)
+            throw new UnexpectedUDPResponseException(code, receivedData, Command);
+
+        // Note: creator name will always be in 'ja', while transcription will be in 'x-jat'. if the creator don't have any names in those languages then they will be sent blank.
+        // {int creator id}|{str creator name kanji}|{str creator name transcription}|{int type}|{str pic_name}|{str url_english}|{str url_japanese}|{str wiki_url_english}|{str wiki_url_japanese}|{int last update date}
+        var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
+        if (parts.Length < 10)
         {
-            case UDPReturnCode.CREATOR:
-            {
-                // {int creatorid}|{str creator name kanji}|{str creator name transcription}|{int type}|{str pic_name}|{str url_english}|{str url_japanese}|{str wiki_url_english}|{str wiki_url_japanese}|{int last update date}
-                var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
-                if (parts.Length < 10)
-                {
-                    throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code,
-                        receivedData, Command);
-                }
-
-                if (!int.TryParse(parts[0], out var creatorID))
-                {
-                    throw new UnexpectedUDPResponseException("Creator ID was not an int", code, receivedData, Command);
-                }
-
-                if (!int.TryParse(parts[3], out var creatorType))
-                {
-                    throw new UnexpectedUDPResponseException("Creator type was not an int", code, receivedData, Command);
-                }
-
-                if (!int.TryParse(parts[9], out var lastUpdated))
-                {
-                    throw new UnexpectedUDPResponseException("Last updated date was not an int", code, receivedData, Command);
-                }
-
-                var name = string.IsNullOrEmpty(parts[1]) ? null : parts[1]?.Replace("`", "'");
-                var transcribedName = parts[2].Replace("`", "'");
-                var picName = string.IsNullOrEmpty(parts[4]) ? null : parts[4];
-                var urlEnglish = string.IsNullOrEmpty(parts[5]) ? null : parts[5];
-                var urlJapanese = string.IsNullOrEmpty(parts[6]) ? null : parts[6];
-                var wikiUrlEnglish = string.IsNullOrEmpty(parts[7]) ? null : parts[7];
-                var wikiUrlJapanese = string.IsNullOrEmpty(parts[8]) ? null : parts[8];
-                var lastUpdatedAt = DateTime.UnixEpoch.AddSeconds(lastUpdated).ToLocalTime();
-                return new UDPResponse<ResponseGetCreator?>
-                {
-                    Code = code,
-                    Response = new ResponseGetCreator
-                    {
-                        ID = creatorID,
-                        Name = transcribedName,
-                        OriginalName = name,
-                        Type = (CreatorType)creatorType,
-                        ImagePath = picName,
-                        EnglishHomepageUrl = urlEnglish,
-                        JapaneseHomepageUrl = urlJapanese,
-                        EnglishWikiUrl = wikiUrlEnglish,
-                        JapaneseWikiUrl = wikiUrlJapanese,
-                        LastUpdateAt = lastUpdatedAt,
-                    },
-                };
-            }
-            case UDPReturnCode.NO_SUCH_CREATOR:
-                return new UDPResponse<ResponseGetCreator?> { Code = code, Response = null };
+            throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code,
+                receivedData, Command);
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData, Command);
+        if (!int.TryParse(parts[0], out var creatorID))
+            throw new UnexpectedUDPResponseException("Creator ID was not an int", code, receivedData, Command);
+
+        if (!int.TryParse(parts[3], out var creatorType))
+            throw new UnexpectedUDPResponseException("Creator type was not an int", code, receivedData, Command);
+
+        if (!int.TryParse(parts[9], out var lastUpdated))
+            throw new UnexpectedUDPResponseException("Last updated date was not an int", code, receivedData, Command);
+
+        var name = parts[1].Replace("`", "'");
+        var transcribedName = parts[2].Replace("`", "'");
+        var picName = string.IsNullOrEmpty(parts[4]) ? null : parts[4];
+        var urlEnglish = string.IsNullOrEmpty(parts[5]) ? null : parts[5];
+        var urlJapanese = string.IsNullOrEmpty(parts[6]) ? null : parts[6];
+        var wikiUrlEnglish = string.IsNullOrEmpty(parts[7]) ? null : parts[7];
+        var wikiUrlJapanese = string.IsNullOrEmpty(parts[8]) ? null : parts[8];
+        var lastUpdatedAt = DateTime.UnixEpoch.AddSeconds(lastUpdated).ToLocalTime();
+        return new UDPResponse<ResponseGetCreator?>
+        {
+            Code = code,
+            Response = new ResponseGetCreator
+            {
+                ID = creatorID,
+                Name = transcribedName,
+                OriginalName = name,
+                Type = (CreatorType)creatorType,
+                ImagePath = picName,
+                EnglishHomepageUrl = urlEnglish,
+                JapaneseHomepageUrl = urlJapanese,
+                EnglishWikiUrl = wikiUrlEnglish,
+                JapaneseWikiUrl = wikiUrlJapanese,
+                LastUpdateAt = lastUpdatedAt,
+            },
+        };
     }
 
     public RequestGetCreator(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)

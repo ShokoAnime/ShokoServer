@@ -66,8 +66,10 @@ public class GetAniDBCreatorJob : BaseJob
         _logger.LogInformation("Found AniDB Creator: {Creator} (ID={CreatorID},Type={Type})", response.Name, response.ID, response.Type.ToString());
         var creator = RepoFactory.AniDB_Creator.GetByCreatorID(CreatorID) ?? new();
         creator.CreatorID = response.ID;
-        creator.Name = response.Name;
-        creator.OriginalName = response.OriginalName;
+        if (!string.IsNullOrEmpty(response.Name))
+            creator.Name = response.Name;
+        if (!string.IsNullOrEmpty(response.OriginalName))
+            creator.OriginalName = response.OriginalName;
         creator.Type = response.Type;
         creator.ImagePath = response.ImagePath;
         creator.EnglishHomepageUrl = response.EnglishHomepageUrl;
