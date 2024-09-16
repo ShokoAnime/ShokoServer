@@ -1315,4 +1315,38 @@ public class ActionService
             _logger.LogError(ex, "Error in CheckForPreviouslyIgnored: {Ex}", ex);
         }
     }
+
+    public async Task ScheduleMissingAnidbCreators()
+    {
+        if (!_settingsProvider.GetSettings().AniDb.DownloadCreators) return;
+
+        var allCreators = RepoFactory.AniDB_Creator.GetAll();
+        var allMissingCreators = RepoFactory.AnimeStaff.GetAll()
+            .Select(s => s.AniDBID)
+            .Distinct()
+            .Except(allCreators.Select(a => a.CreatorID))
+            .ToList();
+        var missingCount = allMissingCreators.Count;
+        allMissingCreators.AddRange(
+            allCreators
+                .Where(creator => creator.Type is Providers.AniDB.CreatorType.Unknown)
+                .Select(creator => creator.CreatorID)
+                .Distinct()
+        );
+        var partiallyMissingCount = allMissingCreators.Count - missingCount;
+
+        var startedAt = DateTime.Now;
+        _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Missing={MissingCount},PartiallyMissing={PartiallyMissingCount},Total={Total})", allMissingCreators.Count, missingCount, partiallyMissingCount, allMissingCreators.Count);
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var progressCount = 0;
+        foreach (var creatorID in allMissingCreators)
+        {
+            await scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
+
+            if (++progressCount % 10 == 0)
+                _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Progress={Count}/{Total})", allMissingCreators.Count, progressCount, allMissingCreators.Count);
+        }
+
+        _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
+    }
 }

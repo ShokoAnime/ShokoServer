@@ -421,6 +421,20 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Downloads all missing or partially missing AniDB creators over the UDP
+    /// API. Will do nothing if downloading creator data is set to
+    /// <see langword="false" />.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("DownloadMissingAniDBCreators")]
+    public ActionResult ScheduleMissingAniDBCreators()
+    {
+        Task.Run(_actionService.ScheduleMissingAnidbCreators);
+        return Ok();
+    }
+
+    /// <summary>
     /// Regenerate All Episode Matchings for TvDB. Generally, don't do this unless there was an error that was fixed.
     /// In those cases, you'd be told to.
     /// </summary>
