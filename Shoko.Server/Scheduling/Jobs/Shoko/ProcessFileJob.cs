@@ -78,7 +78,7 @@ public class ProcessFileJob : BaseJob
             .Join(',');
 
         // Process and get the AniDB file entry.
-        var aniFile = await ProcessFile_AniDB();
+        var aniFile = await ProcessFile_AniDB().ConfigureAwait(false);
 
         // Check if an AniDB file is now available and if the cross-references changed.
         var newXRefs = _vlocal.EpisodeCrossRefs
@@ -105,8 +105,8 @@ public class ProcessFileJob : BaseJob
         }
 
         // Rename and/or move the physical file(s) if needed.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = _vlocal.VideoLocalID);
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = _vlocal.VideoLocalID).ConfigureAwait(false);
     }
 
     private async Task<SVR_AniDB_File> ProcessFile_AniDB()
@@ -118,10 +118,10 @@ public class ProcessFileJob : BaseJob
 
         var aniFile = GetLocalAniDBFile(_vlocal);
         if (aniFile == null || aniFile.FileSize == 0)
-            aniFile ??= await TryGetAniDBFileFromAniDB(animeIDs);
+            aniFile ??= await TryGetAniDBFileFromAniDB(animeIDs).ConfigureAwait(false);
         if (aniFile == null) return null;
 
-        await PopulateAnimeForFile(_vlocal, aniFile.EpisodeCrossRefs, animeIDs);
+        await PopulateAnimeForFile(_vlocal, aniFile.EpisodeCrossRefs, animeIDs).ConfigureAwait(false);
 
         // We do this inside, as the info will not be available as needed otherwise
         var videoLocals =
@@ -134,7 +134,7 @@ public class ProcessFileJob : BaseJob
         GetWatchedStateIfNeeded(_vlocal, videoLocals);
 
         // update stats for groups and series. The series are not saved until here, so it's absolutely necessary!!
-        await Task.WhenAll(animeIDs.Keys.Select(a => _jobFactory.CreateJob<RefreshAnimeStatsJob>(b => b.AnimeID = a).Process()));
+        await Task.WhenAll(animeIDs.Keys.Select(a => _jobFactory.CreateJob<RefreshAnimeStatsJob>(b => b.AnimeID = a).Process())).ConfigureAwait(false);
 
         if (_settings.FileQualityFilterEnabled)
         {
@@ -156,9 +156,7 @@ public class ProcessFileJob : BaseJob
             videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
 
             foreach (var place in videoLocals.SelectMany(a => a.Places))
-            {
-                await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place);
-            }
+                await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place).ConfigureAwait(false);
         }
 
         // we have an AniDB File, so check the release group info
@@ -170,18 +168,19 @@ public class ProcessFileJob : BaseJob
                 // may as well download it immediately. We can change it later if it becomes an issue
                 // this will only happen if it's null, and most people grab mostly the same release groups
                 var groupCommand = _jobFactory.CreateJob<GetAniDBReleaseGroupJob>(c => c.GroupID = aniFile.GroupID);
-                await groupCommand.Process();
+                await groupCommand.Process().ConfigureAwait(false);
             }
         }
 
         // Add this file to the users list
         if (_settings.AniDb.MyList_AddFiles && !SkipMyList && _vlocal.MyListID <= 0)
         {
-            await (await _schedulerFactory.GetScheduler()).StartJob<AddFileToMyListJob>(c =>
+            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+            await scheduler.StartJob<AddFileToMyListJob>(c =>
             {
                 c.Hash = _vlocal.Hash;
                 c.ReadStates = true;
-            });
+            }).ConfigureAwait(false);
         }
 
         return aniFile;
@@ -288,7 +287,7 @@ public class ProcessFileJob : BaseJob
 
             // even if we are missing episode info, don't get data  more than once every `x` hours
             // this is to prevent banning
-            var scheduler = await _schedulerFactory.GetScheduler();
+            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
             if (missingEpisodes)
             {
                 _logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
@@ -299,7 +298,7 @@ public class ProcessFileJob : BaseJob
                     c.ForceRefresh = true;
                     c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
                     c.CreateSeriesEntry = true;
-                });
+                }).ConfigureAwait(false);
             }
             else if (!animeRecentlyUpdated)
             {
@@ -310,7 +309,7 @@ public class ProcessFileJob : BaseJob
                     c.AnimeID = animeID;
                     c.ForceRefresh = true;
                     c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
-                });
+                }).ConfigureAwait(false);
             }
         }
     }
@@ -335,19 +334,20 @@ public class ProcessFileJob : BaseJob
                 {
                     c.VideoLocalID = _vlocal.VideoLocalID;
                     c.ForceAniDB = true;
-                }).Process();
+                }).Process().ConfigureAwait(false);
             }
             catch (AniDBBannedException)
             {
                 // We're banned, so queue it for later
                 _logger.LogError("We are banned. Re-queuing for later: {FileName}", _fileName);
 
-                await (await _schedulerFactory.GetScheduler()).StartJob<ProcessFileJob>(
+                var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+                await scheduler.StartJob<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = _vlocal.VideoLocalID;
                         c.ForceAniDB = true;
-                    });
+                    }).ConfigureAwait(false);
             }
         }
 

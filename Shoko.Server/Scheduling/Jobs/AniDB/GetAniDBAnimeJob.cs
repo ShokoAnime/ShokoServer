@@ -86,7 +86,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             };
         }
 
-        var scheduler = await _schedulerFactory.GetScheduler();
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
         var animeRecentlyUpdated = AnimeRecentlyUpdated(anime, update);
@@ -99,13 +99,13 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         ResponseGetAnime response;
         if (!CacheOnly && !animeRecentlyUpdated && !_handler.IsBanned && (ForceRefresh || anime == null))
         {
-            response = await GetResponse(anime);
+            response = await GetResponse(anime).ConfigureAwait(false);
             if (response == null) return null;
         }
         // Else, try to load a cached xml file.
         else
         {
-            var (success, xml) = await TryGetXmlFromCache();
+            var (success, xml) = await TryGetXmlFromCache().ConfigureAwait(false);
             if (!success) return null;
 
             try
@@ -126,7 +126,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                         c.CacheOnly = false;
                         c.ForceRefresh = true;
                         c.CreateSeriesEntry = CreateSeriesEntry;
-                    });
+                    }).ConfigureAwait(false);
                 }
                 throw;
             }
@@ -135,7 +135,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Create or update the anime record,
         anime ??= new SVR_AniDB_Anime();
         var isNew = anime.AniDB_AnimeID == 0;
-        var (isUpdated, titlesUpdated, descriptionUpdated, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, RelDepth);
+        var (isUpdated, titlesUpdated, descriptionUpdated, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, RelDepth).ConfigureAwait(false);
 
         // then conditionally create the series record if it doesn't exist,
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
@@ -151,11 +151,11 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // existing series record.
         if (series != null)
         {
-            (seriesUpdated, seriesEpisodeChanges) = await _seriesService.CreateAnimeEpisodes(series);
+            (seriesUpdated, seriesEpisodeChanges) = await _seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false);
             RepoFactory.AnimeSeries.Save(series, true, false);
         }
 
-        await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = AnimeID).Process();
+        await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = AnimeID).Process().ConfigureAwait(false);
 
         // Request an image download
         var imagesJob = _jobFactory.CreateJob<GetAniDBImagesJob>(job =>
@@ -163,7 +163,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             job.AnimeID = AnimeID;
             job.OnlyPosters = series == null;
         });
-        await imagesJob.Process();
+        await imagesJob.Process().ConfigureAwait(false);
 
         // Emit anidb anime updated event.
         if (isNew || isUpdated || animeEpisodeChanges.Count > 0)
@@ -194,7 +194,8 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         if (isNew || isUpdated || animeEpisodeChanges.Count > 0 || seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0)
         {
             var videos = new List<SVR_VideoLocal>();
-            if (isUpdated || seriesUpdated)
+            if (isNew || seriesIsNew || isUpdated || seriesUpdated)
+            {
                 videos.AddRange(
                     RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
                         .WhereNotNull()
@@ -202,6 +203,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                         .WhereNotNull()
                         .DistinctBy(a => a.VideoLocalID)
                 );
+            }
             else
             {
                 if (animeEpisodeChanges.Count > 0)
@@ -225,10 +227,10 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             }
 
             foreach (var video in videos)
-                await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID);
+                await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
         }
 
-        await ProcessRelations(response);
+        await ProcessRelations(response).ConfigureAwait(false);
 
         return anime;
     }
@@ -260,7 +262,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             // If the anime record doesn't exist yet then try to load it
             // from the cache. A stall record is better than no record
             // in most cases.
-            var (success, xml) = await TryGetXmlFromCache();
+            var (success, xml) = await TryGetXmlFromCache().ConfigureAwait(false);
             if (!success) throw;
 
             try
@@ -271,7 +273,8 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             {
                 _logger.LogTrace("Failed to parse the cached AnimeDoc_{AnimeID}.xml file", AnimeID);
                 // Queue the command to get the data when we're no longer banned if there is no anime record.
-                await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
+                var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = AnimeID;
                     c.DownloadRelations = DownloadRelations;
@@ -279,7 +282,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                     c.CacheOnly = false;
                     c.ForceRefresh = true;
                     c.CreateSeriesEntry = CreateSeriesEntry;
-                });
+                }).ConfigureAwait(false);
                 throw;
             }
 
@@ -306,7 +309,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
     private async Task<(bool success, string xml)> TryGetXmlFromCache()
     {
-        var xml = await _xmlUtils.LoadAnimeHTTPFromFile(AnimeID);
+        var xml = await _xmlUtils.LoadAnimeHTTPFromFile(AnimeID).ConfigureAwait(false);
         if (xml != null) return (true, xml);
 
         if (!CacheOnly && _handler.IsBanned) _logger.LogTrace("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file", AnimeID);
@@ -315,7 +318,8 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         if (!CacheOnly)
         {
             // Queue the command to get the data when we're no longer banned if there is no anime record.
-            await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
+            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = AnimeID;
                 c.DownloadRelations = DownloadRelations;
@@ -323,7 +327,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 c.CacheOnly = false;
                 c.ForceRefresh = true;
                 c.CreateSeriesEntry = CreateSeriesEntry;
-            });
+            }).ConfigureAwait(false);
         }
         return (false, null);
     }
@@ -346,17 +350,17 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         // Populate before making a group to ensure IDs and stats are set for group filters.
         RepoFactory.AnimeSeries.Save(series, false, false);
 
-        var scheduler = await _schedulerFactory.GetScheduler();
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         if (_settings.TMDB.AutoLink && !series.IsTMDBAutoMatchingDisabled)
-            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = AnimeID);
+            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = AnimeID).ConfigureAwait(false);
 
         if (anime.Restricted == 0)
         {
             if (_settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
-                await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID);
+                await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID).ConfigureAwait(false);
 
             if (_settings.TraktTv.Enabled && _settings.TraktTv.AutoLink && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) && !series.IsTraktAutoMatchingDisabled)
-                await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID);
+                await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID).ConfigureAwait(false);
         }
 
         return series;
@@ -368,7 +372,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         if (_settings.AniDb.MaxRelationDepth <= 0) return;
         if (RelDepth > _settings.AniDb.MaxRelationDepth) return;
         if (!_settings.AutoGroupSeries && !_settings.AniDb.DownloadRelatedAnime) return;
-        var scheduler = await _schedulerFactory.GetScheduler();
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
 
         // Queue or process the related series.
         foreach (var relation in response.Relations)
@@ -399,7 +403,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 c.CacheOnly = !ForceRefresh && CacheOnly;
                 c.ForceRefresh = ForceRefresh;
                 c.CreateSeriesEntry = CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
-            });
+            }).ConfigureAwait(false);
         }
     }
 
