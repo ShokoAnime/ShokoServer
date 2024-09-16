@@ -886,9 +886,16 @@ public class TmdbMetadataService
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
             var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
             var newlyAdded = tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
+            var xrefs = _xrefAnidbTmdbShows.GetByTmdbShowID(showId);
             if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
                 _logger.LogInformation("Skipping update of show {ShowID} as it was last updated {LastUpdatedAt}", showId, tmdbShow.LastUpdatedAt);
+
+                // Do the auto-matching if we're not doing a quick refresh.
+                if (!quickRefresh)
+                    foreach (var xref in xrefs)
+                        _linkingService.MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
+
                 return false;
             }
 
@@ -902,8 +909,6 @@ public class TmdbMetadataService
             var settings = _settingsProvider.GetSettings();
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
-
-            var xrefs = _xrefAnidbTmdbShows.GetByTmdbShowID(showId);
             var shouldFireEvents = !quickRefresh || xrefs.Count > 0;
             var updated = tmdbShow.Populate(show);
             var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);

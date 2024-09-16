@@ -16,6 +16,7 @@ using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -311,6 +312,10 @@ public class ProcessFileJob : BaseJob
                     c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
                 }).ConfigureAwait(false);
             }
+
+            var tmdbShowXrefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(animeID);
+            foreach (var xref in tmdbShowXrefs)
+                await scheduler.StartJob<UpdateTmdbShowJob>(job => job.TmdbShowID = xref.TmdbShowID).ConfigureAwait(false);
         }
     }
 
