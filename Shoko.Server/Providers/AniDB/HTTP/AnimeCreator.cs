@@ -927,6 +927,11 @@ public class AnimeCreator
                             // we need an ID for xref
                             RepoFactory.AnimeStaff.Save(staff);
                         }
+                        else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
+                        {
+                            staff.Name = rawSeiyuu.SeiyuuName;
+                            RepoFactory.AnimeStaff.Save(staff);
+                        }
 
                         var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID,
                             character.CharacterID,
@@ -1051,6 +1056,11 @@ public class AnimeCreator
                         Name = rawStaff.CreatorName,
                     };
                     // we need an ID for xref
+                    RepoFactory.AnimeStaff.Save(staff);
+                }
+                else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
+                {
+                    staff.Name = rawStaff.CreatorName;
                     RepoFactory.AnimeStaff.Save(staff);
                 }
 
