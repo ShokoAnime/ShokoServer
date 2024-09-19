@@ -124,6 +124,7 @@ public class WatchedStatusService
                             c.Hash = vl.Hash;
                             c.Watched = watched;
                             c.UpdateSeriesStats = false;
+                            c.Watched = watched;
                             c.WatchedDate = watchedDate?.ToUniversalTime();
                         }
                     );
