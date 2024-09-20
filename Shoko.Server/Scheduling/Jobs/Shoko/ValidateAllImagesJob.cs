@@ -157,7 +157,7 @@ public class ValidateAllImagesJob : BaseJob
             foreach (var image in images)
             {
                 _logger.LogTrace(CorruptImageFound, image.LocalPath);
-                await RemoveImageAndQueueDownload<DownloadImageBaseJob>(image.ImageType, image.TMDB_ImageID);
+                await RemoveImageAndQueueDownload<DownloadTmdbImageJob>(image.ImageType, image.TMDB_ImageID);
                 if (++count % 10 != 0) continue;
                 _logger.LogInformation(ReQueueingForDownload, count, images.Count);
                 UpdateProgress($" - {pluralUpper} - {count}/{images.Count}");
