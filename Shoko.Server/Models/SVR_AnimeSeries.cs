@@ -406,6 +406,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AniDB_ID);
 
     public IReadOnlyList<TMDB_Movie> TmdbMovies => TmdbMovieCrossReferences
+        .DistinctBy(xref => xref.TmdbMovieID)
         .Select(xref => xref.TmdbMovie)
         .WhereNotNull()
         .ToList();

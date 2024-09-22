@@ -1209,6 +1209,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         return series.TmdbMovieCrossReferences
+            .DistinctBy(o => o.TmdbMovieID)
             .Select(o => o.TmdbMovie)
             .WhereNotNull()
             .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
