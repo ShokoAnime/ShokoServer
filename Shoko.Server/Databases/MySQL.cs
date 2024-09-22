@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 136;
+    public override int RequiredVersion { get; } = 137;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -834,6 +834,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(136, 8, "INSERT INTO `AniDB_Character_Creator` (`CharacterID`, `CreatorID`) SELECT `CharID`, `SeiyuuID` FROM `AniDB_Character_Seiyuu`;"),
         new(136, 9, "DROP TABLE IF EXISTS `AniDB_Seiyuu`"),
         new(136, 10, "DROP TABLE IF EXISTS `AniDB_Character_Seiyuu`"),
+        new(137, 1, "ALTER TABLE `TMDB_Show` ADD COLUMN `PreferredAlternateOrderingID`  VARCHAR(64) CHARACTER SET UTF8 NULL DEFAULT NULL;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

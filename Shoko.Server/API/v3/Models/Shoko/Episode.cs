@@ -193,14 +193,28 @@ public class Episode : BaseModel
                 Episodes = tmdbEpisodeXRefs
                     .Select(tmdbEpisodeXref => tmdbEpisodeXref.TmdbEpisode)
                     .WhereNotNull()
-                    .Select(tmdbEpisode => new TmdbEpisode(tmdbEpisode)),
+                    .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
+                    .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
+                    .Where(tuple => tuple.TmdbShow is not null)
+                    .SelectMany(tuple0 =>
+                        string.IsNullOrEmpty(tuple0.TmdbShow.PreferredAlternateOrderingID)
+                            ? tuple0.TmdbEpisodes.Select(tmdbEpisode => new TmdbEpisode(tuple0.TmdbShow, tmdbEpisode))
+                            : tuple0.TmdbEpisodes
+                                .Select(tmdbEpisode => (TmdbEpisode: tmdbEpisode, TmdbAlternateOrdering: tmdbEpisode.GetTmdbAlternateOrderingEpisodeById(tuple0.TmdbShow.PreferredAlternateOrderingID)))
+                                .Where(tuple1 => tuple1.TmdbAlternateOrdering is not null)
+                                .Select(tuple1 => new TmdbEpisode(tuple0.TmdbShow, tuple1.TmdbEpisode, tuple1.TmdbAlternateOrdering)
+                    ))
+                    .ToList(),
                 Movies = tmdbMovieXRefs
                     .Select(tmdbMovieXref => tmdbMovieXref.TmdbMovie)
                     .WhereNotNull()
-                    .Select(tmdbMovie => new TmdbMovie(tmdbMovie)),
+                    .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
+                    .ToList(),
             };
         if (includeFiles)
-            Files = files.Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths));
+            Files = files
+                .Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
+                .ToList();
         if (withXRefs)
             CrossReferences = FileCrossReference.From(episode.FileCrossReferences).FirstOrDefault()?.EpisodeIDs ?? [];
     }

@@ -128,11 +128,11 @@ public class Episode
     /// </summary>
     public DateTime LastUpdatedAt { get; init; }
 
-    public Episode(TMDB_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
-        this(episode, null, includeDetails, language)
+    public Episode(TMDB_Show show, TMDB_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
+        this(show, episode, null, includeDetails, language)
     { }
 
-    public Episode(TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public Episode(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
         var preferredOverview = episode.GetPreferredOverview();
@@ -189,10 +189,10 @@ public class Episode
         {
             var ordering = new List<OrderingInformation>
             {
-                new(episode, alternateOrderingEpisode),
+                new(show, episode, alternateOrderingEpisode),
             };
             foreach (var altOrderEp in episode.TmdbAlternateOrderingEpisodes)
-                ordering.Add(new(altOrderEp, alternateOrderingEpisode));
+                ordering.Add(new(show, altOrderEp, alternateOrderingEpisode));
             Ordering = ordering
                 .OrderByDescending(o => o.InUse)
                 .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
@@ -211,10 +211,9 @@ public class Episode
     public class OrderingInformation
     {
         /// <summary>
-        /// The ordering ID. Will be null for the main ordering, or a hex id for
-        /// any alternate ordering.
+        /// The ordering ID.
         /// </summary>
-        public string? OrderingID { get; init; }
+        public string OrderingID { get; init; }
 
         /// <summary>
         /// The alternate ordering type. Will not be set if the main ordering is
@@ -250,24 +249,36 @@ public class Episode
         public int EpisodeNumber { get; init; }
 
         /// <summary>
+        /// Indicates the current ordering is the default ordering for the episode.
+        /// </summary>
+        public bool IsDefault { get; init; }
+
+        /// <summary>
+        /// Indicates the current ordering is the preferred ordering for the episode.
+        /// </summary>
+        public bool IsPreferred { get; init; }
+
+        /// <summary>
         /// Indicates the current ordering is in use for the episode.
         /// </summary>
         public bool InUse { get; init; }
 
-        public OrderingInformation(TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
+        public OrderingInformation(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
         {
             var season = episode.TmdbSeason;
-            OrderingID = null;
+            OrderingID = episode.TmdbShowID.ToString();
             OrderingName = "Seasons";
             OrderingType = null;
             SeasonID = episode.TmdbSeasonID.ToString();
             SeasonName = season?.EnglishTitle ?? "<unknown name>";
             SeasonNumber = episode.SeasonNumber;
             EpisodeNumber = episode.EpisodeNumber;
+            IsDefault = true;
+            IsPreferred = string.IsNullOrEmpty(show.PreferredAlternateOrderingID) || string.Equals(show.PreferredAlternateOrderingID, episode.TmdbShowID.ToString());
             InUse = alternateOrderingEpisodeInUse == null;
         }
 
-        public OrderingInformation(TMDB_AlternateOrdering_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
+        public OrderingInformation(TMDB_Show show, TMDB_AlternateOrdering_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
         {
             var ordering = episode.TmdbAlternateOrdering;
             var season = episode.TmdbAlternateOrderingSeason;
@@ -278,6 +289,8 @@ public class Episode
             SeasonName = season?.EnglishTitle ?? "<unknown name>";
             SeasonNumber = episode.SeasonNumber;
             EpisodeNumber = episode.EpisodeNumber;
+            IsDefault = false;
+            IsPreferred = string.Equals(show.PreferredAlternateOrderingID, episode.TmdbEpisodeGroupCollectionID);
             InUse = alternateOrderingEpisodeInUse != null &&
                 episode.TMDB_AlternateOrdering_EpisodeID == alternateOrderingEpisodeInUse.TMDB_AlternateOrdering_EpisodeID;
         }

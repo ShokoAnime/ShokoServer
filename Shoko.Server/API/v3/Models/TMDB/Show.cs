@@ -227,7 +227,7 @@ public class Show
                 new(show, alternateOrdering),
             };
             foreach (var altOrder in show.TmdbAlternateOrdering)
-                ordering.Add(new(altOrder, alternateOrdering));
+                ordering.Add(new(show, altOrder, alternateOrdering));
             Ordering = ordering
                 .OrderByDescending(o => o.InUse)
                 .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
@@ -248,35 +248,68 @@ public class Show
 
     public class OrderingInformation
     {
-        public string? OrderingID { get; init; }
+        /// <summary>
+        /// The ordering ID.
+        /// </summary>
+        public string OrderingID { get; init; }
 
+        /// <summary>
+        /// The alternate ordering type. Will not be set if the main ordering is
+        /// used.
+        /// </summary>
         public AlternateOrderingType? OrderingType { get; init; }
 
+        /// <summary>
+        /// English name of the ordering scheme.
+        /// </summary>
         public string OrderingName { get; init; }
 
+        /// <summary>
+        /// The number of episodes in the ordering scheme.
+        /// </summary>
         public int EpisodeCount { get; init; }
 
+        /// <summary>
+        /// The number of seasons in the ordering scheme.
+        /// </summary>
         public int SeasonCount { get; init; }
 
+        /// <summary>
+        /// Indicates the current ordering is the default ordering for the show.
+        /// </summary>
+        public bool IsDefault { get; init; }
+
+        /// <summary>
+        /// Indicates the current ordering is the preferred ordering for the show.
+        /// </summary>
+        public bool IsPreferred { get; init; }
+
+        /// <summary>
+        /// Indicates the current ordering is in use for the show.
+        /// </summary>
         public bool InUse { get; init; }
 
         public OrderingInformation(TMDB_Show show, TMDB_AlternateOrdering? alternateOrderingInUse)
         {
-            OrderingID = null;
+            OrderingID = show.Id.ToString();
             OrderingName = "Seasons";
             OrderingType = null;
             EpisodeCount = show.EpisodeCount;
             SeasonCount = show.SeasonCount;
+            IsDefault = true;
+            IsPreferred = string.IsNullOrEmpty(show.PreferredAlternateOrderingID) || string.Equals(show.Id.ToString(), show.PreferredAlternateOrderingID);
             InUse = alternateOrderingInUse == null;
         }
 
-        public OrderingInformation(TMDB_AlternateOrdering ordering, TMDB_AlternateOrdering? alternateOrderingInUse)
+        public OrderingInformation(TMDB_Show show, TMDB_AlternateOrdering ordering, TMDB_AlternateOrdering? alternateOrderingInUse)
         {
             OrderingID = ordering.TmdbEpisodeGroupCollectionID;
             OrderingName = ordering.EnglishTitle;
             OrderingType = ordering.Type;
             EpisodeCount = ordering.EpisodeCount;
             SeasonCount = ordering.SeasonCount;
+            IsDefault = false;
+            IsPreferred = string.Equals(ordering.TmdbEpisodeGroupCollectionID, show.PreferredAlternateOrderingID);
             InUse = alternateOrderingInUse != null &&
                 string.Equals(ordering.TmdbEpisodeGroupCollectionID, alternateOrderingInUse.TmdbEpisodeGroupCollectionID);
         }

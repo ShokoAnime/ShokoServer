@@ -33,6 +33,19 @@ public class TMDB_AlternateOrderingRepository : BaseDirectRepository<TMDB_Altern
         });
     }
 
+    public TMDB_AlternateOrdering? GetByEpisodeGroupCollectionAndShowIDs(string collectionId, int showId)
+    {
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+            return session
+                .Query<TMDB_AlternateOrdering>()
+                .Where(a => a.TmdbEpisodeGroupCollectionID == collectionId && a.TmdbShowID == showId)
+                .Take(1)
+                .SingleOrDefault();
+        });
+    }
+
     public TMDB_AlternateOrderingRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
     }

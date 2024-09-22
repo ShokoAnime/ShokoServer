@@ -351,6 +351,19 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     /// <summary>
+    /// Get the alternate ordering entry for the episode with the given
+    /// <paramref name="id"/>, or null if no such entry exists.
+    /// </summary>
+    /// <param name="id">The episode group collection ID of the alternate ordering
+    /// entry to retrieve.</param>
+    /// <returns>The alternate ordering entry associated with the given ID, or
+    /// null if no such entry exists.</returns>
+    public TMDB_AlternateOrdering_Episode? GetTmdbAlternateOrderingEpisodeById(string? id) =>
+        string.IsNullOrEmpty(id)
+            ? null
+            : RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(id, TmdbEpisodeID);
+
+    /// <summary>
     /// Get all AniDB/TMDB cross-references for the episode.
     /// </summary>
     /// <returns></returns>

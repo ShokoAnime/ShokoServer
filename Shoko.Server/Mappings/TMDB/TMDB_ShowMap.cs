@@ -33,5 +33,6 @@ public class TMDB_ShowMap : ClassMap<TMDB_Show>
         Map(x => x.LastAiredAt).CustomType<DateOnlyConverter>();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
+        Map(x => x.PreferredAlternateOrderingID);
     }
 }

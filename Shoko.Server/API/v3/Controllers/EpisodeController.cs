@@ -679,7 +679,17 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         return episode.TmdbEpisodeCrossReferences
             .Select(xref => xref.TmdbEpisode)
             .WhereNotNull()
-            .Select(tmdbEpisode => new TmdbEpisode(tmdbEpisode, include?.CombineFlags(), language))
+            .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
+            .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
+            .Where(tuple => tuple.TmdbShow is not null)
+            .SelectMany(tuple0 =>
+                string.IsNullOrEmpty(tuple0.TmdbShow.PreferredAlternateOrderingID)
+                    ? tuple0.TmdbEpisodes.Select(tmdbEpisode => new TmdbEpisode(tuple0.TmdbShow, tmdbEpisode, include?.CombineFlags(), language))
+                    : tuple0.TmdbEpisodes
+                        .Select(tmdbEpisode => (TmdbEpisode: tmdbEpisode, TmdbAlternateOrdering: tmdbEpisode.GetTmdbAlternateOrderingEpisodeById(tuple0.TmdbShow.PreferredAlternateOrderingID)))
+                        .Where(tuple1 => tuple1.TmdbAlternateOrdering is not null)
+                        .Select(tuple1 => new TmdbEpisode(tuple0.TmdbShow, tuple1.TmdbEpisode, tuple1.TmdbAlternateOrdering, include?.CombineFlags(), language)
+            ))
             .ToList();
     }
 

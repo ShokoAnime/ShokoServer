@@ -182,7 +182,7 @@ public class Series : BaseModel
             TMDB = new()
             {
                 Movies = ser.TmdbMovies.Select(movie => new TmdbMovie(movie)),
-                Shows = ser.TmdbShows.Select(show => new TmdbShow(show)),
+                Shows = ser.TmdbShows.Select(show => new TmdbShow(show, show.PreferredAlternateOrdering)),
             };
     }
 

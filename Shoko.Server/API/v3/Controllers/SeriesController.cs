@@ -1414,7 +1414,7 @@ public class SeriesController : BaseController
         return series.TmdbShowCrossReferences
             .Select(o => o.TmdbShow)
             .WhereNotNull()
-            .Select(o => new TmdbShow(o, include?.CombineFlags(), language))
+            .Select(o => new TmdbShow(o, o.PreferredAlternateOrdering, include?.CombineFlags(), language))
             .ToList();
     }
 

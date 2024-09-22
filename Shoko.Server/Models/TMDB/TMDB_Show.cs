@@ -154,6 +154,15 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
+    #region Settings
+
+    /// <summary>
+    /// The ID of the preferred alternate ordering to use when not specified in the API.
+    /// </summary>
+    public string? PreferredAlternateOrderingID { get; set; }
+
+    #endregion
+
     #endregion
 
     #region Constructors
@@ -427,6 +436,19 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             .OrderBy(crew => crew.Job)
             .OrderBy(crew => crew.TmdbPersonID)
             .ToList();
+
+    /// <summary>
+    /// Get the preferred alternate ordering scheme associated with the show in
+    /// the local database. You need alternate ordering to be enabled in the
+    /// settings file for this to be populated.
+    /// </summary>
+    /// <returns>The preferred alternate ordering scheme associated with the
+    /// show in the local database. <see langword="null"/> if the show does not
+    /// have an alternate ordering scheme associated with it.</returns>
+    public TMDB_AlternateOrdering? PreferredAlternateOrdering =>
+        string.IsNullOrEmpty(PreferredAlternateOrderingID)
+            ? null
+            : RepoFactory.TMDB_AlternateOrdering.GetByEpisodeGroupCollectionAndShowIDs(PreferredAlternateOrderingID, TmdbShowID);
 
     /// <summary>
     /// Get all TMDB alternate ordering schemes associated with the show in the

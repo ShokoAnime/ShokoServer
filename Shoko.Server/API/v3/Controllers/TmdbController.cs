@@ -722,7 +722,7 @@ public partial class TmdbController : BaseController
 
     #region Constants
 
-    internal const string AlternateOrderingIdRegex = @"^[a-f0-9]{24}$";
+    internal const string AlternateOrderingIdRegex = @"^(?:[0-9]{1,23}|[a-f0-9]{24})$";
 
     internal const string ShowNotFound = "A TMDB.Show by the given `showID` was not found.";
 
@@ -730,7 +730,7 @@ public partial class TmdbController : BaseController
 
     internal const string ShowNotFoundByOrderingID = "A TMDB.Show by the given `orderingID` was not found";
 
-    internal const string ShowNotFoundByEpisodeID = "A TMDB.Show by the given `seasonID` was not found";
+    internal const string ShowNotFoundByEpisodeID = "A TMDB.Show by the given `episodeID` was not found";
 
     #endregion
 
@@ -825,13 +825,22 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
-            if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
-                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                    return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
+                return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
+            }
+
+            if (alternateOrderingID != show.Id.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
         return new TmdbShow(show, include?.CombineFlags());
@@ -907,8 +916,14 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
+        if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingID.Length != SeasonIdHexLength && alternateOrderingID != show.Id.ToString())
+            return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+
         var alternateOrdering = !string.IsNullOrWhiteSpace(alternateOrderingID) ? RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID) : null;
-        if (!string.IsNullOrWhiteSpace(alternateOrderingID) && (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID))
+        if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
             return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
         var ordering = new List<TmdbShow.OrderingInformation>
@@ -916,12 +931,42 @@ public partial class TmdbController : BaseController
             new(show, alternateOrdering),
         };
         foreach (var altOrder in show.TmdbAlternateOrdering)
-            ordering.Add(new(altOrder, alternateOrdering));
+            ordering.Add(new(show, altOrder, alternateOrdering));
         return ordering
             .OrderByDescending(o => o.InUse)
             .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
             .ThenBy(o => o.OrderingName)
             .ToList();
+    }
+
+    [HttpPost("Show/{showID}/Ordering/SetPreferred")]
+    public ActionResult SetPreferredTmdbShowOrdering(
+        [FromRoute] int showID,
+        [FromBody] TmdbSetPreferredOrderingBody body
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        if (!string.IsNullOrWhiteSpace(body.AlternateOrderingID) && body.AlternateOrderingID.Length == SeasonIdHexLength)
+        {
+            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(body.AlternateOrderingID);
+            if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                return ValidationProblem("Invalid Alternate Ordering ID for show.", nameof(body.AlternateOrderingID));
+
+            show.PreferredAlternateOrderingID = body.AlternateOrderingID;
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(body.AlternateOrderingID) && body.AlternateOrderingID != show.Id.ToString())
+                return ValidationProblem("Invalid Alternate Ordering ID for show.", nameof(body.AlternateOrderingID));
+
+            show.PreferredAlternateOrderingID = null;
+        }
+
+        RepoFactory.TMDB_Show.Save(show);
+        return Ok();
     }
 
     [HttpGet("Show/{showID}/CrossReferences")]
@@ -949,15 +994,24 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
-            if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
-                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                    return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return alternateOrdering.Cast
-                .Select(cast => new Role(cast))
-                .ToList();
+                return alternateOrdering.Cast
+                    .Select(cast => new Role(cast))
+                    .ToList();
+            }
+
+            if (alternateOrderingID != show.Id.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
         return show.Cast
@@ -975,15 +1029,24 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
-            if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
-                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                    return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return alternateOrdering.Crew
-                .Select(cast => new Role(cast))
-                .ToList();
+                return alternateOrdering.Crew
+                    .Select(cast => new Role(cast))
+                    .ToList();
+            }
+
+            if (alternateOrderingID != show.Id.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
         return show.Crew
@@ -1050,14 +1113,23 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
-            if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
-                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                    return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return alternateOrdering.TmdbAlternateOrderingSeasons
-                .ToListResult(season => new TmdbSeason(season, include?.CombineFlags()), page, pageSize);
+                return alternateOrdering.TmdbAlternateOrderingSeasons
+                    .ToListResult(season => new TmdbSeason(season, include?.CombineFlags()), page, pageSize);
+            }
+
+            if (alternateOrderingID != show.Id.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
         return show.TmdbSeasons
@@ -1096,6 +1168,9 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
         int? seasonNumber = null;
         int? episodeNumber = null;
         if (!string.IsNullOrWhiteSpace(search))
@@ -1122,24 +1197,30 @@ public partial class TmdbController : BaseController
 
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
-            if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
-                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                    return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            var altEpisodes = alternateOrdering.TmdbAlternateOrderingEpisodes
-                .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
-                .Where(tuple => tuple.episode is not null)
-                .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
-            if (seasonNumber is not null && episodeNumber is not null)
-                altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber && t.episode.EpisodeNumber == episodeNumber);
-            else if (seasonNumber is not null)
-                altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber);
-            else if (episodeNumber is not null)
-                altEpisodes = altEpisodes.Where(t => t.episode.EpisodeNumber == episodeNumber);
-            if (!string.IsNullOrWhiteSpace(search))
-                altEpisodes = altEpisodes.Search(search, t => t.episode.GetAllPreferredTitles().Select(t => t.Value), fuzzy).Select(r => r.Result);
-            return altEpisodes
-                .ToListResult(t => new TmdbEpisode(t.episode, t.ordering, include?.CombineFlags(), language), page, pageSize);
+                var altEpisodes = alternateOrdering.TmdbAlternateOrderingEpisodes
+                    .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
+                    .Where(tuple => tuple.episode is not null)
+                    .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
+                if (seasonNumber is not null && episodeNumber is not null)
+                    altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber && t.episode.EpisodeNumber == episodeNumber);
+                else if (seasonNumber is not null)
+                    altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber);
+                else if (episodeNumber is not null)
+                    altEpisodes = altEpisodes.Where(t => t.episode.EpisodeNumber == episodeNumber);
+                if (!string.IsNullOrWhiteSpace(search))
+                    altEpisodes = altEpisodes.Search(search, t => t.episode.GetAllPreferredTitles().Select(t => t.Value), fuzzy).Select(r => r.Result);
+                return altEpisodes
+                    .ToListResult(t => new TmdbEpisode(show, t.episode, t.ordering, include?.CombineFlags(), language), page, pageSize);
+            }
+
+            if (alternateOrderingID != show.Id.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
         IEnumerable<TMDB_Episode> episodes = show.TmdbEpisodes;
@@ -1151,7 +1232,7 @@ public partial class TmdbController : BaseController
             episodes = episodes.Where(e => e.EpisodeNumber == episodeNumber);
         if (!string.IsNullOrWhiteSpace(search))
             episodes = episodes.Search(search, ep => ep.GetAllPreferredTitles().Select(t => t.Value), fuzzy).Select(r => r.Result);
-        return episodes.ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
+        return episodes.ToListResult(e => new TmdbEpisode(show, e, include?.CombineFlags(), language), page, pageSize);
     }
 
     /// <summary>
@@ -1631,8 +1712,12 @@ public partial class TmdbController : BaseController
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
+            var altShow = altOrderSeason.TmdbShow;
+            if (altShow is null)
+                return NotFound(ShowNotFoundBySeasonID);
+
             return altOrderSeason.TmdbAlternateOrderingEpisodes
-                .ToListResult(e => new TmdbEpisode(e.TmdbEpisode!, e, include?.CombineFlags(), language), page, pageSize);
+                .ToListResult(e => new TmdbEpisode(altShow, e.TmdbEpisode!, e, include?.CombineFlags(), language), page, pageSize);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -1640,8 +1725,12 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
+        var show = season.TmdbShow;
+        if (show is null)
+            return NotFound(ShowNotFoundBySeasonID);
+
         return season.TmdbEpisodes
-            .ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
+            .ToListResult(e => new TmdbEpisode(show, e, include?.CombineFlags(), language), page, pageSize);
     }
 
     #endregion
@@ -1725,7 +1814,7 @@ public partial class TmdbController : BaseController
         body.IDs
             .Select(episodeID => episodeID <= 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID))
             .WhereNotNull()
-            .Select(episode => new TmdbEpisode(episode, body.Include?.CombineFlags(), body.Language))
+            .Select(episode => new TmdbEpisode(episode.TmdbShow ?? throw new Exception(ShowNotFoundByEpisodeID), episode, body.Include?.CombineFlags(), body.Language))
             .ToList();
 
     [HttpGet("Episode/{episodeID}")]
@@ -1739,16 +1828,30 @@ public partial class TmdbController : BaseController
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
+
+        var show = episode.TmdbShow;
+        if (show is null)
+            return NotFound(ShowNotFoundByEpisodeID);
+
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrderingEpisode = RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
-            if (alternateOrderingEpisode is null)
-                return ValidationProblem("Invalid alternateOrderingID for episode.", "alternateOrderingID");
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrderingEpisode = RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
+                if (alternateOrderingEpisode is null)
+                    return ValidationProblem("Invalid alternateOrderingID for episode.", "alternateOrderingID");
 
-            return new TmdbEpisode(episode, alternateOrderingEpisode, include?.CombineFlags(), language);
+                return new TmdbEpisode(show, episode, alternateOrderingEpisode, include?.CombineFlags(), language);
+            }
+
+            if (alternateOrderingID != episode.TmdbShowID.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
-        return new TmdbEpisode(episode, include?.CombineFlags(), language);
+        return new TmdbEpisode(show, episode, include?.CombineFlags(), language);
     }
 
     [HttpGet("Episode/{episodeID}/Titles")]
@@ -1788,6 +1891,17 @@ public partial class TmdbController : BaseController
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
+
+        var show = episode.TmdbShow;
+        if (show is null)
+            return NotFound(ShowNotFoundByEpisodeID);
+
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
+        if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingID.Length != SeasonIdHexLength && alternateOrderingID != show.Id.ToString())
+            return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+
         var alternateOrderingEpisode = !string.IsNullOrWhiteSpace(alternateOrderingID)
             ? RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID) : null;
         if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingEpisode is null)
@@ -1795,10 +1909,10 @@ public partial class TmdbController : BaseController
 
         var ordering = new List<TmdbEpisode.OrderingInformation>
         {
-            new(episode, alternateOrderingEpisode),
+            new(show, episode, alternateOrderingEpisode),
         };
         foreach (var altOrderEp in episode.TmdbAlternateOrderingEpisodes)
-            ordering.Add(new(altOrderEp, alternateOrderingEpisode));
+            ordering.Add(new(show, altOrderEp, alternateOrderingEpisode));
 
         return ordering
             .OrderByDescending(o => o.InUse)
@@ -1887,11 +2001,17 @@ public partial class TmdbController : BaseController
 
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
-            if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
-                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                    return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
+                return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
+            }
+
+            if (alternateOrderingID != episode.TmdbShowID.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
         return new TmdbShow(show, include?.CombineFlags(), language);
@@ -1909,14 +2029,27 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
+        var show = episode.TmdbShow;
+        if (show is null)
+            return NotFound(ShowNotFoundByEpisodeID);
+
+        if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
+            alternateOrderingID = show.PreferredAlternateOrderingID;
+
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
-            var alternateOrderingEpisode = RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
-            var altOrderSeason = alternateOrderingEpisode?.TmdbAlternateOrderingSeason;
-            if (altOrderSeason is null)
-                return NotFound(SeasonNotFoundByEpisodeID);
+            if (alternateOrderingID.Length == SeasonIdHexLength)
+            {
+                var alternateOrderingEpisode = RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
+                var altOrderSeason = alternateOrderingEpisode?.TmdbAlternateOrderingSeason;
+                if (altOrderSeason is null)
+                    return NotFound(SeasonNotFoundByEpisodeID);
 
-            return new TmdbSeason(altOrderSeason, include?.CombineFlags());
+                return new TmdbSeason(altOrderSeason, include?.CombineFlags());
+            }
+
+            if (alternateOrderingID != episode.TmdbShowID.ToString())
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
         var season = episode.TmdbSeason;
