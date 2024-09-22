@@ -202,11 +202,11 @@ public class Show
             Images = show.GetImages()
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
-            Cast = show.Cast
+            Cast = (alternateOrdering is null ? show.Cast : alternateOrdering.Cast)
                 .Select(cast => new Role(cast))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
-            Crew = show.Crew
+            Crew = (alternateOrdering is null ? show.Crew : alternateOrdering.Crew)
                 .Select(cast => new Role(cast))
                 .ToList();
         if (alternateOrdering != null)
