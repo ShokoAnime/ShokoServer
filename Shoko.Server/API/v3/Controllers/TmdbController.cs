@@ -2378,45 +2378,45 @@ public partial class TmdbController : BaseController
                     break;
 
                 case MovieCrossReferenceWithIdHeader:
+                {
+                    var (animeId, episodeId, movieId, automatic) = line.Split(",");
+                    if (
+                        !int.TryParse(animeId, out var anidbAnimeId) || anidbAnimeId <= 0 ||
+                        !int.TryParse(episodeId, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
+                        !int.TryParse(movieId, out var tmdbMovieId) || tmdbMovieId <= 0 ||
+                        !bool.TryParse(automatic, out var isAutomatic)
+                    )
                     {
-                        var (animeId, episodeId, movieId, automatic) = line.Split(",");
-                        if (
-                            !int.TryParse(animeId, out var anidbAnimeId) || anidbAnimeId <= 0 ||
-                            !int.TryParse(episodeId, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
-                            !int.TryParse(movieId, out var tmdbMovieId) || tmdbMovieId <= 0 ||
-                            !bool.TryParse(automatic, out var isAutomatic)
-                        )
-                        {
-                            ModelState.AddModelError("Body", $"Unable to parse cross-reference at line {lineNumber}.");
-                            continue;
-                        }
-
-                        movieIdXrefs.Add((anidbAnimeId, anidbEpisodeId, tmdbMovieId, isAutomatic));
-
-                        break;
+                        ModelState.AddModelError("Body", $"Unable to parse cross-reference at line {lineNumber}.");
+                        continue;
                     }
+
+                    movieIdXrefs.Add((anidbAnimeId, anidbEpisodeId, tmdbMovieId, isAutomatic));
+
+                    break;
+                }
                 case EpisodeCrossReferenceWithIdHeader:
-                    {
-                        var (anime, anidbEpisode, show, tmdbEpisode, rating) = line.Split(",");
-                        if (
-                            !int.TryParse(anime, out var anidbAnimeId) || anidbAnimeId <= 0 ||
-                            !int.TryParse(anidbEpisode, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
-                            !int.TryParse(show, out var tmdbShowId) || tmdbShowId < 0 ||
-                            !int.TryParse(tmdbEpisode, out var tmdbEpisodeId) || tmdbEpisodeId < 0 ||
-                            // NOTE: Internal easter eggs should stay internally.
-                            !(
-                                (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
-                                (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
-                            )
+                {
+                    var (anime, anidbEpisode, show, tmdbEpisode, rating) = line.Split(",");
+                    if (
+                        !int.TryParse(anime, out var anidbAnimeId) || anidbAnimeId <= 0 ||
+                        !int.TryParse(anidbEpisode, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
+                        !int.TryParse(show, out var tmdbShowId) || tmdbShowId < 0 ||
+                        !int.TryParse(tmdbEpisode, out var tmdbEpisodeId) || tmdbEpisodeId < 0 ||
+                        // NOTE: Internal easter eggs should stay internally.
+                        !(
+                            (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
+                            (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
                         )
-                        {
-                            ModelState.AddModelError("Body", $"Unable to parse cross-reference at line {lineNumber}.");
-                            continue;
-                        }
-
-                        episodeIdXrefs.Add((anidbAnimeId, anidbEpisodeId, tmdbShowId, tmdbEpisodeId, matchRating));
-                        break;
+                    )
+                    {
+                        ModelState.AddModelError("Body", $"Unable to parse cross-reference at line {lineNumber}.");
+                        continue;
                     }
+
+                    episodeIdXrefs.Add((anidbAnimeId, anidbEpisodeId, tmdbShowId, tmdbEpisodeId, matchRating));
+                    break;
+                }
             }
         }
 
