@@ -59,6 +59,8 @@ public class SeriesController : BaseController
 {
     private readonly AnimeSeriesService _seriesService;
 
+    private readonly AnimeGroupService _groupService;
+
     private readonly AniDBTitleHelper _titleHelper;
 
     private readonly ISchedulerFactory _schedulerFactory;
@@ -77,6 +79,7 @@ public class SeriesController : BaseController
     public SeriesController(
         ISettingsProvider settingsProvider,
         AnimeSeriesService seriesService,
+        AnimeGroupService groupService,
         AniDBTitleHelper titleHelper,
         ISchedulerFactory schedulerFactory,
         TmdbLinkingService tmdbLinkingService,
@@ -87,6 +90,7 @@ public class SeriesController : BaseController
     ) : base(settingsProvider)
     {
         _seriesService = seriesService;
+        _groupService = groupService;
         _titleHelper = titleHelper;
         _schedulerFactory = schedulerFactory;
         _tmdbLinkingService = tmdbLinkingService;
@@ -1444,6 +1448,12 @@ public class SeriesController : BaseController
         if (needRefresh)
             await _tmdbMetadataService.ScheduleUpdateOfShow(body.ID, forceRefresh: body.Refresh, downloadImages: true);
 
+        // Reset series/group titles/descriptions when a new link is added.
+        series.ResetAnimeTitles();
+        series.ResetPreferredTitle();
+        series.ResetPreferredOverview();
+        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
+
         return NoContent();
     }
 
@@ -1471,6 +1481,13 @@ public class SeriesController : BaseController
             await _tmdbLinkingService.RemoveShowLink(series.AniDB_ID, body.ID, body.Purge);
         else
             await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
+
+        // Reset series/group titles/descriptions when a link is removed.
+        series.ResetAnimeTitles();
+        series.ResetPreferredTitle();
+        series.ResetPreferredOverview();
+        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
+
 
         return NoContent();
     }
