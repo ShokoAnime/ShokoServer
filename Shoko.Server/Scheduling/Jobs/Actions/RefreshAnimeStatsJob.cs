@@ -45,6 +45,11 @@ public class RefreshAnimeStatsJob : BaseJob
         }
         _animeRepo.Save(anime);
         var series = _seriesRepo.GetByAnimeID(AnimeID);
+
+        series.ResetAnimeTitles();
+        series.ResetPreferredTitle();
+        series.ResetPreferredOverview();
+
         // Updating stats saves everything and updates groups
         _seriesService.UpdateStats(series, true, true);
         _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
