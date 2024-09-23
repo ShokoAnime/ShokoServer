@@ -802,7 +802,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(129, 32, "CREATE TABLE `AniDB_Episode_PreferredImage` ( `AniDB_Episode_PreferredImageID` INT NOT NULL AUTO_INCREMENT, `AnidbAnimeID` INT NOT NULL, `AnidbEpisodeID` INT NOT NULL, `ImageID` INT NOT NULL, `ImageType` INT NOT NULL, `ImageSource` INT NOT NULL, PRIMARY KEY (`AniDB_Episode_PreferredImageID`) );"),
         new(129, 33, DatabaseFixes.CleanupAfterAddingTMDB),
         new(129, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression');"),
-        new(129, 35, "ALTER TABLE `TMDB_Movie` CHANGE COLUMN IF EXISTS `EnglishOvervie` `EnglishOverview` TEXT CHARACTER SET UTF8 NOT NULL;"),
+        new(129, 35, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='TMDB_Movie' AND COLUMN_NAME='EnglishOvervie' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE TMDB_Movie CHANGE COLUMN `EnglishOvervie` `EnglishOverview` TEXT CHARACTER SET UTF8 NOT NULL', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
         new(129, 36, "UPDATE `TMDB_Image` SET `IsEnabled` = 1;"),
         new(130, 1, MigrateRenamers),
         new(131, 1, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
@@ -947,6 +947,30 @@ public class MySQL : BaseDatabase<MySqlConnection>
         }
     }
 
+    private static Tuple<bool, string> AlterColumnIfExists(object connection, string tableName, string columnName, string columnType)
+    {
+        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
+        var settingsProvider = Utils.SettingsProvider;
+
+        var sessionFactory = factory.CreateSessionFactory();
+        using var session = sessionFactory.OpenSession();
+        using var transaction = session.BeginTransaction();
+        try
+        {
+            var command = "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='TMDB_Movie' AND COLUMN_NAME='EnglishOvervie' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE TMDB_Movie CHANGE COLUMN `EnglishOvervie` `EnglishOverview` TEXT CHARACTER SET UTF8 NOT NULL', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;";
+            session.CreateSQLQuery(command).ExecuteUpdate();
+            transaction.Commit();
+        }
+        catch (Exception e)
+        {
+            transaction.Rollback();
+            return new Tuple<bool, string>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string>(true, null);
+    }
+    
     private static Tuple<bool, string> MigrateRenamers(object connection)
     {
         var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
