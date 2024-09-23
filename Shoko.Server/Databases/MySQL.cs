@@ -947,30 +947,6 @@ public class MySQL : BaseDatabase<MySqlConnection>
         }
     }
 
-    private static Tuple<bool, string> AlterColumnIfExists(object connection, string tableName, string columnName, string columnType)
-    {
-        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-        var settingsProvider = Utils.SettingsProvider;
-
-        var sessionFactory = factory.CreateSessionFactory();
-        using var session = sessionFactory.OpenSession();
-        using var transaction = session.BeginTransaction();
-        try
-        {
-            var command = "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='TMDB_Movie' AND COLUMN_NAME='EnglishOvervie' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE TMDB_Movie CHANGE COLUMN `EnglishOvervie` `EnglishOverview` TEXT CHARACTER SET UTF8 NOT NULL', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;";
-            session.CreateSQLQuery(command).ExecuteUpdate();
-            transaction.Commit();
-        }
-        catch (Exception e)
-        {
-            transaction.Rollback();
-            return new Tuple<bool, string>(false, e.ToString());
-        }
-
-        return new Tuple<bool, string>(true, null);
-    }
-    
     private static Tuple<bool, string> MigrateRenamers(object connection)
     {
         var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
@@ -984,8 +960,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         {
             const string createCommand = """
                                          CREATE TABLE IF NOT EXISTS RenamerInstance (ID INT NOT NULL AUTO_INCREMENT, Name text NOT NULL, Type text NOT NULL, Settings mediumblob, PRIMARY KEY (ID));
-                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Name (Name);
-                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Type (Type);
+                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Name (Name(255));
+                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Type (Type(255));
                                          """;
 
             session.CreateSQLQuery(createCommand).ExecuteUpdate();
