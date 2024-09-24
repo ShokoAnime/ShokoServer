@@ -24,7 +24,7 @@ public class ResponseGetCreator
     /// The original name of the creator. Will always be the 'ja' language for
     /// the creator, if set. Otherwise, it will be an empty string.
     /// </summary>
-    public string OriginalName { get; set; }
+    public string OriginalName { get; set; } = string.Empty;
 
     /// <summary>
     /// The type of creator.
