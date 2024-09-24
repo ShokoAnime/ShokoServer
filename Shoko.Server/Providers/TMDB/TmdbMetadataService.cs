@@ -909,8 +909,9 @@ public class TmdbMetadataService
             var settings = _settingsProvider.GetSettings();
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+            var contentRantingLanguages = settings.TMDB.DownloadAllContentRatings ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).Concat(Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language)).ToHashSet();
             var shouldFireEvents = !quickRefresh || xrefs.Count > 0;
-            var updated = tmdbShow.Populate(show);
+            var updated = tmdbShow.Populate(show, contentRantingLanguages);
             var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;

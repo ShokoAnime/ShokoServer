@@ -41,6 +41,15 @@ public class TMDBSettings
     public bool DownloadAllOverviews { get; set; } = false;
 
     /// <summary>
+    /// Indicates that all content-ratings should be stored locally for the TMDB
+    /// entity, otherwise it will use
+    /// <seealso cref="LanguageSettings.SeriesTitleLanguageOrder"/> or
+    /// <seealso cref="LanguageSettings.EpisodeTitleLanguageOrder"/> depending
+    /// on the entity type to determine which content-ratings to store locally.
+    /// </summary>
+    public bool DownloadAllContentRatings { get; set; } = false;
+
+    /// <summary>
     /// Image language preference order, in text form for storage.
     /// </summary>
     [JsonProperty(nameof(ImageLanguageOrder))]

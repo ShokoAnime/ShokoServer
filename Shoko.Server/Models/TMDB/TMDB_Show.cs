@@ -192,8 +192,9 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Populate the fields from the raw data.
     /// </summary>
     /// <param name="show">The raw TMDB Tv Show object.</param>
+    /// <param name="crLanguages">Content rating languages.</param>
     /// <returns>True if any of the fields have been updated.</returns>
-    public bool Populate(TvShow show)
+    public bool Populate(TvShow show, HashSet<TitleLanguage>? crLanguages)
     {
         // Don't trust 'show.Name' for the English title since it will fall-back
         // to the original language if there is no title in English.
@@ -216,7 +217,11 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             ),
             UpdateProperty(
                 ContentRatings,
-                show.ContentRatings.Results.Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating)).OrderBy(c => c.CountryCode).ToList(),
+                show.ContentRatings.Results
+                    .Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating))
+                    .Where(c => crLanguages is null || crLanguages.Contains(c.Language))
+                    .OrderBy(c => c.CountryCode)
+                    .ToList(),
                 v => ContentRatings = v,
                 (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
             ),
