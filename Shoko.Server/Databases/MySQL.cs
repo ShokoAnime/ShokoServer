@@ -835,8 +835,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(136, 9, "DROP TABLE IF EXISTS `AniDB_Seiyuu`"),
         new(136, 10, "DROP TABLE IF EXISTS `AniDB_Character_Seiyuu`"),
         new(137, 1, "ALTER TABLE `TMDB_Show` ADD COLUMN `PreferredAlternateOrderingID`  VARCHAR(64) CHARACTER SET UTF8 NULL DEFAULT NULL;"),
-        new(138, 1, "ALTER TABLE `TMDB_Show` CHANGE COLUMN `ContentRatings` VARCHAR(512) CHARACTER SET UTF8 NOT NULL"),
-        new(138, 2, "ALTER TABLE `TMDB_Movie` CHANGE COLUMN `ContentRatings` VARCHAR(512) CHARACTER SET UTF8 NOT NULL"),
+        new(138, 1, "ALTER TABLE `TMDB_Show` CHANGE COLUMN `ContentRatings` `ContentRatings` VARCHAR(512) CHARACTER SET UTF8 NOT NULL"),
+        new(138, 2, "ALTER TABLE `TMDB_Movie` CHANGE COLUMN `ContentRatings` `ContentRatings` VARCHAR(512) CHARACTER SET UTF8 NOT NULL"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
