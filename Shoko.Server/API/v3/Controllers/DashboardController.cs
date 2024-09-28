@@ -306,7 +306,7 @@ public class DashboardController : BaseController
             .Where(record => record.LastEpisodeUpdate.HasValue)
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
-            .Where(series => user.AllowedSeries(series) &&
+            .Where(series => series is not null && user.AllowedSeries(series) &&
                 (includeRestricted || series.AniDB_Anime.Restricted != 1))
             .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials)))
             .Where(tuple => tuple.episode != null)
