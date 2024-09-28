@@ -44,10 +44,10 @@ public interface IVideoFile
     /// Get the video tied to the video file location.
     /// </summary>
     /// <value></value>
-    IVideo? Video { get; }
+    IVideo Video { get; }
 
     /// <summary>
     /// The import folder tied to the video file location.
     /// </summary>
-    IImportFolder? ImportFolder { get; }
+    IImportFolder ImportFolder { get; }
 }

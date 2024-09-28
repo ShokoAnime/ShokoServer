@@ -12,7 +12,6 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -79,8 +78,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         {
             FileName = newFilename,
             DestinationImportFolder = destination.dest,
-            Path = destination.folder,
-            Error = ex == null ? null : new RelocationError(ex.Message, ex)
+            Path = destination.folder
         };
     }
 
@@ -1388,8 +1386,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-
-    public (bool success, string name) GetNewFileName(RelocationEventArgs args, WebAOMSettings settings, string script)
+    private (bool success, string name) GetNewFileName(RelocationEventArgs args, WebAOMSettings settings, string script)
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
         var sourceFolder = RepoFactory.ImportFolder.GetAll()
@@ -1415,7 +1412,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             var animeEps = vid.AnimeEpisodes;
             if (animeEps.Count == 0) return (false, "Unable to get episode for file");
 
-            episodes.AddRange(animeEps.Select(a => a.AniDB_Episode).OrderBy(a => a.EpisodeType)
+            episodes.AddRange(animeEps.Select(a => a.AniDB_Episode).OrderBy(a => a?.EpisodeType ?? (int)EpisodeType.Other)
                 .ThenBy(a => a.EpisodeNumber));
 
             anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
@@ -1444,7 +1441,9 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             if (thisLine.StartsWith(Constants.FileRenameReserved.Do, StringComparison.InvariantCultureIgnoreCase))
             {
                 var action = GetAction(thisLine);
-                PerformActionOnFileName(ref newFileName, action, settings, vid, aniFile, episodes, anime);
+                var (success, name) = PerformActionOnFileName(newFileName, action, settings, vid, aniFile, episodes, anime);
+                if (!success) return (false, name);
+                newFileName = name;
             }
             else if (EvaluateTest(thisLine, vid, aniFile, episodes, anime))
             {
@@ -1455,7 +1454,9 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 if (action.ToUpper().Trim().Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
                     return (false, "The script called FAIL");
 
-                PerformActionOnFileName(ref newFileName, action, settings, vid, aniFile, episodes, anime);
+                var (success, name) = PerformActionOnFileName(newFileName, action, settings, vid, aniFile, episodes, anime);
+                if (!success) return (false, name);
+                newFileName = name;
             }
         }
 
@@ -1471,43 +1472,45 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return (true, Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}"));
     }
 
-    private void PerformActionOnFileName(ref string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+    private (bool, string) PerformActionOnFileName(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         // find the first test
         var posStart = action.IndexOf(' ');
-        if (posStart < 0) return;
+        if (posStart < 0) return (true, newFileName);
 
         var actionType = action[..posStart];
         var parameter = action.Substring(posStart + 1, action.Length - posStart - 1);
 
-
         // action is to add the new file name
         if (actionType.Trim().Equals(Constants.FileRenameReserved.Add, StringComparison.InvariantCultureIgnoreCase))
-            PerformActionOnFileNameADD(ref newFileName, parameter, settings, vid, aniFile, episodes, anime);
+            return PerformActionOnFileNameADD(newFileName, parameter, settings, vid, aniFile, episodes, anime);
 
         if (actionType.Trim().Equals(Constants.FileRenameReserved.Replace, StringComparison.InvariantCultureIgnoreCase))
-            PerformActionOnFileNameREPLACE(ref newFileName, parameter);
+            return PerformActionOnFileNameREPLACE(ref newFileName, parameter);
+
+        return (true, newFileName);
     }
 
-    private void PerformActionOnFileNameREPLACE(ref string newFileName, string action)
+    private (bool, string) PerformActionOnFileNameREPLACE(ref string newFileName, string action)
     {
         try
         {
             action = action.Trim();
 
             var posStart1 = action.IndexOf('\'', 0);
-            if (posStart1 < 0) return;
+            if (posStart1 < 0) return (false, "Unable to parse replace string");
 
             var posEnd1 = action.IndexOf('\'', posStart1 + 1);
-            if (posEnd1 < 0) return;
+            if (posEnd1 < 0) return (false, "Unable to parse replace string");
 
             var toReplace = action.Substring(posStart1 + 1, posEnd1 - posStart1 - 1);
+            if (string.IsNullOrEmpty(toReplace)) return (false, "Replace string cannot be empty");
 
             var posStart2 = action.IndexOf('\'', posEnd1 + 1);
-            if (posStart2 < 0) return;
+            if (posStart2 < 0) return (false, "Unable to parse replace with string");
 
             var posEnd2 = action.IndexOf('\'', posStart2 + 1);
-            if (posEnd2 < 0) return;
+            if (posEnd2 < 0) return (false, "Unable to parse replace with string");
 
             var replaceWith = action.Substring(posStart2 + 1, posEnd2 - posStart2 - 1);
 
@@ -1516,10 +1519,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         catch (Exception ex)
         {
             _logger.LogError(ex, ex.ToString());
+            return (false, ex.Message); 
         }
+        
+        return (true, newFileName); 
     }
 
-    private void PerformActionOnFileNameADD(ref string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid,
+    private (bool, string) PerformActionOnFileNameADD(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid,
         SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         newFileName += action;
@@ -1538,12 +1544,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameEnglish.ToLower()))
         {
-            newFileName = anime.Titles
-                .Where(ti =>
-                    ti.Language == TitleLanguage.English &&
-                    (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
-                .Aggregate(newFileName,
-                    (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameEnglish, ti.Title));
+            var title = anime.Titles.FirstOrDefault(ti => ti.Language == TitleLanguage.English && ti.TitleType is TitleType.Main or TitleType.Official)?.Title;
+            if (string.IsNullOrEmpty(title))
+                return (false, "Unable to get the English title");
+            newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameEnglish, title);
         }
 
         #endregion
@@ -1552,12 +1556,14 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameMain.ToLower()))
         {
-            newFileName = anime.Titles
-                .Where(ti =>
-                    ti.TitleType == TitleType.Main ||
-                    (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official))
-                .Aggregate(newFileName,
-                    (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameMain, ti.Title));
+            var title = anime.Titles
+                            .FirstOrDefault(ti => ti.TitleType == TitleType.Main || (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official))
+                            ?.Title ??
+                        anime.MainTitle;
+            if (string.IsNullOrEmpty(title))
+                return (false, "Unable to get the main title");
+
+            newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameMain, title);
         }
 
         #endregion
@@ -1566,12 +1572,11 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameKanji.ToLower()))
         {
-            newFileName = anime.Titles
-                .Where(ti =>
-                    ti.Language == TitleLanguage.Japanese &&
-                    (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
-                .Aggregate(newFileName,
-                    (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameKanji, ti.Title));
+            var title = anime.Titles.FirstOrDefault(ti => ti.Language == TitleLanguage.Japanese && ti.TitleType is TitleType.Main or TitleType.Official)?.Title;
+            if (string.IsNullOrEmpty(title))
+                return (false, "Unable to get the kanji title");
+
+            newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameKanji, title);
         }
 
         #endregion
@@ -1683,7 +1688,8 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             var epname = RepoFactory.AniDB_Episode_Title
                 .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.English)
                 .FirstOrDefault()?.Title;
-            if (epname?.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
+            if (string.IsNullOrEmpty(epname)) return (false, "Unable to get the english episode name");
+            if (epname.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
         }
@@ -1697,7 +1703,8 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             var epname = RepoFactory.AniDB_Episode_Title
                 .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.Romaji)
                 .FirstOrDefault()?.Title;
-            if (epname?.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
+            if (string.IsNullOrEmpty(epname)) return (false, "Unable to get the romaji episode name");
+            if (epname.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
         }
@@ -1720,8 +1727,9 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupLongName.ToLower()))
         {
-            newFileName = newFileName.Replace(Constants.FileRenameTag.GroupLongName,
-                aniFile?.Anime_GroupName ?? "Unknown");
+            var subgroup = aniFile?.Anime_GroupName ?? "Unknown";
+            if (subgroup.Equals("raw", StringComparison.InvariantCultureIgnoreCase)) subgroup = "Unknown";
+            newFileName = newFileName.Replace(Constants.FileRenameTag.GroupLongName, subgroup);
         }
 
         #endregion
@@ -1962,6 +1970,8 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
 
         #endregion
+
+        return (true, newFileName);
     }
 
     private string GetAction(string line)
@@ -2117,7 +2127,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
 
         // get the series
-        var series = args.Series?.FirstOrDefault();
+        var series = args.Series.FirstOrDefault();
 
         if (series == null)
         {
@@ -2131,7 +2141,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             throw new ArgumentException("Series Name is null or empty");
         }
 
-        var group = args.Groups?.FirstOrDefault();
+        var group = args.Groups.FirstOrDefault();
         if (group == null)
         {
             throw new ArgumentException("Group could not be found for file");
@@ -2177,7 +2187,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             return (null, "No xrefs");
         }
 
-        var xref = xrefs.FirstOrDefault(a => a != null);
+        var xref = xrefs.FirstOrDefault();
         if (xref == null)
         {
             return (null, "No xrefs");
@@ -2192,7 +2202,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         // TODO move this into the RelocationService
         // sort the episodes by air date, so that we will move the file to the location of the latest episode
         var allEps = series.AllAnimeEpisodes
-            .OrderByDescending(a => a.AniDB_Episode.AirDate)
+            .OrderByDescending(a => a.AniDB_Episode?.AirDate ?? 0)
             .ToList();
 
         foreach (var ep in allEps)
@@ -2229,7 +2239,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 if (!settings.Import.SkipDiskSpaceChecks && !_relocationService.ImportFolderHasSpace(dstImportFolder, args.File))
                     continue;
 
-                if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName))) continue;
+                if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName!))) continue;
 
                 // ensure we aren't moving to the current directory
                 if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))

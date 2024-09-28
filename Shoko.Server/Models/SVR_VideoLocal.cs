@@ -79,7 +79,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     public List<SVR_VideoLocal_Place> Places => VideoLocalID == 0 ? new List<SVR_VideoLocal_Place>() : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
-    public SVR_AniDB_File AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
+    public SVR_AniDB_File? AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
 
     internal AniDB_ReleaseGroup? ReleaseGroup
     {
