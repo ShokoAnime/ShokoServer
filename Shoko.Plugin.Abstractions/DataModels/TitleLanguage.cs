@@ -22,7 +22,7 @@ public enum TitleLanguage
     Unknown = 0,
 
     /// <summary>
-    /// English.
+    /// English (Any).
     /// </summary>
     English = 1,
 
@@ -32,7 +32,7 @@ public enum TitleLanguage
     Romaji,
 
     /// <summary>
-    /// Japanese (Kanji)
+    /// Japanese (Kanji).
     /// </summary>
     Japanese,
 
@@ -590,4 +590,34 @@ public enum TitleLanguage
     /// Urdu.
     /// </summary>
     Urdu,
+
+    /// <summary>
+    /// English (American).
+    /// </summary>
+    EnglishAmerican,
+
+    /// <summary>
+    /// English (British).
+    /// </summary>
+    EnglishBritish,
+
+    /// <summary>
+    /// English (Australian).
+    /// </summary>
+    EnglishAustralian,
+
+    /// <summary>
+    /// English (Canadian).
+    /// </summary>
+    EnglishCanadian,
+
+    /// <summary>
+    /// English (India).
+    /// </summary>
+    EnglishIndia,
+
+    /// <summary>
+    /// English (New Zealand).
+    /// </summary>
+    EnglishNewZealand,
 }

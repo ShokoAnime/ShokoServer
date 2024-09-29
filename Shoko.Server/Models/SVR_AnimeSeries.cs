@@ -13,6 +13,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -178,17 +179,15 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                 => anidbTitles ??= RepoFactory.AniDB_Anime_Title.GetByAnimeID(AniDB_ID);
 
             // Lazy load TMDB titles if needed.
-            Dictionary<TitleLanguage, string>? tmdbTitles = null;
-            Dictionary<TitleLanguage, string> GetTmdbTitles()
+            IReadOnlyList<TMDB_Title>? tmdbTitles = null;
+            IReadOnlyList<TMDB_Title> GetTmdbTitles()
                 => tmdbTitles ??= (
                     TmdbShows is { Count: > 0 } tmdbShows
                         ? tmdbShows[0].GetAllTitles()
                         : TmdbMovies is { Count: 1 } tmdbMovies
                             ? tmdbMovies[0].GetAllTitles()
                             : []
-                )
-                    .DistinctBy(x => x.Language)
-                    .ToDictionary(x => x.Language, x => x.Value);
+                );
 
             // Loop through all languages and sources, first by language, then by source.
             foreach (var language in languageOrder)
@@ -206,10 +205,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                                 ? TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName
                                 : null,
                         DataSourceType.TMDB =>
-                            GetTmdbTitles()
-                                .TryGetValue(language.Language, out var tmdbTitle)
-                                ? tmdbTitle
-                                : null,
+                            GetTmdbTitles().GetByLanguage(language.Language)?.Value,
                         _ => null,
                     };
                     if (!string.IsNullOrEmpty(title))
@@ -299,17 +295,15 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
 
             // Lazy load TMDB overviews if needed.
-            Dictionary<TitleLanguage, string>? tmdbOverviews = null;
-            Dictionary<TitleLanguage, string> GetTmdbOverviews()
+            IReadOnlyList<TMDB_Overview>? tmdbOverviews = null;
+            IReadOnlyList<TMDB_Overview> GetTmdbOverviews()
                 => tmdbOverviews ??= (
                     TmdbShows is { Count: > 0 } tmdbShows
                         ? tmdbShows[0].GetAllOverviews()
                         : TmdbMovies is { Count: 1 } tmdbMovies
                             ? tmdbMovies[0].GetAllOverviews()
                             : []
-                )
-                    .DistinctBy(x => x.Language)
-                    .ToDictionary(x => x.Language, x => x.Value);
+                );
 
             // Check each language and source in the most preferred order.
             foreach (var language in languageOrder)
@@ -326,9 +320,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                                 ? TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview
                                 : null,
                         DataSourceType.TMDB =>
-                            GetTmdbOverviews().TryGetValue(language.Language, out var tmdbOverview)
-                                ? tmdbOverview
-                                : null,
+                            GetTmdbOverviews().GetByLanguage(language.Language)?.Value,
                         _ => null,
                     };
                     if (!string.IsNullOrEmpty(overview))

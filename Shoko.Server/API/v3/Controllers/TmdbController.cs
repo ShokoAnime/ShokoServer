@@ -129,7 +129,7 @@ public partial class TmdbController : BaseController
                 .Search(
                     search,
                     movie => movie.GetAllTitles()
-                        .Where(title => languages.Contains(title.Language))
+                        .WhereInLanguages(languages)
                         .Select(title => title.Value)
                         .Append(movie.EnglishTitle)
                         .Append(movie.OriginalTitle)
@@ -624,7 +624,7 @@ public partial class TmdbController : BaseController
                 .Search(
                     search,
                     collection => collection.GetAllTitles()
-                        .Where(title => languages.Contains(title.Language))
+                        .WhereInLanguages(languages)
                         .Select(title => title.Value)
                         .Append(collection.EnglishTitle)
                         .Distinct()
@@ -784,7 +784,7 @@ public partial class TmdbController : BaseController
                 .Search(
                     search,
                     show => show.GetAllTitles()
-                        .Where(title => languages.Contains(title.Language))
+                        .WhereInLanguages(languages)
                         .Select(title => title.Value)
                         .Append(show.EnglishTitle)
                         .Append(show.OriginalTitle)

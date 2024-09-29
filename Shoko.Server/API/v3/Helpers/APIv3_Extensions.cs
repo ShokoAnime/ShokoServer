@@ -4,6 +4,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Providers.TMDB;
 
 using ImageEntityType = Shoko.Plugin.Abstractions.Enums.ImageEntityType;
 using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
@@ -99,7 +100,7 @@ public static class APIv3_Extensions
     public static IReadOnlyList<Title> ToDto(this IEnumerable<TMDB_Title> titles, string? mainTitle = null, TMDB_Title? preferredTitle = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         if (language != null && language.Count > 0)
-            titles = titles.Where(title => language.Contains(title.Language));
+            titles = titles.WhereInLanguages(language);
 
         return titles
             .Select(title => new Title(title, mainTitle, preferredTitle))
@@ -112,7 +113,7 @@ public static class APIv3_Extensions
     public static IReadOnlyList<Overview> ToDto(this IEnumerable<TMDB_Overview> overviews, string? mainOverview = null, TMDB_Overview? preferredOverview = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         if (language != null && language.Count > 0)
-            overviews = overviews.Where(contentRating => language.Contains(contentRating.Language));
+            overviews = overviews.WhereInLanguages(language);
 
         return overviews
             .Select(overview => new Overview(overview, mainOverview, preferredOverview))
@@ -125,7 +126,7 @@ public static class APIv3_Extensions
     public static IReadOnlyList<ContentRating> ToDto(this IEnumerable<TMDB_ContentRating> contentRatings, IReadOnlySet<TitleLanguage>? language = null)
     {
         if (language != null && language.Count > 0)
-            contentRatings = contentRatings.Where(contentRating => language.Contains(contentRating.Language));
+            contentRatings = contentRatings.WhereInLanguages(language);
 
         return contentRatings
             .Select(contentRating => new ContentRating(contentRating))

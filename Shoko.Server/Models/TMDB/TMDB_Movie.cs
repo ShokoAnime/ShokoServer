@@ -199,8 +199,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Populate the fields from the raw data.
     /// </summary>
     /// <param name="movie">The raw TMDB Movie object.</param>
+    /// <param name="crLanguages">Content rating languages.</param>
     /// <returns>True if any of the fields have been updated.</returns>
-    public bool Populate(Movie movie)
+    public bool Populate(Movie movie, HashSet<TitleLanguage>? crLanguages)
     {
         var translation = movie.Translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
         var updatedList = new[]
@@ -225,6 +226,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
                 movie.ReleaseDates.Results
                     .Where(releaseDate => releaseDate.ReleaseDates.Any(r => !string.IsNullOrEmpty(r.Certification)))
                     .Select(releaseDate => new TMDB_ContentRating(releaseDate.Iso_3166_1, releaseDate.ReleaseDates.Last(r => !string.IsNullOrEmpty(r.Certification)).Certification))
+                    .WhereInLanguages(crLanguages)
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ContentRatings = v,
@@ -259,7 +261,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
             if (preferredLanguage.Language == TitleLanguage.Main)
                 return new(ForeignEntityType.Movie, TmdbMovieID, EnglishTitle, "en", "US");
 
-            var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
+            var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
@@ -301,7 +303,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
-            var overview = overviews.FirstOrDefault(overview => overview.Language == preferredLanguage.Language);
+            var overview = overviews.GetByLanguage(preferredLanguage.Language);
             if (overview != null)
                 return overview;
         }

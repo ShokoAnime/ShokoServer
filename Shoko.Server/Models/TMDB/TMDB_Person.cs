@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -155,7 +156,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
-            var biography = biographies.FirstOrDefault(biography => biography.Language == preferredLanguage.Language);
+            var biography = biographies.GetByLanguage(preferredLanguage.Language);
             if (biography != null)
                 return biography;
         }

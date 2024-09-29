@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -145,7 +146,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
             if (preferredLanguage.Language == TitleLanguage.Main)
                 return new(ForeignEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US");
 
-            var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
+            var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
@@ -175,7 +176,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
-            var overview = overviews.FirstOrDefault(overview => overview.Language == preferredLanguage.Language);
+            var overview = overviews.GetByLanguage(preferredLanguage.Language);
             if (overview != null)
                 return overview;
         }

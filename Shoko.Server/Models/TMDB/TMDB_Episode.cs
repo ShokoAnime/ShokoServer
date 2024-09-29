@@ -196,7 +196,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
             if (preferredLanguage.Language == TitleLanguage.Main)
                 return new(ForeignEntityType.Episode, TmdbEpisodeID, EnglishTitle, "en", "US");
 
-            var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
+            var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
@@ -230,7 +230,9 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     {
         var allTitles = GetAllTitles(force);
         var preferredLanguages = Languages.PreferredEpisodeNamingLanguages;
-        return allTitles.Where(title => preferredLanguages.Any(language => language.Language == title.Language || title.Language == TitleLanguage.English)).ToList();
+        return allTitles
+            .WhereInLanguages(preferredLanguages.Select(language => language.Language).Append(TitleLanguage.English).ToHashSet())
+            .ToList();
     }
 
     /// <summary>
@@ -251,7 +253,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
-            var overview = overviews.FirstOrDefault(overview => overview.Language == preferredLanguage.Language);
+            var overview = overviews.GetByLanguage(preferredLanguage.Language);
             if (overview != null)
                 return overview;
         }

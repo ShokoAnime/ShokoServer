@@ -18,12 +18,20 @@ public static class LanguageExtensions
         => lang?.ToUpper() switch
         {
             "EN" or "ENG" => TitleLanguage.English,
+            "EN-US" => TitleLanguage.EnglishAmerican,
+            "EN-GB" => TitleLanguage.EnglishBritish,
+            "EN-AU" => TitleLanguage.EnglishAustralian,
+            "EN-CA" => TitleLanguage.EnglishCanadian,
+            "EN-IN" => TitleLanguage.EnglishIndia,
+            "EN-NZ" => TitleLanguage.EnglishNewZealand,
             "X-JAT" => TitleLanguage.Romaji,
             "JA" or "JPN" => TitleLanguage.Japanese,
             "AR" or "ARA" => TitleLanguage.Arabic,
             "BD" or "BAN" => TitleLanguage.Bangladeshi,
             "BG" or "BUL" => TitleLanguage.Bulgarian,
-            "CA" => TitleLanguage.FrenchCanadian,
+            // CA isn't actually french canadian, but we have it mapped as such
+            // because anidb have it mapped as such.
+            "CA" or "FR-CA" => TitleLanguage.FrenchCanadian,
             "CS" or "CES" or "CZ" => TitleLanguage.Czech,
             "DA" or "DAN" or "DK" => TitleLanguage.Danish,
             "DE" or "DEU" => TitleLanguage.German,
@@ -31,7 +39,7 @@ public static class LanguageExtensions
             "ES" or "SPA" => TitleLanguage.Spanish,
             "ET" or "EST" => TitleLanguage.Estonian,
             "FI" or "FIN" => TitleLanguage.Finnish,
-            "FR" or "FRA" or "CA" => TitleLanguage.French,
+            "FR" or "FRA" => TitleLanguage.French,
             "GL" or "GLG" => TitleLanguage.Galician,
             "HE" or "HEB" or "IL" => TitleLanguage.Hebrew,
             "HU" or "HUN" => TitleLanguage.Hungarian,
@@ -158,6 +166,13 @@ public static class LanguageExtensions
     public static string GetDescription(this TitleLanguage lang)
         => lang switch
         {
+            TitleLanguage.English => "English (Any)",
+            TitleLanguage.EnglishAmerican => "English (American)",
+            TitleLanguage.EnglishBritish => "English (British)",
+            TitleLanguage.EnglishAustralian => "English (Australian)",
+            TitleLanguage.EnglishCanadian => "English (Canadian)",
+            TitleLanguage.EnglishIndia => "English (India)",
+            TitleLanguage.EnglishNewZealand => "English (New Zealand)",
             TitleLanguage.Romaji => "Japanese (Romaji / Transcription)",
             TitleLanguage.Japanese => "Japanese (Kanji)",
             TitleLanguage.Bangladeshi => "Bangladesh",
@@ -188,7 +203,7 @@ public static class LanguageExtensions
             TitleLanguage.Arabic => "ar",
             TitleLanguage.Bangladeshi => "bd",
             TitleLanguage.Bulgarian => "bg",
-            TitleLanguage.FrenchCanadian => "ca",
+            TitleLanguage.FrenchCanadian => "fr-CA",
             TitleLanguage.Czech => "cz",
             TitleLanguage.Danish => "da",
             TitleLanguage.German => "de",
@@ -210,7 +225,7 @@ public static class LanguageExtensions
             TitleLanguage.Norwegian => "no",
             TitleLanguage.Polish => "pl",
             TitleLanguage.Portuguese => "pt",
-            TitleLanguage.BrazilianPortuguese => "pt-br",
+            TitleLanguage.BrazilianPortuguese => "pt-BR",
             TitleLanguage.Romanian => "ro",
             TitleLanguage.Russian => "ru",
             TitleLanguage.Slovak => "sk",
@@ -296,8 +311,21 @@ public static class LanguageExtensions
             TitleLanguage.Yiddish => "yi",
             TitleLanguage.Yoruba => "yo",
             TitleLanguage.Zulu => "zu",
+            TitleLanguage.EnglishAmerican => "en-US",
+            TitleLanguage.EnglishBritish => "en-GB",
+            TitleLanguage.EnglishAustralian => "en-AU",
+            TitleLanguage.EnglishCanadian => "en-CA",
+            TitleLanguage.EnglishIndia => "en-IN",
+            TitleLanguage.EnglishNewZealand => "en-NZ",
             _ => "unk",
         };
+
+    /// <summary>
+    /// Get the language and country code for a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">Language value.</param>
+    public static (string languageCode, string? countryCode) GetLanguageAndCountryCode(this TitleLanguage lang)
+        => lang.GetString() is { Length: 5 } l && l[2] == '-' ? (l.Substring(0, 2), l.Substring(3)) : (lang.GetString(), null);
 
     /// <summary>
     /// Get the text form of a title language.
@@ -350,7 +378,7 @@ public static class LanguageExtensions
             "AR" or "ARG" => "ES",
             "AS" or "ASM" => "EN",
             "AT" or "AUT" => "DE",
-            "AU" or "AUS" => "EN",
+            "AU" or "AUS" => "EN-AU",
             "AW" or "ABW" => "NL",
             "AX" or "ALA" => "SV",
             "AZ" or "AZE" => "AZ",
@@ -368,14 +396,14 @@ public static class LanguageExtensions
             "BN" or "BRN" => "MS",
             "BO" or "BOL" => "ES",
             "BQ" or "BES" => "NL",
-            "BR" or "BRA" => "PT",
+            "BR" or "BRA" => "PT-BR",
             "BS" or "BHS" => "EN",
             "BT" or "BTN" => "DZ",
             "BV" or "BVT" => "NO",
             "BW" or "BWA" => "EN",
             "BY" or "BLR" => "BE",
             "BZ" or "BLZ" => "EN",
-            "CA" or "CAN" => "EN",
+            "CA" or "CAN" => "EN-CA",
             "CC" or "CCK" => "EN",
             "CD" or "COD" => "FR",
             "CF" or "CAF" => "FR",
@@ -414,7 +442,7 @@ public static class LanguageExtensions
             "FO" or "FRO" => "FO",
             "FR" or "FRA" => "FR",
             "GA" or "GAB" => "FR",
-            "GB" or "GBR" => "EN",
+            "GB" or "GBR" => "EN-GB",
             "GD" or "GRD" => "EN",
             "GE" or "GEO" => "KA",
             "GF" or "GUF" => "FR",
@@ -442,7 +470,7 @@ public static class LanguageExtensions
             "IE" or "IRL" => "GA",
             "IL" or "ISR" => "HE",
             "IM" or "IMN" => "EN",
-            "IN" or "IND" => "HI",
+            "IN" or "IND" => "EN-IN",
             "IO" or "IOT" => "EN",
             "IQ" or "IRQ" => "AR",
             "IR" or "IRN" => "FA",
@@ -508,7 +536,7 @@ public static class LanguageExtensions
             "NP" or "NPL" => "NE",
             "NR" or "NRU" => "EN",
             "NU" or "NIU" => "EN",
-            "NZ" or "NZL" => "EN",
+            "NZ" or "NZL" => "EN-NZ",
             "OM" or "OMN" => "AR",
             "PA" or "PAN" => "ES",
             "PE" or "PER" => "ES",
@@ -570,7 +598,7 @@ public static class LanguageExtensions
             "UA" or "UKR" => "UK",
             "UG" or "UGA" => "EN",
             "UM" or "UMI" => "EN",
-            "US" or "USA" => "EN",
+            "US" or "USA" => "EN-US",
             "UY" or "URY" => "ES",
             "UZ" or "UZB" => "UZ",
             "VA" or "VAT" => "IT",
@@ -588,6 +616,6 @@ public static class LanguageExtensions
             "ZA" or "ZAF" => "AF",
             "ZM" or "ZMB" => "EN",
             "ZW" or "ZWE" => "EN",
-            _ => countryCode?.ToUpper() ?? "EN",
+            _ => countryCode?.ToUpper() ?? "UNK",
         };
 }

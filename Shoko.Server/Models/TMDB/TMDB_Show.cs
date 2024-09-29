@@ -199,7 +199,6 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         // Don't trust 'show.Name' for the English title since it will fall-back
         // to the original language if there is no title in English.
         var translation = show.Translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
-
         var updates = new[]
         {
             UpdateProperty(PosterPath, show.PosterPath, v => PosterPath = v),
@@ -219,7 +218,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 ContentRatings,
                 show.ContentRatings.Results
                     .Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating))
-                    .Where(c => crLanguages is null || crLanguages.Contains(c.Language))
+                    .WhereInLanguages(crLanguages)
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ContentRatings = v,
@@ -257,7 +256,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             if (preferredLanguage.Language == TitleLanguage.Main)
                 return new(ForeignEntityType.Show, TmdbShowID, EnglishTitle, "en", "US");
 
-            var title = titles.FirstOrDefault(title => title.Language == preferredLanguage.Language);
+            var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
@@ -299,7 +298,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
-            var overview = overviews.FirstOrDefault(overview => overview.Language == preferredLanguage.Language);
+            var overview = overviews.GetByLanguage(preferredLanguage.Language);
             if (overview != null)
                 return overview;
         }
