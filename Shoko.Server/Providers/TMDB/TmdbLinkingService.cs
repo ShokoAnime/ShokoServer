@@ -556,6 +556,12 @@ public class TmdbLinkingService
         }
 
         var anidbDate = anidbEpisode.GetAirDateAsDateOnly();
+        if (anidbDate is not null && anidbDate > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+        {
+            _logger.LogTrace("Skipping future episode {EpisodeID}", anidbEpisode.EpisodeID);
+            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.SarahJessicaParker, 0);
+        }
+
         var airdateProbability = tmdbEpisodes
             .Select(episode => new { episode, probability = CalculateAirDateProbability(anidbDate, episode.AiredAt) })
             .Where(result => result.probability != 0)
