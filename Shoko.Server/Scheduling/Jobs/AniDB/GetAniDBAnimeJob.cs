@@ -231,7 +231,11 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
             if (isNew || animeEpisodeChanges.Count > 0)
                 foreach (var xref in anime.TmdbShowCrossReferences)
-                    await scheduler.StartJob<UpdateTmdbShowJob>(job => job.TmdbShowID = xref.TmdbShowID).ConfigureAwait(false);
+                    await scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                    {
+                        job.TmdbShowID = xref.TmdbShowID;
+                        job.DownloadImages = true;
+                    }).ConfigureAwait(false);
         }
 
         await ProcessRelations(response).ConfigureAwait(false);

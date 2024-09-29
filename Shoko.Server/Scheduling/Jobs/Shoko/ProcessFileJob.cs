@@ -315,7 +315,11 @@ public class ProcessFileJob : BaseJob
 
             var tmdbShowXrefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(animeID);
             foreach (var xref in tmdbShowXrefs)
-                await scheduler.StartJob<UpdateTmdbShowJob>(job => job.TmdbShowID = xref.TmdbShowID).ConfigureAwait(false);
+                await scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                {
+                    job.TmdbShowID = xref.TmdbShowID;
+                    job.DownloadImages = true;
+                }).ConfigureAwait(false);
         }
     }
 
