@@ -157,7 +157,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     IReadOnlyList<IVideoFile> IVideo.Locations => Places;
 
-    IAniDBFile IVideo.AniDB => AniDBFile;
+    IAniDBFile? IVideo.AniDB => AniDBFile;
 
     IHashes IVideo.Hashes => this;
 
