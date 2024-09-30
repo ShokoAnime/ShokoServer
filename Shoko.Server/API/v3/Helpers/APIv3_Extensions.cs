@@ -83,15 +83,6 @@ public static class APIv3_Extensions
             if (includeThumbnails)
                 SetPreferredOrDefaultImage(images.Thumbnails!, randomizeImages);
         }
-        else
-        {
-            images.Posters = OrderImages(images.Posters);
-            images.Backdrops = OrderImages(images.Backdrops);
-            images.Banners = OrderImages(images.Banners);
-            images.Logos = OrderImages(images.Logos);
-            if (includeThumbnails)
-                images.Thumbnails = OrderImages(images.Thumbnails!);
-        }
 
         return images;
     }
@@ -105,13 +96,6 @@ public static class APIv3_Extensions
         if (poster is not null)
             images.Add(poster);
     }
-
-    private static List<Image> OrderImages(List<Image> images)
-        => images
-            .OrderByDescending(image => image.Preferred)
-            .ThenBy(image => string.IsNullOrEmpty(image.LanguageCode))
-            .ThenBy(image => (image.LanguageCode, image.Source, image.ID))
-            .ToList();
 
     public static IReadOnlyList<Title> ToDto(this IEnumerable<TMDB_Title> titles, string? mainTitle = null, TMDB_Title? preferredTitle = null, IReadOnlySet<TitleLanguage>? language = null)
     {
