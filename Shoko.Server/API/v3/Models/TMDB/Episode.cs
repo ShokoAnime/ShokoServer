@@ -6,6 +6,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -113,6 +114,12 @@ public class Episode
     public IReadOnlyList<CrossReference>? CrossReferences { get; init; }
 
     /// <summary>
+    /// TMDB episode to file cross-references.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<FileCrossReference>? FileCrossReferences { get; init; }
+
+    /// <summary>
     /// The date the episode first aired, if it is known.
     /// </summary>
     public DateOnly? AiredAt { get; init; }
@@ -203,6 +210,8 @@ public class Episode
             CrossReferences = episode.CrossReferences
                 .Select(xref => new CrossReference(xref))
                 .ToList();
+        if (include.HasFlag(IncludeDetails.FileCrossReferences))
+            FileCrossReferences = FileCrossReference.From(episode.FileCrossReferences);
         AiredAt = episode.AiredAt;
         CreatedAt = episode.CreatedAt.ToUniversalTime();
         LastUpdatedAt = episode.LastUpdatedAt.ToUniversalTime();
@@ -359,5 +368,6 @@ public class Episode
         CrossReferences = 16,
         Cast = 32,
         Crew = 64,
+        FileCrossReferences = 128,
     }
 }

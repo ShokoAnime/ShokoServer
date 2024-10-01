@@ -7,6 +7,7 @@ using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 
@@ -137,6 +138,12 @@ public class Movie
     public IReadOnlyList<CrossReference>? CrossReferences { get; init; }
 
     /// <summary>
+    /// TMDB movie to file cross-references.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<FileCrossReference>? FileCrossReferences { get; init; }
+
+    /// <summary>
     /// The date the movie first released, if it is known.
     /// </summary>
     public DateOnly? ReleasedAt { get; init; }
@@ -208,6 +215,8 @@ public class Movie
                 .ThenBy(xref => xref.AnidbEpisodeID)
                 .ThenBy(xref => xref.TmdbMovieID)
                 .ToList();
+        if (include.HasFlag(IncludeDetails.FileCrossReferences))
+            FileCrossReferences = FileCrossReference.From(movie.FileCrossReferences);
         ReleasedAt = movie.ReleasedAt;
         CreatedAt = movie.CreatedAt.ToUniversalTime();
         LastUpdatedAt = movie.LastUpdatedAt.ToUniversalTime();
@@ -346,5 +355,6 @@ public class Movie
         Crew = 32,
         Studios = 64,
         ContentRatings = 128,
+        FileCrossReferences = 256,
     }
 }

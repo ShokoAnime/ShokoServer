@@ -403,9 +403,21 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// <summary>
     /// Get AniDB/TMDB cross-references for the movie.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A read-only list of AniDB/TMDB cross-references for the movie.</returns>
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> CrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
+
+    /// <summary>
+    /// Get all file cross-references associated with the movie.
+    /// </summary>
+    /// <returns>A read-only list of file cross-references associated with the
+    /// movie.</returns>
+    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
+        CrossReferences
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
+            .WhereNotNull()
+            .ToList();
 
     #endregion
 

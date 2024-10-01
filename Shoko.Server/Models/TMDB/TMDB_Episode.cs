@@ -368,9 +368,21 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// <summary>
     /// Get all AniDB/TMDB cross-references for the episode.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A read-only list of AniDB/TMDB cross-references for the episode.</returns>
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> CrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+
+    /// <summary>
+    /// Get all file cross-references associated with the episode.
+    /// </summary>
+    /// <returns>A read-only list of file cross-references associated with the
+    /// episode.</returns>
+    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
+        CrossReferences
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
+            .WhereNotNull()
+            .ToList();
 
     #endregion
 

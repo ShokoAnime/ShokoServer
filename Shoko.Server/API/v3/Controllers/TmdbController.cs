@@ -277,6 +277,18 @@ public partial class TmdbController : BaseController
             .ToList();
     }
 
+    [HttpGet("Movie/{movieID}/FileCrossReferences")]
+    public ActionResult<IReadOnlyList<FileCrossReference>> GetFileCrossReferencesForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie is null)
+            return NotFound(MovieNotFound);
+
+        return FileCrossReference.From(movie.FileCrossReferences);
+    }
+
     [HttpGet("Movie/{movieID}/Studios")]
     public ActionResult<IReadOnlyList<Studio>> GetStudiosForTmdbMovieByMovieID(
         [FromRoute] int movieID
@@ -1977,6 +1989,18 @@ public partial class TmdbController : BaseController
         return episode.CrossReferences
             .Select(xref => new TmdbEpisode.CrossReference(xref))
             .ToList();
+    }
+
+    [HttpGet("Episode/{episodeID}/FileCrossReferences")]
+    public ActionResult<IReadOnlyList<FileCrossReference>> GetFileCrossReferencesForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is null)
+            return NotFound(EpisodeNotFound);
+
+        return FileCrossReference.From(episode.FileCrossReferences);
     }
 
     #endregion
