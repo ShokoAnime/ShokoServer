@@ -377,7 +377,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         }
         foreach (var xref in TmdbShowCrossReferences)
             images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var xref in TmdbMovieCrossReferences)
+        foreach (var xref in TmdbMovieCrossReferences.DistinctBy(xref => xref.TmdbMovieID))
             images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var tvdbShow in TvDBSeries)
             images.AddRange(tvdbShow.GetImages(entityType, preferredImages));
