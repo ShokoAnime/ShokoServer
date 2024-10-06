@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Release;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
@@ -26,9 +27,11 @@ public interface IVideo : IMetadata<int>
     IReadOnlyList<IVideoFile> Locations { get; }
 
     /// <summary>
-    /// The AniDB File Info. This will be null for manual links, which can reliably be used to tell if it was manually linked.
+    /// The current release information for the video, if the video has an
+    /// existing release associated with it. All recognized videos have a
+    /// release associated with them.
     /// </summary>
-    IAniDBFile? AniDB { get; }
+    IReleaseInfo? ReleaseInfo { get; }
 
     /// <summary>
     /// The Relevant Hashes for a file. CRC should be the only thing used here, but clever uses of the API could use the others.

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Release;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
@@ -162,7 +163,7 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     IReadOnlyList<IVideoFile> IVideo.Locations => Places;
 
-    IAniDBFile? IVideo.AniDB => AniDBFile;
+    IReleaseInfo? IVideo.ReleaseInfo => null;
 
     IHashes IVideo.Hashes => this;
 
