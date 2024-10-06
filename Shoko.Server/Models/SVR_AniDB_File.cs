@@ -10,7 +10,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_File : AniDB_File, IAniDBFile
+public class SVR_AniDB_File : AniDB_File
 {
     [XmlIgnore]
     public List<CrossRef_Languages_AniDB_File> Languages =>
@@ -257,22 +257,4 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
     {
         return _possibleSubtitleLanguages;
     }
-
-    int IAniDBFile.AniDBFileID => FileID;
-
-    IReleaseGroup IAniDBFile.ReleaseGroup
-        => RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID) ?? new() { GroupID = GroupID };
-
-    string IAniDBFile.Source => File_Source;
-    string IAniDBFile.Description => File_Description;
-    string IAniDBFile.OriginalFilename => FileName;
-    DateTime? IAniDBFile.ReleaseDate => DateTime.UnixEpoch.AddSeconds(File_ReleaseDate);
-    int IAniDBFile.Version => FileVersion;
-    bool IAniDBFile.Censored => IsCensored ?? false;
-
-    AniDBMediaData IAniDBFile.MediaInfo => new()
-    {
-        AudioLanguages = Languages.Select(a => GetLanguage(a.LanguageName)).ToList(),
-        SubLanguages = Subtitles.Select(a => GetLanguage(a.LanguageName)).ToList()
-    };
 }
