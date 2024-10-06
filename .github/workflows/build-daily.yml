@@ -169,15 +169,6 @@ jobs:
           name: Shoko.TrayService_${{ matrix.build_type }}_win-x64
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
 
-      - name: Upload to shokoanime.com
-        if: ${{ matrix.build_type == 'Standalone' }}
-        shell: pwsh
-        env:
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        run : Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0-windows\\win-x64\\publish .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
-
   docker-daily-build:
     runs-on: ubuntu-latest
 
@@ -313,6 +304,30 @@ jobs:
         with:
           environment: 'dev'
           version: ${{ needs.current_info.outputs.version }}
+
+  upload-site:
+    runs-on: windows-latest
+    continue-on-error: true
+
+    needs:
+      - sentry-upload
+
+    name: Upload archive to site
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Shoko.TrayService_Standalone_win-x64
+          path: ${{ github.workspace }}\\Shoko.TrayService_Standalone_win-x64
+
+      - name: Upload daily archive to site
+        shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run : Compress-Archive .\\Shoko.TrayService_Standalone_win-x64 .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   discord-notify:
     runs-on: ubuntu-latest
