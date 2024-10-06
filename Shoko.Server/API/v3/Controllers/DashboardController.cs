@@ -291,6 +291,7 @@ public class DashboardController : BaseController
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
+    /// <param name="includeOthers">Include other type episodes in the search.</param>
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("ContinueWatchingEpisodes")]
@@ -298,6 +299,7 @@ public class DashboardController : BaseController
         [FromQuery, Range(0, 100)] int pageSize = 20,
         [FromQuery, Range(0, int.MaxValue)] int page = 0,
         [FromQuery] bool includeSpecials = true,
+        [FromQuery] bool includeOthers = false,
         [FromQuery] bool includeRestricted = false
     )
     {
@@ -308,7 +310,7 @@ public class DashboardController : BaseController
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => series is not null && user.AllowedSeries(series) &&
                 (includeRestricted || series.AniDB_Anime.Restricted != 1))
-            .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials)))
+            .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials, includeOthers)))
             .Where(tuple => tuple.episode != null)
             .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
     }
@@ -320,9 +322,9 @@ public class DashboardController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="onlyUnwatched">Only show unwatched episodes.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
+    /// <param name="includeOthers">Include other type episodes in the search.</param>
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
-    /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeRewatching">Include already watched episodes in the
     /// search if we determine the user is "re-watching" the series.</param>
     /// <returns></returns>
@@ -332,9 +334,9 @@ public class DashboardController : BaseController
         [FromQuery, Range(0, int.MaxValue)] int page = 0,
         [FromQuery] bool onlyUnwatched = true,
         [FromQuery] bool includeSpecials = true,
+        [FromQuery] bool includeOthers = false,
         [FromQuery] bool includeRestricted = false,
         [FromQuery] bool includeMissing = false,
-        [FromQuery] bool includeHidden = false,
         [FromQuery] bool includeRewatching = false
     )
     {
@@ -353,13 +355,13 @@ public class DashboardController : BaseController
                 {
                     DisableFirstEpisode = true,
                     IncludeCurrentlyWatching = !onlyUnwatched,
-                    IncludeHidden = includeHidden,
                     IncludeMissing = includeMissing,
                     IncludeRewatching = includeRewatching,
                     IncludeSpecials = includeSpecials,
+                    IncludeOthers = includeOthers,
                 }
             )))
-            .Where(tuple => tuple.episode != null)
+            .Where(tuple => tuple.episode is not null)
             .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
     }
 
@@ -371,7 +373,7 @@ public class DashboardController : BaseController
         var animeEpisode = episode.AniDB_Episode;
         anime ??= series.AniDB_Anime;
 
-        if (file != null)
+        if (file is not null)
         {
             userRecord = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
         }

@@ -2291,8 +2291,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Series ID</param>
     /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
+    /// <param name="includeOthers">Include other type episodes in the search.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
-    /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeRewatching">Include already watched episodes in the
     /// search if we determine the user is "re-watching" the series.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
@@ -2305,8 +2305,8 @@ public class SeriesController : BaseController
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool onlyUnwatched = true,
         [FromQuery] bool includeSpecials = true,
+        [FromQuery] bool includeOthers = false,
         [FromQuery] bool includeMissing = true,
-        [FromQuery] bool includeHidden = false,
         [FromQuery] bool includeRewatching = false,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
@@ -2314,24 +2314,23 @@ public class SeriesController : BaseController
         [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        var user = User;
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
+        if (RepoFactory.AnimeSeries.GetByID(seriesID) is not { } series)
             return NotFound(SeriesNotFoundWithSeriesID);
 
+        var user = User;
         if (!user.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
         var episode = _seriesService.GetNextEpisode(series, user.JMMUserID, new()
         {
             IncludeCurrentlyWatching = !onlyUnwatched,
-            IncludeHidden = includeHidden,
             IncludeMissing = includeMissing,
             IncludeRewatching = includeRewatching,
             IncludeSpecials = includeSpecials,
+            IncludeOthers = includeOthers,
         });
-        if (episode == null)
-            return null;
+        if (episode is null)
+            return NoContent();
 
         return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
     }
