@@ -115,7 +115,7 @@ jobs:
       - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net8.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}
           path: Shoko.Server/bin/Release/net8.0/${{matrix.rid}}/publish/
@@ -164,7 +164,7 @@ jobs:
       - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Shoko.TrayService_${{ matrix.build_type }}_win-x64
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
