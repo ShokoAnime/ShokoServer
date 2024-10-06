@@ -315,6 +315,11 @@ jobs:
     name: Upload archive to site
 
     steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
