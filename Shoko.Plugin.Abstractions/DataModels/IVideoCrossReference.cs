@@ -1,11 +1,12 @@
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Release;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 /// <summary>
 /// Video cross-reference.
 /// </summary>
-public interface IVideoCrossReference : IMetadata
+public interface IVideoCrossReference : IMetadata, IReleaseVideoCrossReference
 {
     /// <summary>
     /// ED2K hash used for video identification.
@@ -21,29 +22,24 @@ public interface IVideoCrossReference : IMetadata
     /// AniDB episode ID. Will be available even if <see cref="AnidbEpisode"/>
     /// is not available yet.
     /// </summary>
-    int AnidbEpisodeID { get; }
+    new int AnidbEpisodeID { get; }
 
     /// <summary>
     /// AniDB anime ID. Will be available even if <see cref="AnidbAnime"/> is
     /// not available yet.
     /// </summary>
-    int AnidbAnimeID { get; }
-
-    /// <summary>
-    /// Ordering position.
-    /// </summary>
-    int Order { get; }
-
-    /// <summary>
-    /// Cross-reference percentage, if the video covers less than 100%
-    /// of the episode, then this field tells roughly how much it covers.
-    /// </summary>
-    int Percentage { get; }
+    new int AnidbAnimeID { get; }
 
     /// <summary>
     /// The local video, if available.
     /// </summary>
     IVideo? Video { get; }
+
+    /// <summary>
+    /// The <see cref="IReleaseInfo"/> associated with this
+    /// <see cref="IVideoCrossReference"/>.
+    /// </summary>
+    IReleaseInfo Release { get; }
 
     /// <summary>
     /// The AniDB episode, if available.
