@@ -118,7 +118,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .Select(a => a.AnimeGroup)
             .WhereNotNull()
             .ToList();
-        FileMatched?.Invoke(null, new(path, vlp.ImportFolder, vlp, vl, episodes, series, groups));
+        FileMatched?.Invoke(null, new(path, vlp.ImportFolder!, vlp, vl, episodes, series, groups));
     }
 
     public void OnFileNotMatched(SVR_VideoLocal_Place vlp, SVR_VideoLocal vl, int autoMatchAttempts, bool hasXRefs, bool isUDPBanned)
@@ -139,12 +139,12 @@ public class ShokoEventHandler : IShokoEventHandler
             .Select(a => a.AnimeGroup)
             .WhereNotNull()
             .ToList();
-        FileNotMatched?.Invoke(null, new(path, vlp.ImportFolder, vlp, vl, episodes, series, groups, autoMatchAttempts, hasXRefs, isUDPBanned));
+        FileNotMatched?.Invoke(null, new(path, vlp.ImportFolder!, vlp, vl, episodes, series, groups, autoMatchAttempts, hasXRefs, isUDPBanned));
     }
 
     public void OnFileMoved(IImportFolder oldFolder, IImportFolder newFolder, string oldPath, string newPath, SVR_VideoLocal_Place vlp)
     {
-        var vl = vlp.VideoLocal;
+        var vl = vlp.VideoLocal!;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
@@ -166,7 +166,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public void OnFileRenamed(IImportFolder folder, string oldName, string newName, SVR_VideoLocal_Place vlp)
     {
         var path = vlp.FilePath;
-        var vl = vlp.VideoLocal;
+        var vl = vlp.VideoLocal!;
         var xrefs = vl.EpisodeCrossRefs;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)

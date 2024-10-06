@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using System.IO;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
@@ -58,4 +59,9 @@ public interface IVideo : IMetadata<int>
     /// Information about the group
     /// </summary>
     IReadOnlyList<IShokoGroup> Groups { get; }
+
+    /// <summary>
+    /// Get the stream for the video, if any files are still available.
+    /// </summary>
+    Stream? GetStream();
 }

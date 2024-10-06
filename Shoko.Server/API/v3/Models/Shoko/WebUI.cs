@@ -239,7 +239,7 @@ public class WebUI
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
                         groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
-                        groupByDetails.ImportFolder = $"{location.ImportFolder.ImportFolderName} (ID: {location.ImportFolderID})";
+                        groupByDetails.ImportFolder = $"{location.ImportFolder?.ImportFolderName ?? "N/A"} (ID: {location.ImportFolderID})";
 
                     // Video criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoCodecs))

@@ -18,7 +18,7 @@ using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
+public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 {
     #region DB columns
 
@@ -194,6 +194,21 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.Shoko;
 
+    Stream? IVideo.GetStream()
+    {
+        if (FirstResolvedPlace is not { } fileLocation)
+            return null;
+
+        var filePath = fileLocation.FullServerPath;
+        if (string.IsNullOrEmpty(filePath))
+            return null;
+
+        if (!File.Exists(filePath))
+            return null;
+
+        return File.OpenRead(filePath);
+    }
+
     #endregion
 
     #region IHashes Implementation
@@ -207,12 +222,6 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     string IHashes.SHA1 => SHA1;
 
     #endregion
-
-    string IHash.ED2KHash
-    {
-        get => Hash;
-        set => Hash = value;
-    }
 }
 
 // This is a comparer used to sort the completeness of a video local, more complete first.

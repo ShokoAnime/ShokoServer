@@ -84,6 +84,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     /// <returns></returns>
     public List<SVR_AnimeEpisode> GetByHash(string hash)
     {
+        if (string.IsNullOrEmpty(hash)) return [];
         return RepoFactory.CrossRef_File_Episode.GetByHash(hash)
             .Select(a => GetByAniDBEpisodeID(a.EpisodeID))
             .Where(a => a != null)

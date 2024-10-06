@@ -93,6 +93,17 @@ public class VideoLocal_PlaceService
                 ErrorMessage = "Invalid request object, import folder, or relative path.",
             };
 
+        if (place.VideoLocal is not { } video)
+        {
+            _logger.LogWarning("Could not find the associated video for the file location: {LocationID}", place.VideoLocal_Place_ID);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"Could not find the associated video for the file location: {place.VideoLocal_Place_ID}",
+            };
+        }
+
         // Sanitize relative path and reject paths leading to outside the import folder.
         var fullPath = Path.GetFullPath(Path.Combine(request.ImportFolder.Path, request.RelativePath));
         if (!fullPath.StartsWith(request.ImportFolder.Path, StringComparison.OrdinalIgnoreCase))
@@ -217,7 +228,7 @@ public class VideoLocal_PlaceService
                 };
             }
 
-            if (destVideoLocal.Hash == place.VideoLocal.Hash)
+            if (destVideoLocal.Hash == video.Hash)
             {
                 _logger.LogDebug("Not moving file as it already exists at the new location, deleting source file instead: {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
 
@@ -257,7 +268,7 @@ public class VideoLocal_PlaceService
                 };
             }
 
-            var aniDBFile = place.VideoLocal.AniDBFile;
+            var aniDBFile = video.AniDBFile;
             if (aniDBFile is null)
             {
                 _logger.LogWarning("The file does not have AniDB info. Not moving.");
@@ -361,7 +372,6 @@ public class VideoLocal_PlaceService
         if (renamed)
         {
             // Add a new or update an existing lookup entry.
-            var video = place.VideoLocal;
             var existingEntries = RepoFactory.FileNameHash.GetByHash(video.Hash);
             if (!existingEntries.Any(a => a.FileName.Equals(newFileName)))
             {
@@ -791,7 +801,7 @@ public class VideoLocal_PlaceService
         }
 
         if (deleteFolder)
-            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder.ImportFolderLocation);
+            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder!.ImportFolderLocation);
 
         await RemoveRecord(place);
     }
@@ -824,7 +834,7 @@ public class VideoLocal_PlaceService
                 return;
             }
 
-            if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder.ImportFolderLocation);
+            if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder!.ImportFolderLocation);
             await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
             // For deletion of files from Trakt, we will rely on the Daily sync
         }
@@ -910,7 +920,7 @@ public class VideoLocal_PlaceService
 
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
                 }
                 catch
                 {
@@ -939,7 +949,7 @@ public class VideoLocal_PlaceService
                 {
                     try
                     {
-                        ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
+                        ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
                     }
                     catch
                     {
@@ -1005,7 +1015,7 @@ public class VideoLocal_PlaceService
 
             try
             {
-                ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
+                ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
             }
             catch
             {
@@ -1026,7 +1036,7 @@ public class VideoLocal_PlaceService
             {
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
                 }
                 catch
                 {

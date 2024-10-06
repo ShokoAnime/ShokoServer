@@ -391,13 +391,13 @@ public class HashFileJob : BaseJob
         // remove missing files
         var preps = vlocal.Places.Where(a =>
         {
-            if (vlocalplace.FullServerPath.Equals(a.FullServerPath)) return false;
+            if (string.Equals(a.FullServerPath, vlocalplace.FullServerPath)) return false;
             if (a.FullServerPath == null) return true;
             return !File.Exists(a.FullServerPath);
         }).ToList();
         RepoFactory.VideoLocalPlace.Delete(preps);
 
-        var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
+        var dupPlace = vlocal.Places.FirstOrDefault(a => !string.Equals(a.FullServerPath, vlocalplace.FullServerPath));
         if (dupPlace == null) return false;
 
         _logger.LogWarning("Found Duplicate File");

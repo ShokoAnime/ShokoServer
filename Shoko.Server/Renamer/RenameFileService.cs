@@ -225,7 +225,7 @@ public class RenameFileService
                 Exception = result.Error.Exception,
             };
 
-        var newImportFolder = shouldMove && !result.SkipMove ? result.DestinationImportFolder! : place.ImportFolder;
+        var newImportFolder = shouldMove && !result.SkipMove ? result.DestinationImportFolder! : place.ImportFolder!;
         var newFileName = shouldRename && !result.SkipRename ? result.FileName! : place.FileName;
         var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path! : Path.GetDirectoryName(place.FilePath)!;
         var newRelativePath = newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;

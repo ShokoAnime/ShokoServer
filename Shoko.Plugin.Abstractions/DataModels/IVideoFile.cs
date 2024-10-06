@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 /// <summary>
@@ -50,4 +52,9 @@ public interface IVideoFile
     /// The import folder tied to the video file location.
     /// </summary>
     IImportFolder ImportFolder { get; }
+
+    /// <summary>
+    /// Get the stream for the video file, if the file is still available.
+    /// </summary>
+    Stream? GetStream();
 }
