@@ -330,7 +330,7 @@ public class TmdbMetadataService
             if (anime == null)
                 continue;
 
-            if (anime.Restricted > 0 && !settings.TMDB.AutoLinkRestricted)
+            if (anime.IsRestricted && !settings.TMDB.AutoLinkRestricted)
                 continue;
 
             if (anime.TmdbMovieCrossReferences is { Count: > 0 })

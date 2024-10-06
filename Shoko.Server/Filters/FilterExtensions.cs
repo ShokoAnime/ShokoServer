@@ -159,7 +159,7 @@ public static class FilterExtensions
         => !series.IsTMDBAutoMatchingDisabled && series.TmdbShowCrossReferences.Count is 0 && series.TmdbMovieCrossReferences.Count is 0;
 
     private static bool HasMissingTvDBLink(SVR_AnimeSeries series)
-        => series.AniDB_Anime is { } anime && anime.AnimeType != (int)AnimeType.Movie && anime.Restricted is 0 && !series.IsTvDBAutoMatchingDisabled && series.TvdbSeriesCrossReferences.Count is 0;
+        => series.AniDB_Anime is { } anime && anime.AnimeType != (int)AnimeType.Movie && !anime.IsRestricted && !series.IsTvDBAutoMatchingDisabled && series.TvdbSeriesCrossReferences.Count is 0;
 
     private static bool HasMissingTraktLink(SVR_AnimeSeries series)
         => !series.IsTraktAutoMatchingDisabled && series.TraktShowCrossReferences.Count is 0;

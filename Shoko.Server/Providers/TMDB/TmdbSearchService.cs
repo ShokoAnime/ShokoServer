@@ -121,7 +121,7 @@ public partial class TmdbSearchService
             var airDate = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
             if (!airDate.HasValue || (airDate.Value > now && airDate.Value - now > _maxDaysIntoTheFuture))
                 return [];
-            await AutoSearchForMovie(list, anime, episodes[0], officialTitle, englishTitle, title, airDate.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+            await AutoSearchForMovie(list, anime, episodes[0], officialTitle, englishTitle, title, airDate.Value.Year, anime.IsRestricted).ConfigureAwait(false);
             return list;
         }
 
@@ -136,7 +136,7 @@ public partial class TmdbSearchService
                 var airDateForAnime = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
                 if (!airDateForAnime.HasValue || (airDateForAnime.Value > now && airDateForAnime.Value - now > _maxDaysIntoTheFuture))
                     continue;
-                await AutoSearchForMovie(list, anime, episode, officialTitle, englishTitle, title, airDateForAnime.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+                await AutoSearchForMovie(list, anime, episode, officialTitle, englishTitle, title, airDateForAnime.Value.Year, anime.IsRestricted).ConfigureAwait(false);
                 continue;
             }
 
@@ -181,7 +181,7 @@ public partial class TmdbSearchService
                     continue;
             }
 
-            await AutoSearchForMovie(list, anime, episode, officialFullTitle, englishFullTitle, mainFullTitle, airDateForEpisode.Value.Year, anime.Restricted == 1).ConfigureAwait(false);
+            await AutoSearchForMovie(list, anime, episode, officialFullTitle, englishFullTitle, mainFullTitle, airDateForEpisode.Value.Year, anime.IsRestricted).ConfigureAwait(false);
         }
 
         return list;

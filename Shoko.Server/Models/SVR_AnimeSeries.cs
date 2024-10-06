@@ -598,7 +598,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     double ISeries.Rating => (AniDB_Anime?.Rating ?? 0) / 100D;
 
-    bool ISeries.Restricted => (AniDB_Anime?.Restricted ?? 0) == 1;
+    bool ISeries.Restricted => AniDB_Anime?.IsRestricted ?? false;
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => [this];
 

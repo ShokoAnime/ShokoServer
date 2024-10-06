@@ -21,7 +21,7 @@ public class ResponseAnime
     public int TempVoteCount { get; set; }
     public int AvgReviewRating { get; set; }
     public int ReviewCount { get; set; }
-    public int Restricted { get; set; }
+    public bool IsRestricted { get; set; }
     public int AnimePlanetID { get; set; }
     public int ANNID { get; set; }
     public int AllCinemaID { get; set; }

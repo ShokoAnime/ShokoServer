@@ -103,11 +103,11 @@ public class HttpAnimeParser
         var restricted = docAnime["anime"].Attributes["restricted"]?.Value;
         if (bool.TryParse(restricted, out var res))
         {
-            anime.Restricted = res ? 1 : 0;
+            anime.IsRestricted = res;
         }
         else
         {
-            anime.Restricted = 0;
+            anime.IsRestricted = false;
         }
 
         anime.URL = TryGetProperty(docAnime, "anime", "url");

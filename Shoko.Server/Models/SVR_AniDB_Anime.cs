@@ -28,6 +28,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #region General
 
+    public bool IsRestricted
+    {
+        get => Restricted > 1;
+        set => Restricted = value ? 1 : 0;
+    }
+
     public AnimeType AbstractAnimeType => (AnimeType)AnimeType;
 
     [XmlIgnore]
@@ -433,7 +439,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     double ISeries.Rating => Rating / 100D;
 
-    bool ISeries.Restricted => Restricted == 1;
+    bool ISeries.Restricted => IsRestricted;
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
 

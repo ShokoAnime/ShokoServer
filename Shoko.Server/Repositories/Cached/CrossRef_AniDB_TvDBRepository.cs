@@ -62,7 +62,7 @@ public class CrossRef_AniDB_TvDBRepository : BaseCachedRepository<CrossRef_AniDB
                 return false;
             }
 
-            if (anime.Restricted > 0)
+            if (anime.IsRestricted)
             {
                 return false;
             }

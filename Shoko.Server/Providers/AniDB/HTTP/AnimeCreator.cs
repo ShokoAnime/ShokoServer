@@ -257,9 +257,9 @@ public class AnimeCreator
             isUpdated = true;
         }
 
-        if (anime.Restricted != animeInfo.Restricted)
+        if (anime.IsRestricted != animeInfo.IsRestricted)
         {
-            anime.Restricted = animeInfo.Restricted;
+            anime.IsRestricted = animeInfo.IsRestricted;
             isUpdated = true;
         }
 

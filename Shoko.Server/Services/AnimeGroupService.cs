@@ -579,7 +579,7 @@ public class AnimeGroupService
             var isMovie = anime.AnimeType == (int)AnimeType.Movie;
             if (!foundTvDBLink)
             {
-                if (!isMovie && !(anime.Restricted > 0) && !series.IsTvDBAutoMatchingDisabled)
+                if (!isMovie && !anime.IsRestricted && !series.IsTvDBAutoMatchingDisabled)
                 {
                     missingTvDBLink = true;
                 }

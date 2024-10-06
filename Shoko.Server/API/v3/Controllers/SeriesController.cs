@@ -696,7 +696,7 @@ public class SeriesController : BaseController
             .Where(episode => episode != null)
             .DistinctBy(episode => episode.AnimeSeriesID)
             .Select(episode => episode.AnimeSeries.AniDB_Anime)
-            .Where(anime => user.AllowedAnime(anime) && (includeRestricted || anime.Restricted != 1))
+            .Where(anime => user.AllowedAnime(anime) && (includeRestricted || !anime.IsRestricted))
             .ToList();
     }
 
@@ -723,7 +723,7 @@ public class SeriesController : BaseController
         if (showAll)
         {
             return RepoFactory.AniDB_Anime.GetAll()
-                .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID) && (includeRestricted || anime.Restricted != 1))
+                .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID) && (includeRestricted || !anime.IsRestricted))
                 .ToDictionary<SVR_AniDB_Anime, int, (SVR_AniDB_Anime, SVR_AnimeSeries)>(anime => anime.AnimeID,
                     anime => (anime, null));
         }
@@ -731,7 +731,7 @@ public class SeriesController : BaseController
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
             .Select(series => (anime: series.AniDB_Anime, series))
-            .Where(tuple => includeRestricted || tuple.anime.Restricted != 1)
+            .Where(tuple => includeRestricted || !tuple.anime.IsRestricted)
             .ToDictionary(tuple => tuple.anime.AnimeID);
     }
 

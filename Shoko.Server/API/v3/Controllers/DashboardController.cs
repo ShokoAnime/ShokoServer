@@ -251,7 +251,7 @@ public class DashboardController : BaseController
         var animeDict = seriesDict.Values
             .ToDictionary(series => series.AnimeSeriesID, series => series.AniDB_Anime);
         return episodeList
-            .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) && (includeRestricted || anime.Restricted == 0))
+            .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) && (includeRestricted || !anime.IsRestricted))
             .ToListResult(
                 tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file),
                 page,
@@ -281,7 +281,7 @@ public class DashboardController : BaseController
             .Distinct()
             .Select(RepoFactory.AnimeSeries.GetByID)
             .Where(series => series != null && user.AllowedSeries(series) &&
-                (includeRestricted || series.AniDB_Anime.Restricted != 1))
+                (includeRestricted || !series.AniDB_Anime.IsRestricted))
             .ToListResult(a => new Series(a, User.JMMUserID), page, pageSize);
     }
 
@@ -309,7 +309,7 @@ public class DashboardController : BaseController
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => series is not null && user.AllowedSeries(series) &&
-                (includeRestricted || series.AniDB_Anime.Restricted != 1))
+                (includeRestricted || !series.AniDB_Anime.IsRestricted))
             .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials, includeOthers)))
             .Where(tuple => tuple.episode != null)
             .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
@@ -347,7 +347,7 @@ public class DashboardController : BaseController
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => user.AllowedSeries(series) &&
-                (includeRestricted || series.AniDB_Anime.Restricted != 1))
+                (includeRestricted || !series.AniDB_Anime.IsRestricted))
             .Select(series => (series, episode: _seriesService.GetNextEpisode(
                 series,
                 user.JMMUserID,
@@ -409,13 +409,13 @@ public class DashboardController : BaseController
             .ToDictionary(anime => anime.AnimeID);
         var seriesDict = animeDict.Values
             .Select(anime => RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID))
-            .Where(series => series != null)
+            .WhereNotNull()
             .Distinct()
             .ToDictionary(anime => anime.AniDB_ID);
         return episodeList
             .Where(episode => animeDict.TryGetValue(episode.AnimeID, out var anime) &&
                     user.AllowedAnime(anime) &&
-                    (includeRestricted || anime.Restricted == 0) &&
+                    (includeRestricted || !anime.IsRestricted) &&
                     (showAll || seriesDict.ContainsKey(episode.AnimeID)))
             .OrderBy(episode => episode.GetAirDateAsDate())
             .Select(episode =>

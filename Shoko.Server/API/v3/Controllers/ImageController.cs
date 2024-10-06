@@ -127,7 +127,7 @@ public class ImageController : BaseController
                 continue;
 
             var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series == null || series.AniDB_Anime?.Restricted != 0)
+            if (series == null || (series.AniDB_Anime?.IsRestricted ?? false))
                 continue;
 
             if (metadata.GetStream(allowRemote: false) is not { } stream)
@@ -171,7 +171,7 @@ public class ImageController : BaseController
 
             var image = new Image(metadata);
             var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series == null || series.AniDB_Anime?.Restricted != 0)
+            if (series == null || (series.AniDB_Anime?.IsRestricted ?? false))
                 continue;
 
             image.Series = new(series.AnimeSeriesID, series.PreferredTitle);
