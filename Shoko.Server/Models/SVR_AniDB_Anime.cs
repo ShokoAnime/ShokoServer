@@ -30,7 +30,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     public bool IsRestricted
     {
-        get => Restricted > 1;
+        get => Restricted > 0;
         set => Restricted = value ? 1 : 0;
     }
 
