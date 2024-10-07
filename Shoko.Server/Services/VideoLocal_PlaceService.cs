@@ -139,6 +139,42 @@ public class VideoLocal_PlaceService
             };
         }
 
+        var dropFolder = (IImportFolder?)place.ImportFolder;
+        if (dropFolder is null)
+        {
+            _logger.LogTrace("Unable to find import folder for file with ID {VideoLocal}", place.VideoLocal);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"Unable to find import folder for file with ID {place.ImportFolderID}.",
+            };
+        }
+
+        // Don't relocate files not in a drop source or drop destination.
+        if (dropFolder.DropFolderType is DropFolderType.Excluded)
+        {
+            _logger.LogTrace("Not relocating file as it is not in a drop source or drop destination: {FullPath}", oldFullPath);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"Not relocating file as it is not in a drop source or drop destination: \"{oldFullPath}\"",
+            };
+        }
+
+        // Or if it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.
+        if (dropFolder.DropFolderType is DropFolderType.Destination && !request.AllowRelocationInsideDestination)
+        {
+            _logger.LogTrace("Not relocating file because it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled: {FullPath}", oldFullPath);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = $"Not relocating file because it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled: \"{oldFullPath}\"",
+            };
+        }
+
         // Check if the import folder can accept the file.
         var settings = _settingsProvider.GetSettings();
         var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
@@ -153,7 +189,6 @@ public class VideoLocal_PlaceService
             };
         }
 
-        var dropFolder = (IImportFolder)place.ImportFolder!;
         var newRelativePath = Path.GetRelativePath(request.ImportFolder.Path, fullPath);
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
         var newFullPath = Path.Combine(request.ImportFolder.Path, newRelativePath);
@@ -161,22 +196,10 @@ public class VideoLocal_PlaceService
         var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.OrdinalIgnoreCase);
         var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
 
-        // Don't relocate files not in a drop source or drop destination.
-        if (!dropFolder.DropFolderType.HasFlag(DropFolderType.Source) && !dropFolder.DropFolderType.HasFlag(DropFolderType.Destination))
-        {
-            _logger.LogTrace("Not relocating file as it is NOT in an import folder marked as a drop source: {FullPath}", oldFullPath);
-            return new()
-            {
-                Success = false,
-                ShouldRetry = false,
-                ErrorMessage = $"Not relocating file as it is NOT in an import folder marked as a drop source: \"{oldFullPath}\"",
-            };
-        }
-
         // Last ditch effort to ensure we aren't moving a file unto itself
         if (string.Equals(newFullPath, oldFullPath, StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogTrace("Resolved to move {FilePath} onto itself. Not moving.", newFullPath);
+            _logger.LogTrace("Resolved to relocate {FilePath} onto itself. Nothing to do.", newFullPath);
             return new()
             {
                 Success = true,
@@ -422,6 +445,7 @@ public class VideoLocal_PlaceService
             Move = settings.Plugins.Renamer.MoveOnImport,
             Rename = settings.Plugins.Renamer.RenameOnImport,
             DeleteEmptyDirectories = settings.Plugins.Renamer.MoveOnImport,
+            AllowRelocationInsideDestination = settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport,
             Renamer = RepoFactory.RenamerConfig.GetByName(settings.Plugins.Renamer.DefaultRenamer),
         };
 
@@ -438,7 +462,7 @@ public class VideoLocal_PlaceService
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = "Rename and Move are both set to false. Nothing to do",
+                ErrorMessage = "Rename and Move are both set to false. Nothing to do.",
             };
 
         // make sure we can find the file
@@ -518,7 +542,7 @@ public class VideoLocal_PlaceService
     public async Task<RelocationResult> RelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest request)
     {
         // Just return the existing values if we're going to skip the operation.
-        if (!request.Rename && !request.Move)
+        if (request is { Rename: false, Move: false })
             return new()
             {
                 Success = true,
@@ -531,7 +555,7 @@ public class VideoLocal_PlaceService
         // run the renamer and process the result
         try
         {
-            result = _renameFileService.GetNewPath(place, request.Renamer, request.Move, request.Rename);
+            result = _renameFileService.GetNewPath(place, request.Renamer, request.Move, request.Rename, request.AllowRelocationInsideDestination);
         }
         catch (Exception ex)
         {
@@ -555,6 +579,7 @@ public class VideoLocal_PlaceService
         return await DirectlyRelocateFile(place, new()
         {
             DeleteEmptyDirectories = request.DeleteEmptyDirectories,
+            AllowRelocationInsideDestination = request.AllowRelocationInsideDestination,
             ImportFolder = result.ImportFolder,
             RelativePath = result.RelativePath,
         });

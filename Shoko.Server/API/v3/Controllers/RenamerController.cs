@@ -435,12 +435,18 @@ public class RenamerController : BaseController
     /// Preview the changes made by a provided Config
     /// </summary>
     /// <param name="args">A model for the arguments</param>
-    /// <param name="move">Whether or not to get the destination of the files. If `null`, defaults to `Settings.Import.MoveOnImport`</param>
-    /// <param name="rename">Whether or not to get the new name of the files. If `null`, defaults to `Settings.Import.RenameOnImport`</param>
+    /// <param name="move">Whether or not to get the destination of the files. If `null`, defaults to `Settings.Plugins.Renamer.MoveOnImport`</param>
+    /// <param name="rename">Whether or not to get the new name of the files. If `null`, defaults to `Settings.Plugins.Renamer.RenameOnImport`</param>
+    /// <param name="allowRelocationInsideDestination">Whether or not to allow relocation of files inside the destination. If `null`, defaults to `Settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport`</param>
     /// <returns>A stream of relocate results.</returns>
     [Authorize("admin")]
     [HttpPost("Preview")]
-    public ActionResult<IEnumerable<RelocationResult>> BatchPreviewFilesByScriptID([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchRelocateBody args, bool? move = null, bool? rename = null)
+    public ActionResult<IEnumerable<RelocationResult>> BatchPreviewFilesByScriptID(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchRelocateBody args,
+        bool? move = null,
+        bool? rename = null,
+        bool? allowRelocationInsideDestination = null
+    )
     {
         Shoko.Server.Models.RenamerConfig? config = null;
         if (args.Config != null)
@@ -464,8 +470,13 @@ public class RenamerController : BaseController
         if (!_renameFileService.RenamersByType.ContainsKey(config.Type))
             return BadRequest("Renamer for Default Config not found");
 
-        var results = GetNewLocationsForFiles(args.FileIDs, config, move ?? settings.Plugins.Renamer.MoveOnImport,
-            rename ?? settings.Plugins.Renamer.RenameOnImport);
+        var results = GetNewLocationsForFiles(
+            args.FileIDs,
+            config,
+            move ?? settings.Plugins.Renamer.MoveOnImport,
+            rename ?? settings.Plugins.Renamer.RenameOnImport,
+            allowRelocationInsideDestination ?? settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport
+        );
         return Ok(results);
     }
 
@@ -474,12 +485,19 @@ public class RenamerController : BaseController
     /// </summary>
     /// <param name="configName">Config Name</param>
     /// <param name="fileIDs">The file IDs to preview</param>
-    /// <param name="move">Whether or not to get the destination of the files. If `null`, defaults to `Settings.Import.MoveOnImport`</param>
-    /// <param name="rename">Whether or not to get the new name of the files. If `null`, defaults to `Settings.Import.RenameOnImport`</param>
+    /// <param name="move">Whether or not to get the destination of the files. If `null`, defaults to `Settings.Plugins.Renamer.MoveOnImport`</param>
+    /// <param name="rename">Whether or not to get the new name of the files. If `null`, defaults to `Settings.Plugins.Renamer.RenameOnImport`</param>
+    /// <param name="allowRelocationInsideDestination">Whether or not to allow relocation of files inside the destination. If `null`, defaults to `Settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport`</param>
     /// <returns>A stream of relocate results.</returns>
     [Authorize("admin")]
     [HttpPost("Config/{configName}/Preview")]
-    public ActionResult<IEnumerable<RelocationResult>> BatchRelocateFilesByScriptID([FromRoute] string configName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs, bool? move = null, bool? rename = null)
+    public ActionResult<IEnumerable<RelocationResult>> BatchRelocateFilesByScriptID(
+        [FromRoute] string configName,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs,
+        bool? move = null,
+        bool? rename = null,
+        bool? allowRelocationInsideDestination = null
+    )
     {
         var config = _renamerConfigRepository.GetByName(configName);
         if (config is null)
@@ -489,12 +507,17 @@ public class RenamerController : BaseController
             return BadRequest("Renamer for Config not found");
 
         var settings = _settingsProvider.GetSettings();
-        var results = GetNewLocationsForFiles(fileIDs, config, move ?? settings.Plugins.Renamer.MoveOnImport,
-            rename ?? settings.Plugins.Renamer.RenameOnImport);
+        var results = GetNewLocationsForFiles(
+            fileIDs,
+            config,
+            move ?? settings.Plugins.Renamer.MoveOnImport,
+            rename ?? settings.Plugins.Renamer.RenameOnImport,
+            allowRelocationInsideDestination ?? settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport
+        );
         return Ok(results);
     }
 
-    private IEnumerable<RelocationResult> GetNewLocationsForFiles(IEnumerable<int> fileIDs, Shoko.Server.Models.RenamerConfig config, bool move, bool rename)
+    private IEnumerable<RelocationResult> GetNewLocationsForFiles(IEnumerable<int> fileIDs, Shoko.Server.Models.RenamerConfig config, bool move, bool rename, bool allowRelocationInsideDestination)
     {
         foreach (var vlID in fileIDs)
         {
@@ -527,7 +550,7 @@ public class RenamerController : BaseController
                 continue;
             }
 
-            var result = _renameFileService.GetNewPath(vlp, config, move, rename);
+            var result = _renameFileService.GetNewPath(vlp, config, move, rename, allowRelocationInsideDestination);
 
             yield return new RelocationResult
             {
@@ -580,7 +603,8 @@ public class RenamerController : BaseController
             {
                 ImportFolder = importFolder,
                 RelativePath = sanitizedRelativePath,
-                DeleteEmptyDirectories = body.DeleteEmptyDirectories
+                DeleteEmptyDirectories = body.DeleteEmptyDirectories,
+                AllowRelocationInsideDestination = true,
             }
         );
         if (!result.Success)
@@ -612,14 +636,15 @@ public class RenamerController : BaseController
     /// <param name="configName">Config Name</param>
     /// <param name="fileIDs">The files to relocate</param>
     /// <param name="deleteEmptyDirectories">Whether or not to delete empty directories</param>
-    /// <param name="move">Whether or not to move the files. If `null`, defaults to `Settings.Import.MoveOnImport`</param>
-    /// <param name="rename">Whether or not to rename the files. If `null`, defaults to `Settings.Import.RenameOnImport`</param>
+    /// <param name="move">Whether or not to move the files. If `null`, defaults to `Settings.Plugins.Renamer.MoveOnImport`</param>
+    /// <param name="rename">Whether or not to rename the files. If `null`, defaults to `Settings.Plugins.Renamer.RenameOnImport`</param>
+    /// <param name="allowRelocationInsideDestination">Whether or not to allow relocation of files inside the destination. If `null`, defaults to `Settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport`</param>
     /// <returns>A stream of relocation results.</returns>
     [Authorize("admin")]
     [HttpPost("Config/{configName}/Relocate")]
     public ActionResult<IAsyncEnumerable<RelocationResult>> BatchRelocateFilesByConfig([FromRoute] string configName,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs, [FromQuery] bool deleteEmptyDirectories = true,
-        [FromQuery] bool? move = null, [FromQuery] bool? rename = null)
+        [FromQuery] bool? move = null, [FromQuery] bool? rename = null, [FromQuery] bool? allowRelocationInsideDestination = null)
     {
         var config = _renamerConfigRepository.GetByName(configName);
         if (config is null)
@@ -635,7 +660,8 @@ public class RenamerController : BaseController
                 Renamer = config,
                 DeleteEmptyDirectories = deleteEmptyDirectories,
                 Move = move ?? settings.Plugins.Renamer.MoveOnImport,
-                Rename = rename ?? settings.Plugins.Renamer.RenameOnImport
+                Rename = rename ?? settings.Plugins.Renamer.RenameOnImport,
+                AllowRelocationInsideDestination = allowRelocationInsideDestination ?? settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport,
             })
         );
     }
@@ -645,12 +671,13 @@ public class RenamerController : BaseController
     /// </summary>
     /// <param name="fileIDs">The files to relocate</param>
     /// <param name="deleteEmptyDirectories">Whether or not to delete empty directories</param>
-    /// <param name="move">Whether or not to move the files. If `null`, defaults to `Settings.Import.MoveOnImport`</param>
-    /// <param name="rename">Whether or not to rename the files. If `null`, defaults to `Settings.Import.RenameOnImport`</param>
+    /// <param name="move">Whether or not to move the files. If `null`, defaults to `Settings.Plugins.Renamer.MoveOnImport`</param>
+    /// <param name="rename">Whether or not to rename the files. If `null`, defaults to `Settings.Plugins.Renamer.RenameOnImport`</param>
+    /// <param name="allowRelocationInsideDestination">Whether or not to allow relocation of files inside the destination. If `null`, defaults to `Settings.Plugins.Renamer.AllowRelocationInsideDestination`</param>
     /// <returns>A stream of relocation results.</returns>
     [Authorize("admin")]
     [HttpPost("Relocate")]
-    public ActionResult<IAsyncEnumerable<RelocationResult>> BatchRelocateFilesWithDefaultConfig([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs, [FromQuery] bool deleteEmptyDirectories = true, [FromQuery] bool? move = null, [FromQuery] bool? rename = null)
+    public ActionResult<IAsyncEnumerable<RelocationResult>> BatchRelocateFilesWithDefaultConfig([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs, [FromQuery] bool deleteEmptyDirectories = true, [FromQuery] bool? move = null, [FromQuery] bool? rename = null, [FromQuery] bool? allowRelocationInsideDestination = null)
     {
         var settings = _settingsProvider.GetSettings();
         var configName = settings.Plugins.Renamer.DefaultRenamer;
@@ -669,7 +696,8 @@ public class RenamerController : BaseController
                 Renamer = config,
                 DeleteEmptyDirectories = deleteEmptyDirectories,
                 Move = move ?? settings.Plugins.Renamer.MoveOnImport,
-                Rename = rename ?? settings.Plugins.Renamer.RenameOnImport
+                Rename = rename ?? settings.Plugins.Renamer.RenameOnImport,
+                AllowRelocationInsideDestination = allowRelocationInsideDestination ?? settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport,
             })
         );
     }

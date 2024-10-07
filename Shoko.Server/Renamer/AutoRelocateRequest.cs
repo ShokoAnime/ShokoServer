@@ -34,6 +34,12 @@ public record AutoRelocateRequest
     public bool DeleteEmptyDirectories { get; set; } = true;
 
     /// <summary>
+    /// Indicates that we can relocate a video file that lives inside a
+    /// drop destination import folder that's not also a drop source.
+    /// </summary>
+    public bool AllowRelocationInsideDestination { get; set; } = true;
+
+    /// <summary>
     /// Do the move operation.
     /// </summary>
     public bool Move { get; set; } = true;

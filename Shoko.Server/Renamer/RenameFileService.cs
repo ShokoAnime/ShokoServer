@@ -41,14 +41,15 @@ public class RenameFileService
         LoadRenamers(AppDomain.CurrentDomain.GetAssemblies());
     }
 
-    public RelocationResult GetNewPath(SVR_VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null)
+    public RelocationResult GetNewPath(SVR_VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null, bool? allowRelocationInsideDestination = null)
     {
         var settings = _settingsProvider.GetSettings();
         var shouldMove = move ?? settings.Plugins.Renamer.MoveOnImport;
         var shouldRename = rename ?? settings.Plugins.Renamer.RenameOnImport;
+        var shouldAllowRelocationInsideDestination = allowRelocationInsideDestination ?? settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport;
 
         // Make sure the import folder is reachable.
-        var importFolder = place.ImportFolder;
+        var importFolder = (IImportFolder?)place.ImportFolder;
         if (importFolder is null)
             return new()
             {
@@ -57,13 +58,22 @@ public class RenameFileService
                 ErrorMessage = $"Unable to find import folder for file with ID {place.VideoLocal}.",
             };
 
-        // If we try to run on a file that's not in a drop source or destination, then fail.
-        if (importFolder.IsDropSource == 0 && importFolder.IsDropDestination == 0)
+        // Don't relocate files not in a drop source or drop destination.
+        if (importFolder.DropFolderType is DropFolderType.Excluded)
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
                 ErrorMessage = "Not relocating file as it is not in a drop source or drop destination.",
+            };
+
+        // Or if it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.
+        if (importFolder.DropFolderType is DropFolderType.Destination && !shouldAllowRelocationInsideDestination)
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = "Not relocating file because it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.",
             };
 
         var videoLocal = place.VideoLocal ??
