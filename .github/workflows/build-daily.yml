@@ -324,7 +324,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Shoko.TrayService_Standalone_win-x64
-          path: ${{ github.workspace }}\\Shoko.TrayService_Standalone_win-x64
+          path: ShokoServer
 
       - name: Upload daily archive to site
         shell: pwsh
@@ -332,7 +332,7 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        run : Compress-Archive .\\Shoko.TrayService_Standalone_win-x64 .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
+        run : Compress-Archive .\\ShokoServer .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   discord-notify:
     runs-on: ubuntu-latest
