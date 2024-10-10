@@ -33,7 +33,13 @@ public interface IVideoFile
     string Path { get; }
 
     /// <summary>
-    /// The relative path from the <see cref="ImportFolder"/> to the location of the file. Will always use forward slash as a directory separator.
+    /// The relative path from the <see cref="ImportFolder"/> to the location of the file. Will always use forward slash as a directory
+    /// separator, and will always start with a leading slash.
+    /// <br/>
+    /// E.g.
+    /// "C:\absolute\relative\path.ext" becomes "/relative/path.ext" if "C:\absolute" is the import folder.
+    /// or
+    /// "/absolute/relative/path.ext" becomes "/relative/path.ext" if "/absolute" is the import folder.
     /// </summary>
     string RelativePath { get; }
 
