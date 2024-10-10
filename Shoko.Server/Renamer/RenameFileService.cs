@@ -237,8 +237,8 @@ public class RenameFileService
 
         var newImportFolder = shouldMove && !result.SkipMove ? result.DestinationImportFolder! : place.ImportFolder!;
         var newFileName = shouldRename && !result.SkipRename ? result.FileName! : place.FileName;
-        var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path! : Path.GetDirectoryName(place.FilePath)!;
-        var newRelativePath = newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
+        var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path : Path.GetDirectoryName(place.FilePath);
+        var newRelativePath = !string.IsNullOrEmpty(newRelativeDirectory) && newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
         var newFullPath = Path.Combine(newImportFolder.Path, newRelativePath);
         return new()
         {
