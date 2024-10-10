@@ -26,9 +26,14 @@ public class DownloadAniDBImageJob : DownloadImageBaseJob
             { "Anime", $"AniDB Anime {ImageID}" },
             { "Type", "AniDB Poster" },
         },
-        _ => new()
+        _ when ParentName is not null => new()
         {
             { "Anime", ParentName },
+            { "Type", $"AniDB {ImageType}".Replace("Person", "Creator") },
+            { "ImageID", ImageID }
+        },
+        _ => new()
+        {
             { "Type", $"AniDB {ImageType}".Replace("Person", "Creator") },
             { "ImageID", ImageID }
         }
