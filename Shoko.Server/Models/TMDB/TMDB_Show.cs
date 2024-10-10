@@ -218,7 +218,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 ContentRatings,
                 show.ContentRatings.Results
                     .Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating))
-                    .WhereInLanguages(crLanguages)
+                    .WhereInLanguages(crLanguages?.Append(TitleLanguage.EnglishAmerican).ToHashSet())
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ContentRatings = v,

@@ -226,7 +226,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
                 movie.ReleaseDates.Results
                     .Where(releaseDate => releaseDate.ReleaseDates.Any(r => !string.IsNullOrEmpty(r.Certification)))
                     .Select(releaseDate => new TMDB_ContentRating(releaseDate.Iso_3166_1, releaseDate.ReleaseDates.Last(r => !string.IsNullOrEmpty(r.Certification)).Certification))
-                    .WhereInLanguages(crLanguages)
+                    .WhereInLanguages(crLanguages?.Append(TitleLanguage.EnglishAmerican).ToHashSet())
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ContentRatings = v,
