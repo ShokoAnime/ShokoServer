@@ -754,7 +754,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
 
     #region All images
 
-    private static readonly HashSet<Image.ImageType> _allowedImageTypes = [Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Backdrop, Image.ImageType.Logo];
+    private static readonly HashSet<Image.ImageType> _allowedImageTypes = [Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Backdrop, Image.ImageType.Logo, Image.ImageType.Thumbnail];
 
     private const string InvalidIDForSource = "Invalid image id for selected source.";
 
