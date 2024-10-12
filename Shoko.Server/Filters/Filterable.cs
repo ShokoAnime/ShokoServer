@@ -33,6 +33,8 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlySet<string>> _names;
     private readonly Lazy<IReadOnlySet<string>> _aniDbIds;
     private readonly Lazy<IReadOnlySet<string>> _resolutions;
+    private readonly Lazy<IReadOnlySet<string>> _importFolderIDs;
+    private readonly Lazy<IReadOnlySet<string>> _importFolderNames;
     private readonly Lazy<IReadOnlySet<string>> _filePaths;
     private readonly Lazy<IReadOnlySet<(int year, AnimeSeason season)>> _seasons;
     private readonly Lazy<int> _seriesCount;
@@ -305,6 +307,20 @@ public class Filterable : IFilterable
         {
             _resolutions = new Lazy<IReadOnlySet<string>>(value);
         }
+    }
+
+    public IReadOnlySet<string> ImportFolderIDs => _importFolderIDs.Value;
+
+    public Func<IReadOnlySet<string>> ImportFolderIDsDelegate
+    {
+        init => _importFolderIDs = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> ImportFolderNames => _importFolderNames.Value;
+
+    public Func<IReadOnlySet<string>> ImportFolderNamesDelegate
+    {
+        init => _importFolderNames = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> FilePaths => _filePaths.Value;

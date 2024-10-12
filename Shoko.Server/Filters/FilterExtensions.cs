@@ -122,6 +122,10 @@ public static class FilterExtensions
                     .Where(a => a.MediaInfo?.VideoStream is not null)
                     .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
+            ImportFolderIDsDelegate = () =>
+                series.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolderID.ToString()).WhereNotNull().ToHashSet(),
+            ImportFolderNamesDelegate = () =>
+                series.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolder?.ImportFolderName).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
                 series.VideoLocals.Select(a => a.FirstValidPlace?.FilePath).WhereNotNull().ToHashSet(),
         };
@@ -267,6 +271,10 @@ public static class FilterExtensions
                     .Where(a => a.MediaInfo?.VideoStream is not null)
                     .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
+            ImportFolderIDsDelegate = () =>
+                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolderID.ToString())).WhereNotNull().ToHashSet(),
+            ImportFolderNamesDelegate = () =>
+                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolder?.ImportFolderName)).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
                 series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.FilePath)).WhereNotNull().ToHashSet(),
         };
