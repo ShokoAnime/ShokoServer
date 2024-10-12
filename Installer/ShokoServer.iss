@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define AppVer GetVersionNumbersString('..\Shoko.Server\bin\Release\net8.0-windows\win-x64\ShokoServer.exe')
-#define AppSlug Copy(StringChange(AppVer, ".", ""), 1, Len(AppVer) - 1)
+#define AppSlug Copy(StringChange(AppVer, ".", "-"), 1, Len(AppVer) - 2)
 #define MyAppExeName "ShokoServer.exe"
 
 [Setup]
