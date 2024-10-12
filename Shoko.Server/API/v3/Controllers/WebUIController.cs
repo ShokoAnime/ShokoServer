@@ -516,7 +516,7 @@ public class WebUIController : BaseController
                     var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest");
                     string tagName = latestRelease.tag_name;
                     var version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                    var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
+                    var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
                     string commit = tag["object"].sha;
                     DateTime releaseDate = latestRelease.published_at;
                     releaseDate = releaseDate.ToUniversalTime();
