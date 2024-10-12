@@ -45,7 +45,7 @@ Name: "{commonstartup}\Shoko Server"; Filename: "{app}\ShokoServer.exe"; Tasks: 
 [Run]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
-Filename: "https://docs.shokoanime.com/server/install/"; Flags: shellexec runasoriginaluser postinstall; Description: "Shoko Server Install Guide"
+Filename: "https://docs.shokoanime.com/getting-started/running-shoko-server/"; Flags: shellexec runasoriginaluser postinstall; Description: "Shoko Server Install Guide"
 Filename: "https://shokoanime.com/blog/shoko-version-{#AppSlug}-released/"; Flags: shellexec runasoriginaluser postinstall; Check: BlogPostCheck; Description: "View {#AppVer} Release Notes"
 
 [UninstallRun]
