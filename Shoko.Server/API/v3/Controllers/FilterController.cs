@@ -425,6 +425,28 @@ public class FilterController : BaseController
     }
 
     /// <summary>
+    /// Get a raw list of all <see cref="Series"/> IDs for the live filter for
+    /// client-side filtering.
+    /// </summary>
+    /// <param name="filter">The filter to preview</param>
+    /// <returns></returns>
+    [HttpPost("Preview/Series/OnlyIDs")]
+    public ActionResult<List<int>> GetPreviewFilteredSeriesIDs([FromBody] Filter.Input.CreateOrUpdateFilterBody filter)
+    {
+        // Directories should only contain sub-filters, not groups and series.
+        if (filter.IsDirectory)
+            return new List<int>();
+
+        // Fast path when user is not in the filter.
+        var filterPreset = _factory.GetFilterPreset(filter, ModelState);
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID);
+        return results.SelectMany(groupBy => groupBy)
+            .ToList();
+    }
+
+    /// <summary>
     /// Get a list of all the sub-<see cref="Group"/>s belonging to the <see cref="Group"/> with the given <paramref name="groupID"/> and which are present within the live filter.
     /// </summary>
     /// <param name="filter">The filter to preview</param>

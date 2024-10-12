@@ -308,6 +308,42 @@ public class TreeController : BaseController
     }
 
     /// <summary>
+    /// Get a raw list of <see cref="Series"/> IDs for the <see cref="Filter"/>
+    /// with the given <paramref name="filterID"/> for client-side filtering.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
+    /// </remarks>
+    /// <param name="filterID"><see cref="Filter"/> ID</param>
+    /// <returns></returns>
+    [HttpGet("Filter/{filterID}/Series/OnlyIDs")]
+    public ActionResult<List<int>> GetFilteredSeriesIDs([FromRoute, Range(0, int.MaxValue)] int filterID)
+    {
+        if (filterID == 0)
+        {
+            var user = User;
+            return RepoFactory.AnimeSeries.GetAll()
+                .Where(user.AllowedSeries)
+                .Select(group => group.AnimeSeriesID)
+                .ToList();
+        }
+
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
+            return NotFound(FilterController.FilterNotFound);
+
+        // Directories should only contain sub-filters, not groups and series.
+        if (filterPreset.IsDirectory())
+            return new List<int>();
+
+        // Gets Series and Series IDs in a filter, already sorted by the filter
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID);
+        return results.SelectMany(groupBy => groupBy)
+            .ToList();
+    }
+
+    /// <summary>
     /// Get a list of all the sub-<see cref="Group"/>s belonging to the <see cref="Group"/> with the given <paramref name="groupID"/> and which are present within the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
     /// <remarks>
