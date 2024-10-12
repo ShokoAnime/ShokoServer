@@ -192,6 +192,16 @@ public interface IFilterable
     IReadOnlySet<string> Resolutions { get; }
 
     /// <summary>
+    /// Import Folder IDs
+    /// </summary>
+    IReadOnlySet<string> ImportFolderIDs { get; }
+
+    /// <summary>
+    /// Import Folder Names
+    /// </summary>
+    IReadOnlySet<string> ImportFolderNames { get; }
+
+    /// <summary>
     /// Relative File Paths
     /// </summary>
     IReadOnlySet<string> FilePaths { get; }
