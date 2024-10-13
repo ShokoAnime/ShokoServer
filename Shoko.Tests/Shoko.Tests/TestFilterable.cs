@@ -18,8 +18,6 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> CustomTags { get; init; }
     public IReadOnlySet<int> Years { get; init; }
     public IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; init; }
-    public bool HasTvDBLink { get; init; }
-    public bool HasMissingTvDbLink { get; init; }
     public bool HasTmdbLink { get; init; }
     public bool HasMissingTmdbLink { get; init; }
     public int AutomaticTmdbEpisodeLinks { get; init; }

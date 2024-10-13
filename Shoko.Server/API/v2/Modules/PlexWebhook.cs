@@ -201,23 +201,15 @@ public class PlexWebhook : BaseController
         //if only one possible match
         if (animeEps.Count == 1) return (animeEps.First(), anime);
 
-        //if TvDB matched.
-        SVR_AnimeEpisode result;
-        if ((result = animeEps.FirstOrDefault(a => a.TvDBEpisode?.SeasonNumber == series)) != null)
-        {
-            return (result, anime);
-        }
-
         // Check for Tmdb matches
+        SVR_AnimeEpisode result;
         if ((result = animeEps.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == series))) != null)
         {
             return (result, anime);
         }
 
-
         //catch all
-        _logger.LogInformation(
-            $"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multiple episodes linked, but no tvdb/tmdb link.");
+        _logger.LogInformation($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multiple episodes linked, but no tmdb link.");
         return (null, anime);
     }
 

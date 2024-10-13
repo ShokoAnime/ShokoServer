@@ -11,7 +11,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.TMDB;
-using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS8618
@@ -40,98 +39,6 @@ public class ValidateAllImagesJob : BaseJob
         _logger.LogInformation("Processing {Job}", nameof(ValidateAllImagesJob));
 
         var count = 0;
-        UpdateProgress(" - TvDB Episodes");
-        _logger.LogInformation(ScanForType, "TvDB episodes");
-        var episodes = RepoFactory.TvDB_Episode.GetAll()
-            .Where(episode => episode.GetImageMetadata()?.IsLocalAvailable ?? false)
-            .GroupBy(episode => episode.SeriesID)
-            .Select(groupBy => (Series: RepoFactory.TvDB_Series.GetByTvDBID(groupBy.Key), groupBy))
-            .Where(tuple => tuple.Series is not null)
-            .SelectMany(tuple => tuple.groupBy.Select(episode => (Episode: episode, tuple.Series)))
-            .ToList();
-
-        _logger.LogInformation(FoundCorruptedOfType, episodes.Count, episodes.Count == 1 ? "TvDB episode thumbnail" : "TvDB episode thumbnails");
-        foreach (var (episode, series) in episodes)
-        {
-            _logger.LogTrace(CorruptImageFound, episode.GetFullImagePath());
-            await RemoveImageAndQueueDownload<DownloadTvDBImageJob>(ImageEntityType.Thumbnail, episode.TvDB_EpisodeID, series?.SeriesName);
-            if (++count % 10 != 0) continue;
-            _logger.LogInformation(ReQueueingForDownload, count, episodes.Count);
-            UpdateProgress($" - TvDB Episodes - {count}/{episodes.Count}");
-        }
-
-        if (_settings.TvDB.AutoPosters)
-        {
-            count = 0;
-            UpdateProgress(" - TvDB Posters");
-            _logger.LogInformation(ScanForType, "TvDB posters");
-            var posters = RepoFactory.TvDB_ImagePoster.GetAll()
-                .Where(poster => !Misc.IsImageValid(poster.GetFullImagePath()))
-                .GroupBy(episode => episode.SeriesID)
-                .Select(groupBy => (Series: RepoFactory.TvDB_Series.GetByTvDBID(groupBy.Key), groupBy))
-                .Where(tuple => tuple.Series is not null)
-                .SelectMany(tuple => tuple.groupBy.Select(episode => (Episode: episode, tuple.Series)))
-                .ToList();
-
-            _logger.LogInformation(FoundCorruptedOfType, posters.Count, posters.Count == 1 ? "TvDB poster" : "TvDB posters");
-            foreach (var (poster, series) in posters)
-            {
-                _logger.LogTrace(CorruptImageFound, poster.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadTvDBImageJob>(ImageEntityType.Poster, poster.TvDB_ImagePosterID, series?.SeriesName);
-                if (++count % 10 != 0) continue;
-                _logger.LogInformation(ReQueueingForDownload, count, posters.Count);
-                UpdateProgress($" - TvDB Posters - {count}/{posters.Count}");
-            }
-        }
-
-        if (_settings.TvDB.AutoFanart)
-        {
-            count = 0;
-            UpdateProgress(" - TvDB Fanart");
-            _logger.LogInformation(ScanForType, "TvDB fanart");
-            var fanartList = RepoFactory.TvDB_ImageFanart.GetAll()
-                .Where(fanart => !Misc.IsImageValid(fanart.GetFullImagePath()))
-                .GroupBy(episode => episode.SeriesID)
-                .Select(groupBy => (Series: RepoFactory.TvDB_Series.GetByTvDBID(groupBy.Key), groupBy))
-                .Where(tuple => tuple.Series is not null)
-                .SelectMany(tuple => tuple.groupBy.Select(episode => (Episode: episode, tuple.Series)))
-                .ToList();
-
-            _logger.LogInformation(FoundCorruptedOfType, fanartList.Count, "TvDB fanart");
-            foreach (var (fanart, series) in fanartList)
-            {
-                _logger.LogTrace(CorruptImageFound, fanart.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadTmdbImageJob>(ImageEntityType.Backdrop, fanart.TvDB_ImageFanartID, series?.SeriesName);
-                if (++count % 10 != 0) continue;
-                _logger.LogInformation(ReQueueingForDownload, count, fanartList.Count);
-                UpdateProgress($" - TvDB Fanart - {count}/{fanartList.Count}");
-            }
-        }
-
-        if (_settings.TvDB.AutoWideBanners)
-        {
-            count = 0;
-            _logger.LogInformation(ScanForType, "TvDB wide-banners");
-            UpdateProgress(" - TvDB Banners");
-            var wideBanners = RepoFactory.TvDB_ImageWideBanner.GetAll()
-                .Where(wideBanner => !Misc.IsImageValid(wideBanner.GetFullImagePath()))
-                .GroupBy(episode => episode.SeriesID)
-                .Select(groupBy => (Series: RepoFactory.TvDB_Series.GetByTvDBID(groupBy.Key), groupBy))
-                .Where(tuple => tuple.Series is not null)
-                .SelectMany(tuple => tuple.groupBy.Select(episode => (Episode: episode, tuple.Series)))
-                .ToList();
-
-            _logger.LogInformation(FoundCorruptedOfType, wideBanners.Count, wideBanners.Count == 1 ? "TvDB wide-banner" : "TvDB wide-banners");
-            foreach (var (wideBanner, series) in wideBanners)
-            {
-                _logger.LogTrace(CorruptImageFound, wideBanner.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadTvDBImageJob>(ImageEntityType.Banner, wideBanner.TvDB_ImageWideBannerID);
-                if (++count % 10 != 0) continue;
-                _logger.LogInformation(ReQueueingForDownload, count, wideBanners.Count);
-                UpdateProgress($" - TvDB Banners - {count}/{wideBanners.Count}");
-            }
-        }
-
         List<(ImageEntityType, bool)> tmdbTypes = [
             (ImageEntityType.Poster, _settings.TMDB.AutoDownloadPosters),
             (ImageEntityType.Backdrop, _settings.TMDB.AutoDownloadBackdrops),

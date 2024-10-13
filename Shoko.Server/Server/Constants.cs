@@ -101,12 +101,6 @@ public static class Constants
         // This is the fallback if the API response does not work.
         public const string AniDB_Images_Domain = @"cdn.anidb.net";
 
-        public const string TvDB_Series = @"https://thetvdb.com/?tab=series&id={0}";
-
-        //public const string tvDBEpisodeURLPrefix = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
-        public const string TvDB_Images = @"https://artworks.thetvdb.com/banners/{0}";
-        public const string TvDB_Episode_Images = @"https://thetvdb.com/banners/{0}";
-
         public const string Trakt_Series = @"https://trakt.tv/show/{0}";
 
 
@@ -121,10 +115,5 @@ public static class Constants
     {
         // For local development, please replace the text below with your TMDB API key, or insert the key in your settings.
         public const string ApiKey = "TMDB_API_KEY_GOES_HERE";
-    }
-
-    public struct TvDB
-    {
-        public const string ApiKey = "B178B8940CAF4A2C";
     }
 }

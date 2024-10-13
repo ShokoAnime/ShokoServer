@@ -226,7 +226,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         var anime = obj.AniDB_Anime;
         if (anime != null)
         {
-            RepoFactory.AniDB_Anime.Save(anime, true);
+            RepoFactory.AniDB_Anime.Save(anime);
         }
 
         sw.Stop();

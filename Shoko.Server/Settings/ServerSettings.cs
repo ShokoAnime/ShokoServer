@@ -56,8 +56,6 @@ public class ServerSettings : IServerSettings
 
     public TMDBSettings TMDB { get; set; } = new();
 
-    public TvDBSettings TvDB { get; set; } = new();
-
     public ImportSettings Import { get; set; } = new();
 
     public PlexSettings Plex { get; set; } = new();

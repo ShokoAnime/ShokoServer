@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NHibernate;
@@ -48,51 +49,46 @@ public class SearchTraktSeriesJob : BaseJob
         var sessionWrapper = session.Wrap();
         var doReturn = false;
 
-        // let's try to see locally if we have a tvDB link for this anime
-        // Trakt allows the use of TvDB ID's or their own Trakt ID's
-        var xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AnimeID);
-        if (xrefTvDBs is { Count: > 0 })
+        // let's try to see locally if we have a tmdb link for this anime
+        // Trakt allows the use of tmdb ID's or their own Trakt ID's
+        if (RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AnimeID) is { Count: > 0 } tmdbXrefs)
         {
-            foreach (var tvXRef in xrefTvDBs)
+            foreach (var tmdbXref in tmdbXrefs)
             {
-                // first search for this show by the TvDB ID
-                var searchResults =
-                    _helper.SearchShowByIDV2(TraktSearchIDType.tvdb,
-                        tvXRef.TvDBID.ToString());
-                if (searchResults == null || searchResults.Count <= 0) continue;
-
-                // since we are searching by ID, there will only be one 'show' result
-                TraktV2Show resShow = null;
-                foreach (var res in searchResults)
-                {
-                    if (res.ResultType != SearchIDType.Show) continue;
-
-                    resShow = res.show;
-                    break;
-                }
-
+                // first search for this show by the tmdb ID
+                var searchResults = _helper.SearchShowByTmdbId(tmdbXref.TmdbShowID);
+                var resShow = searchResults.FirstOrDefault()?.Show;
                 if (resShow == null) continue;
 
-                var showInfo = _helper.GetShowInfoV2(resShow.ids.slug);
-                if (showInfo?.ids == null) continue;
+                var showInfo = _helper.GetShowInfoV2(resShow.IDs.TraktSlug);
+                if (showInfo?.IDs == null) continue;
 
-                // make sure the season specified by TvDB also exists on Trakt
-                var traktShow =
-                    RepoFactory.Trakt_Show.GetByTraktSlug(session, showInfo.ids.slug);
+                // make sure the season specified by tmdb also exists on Trakt
+                var traktShow = RepoFactory.Trakt_Show.GetByTraktSlug(session, showInfo.IDs.TraktSlug);
                 if (traktShow == null) continue;
 
+                var episodeXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAllByAnidbAnimeAndTmdbShowIDs(AnimeID, tmdbXref.TmdbShowID)
+                    .Select(xref => new { xref, tmdb = xref.TmdbEpisode, anidb = xref.AnidbEpisode })
+                    .Where(xref => xref.tmdb != null && xref.anidb != null)
+                    .ToList();
+                var seasonNumber = episodeXrefs.GroupBy(x => x.tmdb.SeasonNumber).MaxBy(x => x.Count())?.Key ?? -1;
+                if (seasonNumber == -1) continue;
                 var traktSeason = RepoFactory.Trakt_Season.GetByShowIDAndSeason(
                     session,
                     traktShow.Trakt_ShowID,
-                    tvXRef.TvDBSeasonNumber);
+                    seasonNumber);
                 if (traktSeason == null) continue;
 
-                _logger.LogTrace("Found trakt match using TvDBID locally {AnimeID} - id = {Title}",
-                    AnimeID, showInfo.title);
+                var firstEpisode = episodeXrefs.Where(x => x.tmdb.SeasonNumber == seasonNumber).MinBy(x => x.tmdb.EpisodeNumber);
+                if (firstEpisode == null) continue;
+
+                _logger.LogTrace("Found trakt match using local TMDB Show: {Trakt Title} (AnidbAnime={AnidbAnimeID},TmdbShow={TmdbShowID})", showInfo.Title, AnimeID, tmdbXref.TmdbShowID);
                 _helper.LinkAniDBTrakt(AnimeID,
-                    (EpisodeType)tvXRef.AniDBStartEpisodeType,
-                    tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
-                    tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
+                    firstEpisode.anidb.EpisodeTypeEnum,
+                    firstEpisode.anidb.EpisodeNumber,
+                    showInfo.IDs.TraktSlug,
+                    firstEpisode.tmdb.SeasonNumber,
+                    firstEpisode.tmdb.EpisodeNumber,
                     true);
                 doReturn = true;
             }
@@ -100,16 +96,13 @@ public class SearchTraktSeriesJob : BaseJob
             if (doReturn) return Task.CompletedTask;
         }
 
-        // Use TvDB setting due to similarity
-        if (!settings.TraktTv.AutoLink) return Task.CompletedTask;
-
         // finally lets try searching Trakt directly
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
         if (anime == null) return Task.CompletedTask;
 
         var searchCriteria = anime.MainTitle;
 
-        // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+        // if not wanting to use web cache, or no match found on the web cache go to tmdb directly
         var results = _helper.SearchShowV2(searchCriteria);
         _logger.LogTrace("Found {Count} trakt results for {Criteria} ", results.Count, searchCriteria);
         if (ProcessSearchResults(session, results, searchCriteria)) return Task.CompletedTask;
@@ -135,16 +128,16 @@ public class SearchTraktSeriesJob : BaseJob
     {
         if (results.Count == 1)
         {
-            if (results[0].show != null)
+            if (results[0].Show != null)
             {
                 // since we are using this result, lets download the info
                 _logger.LogTrace("Found 1 trakt results for search on {Query} --- Linked to {Title} ({ID})", searchCriteria,
-                    results[0].show.Title, results[0].show.ids.slug);
-                var showInfo = _helper.GetShowInfoV2(results[0].show.ids.slug);
+                    results[0].Show.Title, results[0].Show.IDs.TraktSlug);
+                var showInfo = _helper.GetShowInfoV2(results[0].Show.IDs.TraktSlug);
                 if (showInfo != null)
                 {
                     _helper.LinkAniDBTrakt(session, AnimeID, EpisodeType.Episode, 1,
-                        results[0].show.ids.slug, 1, 1,
+                        results[0].Show.IDs.TraktSlug, 1, 1,
                         true);
                     return true;
                 }

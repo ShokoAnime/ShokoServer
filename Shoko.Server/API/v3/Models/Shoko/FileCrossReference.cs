@@ -40,11 +40,6 @@ public class FileCrossReference
         public int AniDB { get; set; }
 
         /// <summary>
-        /// Any TvDB IDs linked to the AniDB episode.
-        /// </summary>
-        public List<int> TvDB { get; set; } = [];
-
-        /// <summary>
         /// The Movie DataBase (TMDB) Cross-Reference IDs.
         /// </summary>
         public Episode.EpisodeIDs.TmdbEpisodeIDs TMDB { get; set; } = new();
@@ -114,11 +109,6 @@ public class FileCrossReference
         /// The AniDB ID.
         /// </summary>
         public int AniDB { get; set; }
-
-        /// <summary>
-        /// Any TvDB IDs linked to the AniDB series.
-        /// </summary>
-        public List<int> TvDB { get; set; } = [];
 
         /// <summary>
         /// The Movie DataBase (TMDB) Cross-Reference IDs.
@@ -201,7 +191,6 @@ public class FileCrossReference
                             ID = shokoEpisode?.AnimeEpisodeID,
                             AniDB = xref.EpisodeID,
                             ReleaseGroup = releaseGroup,
-                            TvDB = shokoEpisode?.TvDBEpisodes.Select(b => b.Id).ToList() ?? [],
                             TMDB = new()
                             {
                                 Episode = shokoEpisode?.TmdbEpisodeCrossReferences
@@ -247,7 +236,6 @@ public class FileCrossReference
                         {
                             ID = shokoSeries?.AnimeSeriesID,
                             AniDB = tuples.Key,
-                            TvDB = shokoSeries?.TvDBSeries.Select(b => b.SeriesID).ToList() ?? [],
                             TMDB = new()
                             {
                                 Movie = shokoSeries?.TmdbMovieCrossReferences.Select(xref => xref.TmdbMovieID).Distinct().ToList() ?? [],

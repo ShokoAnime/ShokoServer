@@ -110,19 +110,6 @@ public class SettingsProvider : ISettingsProvider
                 DownloadCreators = legacy.AniDB_DownloadCreators,
                 MaxRelationDepth = legacy.AniDB_MaxRelationDepth
             },
-            TvDB =
-                new TvDBSettings
-                {
-                    AutoLink = legacy.TvDB_AutoLink,
-                    AutoFanart = legacy.TvDB_AutoFanart,
-                    AutoFanartAmount = legacy.TvDB_AutoFanartAmount,
-                    AutoWideBanners = legacy.TvDB_AutoWideBanners,
-                    AutoWideBannersAmount = legacy.TvDB_AutoWideBannersAmount,
-                    AutoPosters = legacy.TvDB_AutoPosters,
-                    AutoPostersAmount = legacy.TvDB_AutoPostersAmount,
-                    UpdateFrequency = legacy.TvDB_UpdateFrequency,
-                    Language = legacy.TvDB_Language
-                },
             TMDB =
                 new TMDBSettings
                 {

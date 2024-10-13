@@ -111,7 +111,7 @@ public class DashboardController : BaseController
         var multipleEpisodes = episodes.Count(a => a.VideoLocals.Count(b => !b.IsVariation) > 1);
         var unrecognizedFiles = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
         var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
-        var seriesWithMissingLinks = allSeries.Count(MissingBothTvDBAndMovieDBLink);
+        var seriesWithMissingLinks = allSeries.Count(MissingTMDBLink);
         return new()
         {
             FileCount = files.Count,
@@ -131,7 +131,7 @@ public class DashboardController : BaseController
         };
     }
 
-    private static bool MissingBothTvDBAndMovieDBLink(SVR_AnimeSeries ser)
+    private static bool MissingTMDBLink(SVR_AnimeSeries ser)
     {
         if (ser.IsTMDBAutoMatchingDisabled)
             return false;

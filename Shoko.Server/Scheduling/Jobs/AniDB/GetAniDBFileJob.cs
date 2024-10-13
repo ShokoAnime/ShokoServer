@@ -124,7 +124,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Response.AnimeID);
         if (anime != null)
         {
-            RepoFactory.AniDB_Anime.Save(anime, false);
+            RepoFactory.AniDB_Anime.Save(anime);
         }
 
         var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);

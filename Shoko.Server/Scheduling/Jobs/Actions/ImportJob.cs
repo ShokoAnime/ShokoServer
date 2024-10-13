@@ -24,9 +24,6 @@ public class ImportJob : BaseJob
         // drop folder
         await _service.RunImport_DropFolders();
 
-        // TvDB association checks
-        await _service.RunImport_ScanTvDB();
-
         // Trakt association checks
         _service.RunImport_ScanTrakt();
 

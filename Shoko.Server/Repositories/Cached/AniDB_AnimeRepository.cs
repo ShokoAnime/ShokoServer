@@ -41,28 +41,6 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
         }
     }
 
-    public override void Save(SVR_AniDB_Anime obj)
-    {
-        Save(obj, true);
-    }
-
-    public void Save(SVR_AniDB_Anime obj, bool generateTvDBMatches)
-    {
-        if (obj.AniDB_AnimeID == 0)
-        {
-            base.Save(obj);
-        }
-
-        // populate the database
-        base.Save(obj);
-
-        if (generateTvDBMatches)
-        {
-            // Update TvDB Linking. Doing it here as updating anime updates episode info in batch
-            lock (obj) TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
-        }
-    }
-
     public SVR_AniDB_Anime GetByAnimeID(int id)
     {
         return ReadLock(() => Animes.GetOne(id));
@@ -101,31 +79,20 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
         {
             // TODO: Determine if joining on the correct columns
             return session.CreateSQLQuery(
-                    @"SELECT {prefImg.*}, {tvdbBanner.*}, {tvdbPoster.*}, {tvdbBackdrop.*}, {tmdbPoster.*}, {tmdbBackdrop.*}
+                    @"SELECT {prefImg.*}, {tmdbPoster.*}, {tmdbBackdrop.*}
                     FROM AniDB_Anime_PreferredImage prefImg
-                        LEFT OUTER JOIN TvDB_ImageWideBanner AS tvdbBanner
-                            ON tvdbBanner.TvDB_ImageWideBannerID = prefImg.ImageID AND prefImg.ImageSource = :tvdbSourceType AND prefImg.ImageType = :imageBannerType
-                        LEFT OUTER JOIN TvDB_ImagePoster AS tvdbPoster
-                            ON tvdbPoster.TvDB_ImagePosterID = prefImg.ImageID AND prefImg.ImageSource = :tvdbSourceType AND prefImg.ImageType = :imagePosterType
-                        LEFT OUTER JOIN TvDB_ImageFanart AS tvdbBackdrop
-                            ON tvdbBackdrop.TvDB_ImageFanartID = prefImg.ImageID AND prefImg.ImageSource = :tvdbSourceType AND prefImg.ImageType = :imageBackdropType
                         LEFT OUTER JOIN TMDB_Image AS tmdbPoster
                             ON tmdbPoster.ImageType = :imagePosterType AND tmdbPoster.TMDB_ImageID = prefImg.ImageID AND prefImg.ImageSource = :tmdbSourceType AND prefImg.ImageParentType = :imagePosterType
                         LEFT OUTER JOIN TMDB_Image AS tmdbBackdrop
                             ON tmdbBackdrop.ImageType = :imageBackdropType AND tmdbBackdrop.TMDB_ImageID = prefImg.ImageID AND prefImg.ImageSource = :tmdbSourceType AND prefImg.ImageType = :imageBackdropType
-                    WHERE prefImg.AnimeID IN (:animeIds) AND prefImg.ImageType IN (:imageBannerType, :imagePosterType, :imageBackdropType)"
+                    WHERE prefImg.AnimeID IN (:animeIds) AND prefImg.ImageType IN (:imagePosterType, :imageBackdropType)"
                 )
                 .AddEntity("prefImg", typeof(AniDB_Anime_PreferredImage))
-                .AddEntity("tvdbBanner", typeof(TvDB_ImageWideBanner))
-                .AddEntity("tvdbPoster", typeof(TvDB_ImagePoster))
-                .AddEntity("tvdbBackdrop", typeof(TvDB_ImageFanart))
                 .AddEntity("tmdbPoster", typeof(TMDB_Image))
                 .AddEntity("tmdbBackdrop", typeof(TMDB_Image))
                 .SetParameterList("animeIds", animeIds)
-                .SetInt32("tvdbSourceType", (int)DataSourceType.TvDB)
                 .SetInt32("tmdbSourceType", (int)DataSourceType.TMDB)
                 .SetInt32("imageBackdropType", (int)ImageEntityType.Backdrop)
-                .SetInt32("imageBannerType", (int)ImageEntityType.Banner)
                 .SetInt32("imagePosterType", (int)ImageEntityType.Poster)
                 .List<object[]>();
         });
@@ -136,20 +103,11 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
             IImageEntity image = null;
             switch (preferredImage.ImageType.ToClient(preferredImage.ImageSource))
             {
-                case CL_ImageEntityType.TvDB_Banner:
-                    image = (IImageEntity)result[1];
-                    break;
-                case CL_ImageEntityType.TvDB_Cover:
-                    image = (IImageEntity)result[2];
-                    break;
-                case CL_ImageEntityType.TvDB_FanArt:
-                    image = (IImageEntity)result[3];
-                    break;
                 case CL_ImageEntityType.MovieDB_Poster:
-                    image = ((TMDB_Image)result[4]).ToClientPoster();
+                    image = ((TMDB_Image)result[1]).ToClientPoster();
                     break;
                 case CL_ImageEntityType.MovieDB_FanArt:
-                    image = ((TMDB_Image)result[5]).ToClientFanart();
+                    image = ((TMDB_Image)result[2]).ToClientFanart();
                     break;
             }
 

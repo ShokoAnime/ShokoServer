@@ -62,16 +62,6 @@ public interface IFilterable
     IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; }
 
     /// <summary>
-    /// Has at least one TvDB Link
-    /// </summary>
-    bool HasTvDBLink { get; }
-
-    /// <summary>
-    /// Missing at least one TvDB Link
-    /// </summary>
-    bool HasMissingTvDbLink { get; }
-
-    /// <summary>
     /// Has at least one TMDB Link
     /// </summary>
     bool HasTmdbLink { get; }

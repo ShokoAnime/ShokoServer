@@ -15,6 +15,7 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -74,7 +75,7 @@ public class AnimeCreator
             var taskTimer = Stopwatch.StartNew();
             var totalTimer = Stopwatch.StartNew();
             var (updated, descriptionUpdated) = PopulateAnime(response.Anime, anime);
-            RepoFactory.AniDB_Anime.Save(anime, false);
+            RepoFactory.AniDB_Anime.Save(anime);
 
             taskTimer.Stop();
             _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
@@ -495,8 +496,7 @@ public class AnimeCreator
         var anidbFilesToRemove = new List<SVR_AniDB_File>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
         var videosToRefetch = new List<SVR_VideoLocal>();
-        var tvdbXRefsToRemove = new List<CrossRef_AniDB_TvDB_Episode>();
-        var tvdbXRefOverridesToRemove = new List<CrossRef_AniDB_TvDB_Episode_Override>();
+        var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         if (correctSeries != null)
             shokoSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);
         foreach (var episode in epsToSave)
@@ -535,13 +535,11 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
                 .Where(anidbFile => anidbFile != null)
                 .ToList();
-            var tvdbXRefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(episode.EpisodeID);
-            var tvdbXRefOverrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(episode.EpisodeID);
+            var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             anidbFilesToRemove.AddRange(anidbFiles);
-            tvdbXRefsToRemove.AddRange(tvdbXRefs);
-            tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
+            tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
         shokoSeriesDict.Clear();
 
@@ -563,13 +561,11 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
                 .Where(anidbFile => anidbFile != null)
                 .ToList();
-            var tvdbXRefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(episode.EpisodeID);
-            var tvdbXRefOverrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(episode.EpisodeID);
+            var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             anidbFilesToRemove.AddRange(anidbFiles);
-            tvdbXRefsToRemove.AddRange(tvdbXRefs);
-            tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
+            tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
 
         RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
@@ -580,8 +576,7 @@ public class AnimeCreator
         RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
-        RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(tvdbXRefsToRemove);
-        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(tvdbXRefOverridesToRemove);
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXRefsToRemove);
 
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's

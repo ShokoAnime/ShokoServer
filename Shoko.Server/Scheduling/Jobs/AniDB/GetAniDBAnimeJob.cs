@@ -19,7 +19,6 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
@@ -364,9 +363,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         if (!anime.IsRestricted)
         {
-            if (_settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
-                await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID).ConfigureAwait(false);
-
             if (_settings.TraktTv.Enabled && _settings.TraktTv.AutoLink && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) && !series.IsTraktAutoMatchingDisabled)
                 await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID).ConfigureAwait(false);
         }

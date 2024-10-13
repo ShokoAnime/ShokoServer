@@ -262,8 +262,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
             images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var xref in TmdbMovieCrossReferences)
             images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var tvdbShow in TvDBSeries)
-            images.AddRange(tvdbShow.GetImages(entityType, preferredImages));
 
         return images;
     }
@@ -273,62 +271,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     #region AniDB
 
     public List<SVR_AniDB_Episode> AniDBEpisodes => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
-
-    #endregion
-
-    #region TvDB
-
-    public List<CrossRef_AniDB_TvDB> TvdbSeriesCrossReferences
-        => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
-
-    public List<TvDB_Series> TvDBSeries
-        => TvdbSeriesCrossReferences.Select(xref => xref.GetTvDBSeries()).WhereNotNull().ToList();
-
-    public List<TvDB_Episode> TvDBEpisodes
-    {
-        get
-        {
-            var results = new List<TvDB_Episode>();
-            var id = TvdbSeriesCrossReferences.FirstOrDefault()?.TvDBID ?? -1;
-            if (id != -1)
-            {
-                results.AddRange(RepoFactory.TvDB_Episode.GetBySeriesID(id).OrderBy(a => a.SeasonNumber)
-                    .ThenBy(a => a.EpisodeNumber));
-            }
-
-            return results;
-        }
-    }
-
-    public List<TvDB_ImageFanart> TvdbBackdrops
-    {
-        get
-        {
-            var results = new List<TvDB_ImageFanart>();
-            var id = TvdbSeriesCrossReferences.FirstOrDefault()?.TvDBID ?? -1;
-            if (id != -1)
-            {
-                results.AddRange(RepoFactory.TvDB_ImageFanart.GetBySeriesID(id));
-            }
-
-            return results;
-        }
-    }
-
-    public List<TvDB_ImageWideBanner> TvdbBanners
-    {
-        get
-        {
-            var results = new List<TvDB_ImageWideBanner>();
-            var id = TvdbSeriesCrossReferences.FirstOrDefault()?.TvDBID ?? -1;
-            if (id != -1)
-            {
-                results.AddRange(RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(id));
-            }
-
-            return results;
-        }
-    }
 
     #endregion
 

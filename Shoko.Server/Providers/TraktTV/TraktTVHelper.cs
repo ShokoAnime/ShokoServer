@@ -10,12 +10,12 @@ using Microsoft.Extensions.Logging;
 using NHibernate;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.Trakt;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -526,7 +526,7 @@ public class TraktTVHelper
     public void ScanForMatches()
     {
         var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || !settings.TvDB.AutoLink)
+        if (!settings.TraktTv.Enabled || !settings.TraktTv.AutoLink)
         {
             return;
         }
@@ -783,63 +783,6 @@ public class TraktTVHelper
 
     #region Send Data to Trakt
 
-    public CL_Response<bool> PostCommentShow(string traktSlug, string commentText, bool isSpoiler)
-    {
-        var ret = new CL_Response<bool>();
-        try
-        {
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled)
-            {
-                ret.ErrorMessage = "Trakt has not been enabled";
-                ret.Result = false;
-                return ret;
-            }
-
-            if (string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-            {
-                ret.ErrorMessage = "Trakt has not been authorized";
-                ret.Result = false;
-                return ret;
-            }
-
-            if (string.IsNullOrEmpty(commentText))
-            {
-                ret.ErrorMessage = "Please enter text for your comment";
-                ret.Result = false;
-                return ret;
-            }
-
-            var comment = new TraktV2CommentShowPost();
-            comment.Init(commentText, isSpoiler, traktSlug);
-
-            var json = JSONHelper.Serialize(comment);
-
-
-            var retData = string.Empty;
-            TraktTVRateLimiter.Instance.EnsureRate();
-            var response = SendData(TraktURIs.PostComment, json, "POST", BuildRequestHeaders(), ref retData);
-            if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post ||
-                response == TraktStatusCodes.Success_Delete)
-            {
-                ret.ErrorMessage = "Success";
-                ret.Result = true;
-                return ret;
-            }
-
-            ret.ErrorMessage = $"{response} Error - {retData}";
-            ret.Result = false;
-            return ret;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in TraktTVHelper.PostCommentShow");
-            ret.ErrorMessage = ex.Message;
-            ret.Result = false;
-            return ret;
-        }
-    }
-
     private DateTime GetEpisodeDateForSync(SVR_AnimeEpisode ep, TraktSyncType syncType)
     {
         DateTime epDate;
@@ -1091,90 +1034,64 @@ public class TraktTVHelper
 
     public List<TraktV2SearchShowResult> SearchShowV2(string criteria)
     {
-        var results = new List<TraktV2SearchShowResult>();
-
         var settings = _settingsProvider.GetSettings();
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-        {
-            return results;
-        }
+            return [];
 
         try
         {
-            // replace spaces with a + symbo
-            //criteria = criteria.Replace(' ', '+');
-
             // Search for a series
-            var url = string.Format(TraktURIs.Search, criteria, TraktSearchType.show);
+            var url = string.Format(TraktURIs.SearchByQuery, "show", WebUtility.UrlEncode(criteria));
             _logger.LogTrace("Search Trakt Show: {URL}", url);
 
             // Search for a series
             var json = GetFromTrakt(url);
-
             if (string.IsNullOrEmpty(json))
-            {
-                return new List<TraktV2SearchShowResult>();
-            }
+                return [];
 
             var result = json.FromJSONArray<TraktV2SearchShowResult>();
             if (result == null)
-            {
-                return null;
-            }
+                return [];
 
             return new List<TraktV2SearchShowResult>(result);
-
-            // save this data for later use
-            //foreach (TraktTVShow tvshow in results)
-            //    SaveExtendedShowInfo(tvshow);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in Trakt SearchSeries");
         }
 
-        return null;
+        return [];
     }
 
-    public List<TraktV2SearchTvDBIDShowResult> SearchShowByIDV2(string idType, string id)
+    public List<TraktV2SearchShowResult> SearchShowByTmdbId(int id)
     {
-        var results = new List<TraktV2SearchTvDBIDShowResult>();
-
         var settings = _settingsProvider.GetSettings();
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-        {
-            return results;
-        }
+            return [];
 
         try
         {
             // Search for a series
-            var url = string.Format(TraktURIs.SearchByID, idType, id);
+            var url = string.Format(TraktURIs.SearchByID, "tmdb", id, "show");
             _logger.LogTrace("Search Trakt Show: {Url}", url);
 
             // Search for a series
             var json = GetFromTrakt(url);
-
             if (string.IsNullOrEmpty(json))
-            {
-                return new List<TraktV2SearchTvDBIDShowResult>();
-            }
+                return [];
 
             //var result2 = json.FromJSONArray<Class1>();
-            var result = json.FromJSONArray<TraktV2SearchTvDBIDShowResult>();
+            var result = json.FromJSONArray<TraktV2SearchShowResult>();
             if (result == null)
-            {
-                return null;
-            }
+                return [];
 
-            return new List<TraktV2SearchTvDBIDShowResult>(result);
+            return result.ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in SearchSeries");
+            return [];
         }
-
-        return null;
     }
 
 
@@ -1245,7 +1162,7 @@ public class TraktTVHelper
         try
         {
             // save this data to the DB for use later
-            var show = RepoFactory.Trakt_Show.GetByTraktSlug(tvshow.ids.slug) ?? new Trakt_Show();
+            var show = RepoFactory.Trakt_Show.GetByTraktSlug(tvshow.IDs.TraktSlug) ?? new Trakt_Show();
 
             show.Populate(tvshow);
             RepoFactory.Trakt_Show.Save(show);
@@ -1258,10 +1175,10 @@ public class TraktTVHelper
                 foreach (var epTemp in RepoFactory.Trakt_Episode.GetByShowID(show.Trakt_ShowID))
                 {
                     TraktV2Episode ep = null;
-                    var sea = seasons.FirstOrDefault(x => x.number == epTemp.Season);
+                    var sea = seasons.FirstOrDefault(x => x.SeasonNumber == epTemp.Season);
                     if (sea != null)
                     {
-                        ep = sea.episodes.FirstOrDefault(x => x.number == epTemp.EpisodeNumber);
+                        ep = sea.Episodes.FirstOrDefault(x => x.EpisodeNumber == epTemp.EpisodeNumber);
                     }
 
                     // if the episode is null, it means it doesn't exist on Trakt, so we should delete it
@@ -1274,32 +1191,32 @@ public class TraktTVHelper
 
             foreach (var sea in seasons)
             {
-                var season = RepoFactory.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number) ??
+                var season = RepoFactory.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.SeasonNumber) ??
                              new Trakt_Season();
 
-                season.Season = sea.number;
-                season.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
+                season.Season = sea.SeasonNumber;
+                season.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.SeasonNumber);
                 season.Trakt_ShowID = show.Trakt_ShowID;
                 RepoFactory.Trakt_Season.Save(season);
 
-                if (sea.episodes == null)
+                if (sea.Episodes == null)
                 {
                     continue;
                 }
 
-                foreach (var ep in sea.episodes)
+                foreach (var ep in sea.Episodes)
                 {
                     var episode = RepoFactory.Trakt_Episode.GetByShowIDSeasonAndEpisode(
-                        show.Trakt_ShowID, ep.season,
-                        ep.number) ?? new Trakt_Episode();
+                        show.Trakt_ShowID, ep.SeasonNumber,
+                        ep.EpisodeNumber) ?? new Trakt_Episode();
 
-                    episode.TraktID = ep.ids.TraktID;
-                    episode.EpisodeNumber = ep.number;
+                    episode.TraktID = ep.IDs.TraktID;
+                    episode.EpisodeNumber = ep.EpisodeNumber;
                     episode.Overview = string.Empty;
                     // this is now part of a separate API call for V2, we get this info from TvDB anyway
-                    episode.Season = ep.season;
-                    episode.Title = ep.title;
-                    episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
+                    episode.Season = ep.SeasonNumber;
+                    episode.Title = ep.Title;
+                    episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.SeasonNumber, ep.EpisodeNumber);
                     episode.Trakt_ShowID = show.Trakt_ShowID;
                     RepoFactory.Trakt_Episode.Save(episode);
                 }
@@ -1579,7 +1496,7 @@ public class TraktTVHelper
 
                 // check if we have this series locally
                 var xrefs =
-                    RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
+                    RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.IDs.TraktSlug);
 
                 if (xrefs.Count <= 0)
                 {
@@ -1664,7 +1581,7 @@ public class TraktTVHelper
 
                 // check if we have this series locally
                 var xrefs =
-                    RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
+                    RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.IDs.TraktSlug);
 
                 if (xrefs.Count <= 0)
                 {
@@ -1800,7 +1717,7 @@ public class TraktTVHelper
                     return false;
                 }
 
-                show = RepoFactory.Trakt_Show.GetByTraktSlug(tempShow.ids.slug);
+                show = RepoFactory.Trakt_Show.GetByTraktSlug(tempShow.IDs.TraktSlug);
             }
 
             // note - getting extended show info also updates it as well
@@ -1864,7 +1781,7 @@ public class TraktTVHelper
 
             // get the current collected records for this series on Trakt
             TraktV2CollectedEpisode epTraktCol = null;
-            var col = collected.FirstOrDefault(x => x.show.ids.slug == traktShowID);
+            var col = collected.FirstOrDefault(x => x.show.IDs.TraktSlug == traktShowID);
             if (col != null)
             {
                 var sea = col.seasons.FirstOrDefault(x => x.number == season);
@@ -1878,7 +1795,7 @@ public class TraktTVHelper
 
             // get the current watched records for this series on Trakt
             TraktV2WatchedEpisode epTraktWatched = null;
-            var wtc = watched.FirstOrDefault(x => x.show.ids.slug == traktShowID);
+            var wtc = watched.FirstOrDefault(x => x.show.IDs.TraktSlug == traktShowID);
             if (wtc != null)
             {
                 var sea = wtc.seasons.FirstOrDefault(x => x.number == season);

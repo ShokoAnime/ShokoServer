@@ -407,7 +407,6 @@ public class AnimeGroupService
         var hasFinishedAiring = false;
         var isCurrentlyAiring = false;
         var videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        var tvDbXrefByAnime = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeIDs(allIDs);
         var traktXrefByAnime = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allIDs);
         var allVidQualByGroup = allSeriesForGroup.SelectMany(a => _fileEpisodes.GetByAnimeID(a.AniDB_ID)).Select(a => _files.GetByHash(a.Hash)?.File_Source)
             .WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
@@ -421,11 +420,9 @@ public class AnimeGroupService
             .ToDictionary(a => a[0].AnidbAnimeID);
         var malXRefByAnime = allIDs.SelectMany(a => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(a)).ToLookup(a => a.AnimeID);
         // Even though the contract value says 'has link', it's easier to think about whether it's missing
-        var missingTvDBLink = false;
         var missingTraktLink = false;
         var missingMALLink = false;
         var missingTMDBLink = false;
-        var missingTvDBAndMovieDBLink = false;
         var seriesCount = 0;
         var epCount = 0;
 
@@ -570,21 +567,12 @@ public class AnimeGroupService
                 seriesCreatedDate = createdDate;
             }
 
-            // For the group, if any of the series don't have a tvdb link
-            // we will consider the group as not having a tvdb link
-            var foundTvDBLink = tvDbXrefByAnime[anime.AnimeID].Any();
+            // For the group, if any of the series don't have a tmdb link
+            // we will consider the group as not having a tmdb link
             var foundTraktLink = traktXrefByAnime[anime.AnimeID].Any();
             var foundTMDBShowLink = tmdbShowXrefByAnime.TryGetValue(anime.AnimeID, out var _);
             var foundTMDBMovieLink = tmdbMovieXrefByAnime.TryGetValue(anime.AnimeID, out var _);
             var isMovie = anime.AnimeType == (int)AnimeType.Movie;
-            if (!foundTvDBLink)
-            {
-                if (!isMovie && !anime.IsRestricted && !series.IsTvDBAutoMatchingDisabled)
-                {
-                    missingTvDBLink = true;
-                }
-            }
-
             if (!foundTraktLink)
             {
                 missingTraktLink = true;
@@ -602,8 +590,6 @@ public class AnimeGroupService
             {
                 missingMALLink = true;
             }
-
-            missingTvDBAndMovieDBLink |= missingTvDBLink || missingTMDBLink;
 
             var endYear = anime.EndYear;
             if (endYear == 0)
@@ -648,11 +634,11 @@ public class AnimeGroupService
         contract.Stat_IsComplete = isComplete;
         contract.Stat_HasFinishedAiring = hasFinishedAiring;
         contract.Stat_IsCurrentlyAiring = isCurrentlyAiring;
-        contract.Stat_HasTvDBLink = !missingTvDBLink; // Has a link if it isn't missing
+        contract.Stat_HasTvDBLink = false; // Deprecated
         contract.Stat_HasTraktLink = !missingTraktLink; // Has a link if it isn't missing
         contract.Stat_HasMALLink = !missingMALLink; // Has a link if it isn't missing
         contract.Stat_HasMovieDBLink = !missingTMDBLink; // Has a link if it isn't missing
-        contract.Stat_HasMovieDBOrTvDBLink = !missingTvDBAndMovieDBLink; // Has a link if it isn't missing
+        contract.Stat_HasMovieDBOrTvDBLink = !missingTMDBLink; // Has a link if it isn't missing
         contract.Stat_SeriesCount = seriesCount;
         contract.Stat_EpisodeCount = epCount;
         contract.Stat_AllVideoQuality_Episodes = videoQualityEpisodes;

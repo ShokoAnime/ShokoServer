@@ -18,7 +18,6 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Utilities;
 
 #pragma warning disable ASP0023
@@ -55,41 +54,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (anime == null)
             {
                 return result;
-            }
-
-            var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
-
-            // TvDB
-            result.CrossRef_AniDB_TvDB = xrefs;
-
-            foreach (var ep in anime.TvDBEpisodes)
-            {
-                result.TvDBEpisodes.Add(ep);
-            }
-
-            foreach (var xref in xrefs.DistinctBy(a => a.TvDBID))
-            {
-                var ser = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
-                if (ser != null)
-                {
-                    result.TvDBSeries.Add(ser);
-                }
-
-                foreach (var fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
-                {
-                    result.TvDBImageFanarts.Add(fanart);
-                }
-
-                foreach (var poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(xref.TvDBID))
-                {
-                    result.TvDBImagePosters.Add(poster);
-                }
-
-                foreach (var banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref
-                             .TvDBID))
-                {
-                    result.TvDBImageWideBanners.Add(banner);
-                }
             }
 
             // Trakt
@@ -221,157 +185,55 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("Series/TvDB/Refresh/{seriesID}")]
     public string UpdateTvDBData(int seriesID)
     {
-        try
-        {
-            _schedulerFactory.GetScheduler().Result.StartJobNow<GetTvDBSeriesJob>(
-                c =>
-                {
-                    c.TvDBSeriesID = seriesID;
-                    c.ForceRefresh = true;
-                }
-            ).GetAwaiter().GetResult();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-        }
-
         return string.Empty;
     }
 
     [HttpGet("TvDB/Language")]
     public List<TvDB_Language> GetTvDBLanguages()
     {
-        try
-        {
-            return _tvdbHelper.GetLanguagesAsync().Result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-        }
-
         return [];
     }
 
     [HttpGet("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}")]
     public List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
     {
-        try
-        {
-            return [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("TvDB/CrossRef/{animeID}")]
     public List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID)
     {
-        try
-        {
-            return RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("TvDB/CrossRef/Preview/{animeID}/{tvdbID}")]
     public List<CrossRef_AniDB_TvDB_Episode> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID)
     {
-        return TvDBLinkingHelper.GetMatchPreviewWithOverrides(animeID, tvdbID);
+        return [];
     }
 
     [HttpGet("TvDB/CrossRef/Episode/{animeID}")]
     public List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID)
     {
-        try
-        {
-            return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID).ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("TvDB/Search/{criteria}")]
     public List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria)
     {
-        try
-        {
-            return _tvdbHelper.SearchSeriesAsync(criteria).Result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("Series/Seasons/{seriesID}")]
     public List<int> GetSeasonNumbersForSeries(int seriesID)
     {
-        var seasonNumbers = new List<int>();
-        try
-        {
-            // refresh data from TvDB
-            _tvdbHelper.UpdateSeriesInfoAndImages(seriesID, true, false).GetAwaiter().GetResult();
-
-            seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
-
-            return seasonNumbers;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return seasonNumbers;
-        }
+        return [];
     }
 
     [HttpPost("TvDB/CrossRef")]
     public string LinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
     {
-        try
-        {
-            var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(link.AnimeID, link.TvDBID);
-
-            if (xref != null && link.IsAdditive)
-            {
-                var msg = $"You have already linked Anime ID {xref.AniDBID} to this TvDB show/season/ep";
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
-                if (anime != null)
-                {
-                    msg =
-                        $"You have already linked Anime {anime.MainTitle} ({xref.AniDBID}) to this TvDB show/season/ep";
-                }
-
-                return msg;
-            }
-
-            // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-            _schedulerFactory.GetScheduler().Result.StartJobNow<LinkTvDBSeriesJob>(c =>
-                {
-                    c.AnimeID = link.AnimeID;
-                    c.TvDBID = link.TvDBID;
-                    c.AdditiveLink = link.IsAdditive;
-                }
-            ).GetAwaiter().GetResult();
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpPost("TvDB/CrossRef/FromWebCache")]
@@ -383,17 +245,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}")]
     public string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID)
     {
-        try
-        {
-            _tvdbHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID);
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     /// <summary>
@@ -404,162 +256,43 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpDelete("TvDB/CrossRef/{animeID}")]
     public string RemoveLinkAniDBTvDBForAnime(int animeID)
     {
-        try
-        {
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-
-            if (ser == null)
-            {
-                return "Could not find Series for Anime!";
-            }
-
-            var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
-            if (xrefs == null)
-            {
-                return string.Empty;
-            }
-
-            foreach (var xref in xrefs)
-                _tvdbHelper.RemoveLinkAniDBTvDB(xref.AniDBID, xref.TvDBID);
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpDelete("TvDB/CrossRef")]
     public string RemoveLinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
     {
-        try
-        {
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(link.AnimeID);
-
-            if (ser == null)
-            {
-                return "Could not find Series for Anime!";
-            }
-
-            _tvdbHelper.RemoveLinkAniDBTvDB(link.AnimeID, link.TvDBID);
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpDelete("TvDB/CrossRef/Episode/{aniDBEpisodeID}/{tvDBEpisodeID}")]
     public string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID, int tvDBEpisodeID)
     {
-        try
-        {
-            var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
-
-            if (ep == null)
-            {
-                return "Could not find Episode";
-            }
-
-            var xref =
-                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBEpisodeID,
-                    tvDBEpisodeID);
-            if (xref == null)
-            {
-                return "Could not find Link!";
-            }
-
-
-            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(xref.CrossRef_AniDB_TvDB_Episode_OverrideID);
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpGet("TvDB/Poster/{tvDBID?}")]
     public List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
     {
-        try
-        {
-            if (tvDBID.HasValue)
-            {
-                return RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
-            }
-
-            return RepoFactory.TvDB_ImagePoster.GetAll().ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("TvDB/Banner/{tvDBID?}")]
     public List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID)
     {
-        try
-        {
-            if (tvDBID.HasValue)
-            {
-                return RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
-            }
-
-            return RepoFactory.TvDB_ImageWideBanner.GetAll().ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("TvDB/Fanart/{tvDBID?}")]
     public List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID)
     {
-        try
-        {
-            if (tvDBID.HasValue)
-            {
-                return RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
-            }
-
-            return RepoFactory.TvDB_ImageFanart.GetAll().ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("TvDB/Episode/{tvDBID?}")]
     public List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID)
     {
-        try
-        {
-            if (tvDBID.HasValue)
-            {
-                return RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
-            }
-
-            return RepoFactory.TvDB_Episode.GetAll().ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     #endregion
@@ -919,7 +652,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("Trakt/Comment/{traktID}/{isSpoiler}")]
     public CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler)
     {
-        return _traktHelper.PostCommentShow(traktID, commentText, isSpoiler);
+        return new CL_Response<bool>() { Result = false };
     }
 
     [HttpPost("Trakt/LinkValidity/{slug}/{removeDBEntries}")]

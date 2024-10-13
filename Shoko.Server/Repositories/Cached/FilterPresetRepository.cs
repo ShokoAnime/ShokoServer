@@ -202,13 +202,13 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         };
         Save(gf);
 
-        // TvDB/MovieDB Link Missing
+        // TMDB Link Missing
         gf = new FilterPreset
         {
             Name = Constants.GroupFilterName.MissingLinks,
             ApplyAtSeriesLevel = true,
             FilterType = GroupFilterType.UserDefined,
-            Expression = new OrExpression(new MissingTvDBLinkExpression(), new MissingTmdbLinkExpression()),
+            Expression = new MissingTmdbLinkExpression(),
             SortingExpression = new NameSortingSelector()
         };
         Save(gf);

@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 138;
+    public override int RequiredVersion { get; } = 139;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -837,6 +837,17 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(137, 1, "ALTER TABLE `TMDB_Show` ADD COLUMN `PreferredAlternateOrderingID`  VARCHAR(64) CHARACTER SET UTF8 NULL DEFAULT NULL;"),
         new(138, 1, "ALTER TABLE `TMDB_Show` CHANGE COLUMN `ContentRatings` `ContentRatings` VARCHAR(512) CHARACTER SET UTF8 NOT NULL"),
         new(138, 2, "ALTER TABLE `TMDB_Movie` CHANGE COLUMN `ContentRatings` `ContentRatings` VARCHAR(512) CHARACTER SET UTF8 NOT NULL"),
+        new(139, 1, "DROP TABLE TvDB_Episode;"),
+        new(139, 2, "DROP TABLE TvDB_Series;"),
+        new(139, 3, "DROP TABLE TvDB_ImageFanart;"),
+        new(139, 4, "DROP TABLE TvDB_ImagePoster;"),
+        new(139, 5, "DROP TABLE TvDB_ImageBanner;"),
+        new(139, 6, "DROP TABLE CrossRef_AniDB_TvDB;"),
+        new(139, 7, "DROP TABLE CrossRef_AniDB_TvDB_Episode;"),
+        new(139, 8, "DROP TABLE CrossRef_AniDB_TvDB_Episode_Override;"),
+        new(139, 9, "ALTER TABLE Trakt_Show DROP COLUMN TvDB_ID;"),
+        new(139, 10, "ALTER TABLE Trakt_Show ADD COLUMN TmdbShowID INT NULL;"),
+        new(139, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

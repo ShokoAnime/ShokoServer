@@ -32,7 +32,7 @@ public class Image
     public ImageType Type { get; set; }
 
     /// <summary>
-    /// AniDB, TvDB, TMDB, etc.
+    /// AniDB, TMDB, etc.
     /// </summary>
     [Required]
     public ImageSource Source { get; set; }
@@ -170,43 +170,32 @@ public class Image
     private static readonly List<DataSourceType> _bannerImageSources =
     [
         DataSourceType.TMDB,
-        DataSourceType.TMDB,
-        DataSourceType.TvDB,
     ];
 
     private static readonly List<DataSourceType> _posterImageSources =
     [
         DataSourceType.AniDB,
-        DataSourceType.AniDB,
         DataSourceType.TMDB,
-        DataSourceType.TMDB,
-        DataSourceType.TvDB,
     ];
 
     private static readonly List<DataSourceType> _thumbImageSources =
     [
         DataSourceType.TMDB,
-        DataSourceType.TMDB,
-        DataSourceType.TvDB,
     ];
 
     private static readonly List<DataSourceType> _backdropImageSources =
     [
         DataSourceType.TMDB,
-        DataSourceType.TMDB,
-        DataSourceType.TvDB,
     ];
 
     private static readonly List<DataSourceType> _characterImageSources =
     [
         DataSourceType.AniDB,
-        DataSourceType.Shoko
     ];
 
     private static readonly List<DataSourceType> _staffImageSources =
     [
         DataSourceType.AniDB,
-        DataSourceType.Shoko
     ];
 
     internal static DataSourceType GetRandomImageSource(ImageType imageType)
@@ -235,11 +224,6 @@ public class Image
         /// AniDB.
         /// </summary>
         AniDB = 1,
-
-        /// <summary>
-        /// The Tv DataBase (TvDB).
-        /// </summary>
-        TvDB = 2,
 
         /// <summary>
         /// The Movie DataBase (TMDB).

@@ -14,6 +14,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.TMDB;
@@ -512,7 +513,7 @@ public class DatabaseFixes
             }
 
             AnimeCreator.CreateTags(response.Tags, anime);
-            RepoFactory.AniDB_Anime.Save(anime, false);
+            RepoFactory.AniDB_Anime.Save(anime);
         }
 
         // One last time, clean up any unreferenced tags after we've processed
@@ -733,8 +734,7 @@ public class DatabaseFixes
         var anidbFilesToRemove = new List<SVR_AniDB_File>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
         var videosToRefetch = new List<SVR_VideoLocal>();
-        var tvdbXRefsToRemove = new List<CrossRef_AniDB_TvDB_Episode>();
-        var tvdbXRefOverridesToRemove = new List<CrossRef_AniDB_TvDB_Episode_Override>();
+        var tmdbXrefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         foreach (var shokoEpisode in shokoEpisodesToRemove)
         {
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(shokoEpisode.AniDB_EpisodeID);
@@ -747,13 +747,11 @@ public class DatabaseFixes
                 .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
                 .Where(anidbFile => anidbFile != null)
                 .ToList();
-            var tvdbXRefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(shokoEpisode.AniDB_EpisodeID);
-            var tvdbXRefOverrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(shokoEpisode.AniDB_EpisodeID);
+            var tmdbXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             anidbFilesToRemove.AddRange(anidbFiles);
-            tvdbXRefsToRemove.AddRange(tvdbXRefs);
-            tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
+            tmdbXrefsToRemove.AddRange(tmdbXrefs);
         }
 
         // Schedule a refetch of any video files affected by the removal of the
@@ -776,11 +774,8 @@ public class DatabaseFixes
         _logger.Trace($"Deleting {anidbFilesToRemove.Count} orphaned anidb files.");
         RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
 
-        _logger.Trace($"Deleting {tvdbXRefsToRemove.Count} orphaned anidb/tvdb episode cross-references.");
-        RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(tvdbXRefsToRemove);
-
-        _logger.Trace($"Deleting {tvdbXRefOverridesToRemove.Count} orphaned anidb/tvdb episode cross-reference overrides.");
-        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(tvdbXRefOverridesToRemove);
+        _logger.Trace($"Deleting {tmdbXrefsToRemove.Count} orphaned tmdb xrefs.");
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXrefsToRemove);
 
         _logger.Trace($"Deleting {xrefsToRemove.Count} orphaned file/episode cross-references.");
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
@@ -816,5 +811,12 @@ public class DatabaseFixes
         };
 
         RepoFactory.RenamerConfig.Save(config);
+    }
+
+    public static void CleanupAfterRemovingTvDB()
+    {
+        var dir = new DirectoryInfo(Path.Join(ImageUtils.GetBaseImagesPath(), "TvDB"));
+        if (dir.Exists)
+            dir.Delete(true);
     }
 }

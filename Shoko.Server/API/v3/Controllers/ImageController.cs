@@ -22,7 +22,7 @@ public class ImageController : BaseController
     /// <summary>
     /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
     /// </summary>
-    /// <param name="source">AniDB, TvDB, TMDB, Shoko, etc.</param>
+    /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
     /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
     /// <param name="value">The image ID.</param>
     /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
@@ -60,7 +60,7 @@ public class ImageController : BaseController
     /// Enable or disable an image. Disabled images are hidden unless explicitly
     /// asked for.
     /// </summary>
-    /// <param name="source">AniDB, TvDB, TMDB, Shoko, etc.</param>
+    /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
     /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
     /// <param name="value">The image ID.</param>
     /// <param name="body"></param>

@@ -10,13 +10,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.DependencyInjection;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
@@ -27,10 +25,8 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -114,11 +110,9 @@ public class SeriesController : BaseController
 
     internal const string AnidbForbiddenForUser = "Accessing Series.AniDB is not allowed for the current user";
 
-    internal const string TvdbNotFoundForSeriesID = "No Series.TvDB entry for the given seriesID";
+    internal const string TmdbNotFoundForSeriesID = "No TMDB.Show entry for the given seriesID";
 
-    internal const string TvdbNotFoundForTvdbID = "No Series.TvDB entry for the given tvdbID";
-
-    internal const string TvdbForbiddenForUser = "Accessing Series.TvDB is not allowed for the current user";
+    internal const string TmdbForbiddenForUser = "Accessing TMDB.Show is not allowed for the current user";
 
     #endregion
 
@@ -945,192 +939,6 @@ public class SeriesController : BaseController
 
     #endregion
 
-    #region TvDB
-
-    /// <summary>
-    /// Get TvDB Info for series with ID
-    /// </summary>
-    /// <param name="seriesID">Shoko ID</param>
-    /// <returns></returns>
-    [HttpGet("{seriesID}/TvDB")]
-    public ActionResult<List<Series.TvDB>> GetSeriesTvdb([FromRoute, Range(1, int.MaxValue)] int seriesID)
-    {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(TvdbNotFoundForSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(TvdbForbiddenForUser);
-        }
-
-        var allEpisodes = series.AllAnimeEpisodes;
-        return series.TvDBSeries
-            .Select(tvdb => new Series.TvDB(tvdb, allEpisodes))
-            .ToList();
-    }
-
-    /// <summary>
-    /// Add a TvDB link to a series.
-    /// </summary>
-    /// <param name="seriesID">Series ID</param>
-    /// <param name="body">Body containing the information about the link to be made</param>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpPost("{seriesID}/TvDB")]
-    public async Task<ActionResult> LinkTvDB([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
-    {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
-
-        if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
-
-        var tvdbHelper = Utils.ServiceContainer.GetService<TvDBApiHelper>();
-        await tvdbHelper.LinkAniDBTvDB(series.AniDB_ID, body.ID, !body.Replace);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Remove one or all TvDB links from a series.
-    /// </summary>
-    /// <param name="seriesID">Series ID</param>
-    /// <param name="body">Optional. Body containing information about the link to be removed</param>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpDelete("{seriesID}/TvDB")]
-    public ActionResult UnlinkTvDB([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body)
-    {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
-
-        if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
-
-        var tvdbHelper = Utils.ServiceContainer.GetService<TvDBApiHelper>();
-        if (body != null && body.ID > 0)
-            tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, body.ID);
-        else
-            foreach (var xref in RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID))
-                tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, xref.TvDBID);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Queue a refresh of the all the <see cref="Series.TvDB"/> linked to the
-    /// <see cref="Series"/> using the <paramref name="seriesID"/>.
-    /// </summary>
-    /// <param name="seriesID">Shoko ID</param>
-    /// <param name="force">Forcefully retrieve updated data from TvDB</param>
-    /// <returns></returns>
-    [HttpPost("{seriesID}/TvDB/Refresh")]
-    public async Task<ActionResult> RefreshSeriesTvdbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool force = false)
-    {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(TvdbNotFoundForSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(TvdbForbiddenForUser);
-        }
-
-        var tvSeriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID);
-        // TODO No
-        foreach (var crossRef in tvSeriesList)
-            await _seriesService.QueueTvDBRefresh(crossRef.TvDBID, force);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Get TvDB Info from the TvDB ID
-    /// </summary>
-    /// <param name="tvdbID">TvDB ID</param>
-    /// <returns></returns>
-    [HttpGet("TvDB/{tvdbID}")]
-    public ActionResult<Series.TvDB> GetSeriesTvdbByTvdbID([FromRoute] int tvdbID)
-    {
-        var tvdb = RepoFactory.TvDB_Series.GetByTvDBID(tvdbID);
-        if (tvdb == null)
-        {
-            return NotFound(TvdbNotFoundForTvdbID);
-        }
-
-        var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbID).FirstOrDefault();
-        if (xref == null)
-        {
-            return NotFound(TvdbNotFoundForTvdbID);
-        }
-
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
-        if (series == null)
-        {
-            return NotFound(TvdbNotFoundForTvdbID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(TvdbForbiddenForUser);
-        }
-
-        return new Series.TvDB(tvdb, series.AllAnimeEpisodes);
-    }
-
-    /// <summary>
-    /// Directly queue a refresh of the the <see cref="Series.TvDB"/> data using
-    /// the <paramref name="tvdbID"/>.
-    /// </summary>
-    /// <param name="tvdbID">TvDB ID</param>
-    /// <param name="force">Forcefully retrieve updated data from TvDB</param>
-    /// <param name="immediate">Try to immediately refresh the data.</param>
-    /// <returns></returns>
-    [HttpPost("TvDB/{tvdbID}/Refresh")]
-    public async Task<ActionResult<bool>> RefreshSeriesTvdbByTvdbId([FromRoute] int tvdbID, [FromQuery] bool force = false, [FromQuery] bool immediate = false)
-    {
-        return await _seriesService.QueueTvDBRefresh(tvdbID, force, immediate);
-    }
-
-    /// <summary>
-    /// Get a Series from the TvDB ID
-    /// </summary>
-    /// <param name="tvdbID">TvDB ID</param>
-    /// <returns></returns>
-    [HttpGet("TvDB/{tvdbID}/Series")]
-    public ActionResult<List<Series>> GetSeriesByTvdbID([FromRoute] int tvdbID)
-    {
-        var tvdb = RepoFactory.TvDB_Series.GetByTvDBID(tvdbID);
-        if (tvdb == null)
-        {
-            return NotFound(TvdbNotFoundForTvdbID);
-        }
-
-        var seriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbID)
-            .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID))
-            .Where(series => series != null)
-            .ToList();
-
-        var user = User;
-        if (seriesList.Any(series => !user.AllowedSeries(series)))
-        {
-            return Forbid(SeriesForbiddenForUser);
-        }
-
-        return seriesList
-            .Select(series => new Series(series, User.JMMUserID))
-            .ToList();
-    }
-
-    #endregion
-
     #region TMDB
 
     /// <summary>
@@ -1614,10 +1422,10 @@ public class SeriesController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
+            return NotFound(TmdbNotFoundForSeriesID);
 
         if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
+            return Forbid(TmdbForbiddenForUser);
 
         if (tmdbShowID.HasValue && tmdbShowID.Value > 0)
         {
@@ -1656,10 +1464,10 @@ public class SeriesController : BaseController
 
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
+            return NotFound(TmdbNotFoundForSeriesID);
 
         if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
+            return Forbid(TmdbForbiddenForUser);
 
         // Validate the mappings.
         var xrefs = series.TmdbShowCrossReferences;
@@ -1756,10 +1564,10 @@ public class SeriesController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
+            return NotFound(TmdbNotFoundForSeriesID);
 
         if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
+            return Forbid(TmdbForbiddenForUser);
 
         if (!tmdbShowID.HasValue)
         {
@@ -1805,10 +1613,10 @@ public class SeriesController : BaseController
         body ??= new();
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
+            return NotFound(TmdbNotFoundForSeriesID);
 
         if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
+            return Forbid(TmdbForbiddenForUser);
 
         var isMissing = false;
         var xrefs = series.TmdbShowCrossReferences;
@@ -1867,10 +1675,10 @@ public class SeriesController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
+            return NotFound(TmdbNotFoundForSeriesID);
 
         if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
+            return Forbid(TmdbForbiddenForUser);
 
         _tmdbLinkingService.ResetAllEpisodeLinks(series.AniDB_ID, true);
 
@@ -1897,10 +1705,10 @@ public class SeriesController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
+            return NotFound(TmdbNotFoundForSeriesID);
 
         if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
+            return Forbid(TmdbForbiddenForUser);
 
         if (tmdbShowID.HasValue)
         {
@@ -1937,10 +1745,10 @@ public class SeriesController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-            return NotFound(TvdbNotFoundForSeriesID);
+            return NotFound(TmdbNotFoundForSeriesID);
 
         if (!User.AllowedSeries(series))
-            return Forbid(TvdbForbiddenForUser);
+            return Forbid(TmdbForbiddenForUser);
 
         return series.TmdbEpisodeCrossReferences
             .Select(o => o.TmdbEpisode)

@@ -16,12 +16,10 @@ public class Filterable : IFilterable
     private readonly Lazy<int> _episodeCount;
     private readonly Lazy<bool> _hasMissingTmdbLink;
     private readonly Lazy<bool> _hasMissingTraktLink;
-    private readonly Lazy<bool> _hasMissingTvDBLink;
     private readonly Lazy<bool> _hasTmdbLink;
     private readonly Lazy<int> _automaticTmdbEpisodeLinks;
     private readonly Lazy<int> _userVerifiedTmdbEpisodeLinks;
     private readonly Lazy<bool> _hasTraktLink;
-    private readonly Lazy<bool> _hasTvDBLink;
     private readonly Lazy<decimal> _highestAniDBRating;
     private readonly Lazy<bool> _isFinished;
     private readonly Lazy<DateTime> _lastAddedDate;
@@ -123,20 +121,6 @@ public class Filterable : IFilterable
     public Func<IReadOnlySet<(int year, AnimeSeason season)>> SeasonsDelegate
     {
         init => _seasons = new Lazy<IReadOnlySet<(int year, AnimeSeason season)>>(value);
-    }
-
-    public bool HasTvDBLink => _hasTvDBLink.Value;
-
-    public Func<bool> HasTvDBLinkDelegate
-    {
-        init => _hasTvDBLink = new Lazy<bool>(value);
-    }
-
-    public bool HasMissingTvDbLink => _hasMissingTvDBLink.Value;
-
-    public Func<bool> HasMissingTvDbLinkDelegate
-    {
-        init => _hasMissingTvDBLink = new Lazy<bool>(value);
     }
 
     public bool HasTmdbLink => _hasTmdbLink.Value;

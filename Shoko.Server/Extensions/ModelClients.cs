@@ -12,6 +12,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Models.Trakt;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -51,15 +52,15 @@ public static class ModelClients
             AniDB_MaxRelationDepth = settings.AniDb.MaxRelationDepth,
 
             // TvDB
-            TvDB_AutoLink = settings.TvDB.AutoLink,
-            TvDB_AutoFanart = settings.TvDB.AutoFanart,
-            TvDB_AutoFanartAmount = settings.TvDB.AutoFanartAmount,
-            TvDB_AutoPosters = settings.TvDB.AutoPosters,
-            TvDB_AutoPostersAmount = settings.TvDB.AutoPostersAmount,
-            TvDB_AutoWideBanners = settings.TvDB.AutoWideBanners,
-            TvDB_AutoWideBannersAmount = settings.TvDB.AutoWideBannersAmount,
-            TvDB_UpdateFrequency = (int)settings.TvDB.UpdateFrequency,
-            TvDB_Language = settings.TvDB.Language,
+            TvDB_AutoLink = false,
+            TvDB_AutoFanart = false,
+            TvDB_AutoFanartAmount = 0,
+            TvDB_AutoPosters = false,
+            TvDB_AutoPostersAmount = 0,
+            TvDB_AutoWideBanners = false,
+            TvDB_AutoWideBannersAmount = 0,
+            TvDB_UpdateFrequency = (int)ScheduledUpdateFrequency.Never,
+            TvDB_Language = "en",
 
             // TMDB
             MovieDB_AutoFanart = settings.TMDB.AutoDownloadBackdrops,
@@ -246,15 +247,6 @@ public static class ModelClients
 
         switch ((CL_ImageEntityType)contract.ImageParentType)
         {
-            case CL_ImageEntityType.TvDB_Banner:
-                contract.TVWideBanner = parentImage as TvDB_ImageWideBanner;
-                break;
-            case CL_ImageEntityType.TvDB_Cover:
-                contract.TVPoster = parentImage as TvDB_ImagePoster;
-                break;
-            case CL_ImageEntityType.TvDB_FanArt:
-                contract.TVFanart = parentImage as TvDB_ImageFanart;
-                break;
             case CL_ImageEntityType.MovieDB_Poster:
                 contract.MoviePoster = parentImage as MovieDB_Poster;
                 break;
@@ -282,9 +274,6 @@ public static class ModelClients
             ImageSource = (CL_ImageEntityType)image.ImageParentType switch
             {
                 CL_ImageEntityType.AniDB_Cover => DataSourceType.AniDB,
-                CL_ImageEntityType.TvDB_Banner => DataSourceType.TvDB,
-                CL_ImageEntityType.TvDB_Cover => DataSourceType.TvDB,
-                CL_ImageEntityType.TvDB_FanArt => DataSourceType.TvDB,
                 CL_ImageEntityType.MovieDB_FanArt => DataSourceType.TMDB,
                 CL_ImageEntityType.MovieDB_Poster => DataSourceType.TMDB,
                 _ => DataSourceType.None,
@@ -305,10 +294,6 @@ public static class ModelClients
             CL_ImageEntityType.Trakt_Fanart => ImageEntityType.Backdrop,
             CL_ImageEntityType.Trakt_Friend => ImageEntityType.Person,
             CL_ImageEntityType.Trakt_Poster => ImageEntityType.Poster,
-            CL_ImageEntityType.TvDB_Banner => ImageEntityType.Banner,
-            CL_ImageEntityType.TvDB_Cover => ImageEntityType.Poster,
-            CL_ImageEntityType.TvDB_Episode => ImageEntityType.Thumbnail,
-            CL_ImageEntityType.TvDB_FanArt => ImageEntityType.Backdrop,
             CL_ImageEntityType.UserAvatar => ImageEntityType.Thumbnail,
             _ => ImageEntityType.None,
         };
@@ -327,10 +312,6 @@ public static class ModelClients
             CL_ImageEntityType.Trakt_Fanart => DataSourceType.Trakt,
             CL_ImageEntityType.Trakt_Friend => DataSourceType.Trakt,
             CL_ImageEntityType.Trakt_Poster => DataSourceType.Trakt,
-            CL_ImageEntityType.TvDB_Banner => DataSourceType.TvDB,
-            CL_ImageEntityType.TvDB_Cover => DataSourceType.TvDB,
-            CL_ImageEntityType.TvDB_Episode => DataSourceType.TvDB,
-            CL_ImageEntityType.TvDB_FanArt => DataSourceType.TvDB,
             CL_ImageEntityType.UserAvatar => DataSourceType.User,
             _ => DataSourceType.None,
         };
@@ -344,7 +325,6 @@ public static class ModelClients
             DataSourceEnum.Shoko => DataSourceType.Shoko,
             DataSourceEnum.TMDB => DataSourceType.TMDB,
             DataSourceEnum.Trakt => DataSourceType.Trakt,
-            DataSourceEnum.TvDB => DataSourceType.TvDB,
             DataSourceEnum.User => DataSourceType.User,
             _ => DataSourceType.None,
         };
@@ -358,7 +338,6 @@ public static class ModelClients
             DataSourceType.Shoko => DataSourceEnum.Shoko,
             DataSourceType.TMDB => DataSourceEnum.TMDB,
             DataSourceType.Trakt => DataSourceEnum.Trakt,
-            DataSourceType.TvDB => DataSourceEnum.TvDB,
             DataSourceType.User => DataSourceEnum.User,
             _ => DataSourceEnum.AniDB,
         };
@@ -397,14 +376,6 @@ public static class ModelClients
                 ImageEntityType.Poster => CL_ImageEntityType.MovieDB_Poster,
                 _ => CL_ImageEntityType.None,
             },
-            DataSourceType.TvDB => imageType switch
-            {
-                ImageEntityType.Backdrop => CL_ImageEntityType.TvDB_FanArt,
-                ImageEntityType.Banner => CL_ImageEntityType.TvDB_Banner,
-                ImageEntityType.Poster => CL_ImageEntityType.TvDB_Cover,
-                ImageEntityType.Thumbnail => CL_ImageEntityType.TvDB_Episode,
-                _ => CL_ImageEntityType.None,
-            },
             DataSourceType.User => imageType switch
             {
                 ImageEntityType.Thumbnail => CL_ImageEntityType.UserAvatar,
@@ -432,7 +403,7 @@ public static class ModelClients
             Year = show.Year,
             URL = show.URL,
             Overview = show.Overview,
-            TvDB_ID = show.TvDB_ID,
+            TvDB_ID = null,
             Seasons = show.GetTraktSeasons()
                 .Select(a => a.ToClient())
                 .ToList(),

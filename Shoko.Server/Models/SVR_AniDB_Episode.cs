@@ -91,8 +91,6 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
             images.AddRange(tmdbEpisode.GetImages(entityType, preferredImages));
         foreach (var tmdbMovie in TmdbMovies)
             images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
-        foreach (var tvdbEpisode in TvDBEpisodes)
-            images.AddRange(tvdbEpisode.GetImages(entityType, preferredImages));
 
         return images;
     }
@@ -132,39 +130,6 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
             .Select(xref => xref.TmdbEpisode)
             .WhereNotNull()
             .ToList();
-
-    #endregion
-
-    #region TvDB
-
-    public TvDB_Episode? TvDBEpisode
-    {
-        get
-        {
-            // Try Overrides first, then regular
-            return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(EpisodeID)
-                .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(EpisodeID)
-                .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault();
-        }
-    }
-
-    public List<TvDB_Episode> TvDBEpisodes
-    {
-        get
-        {
-            // Try Overrides first, then regular
-            var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(EpisodeID)
-                .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
-            return overrides.Count > 0
-                ? overrides
-                : RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(EpisodeID)
-                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
-        }
-    }
 
     #endregion
 

@@ -38,13 +38,6 @@ public class AniDB_Episode_PreferredImage
         {
             DataSourceType.AniDB when ImageType is ImageEntityType.Poster => RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID) is { } anime ? anime.GetImageMetadata(true) : null,
             DataSourceType.TMDB => RepoFactory.TMDB_Image.GetByID(ImageID)?.GetImageMetadata(true),
-            DataSourceType.TvDB => ImageType switch
-            {
-                ImageEntityType.Backdrop => RepoFactory.TvDB_ImageFanart.GetByID(ImageID)?.GetImageMetadata(true),
-                ImageEntityType.Banner => RepoFactory.TvDB_ImageWideBanner.GetByID(ImageID)?.GetImageMetadata(true),
-                ImageEntityType.Poster => RepoFactory.TvDB_ImagePoster.GetByID(ImageID)?.GetImageMetadata(true),
-                _ => null,
-            },
             _ => null,
         };
     }

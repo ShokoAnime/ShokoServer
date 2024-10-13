@@ -58,10 +58,6 @@ public static class FilterExtensions
                 series.Years,
             SeasonsDelegate = () =>
                 series.AniDB_Anime?.Seasons.ToHashSet() ?? [],
-            HasTvDBLinkDelegate = () =>
-                series.TvdbSeriesCrossReferences.Count is > 0,
-            HasMissingTvDbLinkDelegate = () =>
-                HasMissingTvDBLink(series),
             HasTmdbLinkDelegate = () =>
                 series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
             HasMissingTmdbLinkDelegate = () =>
@@ -162,9 +158,6 @@ public static class FilterExtensions
     private static bool HasMissingTmdbLink(SVR_AnimeSeries series)
         => !series.IsTMDBAutoMatchingDisabled && series.TmdbShowCrossReferences.Count is 0 && series.TmdbMovieCrossReferences.Count is 0;
 
-    private static bool HasMissingTvDBLink(SVR_AnimeSeries series)
-        => series.AniDB_Anime is { } anime && anime.AnimeType != (int)AnimeType.Movie && !anime.IsRestricted && !series.IsTvDBAutoMatchingDisabled && series.TvdbSeriesCrossReferences.Count is 0;
-
     private static bool HasMissingTraktLink(SVR_AnimeSeries series)
         => !series.IsTraktAutoMatchingDisabled && series.TraktShowCrossReferences.Count is 0;
 
@@ -209,10 +202,6 @@ public static class FilterExtensions
                 group.Years.ToHashSet(),
             SeasonsDelegate = () =>
                 group.Seasons.ToHashSet(),
-            HasTvDBLinkDelegate = () =>
-                series.Any(a => a.TvdbSeriesCrossReferences.Count is > 0),
-            HasMissingTvDbLinkDelegate = () =>
-                series.Any(HasMissingTvDBLink),
             HasTmdbLinkDelegate = () =>
                 series.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0),
             HasMissingTmdbLinkDelegate = () =>

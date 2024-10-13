@@ -25,38 +25,10 @@ public static class JsonExtensions
             return new List<T>();
         }
 
-
         try
         {
-            /*var settings = new JsonSerializerSettings
-            {
-                Error = (sender, args) =>
-                {
-                    if (System.Diagnostics.Debugger.IsAttached)
-                    {
-                        System.Diagnostics.Debugger.Break();
-                    }
-                }
-            };*/
-
-            //var result = JsonConvert.DeserializeObject<IEnumerable<T>>(jsonArray, settings);
             var result = JsonConvert.DeserializeObject<IEnumerable<T>>(jsonArray);
             return result ?? new List<T>();
-
-            /*using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(jsonArray)))
-            {
-                var ser = new DataContractJsonSerializer(typeof(IEnumerable<T>));
-                var result = (IEnumerable<T>)ser.ReadObject(ms);
-
-                if (result == null)
-                {
-                    return new List<T>();
-                }
-                else
-                {
-                    return result;
-                }
-            }*/
         }
         catch (Exception ex)
         {

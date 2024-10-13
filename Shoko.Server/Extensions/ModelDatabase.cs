@@ -2,6 +2,7 @@
 using NHibernate;
 using Shoko.Models.Server;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Trakt;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -25,7 +26,4 @@ public static class ModelDatabase
 
     public static List<Trakt_Season> GetTraktSeasons(this Trakt_Show show)
         => RepoFactory.Trakt_Season.GetByShowID(show.Trakt_ShowID);
-
-    public static TvDB_Series? GetTvDBSeries(this CrossRef_AniDB_TvDB cross)
-        => RepoFactory.TvDB_Series.GetByTvDBID(cross.TvDBID);
 }

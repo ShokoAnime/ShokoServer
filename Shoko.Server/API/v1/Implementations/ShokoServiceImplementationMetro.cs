@@ -115,7 +115,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     [HttpPost("Comment/{traktID}/{commentText}/{isSpoiler}")]
     public CL_Response<bool> PostCommentShow(string traktID, string commentText, bool isSpoiler)
     {
-        return _traktHelper.PostCommentShow(traktID, commentText, isSpoiler);
+        return new CL_Response<bool> { Result = false };
     }
 
     [HttpGet("Community/Links/{animeID}")]
@@ -142,14 +142,6 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 contract.MAL_ID = malRef[0].MALID.ToString();
                 contract.MAL_URL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
                 contract.MAL_DiscussURL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
-            }
-
-            // TvDB
-            var tvdbRef = anime.TvdbSeriesCrossReferences;
-            if (tvdbRef is not null && tvdbRef.Count > 0)
-            {
-                contract.TvDB_ID = tvdbRef[0].TvDBID.ToString();
-                contract.TvDB_URL = string.Format(Constants.URLS.TvDB_Series, tvdbRef[0].TvDBID);
             }
 
             // Trakt
@@ -860,9 +852,6 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                                 contract.LengthSeconds = anidbEpisode.LengthSeconds;
                                 contract.AirDate = anidbEpisode.GetAirDateFormatted();
 
-                                // tvdb
-                                SetTvDBInfo(anidbEpisode, ref contract);
-
                                 ret.NextEpisodesToWatch.Add(contract);
                                 cnt++;
                             }
@@ -925,32 +914,6 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         }
 
         return null;
-    }
-
-
-    [NonAction]
-    public static void SetTvDBInfo(SVR_AniDB_Episode ep, ref Metro_Anime_Episode contract)
-    {
-        var override_link = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(ep.EpisodeID);
-        if (override_link.Any(a => a is not null))
-        {
-            var tvdbEpisode = RepoFactory.TvDB_Episode.GetByTvDBID(override_link.FirstOrDefault().TvDBEpisodeID);
-            contract.EpisodeName = tvdbEpisode.EpisodeName;
-            contract.EpisodeOverview = tvdbEpisode.Overview;
-            contract.ImageID = tvdbEpisode.TvDB_EpisodeID;
-            contract.ImageType = (int)CL_ImageEntityType.TvDB_Episode;
-            return;
-        }
-
-        var link = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(ep.EpisodeID);
-        if (link.Any(a => a is not null))
-        {
-            var tvdbEpisode = RepoFactory.TvDB_Episode.GetByTvDBID(link.FirstOrDefault().TvDBEpisodeID);
-            contract.EpisodeName = tvdbEpisode.EpisodeName;
-            contract.EpisodeOverview = tvdbEpisode.Overview;
-            contract.ImageID = tvdbEpisode.TvDB_EpisodeID;
-            contract.ImageType = (int)CL_ImageEntityType.TvDB_Episode;
-        }
     }
 
     [HttpGet("Anime/Character/{animeID}/{maxRecords}")]

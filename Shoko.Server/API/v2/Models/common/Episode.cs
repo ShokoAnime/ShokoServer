@@ -6,10 +6,10 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -129,28 +129,29 @@ public class Episode : BaseDirectory
             }
         }
 
-        if (aep.TvDBEpisode is { } tvdbEpisode)
+        if (aep.TmdbEpisodes is { Count: > 0 } tmdbEpisodes)
         {
-            if (!string.IsNullOrEmpty(tvdbEpisode.EpisodeName))
+            var tmdbEpisode = tmdbEpisodes[0];
+            if (!string.IsNullOrEmpty(tmdbEpisode.EnglishTitle))
             {
-                ep.name = tvdbEpisode.EpisodeName;
+                ep.name = tmdbEpisode.EnglishTitle;
             }
 
-            if (!string.IsNullOrEmpty(tvdbEpisode.Overview))
+            if (!string.IsNullOrEmpty(tmdbEpisode.EnglishOverview))
             {
-                ep.summary = tvdbEpisode.Overview;
+                ep.summary = tmdbEpisode.EnglishOverview;
             }
 
-            var zeroPadding = tvdbEpisode.EpisodeNumber.ToString().Length;
-            var episodeNumber = tvdbEpisode.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
-            zeroPadding = tvdbEpisode.SeasonNumber.ToString().Length;
-            var seasonNumber = tvdbEpisode.SeasonNumber.ToString().PadLeft(zeroPadding, '0');
+            var zeroPadding = tmdbEpisode.EpisodeNumber.ToString().Length;
+            var episodeNumber = tmdbEpisode.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
+            zeroPadding = tmdbEpisode.SeasonNumber.ToString().Length;
+            var seasonNumber = tmdbEpisode.SeasonNumber.ToString().PadLeft(zeroPadding, '0');
 
             ep.season = $"{seasonNumber}x{episodeNumber}";
-            var airdate = tvdbEpisode.AirDate;
+            var airdate = tmdbEpisode.AiredAt;
             if (airdate != null)
             {
-                ep.air = airdate.Value.ToISO8601Date();
+                ep.air = airdate.Value.ToDateTime().ToISO8601Date();
                 ep.year = airdate.Value.Year.ToString(CultureInfo.InvariantCulture);
             }
         }

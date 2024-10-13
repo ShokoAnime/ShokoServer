@@ -70,7 +70,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             var settings = Utils.SettingsProvider.GetSettings();
             var sourceOrder = settings.Language.SeriesTitleSourceOrder;
             var languageOrder = Languages.PreferredEpisodeNamingLanguages;
-            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
 
             // Lazy load AniDB titles if needed.
             List<SVR_AniDB_Episode_Title>? anidbTitles = null;
@@ -98,10 +97,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
                             language.Language is TitleLanguage.Main
                                 ? GetAnidbTitles().FirstOrDefault(x => x.Language is TitleLanguage.English)?.Title ?? $"<AniDB Episode {AniDB_EpisodeID}>"
                                 : GetAnidbTitles().FirstOrDefault(x => x.Language == language.Language)?.Title,
-                        DataSourceType.TvDB =>
-                            tvdbLanguage == language.Language
-                                ? TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.EpisodeName
-                                : null,
                         DataSourceType.TMDB =>
                             GetTmdbTitles().GetByLanguage(language.Language)?.Value,
                         _ => null,
@@ -123,7 +118,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             var sourceOrder = settings.Language.DescriptionSourceOrder;
             var languageOrder = Languages.PreferredDescriptionNamingLanguages;
             var anidbOverview = AniDB_Episode?.Description;
-            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
 
             // Lazy load TMDB overviews if needed.
             IReadOnlyList<TMDB_Overview>? tmdbOverviews = null;
@@ -145,10 +139,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
                         DataSourceType.AniDB =>
                             language.Language is TitleLanguage.English && !string.IsNullOrEmpty(anidbOverview)
                                 ? anidbOverview
-                                : null,
-                        DataSourceType.TvDB =>
-                            language.Language == tvdbLanguage
-                                ? TvDBEpisodes.FirstOrDefault(show => !string.IsNullOrEmpty(show.EpisodeName) && !show.EpisodeName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview
                                 : null,
                         DataSourceType.TMDB =>
                             GetTmdbOverviews().GetByLanguage(language.Language)?.Value,
@@ -190,8 +180,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var xref in TmdbMovieCrossReferences)
             images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var tvdbEpisode in TvDBEpisodes)
-            images.AddRange(tvdbEpisode.GetImages(entityType, preferredImages));
 
         return images;
     }
@@ -244,39 +232,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             .Select(xref => xref.TmdbEpisode)
             .WhereNotNull()
             .ToList();
-
-    #endregion
-
-    #region TvDB
-
-    public TvDB_Episode? TvDBEpisode
-    {
-        get
-        {
-            // Try Overrides first, then regular
-            return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault();
-        }
-    }
-
-    public List<TvDB_Episode> TvDBEpisodes
-    {
-        get
-        {
-            // Try Overrides first, then regular
-            var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
-            return overrides.Count > 0
-                ? overrides
-                : RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
-        }
-    }
 
     #endregion
 

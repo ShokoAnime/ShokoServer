@@ -26,7 +26,7 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 public class Episode : BaseModel
 {
     /// <summary>
-    /// The relevant IDs for the Episode: Shoko, AniDB, TvDB
+    /// The relevant IDs for the Episode: Shoko, AniDB, TMDB.
     /// </summary>
     public EpisodeIDs IDs { get; set; }
 
@@ -90,13 +90,6 @@ public class Episode : BaseModel
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDB? _AniDB { get; set; }
-
-    /// <summary>
-    /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
-    /// is included in the data to add.
-    /// </summary>
-    [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
-    public IEnumerable<TvDB>? _TvDB { get; set; }
 #pragma warning restore IDE1006
 
     /// <summary>
@@ -125,7 +118,6 @@ public class Episode : BaseModel
         var episodeUserRecord = episode.GetUserRecord(userID);
         var anidbEpisode = episode.AniDB_Episode ??
             throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.AnimeEpisodeID}");
-        var tvdbEpisodes = episode.TvDBEpisodes;
         var tmdbMovieXRefs = episode.TmdbMovieCrossReferences;
         var tmdbEpisodeXRefs = episode.TmdbEpisodeCrossReferences;
         var files = episode.VideoLocals;
@@ -139,7 +131,7 @@ public class Episode : BaseModel
             ID = episode.AnimeEpisodeID,
             ParentSeries = episode.AnimeSeriesID,
             AniDB = episode.AniDB_EpisodeID,
-            TvDB = tvdbEpisodes.Select(a => a.Id).Concat(tmdbEpisodeXRefs.Select(xref => xref.TmdbEpisode?.TvdbEpisodeID).WhereNotNull()).Distinct().ToList(),
+            TvDB = tmdbEpisodeXRefs.Select(xref => xref.TmdbEpisode?.TvdbEpisodeID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
                 .Select(xref => xref.TmdbMovie?.ImdbMovieID)
                 .WhereNotNull()
@@ -185,8 +177,6 @@ public class Episode : BaseModel
 
         if (includeDataFrom.Contains(DataSource.AniDB))
             _AniDB = new AniDB(anidbEpisode);
-        if (includeDataFrom.Contains(DataSource.TvDB))
-            _TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
         if (includeDataFrom.Contains(DataSource.TMDB))
             TMDB = new()
             {
@@ -304,89 +294,6 @@ public class Episode : BaseModel
         /// Episode Rating
         /// </summary>
         public Rating Rating { get; set; }
-    }
-
-    public class TvDB
-    {
-        public TvDB(TvDB_Episode tvDBEpisode)
-        {
-            var rating = tvDBEpisode.Rating == null
-                ? null
-                : new Rating { MaxValue = 10, Value = tvDBEpisode.Rating.Value, Source = "TvDB" };
-            ID = tvDBEpisode.Id;
-            Season = tvDBEpisode.SeasonNumber;
-            Number = tvDBEpisode.EpisodeNumber;
-            AbsoluteNumber = tvDBEpisode.AbsoluteNumber;
-            Title = tvDBEpisode.EpisodeName;
-            Description = tvDBEpisode.Overview;
-            AirDate = tvDBEpisode.AirDate;
-            Rating = rating;
-            AirsAfterSeason = tvDBEpisode.AirsAfterSeason;
-            AirsBeforeSeason = tvDBEpisode.AirsBeforeSeason;
-            AirsBeforeEpisode = tvDBEpisode.AirsBeforeEpisode;
-            Thumbnail = new Image(tvDBEpisode.TvDB_EpisodeID, ImageEntityType.Thumbnail, DataSourceType.TvDB, true, false);
-        }
-
-        /// <summary>
-        /// TvDB Episode ID
-        /// </summary>
-        public int ID { get; set; }
-
-        /// <summary>
-        /// Season Number, 0 is Specials. TvDB's Season system doesn't always make sense for anime, so don't count on it
-        /// </summary>
-        public int Season { get; set; }
-
-        /// <summary>
-        /// Episode Number in the Season. This is not Absolute Number
-        /// </summary>
-        public int Number { get; set; }
-
-        /// <summary>
-        /// Absolute Episode Number. Keep in mind that due to reordering, this may not be accurate.
-        /// </summary>
-        public int? AbsoluteNumber { get; set; }
-
-        /// <summary>
-        /// Episode Title, in the language selected for TvDB. TvDB doesn't allow pulling more than one language at a time, so this isn't a list.
-        /// </summary>
-        public string Title { get; set; }
-
-        /// <summary>
-        /// Episode Description, in the language selected for TvDB. See Title for more info on Language.
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
-        /// Air Date. Unfortunately, the TvDB air date doesn't necessarily conform to a specific timezone, so it can be a day off. If you see one that's wrong, please fix it on TvDB. You have the ID here in this model for easy lookup.
-        /// </summary>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? AirDate { get; set; }
-
-        /// <summary>
-        /// Mostly for specials. It shows when in the timeline the episode aired. I wouldn't count on it, as it's often blank.
-        /// </summary>
-        public int? AirsAfterSeason { get; set; }
-
-        /// <summary>
-        /// Mostly for specials. It shows when in the timeline the episode aired. I wouldn't count on it, as it's often blank.
-        /// </summary>
-        public int? AirsBeforeSeason { get; set; }
-
-        /// <summary>
-        /// Like AirsAfterSeason, it is for determining where in the timeline an episode airs. Also often blank.
-        /// </summary>
-        public int? AirsBeforeEpisode { get; set; }
-
-        /// <summary>
-        /// Rating of the episode
-        /// </summary>
-        public Rating? Rating { get; set; }
-
-        /// <summary>
-        /// The TvDB Thumbnail. Later, we'll have more thumbnail support, and episodes will have an Images endpoint like series, but for now, this will do.
-        /// </summary>
-        public Image Thumbnail { get; set; }
     }
 
     public class EpisodeIDs : IDs

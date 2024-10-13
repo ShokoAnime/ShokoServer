@@ -86,11 +86,6 @@ public interface IServerSettings
     TMDBSettings TMDB { get; set; }
 
     /// <summary>
-    /// The TvDB settings.
-    /// </summary>
-    TvDBSettings TvDB { get; set; }
-
-    /// <summary>
     /// The import settings.
     /// </summary>
     ImportSettings Import { get; set; }

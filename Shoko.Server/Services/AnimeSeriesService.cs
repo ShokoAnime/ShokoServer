@@ -22,7 +22,6 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -104,34 +103,6 @@ public class AnimeSeriesService
             c.ForceRefresh = force;
             c.CacheOnly = !force && cacheOnly;
             c.CreateSeriesEntry = createSeriesEntry;
-        });
-        return false;
-    }
-
-    public async Task<bool> QueueTvDBRefresh(int tvdbID, bool force, bool immediate = false)
-    {
-        if (immediate)
-        {
-            try
-            {
-                var job = _jobFactory.CreateJob<GetTvDBSeriesJob>(c =>
-                {
-                    c.TvDBSeriesID = tvdbID;
-                    c.ForceRefresh = force;
-                });
-                return await job.Process() != null;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetTvDBSeriesJob>(c =>
-        {
-            c.TvDBSeriesID = tvdbID;
-            c.ForceRefresh = force;
         });
         return false;
     }
@@ -281,27 +252,9 @@ public class AnimeSeriesService
             SeriesNameOverride = series.SeriesNameOverride,
             DefaultFolder = series.DefaultFolder,
             AniDBAnime = _animeService.GetV1DetailedContract(series.AniDB_Anime),
+            CrossRefAniDBTvDBV2 = [],
+            TvDB_Series = [],
         };
-
-        var tvDBCrossRefs = series.TvdbSeriesCrossReferences;
-
-        var sers = new List<TvDB_Series>();
-        foreach (var xref in tvDBCrossRefs)
-        {
-            var tvser = xref.GetTvDBSeries();
-            if (tvser != null)
-            {
-                sers.Add(tvser);
-            }
-            else
-            {
-                _logger.LogWarning("You are missing database information for TvDB series: {TvDB ID}", xref.TvDBID);
-            }
-        }
-
-        contract.CrossRefAniDBTvDBV2 = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(series.AniDB_ID);
-
-        contract.TvDB_Series = sers;
         if (series.TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieXrefs)
         {
             contract.CrossRefAniDBMovieDB = tmdbMovieXrefs[0].ToClient();

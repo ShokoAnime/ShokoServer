@@ -59,7 +59,7 @@ public class ActionController : BaseController
     #region Common Actions
 
     /// <summary>
-    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tvdb, trakt, tmdb, etc), and downloads missing images.
+    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tmdb, trakt, etc), and downloads missing images.
     /// </summary>
     /// <returns></returns>
     [HttpGet("RunImport")]
@@ -131,17 +131,6 @@ public class ActionController : BaseController
     public async Task<ActionResult> RemoveMissingFiles(bool removeFromMyList = true)
     {
         await _actionService.RemoveRecordsWithoutPhysicalFiles(removeFromMyList);
-        return Ok();
-    }
-
-    /// <summary>
-    /// Update All TvDB Series Info
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("UpdateAllTvDBInfo")]
-    public async Task<ActionResult> UpdateAllTvDBInfo()
-    {
-        await _actionService.RunImport_UpdateTvDB(false);
         return Ok();
     }
 
@@ -247,10 +236,6 @@ public class ActionController : BaseController
 
     #region Admin Actions
 
-    private static readonly object _tvdbLock = new();
-
-    private static bool _tvdbPurged = false;
-
     /// <summary>
     /// Purges all TVDB data, including images and episode/series links.
     /// This is a one-time action and will be blocked if ran again.
@@ -263,74 +248,6 @@ public class ActionController : BaseController
     [HttpPost("PurgeAllOfTvDB")]
     public ActionResult PurgeAllTvdbData()
     {
-        Task.Run(() =>
-        {
-            if (_tvdbPurged)
-                return;
-            lock (_tvdbLock)
-            {
-                if (_tvdbPurged)
-                    return;
-                _tvdbPurged = true;
-
-                var startedAt = DateTime.Now;
-                _logger.LogInformation("Starting TVDB purging at {StartedAt}", startedAt);
-
-                _logger.LogInformation("Resetting all TvDB settings.");
-                var settings = SettingsProvider.GetSettings();
-                settings.TvDB.AutoLink = false;
-                settings.TvDB.AutoFanart = false;
-                settings.TvDB.AutoFanartAmount = 0;
-                settings.TvDB.AutoPosters = false;
-                settings.TvDB.AutoPostersAmount = 0;
-                settings.TvDB.AutoWideBanners = false;
-                settings.TvDB.AutoWideBannersAmount = 0;
-                settings.TvDB.UpdateFrequency = Shoko.Models.Enums.ScheduledUpdateFrequency.Never;
-                settings.TvDB.Language = "en";
-                SettingsProvider.SaveSettings(settings);
-
-                var tvdbPath = ImageUtils.GetBaseTvDBImagesPath();
-                _logger.LogInformation("Deleting TVDB images directory at {Path}", tvdbPath);
-                if (Directory.Exists(tvdbPath))
-                    Directory.Delete(tvdbPath, true);
-
-                var allTvdbEpisodes = RepoFactory.TvDB_Episode.GetAll();
-                _logger.LogInformation("Deleting {Count} TvDB episodes", allTvdbEpisodes.Count);
-                RepoFactory.TvDB_Episode.Delete(allTvdbEpisodes);
-
-                var allTvdbSeries = RepoFactory.TvDB_Series.GetAll();
-                _logger.LogInformation("Deleting {Count} TvDB series", allTvdbSeries.Count);
-                RepoFactory.TvDB_Series.Delete(allTvdbSeries);
-
-                var allTvdbSeriesXrefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
-
-                _logger.LogInformation("Deleting {Count} TvDB series xrefs", allTvdbSeriesXrefs.Count);
-                RepoFactory.CrossRef_AniDB_TvDB.Delete(allTvdbSeriesXrefs);
-
-                var allTvdbEpisodeXrefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetAll();
-                _logger.LogInformation("Deleting {Count} TvDB episode xrefs", allTvdbEpisodeXrefs.Count);
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(allTvdbEpisodeXrefs);
-
-                var allTvdbEpisodeOverrideXrefs = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetAll();
-                _logger.LogInformation("Deleting {Count} TvDB episode override xrefs", allTvdbEpisodeOverrideXrefs.Count);
-                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(allTvdbEpisodeOverrideXrefs);
-
-                var allTvdbImageFanart = RepoFactory.TvDB_ImageFanart.GetAll();
-                _logger.LogInformation("Deleting {Count} TvDB image fanarts", allTvdbImageFanart.Count);
-                RepoFactory.TvDB_ImageFanart.Delete(allTvdbImageFanart);
-
-                var allTvdbImagePoster = RepoFactory.TvDB_ImagePoster.GetAll();
-                _logger.LogInformation("Deleting {Count} TvDB image posters", allTvdbImagePoster.Count);
-                RepoFactory.TvDB_ImagePoster.Delete(allTvdbImagePoster);
-
-                var allTvdbImageWideBanner = RepoFactory.TvDB_ImageWideBanner.GetAll();
-                _logger.LogInformation("Deleting {Count} TvDB image wide banners", allTvdbImageWideBanner.Count);
-                RepoFactory.TvDB_ImageWideBanner.Delete(allTvdbImageWideBanner);
-
-                _logger.LogInformation("Purged all TvDB data in {Elapsed}", DateTime.Now - startedAt);
-            }
-        });
-
         return Ok();
     }
 
@@ -431,29 +348,6 @@ public class ActionController : BaseController
     public ActionResult ScheduleMissingAniDBCreators()
     {
         Task.Run(_actionService.ScheduleMissingAnidbCreators);
-        return Ok();
-    }
-
-    /// <summary>
-    /// Regenerate All Episode Matchings for TvDB. Generally, don't do this unless there was an error that was fixed.
-    /// In those cases, you'd be told to.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("RegenerateAllTvDBEpisodeMatchings")]
-    public ActionResult RegenerateAllEpisodeLinks()
-    {
-        try
-        {
-            RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
-            RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeSeries => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeSeries.AniDB_ID, true));
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "{ex}", e.Message);
-            return InternalError(e.Message);
-        }
-
         return Ok();
     }
 

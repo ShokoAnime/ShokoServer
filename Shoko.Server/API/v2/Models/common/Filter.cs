@@ -77,28 +77,6 @@ public class Filter : Filters
                 var rand = new Random();
                 var anime = arts[rand.Next(arts.Count)];
 
-                var backdrops = GetBackdropsFromSeries(anime);
-                if (backdrops.Count != 0)
-                {
-                    var fanart = backdrops[rand.Next(backdrops.Count)];
-                    filter.art.fanart.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, DataSourceEnum.TvDB, fanart.TvDB_ImageFanartID),
-                    });
-                }
-
-                var banners = GetBannersFromSeries(anime);
-                if (banners.Count != 0)
-                {
-                    var banner = banners[rand.Next(banners.Count)];
-                    filter.art.banner.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Banner, DataSourceEnum.TvDB, banner.TvDB_ImageWideBannerID),
-                    });
-                }
-
                 filter.art.thumb.Add(new Art
                 {
                     index = 0,
@@ -125,52 +103,11 @@ public class Filter : Filters
 
     private static bool SeriesHasCompleteArt(SVR_AnimeSeries series)
     {
-        var anime = series?.AniDB_Anime;
-        if (anime == null)
-        {
-            return false;
-        }
-
-        var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
-        if (!tvdbIDs.Any(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID).Count != 0))
-        {
-            return false;
-        }
-
-        if (!tvdbIDs.Any(a => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID).Count != 0))
-        {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     private static bool SeriesHasMostlyCompleteArt(SVR_AnimeSeries series)
     {
-        var anime = series?.AniDB_Anime;
-        if (anime == null)
-        {
-            return false;
-        }
-
-        var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
-        if (!tvdbIDs.Any(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID).Any()))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static List<TvDB_ImageFanart> GetBackdropsFromSeries(SVR_AnimeSeries ser)
-    {
-        var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).ToList();
-        return tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
-    }
-
-    private static List<TvDB_ImageWideBanner> GetBannersFromSeries(SVR_AnimeSeries ser)
-    {
-        var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).ToList();
-        return tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+        return false;
     }
 }

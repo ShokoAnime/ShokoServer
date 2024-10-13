@@ -186,26 +186,25 @@ public class Serie : BaseDirectory, IComparable
         var season = ael.FirstOrDefault(a =>
                 a.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode &&
                 a.AniDB_Episode.EpisodeNumber == 1)
-            ?.TvDBEpisode?.SeasonNumber;
+            ?.TmdbEpisodes.FirstOrDefault()?.SeasonNumber;
         if (season is not null)
         {
             sr.season = season.Value.ToString();
         }
 
-        var tvdbseriesID = ael.Select(a => a.TvDBEpisode)
-            .Where(a => a is not null)
-            .GroupBy(a => a.SeriesID)
+        var tmdbShow = ael.SelectMany(a => a.TmdbEpisodes)
+            .DistinctBy(a => a.TmdbEpisodeID)
+            .GroupBy(a => a.TmdbShowID)
             .MaxBy(a => a.Count())
-            ?.Key;
-
-        if (tvdbseriesID is not null)
+            ?.First().TmdbShow;
+        if (tmdbShow is not null)
         {
-            var tvdbseries = RepoFactory.TvDB_Series.GetByTvDBID(tvdbseriesID.Value);
-            if (tvdbseries is not null)
+            sr.titles.Add(new()
             {
-                var title = new AnimeTitle { Language = "EN", Title = tvdbseries.SeriesName, Type = "TvDB" };
-                sr.titles.Add(title);
-            }
+                Language = "EN",
+                Title = tmdbShow.EnglishTitle,
+                Type = "TMDB",
+            });
         }
 
         if (!noTag)
@@ -557,7 +556,6 @@ public class Serie : BaseDirectory, IComparable
             }
         }
 
-        // I don't trust TvDB well enough to sort by them. Bakamonogatari...
         // Does it have a Season? Sort by it
         if (int.TryParse(a.season, out s1) && int.TryParse(season, out s))
         {

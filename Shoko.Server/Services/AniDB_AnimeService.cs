@@ -107,11 +107,10 @@ public class AniDB_AnimeService
         if (anime == null) return null;
         var characters = GetCharactersContract(anime);
         var movDbFanart = anime.TmdbMovieBackdrops.Concat(anime.TmdbShowBackdrops).Select(i => i.ToClientFanart()).ToList();
-        var tvDbFanart = anime.TvdbBackdrops;
-        var tvDbBanners = anime.TvdbBanners;
         var cl = anime.ToClient();
         cl.FormattedTitle = anime.PreferredTitle;
         cl.Characters = characters;
+        cl.Banners = null;
         cl.Fanarts = [];
         if (movDbFanart != null && movDbFanart.Count != 0)
         {
@@ -122,28 +121,8 @@ public class AniDB_AnimeService
                 AniDB_Anime_DefaultImageID = a.MovieDB_FanartID,
             }));
         }
-        if (tvDbFanart != null && tvDbFanart.Count != 0)
-        {
-            cl.Fanarts.AddRange(tvDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
-            {
-                ImageType = (int)CL_ImageEntityType.TvDB_FanArt,
-                TVFanart = a,
-                AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID,
-            }));
-        }
-        cl.Banners = tvDbBanners
-            ?.Select(a =>
-                new CL_AniDB_Anime_DefaultImage
-                {
-                    ImageType = (int)CL_ImageEntityType.TvDB_Banner,
-                    TVWideBanner = a,
-                    AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID,
-                })
-            .ToList();
         if (cl.Fanarts?.Count == 0)
             cl.Fanarts = null;
-        if (cl.Banners?.Count == 0)
-            cl.Banners = null;
         cl.DefaultImageFanart = anime.PreferredBackdrop?.ToClient();
         cl.DefaultImagePoster = anime.PreferredPoster?.ToClient();
         cl.DefaultImageWideBanner = anime.PreferredBanner?.ToClient();

@@ -20,7 +20,6 @@ using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -42,7 +41,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly ILogger<ShokoServiceImplementation> _logger;
     private readonly AnimeGroupCreator _groupCreator;
     private readonly JobFactory _jobFactory;
-    private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbMetadataService _tmdbMetadataService;
@@ -55,7 +53,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly WatchedStatusService _watchedService;
 
     public ShokoServiceImplementation(
-        TvDBApiHelper tvdbHelper,
         TraktTVHelper traktHelper,
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService,
@@ -71,7 +68,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         VideoLocalService videoLocalService
     )
     {
-        _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
@@ -427,17 +423,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             settings.AniDb.DownloadCharacters = contractIn.AniDB_DownloadCharacters;
             settings.AniDb.DownloadCreators = contractIn.AniDB_DownloadCreators;
-
-            // TvDB
-            settings.TvDB.AutoLink = contractIn.TvDB_AutoLink;
-            settings.TvDB.AutoFanart = contractIn.TvDB_AutoFanart;
-            settings.TvDB.AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
-            settings.TvDB.AutoPosters = contractIn.TvDB_AutoPosters;
-            settings.TvDB.AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
-            settings.TvDB.AutoWideBanners = contractIn.TvDB_AutoWideBanners;
-            settings.TvDB.AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
-            settings.TvDB.UpdateFrequency = (ScheduledUpdateFrequency)contractIn.TvDB_UpdateFrequency;
-            settings.TvDB.Language = contractIn.TvDB_Language;
 
             // TMDB
             settings.TMDB.AutoDownloadBackdrops = contractIn.MovieDB_AutoFanart;

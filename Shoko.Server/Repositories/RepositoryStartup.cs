@@ -83,9 +83,6 @@ public static class RepositoryStartup
         services.AddCachedRepository<CrossRef_AniDB_TMDB_MovieRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TMDB_ShowRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TraktV2Repository>();
-        services.AddCachedRepository<CrossRef_AniDB_TvDBRepository>();
-        services.AddCachedRepository<CrossRef_AniDB_TvDB_EpisodeRepository>();
-        services.AddCachedRepository<CrossRef_AniDB_TvDB_Episode_OverrideRepository>();
         services.AddCachedRepository<CrossRef_Anime_StaffRepository>();
         services.AddCachedRepository<CrossRef_CustomTagRepository>();
         services.AddCachedRepository<CrossRef_File_EpisodeRepository>();
@@ -96,11 +93,6 @@ public static class RepositoryStartup
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();
         services.AddCachedRepository<TMDB_ImageRepository>();
-        services.AddCachedRepository<TvDB_EpisodeRepository>();
-        services.AddCachedRepository<TvDB_ImageFanartRepository>();
-        services.AddCachedRepository<TvDB_ImagePosterRepository>();
-        services.AddCachedRepository<TvDB_ImageWideBannerRepository>();
-        services.AddCachedRepository<TvDB_SeriesRepository>();
         services.AddCachedRepository<VideoLocalRepository>();
         services.AddCachedRepository<VideoLocal_PlaceRepository>();
         services.AddCachedRepository<VideoLocal_UserRepository>();
@@ -113,7 +105,7 @@ public static class RepositoryStartup
         services.AddSingleton<IDirectRepository, Repo>();
         services.AddSingleton(s => (Repo)s.GetServices(typeof(IDirectRepository)).FirstOrDefault(a => a?.GetType() == typeof(Repo)));
     }
-    
+
     private static void AddCachedRepository<Repo>(this IServiceCollection services) where Repo : class, ICachedRepository
     {
         services.AddSingleton<ICachedRepository, Repo>();

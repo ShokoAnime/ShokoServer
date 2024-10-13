@@ -17,7 +17,6 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -26,7 +25,6 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Utils = Shoko.Server.Utilities.Utils;
@@ -40,7 +38,6 @@ public class ActionService
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_PlaceService _placeService;
     private readonly TmdbMetadataService _tmdbService;
-    private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
     private readonly ImportFolderRepository _importFolders;
     private readonly DatabaseFactory _databaseFactory;
@@ -50,7 +47,6 @@ public class ActionService
         ISchedulerFactory schedulerFactory,
         ISettingsProvider settingsProvider,
         VideoLocal_PlaceService placeService,
-        TvDBApiHelper tvdbHelper,
         TraktTVHelper traktHelper,
         TmdbMetadataService tmdbService,
         ImportFolderRepository importFolders,
@@ -61,7 +57,6 @@ public class ActionService
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
         _placeService = placeService;
-        _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
         _tmdbService = tmdbService;
         _importFolders = importFolders;
@@ -370,129 +365,6 @@ public class ActionService
             });
         }
 
-        // TvDB Posters
-        if (settings.TvDB.AutoPosters)
-        {
-            var postersCount = new Dictionary<int, int>();
-
-            // build a dictionary of series and how many images exist
-            var allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
-            foreach (var tvPoster in allPosters)
-            {
-                if (string.IsNullOrEmpty(tvPoster.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvPoster.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!postersCount.TryAdd(tvPoster.SeriesID, 1)) postersCount[tvPoster.SeriesID] += 1;
-            }
-
-            foreach (var tvPoster in allPosters)
-            {
-                if (string.IsNullOrEmpty(tvPoster.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvPoster.GetFullImagePath());
-                var postersAvailable = 0;
-                if (postersCount.TryGetValue(tvPoster.SeriesID, out var value)) postersAvailable = value;
-
-                if (fileExists || postersAvailable >= settings.TvDB.AutoPostersAmount) continue;
-
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
-                    {
-                        c.ParentName = RepoFactory.TvDB_Series.GetByTvDBID(tvPoster.SeriesID)?.SeriesName;
-                        c.ImageID = tvPoster.TvDB_ImagePosterID;
-                        c.ImageType = ImageEntityType.Poster;
-                    }
-                );
-
-                if (!postersCount.TryAdd(tvPoster.SeriesID, 1)) postersCount[tvPoster.SeriesID] += 1;
-            }
-        }
-
-        // TvDB Fanart
-        if (settings.TvDB.AutoFanart)
-        {
-            var fanartCount = new Dictionary<int, int>();
-            var allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
-            foreach (var tvFanart in allFanart)
-            {
-                // build a dictionary of series and how many images exist
-                if (string.IsNullOrEmpty(tvFanart.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvFanart.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!fanartCount.TryAdd(tvFanart.SeriesID, 1)) fanartCount[tvFanart.SeriesID] += 1;
-            }
-
-            foreach (var tvFanart in allFanart)
-            {
-                if (string.IsNullOrEmpty(tvFanart.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvFanart.GetFullImagePath());
-
-                var fanartAvailable = 0;
-                if (fanartCount.TryGetValue(tvFanart.SeriesID, out var value)) fanartAvailable = value;
-                if (fileExists || fanartAvailable >= settings.TvDB.AutoFanartAmount) continue;
-
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
-                    {
-                        c.ParentName = RepoFactory.TvDB_Series.GetByTvDBID(tvFanart.SeriesID)?.SeriesName;
-                        c.ImageID = tvFanart.TvDB_ImageFanartID;
-                        c.ImageType = ImageEntityType.Backdrop;
-                    }
-                );
-
-                if (!fanartCount.TryAdd(tvFanart.SeriesID, 1)) fanartCount[tvFanart.SeriesID] += 1;
-            }
-        }
-
-        // TvDB Wide Banners
-        if (settings.TvDB.AutoWideBanners)
-        {
-            var fanartCount = new Dictionary<int, int>();
-
-            // build a dictionary of series and how many images exist
-            var allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
-            foreach (var tvBanner in allBanners)
-            {
-                if (string.IsNullOrEmpty(tvBanner.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvBanner.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!fanartCount.TryAdd(tvBanner.SeriesID, 1)) fanartCount[tvBanner.SeriesID] += 1;
-            }
-
-            foreach (var tvBanner in allBanners)
-            {
-                if (string.IsNullOrEmpty(tvBanner.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvBanner.GetFullImagePath());
-                var bannersAvailable = 0;
-                if (fanartCount.TryGetValue(tvBanner.SeriesID, out var value)) bannersAvailable = value;
-                if (fileExists || bannersAvailable >= settings.TvDB.AutoWideBannersAmount) continue;
-
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
-                    {
-                        c.ParentName = RepoFactory.TvDB_Series.GetByTvDBID(tvBanner.SeriesID)?.SeriesName;
-                        c.ImageID = tvBanner.TvDB_ImageWideBannerID;
-                        c.ImageType = ImageEntityType.Banner;
-                    }
-                );
-
-                if (!fanartCount.TryAdd(tvBanner.SeriesID, 1)) fanartCount[tvBanner.SeriesID] += 1;
-            }
-        }
-
-        // TvDB Episodes
-
-        foreach (var tvEpisode in RepoFactory.TvDB_Episode.GetAll())
-        {
-            if (string.IsNullOrEmpty(tvEpisode.GetFullImagePath())) continue;
-            var fileExists = File.Exists(tvEpisode.GetFullImagePath());
-            if (fileExists) continue;
-
-            await scheduler.StartJob<DownloadTvDBImageJob>(c =>
-                {
-                    c.ParentName = RepoFactory.TvDB_Series.GetByTvDBID(tvEpisode.SeriesID)?.SeriesName;
-                    c.ImageID = tvEpisode.TvDB_EpisodeID;
-                    c.ImageType = ImageEntityType.Thumbnail;
-                }
-            );
-        }
-
         // TMDB Images
         if (settings.TMDB.AutoDownloadPosters)
             await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Poster, settings.TMDB.MaxAutoPosters);
@@ -666,11 +538,6 @@ public class ActionService
         return false;
     }
 
-    public async Task RunImport_ScanTvDB()
-    {
-        await _tvdbHelper.ScanForMatches();
-    }
-
     public void RunImport_ScanTrakt()
     {
         var settings = _settingsProvider.GetSettings();
@@ -681,11 +548,6 @@ public class ActionService
     public async Task RunImport_ScanTMDB()
     {
         await _tmdbService.ScanForMatches();
-    }
-
-    public async Task RunImport_UpdateTvDB(bool forced)
-    {
-        await _tvdbHelper.UpdateAllInfo(forced);
     }
 
     public async Task RunImport_UpdateAllAniDB()
@@ -990,52 +852,6 @@ public class ActionService
         }
 
         return vidsToUpdate.Count;
-    }
-
-    public async Task CheckForTvDBUpdates(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.TvDB.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var freqHours = Utils.GetScheduledHours(settings.TvDB.UpdateFrequency);
-
-        // update tvdb info every 12 hours
-
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TvDBInfo);
-        if (schedule != null)
-        {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        var tvDBIDs = new List<int>();
-        var tvDBOnline = false;
-        var serverTime = _tvdbHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
-
-        if (tvDBOnline)
-        {
-            foreach (var tvdbId in tvDBIDs)
-            {
-                // download and update series info, episode info and episode images
-                // will also download fanart, posters and wide banners
-                await scheduler.StartJob<GetTvDBSeriesJob>(c =>
-                    {
-                        c.TvDBSeriesID = tvdbId;
-                        c.ForceRefresh = true;
-                    }
-                );
-            }
-        }
-
-        schedule ??= new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TvDBInfo };
-
-        schedule.LastUpdate = DateTime.Now;
-        schedule.UpdateDetails = serverTime;
-        RepoFactory.ScheduledUpdate.Save(schedule);
-
-        await _tvdbHelper.ScanForMatches();
     }
 
     public async Task CheckForUnreadNotifications(bool ignoreSchedule)

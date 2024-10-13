@@ -9,6 +9,7 @@ public class FilterExpression : IFilterExpression
 {
     [IgnoreDataMember] [JsonIgnore] public virtual bool TimeDependent => false;
     [IgnoreDataMember] [JsonIgnore] public virtual bool UserDependent => false;
+    [IgnoreDataMember] [JsonIgnore] public virtual bool Deprecated => false;
     [IgnoreDataMember] [JsonIgnore] public virtual string Name =>
         GetType().Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("SortingSelector").TrimEnd("Selector").CamelCaseToNatural();
     [IgnoreDataMember] [JsonIgnore] public virtual FilterExpressionGroup Group => FilterExpressionGroup.Info;

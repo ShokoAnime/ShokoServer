@@ -410,7 +410,6 @@ public class ShokoServer
         actionService.CheckForUnreadNotifications(false).GetAwaiter().GetResult();
         actionService.CheckForCalendarUpdate(false).GetAwaiter().GetResult();
         actionService.CheckForAnimeUpdate().GetAwaiter().GetResult();
-        actionService.CheckForTvDBUpdates(false).GetAwaiter().GetResult();
         actionService.CheckForMyListSyncUpdate(false).GetAwaiter().GetResult();
         actionService.CheckForTraktAllSeriesUpdate(false).GetAwaiter().GetResult();
         actionService.CheckForTraktTokenUpdate(false);

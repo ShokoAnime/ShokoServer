@@ -33,7 +33,7 @@ public interface IShokoEventHandler
     event EventHandler<FileNotMatchedEventArgs> FileNotMatched;
 
     /// <summary>
-    /// Fired when a cross reference is made and data is gathered for a file. This has most if not all relevant data for a file. TvDB may take longer.
+    /// Fired when a cross reference is made and data is gathered for a file. This has most if not all relevant data for a file.
     /// Use <see cref="EpisodeUpdated"/> with a filter on the data source to ensure the desired data is gathered.
     /// </summary>
     event EventHandler<FileEventArgs> FileMatched;

@@ -55,9 +55,6 @@ public class RepoFactory
     public static CrossRef_AniDB_TMDB_MovieRepository CrossRef_AniDB_TMDB_Movie;
     public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show;
     public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2;
-    public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override;
-    public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode;
-    public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB;
     public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode;
@@ -98,11 +95,6 @@ public class RepoFactory
     public static Trakt_EpisodeRepository Trakt_Episode;
     public static Trakt_SeasonRepository Trakt_Season;
     public static Trakt_ShowRepository Trakt_Show;
-    public static TvDB_EpisodeRepository TvDB_Episode;
-    public static TvDB_ImageFanartRepository TvDB_ImageFanart;
-    public static TvDB_ImagePosterRepository TvDB_ImagePoster;
-    public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner;
-    public static TvDB_SeriesRepository TvDB_Series;
     public static VersionsRepository Versions;
     public static VideoLocal_PlaceRepository VideoLocalPlace;
     public static VideoLocal_UserRepository VideoLocalUser;
@@ -149,9 +141,6 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_MovieRepository crossRefAniDBTmdbMovie,
         CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
         CrossRef_AniDB_TraktV2Repository crossRefAniDBTraktV2,
-        CrossRef_AniDB_TvDB_Episode_OverrideRepository crossRefAniDBTvDBEpisodeOverride,
-        CrossRef_AniDB_TvDB_EpisodeRepository crossRefAniDBTvDBEpisode,
-        CrossRef_AniDB_TvDBRepository crossRefAniDBTvDB,
         CrossRef_Anime_StaffRepository crossRefAnimeStaff,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
@@ -192,11 +181,6 @@ public class RepoFactory
         TMDB_Show_NetworkRepository tmdbShowNetwork,
         TMDB_ShowRepository tmdbShow,
         TMDB_TitleRepository tmdbTitle,
-        TvDB_EpisodeRepository tvDBEpisode,
-        TvDB_ImageFanartRepository tvDBImageFanart,
-        TvDB_ImagePosterRepository tvDBImagePoster,
-        TvDB_ImageWideBannerRepository tvDBImageWideBanner,
-        TvDB_SeriesRepository tvDBSeries,
         VersionsRepository versions,
         VideoLocal_PlaceRepository videoLocalPlace,
         VideoLocal_UserRepository videoLocalUser,
@@ -243,9 +227,6 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_Movie = crossRefAniDBTmdbMovie;
         CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
         CrossRef_AniDB_TraktV2 = crossRefAniDBTraktV2;
-        CrossRef_AniDB_TvDB = crossRefAniDBTvDB;
-        CrossRef_AniDB_TvDB_Episode = crossRefAniDBTvDBEpisode;
-        CrossRef_AniDB_TvDB_Episode_Override = crossRefAniDBTvDBEpisodeOverride;
         CrossRef_Anime_Staff = crossRefAnimeStaff;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
@@ -286,11 +267,6 @@ public class RepoFactory
         Trakt_Episode = traktEpisode;
         Trakt_Season = traktSeason;
         Trakt_Show = traktShow;
-        TvDB_Episode = tvDBEpisode;
-        TvDB_ImageFanart = tvDBImageFanart;
-        TvDB_ImagePoster = tvDBImagePoster;
-        TvDB_ImageWideBanner = tvDBImageWideBanner;
-        TvDB_Series = tvDBSeries;
         Versions = versions;
         VideoLocal = videoLocal;
         VideoLocalPlace = videoLocalPlace;

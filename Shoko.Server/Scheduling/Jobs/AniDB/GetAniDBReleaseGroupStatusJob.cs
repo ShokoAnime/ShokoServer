@@ -104,7 +104,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         {
             // update the anime with a record of the latest subbed episode
             anime.LatestEpisodeNumber = maxEpisode;
-            RepoFactory.AniDB_Anime.Save(anime, false);
+            RepoFactory.AniDB_Anime.Save(anime);
 
             // check if we have this episode in the database
             // if not get it now by updating the anime record
@@ -126,7 +126,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
         {
             // shouldn't need the where, but better safe than sorry.
-            foreach(var g in response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0))
+            foreach (var g in response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0))
             {
                 await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = g.GroupID);
             }

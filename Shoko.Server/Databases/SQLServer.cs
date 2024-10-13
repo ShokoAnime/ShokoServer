@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 130;
+    public override int RequiredVersion { get; } = 131;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -767,6 +767,17 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(129, 1, "ALTER TABLE TMDB_Show ADD PreferredAlternateOrderingID NVARCHAR(64) NULL DEFAULT NULL;"),
         new DatabaseCommand(130, 1, "ALTER TABLE TMDB_Show ALTER COLUMN ContentRatings NVARCHAR(512) NOT NULL;"),
         new DatabaseCommand(130, 2, "ALTER TABLE TMDB_Movie ALTER COLUMN ContentRatings NVARCHAR(512) NOT NULL;"),
+        new DatabaseCommand(131, 1, "DROP TABLE TvDB_Episode;"),
+        new DatabaseCommand(131, 2, "DROP TABLE TvDB_Series;"),
+        new DatabaseCommand(131, 3, "DROP TABLE TvDB_ImageFanart;"),
+        new DatabaseCommand(131, 4, "DROP TABLE TvDB_ImagePoster;"),
+        new DatabaseCommand(131, 5, "DROP TABLE TvDB_ImageBanner;"),
+        new DatabaseCommand(131, 6, "DROP TABLE CrossRef_AniDB_TvDB;"),
+        new DatabaseCommand(131, 7, "DROP TABLE CrossRef_AniDB_TvDB_Episode;"),
+        new DatabaseCommand(131, 8, "DROP TABLE CrossRef_AniDB_TvDB_Episode_Override;"),
+        new DatabaseCommand(131, 9, "ALTER TABLE Trakt_Show DROP COLUMN TvDB_ID;"),
+        new DatabaseCommand(131, 10, "ALTER TABLE Trakt_Show ADD COLUMN TmdbShowID INT NULL;"),
+        new DatabaseCommand(131, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
     };
 
     private static void AlterImdbMovieIDType()

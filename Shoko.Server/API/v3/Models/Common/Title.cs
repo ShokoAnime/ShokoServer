@@ -11,9 +11,7 @@ using Shoko.Server.Providers.AniDB.Titles;
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>
-/// Title object, stores the title, type, language, and source
-/// if using a TvDB title, assume "eng:official". If using AniList, assume "x-jat:main"
-/// AniDB's MainTitle is "x-jat:main"
+/// APIv3 Title Data Transfer Object (DTO)
 /// </summary>
 public class Title
 {
@@ -47,7 +45,7 @@ public class Title
     public bool Preferred { get; init; }
 
     /// <summary>
-    /// AniDB, TvDB, AniList, etc.
+    /// AniDB, TMDB, AniList, etc.
     /// </summary>
     [Required]
     public string Source { get; init; }

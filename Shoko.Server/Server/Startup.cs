@@ -19,7 +19,6 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -58,7 +57,6 @@ public class Startup
             services.AddSingleton<ShokoServer>();
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
-            services.AddSingleton<TvDBApiHelper>();
             services.AddSingleton<TmdbImageService>();
             services.AddSingleton<TmdbLinkingService>();
             services.AddSingleton<TmdbMetadataService>();

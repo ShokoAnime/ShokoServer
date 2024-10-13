@@ -7,12 +7,12 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
-using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Models.Trakt;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -33,21 +33,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     #endregion
 
     #region Disabled Auto Matching
-
-    public bool IsTvDBAutoMatchingDisabled
-    {
-        get
-        {
-            return DisableAutoMatchFlags.HasFlag(DataSourceType.TvDB);
-        }
-        set
-        {
-            if (value)
-                DisableAutoMatchFlags |= DataSourceType.TvDB;
-            else
-                DisableAutoMatchFlags &= ~DataSourceType.TvDB;
-        }
-    }
 
     public bool IsTMDBAutoMatchingDisabled
     {
@@ -170,7 +155,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             var settings = Utils.SettingsProvider.GetSettings();
             var sourceOrder = settings.Language.SeriesTitleSourceOrder;
             var languageOrder = Languages.PreferredNamingLanguages;
-            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
             var anime = AniDB_Anime;
 
             // Lazy load AniDB titles if needed.
@@ -200,10 +184,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                                 ? anime?.MainTitle ?? GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main)?.Title ?? $"<AniDB Anime {AniDB_ID}>"
                                 : GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main or TitleType.Official && x.Language == language.Language)?.Title ??
                                     (settings.Language.UseSynonyms ? GetAnidbTitles().FirstOrDefault(x => x.Language == language.Language)?.Title : null),
-                        DataSourceType.TvDB =>
-                            tvdbLanguage == language.Language
-                                ? TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName
-                                : null,
                         DataSourceType.TMDB =>
                             GetTmdbTitles().GetByLanguage(language.Language)?.Value,
                         _ => null,
@@ -292,7 +272,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             var sourceOrder = settings.Language.DescriptionSourceOrder;
             var languageOrder = Languages.PreferredDescriptionNamingLanguages;
             var anidbOverview = AniDB_Anime?.Description;
-            var tvdbLanguage = settings.TvDB.Language.GetTitleLanguage();
 
             // Lazy load TMDB overviews if needed.
             IReadOnlyList<TMDB_Overview>? tmdbOverviews = null;
@@ -314,10 +293,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                         DataSourceType.AniDB =>
                             language.Language is TitleLanguage.English && !string.IsNullOrEmpty(anidbOverview)
                                 ? anidbOverview
-                                : null,
-                        DataSourceType.TvDB =>
-                            language.Language == tvdbLanguage
-                                ? TvDBSeries.FirstOrDefault(show => !string.IsNullOrEmpty(show.SeriesName) && !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.Overview
                                 : null,
                         DataSourceType.TMDB =>
                             GetTmdbOverviews().GetByLanguage(language.Language)?.Value,
@@ -379,8 +354,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var xref in TmdbMovieCrossReferences.DistinctBy(xref => xref.TmdbMovieID))
             images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var tvdbShow in TvDBSeries)
-            images.AddRange(tvdbShow.GetImages(entityType, preferredImages));
 
         return images;
     }
@@ -415,14 +388,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
         ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AniDB_ID, tmdbShowId.Value)
         : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
-
-    #endregion
-
-    #region TvDB
-
-    public List<CrossRef_AniDB_TvDB> TvdbSeriesCrossReferences => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AniDB_ID);
-
-    public List<TvDB_Series> TvDBSeries => TvdbSeriesCrossReferences.Select(xref => xref.GetTvDBSeries()).WhereNotNull().ToList();
 
     #endregion
 

@@ -3240,17 +3240,9 @@ public class Common : BaseController
         var serie = RepoFactory.AnimeSeries.GetByID(id);
         var trakt = serie?.TraktShow;
         if (trakt != null) links.Add("trakt", trakt.Where(a => !string.IsNullOrEmpty(a.URL)).Select(x => x.URL).ToArray());
-        var tvdb = serie?.TvDBSeries;
-        if (tvdb != null)
-        {
-            links.Add("tvdb", tvdb.Select(x => x.SeriesID).ToArray());
-        }
 
-        var (tmdb, _) = serie?.TmdbMovieCrossReferences ?? [];
-        if (tmdb is not null)
-        {
-            links.Add("tmdb", tmdb.TmdbMovieID); //not sure this will work.
-        }
+        if (serie?.TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieXrefs)
+            links.Add("tmdb", tmdbMovieXrefs[0].TmdbMovieID);
 
         return links;
     }

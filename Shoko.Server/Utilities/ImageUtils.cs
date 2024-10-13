@@ -76,15 +76,6 @@ public class ImageUtils
         return dirPath;
     }
 
-    public static string GetBaseTvDBImagesPath()
-    {
-        var dirPath = Path.Combine(GetBaseImagesPath(), "TvDB");
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
-
     public static string GetAniDBCharacterImagePath(int charID)
     {
         var sid = charID.ToString();
@@ -141,14 +132,6 @@ public class ImageUtils
                 _ => null,
             },
             DataSourceType.TMDB => RepoFactory.TMDB_Image.GetByID(imageId),
-            DataSourceType.TvDB => imageType switch
-            {
-                ImageEntityType.Backdrop => RepoFactory.TvDB_ImageFanart.GetByID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Banner => RepoFactory.TvDB_ImageWideBanner.GetByID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Poster => RepoFactory.TvDB_ImagePoster.GetByID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Thumbnail => RepoFactory.TvDB_Episode.GetByID(imageId)?.GetImageMetadata(),
-                _ => null,
-            },
             _ => null,
         };
 
@@ -193,19 +176,6 @@ public class ImageUtils
             },
             DataSourceType.TMDB => RepoFactory.TMDB_Image.GetByType(imageType)
                 .GetRandomElement(),
-            // TvDB doesn't allow H content, so we get to skip the check!
-            DataSourceType.TvDB => imageType switch
-            {
-                ImageEntityType.Backdrop => RepoFactory.TvDB_ImageFanart.GetAll()
-                    .GetRandomElement()?.GetImageMetadata(),
-                ImageEntityType.Banner => RepoFactory.TvDB_ImageWideBanner.GetAll()
-                    .GetRandomElement()?.GetImageMetadata(),
-                ImageEntityType.Poster => RepoFactory.TvDB_ImagePoster.GetAll()
-                    .GetRandomElement()?.GetImageMetadata(),
-                ImageEntityType.Thumbnail => RepoFactory.TvDB_Episode.GetAll()
-                    .GetRandomElement()?.GetImageMetadata(),
-                _ => null,
-            },
             _ => null,
         };
     }
@@ -248,55 +218,6 @@ public class ImageUtils
 
                 return null;
 
-            case DataSourceEnum.TvDB:
-                switch (metadata.ImageType)
-                {
-                    case ImageEntityType.Backdrop:
-                        var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(metadata.ID);
-                        if (tvdbFanart == null)
-                            return null;
-
-                        var fanartXRef = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbFanart.SeriesID).FirstOrDefault();
-                        if (fanartXRef == null)
-                            return null;
-
-                        return RepoFactory.AnimeSeries.GetByAnimeID(fanartXRef.AniDBID);
-
-                    case ImageEntityType.Banner:
-                        var tvdbWideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(metadata.ID);
-                        if (tvdbWideBanner == null)
-                            return null;
-
-                        var bannerXRef = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbWideBanner.SeriesID).FirstOrDefault();
-                        if (bannerXRef == null)
-                            return null;
-
-                        return RepoFactory.AnimeSeries.GetByAnimeID(bannerXRef.AniDBID);
-
-                    case ImageEntityType.Poster:
-                        var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(metadata.ID);
-                        if (tvdbPoster == null)
-                            return null;
-
-                        var coverXRef = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbPoster.SeriesID).FirstOrDefault();
-                        if (coverXRef == null)
-                            return null;
-
-                        return RepoFactory.AnimeSeries.GetByAnimeID(coverXRef.AniDBID);
-
-                    case ImageEntityType.Thumbnail:
-                        var tvdbEpisode = RepoFactory.TvDB_Episode.GetByID(metadata.ID);
-                        if (tvdbEpisode == null)
-                            return null;
-
-                        var episodeXRef = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbEpisode.SeriesID).FirstOrDefault();
-                        if (episodeXRef == null)
-                            return null;
-
-                        return RepoFactory.AnimeSeries.GetByAnimeID(episodeXRef.AniDBID);
-                }
-                return null;
-
             default:
                 return null;
         }
@@ -337,47 +258,6 @@ public class ImageUtils
                 if (tmdbImage.TmdbMovieID.HasValue)
                     foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(tmdbImage.TmdbMovieID.Value))
                         animeIDs.Add(xref.AnidbAnimeID);
-                break;
-
-            case DataSourceType.TvDB:
-                switch (imageType)
-                {
-                    case ImageEntityType.Backdrop:
-                        var fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageId);
-                        if (fanart == null)
-                            return false;
-
-                        fanart.Enabled = value ? 1 : 0;
-                        RepoFactory.TvDB_ImageFanart.Save(fanart);
-                        foreach (var xref in RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(fanart.SeriesID))
-                            animeIDs.Add(xref.AniDBID);
-                        break;
-
-                    case ImageEntityType.Banner:
-                        var banner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageId);
-                        if (banner == null)
-                            return false;
-
-                        banner.Enabled = value ? 1 : 0;
-                        RepoFactory.TvDB_ImageWideBanner.Save(banner);
-                        foreach (var xref in RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(banner.SeriesID))
-                            animeIDs.Add(xref.AniDBID);
-                        break;
-
-                    case ImageEntityType.Poster:
-                        var poster = RepoFactory.TvDB_ImagePoster.GetByID(imageId);
-                        if (poster == null)
-                            return false;
-
-                        poster.Enabled = value ? 1 : 0;
-                        RepoFactory.TvDB_ImagePoster.Save(poster);
-                        foreach (var xref in RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(poster.SeriesID))
-                            animeIDs.Add(xref.AniDBID);
-                        break;
-
-                    default:
-                        return false;
-                }
                 break;
 
             default:

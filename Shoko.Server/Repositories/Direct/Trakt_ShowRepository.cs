@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 using NHibernate;
-using Shoko.Models.Server;
+using Shoko.Server.Models.Trakt;
 using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Direct;

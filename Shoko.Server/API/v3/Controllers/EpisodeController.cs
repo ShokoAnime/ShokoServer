@@ -256,67 +256,6 @@ public class EpisodeController : BaseController
             .ToListResult(episode => new Episode.AniDB(episode), page, pageSize);
     }
 
-    /// <summary>
-    /// Get all <see cref="Episode.TvDB"/>s. Admins only.
-    /// </summary>
-    /// <remarks>
-    /// It's admins only since i don't want to add the logic to
-    /// </remarks>
-    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
-    /// <param name="page">The page index.</param>
-    /// <returns></returns>
-    [HttpGet("TvDB")]
-    public ActionResult<ListResult<Episode.TvDB>> GetAllTvDBEpisodes(
-        [FromQuery, Range(0, 1000)] int pageSize = 20,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1)
-    {
-        var user = User;
-        var isAdmin = user.IsAdmin == 1;
-        var allowedShowDict = new ConcurrentDictionary<int, bool>();
-        return RepoFactory.TvDB_Episode.GetAll()
-            .Where(episode =>
-            {
-                // Only show episodes the user is allowed to view.
-                if (!allowedShowDict.TryGetValue(episode.SeriesID, out var isAllowed))
-                {
-                    // If this is an episode not tied to a missing show, then
-                    // just hide it.
-                    var show = RepoFactory.TvDB_Series.GetByTvDBID(episode.SeriesID);
-                    if (show == null)
-                    {
-                        isAllowed = false;
-                        goto addValue;
-                    }
-
-                    // If there are no cross-references, then hide it if the
-                    // user is not an admin.
-                    var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(episode.SeriesID)
-                        .FirstOrDefault();
-                    if (xref == null)
-                    {
-                        isAllowed = isAdmin;
-                        goto addValue;
-                    }
-
-                    // Or if the cross-reference is broken then also hide it if
-                    // the user is not an admin, otherwise check if the user can
-                    // view the series.
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
-                    isAllowed = anime == null ? isAdmin : user.AllowedAnime(anime);
-
-addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
-                }
-                if (!isAllowed)
-                    return false;
-
-                return true;
-            })
-            .OrderBy(episode => episode.SeriesID)
-            .ThenBy(episode => episode.SeasonNumber)
-            .ThenBy(episode => episode.EpisodeNumber)
-            .ToListResult(episode => new Episode.TvDB(episode), page, pageSize);
-    }
-
     #region Shoko
 
     /// <summary>
@@ -717,34 +656,6 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         return episode.TmdbEpisodeCrossReferences
             .Select(xref => new TmdbEpisode.CrossReference(xref))
             .OrderBy(xref => xref.TmdbEpisodeID)
-            .ToList();
-    }
-
-    #endregion
-
-    #region TvDB
-
-    /// <summary>
-    /// Get the TvDB details for episode with Shoko ID
-    /// </summary>
-    /// <param name="episodeID">Shoko ID</param>
-    /// <returns></returns>
-    [HttpGet("{episodeID}/TvDB")]
-    public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails([FromRoute, Range(1, int.MaxValue)] int episodeID)
-    {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
-        if (episode == null)
-            return NotFound(EpisodeNotFoundWithEpisodeID);
-
-        var series = episode.AnimeSeries;
-        if (series is null)
-            return InternalError(EpisodeNoSeriesForEpisodeID);
-
-        if (!User.AllowedSeries(series))
-            return Forbid(EpisodeForbiddenForUser);
-
-        return episode.TvDBEpisodes
-            .Select(a => new Episode.TvDB(a))
             .ToList();
     }
 

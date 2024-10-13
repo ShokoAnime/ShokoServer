@@ -107,13 +107,6 @@ public class Series : BaseModel
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDB? _AniDB { get; set; }
-
-    /// <summary>
-    /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
-    /// is included in the data to add.
-    /// </summary>
-    [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
-    public IEnumerable<TvDB>? _TvDB { get; set; }
 #pragma warning restore IDE1006
 
     /// <summary>
@@ -140,7 +133,7 @@ public class Series : BaseModel
             ParentGroup = ser.AnimeGroupID,
             TopLevelGroup = ser.TopLevelAnimeGroup?.AnimeGroupID ?? 0,
             AniDB = ser.AniDB_ID,
-            TvDB = ser.TvdbSeriesCrossReferences.Select(a => a.TvDBID).Concat(tmdbShowXRefs.Select(xref => xref.TmdbShow?.TvdbShowID).WhereNotNull()).Distinct().ToList(),
+            TvDB = tmdbShowXRefs.Select(xref => xref.TmdbShow?.TvdbShowID).WhereNotNull().Distinct().ToList(),
             IMDB = tmdbMovieXRefs
                 .Select(xref => xref.TmdbMovie?.ImdbMovieID)
                 .WhereNotNull()
@@ -176,8 +169,6 @@ public class Series : BaseModel
             };
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
             _AniDB = new(anime, ser);
-        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
-            _TvDB = ser.TvDBSeries.Select(tvdb => new TvDB(tvdb, allEpisodes));
         if (includeDataFrom?.Contains(DataSource.TMDB) ?? false)
             TMDB = new()
             {
@@ -309,7 +300,6 @@ public class Series : BaseModel
     {
         public AutoMatchSettings()
         {
-            TvDB = false;
             TMDB = false;
             Trakt = false;
             // MAL = false;
@@ -320,7 +310,6 @@ public class Series : BaseModel
 
         public AutoMatchSettings(SVR_AnimeSeries series)
         {
-            TvDB = !series.IsTvDBAutoMatchingDisabled;
             TMDB = !series.IsTMDBAutoMatchingDisabled;
             Trakt = !series.IsTraktAutoMatchingDisabled;
             // MAL = !series.IsMALAutoMatchingDisabled;
@@ -331,7 +320,6 @@ public class Series : BaseModel
 
         public AutoMatchSettings MergeWithExisting(SVR_AnimeSeries series)
         {
-            series.IsTvDBAutoMatchingDisabled = !TvDB;
             series.IsTMDBAutoMatchingDisabled = !TMDB;
             series.IsTraktAutoMatchingDisabled = !Trakt;
             // series.IsMALAutoMatchingDisabled = !MAL;
@@ -343,12 +331,6 @@ public class Series : BaseModel
 
             return new AutoMatchSettings(series);
         }
-
-        /// <summary>
-        /// Auto-match against TvDB.
-        /// </summary>
-        [Required]
-        public bool TvDB { get; set; }
 
         /// <summary>
         /// Auto-match against The Movie Database (TMDB).
@@ -579,95 +561,6 @@ public class Series : BaseModel
         {
             Anime = anime;
             SimilarTo = similarCount;
-        }
-    }
-
-    /// <summary>
-    /// The TvDB Data model for series
-    /// </summary>
-    public class TvDB
-    {
-        /// <summary>
-        /// TvDB ID
-        /// </summary>
-        [Required]
-        public int ID { get; set; }
-
-        /// <summary>
-        /// Air date.
-        /// </summary>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? AirDate { get; set; }
-
-        /// <summary>
-        /// End date, can be null. Null means that it's still airing (2013-02-27)
-        /// </summary>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? EndDate { get; set; }
-
-        /// <summary>
-        /// TvDB only supports one title
-        /// </summary>
-        [Required]
-        public string Title { get; set; }
-
-        /// <summary>
-        /// Description
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
-        /// TvDB Season. This value is not guaranteed to be even kind of accurate
-        /// TvDB matchings and links affect this. Null means no match. 0 means specials
-        /// </summary>
-        public int? Season { get; set; }
-
-        /// <summary>
-        /// Posters
-        /// </summary>
-        public List<Image> Posters { get; set; }
-
-        /// <summary>
-        /// Fanarts
-        /// </summary>
-        public List<Image> Fanarts { get; set; }
-
-        /// <summary>
-        /// Banners
-        /// </summary>
-        public List<Image> Banners { get; set; }
-
-        /// <summary>
-        /// The rating object
-        /// </summary>
-        public Rating? Rating { get; set; }
-
-        public TvDB(TvDB_Series tvdbSeries, IReadOnlyList<SVR_AnimeEpisode> episodeList)
-        {
-            var images = tvdbSeries.GetImages().ToDto();
-            var firstEp = episodeList
-                .FirstOrDefault(a =>
-                    a.AniDB_Episode is not null &&
-                    a.AniDB_Episode.EpisodeTypeEnum is InternalEpisodeType.Episode &&
-                    a.AniDB_Episode.EpisodeNumber == 1)
-                ?.TvDBEpisode;
-            var lastEp = episodeList
-                .Where(a => a.AniDB_Episode is not null && a.AniDB_Episode.EpisodeTypeEnum is InternalEpisodeType.Episode)
-                .OrderBy(a => a.AniDB_Episode!.EpisodeType)
-                .ThenBy(a => a.AniDB_Episode!.EpisodeNumber)
-                .LastOrDefault()
-                ?.TvDBEpisode;
-            ID = tvdbSeries.SeriesID;
-            Description = tvdbSeries.Overview;
-            Title = tvdbSeries.SeriesName;
-            Posters = images.Posters;
-            Fanarts = images.Backdrops;
-            Banners = images.Banners;
-            Season = firstEp?.SeasonNumber;
-            AirDate = firstEp?.AirDate;
-            EndDate = lastEp?.AirDate;
-            if (tvdbSeries.Rating is not null)
-                Rating = new Rating { Source = "TvDB", Value = tvdbSeries.Rating.Value, MaxValue = 10 };
         }
     }
 
