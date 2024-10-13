@@ -771,7 +771,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(131, 2, "DROP TABLE TvDB_Series;"),
         new DatabaseCommand(131, 3, "DROP TABLE TvDB_ImageFanart;"),
         new DatabaseCommand(131, 4, "DROP TABLE TvDB_ImagePoster;"),
-        new DatabaseCommand(131, 5, "DROP TABLE TvDB_ImageBanner;"),
+        new DatabaseCommand(131, 5, "DROP TABLE TvDB_ImageWideBanner;"),
         new DatabaseCommand(131, 6, "DROP TABLE CrossRef_AniDB_TvDB;"),
         new DatabaseCommand(131, 7, "DROP TABLE CrossRef_AniDB_TvDB_Episode;"),
         new DatabaseCommand(131, 8, "DROP TABLE CrossRef_AniDB_TvDB_Episode_Override;"),

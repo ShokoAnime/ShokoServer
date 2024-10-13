@@ -766,7 +766,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(123, 2, "DROP TABLE TvDB_Series;"),
         new(123, 3, "DROP TABLE TvDB_ImageFanart;"),
         new(123, 4, "DROP TABLE TvDB_ImagePoster;"),
-        new(123, 5, "DROP TABLE TvDB_ImageBanner;"),
+        new(123, 5, "DROP TABLE TvDB_ImageWideBanner;"),
         new(123, 6, "DROP TABLE CrossRef_AniDB_TvDB;"),
         new(123, 7, "DROP TABLE CrossRef_AniDB_TvDB_Episode;"),
         new(123, 8, "DROP TABLE CrossRef_AniDB_TvDB_Episode_Override;"),

@@ -841,7 +841,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(139, 2, "DROP TABLE TvDB_Series;"),
         new(139, 3, "DROP TABLE TvDB_ImageFanart;"),
         new(139, 4, "DROP TABLE TvDB_ImagePoster;"),
-        new(139, 5, "DROP TABLE TvDB_ImageBanner;"),
+        new(139, 5, "DROP TABLE TvDB_ImageWideBanner;"),
         new(139, 6, "DROP TABLE CrossRef_AniDB_TvDB;"),
         new(139, 7, "DROP TABLE CrossRef_AniDB_TvDB_Episode;"),
         new(139, 8, "DROP TABLE CrossRef_AniDB_TvDB_Episode_Override;"),
