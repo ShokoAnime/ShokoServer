@@ -178,7 +178,7 @@ public class Image_Base : IImageMetadata
     public double AspectRatio
         => Width / Height;
 
-    private int? _width = null;
+    internal int? _width = null;
 
     /// <inheritdoc/>
     public virtual int Width
@@ -195,7 +195,7 @@ public class Image_Base : IImageMetadata
         set { }
     }
 
-    private int? _height = null;
+    internal int? _height = null;
 
     /// <inheritdoc/>
     public virtual int Height

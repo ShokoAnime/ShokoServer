@@ -7,6 +7,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Models;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -96,6 +97,11 @@ public class Image
         {
             Width = tmdbImage.Width;
             Height = tmdbImage.Height;
+        }
+        else if (imageMetadata is Image_Base imageBase && imageBase._width.HasValue && imageBase._height.HasValue)
+        {
+            Width = imageBase._width.Value;
+            Height = imageBase._height.Value;
         }
         else if (imageMetadata.IsLocalAvailable && Utils.SettingsProvider.GetSettings().LoadImageMetadata)
         {

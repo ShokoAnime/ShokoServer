@@ -314,6 +314,8 @@ public class TMDB_Image : Image_Base, IImageMetadata
         {
             IsEnabled = IsEnabled,
             IsPreferred = preferred,
+            _width = Width,
+            _height = Height,
         };
 
     #endregion
