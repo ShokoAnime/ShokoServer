@@ -352,6 +352,8 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
         }
         foreach (var xref in TmdbShowCrossReferences)
             images.AddRange(xref.GetImages(entityType, preferredImages));
+        foreach (var xref in TmdbSeasonCrossReferences)
+            images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var xref in TmdbMovieCrossReferences.DistinctBy(xref => xref.TmdbMovieID))
             images.AddRange(xref.GetImages(entityType, preferredImages));
 
@@ -388,6 +390,24 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
         ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AniDB_ID, tmdbShowId.Value)
         : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> TmdbSeasonCrossReferences =>
+        TmdbEpisodeCrossReferences
+            .Select(xref => xref.TmdbSeasonCrossReference)
+            .WhereNotNull()
+            .DistinctBy(xref => xref.TmdbSeasonID)
+            .ToList();
+
+    public IReadOnlyList<TMDB_Season> TmdbSeasons => TmdbSeasonCrossReferences
+        .Select(xref => xref.TmdbSeason)
+        .WhereNotNull()
+        .ToList();
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> GetTmdbSeasonCrossReferences(int? tmdbShowId = null) =>
+        GetTmdbEpisodeCrossReferences(tmdbShowId)
+            .Select(xref => xref.TmdbSeasonCrossReference)
+            .WhereNotNull().Distinct()
+            .ToList();
 
     #endregion
 

@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.TMDB;
@@ -9,64 +9,43 @@ using Shoko.Server.Repositories;
 #nullable enable
 namespace Shoko.Server.Models.CrossReference;
 
-public class CrossRef_AniDB_TMDB_Episode
+/// <summary>
+/// Not actually stored in the database, but made from the episode cross-reference.
+/// </summary>
+public class CrossRef_AniDB_TMDB_Season : IEquatable<CrossRef_AniDB_TMDB_Season>
 {
-    #region Database Columns
-
-    public int CrossRef_AniDB_TMDB_EpisodeID { get; set; }
+    #region Columns
 
     public int AnidbAnimeID { get; set; }
 
-    public int AnidbEpisodeID { get; set; }
-
     public int TmdbShowID { get; set; }
 
-    public int TmdbEpisodeID { get; set; }
+    public int TmdbSeasonID { get; set; }
 
-    public int Ordering { get; set; }
-
-    public MatchRating MatchRating { get; set; }
+    public int SeasonNumber { get; set; }
 
     #endregion
     #region Constructors
 
-    public CrossRef_AniDB_TMDB_Episode() { }
-
-    public CrossRef_AniDB_TMDB_Episode(int anidbEpisodeId, int anidbAnimeId, int tmdbEpisodeId, int tmdbShowId, MatchRating rating = MatchRating.UserVerified, int ordering = 0)
+    public CrossRef_AniDB_TMDB_Season(int anidbAnimeId, int tmdbSeasonId, int tmdbShowId, int seasonNumber = 1)
     {
-        AnidbEpisodeID = anidbEpisodeId;
         AnidbAnimeID = anidbAnimeId;
-        TmdbEpisodeID = tmdbEpisodeId;
+        TmdbSeasonID = tmdbSeasonId;
         TmdbShowID = tmdbShowId;
-        Ordering = ordering;
-        MatchRating = rating;
+        SeasonNumber = seasonNumber;
     }
 
     #endregion
     #region Methods
 
-    public SVR_AniDB_Episode? AnidbEpisode =>
-        RepoFactory.AniDB_Episode.GetByEpisodeID(AnidbEpisodeID);
-
     public SVR_AniDB_Anime? AnidbAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
-
-    public SVR_AnimeEpisode? AnimeEpisode =>
-        RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);
 
     public SVR_AnimeSeries? AnimeSeries =>
         RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
 
-    public TMDB_Episode? TmdbEpisode =>
-        TmdbEpisodeID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
-
-    public CrossRef_AniDB_TMDB_Season? TmdbSeasonCrossReference =>
-        TmdbEpisode is { } tmdbEpisode
-            ? new(AnidbAnimeID, tmdbEpisode.TmdbSeasonID, TmdbShowID, tmdbEpisode.SeasonNumber)
-            : null;
-
     public TMDB_Season? TmdbSeason =>
-        TmdbEpisode?.TmdbSeason;
+        TmdbSeasonID == 0 ? null : RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID);
 
     public TMDB_Show? TmdbShow =>
         TmdbShowID == 0 ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
@@ -80,8 +59,8 @@ public class CrossRef_AniDB_TMDB_Episode
     /// <returns>A read-only list of images that are linked to the episode.
     /// </returns>
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
+        ? RepoFactory.TMDB_Image.GetByTmdbSeasonIDAndType(TmdbSeasonID, entityType.Value)
+        : RepoFactory.TMDB_Image.GetByTmdbSeasonID(TmdbSeasonID);
 
     /// <summary>
     /// Get all images for the episode, or all images for the given
@@ -97,6 +76,22 @@ public class CrossRef_AniDB_TMDB_Episode
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
             .ToList();
+
+    public bool Equals(CrossRef_AniDB_TMDB_Season? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return AnidbAnimeID == other.AnidbAnimeID
+               && TmdbSeasonID == other.TmdbSeasonID
+               && TmdbShowID == other.TmdbShowID
+               && SeasonNumber == other.SeasonNumber;
+    }
+
+    public override bool Equals(object? obj)
+        => Equals(obj as CrossRef_AniDB_TMDB_Season);
+
+    public override int GetHashCode()
+        => HashCode.Combine(AnidbAnimeID, TmdbSeasonID, TmdbShowID, SeasonNumber);
 
     #endregion
 }
