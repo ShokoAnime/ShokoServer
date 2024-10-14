@@ -776,7 +776,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(131, 7, "DROP TABLE CrossRef_AniDB_TvDB_Episode;"),
         new DatabaseCommand(131, 8, "DROP TABLE CrossRef_AniDB_TvDB_Episode_Override;"),
         new DatabaseCommand(131, 9, "ALTER TABLE Trakt_Show DROP COLUMN TvDB_ID;"),
-        new DatabaseCommand(131, 10, "ALTER TABLE Trakt_Show ADD COLUMN TmdbShowID INT NULL;"),
+        new DatabaseCommand(131, 10, "ALTER TABLE Trakt_Show ADD TmdbShowID INT NULL;"),
         new DatabaseCommand(131, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
     };
 
