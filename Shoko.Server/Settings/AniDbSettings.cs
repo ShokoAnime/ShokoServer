@@ -29,7 +29,7 @@ public class AniDbSettings
 
     public ushort AVDumpClientPort { get; set; } = 4557;
 
-    public bool DownloadRelatedAnime { get; set; } = true;
+    public bool DownloadRelatedAnime { get; set; } = false;
 
     public bool DownloadReviews { get; set; } = false;
 
@@ -53,9 +53,9 @@ public class AniDbSettings
 
     public ScheduledUpdateFrequency MyList_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
-    public ScheduledUpdateFrequency Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
+    public ScheduledUpdateFrequency Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
-    public ScheduledUpdateFrequency Anime_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
+    public ScheduledUpdateFrequency Anime_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
     public ScheduledUpdateFrequency File_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
 
