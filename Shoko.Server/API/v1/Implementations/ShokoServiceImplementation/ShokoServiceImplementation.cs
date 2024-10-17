@@ -399,7 +399,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
             settings.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
             settings.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
-            settings.AniDb.DownloadSimilarAnime = contractIn.AniDB_DownloadSimilarAnime;
 
             settings.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
             settings.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
@@ -416,8 +415,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 (ScheduledUpdateFrequency)contractIn.AniDB_Calendar_UpdateFrequency;
             settings.AniDb.Anime_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_Anime_UpdateFrequency;
-            settings.AniDb.MyListStats_UpdateFrequency =
-                (ScheduledUpdateFrequency)contractIn.AniDB_MyListStats_UpdateFrequency;
             settings.AniDb.File_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_File_UpdateFrequency;
 

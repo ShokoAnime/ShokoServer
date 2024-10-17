@@ -31,8 +31,6 @@ public class AniDbSettings
 
     public bool DownloadRelatedAnime { get; set; } = true;
 
-    public bool DownloadSimilarAnime { get; set; } = true;
-
     public bool DownloadReviews { get; set; } = false;
 
     public bool DownloadReleaseGroups { get; set; } = false;
@@ -58,8 +56,6 @@ public class AniDbSettings
     public ScheduledUpdateFrequency Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
 
     public ScheduledUpdateFrequency Anime_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
-
-    public ScheduledUpdateFrequency MyListStats_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
     public ScheduledUpdateFrequency File_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
 
