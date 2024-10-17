@@ -208,20 +208,22 @@ public partial class TmdbSearchService
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
         var (results, totalCount) = await SearchMovies(query, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
-        if (results.Count > 0)
+        var firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+        if (firstViableResult is not null)
         {
-            _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, results[0].OriginalTitle, results[0].Id);
+            _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, firstViableResult.OriginalTitle, firstViableResult.Id);
 
-            return new(anime, episode, results[0]) { IsRemote = true };
+            return new(anime, episode, firstViableResult) { IsRemote = true };
         }
 
         // Brute force attempt #2: With the original title but without the earliest known aired year.
         (results, totalCount) = await SearchMovies(query, includeRestricted: includeRestricted).ConfigureAwait(false);
-        if (results.Count > 0)
+        firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+        if (firstViableResult is not null)
         {
-            _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, results[0].OriginalTitle, results[0].Id);
+            _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, query, firstViableResult.OriginalTitle, firstViableResult.Id);
 
-            return new(anime, episode, results[0]) { IsRemote = true };
+            return new(anime, episode, firstViableResult) { IsRemote = true };
         }
 
         // Brute force attempt #3-4: Same as above, but after stripping the title of common "sequel endings"
@@ -230,18 +232,20 @@ public partial class TmdbSearchService
         if (!string.IsNullOrEmpty(strippedTitle))
         {
             (results, totalCount) = await SearchMovies(strippedTitle, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
-            if (results.Count > 0)
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            if (firstViableResult is not null)
             {
-                _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, results[0].OriginalTitle, results[0].Id);
+                _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, firstViableResult.OriginalTitle, firstViableResult.Id);
 
-                return new(anime, episode, results[0]) { IsRemote = true };
+                return new(anime, episode, firstViableResult) { IsRemote = true };
             }
             (results, totalCount) = await SearchMovies(strippedTitle, includeRestricted: includeRestricted).ConfigureAwait(false);
-            if (results.Count > 0)
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            if (firstViableResult is not null)
             {
-                _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, results[0].OriginalTitle, results[0].Id);
+                _logger.LogTrace("Found {Count} movie results for search on {Query}, best match; {MovieName} ({ID})", totalCount, strippedTitle, firstViableResult.OriginalTitle, firstViableResult.Id);
 
-                return new(anime, episode, results[0]) { IsRemote = true };
+                return new(anime, episode, firstViableResult) { IsRemote = true };
             }
         }
 
@@ -419,20 +423,23 @@ public partial class TmdbSearchService
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
         var (results, totalFound) = await SearchShows(title, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-        if (results.Count > 0)
+        var firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+        if (firstViableResult is not null)
         {
-            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
+            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, firstViableResult.OriginalName, firstViableResult.Id);
 
-            return new(anime, results[0]) { IsRemote = true };
+            return new(anime, firstViableResult) { IsRemote = true };
         }
+
 
         // Brute force attempt #2: With the original title but without the earliest known aired year.
         (results, totalFound) = await SearchShows(title, includeRestricted: restricted).ConfigureAwait(false);
-        if (totalFound > 0)
+        firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+        if (firstViableResult is not null)
         {
-            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, results[0].OriginalName, results[0].Id);
+            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, firstViableResult.OriginalName, firstViableResult.Id);
 
-            return new(anime, results[0]) { IsRemote = true };
+            return new(anime, firstViableResult) { IsRemote = true };
         }
 
         // Brute force attempt #3-4: Same as above, but after stripping the title of common "sequel endings"
@@ -441,18 +448,20 @@ public partial class TmdbSearchService
         if (!string.IsNullOrEmpty(strippedTitle))
         {
             (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            if (results.Count > 0)
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            if (firstViableResult is not null)
             {
-                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, firstViableResult.OriginalName, firstViableResult.Id);
 
-                return new(anime, results[0]);
+                return new(anime, firstViableResult) { IsRemote = true };
             }
             (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
-            if (results.Count > 0)
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            if (firstViableResult is not null)
             {
-                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, results[0].OriginalName, results[0].Id);
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, firstViableResult.OriginalName, firstViableResult.Id);
 
-                return new(anime, results[0]) { IsRemote = true };
+                return new(anime, firstViableResult) { IsRemote = true };
             }
         }
 
@@ -463,24 +472,32 @@ public partial class TmdbSearchService
         {
             titleWithoutSubTitle = titleWithoutSubTitle[..columIndex];
             (results, totalFound) = await SearchShows(titleWithoutSubTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            if (results.Count > 0)
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            if (firstViableResult is not null)
             {
-                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, results[0].OriginalName, results[0].Id);
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, firstViableResult.OriginalName, firstViableResult.Id);
 
-                return new(anime, results[0]);
+                return new(anime, firstViableResult) { IsRemote = true };
             }
 
             (results, totalFound) = await SearchShows(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
-            if (results.Count > 0)
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            if (firstViableResult is not null)
             {
-                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, results[0].OriginalName, results[0].Id);
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, firstViableResult.OriginalName, firstViableResult.Id);
 
-                return new(anime, results[0]) { IsRemote = true };
+                return new(anime, firstViableResult) { IsRemote = true };
             }
         }
 
         return null;
     }
+
+    #endregion
+
+    #region Helpers
+
+    private bool IsAnimation(IReadOnlyList<string> genres) => genres.Contains("animation", StringComparer.OrdinalIgnoreCase);
 
     #endregion
 }

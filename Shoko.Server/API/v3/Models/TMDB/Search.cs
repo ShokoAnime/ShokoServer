@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -164,6 +165,11 @@ public static class Search
         /// </summary>
         public Rating UserRating { get; init; }
 
+        /// <summary>
+        /// Genres.
+        /// </summary>
+        public IReadOnlyList<string> Genres { get; init; }
+
         public RemoteSearchMovie(TMDB_Movie movie)
         {
             ID = movie.Id;
@@ -188,6 +194,7 @@ public static class Search
                 Type = "User",
                 Votes = movie.UserVotes,
             };
+            Genres = movie.Genres;
         }
 
         public RemoteSearchMovie(RemoteMovie movie)
@@ -214,6 +221,7 @@ public static class Search
                 Type = "User",
                 Votes = movie.VoteCount,
             };
+            Genres = movie.GetGenres();
         }
 
         public RemoteSearchMovie(SearchMovie movie)
@@ -240,6 +248,7 @@ public static class Search
                 Type = "User",
                 Votes = movie.VoteCount,
             };
+            Genres = movie.GetGenres();
         }
     }
 
@@ -294,6 +303,11 @@ public static class Search
         /// </summary>
         public Rating UserRating { get; init; }
 
+        /// <summary>
+        /// Genres.
+        /// </summary>
+        public IReadOnlyList<string> Genres { get; init; }
+
         public RemoteSearchShow(TMDB_Show show)
         {
             ID = show.Id;
@@ -316,6 +330,7 @@ public static class Search
                 Type = "User",
                 Votes = show.UserVotes,
             };
+            Genres = show.Genres;
         }
 
         public RemoteSearchShow(RemoteShow show)
@@ -340,6 +355,7 @@ public static class Search
                 Type = "User",
                 Votes = show.VoteCount,
             };
+            Genres = show.GetGenres();
         }
 
         public RemoteSearchShow(SearchTv show)
@@ -364,6 +380,7 @@ public static class Search
                 Type = "User",
                 Votes = show.VoteCount,
             };
+            Genres = show.GetGenres();
         }
     }
 }

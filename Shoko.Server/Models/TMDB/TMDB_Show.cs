@@ -208,12 +208,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : show.Name, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : show.Overview, v => EnglishOverview = v),
             UpdateProperty(IsRestricted, show.Adult, v => IsRestricted = v),
-            UpdateProperty(
-                Genres,
-                show.Genres.SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).OrderBy(s => s).ToList(),
-                v => Genres = v,
-                (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))
-            ),
+            UpdateProperty(Genres, show.GetGenres(), v => Genres = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
             UpdateProperty(
                 ContentRatings,
                 show.ContentRatings.Results

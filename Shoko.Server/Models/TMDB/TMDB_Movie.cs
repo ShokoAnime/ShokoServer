@@ -215,12 +215,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
             UpdateProperty(OriginalLanguageCode, movie.OriginalLanguage, v => OriginalLanguageCode = v),
             UpdateProperty(IsRestricted, movie.Adult, v => IsRestricted = v),
             UpdateProperty(IsVideo, movie.Video, v => IsVideo = v),
-            UpdateProperty(
-                Genres,
-                movie.Genres.SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).OrderBy(s => s).ToList(),
-                v => Genres = v,
-                (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))
-            ),
+            UpdateProperty(Genres, movie.GetGenres(), v => Genres = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
             UpdateProperty(
                 ContentRatings,
                 movie.ReleaseDates.Results

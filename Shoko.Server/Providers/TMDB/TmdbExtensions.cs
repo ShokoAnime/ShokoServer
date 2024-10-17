@@ -7,7 +7,9 @@ using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Models.TMDB;
+using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
+using TMDbLib.Objects.TvShows;
 
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
@@ -15,6 +17,48 @@ namespace Shoko.Server.Providers.TMDB;
 public static class TmdbExtensions
 {
     private static readonly TimeOnly MidDay = TimeOnly.FromTimeSpan(TimeSpan.FromHours(12));
+
+    public static List<string> GetGenres(this Movie movie)
+        => movie.Genres
+            .SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .OrderBy(genre => genre)
+            .ToList();
+
+    public static IReadOnlyList<string> GetGenres(this SearchMovie movie)
+    {
+        var instance = TmdbMetadataService.Instance;
+        if (instance is null)
+            return [];
+
+        var allMovieGenres = instance.GetMovieGenres().ConfigureAwait(false).GetAwaiter().GetResult();
+        return movie.GenreIds
+            .Select(id => allMovieGenres.TryGetValue(id, out var genre) ? genre : null)
+            .WhereNotNull()
+            .SelectMany(genre => genre.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .OrderBy(genre => genre)
+            .ToList();
+    }
+
+    public static List<string> GetGenres(this TvShow movie)
+        => movie.Genres
+            .SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .OrderBy(genre => genre)
+            .ToList();
+
+    public static IReadOnlyList<string> GetGenres(this SearchTv show)
+    {
+        var instance = TmdbMetadataService.Instance;
+        if (instance is null)
+            return [];
+
+        var allShowGenres = instance.GetShowGenres().ConfigureAwait(false).GetAwaiter().GetResult();
+        return show.GenreIds
+            .Select(id => allShowGenres.TryGetValue(id, out var genre) ? genre : null)
+            .WhereNotNull()
+            .SelectMany(genre => genre.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .OrderBy(genre => genre)
+            .ToList();
+    }
 
     public static CL_MovieDBMovieSearch_Response ToContract(this SearchMovie movie)
         => new()

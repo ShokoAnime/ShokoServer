@@ -49,6 +49,25 @@ public class TmdbMetadataService
 
     private static TmdbMetadataService? _instance = null;
 
+    private static readonly object _instanceLockObj = new();
+
+    internal static TmdbMetadataService? Instance
+    {
+        get
+        {
+            if (_instance is not null)
+                return _instance;
+
+            lock (_instanceLockObj)
+            {
+                if (_instance is not null)
+                    return _instance;
+
+                return _instance = Utils.ServiceContainer?.GetService<TmdbMetadataService>();
+            }
+        }
+    }
+
     private static string? _imageServerUrl = null;
 
     public static string? ImageServerUrl
@@ -58,22 +77,20 @@ public class TmdbMetadataService
             // Return cached version if possible.
             if (_imageServerUrl is not null)
                 return _imageServerUrl;
-            if (_instance is null)
-            {
-                // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available.
-                _instance = Utils.ServiceContainer?.GetService<TmdbMetadataService>();
-                if (_instance is null)
-                    return null;
-            }
+
+            // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available.
+            var instance = Instance;
+            if (instance is null)
+                return null;
 
             try
             {
-                var config = _instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result;
+                var config = instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result;
                 return _imageServerUrl = config.Images.SecureBaseUrl;
             }
             catch (Exception ex)
             {
-                _instance._logger.LogError(ex, "Encountered an exception while trying to find the image server url to use; {ErrorMessage}", ex.Message);
+                instance._logger.LogError(ex, "Encountered an exception while trying to find the image server url to use; {ErrorMessage}", ex.Message);
                 throw;
             }
         }
@@ -346,6 +363,28 @@ public class TmdbMetadataService
     }
 
     #region Movies
+
+    #region Genres (Movies)
+
+    private IReadOnlyDictionary<int, string>? _movieGenres = null;
+
+    public async Task<IReadOnlyDictionary<int, string>> GetMovieGenres()
+    {
+        if (_movieGenres is not null)
+            return _movieGenres;
+
+        using (await GetLockForEntity(ForeignEntityType.Movie, 0, "genre", "Load").ConfigureAwait(false))
+        {
+            if (_movieGenres is not null)
+                return _movieGenres;
+
+            var genres = await UseClient(c => c.GetMovieGenresAsync(), "Get Movie Genres").ConfigureAwait(false);
+            _movieGenres = genres.ToDictionary(x => x.Id, x => x.Name);
+            return _movieGenres;
+        }
+    }
+
+    #endregion
 
     #region Update (Movies)
 
@@ -847,6 +886,28 @@ public class TmdbMetadataService
     #endregion
 
     #region Shows
+
+    #region Genres (Shows)
+
+    private IReadOnlyDictionary<int, string>? _tvShowGenres = null;
+
+    public async Task<IReadOnlyDictionary<int, string>> GetShowGenres()
+    {
+        if (_tvShowGenres is not null)
+            return _tvShowGenres;
+
+        using (await GetLockForEntity(ForeignEntityType.Show, 0, "genre", "Load").ConfigureAwait(false))
+        {
+            if (_tvShowGenres is not null)
+                return _tvShowGenres;
+
+            var genres = await UseClient(c => c.GetTvGenresAsync(), "Get TV Show Genres").ConfigureAwait(false);
+            _tvShowGenres = genres.ToDictionary(x => x.Id, x => x.Name);
+            return _tvShowGenres;
+        }
+    }
+
+    #endregion
 
     #region Update (Shows)
 
