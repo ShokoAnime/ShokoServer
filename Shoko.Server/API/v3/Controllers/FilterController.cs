@@ -137,6 +137,7 @@ public class FilterController : BaseController
                 };
                 Filter.FilterExpressionHelp.FilterExpressionParameterType? parameter = expression switch
                 {
+                    IWithBoolParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Bool,
                     IWithDateParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Date,
                     IWithNumberParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Number,
                     IWithStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,

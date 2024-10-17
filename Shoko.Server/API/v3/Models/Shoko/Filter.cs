@@ -229,6 +229,7 @@ public class Filter : BaseModel
             Number,
             String,
             TimeSpan,
+            Bool,
         }
     }
 
