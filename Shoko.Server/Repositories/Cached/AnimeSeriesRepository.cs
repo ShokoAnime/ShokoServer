@@ -11,6 +11,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
@@ -18,6 +19,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CA1822
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
@@ -340,6 +342,9 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             .WhereNotNull()
             .ToList();
     }
+
+    public ImageEntityType[] GetAllImageTypes()
+        => [ImageEntityType.Backdrop, ImageEntityType.Banner, ImageEntityType.Logo, ImageEntityType.Poster];
 
     public IEnumerable<int> GetAllYears()
     {

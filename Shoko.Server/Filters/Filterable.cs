@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters;
@@ -45,6 +46,8 @@ public class Filterable : IFilterable
     private readonly Lazy<int> _totalEpisodeCount;
     private readonly Lazy<IReadOnlySet<string>> _videoSources;
     private readonly Lazy<IReadOnlySet<int>> _years;
+    private readonly Lazy<IReadOnlySet<ImageEntityType>> _availableImageTypes;
+    private readonly Lazy<IReadOnlySet<ImageEntityType>> _preferredImageTypes;
 
     public string Name => _name.Value;
 
@@ -121,6 +124,20 @@ public class Filterable : IFilterable
     public Func<IReadOnlySet<(int year, AnimeSeason season)>> SeasonsDelegate
     {
         init => _seasons = new Lazy<IReadOnlySet<(int year, AnimeSeason season)>>(value);
+    }
+
+    public IReadOnlySet<ImageEntityType> AvailableImageTypes => _availableImageTypes.Value;
+
+    public Func<IReadOnlySet<ImageEntityType>> AvailableImageTypesDelegate
+    {
+        init => _availableImageTypes = new Lazy<IReadOnlySet<ImageEntityType>>(value);
+    }
+
+    public IReadOnlySet<ImageEntityType> PreferredImageTypes => _preferredImageTypes.Value;
+
+    public Func<IReadOnlySet<ImageEntityType>> PreferredImageTypesDelegate
+    {
+        init => _preferredImageTypes = new Lazy<IReadOnlySet<ImageEntityType>>(value);
     }
 
     public bool HasTmdbLink => _hasTmdbLink.Value;

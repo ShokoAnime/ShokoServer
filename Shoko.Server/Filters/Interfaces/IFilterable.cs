@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Server.Filters.Interfaces;
 
@@ -60,6 +61,16 @@ public interface IFilterable
     /// The seasons this aired in
     /// </summary>
     IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; }
+
+    /// <summary>
+    /// Available image types.
+    /// </summary>
+    IReadOnlySet<ImageEntityType> AvailableImageTypes { get; }
+
+    /// <summary>
+    /// Preferred image types.
+    /// </summary>
+    IReadOnlySet<ImageEntityType> PreferredImageTypes { get; }
 
     /// <summary>
     /// Has at least one TMDB Link

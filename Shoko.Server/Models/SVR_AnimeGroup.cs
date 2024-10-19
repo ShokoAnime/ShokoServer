@@ -193,6 +193,14 @@ public class SVR_AnimeGroup : AnimeGroup, IShokoGroup
 
     public HashSet<(int Year, AnimeSeason Season)> Seasons => AllSeries.SelectMany(a => a.AniDB_Anime?.Seasons ?? []).ToHashSet();
 
+    public HashSet<ImageEntityType> AvailableImageTypes => AllSeries
+        .SelectMany(ser => ser.GetAvailableImageTypes())
+        .ToHashSet();
+
+    public HashSet<ImageEntityType> PreferredImageTypes => AllSeries
+        .SelectMany(ser => ser.GetPreferredImageTypes())
+        .ToHashSet();
+
     public List<SVR_AniDB_Anime_Title> Titles => AllSeries
         .SelectMany(ser => ser.AniDB_Anime?.Titles ?? [])
         .DistinctBy(tit => tit.AniDB_Anime_TitleID)

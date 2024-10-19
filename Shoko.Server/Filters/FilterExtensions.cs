@@ -58,6 +58,10 @@ public static class FilterExtensions
                 series.Years,
             SeasonsDelegate = () =>
                 series.AniDB_Anime?.Seasons.ToHashSet() ?? [],
+            AvailableImageTypesDelegate = () =>
+                series.GetAvailableImageTypes(),
+            PreferredImageTypesDelegate = () =>
+                series.GetPreferredImageTypes(),
             HasTmdbLinkDelegate = () =>
                 series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
             HasMissingTmdbLinkDelegate = () =>
@@ -199,9 +203,13 @@ public static class FilterExtensions
             CustomTagsDelegate = () =>
                 group.CustomTags.Select(a => a.TagName).ToHashSet(),
             YearsDelegate = () =>
-                group.Years.ToHashSet(),
+                group.Years,
             SeasonsDelegate = () =>
-                group.Seasons.ToHashSet(),
+                group.Seasons,
+            AvailableImageTypesDelegate = () =>
+                group.AvailableImageTypes,
+            PreferredImageTypesDelegate = () =>
+                group.PreferredImageTypes,
             HasTmdbLinkDelegate = () =>
                 series.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0),
             HasMissingTmdbLinkDelegate = () =>

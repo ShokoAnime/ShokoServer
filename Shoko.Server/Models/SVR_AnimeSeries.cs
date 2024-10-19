@@ -329,6 +329,35 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #region Images
 
+    public HashSet<ImageEntityType> GetAvailableImageTypes()
+    {
+        var images = new List<IImageMetadata>();
+        var poster = AniDB_Anime?.GetImageMetadata(false);
+        if (poster is not null)
+            images.Add(poster);
+        foreach (var xref in TmdbShowCrossReferences)
+            images.AddRange(xref.GetImages());
+        foreach (var xref in TmdbSeasonCrossReferences)
+            images.AddRange(xref.GetImages());
+        foreach (var xref in TmdbMovieCrossReferences.DistinctBy(xref => xref.TmdbMovieID))
+            images.AddRange(xref.GetImages());
+        return images
+            .DistinctBy(image => image.ImageType)
+            .Select(image => image.ImageType)
+            .ToHashSet();
+    }
+
+    public HashSet<ImageEntityType> GetPreferredImageTypes()
+    {
+        return RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AniDB_ID)
+            .WhereNotNull()
+            .Select(preferredImage => preferredImage.GetImageMetadata())
+            .WhereNotNull()
+            .DistinctBy(image => image.ImageType)
+            .Select(image => image.ImageType)
+            .ToHashSet();
+    }
+
     public IImageMetadata? GetPreferredImageForType(ImageEntityType entityType)
         => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AniDB_ID, entityType)?.GetImageMetadata();
 
