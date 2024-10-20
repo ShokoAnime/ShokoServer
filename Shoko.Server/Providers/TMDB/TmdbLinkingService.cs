@@ -629,7 +629,7 @@ public class TmdbLinkingService
             .ThenBy(result => result.episode.EpisodeNumber)
             .ToList();
         var titleSearchResults = !string.IsNullOrEmpty(anidbTitle) ? tmdbEpisodes
-            .Search(anidbTitle, episode => [episode.EnglishTitle], true, 1)
+            .Search(anidbTitle, episode => [episode.EnglishTitle], true)
             .OrderBy(result => result)
             .ToList() : [];
 
