@@ -552,8 +552,8 @@ public static class ModelHelper
                 if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
 
                 // this one is also special because files in import limbo are excluded by default
-                if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is not null && x.AniDBEpisode is not null)) return false;
-                if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is not null && x.AniDBEpisode is not null))) return false;
+                if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
                     xrefs.All(xref => xref.CrossRefSource == (int)CrossRefSource.User)) return false;
