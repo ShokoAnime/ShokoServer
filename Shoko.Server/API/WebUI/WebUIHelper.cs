@@ -71,10 +71,8 @@ public static partial class WebUIHelper
         foreach (var assets in release.assets)
         {
             // We don't care what the zip is named, only that it is attached.
-            // This is because we changed the signature from "latest.zip" to
-            // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
             string fileName = assets.name;
-            if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{release.tag_name}.zip")
+            if (Path.GetExtension(fileName) is ".zip")
             {
                 url = assets.browser_download_url;
                 break;

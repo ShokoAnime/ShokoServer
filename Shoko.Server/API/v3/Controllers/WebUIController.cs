@@ -483,10 +483,8 @@ public class WebUIController : BaseController
                         foreach (var asset in release.assets)
                         {
                             // We don't care what the zip is named, only that it is attached.
-                            // This is because we changed the signature from "latest.zip" to
-                            // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
                             string fileName = asset.name;
-                            if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{tagName}.zip")
+                            if (Path.GetExtension(fileName) is ".zip")
                             {
                                 var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
                                 string commit = tag["object"].sha;
