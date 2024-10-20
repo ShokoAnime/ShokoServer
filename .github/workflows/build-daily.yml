@@ -15,6 +15,7 @@ jobs:
     name: Current Information
 
     outputs:
+      tag: ${{ steps.release_info.outputs.tag }}
       version: ${{ steps.release_info.outputs.version }}
       date: ${{ steps.commit_date_iso8601.outputs.date }}
       sha: ${{ github.sha }}
@@ -36,27 +37,26 @@ jobs:
         run: |
           echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
-      - name: Increment build number from last sentry release before "${{ steps.commit_date_iso8601.outputs.date }}"
-        id: incremental_build
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        run: |
-          echo -n "BUILD_NUMBER=" >> "$GITHUB_OUTPUT"
-          curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/" \
-            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
-            -H "Content-Type: application/json" \
-            | jq -r '. | map(select((.dateCreated | .[0:-8] + "Z" | fromdateiso8601) < ("${{ steps.commit_date_iso8601.outputs.date }}" | fromdateiso8601))) | first | .version | split("-") | first | split(".") | last | tonumber | . + 1' >> "$GITHUB_OUTPUT"
+      - name: Get Previous Version
+        id: previous_release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: false
+          prefix: "v"
+          prefixRegex: "[vV]?"
+          suffixRegex: "dev"
+          suffix: "dev"
 
       - name: Get Current Version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          buildNumber: ${{ steps.incremental_build.outputs.BUILD_NUMBER }}
-          increment: "build"
-          prefix: v
+          branch: false
+          increment: "suffix"
+          prefix: "v"
           prefixRegex: "[vV]?"
+          suffixRegex: "dev"
+          suffix: "dev"
 
       - id: commit_info
         name: Shorten Commit Hash
@@ -274,7 +274,7 @@ jobs:
           docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:daily
           docker manifest push ${{ secrets.DOCKER_REPO }}:daily
 
-  sentry-upload:
+  add-tag:
     runs-on: ubuntu-latest
 
     needs:
@@ -282,6 +282,28 @@ jobs:
       - cli-daily
       - tray-service-daily
       - docker-daily-push_manifest
+
+    name: Add tag for pre-release
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Push pre-release tag
+        uses: actions-ecosystem/action-push-tag@v1
+        with:
+          tag: ${{ needs.current_info.outputs.tag }}
+          message: Shoko Server v${{ needs.current_info.outputs.version }} Pre-Release
+
+  sentry-upload:
+    runs-on: ubuntu-latest
+
+    needs:
+      - current_info
+      - add-tag
 
     name: Upload version info to Sentry.io
 
