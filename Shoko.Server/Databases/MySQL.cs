@@ -848,6 +848,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(139, 9, "ALTER TABLE Trakt_Show DROP COLUMN TvDB_ID;"),
         new(139, 10, "ALTER TABLE Trakt_Show ADD COLUMN TmdbShowID INT NULL;"),
         new(139, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
+        new(139, 12, DatabaseFixes.ClearQuartzQueue),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

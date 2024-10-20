@@ -778,6 +778,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(131, 9, "ALTER TABLE Trakt_Show DROP COLUMN TvDB_ID;"),
         new DatabaseCommand(131, 10, "ALTER TABLE Trakt_Show ADD TmdbShowID INT NULL;"),
         new DatabaseCommand(131, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
+        new DatabaseCommand(131, 12, DatabaseFixes.ClearQuartzQueue),
     };
 
     private static void AlterImdbMovieIDType()

@@ -773,6 +773,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(123, 9, "ALTER TABLE Trakt_Show DROP COLUMN TvDB_ID;"),
         new(123, 10, "ALTER TABLE Trakt_Show ADD COLUMN TmdbShowID INTEGER NULL;"),
         new(123, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
+        new(123, 12, DatabaseFixes.ClearQuartzQueue),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

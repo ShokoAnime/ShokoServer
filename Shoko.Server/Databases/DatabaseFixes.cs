@@ -819,4 +819,10 @@ public class DatabaseFixes
         if (dir.Exists)
             dir.Delete(true);
     }
+
+    public static void ClearQuartzQueue()
+    {
+        var queueHandler = Utils.ServiceContainer.GetRequiredService<QueueHandler>();
+        queueHandler.Clear().ConfigureAwait(false).GetAwaiter().GetResult();
+    }
 }
