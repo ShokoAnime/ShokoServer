@@ -1471,6 +1471,7 @@ public class FileController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
     /// <returns></returns>
+    [Obsolete("Use the universal file endpoint instead.")]
     [HttpGet("MissingCrossReferenceData")]
     public ActionResult<ListResult<File>> GetFilesWithMissingCrossReferenceData(
         [FromQuery, Range(0, 1000)] int pageSize = 100,
