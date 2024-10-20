@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -56,15 +56,11 @@ public class Filter : Filters
             // Populate Random Art
 
             List<SVR_AnimeSeries>? arts = null;
-            var seriesList = evaluatedResults.SelectMany(a => a).Select(RepoFactory.AnimeSeries.GetByID).ToList();
-            var groupsList = evaluatedResults.Select(r => RepoFactory.AnimeGroup.GetByID(r.Key)).ToList();
+            var seriesList = evaluatedResults.SelectMany(a => a).Select(RepoFactory.AnimeSeries.GetByID).WhereNotNull().ToList();
+            var groupsList = evaluatedResults.Select(r => RepoFactory.AnimeGroup.GetByID(r.Key)).WhereNotNull().ToList();
             if (pic == 1)
             {
-                arts = seriesList.Where(SeriesHasCompleteArt).WhereNotNull().ToList();
-                if (arts.Count == 0)
-                {
-                    arts = seriesList.Where(SeriesHasMostlyCompleteArt).WhereNotNull().ToList();
-                }
+                arts = seriesList.Where(SeriesHasArt).ToList();
 
                 if (arts.Count == 0)
                 {
@@ -76,6 +72,16 @@ public class Filter : Filters
             {
                 var rand = new Random();
                 var anime = arts[rand.Next(arts.Count)];
+                var backdrops = anime.GetImages(ImageEntityType.Backdrop);
+                if (backdrops.Count > 0)
+                {
+                    var backdrop = backdrops[rand.Next(backdrops.Count)];
+                    filter.art.fanart.Add(new Art
+                    {
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
+                    });
+                }
 
                 filter.art.thumb.Add(new Art
                 {
@@ -101,13 +107,8 @@ public class Filter : Filters
         return filter;
     }
 
-    private static bool SeriesHasCompleteArt(SVR_AnimeSeries series)
+    private static bool SeriesHasArt(SVR_AnimeSeries series)
     {
-        return false;
-    }
-
-    private static bool SeriesHasMostlyCompleteArt(SVR_AnimeSeries series)
-    {
-        return false;
+        return series.GetImages(ImageEntityType.Backdrop).Count is > 0;
     }
 }
