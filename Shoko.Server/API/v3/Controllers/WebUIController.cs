@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -31,6 +32,7 @@ using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIS
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 
 #pragma warning disable CA1822
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
@@ -41,7 +43,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-public class WebUIController : BaseController
+public partial class WebUIController : BaseController
 {
     private static readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions()
     {
@@ -334,8 +336,8 @@ public class WebUIController : BaseController
     [HttpGet("Series/{seriesID}/FileSummary")]
     public ActionResult<WebUISeriesFileSummary> GetSeriesFileSummary(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<FileSummaryGroupByCriteria> groupBy = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<FileSummaryGroupByCriteria>? groupBy = null,
         [FromQuery] bool includeEpisodeDetails = false,
         [FromQuery] bool includeMissingUnknownEpisodes = false,
         [FromQuery] bool includeMissingFutureEpisodes = false)
@@ -381,7 +383,10 @@ public class WebUIController : BaseController
 
         var result = LatestWebUIVersion(channel);
         if (result.Value is null)
-            return result.Result;
+            return result.Result!;
+
+        if (result.Value.Tag is null)
+            return BadRequest("Unable to install web UI because a GitHub release was not found.");
 
         try
         {
@@ -423,7 +428,10 @@ public class WebUIController : BaseController
             channel = GetCurrentWebUIReleaseChannel();
         var result = LatestWebUIVersion(channel);
         if (result.Value is null)
-            return result.Result;
+            return result.Result!;
+
+        if (result.Value.Tag is null)
+            return BadRequest("Unable to update web UI because a GitHub release was not found.");
 
         try
         {
@@ -450,6 +458,9 @@ public class WebUIController : BaseController
     public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
         => UpdateWebUI(channel);
 
+    [GeneratedRegex(@"^[Vv]?(?<version>(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+))(?:-dev.(?<buildNumber>\d+))?$", RegexOptions.Compiled, "en-US")]
+    private static partial Regex ReleaseVersionRegex();
+
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
     /// return a <see cref="ComponentVersion"/> containing the version
@@ -469,17 +480,25 @@ public class WebUIController : BaseController
                 channel = GetCurrentWebUIReleaseChannel();
             var key = $"webui:{channel}";
             if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
-                return componentVersion;
+                return componentVersion!;
             switch (channel)
             {
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
                 {
+                    var regex = ReleaseVersionRegex();
                     var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
                     foreach (var release in releases)
                     {
                         string tagName = release.tag_name;
-                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                        if (regex.Match(tagName) is not { Success: true } regexResult)
+                            continue;
+
+                        var version = regexResult.Groups["version"].Value;
+                        if (regexResult.Groups["buildNumber"].Success)
+                            version += "." + regexResult.Groups["buildNumber"].Value;
+                        else
+                            version += ".0";
                         foreach (var asset in release.assets)
                         {
                             // We don't care what the zip is named, only that it is attached.
@@ -519,7 +538,7 @@ public class WebUIController : BaseController
                     DateTime releaseDate = latestRelease.published_at;
                     releaseDate = releaseDate.ToUniversalTime();
                     string description = latestRelease.body;
-                    return _cache.Set<ComponentVersion>(key, new ComponentVersion
+                    return _cache.Set(key, new ComponentVersion
                     {
                         Version = version,
                         Commit = commit[0..7],
@@ -558,18 +577,39 @@ public class WebUIController : BaseController
                 channel = GetCurrentServerReleaseChannel();
             var key = $"server:{channel}";
             if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
-                return componentVersion;
+                return componentVersion!;
             switch (channel)
             {
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
                 {
-                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
-                    var masterBranch = WebUIHelper.DownloadApiResponse("git/ref/heads/master", WebUIHelper.ServerRepoName);
-                    string commitSha = masterBranch["object"].sha;
+                    var latestTags = WebUIHelper.DownloadApiResponse($"tags?per_page=100&page=1", WebUIHelper.ServerRepoName);
+                    var version = string.Empty;
+                    var tagName = string.Empty;
+                    var commitSha = string.Empty;
+                    var regex = ReleaseVersionRegex();
+                    foreach (var tagInfo in latestTags)
+                    {
+                        string localTagName = tagInfo.name;
+                        if (regex.Match(localTagName) is { Success: true } regexResult)
+                        {
+                            tagName = localTagName;
+                            commitSha = tagInfo.commit.sha;
+                            version = regexResult.Groups["version"].Value;
+                            if (regexResult.Groups["buildNumber"].Success)
+                                version += "." + regexResult.Groups["buildNumber"].Value;
+                            else
+                                version += ".0";
+                            break;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(commitSha))
+                    {
+                        return BadRequest("Unable to locate the latest release to use.");
+                    }
+
                     var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", WebUIHelper.ServerRepoName);
-                    string tagName = latestRelease.tag_name;
-                    var version = tagName[1..] + ".0";
                     DateTime releaseDate = latestCommit.commit.author.date;
                     releaseDate = releaseDate.ToUniversalTime();
                     string description;
@@ -597,6 +637,7 @@ public class WebUIController : BaseController
                         Commit = commitSha,
                         ReleaseChannel = ReleaseChannel.Dev,
                         ReleaseDate = releaseDate,
+                        Tag = tagName,
                         Description = description,
                     }, _cacheTTL);
                 }
@@ -640,7 +681,7 @@ public class WebUIController : BaseController
                         ReleaseChannel = ReleaseChannel.Stable,
                         ReleaseDate = releaseDate,
                         Tag = tagName,
-                        Description = description.Trim()
+                        Description = description.Trim(),
                     }, _cacheTTL);
                 }
             }

@@ -236,7 +236,7 @@ public static partial class WebUIHelper
     /// <param name="repoName">Repository name.</param>
     /// <returns></returns>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
-    internal static dynamic? DownloadApiResponse(string endpoint, string? repoName = null)
+    internal static dynamic DownloadApiResponse(string endpoint, string? repoName = null)
     {
         repoName ??= ClientRepoName;
         using var client = new HttpClient();
@@ -244,6 +244,6 @@ public static partial class WebUIHelper
         client.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()}");
         var response = client.GetStringAsync(new Uri($"https://api.github.com/repos/{repoName}/{endpoint}"))
             .ConfigureAwait(false).GetAwaiter().GetResult();
-        return JsonConvert.DeserializeObject(response);
+        return JsonConvert.DeserializeObject(response)!;
     }
 }
