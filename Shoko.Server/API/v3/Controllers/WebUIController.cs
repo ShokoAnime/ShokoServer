@@ -458,9 +458,6 @@ public partial class WebUIController : BaseController
     public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
         => UpdateWebUI(channel);
 
-    [GeneratedRegex(@"^[Vv]?(?<version>(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+))(?:-dev.(?<buildNumber>\d+))?$", RegexOptions.Compiled, "en-US")]
-    private static partial Regex ReleaseVersionRegex();
-
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
     /// return a <see cref="ComponentVersion"/> containing the version
@@ -486,19 +483,11 @@ public partial class WebUIController : BaseController
                 // Check for dev channel updates.
                 case ReleaseChannel.Dev:
                 {
-                    var regex = ReleaseVersionRegex();
                     var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
                     foreach (var release in releases)
                     {
                         string tagName = release.tag_name;
-                        if (regex.Match(tagName) is not { Success: true } regexResult)
-                            continue;
-
-                        var version = regexResult.Groups["version"].Value;
-                        if (regexResult.Groups["buildNumber"].Success)
-                            version += "." + regexResult.Groups["buildNumber"].Value;
-                        else
-                            version += ".0";
+                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
                         foreach (var asset in release.assets)
                         {
                             // We don't care what the zip is named, only that it is attached.
@@ -558,6 +547,9 @@ public partial class WebUIController : BaseController
         }
     }
 
+    [GeneratedRegex(@"^[Vv]?(?<version>(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+))(?:-dev.(?<buildNumber>\d+))?$", RegexOptions.Compiled, "en-US")]
+    private static partial Regex ServerReleaseVersionRegex();
+
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
     /// return a <see cref="ComponentVersion"/> containing the version
@@ -587,7 +579,7 @@ public partial class WebUIController : BaseController
                     var version = string.Empty;
                     var tagName = string.Empty;
                     var commitSha = string.Empty;
-                    var regex = ReleaseVersionRegex();
+                    var regex = ServerReleaseVersionRegex();
                     foreach (var tagInfo in latestTags)
                     {
                         string localTagName = tagInfo.name;
