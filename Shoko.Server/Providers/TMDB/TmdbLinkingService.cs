@@ -518,7 +518,7 @@ public class TmdbLinkingService
             {
                 _logger.LogTrace("Filtering new links by current sessions. (Current Sessions: {CurrentSessions})", string.Join(", ", currentSessions));
                 tmdbEpisodes = (isOVA ? tmdbEpisodes : tmdbNormalEpisodes.Concat(tmdbSpecialEpisodes))
-                    .IntersectBy(currentSessions, x => x.SeasonNumber)
+                    .Where(episode => currentSessions.Contains(episode.SeasonNumber))
                     .ToList();
                 tmdbNormalEpisodes = isOVA ? tmdbEpisodes : tmdbEpisodes
                     .Where(episode => episode.SeasonNumber != 0)
