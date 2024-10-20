@@ -486,26 +486,19 @@ public class TmdbLinkingService
                 var isSpecial = episode.AbstractEpisodeType is EpisodeType.Special || anime.AbstractAnimeType is not AnimeType.TVSeries and not AnimeType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
                 var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
-                if (crossRef.TmdbEpisodeID != 0)
+                if (crossRef.MatchRating is MatchRating.DateAndTitleMatches)
                 {
-                    _logger.LogTrace("Found a match for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 1/2)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
                     if (index != -1)
                         episodeList.RemoveAt(index);
-                }
-                else
-                {
-                    _logger.LogTrace("No match found for episode. (AniDB ID: {AnidbEpisodeID}, Pass: 1/2)", episode.EpisodeID);
-                }
-                if (crossRef.MatchRating is MatchRating.DateAndTitleMatches)
-                {
+
                     crossReferences.Add(crossRef);
                     toAdd.Add(crossRef);
                     _logger.LogTrace("Adding new link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 1/2)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
                 }
                 else
                 {
-                    _logger.LogTrace("Skipping new link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 1/2)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
+                    _logger.LogTrace("Skipping new link for episode for first pass. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 1/2)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
                     secondPass.Add(episode);
                 }
             }
@@ -549,7 +542,7 @@ public class TmdbLinkingService
                 var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
                 if (crossRef.TmdbEpisodeID != 0)
                 {
-                    _logger.LogTrace("Found a match for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 2/2)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
+                    _logger.LogTrace("Adding new link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 2/2)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
                     if (index != -1)
                         episodeList.RemoveAt(index);
@@ -561,7 +554,6 @@ public class TmdbLinkingService
 
                 crossReferences.Add(crossRef);
                 toAdd.Add(crossRef);
-                _logger.LogTrace("Adding new link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 2/2)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
             }
         }
 
