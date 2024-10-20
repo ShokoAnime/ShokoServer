@@ -293,7 +293,7 @@ jobs:
           submodules: recursive
 
       - name: Push pre-release tag
-        uses: actions-ecosystem/action-push-tag@v1
+        uses: rickstaa/action-create-tag@v1
         with:
           tag: ${{ needs.current_info.outputs.tag }}
           message: Shoko Server v${{ needs.current_info.outputs.version }} Pre-Release
