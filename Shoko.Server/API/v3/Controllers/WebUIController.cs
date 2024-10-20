@@ -659,7 +659,7 @@ public class WebUIController : BaseController
     {
         var webuiVersion = WebUIHelper.LoadWebUIVersionInfo();
         if (webuiVersion != null)
-            return webuiVersion.debug ? ReleaseChannel.Debug : webuiVersion.package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable;
+            return webuiVersion.Debug ? ReleaseChannel.Debug : webuiVersion.Package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable;
         return GetCurrentServerReleaseChannel();
     }
 

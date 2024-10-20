@@ -29,23 +29,28 @@ public static partial class WebUIHelper
     /// <summary>
     /// Web UI Version Info.
     /// </summary>
-    public record WebUIVersionInfo {
+    public record WebUIVersionInfo
+    {
         /// <summary>
         /// Package version.
         /// </summary>
-        public string package = "1.0.0";
+        [JsonProperty("package")]
+        public string Package { get; set; } = "1.0.0";
         /// <summary>
         /// Short-form git commit sha digest.
         /// </summary>
-        public string git = "0000000";
+        [JsonProperty("git")]
+        public string Git { get; set; } = "0000000";
         /// <summary>
         /// True if this is a debug package.
         /// </summary>
-        public bool debug = false;
+        [JsonProperty("debug")]
+        public bool Debug { get; set; } = false;
         /// <summary>
         /// Release date for web ui release.
         /// </summary>
-        public DateTime? date = null;
+        [JsonProperty("date")]
+        public DateTime? Date { get; set; } = null;
     }
 
     /// <summary>
@@ -158,12 +163,12 @@ public static partial class WebUIHelper
         if (webUIFileInfo.Exists)
         {
             // Load the web ui version info from disk.
-            var webuiVersion = Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersionInfo>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
+            var webuiVersion = JsonConvert.DeserializeObject<WebUIVersionInfo>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
             // Set the release data and save the info again if the date is not set.
-            if (webuiVersion is not null && !webuiVersion.date.HasValue)
+            if (webuiVersion is not null && !webuiVersion.Date.HasValue)
             {
-                webuiVersion.date = releaseDate;
-                System.IO.File.WriteAllText(webUIFileInfo.FullName, Newtonsoft.Json.JsonConvert.SerializeObject(webuiVersion));
+                webuiVersion.Date = releaseDate;
+                File.WriteAllText(webUIFileInfo.FullName, JsonConvert.SerializeObject(webuiVersion));
             }
         }
     }
@@ -172,7 +177,7 @@ public static partial class WebUIHelper
     {
         var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
         if (webUIFileInfo.Exists)
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersionInfo>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
+            return JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName));
         return null;
     }
 
