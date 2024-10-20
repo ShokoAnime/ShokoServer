@@ -85,6 +85,7 @@ public static class SeriesSearch
             return new();
 
         // Always search the longer string for the shorter one.
+        var match = text;
         if (pattern.Length > text.Length)
             (text, pattern) = (pattern, text);
 
@@ -101,7 +102,7 @@ public static class SeriesSearch
         {
             Distance = result,
             LengthDifference = Math.Abs(pattern.Length - text.Length),
-            Match = text,
+            Match = match,
             Result = value,
         };
     }
