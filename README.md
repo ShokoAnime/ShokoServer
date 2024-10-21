@@ -13,6 +13,7 @@ back and let it do the work for you. No more manual inputting or renaming - just
 your favorite anime.
 
 [Learn More About Shoko](https://shokoanime.com)
+[User Docs](https://docs.shokoanime.com/getting-started/installing-shoko-server)
 
 # Supported Media Players
 Shoko currently supports the following media players. 
