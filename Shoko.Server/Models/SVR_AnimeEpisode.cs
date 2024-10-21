@@ -181,7 +181,9 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
         foreach (var xref in TmdbMovieCrossReferences)
             images.AddRange(xref.GetImages(entityType, preferredImages));
 
-        return images;
+        return images
+            .DistinctBy(image => (image.ImageType, image.Source, image.ID))
+            .ToList();
     }
 
     #endregion

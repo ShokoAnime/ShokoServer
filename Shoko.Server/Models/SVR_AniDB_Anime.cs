@@ -260,10 +260,14 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
         }
         foreach (var xref in TmdbShowCrossReferences)
             images.AddRange(xref.GetImages(entityType, preferredImages));
+        foreach (var xref in TmdbSeasonCrossReferences)
+            images.AddRange(xref.GetImages(entityType, preferredImages));
         foreach (var xref in TmdbMovieCrossReferences)
             images.AddRange(xref.GetImages(entityType, preferredImages));
 
-        return images;
+        return images
+            .DistinctBy(image => (image.ImageType, image.Source, image.ID))
+            .ToList();
     }
 
     #endregion
@@ -297,6 +301,30 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     public IReadOnlyList<TMDB_Image> TmdbShowBackdrops
         => TmdbShowCrossReferences
             .SelectMany(xref => RepoFactory.TMDB_Image.GetByTmdbShowIDAndType(xref.TmdbShowID, ImageEntityType.Backdrop))
+            .ToList();
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AnimeID);
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
+        ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AnimeID, tmdbShowId.Value)
+        : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AnimeID);
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> TmdbSeasonCrossReferences =>
+        TmdbEpisodeCrossReferences
+            .Select(xref => xref.TmdbSeasonCrossReference)
+            .WhereNotNull()
+            .DistinctBy(xref => xref.TmdbSeasonID)
+            .ToList();
+
+    public IReadOnlyList<TMDB_Season> TmdbSeasons => TmdbSeasonCrossReferences
+        .Select(xref => xref.TmdbSeason)
+        .WhereNotNull()
+        .ToList();
+
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> GetTmdbSeasonCrossReferences(int? tmdbShowId = null) =>
+        GetTmdbEpisodeCrossReferences(tmdbShowId)
+            .Select(xref => xref.TmdbSeasonCrossReference)
+            .WhereNotNull().Distinct()
             .ToList();
 
 

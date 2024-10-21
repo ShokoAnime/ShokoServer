@@ -92,7 +92,9 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         foreach (var tmdbMovie in TmdbMovies)
             images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
 
-        return images;
+        return images
+            .DistinctBy(image => (image.ImageType, image.Source, image.ID))
+            .ToList();
     }
 
     #endregion
