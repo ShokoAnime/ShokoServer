@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -45,9 +45,13 @@ public class DatabaseFactory
             {
                 _instance = new SQLite();
             }
-            else
+            else if (settings.Database.Type.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
             {
                 _instance = new MySQL();
+            }
+            else
+            {
+                _instance = new PostgreSQL();
             }
 
             return _instance;
