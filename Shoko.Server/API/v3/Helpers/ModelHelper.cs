@@ -569,7 +569,7 @@ public static class ModelHelper
         // Sorting.
         if (sortOrder != null && sortOrder.Count > 0)
             enumerable = File.OrderBy(enumerable, sortOrder);
-        else if (skipSort)
+        else if (!skipSort)
             enumerable = File.OrderBy(enumerable, new()
             {
                 // First sort by import folder from A-Z.
