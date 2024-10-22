@@ -894,6 +894,11 @@ label0:;
         public bool IncludeMissing { get; set; } = false;
 
         /// <summary>
+        /// Include unaired episodes in the search.
+        /// </summary>
+        public bool IncludeUnaired { get; set; } = false;
+
+        /// <summary>
         /// Include already watched episodes in the search if we determine the
         /// user is "re-watching" the series.
         /// </summary>
@@ -981,7 +986,7 @@ label0:;
 
                 var (nextEpisode, _) = episodeList
                     .Skip(nextIndex)
-                    .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.VideoLocals.Count > 0);
+                    .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.AniDB_Episode.HasAired : tuple => tuple.episode.VideoLocals.Count > 0 && tuple.AniDB_Episode.HasAired);
                 return nextEpisode;
             }
         }
@@ -996,7 +1001,7 @@ label0:;
 
                 return !episodeUserRecord.WatchedDate.HasValue;
             })
-            .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.VideoLocals.Count > 0);
+            .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.AniDB_Episode.HasAired : tuple => tuple.episode.VideoLocals.Count > 0 && tuple.AniDB_Episode.HasAired);
 
         // Disable first episode from showing up in the search.
         if (options.DisableFirstEpisode && anidbEpisode is not null && anidbEpisode.EpisodeType == (int)EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)

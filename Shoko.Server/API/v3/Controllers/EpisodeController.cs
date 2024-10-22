@@ -88,6 +88,7 @@ public class EpisodeController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
@@ -104,6 +105,7 @@ public class EpisodeController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
@@ -160,8 +162,17 @@ public class EpisodeController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var noFiles = shoko.VideoLocals.Count == 0;
-                    if (shouldHideMissing == noFiles)
+                    var isMissing = shoko.VideoLocals.Count == 0 && anidb.HasAired;
+                    if (shouldHideMissing == isMissing)
+                        return false;
+                }
+                if (includeUnaired != IncludeOnlyFilter.True)
+                {
+                    // If we should hide unaired episodes and the episode has no files, then hide it.
+                    // Or if we should only show unaired episodes and the episode has files, the hide it.
+                    var shouldHideUnaired = includeUnaired == IncludeOnlyFilter.False;
+                    var isUnaired = shoko.VideoLocals.Count == 0 && !anidb.HasAired;
+                    if (shouldHideUnaired == isUnaired)
                         return false;
                 }
 

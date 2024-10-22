@@ -1780,6 +1780,7 @@ public class SeriesController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="includeManuallyLinked">Include manually linked episodes in the list.</param>
@@ -1798,6 +1799,7 @@ public class SeriesController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeManuallyLinked = IncludeOnlyFilter.True,
@@ -1818,7 +1820,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        return GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, includeManuallyLinked, type, search, fuzzy)
+        return GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeWatched, includeManuallyLinked, type, search, fuzzy)
             .ToListResult(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
     }
 
@@ -1828,6 +1830,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Series ID</param>
     /// <param name="value">The new watched state.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
@@ -1839,6 +1842,7 @@ public class SeriesController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool value = true,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
@@ -1855,7 +1859,7 @@ public class SeriesController : BaseController
         var userId = User.JMMUserID;
         var now = DateTime.Now;
         // this has a parallel query to evaluate filters and data in parallel, but that makes awaiting the SetWatchedStatus calls more difficult, so we ToList() it
-        await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeHidden, includeWatched, IncludeOnlyFilter.True, type, search, fuzzy).ToList()
+        await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeWatched, IncludeOnlyFilter.True, type, search, fuzzy).ToList()
             .Select(episode => _watchedService.SetWatchedStatus(episode, value, true, now, false, userId, true)));
 
         _seriesService.UpdateStats(series, true, false);
@@ -1867,6 +1871,7 @@ public class SeriesController : BaseController
     public ParallelQuery<SVR_AnimeEpisode> GetEpisodesInternal(
         SVR_AnimeSeries series,
         IncludeOnlyFilter includeMissing,
+        IncludeOnlyFilter includeUnaired,
         IncludeOnlyFilter includeHidden,
         IncludeOnlyFilter includeWatched,
         IncludeOnlyFilter includeManuallyLinked,
@@ -1912,8 +1917,17 @@ public class SeriesController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var noFiles = shoko.VideoLocals.Count == 0;
-                    if (shouldHideMissing == noFiles)
+                    var isMissing = shoko.VideoLocals.Count == 0 && anidb.HasAired;
+                    if (shouldHideMissing == isMissing)
+                        return false;
+                }
+                if (includeUnaired != IncludeOnlyFilter.True)
+                {
+                    // If we should hide unaired episodes and the episode has no files, then hide it.
+                    // Or if we should only show unaired episodes and the episode has files, the hide it.
+                    var shouldHideUnaired = includeUnaired == IncludeOnlyFilter.False;
+                    var isUnaired = shoko.VideoLocals.Count == 0 && !anidb.HasAired;
+                    if (shouldHideUnaired == isUnaired)
                         return false;
                 }
 
@@ -1979,6 +1993,7 @@ public class SeriesController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
@@ -1991,6 +2006,7 @@ public class SeriesController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
@@ -2043,9 +2059,17 @@ public class SeriesController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var files = shoko?.VideoLocals.Count ?? 0;
-                    var noFiles = files == 0;
-                    if (shouldHideMissing == noFiles)
+                    var isMissing = shoko.VideoLocals.Count == 0 && anidb.HasAired;
+                    if (shouldHideMissing == isMissing)
+                        return false;
+                }
+                if (includeUnaired != IncludeOnlyFilter.True)
+                {
+                    // If we should hide unaired episodes and the episode has no files, then hide it.
+                    // Or if we should only show unaired episodes and the episode has files, the hide it.
+                    var shouldHideUnaired = includeUnaired == IncludeOnlyFilter.False;
+                    var isUnaired = shoko.VideoLocals.Count == 0 && !anidb.HasAired;
+                    if (shouldHideUnaired == isUnaired)
                         return false;
                 }
 
@@ -2101,6 +2125,7 @@ public class SeriesController : BaseController
     /// <param name="includeSpecials">Include specials in the search.</param>
     /// <param name="includeOthers">Include other type episodes in the search.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeRewatching">Include already watched episodes in the
     /// search if we determine the user is "re-watching" the series.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
@@ -2115,6 +2140,7 @@ public class SeriesController : BaseController
         [FromQuery] bool includeSpecials = true,
         [FromQuery] bool includeOthers = false,
         [FromQuery] bool includeMissing = true,
+        [FromQuery] bool includeUnaired = false,
         [FromQuery] bool includeRewatching = false,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
@@ -2133,6 +2159,7 @@ public class SeriesController : BaseController
         {
             IncludeCurrentlyWatching = !onlyUnwatched,
             IncludeMissing = includeMissing,
+            IncludeUnaired = includeUnaired,
             IncludeRewatching = includeRewatching,
             IncludeSpecials = includeSpecials,
             IncludeOthers = includeOthers,
