@@ -57,14 +57,16 @@ public class FileController : BaseController
 
     private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly GeneratedPlaylistService _playlistService;
     private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly WatchedStatusService _watchedService;
 
-    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService, VideoLocalService vlService) : base(settingsProvider)
+    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, GeneratedPlaylistService playlistService, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService, VideoLocalService vlService) : base(settingsProvider)
     {
         _traktHelper = traktHelper;
+        _playlistService = playlistService;
         _vlPlaceService = vlPlaceService;
         _vlUsers = vlUsers;
         _watchedService = watchedService;
@@ -585,6 +587,24 @@ public class FileController : BaseController
         }
 
         return NotFound();
+    }
+
+    /// <summary>
+    /// Generate a playlist for the specified file.
+    /// </summary>
+    /// <param name="fileID">File ID</param>
+    /// <returns>The m3u8 playlist.</returns>
+    [ProducesResponseType(typeof(FileStreamResult), 200)]
+    [ProducesResponseType(404)]
+    [Produces("application/x-mpegURL")]
+    [HttpGet("{fileID}/Stream.m3u8")]
+    [HttpHead("{fileID}/Stream.m3u8")]
+    public ActionResult GetFileStreamPlaylist([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } file)
+            return NotFound(FileNotFoundWithFileID);
+
+        return _playlistService.GeneratePlaylistForVideo(file);
     }
 
     /// <summary>

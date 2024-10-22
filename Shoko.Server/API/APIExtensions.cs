@@ -25,6 +25,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using File = System.IO.File;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
@@ -49,6 +50,7 @@ public static class APIExtensions
         services.AddSingleton<AVDumpEmitter>();
         services.AddSingleton<NetworkEmitter>();
         services.AddSingleton<QueueEmitter>();
+        services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
 
