@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
@@ -27,6 +28,7 @@ using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+using Scalar.AspNetCore;
 using File = System.IO.File;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
@@ -129,6 +131,7 @@ public static class APIExtensions
 
                 options.CustomSchemaIds(GetTypeName);
             });
+        services.AddEndpointsApiExplorer();
         services.AddSwaggerGenNewtonsoftSupport();
         services.AddSignalR(o => { o.EnableDetailedErrors = true; })
             .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new DefaultContractResolver());
@@ -248,6 +251,18 @@ public static class APIExtensions
             }
         });
 
+        // Redirect swagger to scalar
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.StartsWithSegments("/swagger"))
+            {
+                context.Response.Redirect("/scalar/v3");
+                return;
+            }
+
+            await next();
+        });
+
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #endif
@@ -287,10 +302,10 @@ public static class APIExtensions
         {
             c.PreSerializeFilters.Add((swaggerDoc, _) => {
                 var version = double.Parse(swaggerDoc.Info.Version);
-                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version:0}/"});
+                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version:0}"});
 
-                var basepathInt = $"/api/v{version:0}/";
-                var basepathDecimal = $"/api/v{version:0.0}/";
+                var basepathInt = $"/api/v{version:0}";
+                var basepathDecimal = $"/api/v{version:0.0}";
                 var paths = new OpenApiPaths();
                 foreach (var path in swaggerDoc.Paths)
                 {
@@ -307,25 +322,19 @@ public static class APIExtensions
                 }
                 swaggerDoc.Paths = paths;
             });
+            c.RouteTemplate = "openapi/{documentName}.json";
         });
-        app.UseSwaggerUI(
-            options =>
-            {
-                // build a swagger endpoint for each discovered API version
-                var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
-                foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
-                {
-                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
-                        description.GroupName.ToUpperInvariant());
-                }
-                options.EnablePersistAuthorization();
-            });
+
         // Important for first run at least
         app.UseAuthentication();
 
         app.UseRouting();
         app.UseEndpoints(conf =>
         {
+            conf.MapScalarApiReference(options =>
+            {
+                options.Title = "Shoko API Reference";
+            });
             conf.MapHub<AniDBHub>("/signalr/anidb");
             conf.MapHub<LoggingHub>("/signalr/logging");
             conf.MapHub<ShokoEventHub>("/signalr/shoko");
