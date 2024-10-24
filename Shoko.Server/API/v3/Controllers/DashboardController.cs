@@ -348,7 +348,7 @@ public class DashboardController : BaseController
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
             .Where(series => user.AllowedSeries(series) &&
                 (includeRestricted || !series.AniDB_Anime.IsRestricted))
-            .Select(series => (series, episode: _seriesService.GetNextEpisode(
+            .Select(series => (series, episode: _seriesService.GetNextUpEpisode(
                 series,
                 user.JMMUserID,
                 new()

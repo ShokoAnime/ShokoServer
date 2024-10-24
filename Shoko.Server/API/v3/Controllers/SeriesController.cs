@@ -2160,7 +2160,7 @@ public class SeriesController : BaseController
         if (!user.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var episode = _seriesService.GetNextEpisode(series, user.JMMUserID, new()
+        var episode = _seriesService.GetNextUpEpisode(series, user.JMMUserID, new()
         {
             IncludeCurrentlyWatching = !onlyUnwatched,
             IncludeMissing = includeMissing,

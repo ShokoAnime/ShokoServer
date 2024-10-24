@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -136,17 +138,17 @@ public class FileCrossReference
             _ => 0, // anything below this we can't reliably measure.
         };
 
-    public static List<FileCrossReference> From(IEnumerable<SVR_CrossRef_File_Episode> crossReferences)
+    public static List<FileCrossReference> From(IEnumerable<IVideoCrossReference> crossReferences)
         => crossReferences
                 .Select(xref =>
                 {
                     // Percentages.
                     Tuple<int, int> percentage = new(0, 100);
-                    int? releaseGroup = xref.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize)?.GroupID ?? 0 : null;
+                    int? releaseGroup = xref.Source == DataSourceEnum.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref.ED2K, xref.Size)?.GroupID ?? 0 : null;
                     var assumedFileCount = PercentageToFileCount(xref.Percentage);
                     if (assumedFileCount > 1)
                     {
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.EpisodeID)
+                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID)
                             // Filter to only cross-references which are partially linked in the same number of parts to the episode, and from the same group as the current cross-reference.
                             .Where(xref2 => PercentageToFileCount(xref2.Percentage) == assumedFileCount && (xref2.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHashAndFileSize(xref2.Hash, xref2.FileSize)?.GroupID ?? -1 : null) == releaseGroup)
                             // This will order by the "full" episode if the xref is linked to both a "full" episode and "part" episode,
@@ -162,7 +164,7 @@ public class FileCrossReference
                             .ThenBy(tuple => tuple.episode?.EpisodeNumber)
                             .ThenBy(tuple => tuple.xref.EpisodeOrder)
                             .ToList();
-                        var index = xrefs.FindIndex(tuple => tuple.xref.CrossRef_File_EpisodeID == xref.CrossRef_File_EpisodeID);
+                        var index = xrefs.FindIndex(tuple => string.Equals(tuple.xref.Hash, xref.ED2K) && tuple.xref.FileSize == xref.Size);
                         if (index > 0)
                         {
                             // Note: this is bound to be inaccurate if we don't have all the files linked to the episode locally, but as long
@@ -183,13 +185,13 @@ public class FileCrossReference
                         }
                     }
 
-                    var shokoEpisode = xref.AnimeEpisode;
+                    var shokoEpisode = xref.ShokoEpisode as SVR_AnimeEpisode;
                     return (
                         xref,
                         dto: new EpisodeCrossReferenceIDs
                         {
                             ID = shokoEpisode?.AnimeEpisodeID,
-                            AniDB = xref.EpisodeID,
+                            AniDB = xref.AnidbEpisodeID,
                             ReleaseGroup = releaseGroup,
                             TMDB = new()
                             {
@@ -213,9 +215,9 @@ public class FileCrossReference
                                 Start = percentage.Item1,
                                 End = percentage.Item2,
                             },
-                            ED2K = xref.Hash,
-                            FileSize = xref.FileSize,
-                            Source = xref.CrossRefSource == (int)CrossRefSource.AniDB ? "AniDB" : "User",
+                            ED2K = xref.ED2K,
+                            FileSize = xref.Size,
+                            Source = xref.Source == DataSourceEnum.AniDB ? "AniDB" : "User",
                         }
                     );
                 })
@@ -226,7 +228,7 @@ public class FileCrossReference
                 // we will attempt to lookup the episode to grab it's id but fallback
                 // to the cross-reference anime id if the episode is not locally available
                 // yet.
-                .GroupBy(tuple => tuple.xref.AniDBEpisode?.AnimeID ?? tuple.xref.AnimeID)
+                .GroupBy(tuple => tuple.xref.AnidbEpisode?.SeriesID ?? tuple.xref.AnidbAnimeID)
                 .Select(tuples =>
                 {
                     var shokoSeries = RepoFactory.AnimeSeries.GetByAnimeID(tuples.Key);
