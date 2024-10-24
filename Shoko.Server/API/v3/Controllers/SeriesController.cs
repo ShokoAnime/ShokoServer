@@ -45,6 +45,7 @@ using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
 using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
 
 #pragma warning disable CA1822
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -160,7 +161,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}")]
     public ActionResult<Series> GetSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -335,7 +336,7 @@ public class SeriesController : BaseController
     public ActionResult<ListResult<Series>> GetSeriesWithoutFiles(
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] string search = null,
+        [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true)
     {
         var user = User;
@@ -377,7 +378,7 @@ public class SeriesController : BaseController
     public ActionResult<ListResult<Series>> GetSeriesWithManuallyLinkedFiles(
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] string search = null,
+        [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true)
     {
         var user = User;
@@ -609,7 +610,7 @@ public class SeriesController : BaseController
 
         if (startDate.HasValue)
         {
-            if (endDate.Value > DateTime.Now)
+            if (endDate!.Value > DateTime.Now)
                 ModelState.AddModelError(nameof(endDate), "End date cannot be set into the future.");
 
             if (startDate.Value > endDate.Value)
@@ -682,14 +683,15 @@ public class SeriesController : BaseController
         return userDataQuery
             .OrderByDescending(userData => userData.LastUpdated)
             .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
-            .Where(file => file != null)
+            .WhereNotNull()
             .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage)
                 .FirstOrDefault())
-            .Where(xref => xref != null)
+            .WhereNotNull()
             .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
-            .Where(episode => episode != null)
+            .WhereNotNull()
             .DistinctBy(episode => episode.AnimeSeriesID)
-            .Select(episode => episode.AnimeSeries.AniDB_Anime)
+            .Select(episode => episode.AnimeSeries?.AniDB_Anime)
+            .WhereNotNull()
             .Where(anime => user.AllowedAnime(anime) && (includeRestricted || !anime.IsRestricted))
             .ToList();
     }
@@ -703,11 +705,11 @@ public class SeriesController : BaseController
     /// <param name="watchedAnime">Optional. Re-use an existing list of the watched anime.</param>
     /// <returns>The unwatched anime for the user.</returns>
     [NonAction]
-    private static Dictionary<int, (SVR_AniDB_Anime, SVR_AnimeSeries)> GetUnwatchedAnime(
+    private static Dictionary<int, (SVR_AniDB_Anime, SVR_AnimeSeries?)> GetUnwatchedAnime(
         SVR_JMMUser user,
         bool showAll,
         bool includeRestricted = false,
-        IEnumerable<SVR_AniDB_Anime> watchedAnime = null)
+        IEnumerable<SVR_AniDB_Anime>? watchedAnime = null)
     {
         // Get all watched series (reuse if date is not set)
         var watchedSeriesSet = (watchedAnime ?? GetWatchedAnimeForPeriod(user))
@@ -718,15 +720,15 @@ public class SeriesController : BaseController
         {
             return RepoFactory.AniDB_Anime.GetAll()
                 .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID) && (includeRestricted || !anime.IsRestricted))
-                .ToDictionary<SVR_AniDB_Anime, int, (SVR_AniDB_Anime, SVR_AnimeSeries)>(anime => anime.AnimeID,
+                .ToDictionary<SVR_AniDB_Anime, int, (SVR_AniDB_Anime, SVR_AnimeSeries?)>(anime => anime.AnimeID,
                     anime => (anime, null));
         }
 
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
             .Select(series => (anime: series.AniDB_Anime, series))
-            .Where(tuple => includeRestricted || !tuple.anime.IsRestricted)
-            .ToDictionary(tuple => tuple.anime.AnimeID);
+            .Where(tuple => tuple.anime is not null && (includeRestricted || !tuple.anime.IsRestricted))
+            .ToDictionary<(SVR_AniDB_Anime? anime, SVR_AnimeSeries series), int, (SVR_AniDB_Anime, SVR_AnimeSeries?)>(tuple => tuple.anime!.AnimeID, tuple => (tuple.anime!, tuple.series));
     }
 
     #endregion
@@ -834,7 +836,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Series")]
     public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
         if (series == null)
@@ -1005,8 +1007,8 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/TMDB/Movie")]
     public ActionResult<List<TmdbMovie>> GetTMDBMoviesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1213,8 +1215,8 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/TMDB/Show")]
     public ActionResult<List<TmdbShow>> GetTMDBShowsBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails> include = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1480,24 +1482,27 @@ public class SeriesController : BaseController
         {
             var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(link.AniDBID);
             var anidbEpisode = shokoEpisode?.AniDB_Episode;
-            if (anidbEpisode == null)
+            if (anidbEpisode is null)
             {
                 ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
                 continue;
             }
-            if (shokoEpisode.AnimeSeriesID != series.AnimeSeriesID)
+            if (shokoEpisode is null || shokoEpisode.AnimeSeriesID != series.AnimeSeriesID)
             {
                 ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
                 continue;
             }
             var tmdbEpisode = link.TmdbID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(link.TmdbID);
-            if (link.TmdbID != 0 && tmdbEpisode == null)
+            if (link.TmdbID != 0)
             {
-                ModelState.AddModelError("Mapping", $"Unable to find TMDB Episode with the id '{link.TmdbID}' locally.");
-                continue;
+                if (tmdbEpisode is null)
+                {
+                    ModelState.AddModelError("Mapping", $"Unable to find TMDB Episode with the id '{link.TmdbID}' locally.");
+                    continue;
+                }
+                if (!showIDs.Contains(tmdbEpisode.TmdbShowID))
+                    missingIDs.Add(tmdbEpisode.TmdbShowID);
             }
-            if (link.TmdbID != 0 && !showIDs.Contains(tmdbEpisode.TmdbShowID))
-                missingIDs.Add(tmdbEpisode.TmdbShowID);
 
             mapping.Add((link, anidbEpisode));
         }
@@ -1607,7 +1612,7 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/TMDB/Show/CrossReferences/Episode/Auto")]
     public async Task<ActionResult> AutoTMDBEpisodeMappingsBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.AutoMatchTmdbEpisodesBody body = null
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.AutoMatchTmdbEpisodesBody? body = null
     )
     {
         body ??= new();
@@ -1739,8 +1744,8 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/TMDB/Season")]
     public ActionResult<List<TmdbSeason>> GetTMDBSeasonsBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails> include = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1803,13 +1808,13 @@ public class SeriesController : BaseController
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeManuallyLinked = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery] string search = null,
+        [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true
     )
     {
@@ -1845,8 +1850,8 @@ public class SeriesController : BaseController
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
-        [FromQuery] string search = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1875,8 +1880,8 @@ public class SeriesController : BaseController
         IncludeOnlyFilter includeHidden,
         IncludeOnlyFilter includeWatched,
         IncludeOnlyFilter includeManuallyLinked,
-        HashSet<EpisodeType> type,
-        string search,
+        HashSet<EpisodeType>? type,
+        string? search,
         bool fuzzy)
     {
         var user = User;
@@ -1965,7 +1970,7 @@ public class SeriesController : BaseController
             return episodes
                 .Search(
                     search,
-                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
+                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB!.EpisodeID)
                         .Where(title => title != null && languages.Contains(title.Language))
                         .Select(title => title.Title)
                         .Append(ep.Shoko.PreferredTitle)
@@ -1978,8 +1983,8 @@ public class SeriesController : BaseController
 
         // Order the episodes since we're not using the search ordering.
         return episodes
-            .OrderBy(episode => episode.AniDB.EpisodeType)
-            .ThenBy(episode => episode.AniDB.EpisodeNumber)
+            .OrderBy(episode => episode.AniDB!.EpisodeType)
+            .ThenBy(episode => episode.AniDB!.EpisodeNumber)
             .Select(a => a.Shoko);
     }
 
@@ -2009,8 +2014,8 @@ public class SeriesController : BaseController
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
-        [FromQuery] string search = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true)
     {
         var anidbSeries = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
@@ -2059,7 +2064,7 @@ public class SeriesController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var isMissing = shoko.VideoLocals.Count == 0 && anidb.HasAired;
+                    var isMissing = shoko is not null && shoko.VideoLocals.Count == 0 && anidb.HasAired;
                     if (shouldHideMissing == isMissing)
                         return false;
                 }
@@ -2068,7 +2073,7 @@ public class SeriesController : BaseController
                     // If we should hide unaired episodes and the episode has no files, then hide it.
                     // Or if we should only show unaired episodes and the episode has files, the hide it.
                     var shouldHideUnaired = includeUnaired == IncludeOnlyFilter.False;
-                    var isUnaired = shoko.VideoLocals.Count == 0 && !anidb.HasAired;
+                    var isUnaired = shoko is not null && shoko.VideoLocals.Count == 0 && !anidb.HasAired;
                     if (shouldHideUnaired == isUnaired)
                         return false;
                 }
@@ -2146,7 +2151,7 @@ public class SeriesController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null)
     {
         if (RepoFactory.AnimeSeries.GetByID(seriesID) is not { } series)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2288,9 +2293,13 @@ public class SeriesController : BaseController
 
     private static readonly HashSet<Image.ImageType> _allowedImageTypes = [Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Backdrop, Image.ImageType.Logo];
 
+    private const string InvalidImageTypeForSeries = "Invalid image type for series.";
+
     private const string InvalidIDForSource = "Invalid image id for selected source.";
 
     private const string InvalidImageIsDisabled = "Image is disabled.";
+
+    private const string NoDefaultImageForType = "No default image for type.";
 
     /// <summary>
     /// Get all images for series with ID, optionally with Disabled images, as well.
@@ -2330,7 +2339,7 @@ public class SeriesController : BaseController
         [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
-            return NotFound();
+            return BadRequest(InvalidImageTypeForSeries);
 
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -2344,8 +2353,8 @@ public class SeriesController : BaseController
         if (preferredImage != null)
             return new Image(preferredImage);
 
-        var images = series.GetImages().ToDto();
-        return imageEntityType switch
+        var images = series.GetImages(imageEntityType).ToDto();
+        var image = imageEntityType switch
         {
             ImageEntityType.Poster => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
@@ -2353,6 +2362,11 @@ public class SeriesController : BaseController
             ImageEntityType.Logo => images.Logos.FirstOrDefault(),
             _ => null
         };
+
+        if (image is null)
+            return NotFound(NoDefaultImageForType);
+
+        return image;
     }
 
 
@@ -2368,7 +2382,7 @@ public class SeriesController : BaseController
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         if (!_allowedImageTypes.Contains(imageType))
-            return NotFound();
+            return BadRequest(InvalidImageTypeForSeries);
 
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -2409,7 +2423,7 @@ public class SeriesController : BaseController
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
-            return NotFound();
+            return BadRequest(InvalidImageTypeForSeries);
 
         // Check if the series exists and if the user can access the series.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -2592,7 +2606,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/Cast")]
     public ActionResult<List<Role>> GetSeriesCast([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Role.CreatorRoleType> roleType = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Role.CreatorRoleType>? roleType = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -2828,16 +2842,20 @@ public class SeriesController : BaseController
         query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar)
             .TrimEnd(Path.DirectorySeparatorChar);
         // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
-        return RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+        return RepoFactory.VideoLocalPlace.GetAll()
             .Where(a =>
             {
                 if (a.FullServerPath == null) return false;
                 var dir = Path.GetDirectoryName(a.FullServerPath);
                 return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
             })
-            .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<SVR_AnimeEpisode>()).Select(a => a.AnimeSeries)
-            .Distinct()
-            .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => new Series(a, User.JMMUserID)).ToList();
+            .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<SVR_AnimeEpisode>())
+            .DistinctBy(a => a.AnimeSeriesID)
+            .Select(a => a.AnimeSeries)
+            .WhereNotNull()
+            .Where(user.AllowedSeries)
+            .Select(a => new Series(a, User.JMMUserID))
+            .ToList();
     }
 
     #region Helpers
@@ -2852,7 +2870,7 @@ public class SeriesController : BaseController
         }
 
         var titles = a.AniDB_Anime.GetAllTitles();
-        if ((titles?.Count ?? 0) == 0)
+        if (titles is null || titles.Count == 0)
         {
             return;
         }
