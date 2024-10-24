@@ -136,6 +136,7 @@ public class GeneratedPlaylistService
         var episodeNumber = episode.Type is EpisodeType.Episode
             ? episode.EpisodeNumber.ToString()
             : $"{episode.Type.ToString()[0]}{episode.EpisodeNumber}";
+        var episodePartNumber = totalParts > 1 ? $".{part}" : string.Empty;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("shokoVersion", Utils.GetApplicationVersion());
 
@@ -149,10 +150,15 @@ public class GeneratedPlaylistService
         queryString.Add("episodeName", episode.PreferredTitle);
         queryString.Add("epNo", episodeNumber);
         queryString.Add("epCount", series.EpisodeCounts.Episodes.ToString());
+        if (totalParts > 1)
+        {
+            queryString.Add("epNoPart", part.ToString());
+            queryString.Add("epNoPartCount", totalParts.ToString());
+        }
         queryString.Add("restricted", series.Restricted ? "true" : "false");
 
         uri.Path = $"{(uri.Path.Length > 1 ? uri.Path + "/" : "/")}api/v3/File/{video.ID}/Stream";
         uri.Query = queryString.ToString();
-        return $"#EXTINF:-1,{series.PreferredTitle} - {episodeNumber} - {episode.PreferredTitle}{parts}\n{uri}\n";
+        return $"#EXTINF:-1,{series.PreferredTitle} - {episodeNumber}{episodePartNumber} - {episode.PreferredTitle}{parts}\n{uri}\n";
     }
 }
