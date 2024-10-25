@@ -1931,7 +1931,8 @@ public class TmdbMetadataService
     private async Task<bool> UpdateCompanies(IEntityMetadata tmdbEntity, List<ProductionCompany> companies)
     {
         var existingXrefs = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(tmdbEntity.Type, tmdbEntity.Id)
-            .ToDictionary(xref => xref.TmdbCompanyID);
+            .GroupBy(xref => xref.TmdbCompanyID)
+            .ToDictionary(xref => xref.Key, groupBy => groupBy.ToList());
         var xrefsToAdd = 0;
         var xrefsToSkip = new HashSet<int>();
         var xrefsToSave = new List<TMDB_Company_Entity>();
@@ -1939,8 +1940,9 @@ public class TmdbMetadataService
         foreach (var company in companies)
         {
             var currentIndex = indexCounter++;
-            if (existingXrefs.TryGetValue(company.Id, out var existingXref))
+            if (existingXrefs.TryGetValue(company.Id, out var existingXrefList))
             {
+                var existingXref = existingXrefList[0];
                 if (existingXref.Ordering != currentIndex || existingXref.ReleasedAt != tmdbEntity.ReleasedAt)
                 {
                     existingXref.Ordering = currentIndex;
@@ -1958,6 +1960,7 @@ public class TmdbMetadataService
             await UpdateCompany(company);
         }
         var xrefsToRemove = existingXrefs.Values
+            .SelectMany(xrefs => xrefs)
             .ExceptBy(xrefsToSkip, o => o.TMDB_Company_EntityID)
             .ToList();
 
