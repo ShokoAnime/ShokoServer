@@ -52,7 +52,7 @@ public static class FilterExtensions
             TagsDelegate = () =>
                 series.AniDB_Anime?.Tags.Select(a => a.TagName).ToHashSet() ?? [],
             CustomTagsDelegate = () =>
-                series.AniDB_Anime?.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ?? [],
+                series.AniDB_Anime?.CustomTags.Select(a => a.TagName).ToHashSet() ?? [],
             YearsDelegate = () =>
                 series.Years,
             SeasonsDelegate = () =>
