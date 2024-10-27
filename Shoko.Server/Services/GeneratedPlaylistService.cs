@@ -34,13 +34,16 @@ public class GeneratedPlaylistService
 
     private readonly VideoLocalRepository _videoRepository;
 
-    public GeneratedPlaylistService(IHttpContextAccessor contentAccessor, AnimeSeriesService animeSeriesService, AnimeSeriesRepository seriesRepository, AnimeEpisodeRepository episodeRepository, VideoLocalRepository videoRepository)
+    private readonly AuthTokensRepository _authTokensRepository;
+
+    public GeneratedPlaylistService(IHttpContextAccessor contentAccessor, AnimeSeriesService animeSeriesService, AnimeSeriesRepository seriesRepository, AnimeEpisodeRepository episodeRepository, VideoLocalRepository videoRepository, AuthTokensRepository authTokensRepository)
     {
         _context = contentAccessor.HttpContext!;
         _animeSeriesService = animeSeriesService;
         _seriesRepository = seriesRepository;
         _episodeRepository = episodeRepository;
         _videoRepository = videoRepository;
+        _authTokensRepository = authTokensRepository;
     }
 
     public bool TryParsePlaylist(string[] items, out IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist, ModelStateDictionary? modelState = null, string fieldName = "playlist")
@@ -368,6 +371,13 @@ public class GeneratedPlaylistService
             request.PathBase,
             null
         );
+        // Get the API Key from the request or generate a new one to use for the playlist.
+        var apiKey = request.Query["apikey"].FirstOrDefault() ?? request.Headers["apikey"].FirstOrDefault();
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            var user = _context.GetUser();
+            apiKey = _authTokensRepository.CreateNewApikey(user, "playlist");
+        }
         foreach (var (episodes, videos) in playlist)
         {
             var series = episodes[0].Series;
@@ -376,7 +386,7 @@ public class GeneratedPlaylistService
 
             var index = 0;
             foreach (var video in videos)
-                m3U8.Append(GetEpisodeEntry(new UriBuilder(uri.ToString()), series, episodes[0], video, ++index, videos.Count, episodes.Count));
+                m3U8.Append(GetEpisodeEntry(new UriBuilder(uri.ToString()), series, episodes[0], video, ++index, videos.Count, episodes.Count, apiKey));
         }
 
         var bytes = Encoding.UTF8.GetBytes(m3U8.ToString());
@@ -387,7 +397,7 @@ public class GeneratedPlaylistService
         };
     }
 
-    private static string GetEpisodeEntry(UriBuilder uri, IShokoSeries series, IShokoEpisode episode, IVideo video, int part, int totalParts, int episodeRange)
+    private static string GetEpisodeEntry(UriBuilder uri, IShokoSeries series, IShokoEpisode episode, IVideo video, int part, int totalParts, int episodeRange, string apiKey)
     {
         var poster = series.GetPreferredImageForType(ImageEntityType.Poster) ?? series.DefaultPoster;
         var parts = totalParts > 1 ? $" ({part}/{totalParts})" : string.Empty;
@@ -397,6 +407,7 @@ public class GeneratedPlaylistService
         var episodePartNumber = totalParts > 1 ? $".{part}" : string.Empty;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
         queryString.Add("shokoVersion", Utils.GetApplicationVersion());
+        queryString.Add("apikey", apiKey);
 
         // These fields are for media player plugins to consume.
         if (poster is not null && !string.IsNullOrEmpty(poster.RemoteURL))
