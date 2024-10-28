@@ -429,6 +429,6 @@ public class GeneratedPlaylistService
 
         uri.Path = $"{(uri.Path.Length > 1 ? uri.Path + "/" : "/")}api/v3/File/{video.ID}/Stream";
         uri.Query = queryString.ToString();
-        return $"#EXTINF:-1,{series.PreferredTitle} - {episodeNumber}{episodePartNumber} - {episode.PreferredTitle}{parts}\n{uri}\n";
+        return $"#EXTINF:-1,{series.PreferredTitle} - {episodeNumber}{episodePartNumber} - {episode.PreferredTitle}{parts}\n{uri.Uri}\n";
     }
 }
