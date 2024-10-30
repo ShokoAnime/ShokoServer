@@ -211,9 +211,9 @@ public class VideoLocal_PlaceService
         var destFullTree = string.IsNullOrEmpty(newFolderPath) ? request.ImportFolder.Path : Path.Combine(request.ImportFolder.Path, newFolderPath);
         if (!Directory.Exists(destFullTree))
         {
+            _fileWatcherService.AddFileWatcherExclusion(destFullTree);
             try
             {
-                _fileWatcherService.AddFileWatcherExclusion(destFullTree);
                 Directory.CreateDirectory(destFullTree);
             }
             catch (Exception ex)
@@ -323,14 +323,17 @@ public class VideoLocal_PlaceService
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Unable to MOVE file: {PreviousPath} to {NextPath}\n{ErrorMessage}", oldFullPath, newFullPath, e.Message);
-                    _fileWatcherService.RemoveFileWatcherExclusion(oldFullPath);
-                    _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
                     return new()
                     {
                         Success = false,
                         ShouldRetry = true,
                         ErrorMessage = $"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}",
                     };
+                }
+                finally
+                {
+                    _fileWatcherService.RemoveFileWatcherExclusion(oldFullPath);
+                    _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
                 }
 
                 place.ImportFolderID = request.ImportFolder.ID;
@@ -370,14 +373,17 @@ public class VideoLocal_PlaceService
             catch (Exception e)
             {
                 _logger.LogError(e, "Unable to MOVE file: {PreviousPath} to {NextPath}\n{ErrorMessage}", oldFullPath, newFullPath, e.Message);
-                _fileWatcherService.RemoveFileWatcherExclusion(oldFullPath);
-                _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
                 return new()
                 {
                     Success = false,
                     ShouldRetry = true,
                     ErrorMessage = $"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}",
                 };
+            }
+            finally
+            {
+                _fileWatcherService.RemoveFileWatcherExclusion(oldFullPath);
+                _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
             }
 
             place.ImportFolderID = request.ImportFolder.ID;
