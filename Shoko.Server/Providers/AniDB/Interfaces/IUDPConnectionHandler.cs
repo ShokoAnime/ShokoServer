@@ -22,7 +22,7 @@ public interface IUDPConnectionHandler : IConnectionHandler
     Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
     Task<bool> TestLogin(string username, string password);
 
-    Task<string> SendDirectly(string command, bool needsUnicode = true, bool resetPingTimer = true, bool resetLogoutTimer = true);
+    Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false);
 
     Task<string> Send(string command, bool needsUnicode = true);
 }

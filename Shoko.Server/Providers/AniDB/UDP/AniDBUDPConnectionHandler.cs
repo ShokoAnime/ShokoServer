@@ -243,35 +243,39 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         return await SendDirectly(command, needsUnicode);
     }
 
-    public Task<string> SendDirectly(string command, bool needsUnicode = true, bool resetPingTimer = true, bool resetLogoutTimer = true)
+    public Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false)
     {
         try
         {
             // we want to reset the logout timer anyway
-            if (resetPingTimer) _pingTimer?.Stop();
-            if (resetLogoutTimer) _logoutTimer?.Stop();
+            if (!isLogout && !isPing)
+            {
+                _pingTimer?.Stop();
+                _logoutTimer?.Stop();
+            }
 
-            return SendInternal(command, needsUnicode);
+            return SendInternal(command, needsUnicode, isPing);
         }
         finally
         {
-            if (resetPingTimer) _pingTimer?.Start();
-            if (resetLogoutTimer) _logoutTimer?.Start();
+            if (!isLogout && !isPing)
+            {
+                _pingTimer?.Start();
+                _logoutTimer?.Start();
+            }
         }
     }
 
-    private async Task<string> SendInternal(string command, bool needsUnicode = true)
+    private async Task<string> SendInternal(string command, bool needsUnicode = true, bool isPing = false)
     {
+        ObjectDisposedException.ThrowIf(_socketHandler is not { IsConnected: true }, "The connection was closed by shoko");
+
         // 1. Call AniDB
         // 2. Decode the response, converting Unicode and decompressing, as needed
         // 3. Check for an Error Response
         // 4. Return a pretty response object, with a parsed return code and trimmed string
         var encoding = needsUnicode ? new UnicodeEncoding(true, false) : Encoding.ASCII;
-
-        if (_socketHandler is not { IsConnected: true }) throw new ObjectDisposedException("The connection was closed by shoko");
-
         var sendByteAdd = encoding.GetBytes(command);
-
         var timeoutPolicy = Policy
             .Handle<SocketException>(e => e is { SocketErrorCode: SocketError.TimedOut })
             .Or<OperationCanceledException>()
@@ -280,7 +284,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 Logger.LogWarning("AniDB request timed out. Checking Network and trying again");
                 await _connectivityService.CheckAvailability();
             });
-        var result = await timeoutPolicy.ExecuteAndCaptureAsync(async () => await RateLimiter.EnsureRateAsync(async () =>
+        var result = await timeoutPolicy.ExecuteAndCaptureAsync(async () => await RateLimiter.EnsureRateAsync(forceShortDelay: isPing, action: async () =>
         {
             if (_connectivityService.NetworkAvailability < NetworkAvailability.PartialInternet)
             {
@@ -289,7 +293,6 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             }
 
             var start = DateTime.Now;
-
             Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", MaskLog(command));
             var byReceivedAdd = await _socketHandler.Send(sendByteAdd);
 

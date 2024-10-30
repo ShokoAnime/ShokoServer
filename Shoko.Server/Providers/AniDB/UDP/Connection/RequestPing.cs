@@ -28,7 +28,7 @@ public class RequestPing : UDPRequest<Void>
 
     public override UDPResponse<Void> Send()
     {
-        var rawResponse = Handler.SendDirectly(BaseCommand, resetPingTimer: false, resetLogoutTimer: false).Result;
+        var rawResponse = Handler.SendDirectly(BaseCommand, isPing: true).Result;
         var response = ParseResponse(rawResponse, true);
         var parsedResponse = ParseResponse(response);
         return parsedResponse;

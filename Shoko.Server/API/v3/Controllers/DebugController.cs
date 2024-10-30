@@ -122,7 +122,7 @@ public class DebugController : BaseController
             }
 
             var fullResponse = request.Unsafe ?
-                await _udpHandler.SendDirectly(request.Command, resetPingTimer: request.IsPing) :
+                await _udpHandler.SendDirectly(request.Command, isPing: request.IsPing, isLogout: request.IsLogout) :
                 await _udpHandler.Send(request.Command);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
@@ -235,6 +235,18 @@ public class DebugController : BaseController
         }
 
         /// <summary>
+        /// Indicates that this request is a ping request.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsLogout
+        {
+            get
+            {
+                return string.Equals(Action, "LOGOUT", StringComparison.InvariantCultureIgnoreCase);
+            }
+        }
+
+        /// <summary>
         /// Indicates the request needs authentication.
         /// </summary>
         [JsonIgnore]
@@ -242,7 +254,7 @@ public class DebugController : BaseController
         {
             get
             {
-                return !IsPing && (!Payload.ContainsKey("s"));
+                return !IsPing && !Payload.ContainsKey("s");
             }
         }
 

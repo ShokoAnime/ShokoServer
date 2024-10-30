@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,14 +43,14 @@ public abstract class AniDBRateLimiter
         _logger.LogTrace("Rate is reset. Active time was {Time} ms", elapsedTime);
     }
 
-    public async Task<T> EnsureRateAsync<T>(Func<Task<T>> action)
+    public async Task<T> EnsureRateAsync<T>(Func<Task<T>> action, bool forceShortDelay = false)
     {
         await _lock.WaitAsync();
         try
         {
             var delay = _requestWatch.ElapsedMilliseconds;
             if (delay > ResetPeriod) ResetRate();
-            var currentDelay = _activeTimeWatch.ElapsedMilliseconds > ShortPeriod ? LongDelay : ShortDelay;
+            var currentDelay = !forceShortDelay && _activeTimeWatch.ElapsedMilliseconds > ShortPeriod ? LongDelay : ShortDelay;
 
             if (delay > currentDelay)
             {
