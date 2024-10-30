@@ -280,7 +280,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 Logger.LogWarning("AniDB request timed out. Checking Network and trying again");
                 await _connectivityService.CheckAvailability();
             });
-        var result = await timeoutPolicy.ExecuteAndCaptureAsync(async () => await RateLimiter.EnsureRate(async () =>
+        var result = await timeoutPolicy.ExecuteAndCaptureAsync(async () => await RateLimiter.EnsureRateAsync(async () =>
         {
             if (_connectivityService.NetworkAvailability < NetworkAvailability.PartialInternet)
             {

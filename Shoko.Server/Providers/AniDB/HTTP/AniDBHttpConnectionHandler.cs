@@ -48,11 +48,12 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         {
             throw new AniDBBannedException
             {
-                BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                BanType = UpdateType.HTTPBan,
+                BanExpires = BanTime?.AddHours(BanTimerResetLength),
             };
         }
 
-        var response = await RateLimiter.EnsureRate(async () =>
+        var response = await RateLimiter.EnsureRateAsync(async () =>
         {
             using var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
@@ -63,7 +64,8 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             {
                 throw new AniDBBannedException
                 {
-                    BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                    BanType = UpdateType.HTTPBan,
+                    BanExpires = BanTime?.AddHours(BanTimerResetLength),
                 };
             }
 

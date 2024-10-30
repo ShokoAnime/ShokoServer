@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Shoko.Server.Providers.AniDB;
@@ -8,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB;
 public abstract class AniDBRateLimiter
 {
     private readonly ILogger _logger;
-    private readonly object _lock = new();
+    private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly Stopwatch _requestWatch = new();
     private readonly Stopwatch _activeTimeWatch = new();
 
@@ -42,14 +43,11 @@ public abstract class AniDBRateLimiter
         _logger.LogTrace("Rate is reset. Active time was {Time} ms", elapsedTime);
     }
 
-    public T EnsureRate<T>(Func<T> action)
+    public async Task<T> EnsureRateAsync<T>(Func<Task<T>> action)
     {
+        await _lock.WaitAsync();
         try
         {
-            var entered = false;
-            Monitor.Enter(_lock, ref entered);
-            if (!entered) throw new SynchronizationLockException();
-
             var delay = _requestWatch.ElapsedMilliseconds;
             if (delay > ResetPeriod) ResetRate();
             var currentDelay = _activeTimeWatch.ElapsedMilliseconds > ShortPeriod ? LongDelay : ShortDelay;
@@ -58,22 +56,22 @@ public abstract class AniDBRateLimiter
             {
                 _logger.LogTrace("Time since last request is {Delay} ms, not throttling", delay);
                 _logger.LogTrace("Sending AniDB command");
-                return action();
+                return await action();
             }
 
             // add 50ms for good measure
             var waitTime = currentDelay - (int)delay + 50;
 
             _logger.LogTrace("Time since last request is {Delay} ms, throttling for {Time}", delay, waitTime);
-            Thread.Sleep(waitTime);
+            await Task.Delay(waitTime);
 
             _logger.LogTrace("Sending AniDB command");
-            return action();
+            return await action();
         }
         finally
         {
             _requestWatch.Restart();
-            Monitor.Exit(_lock);
+            _lock.Release();
         }
     }
 }
