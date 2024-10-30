@@ -233,12 +233,11 @@ public class VideoLocal_PlaceService
         }
 
         var sourceFile = new FileInfo(oldFullPath);
+        var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath, request.ImportFolder.ID);
         if (File.Exists(newFullPath))
         {
             // A file with the same name exists at the destination.
             _logger.LogTrace("A file already exists at the new location, checking it for duplicate…");
-            var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath,
-                request.ImportFolder.ID);
             var destVideoLocal = destVideoLocalPlace?.VideoLocal;
             if (destVideoLocalPlace is null || destVideoLocal is null)
             {
@@ -354,6 +353,13 @@ public class VideoLocal_PlaceService
         }
         else
         {
+            if (destVideoLocalPlace is not null)
+            {
+                _logger.LogTrace("An entry already exists for the new location at {NewPath} but no physical file resides there. Removing the entry.", newFullPath);
+                await RemoveRecord(destVideoLocalPlace);
+            }
+
+            // Move
             _fileWatcherService.AddFileWatcherExclusion(oldFullPath);
             _fileWatcherService.AddFileWatcherExclusion(newFullPath);
             _logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
