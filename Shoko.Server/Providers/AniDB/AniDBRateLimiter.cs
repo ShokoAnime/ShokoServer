@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -22,11 +22,11 @@ public abstract class AniDBRateLimiter
     // An extended amount of time is not defined. Use common sense.
     protected abstract int LongDelay { get; init; }
 
-    // Switch to longer delay after 1 hour
-    protected abstract long shortPeriod { get; init; }
+    // Switch to longer delay after a short period
+    protected abstract long ShortPeriod { get; init; }
 
-    // Switch to shorter delay after 30 minutes of inactivity
-    protected abstract long resetPeriod { get; init; }
+    // Switch to shorter delay after inactivity
+    protected abstract long ResetPeriod { get; init; }
 
     protected AniDBRateLimiter(ILogger logger)
     {
@@ -51,8 +51,8 @@ public abstract class AniDBRateLimiter
             if (!entered) throw new SynchronizationLockException();
 
             var delay = _requestWatch.ElapsedMilliseconds;
-            if (delay > resetPeriod) ResetRate();
-            var currentDelay = _activeTimeWatch.ElapsedMilliseconds > shortPeriod ? LongDelay : ShortDelay;
+            if (delay > ResetPeriod) ResetRate();
+            var currentDelay = _activeTimeWatch.ElapsedMilliseconds > ShortPeriod ? LongDelay : ShortDelay;
 
             if (delay > currentDelay)
             {

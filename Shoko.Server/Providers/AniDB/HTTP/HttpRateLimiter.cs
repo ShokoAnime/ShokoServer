@@ -4,10 +4,10 @@ namespace Shoko.Server.Providers.AniDB.HTTP;
 
 public class HttpRateLimiter : AniDBRateLimiter
 {
-    protected override int ShortDelay { get; init; } = 2000;
-    protected override int LongDelay { get; init; } = 4000;
-    protected override long shortPeriod { get; init; } = 1000000;
-    protected override long resetPeriod { get; init; } = 1800000;
+    protected override int ShortDelay { get; init; } = 2_000;
+    protected override int LongDelay { get; init; } = 30_000;
+    protected override long ShortPeriod { get; init; } = 10_000;
+    protected override long ResetPeriod { get; init; } = 120_000;
 
     public HttpRateLimiter(ILogger<HttpRateLimiter> logger) : base(logger)
     {
