@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
@@ -645,6 +646,34 @@ public class FileController : BaseController
 
         // Merge with the existing entry and return an updated version of the stats.
         return fileUserStats.MergeWithExisting(userStats, file);
+    }
+
+    /// <summary>
+    /// Patch a <see cref="File.FileUserStats"/> object down for the <see cref="File"/> with the given <paramref name="fileID"/>.
+    /// </summary>
+    /// <param name="fileID">Shoko file ID</param>
+    /// <param name="patchDocument">The JSON patch document to apply to the existing <see cref="File.FileUserStats"/>.</param>
+    /// <returns>The new and/or updated user stats.</returns>
+    [HttpPatch("{fileID}/UserStats")]
+    public ActionResult<File.FileUserStats> PatchFileUserStats([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] JsonPatchDocument<File.FileUserStats> patchDocument)
+    {
+        // Make sure the file exists.
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        // Get the user data.
+        var user = HttpContext.GetUser();
+        var userStats = _vlService.GetOrCreateUserRecord(file, user.JMMUserID);
+
+        // Patch the body with the existing model.
+        var body = new File.FileUserStats(userStats);
+        patchDocument.ApplyTo(body, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Merge with the existing entry and return an updated version of the stats.
+        return body.MergeWithExisting(userStats, file);
     }
 
     /// <summary>
