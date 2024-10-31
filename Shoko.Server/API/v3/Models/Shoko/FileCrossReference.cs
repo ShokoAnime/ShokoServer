@@ -140,6 +140,7 @@ public class FileCrossReference
 
     public static List<FileCrossReference> From(IEnumerable<IVideoCrossReference> crossReferences)
         => crossReferences
+                .Where(xref => xref.Video is not null)
                 .Select(xref =>
                 {
                     // Percentages.
