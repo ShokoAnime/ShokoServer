@@ -419,32 +419,21 @@ public partial class TmdbSearchService
         return match is not null ? [match] : [];
     }
 
-    private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(SVR_AniDB_Anime anime, string title, DateTime airDate, bool restricted, bool isJapanese)
+    private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(SVR_AniDB_Anime anime, string originalTitle, DateTime airDate, bool restricted, bool isJapanese)
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
-        var (results, totalFound) = await SearchShows(title, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
+        var (results, totalFound) = await SearchShows(originalTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
         var firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
         if (firstViableResult is not null)
         {
-            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, firstViableResult.OriginalName, firstViableResult.Id);
+            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, originalTitle, firstViableResult.OriginalName, firstViableResult.Id);
 
             return new(anime, firstViableResult) { IsRemote = true };
         }
 
-
-        // Brute force attempt #2: With the original title but without the earliest known aired year.
-        (results, totalFound) = await SearchShows(title, includeRestricted: restricted).ConfigureAwait(false);
-        firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
-        if (firstViableResult is not null)
-        {
-            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, title, firstViableResult.OriginalName, firstViableResult.Id);
-
-            return new(anime, firstViableResult) { IsRemote = true };
-        }
-
-        // Brute force attempt #3-4: Same as above, but after stripping the title of common "sequel endings"
-        var strippedTitle = SequelSuffixRemovalRegex().Match(title) is { Success: true } regexResult
-            ? title[..^regexResult.Length].TrimEnd() : null;
+        // Brute force attempt #2: Same as above, but after stripping the title of common "sequel endings"
+        var strippedTitle = SequelSuffixRemovalRegex().Match(originalTitle) is { Success: true } regexResult
+            ? originalTitle[..^regexResult.Length].TrimEnd() : null;
         if (!string.IsNullOrEmpty(strippedTitle))
         {
             (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
@@ -455,18 +444,10 @@ public partial class TmdbSearchService
 
                 return new(anime, firstViableResult) { IsRemote = true };
             }
-            (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
-            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
-            if (firstViableResult is not null)
-            {
-                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, firstViableResult.OriginalName, firstViableResult.Id);
-
-                return new(anime, firstViableResult) { IsRemote = true };
-            }
         }
 
-        // Brute force attempt #5-6: Same as 1-2, but with stripped of any sub-titles.
-        var titleWithoutSubTitle = strippedTitle ?? title;
+        // Brute force attempt #3: Same as above, but with stripped of any sub-titles.
+        var titleWithoutSubTitle = strippedTitle ?? originalTitle;
         var columIndex = titleWithoutSubTitle.IndexOf(isJapanese ? ' ' : ':');
         if (columIndex > 0)
         {
@@ -479,7 +460,37 @@ public partial class TmdbSearchService
 
                 return new(anime, firstViableResult) { IsRemote = true };
             }
+        }
 
+        // Brute force attempt #4: With the original title but without the earliest known aired year.
+        (results, totalFound) = await SearchShows(originalTitle, includeRestricted: restricted).ConfigureAwait(false);
+        firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+        if (firstViableResult is not null)
+        {
+            _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, originalTitle, firstViableResult.OriginalName, firstViableResult.Id);
+
+            return new(anime, firstViableResult) { IsRemote = true };
+        }
+
+        // Brute force attempt #5: Same as above, but after stripping the title of common "sequel endings"
+        if (!string.IsNullOrEmpty(strippedTitle))
+        {
+            (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            if (firstViableResult is not null)
+            {
+                _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, firstViableResult.OriginalName, firstViableResult.Id);
+
+                return new(anime, firstViableResult) { IsRemote = true };
+            }
+        }
+
+        // Brute force attempt #6: Same as above, but with stripped of any sub-titles.
+        titleWithoutSubTitle = strippedTitle ?? originalTitle;
+        columIndex = titleWithoutSubTitle.IndexOf(isJapanese ? ' ' : ':');
+        if (columIndex > 0)
+        {
+            titleWithoutSubTitle = titleWithoutSubTitle[..columIndex];
             (results, totalFound) = await SearchShows(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
             firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
             if (firstViableResult is not null)
