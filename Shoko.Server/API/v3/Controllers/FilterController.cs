@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -337,16 +338,10 @@ public class FilterController : BaseController
         if (!results.Any()) return new ListResult<Group>();
 
         var groups = results
-            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
-            .Where(group =>
-            {
-                // not top level groups
-                if (group == null || group.AnimeGroupParentID.HasValue)
-                    return false;
-
-                return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
-            });
+            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
+            .WhereNotNull()
+            .DistinctBy(group => group.AnimeGroupID)
+            .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
 
         if (orderByName)
             groups = groups.OrderBy(group => group.SortName);
@@ -378,15 +373,10 @@ public class FilterController : BaseController
             return new Dictionary<char, int>();
 
         return results
-            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
-            .Where(group =>
-            {
-                if (group is not { AnimeGroupParentID: null })
-                    return false;
-
-                return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
-            })
+            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
+            .WhereNotNull()
+            .DistinctBy(group => group.AnimeGroupID)
+            .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)))
             .GroupBy(group => group.SortName[0])
             .OrderBy(groupList => groupList.Key)
             .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
