@@ -33,8 +33,7 @@ public static class FilterExtensions
             NamesDelegate = () =>
             {
                 var titles = series.Titles.Select(t => t.Title).ToHashSet();
-                var group = series.AnimeGroup;
-                if (group is not null)
+                foreach (var group in series.AllGroupsAbove)
                     titles.Add(group.GroupName);
 
                 return titles;
@@ -180,6 +179,8 @@ public static class FilterExtensions
             NamesDelegate = () =>
             {
                 var result = new HashSet<string>() { group.GroupName };
+                foreach (var grp in group.AllGroupsAbove)
+                    result.Add(grp.GroupName);
                 result.UnionWith(series.SelectMany(a => a.Titles.Select(t => t.Title)));
                 return result;
             },

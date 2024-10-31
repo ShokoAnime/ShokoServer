@@ -33,6 +33,30 @@ public class SVR_AnimeGroup : AnimeGroup, IShokoGroup
 
     public SVR_AnimeGroup? Parent => AnimeGroupParentID.HasValue ? RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value) : null;
 
+    public List<SVR_AnimeGroup> AllGroupsAbove
+    {
+        get
+        {
+            var allGroupsAbove = new List<SVR_AnimeGroup>();
+            var groupID = AnimeGroupParentID;
+            while (groupID.HasValue && groupID.Value != 0)
+            {
+                var grp = RepoFactory.AnimeGroup.GetByID(groupID.Value);
+                if (grp != null)
+                {
+                    allGroupsAbove.Add(grp);
+                    groupID = grp.AnimeGroupParentID;
+                }
+                else
+                {
+                    groupID = 0;
+                }
+            }
+
+            return allGroupsAbove;
+        }
+    }
+
     public List<SVR_AniDB_Anime> Anime =>
         RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).Select(s => s.AniDB_Anime).WhereNotNull().ToList();
 
