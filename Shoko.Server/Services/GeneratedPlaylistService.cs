@@ -348,13 +348,28 @@ public class GeneratedPlaylistService
         yield return ([episode], videos);
     }
 
+    private static readonly EpisodeType[] _videoToEpisodeGroupPreference = [EpisodeType.Episode, EpisodeType.Special, EpisodeType.Other, EpisodeType.Credits, EpisodeType.Trailer, EpisodeType.Parody];
+
     private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForVideo(IVideo video)
     {
-        var episode = video.Episodes
-            .OrderBy(episode => episode.Type)
-            .ThenBy(episode => episode.EpisodeNumber)
-            .FirstOrDefault();
-        return episode is not null ? [([episode], [video])] : [];
+        var crossReferences = video.CrossReferences;
+        var seriesOrder = crossReferences
+            .OrderBy(xref => xref.Order)
+            .Select(xref => xref.AnidbAnimeID)
+            .Distinct()
+            .ToArray();
+        var episodes = crossReferences
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .Select(xref => (xref, episode: xref.ShokoEpisode!))
+            .Where(tuple => tuple.episode is not null)
+            .GroupBy(tuple => tuple.episode.Type)
+            .OrderBy(groupBy => Array.IndexOf(_videoToEpisodeGroupPreference, groupBy.Key))
+            .First()
+            .OrderBy(tuple => Array.IndexOf(seriesOrder, tuple.xref.AnidbAnimeID))
+            .ThenBy(tuple => tuple.episode.EpisodeNumber)
+            .Select(tuple => tuple.episode)
+            .ToList() as IReadOnlyList<IShokoEpisode>;
+        return episodes is { Count: > 0 } ? [(episodes, [video])] : [];
     }
 
     public FileStreamResult GeneratePlaylist(
