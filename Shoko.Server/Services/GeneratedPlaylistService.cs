@@ -353,6 +353,17 @@ public class GeneratedPlaylistService
     private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForVideo(IVideo video)
     {
         var crossReferences = video.CrossReferences;
+        if (crossReferences.Count is 0)
+            return [];
+
+        if (crossReferences.Count is 1)
+        {
+            if (crossReferences[0].ShokoEpisode is not { } episode)
+                return [];
+
+            return [([episode], [video])];
+        }
+
         var seriesOrder = crossReferences
             .OrderBy(xref => xref.Order)
             .Select(xref => xref.AnidbAnimeID)
