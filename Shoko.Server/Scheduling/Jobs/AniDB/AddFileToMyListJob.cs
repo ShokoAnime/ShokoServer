@@ -186,7 +186,7 @@ public class AddFileToMyListJob : BaseJob
         }
 
         // if we don't have xrefs, then no series or eps.
-        var series = _videoLocal.EpisodeCrossRefs.Select(a => a.AnimeID).Distinct().ToArray();
+        var series = _videoLocal.EpisodeCrossRefs.Select(a => a.AnimeID).Distinct().Except([0]).ToArray();
         if (series.Length <= 0)
         {
             return;

@@ -50,7 +50,7 @@ public class AniDB_FileRepository : BaseCachedRepository<SVR_AniDB_File, int>
         }
 
         Logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {Hash}", obj.Hash);
-        var anime = RepoFactory.CrossRef_File_Episode.GetByHash(obj.Hash).Select(a => a.AnimeID).Distinct();
+        var anime = RepoFactory.CrossRef_File_Episode.GetByHash(obj.Hash).Select(a => a.AnimeID).Except([0]).Distinct();
         Task.WhenAll(anime.Select(a => _jobFactory.CreateJob<RefreshAnimeStatsJob>(b => b.AnimeID = a).Process())).GetAwaiter().GetResult();
     }
 

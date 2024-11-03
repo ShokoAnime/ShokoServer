@@ -533,9 +533,8 @@ public static class ModelHelper
                 var (video, _, locations, userRecord) = tuple;
                 var xrefs = video.EpisodeCrossRefs;
                 var isAnimeAllowed = xrefs
-                    .Select(xref => xref.AnimeID)
-                    .Distinct()
-                    .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
+                    .DistinctBy(xref => xref.AnimeID)
+                    .Select(xref => xref.AniDBAnime)
                     .WhereNotNull()
                     .All(user.AllowedAnime);
                 if (!isAnimeAllowed)

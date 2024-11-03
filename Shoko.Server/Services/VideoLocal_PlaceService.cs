@@ -935,8 +935,12 @@ public class VideoLocal_PlaceService
                         var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
                         foreach (var xref in xrefs)
                         {
+                            if (xref.AnimeID is 0)
+                                continue;
+
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                            if (ep is null) continue;
+                            if (ep is null)
+                                continue;
 
                             await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                                 {
@@ -1025,11 +1029,12 @@ public class VideoLocal_PlaceService
                     var xrefs = _crossRefFileEpisode.GetByHash(v.Hash);
                     foreach (var xref in xrefs)
                     {
+                        if (xref.AnimeID is 0)
+                            continue;
+
                         var ep = _aniDBEpisode.GetByEpisodeID(xref.EpisodeID);
                         if (ep is null)
-                        {
                             continue;
-                        }
 
                         await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                         {

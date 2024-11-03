@@ -707,6 +707,9 @@ public class ActionService
                     var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
                     foreach (var xref in xrefs)
                     {
+                        if (xref.AnimeID is 0)
+                            continue;
+
                         var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                         if (ep == null)
                         {
@@ -743,8 +746,8 @@ public class ActionService
         // Clean up failed imports
         var list = RepoFactory.VideoLocal.GetAll()
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-            .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                        a.AniDBEpisode == null).ToArray();
+            .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
+            .ToArray();
         BaseRepository.Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +10,8 @@ using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -39,17 +40,17 @@ public class ActionController : BaseController
     private readonly TraktTVHelper _traktHelper;
     private readonly TmdbMetadataService _tmdbService;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly JobFactory _jobFactory;
+    private readonly IRequestFactory _requestFactory;
     private readonly AnimeSeriesService _seriesService;
 
     public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, TmdbMetadataService tmdbService, ISchedulerFactory schedulerFactory,
-        ISettingsProvider settingsProvider, JobFactory jobFactory, ActionService actionService, AnimeSeriesService seriesService, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
+        IRequestFactory requestFactory, ISettingsProvider settingsProvider, ActionService actionService, AnimeSeriesService seriesService, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
     {
         _logger = logger;
         _traktHelper = traktHelper;
         _tmdbService = tmdbService;
         _schedulerFactory = schedulerFactory;
-        _jobFactory = jobFactory;
+        _requestFactory = requestFactory;
         _actionService = actionService;
         _seriesService = seriesService;
         _groupCreator = groupCreator;
@@ -313,14 +314,60 @@ public class ActionController : BaseController
             queuedAnimeSet.Add(animeID);
         }
 
+        // Attempt to fix cross-references with incomplete data.
+        index = 0;
+        var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
+        var unknownEpisodeDict = videos
+            .SelectMany(file => file.EpisodeCrossRefs)
+            .Where(xref => xref.AnimeID is 0)
+            .GroupBy(xref => xref.EpisodeID)
+            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
+        _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime…", unknownEpisodeDict.Count);
+        foreach (var (episodeId, xrefs) in unknownEpisodeDict)
+        {
+            if (++index % 10 == 1)
+                _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
+
+            var episode = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeId);
+            if (episode is not null)
+            {
+                foreach (var xref in xrefs)
+                {
+                    xref.AnimeID = episode.AnimeID;
+                }
+                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+                continue;
+            }
+            int? epAnimeID = null;
+            var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
+            try
+            {
+                var epResponse = epRequest.Send();
+                epAnimeID = epResponse.Response?.AnimeID;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
+            }
+
+            if (epAnimeID is not null)
+            {
+                foreach (var xref in xrefs)
+                {
+                    xref.AnimeID = epAnimeID.Value;
+                }
+                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+            }
+        }
+
         // Queue missing anime needed by existing files.
         index = 0;
         var localEpisodeSet = RepoFactory.AniDB_Episode.GetAll()
             .Select(episode => episode.EpisodeID)
             .ToHashSet();
-        var missingAnimeSet = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
+        var missingAnimeSet = videos
             .SelectMany(file => file.EpisodeCrossRefs)
-            .Where(xref => !queuedAnimeSet.Contains(xref.AnimeID) && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
+            .Where(xref => xref.AnimeID > 0 && !queuedAnimeSet.Contains(xref.AnimeID) && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
             .Select(xref => xref.AnimeID)
             .ToHashSet();
         _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);

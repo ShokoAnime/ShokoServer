@@ -1421,7 +1421,7 @@ public class FileController : BaseController
                     return false;
 
                 var xrefs = file.EpisodeCrossRefs;
-                var series = xrefs.Count > 0 ? RepoFactory.AnimeSeries.GetByAnimeID(xrefs[0].AnimeID) : null;
+                var series = xrefs.FirstOrDefault(xref => xref.AnimeID is not 0)?.AnimeSeries;
                 return series == null || User.AllowedSeries(series);
             })
             .DistinctBy(file => file.VideoLocalID);

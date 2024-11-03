@@ -136,7 +136,7 @@ public class VideoLocalService
             VideoInfo_VideoResolution = videoStream?.Resolution,
             AniDB_File_FileExtension = Path.GetExtension(aniFile?.FileName) ?? string.Empty,
             AniDB_File_LengthSeconds = (int?)mediaInfo?.Duration.TotalSeconds ?? 0,
-            AniDB_AnimeID = xrefs.FirstOrDefault()?.AnimeID,
+            AniDB_AnimeID = xrefs.FirstOrDefault(xref => xref.AnimeID > 0)?.AnimeID,
             AniDB_CRC = vl.CRC32,
             AniDB_MD5 = vl.MD5,
             AniDB_SHA1 = vl.SHA1,

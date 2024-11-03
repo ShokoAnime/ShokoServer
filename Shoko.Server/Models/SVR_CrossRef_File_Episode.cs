@@ -17,9 +17,9 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
 
     public SVR_AnimeEpisode? AnimeEpisode => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
 
-    public SVR_AniDB_Anime? AniDBAnime => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+    public SVR_AniDB_Anime? AniDBAnime => AnimeID is 0 ? null : RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
-    public SVR_AnimeSeries? AnimeSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+    public SVR_AnimeSeries? AnimeSeries => AnimeID is 0 ? null : RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
 
     public override string ToString() =>
         $"CrossRef_File_Episode (Anime={AnimeID},Episode={EpisodeID},Hash={Hash},FileSize={FileSize},EpisodeOrder={EpisodeOrder},Percentage={Percentage})";
@@ -40,7 +40,7 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
 
     int IVideoCrossReference.AnidbEpisodeID => EpisodeID;
 
-    int IVideoCrossReference.AnidbAnimeID => AnimeID;
+    int IVideoCrossReference.AnidbAnimeID => AnimeID is 0 ? AniDBEpisode?.AnimeID ?? 0 : AnimeID;
 
     int IVideoCrossReference.Order => EpisodeOrder;
 

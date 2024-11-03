@@ -85,8 +85,7 @@ public class DiscoverFileJob : BaseJob
         var scheduler = await _schedulerFactory.GetScheduler();
 
         // if !shouldHash, then we definitely have a hash
-        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a =>
-            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
+        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
         if (!shouldHash && hasXrefs && !vlocal.DateTimeImported.HasValue)
         {
             vlocal.DateTimeImported = DateTime.Now;

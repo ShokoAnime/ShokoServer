@@ -853,7 +853,8 @@ public partial class ShokoServiceImplementation
                 var xref = RepoFactory.CrossRef_File_Episode.GetByHash(vl.Hash);
                 if (xref.Count > 0)
                 {
-                    anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref[0].AnimeID);
+                    if (xref.FirstOrDefault(x => x.AnimeID is not 0)?.AnimeID is { } animeId)
+                        anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeId);
                     episode = RepoFactory.AniDB_Episode.GetByEpisodeID(xref[0].EpisodeID);
                 }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -40,10 +41,15 @@ public class ImportFolder : BaseModel
     public ImportFolder(SVR_ImportFolder folder)
     {
         var series = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID)
-            .Select(a => a?.VideoLocal?.Hash).Where(a => !string.IsNullOrEmpty(a)).Distinct()
-            .SelectMany(RepoFactory.CrossRef_File_Episode.GetByHash).DistinctBy(a => a.AnimeID).Count();
+            .Select(a => a?.VideoLocal?.Hash)
+            .Where(a => !string.IsNullOrEmpty(a))
+            .Distinct()
+            .SelectMany(RepoFactory.CrossRef_File_Episode.GetByHash)
+            .DistinctBy(a => a.AnimeID)
+            .Count();
         var size = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID)
-            .Select(a => a.VideoLocal).Where(b => b != null)
+            .Select(a => a.VideoLocal)
+            .WhereNotNull()
             .Sum(b => b.FileSize);
 
         DropFolderType type;

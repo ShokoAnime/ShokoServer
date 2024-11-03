@@ -238,14 +238,12 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                     }
                 }
 
-                if (epAnimeID == null) continue;
-
                 epOrder++;
                 fileEps.Add(new SVR_CrossRef_File_Episode
                 {
                     Hash = _vlocal.Hash,
                     CrossRefSource = (int)CrossRefSource.AniDB,
-                    AnimeID = epAnimeID.Value,
+                    AnimeID = epAnimeID ?? 0,
                     EpisodeID = episode.EpisodeID,
                     Percentage = episode.Percentage,
                     EpisodeOrder = epOrder,
