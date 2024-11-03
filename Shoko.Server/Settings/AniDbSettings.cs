@@ -75,4 +75,8 @@ public class AniDbSettings
     public bool AutomaticallyImportSeries { get; set; } = false;
 
     public AVDumpSettings AVDump { get; set; } = new();
+
+    public AnidbRateLimitSettings HTTPRateLimit { get; set; } = new();
+
+    public AnidbRateLimitSettings UDPRateLimit { get; set; } = new();
 }

@@ -1,15 +1,12 @@
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions;
+
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
 public class UDPRateLimiter : AniDBRateLimiter
 {
-    protected override int ShortDelay { get; init; } = 2_000;
-    protected override int LongDelay { get; init; } = 6_000;
-    protected override long ShortPeriod { get; init; } = 10_000;
-    protected override long ResetPeriod { get; init; } = 120_000;
-
-    public UDPRateLimiter(ILogger<UDPRateLimiter> logger) : base(logger)
-    {
-    }
+    public UDPRateLimiter(ILogger<UDPRateLimiter> logger, ISettingsProvider settingsProvider, IShokoEventHandler eventHandler)
+        : base(logger, settingsProvider, eventHandler, s => s.AniDb.UDPRateLimit) { }
 }
