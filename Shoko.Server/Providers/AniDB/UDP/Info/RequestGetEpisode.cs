@@ -13,7 +13,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info;
 public class RequestGetEpisode : UDPRequest<ResponseGetEpisode>
 {
     // These are dependent on context
-    protected override string BaseCommand => $"Episode eid={EpisodeID}";
+    protected override string BaseCommand => $"EPISODE eid={EpisodeID}";
 
     public int EpisodeID { get; set; }
 
