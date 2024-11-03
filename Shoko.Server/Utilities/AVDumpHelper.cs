@@ -31,7 +31,7 @@ public static partial class AVDumpHelper
 
     private const string AVDumpURL = @"AVD3_URL_GOES_HERE";
 
-    private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory, Utils.IsRunningOnLinuxOrMac() ? "AVDump3CL.dll" : "AVDump3CL.exe");
+    private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory, Utils.IsLinuxOrMac ? "AVDump3CL.dll" : "AVDump3CL.exe");
 
     private static readonly ConcurrentDictionary<int, AVDumpSession> ActiveSessions = new();
 
@@ -479,7 +479,7 @@ public static partial class AVDumpHelper
             CreateNoWindow = true
         };
 
-        if (Utils.IsRunningOnLinuxOrMac())
+        if (Utils.IsLinuxOrMac)
         {
             startInfo.FileName = "dotnet";
             startInfo.ArgumentList.Add(AVDumpExecutable);

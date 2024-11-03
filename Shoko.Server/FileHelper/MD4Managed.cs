@@ -22,7 +22,7 @@ public abstract class MD4 : HashAlgorithm
     {
         var obj = CryptoConfig.CreateFromName(hashName);
         // in case machine.config isn't configured to use any MD4 implementation
-        if (obj == null || Utils.IsRunningOnLinuxOrMac())
+        if (obj == null || Utils.IsLinuxOrMac)
         {
             obj = new MD4Managed();
         }

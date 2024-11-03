@@ -2821,11 +2821,14 @@ public class SeriesController : BaseController
     }
 
     /// <summary>
-    /// Get the series that reside in the path that ends with <param name="path"></param>
+    /// Get the series that reside in the path that ends with <paramref name="path"/>.
     /// </summary>
+    /// <param name="path">The path to search for.</param>
+    /// <param name="quickCompare">Set to true to skip the per directory comparison logic and
+    /// instead rely on the global platform comparison based on the currently running platform.</param>
     /// <returns></returns>
     [HttpGet("PathEndsWith/{*path}")]
-    public ActionResult<List<Series>> PathEndsWith([FromRoute] string path)
+    public ActionResult<List<Series>> PathEndsWith([FromRoute] string path, bool quickCompare = true)
     {
         var user = User;
         var query = path;
@@ -2845,9 +2848,14 @@ public class SeriesController : BaseController
         return RepoFactory.VideoLocalPlace.GetAll()
             .Where(a =>
             {
-                if (a.FullServerPath == null) return false;
+                if (a.FullServerPath == null)
+                    return false;
                 var dir = Path.GetDirectoryName(a.FullServerPath);
-                return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
+                if (string.IsNullOrEmpty(dir))
+                    return false;
+
+                var comparison = quickCompare ? Utils.PlatformComparison : Utils.GetComparisonFor(dir);
+                return dir != null && dir.EndsWith(query, comparison);
             })
             .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<SVR_AnimeEpisode>())
             .DistinctBy(a => a.AnimeSeriesID)

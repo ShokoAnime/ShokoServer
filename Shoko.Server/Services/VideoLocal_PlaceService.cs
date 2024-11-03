@@ -106,7 +106,8 @@ public class VideoLocal_PlaceService
 
         // Sanitize relative path and reject paths leading to outside the import folder.
         var fullPath = Path.GetFullPath(Path.Combine(request.ImportFolder.Path, request.RelativePath));
-        if (!fullPath.StartsWith(request.ImportFolder.Path, StringComparison.OrdinalIgnoreCase))
+        // We use ordinal here since we want to compare the exact path with what we got from the import folder to what the final path ends up being.
+        if (!fullPath.StartsWith(request.ImportFolder.Path, StringComparison.Ordinal))
             return new()
             {
                 Success = false,
@@ -193,11 +194,12 @@ public class VideoLocal_PlaceService
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
         var newFullPath = Path.Combine(request.ImportFolder.Path, newRelativePath);
         var newFileName = Path.GetFileName(newRelativePath);
-        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.OrdinalIgnoreCase);
-        var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
+        var comparison = Utils.GetComparisonFor(Path.GetDirectoryName(newFullPath), Path.GetDirectoryName(oldFullPath));
+        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, comparison);
+        var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), comparison);
 
         // Last ditch effort to ensure we aren't moving a file unto itself
-        if (string.Equals(newFullPath, oldFullPath, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(newFullPath, oldFullPath, comparison))
         {
             _logger.LogTrace("Resolved to relocate {FilePath} onto itself. Nothing to do.", newFullPath);
             return new()
@@ -612,6 +614,7 @@ public class VideoLocal_PlaceService
                 string.IsNullOrEmpty(oldFileName) || string.IsNullOrEmpty(newFileName))
                 return;
 
+            var comparison = Utils.GetComparisonFor(Path.GetDirectoryName(newFullServerPath), Path.GetDirectoryName(oldFullServerPath));
             var textStreams = SubtitleHelper.GetSubtitleStreams(oldFullServerPath);
             // move any subtitle files
             foreach (var subtitleFile in textStreams)
@@ -628,7 +631,7 @@ public class VideoLocal_PlaceService
                 }
 
                 var newSubPath = Path.Combine(newParent, newFileName + subtitleFile.Filename[oldFileName.Length..]);
-                if (string.Equals(subPath, newSubPath, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(subPath, newSubPath, comparison))
                 {
                     _logger.LogDebug("Attempting to move subtitle file onto itself. Skipping. Path: {FilePath} to {FilePath}", subPath, newSubPath);
                     continue;

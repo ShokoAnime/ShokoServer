@@ -132,7 +132,7 @@ public static class MediaInfo
         path = settings.Import.MediaInfoPath;
         if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
 
-        if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
+        if (Utils.IsLinuxOrMac) return "mediainfo";
 
         var exePath = Assembly.GetEntryAssembly()?.Location;
         var exeDir = Path.GetDirectoryName(exePath);

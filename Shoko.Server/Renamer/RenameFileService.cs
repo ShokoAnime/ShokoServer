@@ -240,14 +240,15 @@ public class RenameFileService
         var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path : Path.GetDirectoryName(place.FilePath);
         var newRelativePath = !string.IsNullOrEmpty(newRelativeDirectory) && newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
         var newFullPath = Path.Combine(newImportFolder.Path, newRelativePath);
+        var oldFullPath = place.FullServerPath;
+        var comparison = Utils.GetComparisonFor(Path.GetDirectoryName(newFullPath), Path.GetDirectoryName(oldFullPath));
         return new()
         {
             Success = true,
             ImportFolder = newImportFolder,
             RelativePath = newRelativePath,
-            // TODO: Handle file-systems that are or aren't case sensitive.
-            Renamed = !string.Equals(place.FileName, result.FileName, StringComparison.OrdinalIgnoreCase),
-            Moved = !string.Equals(Path.GetDirectoryName(place.FullServerPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase),
+            Renamed = !string.Equals(place.FileName, result.FileName, comparison),
+            Moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), comparison),
         };
     }
 

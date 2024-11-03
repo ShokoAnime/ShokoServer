@@ -12,6 +12,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -53,7 +54,17 @@ public class ImportFolderController : BaseController
         if (!Directory.Exists(folder.Path))
             return ValidationProblem("Path does not exist. Import Folders must be a location that exists on the server.", nameof(folder.Path));
 
-        if (RepoFactory.ImportFolder.GetAll().ExceptBy([folder.ID], iF => iF.ImportFolderID).Any(iF => folder.Path.StartsWith(iF.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) || iF.ImportFolderLocation.StartsWith(folder.Path, StringComparison.OrdinalIgnoreCase)))
+        if (RepoFactory.ImportFolder.GetAll().ExceptBy([folder.ID], iF => iF.ImportFolderID).Any(iF =>
+        {
+            var comparison = Utils.GetComparisonFor(folder.Path, iF.ImportFolderLocation);
+            var newLocation = folder.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            if (newLocation[^1] != Path.DirectorySeparatorChar)
+                newLocation += Path.DirectorySeparatorChar;
+            var existingLocation = iF.ImportFolderLocation.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            if (existingLocation[^1] != Path.DirectorySeparatorChar)
+                existingLocation += Path.DirectorySeparatorChar;
+            return newLocation.StartsWith(existingLocation, comparison) || existingLocation.StartsWith(newLocation, comparison);
+        }))
             return ValidationProblem("Unable to nest an import folder within another import folder.");
 
         try
@@ -137,8 +148,17 @@ public class ImportFolderController : BaseController
         if (!string.IsNullOrEmpty(folder.Path) && !Directory.Exists(folder.Path))
             ModelState.AddModelError(nameof(folder.Path), "Path does not exist. Import Folders must be a location that exists on the server.");
 
-        if (RepoFactory.ImportFolder.GetAll().ExceptBy([folder.ID], iF => iF.ImportFolderID)
-            .Any(iF => folder.Path.StartsWith(iF.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) || iF.ImportFolderLocation.StartsWith(folder.Path, StringComparison.OrdinalIgnoreCase)))
+        if (RepoFactory.ImportFolder.GetAll().ExceptBy([folder.ID], iF => iF.ImportFolderID).Any(iF =>
+        {
+            var comparison = Utils.GetComparisonFor(folder.Path, iF.ImportFolderLocation);
+            var newLocation = folder.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            if (newLocation[^1] != Path.DirectorySeparatorChar)
+                newLocation += Path.DirectorySeparatorChar;
+            var existingLocation = iF.ImportFolderLocation.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            if (existingLocation[^1] != Path.DirectorySeparatorChar)
+                existingLocation += Path.DirectorySeparatorChar;
+            return newLocation.StartsWith(existingLocation, comparison) || existingLocation.StartsWith(newLocation, comparison);
+        }))
             ModelState.AddModelError(nameof(folder.Path), "Unable to nest an import folder within another import folder.");
 
         if (folder.ID == 0)

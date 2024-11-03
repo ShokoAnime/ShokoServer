@@ -25,7 +25,7 @@ public class ServerSettings_Legacy
     {
         get
         {
-            if (Utils.IsLinux)
+            if (Utils.IsLinuxOrMac)
             {
                 return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                     ".shoko",

@@ -277,7 +277,7 @@ public class HashFileJob : BaseJob
             var info = new FileInfo(FilePath);
             if (info.IsReadOnly) info.IsReadOnly = false;
 
-            if (!info.IsReadOnly && !Utils.IsRunningOnLinuxOrMac())
+            if (!info.IsReadOnly && !Utils.IsLinuxOrMac)
             {
                 return true;
             }
