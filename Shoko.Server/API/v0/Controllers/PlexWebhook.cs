@@ -16,6 +16,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
@@ -23,9 +24,9 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Plex;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
 #if DEBUG
 using Shoko.Models.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
@@ -41,16 +42,14 @@ public class PlexWebhook : BaseController
     private readonly ILogger<PlexWebhook> _logger;
     private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeGroupService _groupService;
+    private readonly IUserDataService _userDataService;
 
-    public PlexWebhook(ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
+    public PlexWebhook(ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IUserDataService userDataService) : base(settingsProvider)
     {
         _logger = logger;
         _traktHelper = traktHelper;
         _schedulerFactory = schedulerFactory;
-        _seriesService = seriesService;
-        _groupService = groupService;
+        _userDataService = userDataService;
     }
 
     //The second one is to just make sure
@@ -133,11 +132,7 @@ public class PlexWebhook : BaseController
             return; //At this point in time, we don't want to scrobble for unknown users
         }
 
-        var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
-        await watchedService.SetWatchedStatus(episode, true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
-            true);
-        _seriesService.UpdateStats(anime, true, false);
-        _groupService.UpdateStatsFromTopLevel(anime.AnimeGroup?.TopLevelAnimeGroup, true, true);
+        await _userDataService.SetEpisodeWatchedStatus(user, episode, true, FromUnixTime(metadata.LastViewedAt));
     }
 
     #endregion

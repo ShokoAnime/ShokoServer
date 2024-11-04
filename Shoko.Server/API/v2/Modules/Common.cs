@@ -16,6 +16,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
@@ -50,10 +51,19 @@ public class Common : BaseController
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
     private readonly QueueHandler _queueHandler;
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
     private readonly VideoLocal_UserRepository _vlUsers;
 
-    public Common(ISchedulerFactory schedulerFactory, ActionService actionService, ISettingsProvider settingsProvider, QueueHandler queueHandler, ShokoServiceImplementation service, AnimeSeriesService seriesService, AnimeGroupService groupService, WatchedStatusService watchedService, VideoLocal_UserRepository vlUsers) : base(settingsProvider)
+    public Common(
+        ISchedulerFactory schedulerFactory,
+        ActionService actionService,
+        ISettingsProvider settingsProvider,
+        QueueHandler queueHandler,
+        ShokoServiceImplementation service,
+        AnimeSeriesService seriesService,
+        AnimeGroupService groupService,
+        IUserDataService userDataService,
+        VideoLocal_UserRepository vlUsers) : base(settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
@@ -61,7 +71,7 @@ public class Common : BaseController
         _service = service;
         _seriesService = seriesService;
         _groupService = groupService;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
         _vlUsers = vlUsers;
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
@@ -983,25 +993,26 @@ public class Common : BaseController
     [HttpPost("file/offset")]
     public ActionResult SetFileOffset([FromBody] API_Call_Parameters para)
     {
-        JMMUser user = HttpContext.GetUser();
-
-        var id = para.id;
-        var offset = para.offset;
-
-        // allow to offset be 0 to reset position
-        if (id == 0 || offset < 0)
-        {
+        var videoId = para.id;
+        var resumePositionTicks = para.offset;
+        if (videoId == 0 || resumePositionTicks < 0)
             return BadRequest("Invalid arguments");
-        }
 
-        var vlu = RepoFactory.VideoLocal.GetByID(id);
-        if (vlu != null)
-        {
-            _watchedService.SetResumePosition(vlu, offset, user.JMMUserID);
-            return Ok();
-        }
+        if (RepoFactory.VideoLocal.GetByID(videoId) is not { } video)
+            return NotFound();
 
-        return NotFound();
+        var user = HttpContext.GetUser();
+        var videoUserData = _userDataService.GetVideoUserData(user.JMMUserID, video.VideoLocalID);
+        _userDataService.SaveVideoUserData(
+            user,
+            video,
+            new(videoUserData)
+            {
+                ResumePosition = TimeSpan.FromTicks(resumePositionTicks),
+                LastUpdatedAt = DateTime.Now
+            }
+        ).GetAwaiter().GetResult();
+        return Ok();
     }
 
     /// <summary>
@@ -1011,13 +1022,13 @@ public class Common : BaseController
     [HttpGet("file/watch")]
     private async Task<ActionResult> MarkFileAsWatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        if (id != 0)
-        {
-            return await MarkFile(true, id, user.JMMUserID);
-        }
+        if (id == 0)
+            return BadRequest("missing 'id'");
+        if (id < 0)
+            return BadRequest("invalid 'id'");
 
-        return BadRequest("missing 'id'");
+        var user = HttpContext.GetUser();
+        return await MarkFile(true, id, user);
     }
 
     /// <summary>
@@ -1027,13 +1038,13 @@ public class Common : BaseController
     [HttpGet("file/unwatch")]
     private async Task<ActionResult> MarkFileAsUnwatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        if (id != 0)
-        {
-            return await MarkFile(false, id, user.JMMUserID);
-        }
+        if (id == 0)
+            return BadRequest("missing 'id'");
+        if (id < 0)
+            return BadRequest("invalid 'id'");
 
-        return BadRequest("missing 'id'");
+        var user = HttpContext.GetUser();
+        return await MarkFile(false, id, user);
     }
 
     #region internal function
@@ -1094,40 +1105,16 @@ public class Common : BaseController
     /// </summary>
     /// <param name="status"></param>
     /// <param name="id"></param>
-    /// <param name="uid"></param>
+    /// <param name="user"></param>
     /// <returns></returns>
-    internal async Task<ActionResult> MarkFile(bool status, int id, int uid)
+    internal async Task<ActionResult> MarkFile(bool status, int id, SVR_JMMUser user)
     {
         try
         {
-            var file = RepoFactory.VideoLocal.GetByID(id);
-            if (file == null)
-            {
+            if (RepoFactory.VideoLocal.GetByID(id) is not { } video)
                 return NotFound();
-            }
 
-            var list_ep = file.AnimeEpisodes;
-            if (list_ep == null)
-            {
-                return NotFound();
-            }
-
-            foreach (var ep in list_ep)
-            {
-                await _watchedService.SetWatchedStatus(ep, status, true, DateTime.Now, false, uid, true);
-            }
-
-            var series = list_ep.Select(a => a.AnimeSeries).Where(a => a != null).DistinctBy(a => a.AnimeSeriesID).ToList();
-            var groups = series.Select(a => a.AnimeGroup?.TopLevelAnimeGroup).Where(a => a != null)
-                .DistinctBy(a => a.AnimeGroupID);
-            foreach (var s in series)
-            {
-                _seriesService.UpdateStats(s, true, false);
-            }
-            foreach (var group in groups)
-            {
-                _groupService.UpdateStatsFromTopLevel(group, true, true);
-            }
+            await _userDataService.SetVideoWatchedStatus(user, video, status);
 
             return Ok();
         }
@@ -1312,13 +1299,13 @@ public class Common : BaseController
     [HttpGet("ep/watch")]
     public async Task<ActionResult> MarkEpisodeAsWatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        if (id != 0)
-        {
-            return await MarkEpisode(true, id, user.JMMUserID);
-        }
+        if (id == 0)
+            return BadRequest("missing 'id'");
+        if (id < 0)
+            return BadRequest("invalid 'id'");
 
-        return BadRequest("missing 'id'");
+        var user = HttpContext.GetUser();
+        return await MarkEpisode(true, id, user);
     }
 
     /// <summary>
@@ -1328,13 +1315,13 @@ public class Common : BaseController
     [HttpGet("ep/unwatch")]
     public async Task<ActionResult> MarkEpisodeAsUnwatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        if (id != 0)
-        {
-            return await MarkEpisode(false, id, user.JMMUserID);
-        }
+        if (id == 0)
+            return BadRequest("missing 'id'");
+        if (id < 0)
+            return BadRequest("invalid 'id'");
 
-        return BadRequest("missing 'id'");
+        var user = HttpContext.GetUser();
+        return await MarkEpisode(false, id, user);
     }
 
     /// <summary>
@@ -1455,22 +1442,16 @@ public class Common : BaseController
     /// </summary>
     /// <param name="status">true is watched, false is unwatched</param>
     /// <param name="id">episode id</param>
-    /// <param name="uid">user id</param>
+    /// <param name="user">user id</param>
     /// <returns>APIStatus</returns>
-    internal async Task<ActionResult> MarkEpisode(bool status, int id, int uid)
+    internal async Task<ActionResult> MarkEpisode(bool status, int id, SVR_JMMUser user)
     {
         try
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(id);
-            if (ep == null)
-            {
+            if (RepoFactory.AnimeEpisode.GetByID(id) is not { } episode)
                 return NotFound();
-            }
 
-            await _watchedService.SetWatchedStatus(ep, status, true, DateTime.Now, false, uid, true);
-            var series = ep.AnimeSeries;
-            _seriesService.UpdateStats(series, true, false);
-            _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
+            await _userDataService.SetEpisodeWatchedStatus(user, episode, status);
             return Ok();
         }
         catch (Exception ex)
@@ -1903,13 +1884,13 @@ public class Common : BaseController
     [HttpGet("serie/watch")]
     public async Task<ActionResult> MarkSerieAsWatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        if (id != 0)
-        {
-            return await MarkSerieWatchStatus(id, true, user.JMMUserID);
-        }
+        if (id == 0)
+            return BadRequest("missing 'id'");
+        if (id < 0)
+            return BadRequest("invalid 'id'");
 
-        return BadRequest("missing 'id'");
+        var user = HttpContext.GetUser();
+        return await MarkSerieWatchStatus(id, true, user);
     }
 
     /// <summary>
@@ -1919,13 +1900,13 @@ public class Common : BaseController
     [HttpGet("serie/unwatch")]
     public async Task<ActionResult> MarkSerieAsUnwatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        if (id != 0)
-        {
-            return await MarkSerieWatchStatus(id, false, user.JMMUserID);
-        }
+        if (id == 0)
+            return BadRequest("missing 'id'");
+        if (id < 0)
+            return BadRequest("invalid 'id'");
 
-        return BadRequest("missing 'id'");
+        var user = HttpContext.GetUser();
+        return await MarkSerieWatchStatus(id, false, user);
     }
 
     /// <summary>
@@ -2392,31 +2373,27 @@ public class Common : BaseController
     /// </summary>
     /// <param name="id">serie id</param>
     /// <param name="watched">true is watched, false is unwatched</param>
-    /// <param name="uid">user id</param>
+    /// <param name="user">user</param>
     /// <returns>APIStatus</returns>
-    internal async Task<ActionResult> MarkSerieWatchStatus(int id, bool watched, int uid)
+    internal async Task<ActionResult> MarkSerieWatchStatus(int id, bool watched, SVR_JMMUser user)
     {
         try
         {
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
-            if (ser == null)
-            {
+            if (RepoFactory.AnimeSeries.GetByID(id) is not { } ser)
                 return BadRequest("Series not Found");
-            }
 
             foreach (var ep in ser.AllAnimeEpisodes)
             {
-                var epUser = ep.GetUserRecord(uid);
+                var epUser = ep.GetUserRecord(user.JMMUserID);
                 if (epUser != null)
                 {
                     if (epUser.WatchedCount <= 0 && watched)
                     {
-                        await _watchedService.SetWatchedStatus(ep, true, true, DateTime.Now, false, uid, false);
+                        await _userDataService.SetEpisodeWatchedStatus(user, ep, true, updateStatsNow: false);
                     }
                     else if (epUser.WatchedCount > 0 && !watched)
                     {
-                        await _watchedService.SetWatchedStatus(ep, false, true, DateTime.Now, false, uid, false);
+                        await _userDataService.SetEpisodeWatchedStatus(user, ep, false, updateStatsNow: false);
                     }
                 }
             }
@@ -2821,8 +2798,8 @@ public class Common : BaseController
     [HttpGet("group/watch")]
     public async Task<ActionResult> MarkGroupAsWatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        return await MarkWatchedStatusOnGroup(id, user.JMMUserID, true);
+        var user = HttpContext.GetUser();
+        return await MarkWatchedStatusOnGroup(id, user, true);
     }
 
     /// <summary>
@@ -2832,8 +2809,8 @@ public class Common : BaseController
     [HttpGet("group/unwatch")]
     private async Task<ActionResult> MarkGroupAsUnwatched(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        return await MarkWatchedStatusOnGroup(id, user.JMMUserID, false);
+        var user = HttpContext.GetUser();
+        return await MarkWatchedStatusOnGroup(id, user, false);
     }
 
     /// <summary>
@@ -2923,10 +2900,10 @@ public class Common : BaseController
     /// Set watch status for group
     /// </summary>
     /// <param name="groupid">group id</param>
-    /// <param name="userid">user id</param>
+    /// <param name="user">user</param>
     /// <param name="watchedstatus">watch status</param>
     /// <returns>APIStatus</returns>
-    internal async Task<ActionResult> MarkWatchedStatusOnGroup(int groupid, int userid, bool watchedstatus)
+    internal async Task<ActionResult> MarkWatchedStatusOnGroup(int groupid, SVR_JMMUser user, bool watchedstatus)
     {
         try
         {
@@ -2938,24 +2915,12 @@ public class Common : BaseController
 
             foreach (var series in group.AllSeries)
             {
-                foreach (var ep in series.AllAnimeEpisodes)
+                foreach (var episode in series.AllAnimeEpisodes)
                 {
-                    if (ep?.AniDB_Episode == null)
-                    {
+                    if (episode.EpisodeTypeEnum is EpisodeType.Credits or EpisodeType.Trailer)
                         continue;
-                    }
 
-                    if (ep.EpisodeTypeEnum == EpisodeType.Credits)
-                    {
-                        continue;
-                    }
-
-                    if (ep.EpisodeTypeEnum == EpisodeType.Trailer)
-                    {
-                        continue;
-                    }
-
-                    await _watchedService.SetWatchedStatus(ep, watchedstatus, true, DateTime.Now, false, userid, true);
+                    await _userDataService.SetEpisodeWatchedStatus(user, episode, watchedstatus, updateStatsNow: false);
                 }
 
                 _seriesService.UpdateStats(series, true, false);

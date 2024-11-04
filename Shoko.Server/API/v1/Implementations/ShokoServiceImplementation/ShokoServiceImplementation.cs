@@ -13,6 +13,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
@@ -50,7 +51,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly ActionService _actionService;
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
 
     public ShokoServiceImplementation(
         TraktTVHelper traktHelper,
@@ -64,7 +65,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         AnimeGroupCreator groupCreator,
         JobFactory jobFactory,
         AnimeEpisodeService episodeService,
-        WatchedStatusService watchedService,
+        IUserDataService userDataService,
         VideoLocalService videoLocalService
     )
     {
@@ -79,7 +80,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _groupCreator = groupCreator;
         _jobFactory = jobFactory;
         _episodeService = episodeService;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
         _videoLocalService = videoLocalService;
     }
 

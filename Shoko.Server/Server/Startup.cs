@@ -68,13 +68,14 @@ public class Startup
             services.AddSingleton<AnimeGroupService>();
             services.AddSingleton<VideoLocalService>();
             services.AddSingleton<VideoLocal_PlaceService>();
-            services.AddSingleton<WatchedStatusService>();
             services.AddSingleton<CssThemeService>();
             services.AddSingleton<WebUIUpdateService>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<IApplicationPaths>(AbstractApplicationPaths.Instance);
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, AbstractVideoService>();
+            services.AddSingleton<IUserService, AbstractUserService>();
+            services.AddSingleton<IUserDataService, AbstractUserDataService>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();

@@ -5,7 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
@@ -15,7 +17,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.Plex;
@@ -28,8 +29,8 @@ public class SyncPlexWatchedStatesJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly WatchedStatusService _watchedService;
-    public JMMUser User { get; set; }
+    private readonly IUserDataService _userDataService;
+    public SVR_JMMUser User { get; set; }
 
     public override string TypeName => "Sync Plex States for User";
 
@@ -100,7 +101,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
                     if (isWatched && !alreadyWatched)
                     {
                         _logger.LogInformation("Marking episode watched in Shoko");
-                        await _watchedService.SetWatchedStatus(video, true, true, lastWatched ?? DateTime.Now, true, User.JMMUserID, true, true);
+                        await _userDataService.SaveVideoUserData(User, video, new() { LastPlayedAt = lastWatched ?? DateTime.Now });
                     }
                 }
             }
@@ -113,11 +114,11 @@ public class SyncPlexWatchedStatesJob : BaseJob
             .AddSeconds(unixTime);
     }
 
-    public SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService)
+    public SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
     {
         _settingsProvider = settingsProvider;
         _vlUsers = vlUsers;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
     }
 
     protected SyncPlexWatchedStatesJob() { }

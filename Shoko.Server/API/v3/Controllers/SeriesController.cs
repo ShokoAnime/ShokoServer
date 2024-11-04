@@ -17,6 +17,7 @@ using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -69,7 +70,7 @@ public class SeriesController : BaseController
 
     private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
 
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
 
     public SeriesController(
         ISettingsProvider settingsProvider,
@@ -81,7 +82,7 @@ public class SeriesController : BaseController
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
-        WatchedStatusService watchedService
+        IUserDataService userDataService
     ) : base(settingsProvider)
     {
         _seriesService = seriesService;
@@ -92,7 +93,7 @@ public class SeriesController : BaseController
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
         _crossRefFileEpisode = crossRefFileEpisode;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
     }
 
     #region Return messages
@@ -1971,11 +1972,11 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var userId = User.JMMUserID;
+        var user = User;
         var now = DateTime.Now;
         // this has a parallel query to evaluate filters and data in parallel, but that makes awaiting the SetWatchedStatus calls more difficult, so we ToList() it
         await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeWatched, IncludeOnlyFilter.True, type, search, fuzzy).ToList()
-            .Select(episode => _watchedService.SetWatchedStatus(episode, value, true, now, false, userId, true)));
+            .Select(episode => _userDataService.SetEpisodeWatchedStatus(user, episode, value, now, updateStatsNow: false)));
 
         _seriesService.UpdateStats(series, true, false);
 

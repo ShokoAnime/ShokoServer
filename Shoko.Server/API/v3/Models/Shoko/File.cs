@@ -8,10 +8,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -398,15 +398,14 @@ public partial class File
             // Get the file associated with the user entry.
             file ??= existing.VideoLocal;
 
-            // Sync the watch date and aggregate the data up to the episode if needed.
-            var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
-            watchedService.SetWatchedStatus(file, LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true,
-                LastUpdatedAt.ToLocalTime()).GetAwaiter().GetResult();
-
-            // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
-            existing.WatchedCount = WatchedCount;
-            existing.ResumePositionTimeSpan = ResumePosition;
-            RepoFactory.VideoLocalUser.Save(existing);
+            var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+            userDataService.SaveVideoUserData(existing.User, file, new()
+            {
+                LastPlayedAt = LastWatchedAt,
+                LastUpdatedAt = LastUpdatedAt,
+                ResumePosition = ResumePosition,
+                PlaybackCount = WatchedCount,
+            }).GetAwaiter().GetResult();
 
             // Return a new representation
             return new FileUserStats(existing);

@@ -12,6 +12,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
@@ -40,7 +41,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
     private readonly JobFactory _jobFactory;
 
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
 
     private readonly AnimeEpisodeService _epService;
 
@@ -49,13 +50,13 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     public HttpContext HttpContext { get; set; }
 
     public ShokoServiceImplementationMetro(TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ShokoServiceImplementation service,
-        JobFactory jobFactory, WatchedStatusService watchedService, AnimeEpisodeService epService)
+        JobFactory jobFactory, IUserDataService userDataService, AnimeEpisodeService epService)
     {
         _traktHelper = traktHelper;
         _settingsProvider = settingsProvider;
         _service = service;
         _jobFactory = jobFactory;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
         _epService = epService;
     }
 
@@ -1123,24 +1124,20 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         var response = new CL_Response<CL_AnimeEpisode_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
-            if (ep is null)
+            if (RepoFactory.AnimeEpisode.GetByID(animeEpisodeID) is not { } episode)
             {
                 response.ErrorMessage = "Could not find anime episode record";
                 return response;
             }
 
-            _watchedService.SetWatchedStatus(ep, watchedStatus, true, DateTime.Now, false, userID, true).GetAwaiter().GetResult();
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
-            var series = ep.AnimeSeries;
-            seriesService.UpdateStats(series, true, false);
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
-            groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
+            if (RepoFactory.JMMUser.GetByID(userID) is not { } user)
+            {
+                response.ErrorMessage = "Could not find user record";
+                return response;
+            }
 
-            // refresh from db
-            ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
-
-            response.Result = _epService.GetV1Contract(ep, userID);
+            _userDataService.SetEpisodeWatchedStatus(user, episode, watchedStatus, DateTime.Now).GetAwaiter().GetResult();
+            response.Result = _epService.GetV1Contract(episode, userID);
 
             return response;
         }

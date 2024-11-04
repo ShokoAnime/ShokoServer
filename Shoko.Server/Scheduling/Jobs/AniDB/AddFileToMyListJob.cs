@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -33,7 +35,7 @@ public class AddFileToMyListJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
     private SVR_VideoLocal _videoLocal;
 
     public string Hash { get; set; }
@@ -71,11 +73,11 @@ public class AddFileToMyListJob : BaseJob
 
         // mark the video file as watched
         var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
-        var juser = aniDBUsers.FirstOrDefault();
+        var user = aniDBUsers.FirstOrDefault();
         DateTime? originalWatchedDate = null;
-        if (juser != null)
+        if (user != null)
         {
-            originalWatchedDate = _vlUsers.GetByUserIDAndVideoLocalID(juser.JMMUserID, _videoLocal.VideoLocalID)?.WatchedDate?.ToUniversalTime();
+            originalWatchedDate = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, _videoLocal.VideoLocalID)?.WatchedDate?.ToUniversalTime();
         }
 
         UDPResponse<ResponseMyListFile> response = null;
@@ -164,7 +166,7 @@ public class AddFileToMyListJob : BaseJob
             response?.Response?.IsWatched, settings.AniDb.MyList_StorageState, state, ReadStates,
             settings.AniDb.MyList_ReadWatched, settings.AniDb.MyList_ReadUnwatched
         );
-        if (juser != null)
+        if (user != null)
         {
             var watched = newWatchedDate != null && !DateTime.UnixEpoch.Equals(newWatchedDate);
             var watchedLocally = originalWatchedDate != null;
@@ -174,13 +176,21 @@ public class AddFileToMyListJob : BaseJob
                 // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                 if (settings.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                 {
-                    await _watchedService.SetWatchedStatus(_videoLocal, true, false, newWatchedDate?.ToLocalTime(), false, juser.JMMUserID,
-                        false, false);
+                    await _userDataService.SaveVideoUserData(user, _videoLocal, new()
+                    {
+                        ResumePosition = TimeSpan.Zero,
+                        LastPlayedAt = newWatchedDate ?? DateTime.Now,
+                        LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
+                    }, UserDataSaveReason.AnidbImport).ConfigureAwait(false);
                 }
                 else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                 {
-                    await _watchedService.SetWatchedStatus(_videoLocal, false, false, null, false, juser.JMMUserID,
-                        false, false);
+                    await _userDataService.SaveVideoUserData(user, _videoLocal, new()
+                    {
+                        ResumePosition = TimeSpan.Zero,
+                        LastPlayedAt = null,
+                        LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
+                    }, UserDataSaveReason.AnidbImport).ConfigureAwait(false);
                 }
             }
         }
@@ -210,14 +220,14 @@ public class AddFileToMyListJob : BaseJob
             }
         }
     }
-    
-    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService)
+
+    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
     {
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
         _vlUsers = vlUsers;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
     }
 
     protected AddFileToMyListJob() { }

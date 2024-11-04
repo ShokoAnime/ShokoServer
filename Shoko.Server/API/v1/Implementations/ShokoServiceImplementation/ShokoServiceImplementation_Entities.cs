@@ -960,13 +960,24 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid is null)
-            {
+            var video = RepoFactory.VideoLocal.GetByID(videoLocalID);
+            if (video is null)
                 return "Could not find video local record";
-            }
 
-            _watchedService.SetResumePosition(vid, resumeposition, userID);
+            var user = RepoFactory.JMMUser.GetByID(userID);
+            if (user is null)
+                return "Could not find user record";
+
+            var videoUserData = _userDataService.GetVideoUserData(userID, videoLocalID);
+            _userDataService.SaveVideoUserData(
+                user,
+                video,
+                new(videoUserData)
+                {
+                    ResumePosition = TimeSpan.FromTicks(resumeposition),
+                    LastUpdatedAt = DateTime.Now
+                }
+            ).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
@@ -1235,13 +1246,15 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid is null)
-            {
+            var video = RepoFactory.VideoLocal.GetByID(videoLocalID);
+            if (video is null)
                 return "Could not find video local record";
-            }
 
-            _watchedService.SetWatchedStatus(vid, watchedStatus, true, DateTime.Now, true, userID, true, true).GetAwaiter().GetResult();
+            var user = RepoFactory.JMMUser.GetByID(userID);
+            if (user is null)
+                return "Could not find user record";
+
+            _userDataService.SetVideoWatchedStatus(user, video, watchedStatus).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
@@ -1265,7 +1278,14 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return response;
             }
 
-            _watchedService.SetWatchedStatus(ep, watchedStatus, true, DateTime.Now, false, userID, true).GetAwaiter().GetResult();
+            var user = RepoFactory.JMMUser.GetByID(userID);
+            if (user is null)
+            {
+                response.ErrorMessage = "Could not find user record";
+                return response;
+            }
+
+            _userDataService.SetEpisodeWatchedStatus(user, ep, watchedStatus, DateTime.Now).GetAwaiter().GetResult();
             var series = ep.AnimeSeries;
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             seriesService.UpdateStats(series, true, false);
@@ -1566,6 +1586,10 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var eps = RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID);
 
+            var user = RepoFactory.JMMUser.GetByID(userID);
+            if (user is null)
+                return "Could not find user record";
+
             SVR_AnimeSeries ser = null;
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             foreach (var ep in eps)
@@ -1589,7 +1613,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     if (currentStatus != watchedStatus)
                     {
                         _logger.LogInformation("Updating episode: {Num} to {Watched}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
-                        _watchedService.SetWatchedStatus(ep, watchedStatus, true, DateTime.Now, false, userID, false).GetAwaiter().GetResult();
+                        _userDataService.SetEpisodeWatchedStatus(user, ep, watchedStatus, updateStatsNow: false).GetAwaiter().GetResult();
                     }
                 }
 

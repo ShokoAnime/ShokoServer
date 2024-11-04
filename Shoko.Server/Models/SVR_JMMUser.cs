@@ -7,12 +7,13 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;
 
-public class SVR_JMMUser : JMMUser, IIdentity
+public class SVR_JMMUser : JMMUser, IIdentity, IShokoUser
 {
     #region Image
 
@@ -138,4 +139,10 @@ public class SVR_JMMUser : JMMUser, IIdentity
     [NotMapped] bool IIdentity.IsAuthenticated => true;
 
     [NotMapped] string IIdentity.Name => Username;
+
+    [NotMapped]
+    int IShokoUser.ID => JMMUserID;
+
+    [NotMapped]
+    string IShokoUser.Username => Username;
 }

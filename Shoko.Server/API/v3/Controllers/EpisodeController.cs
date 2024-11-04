@@ -11,6 +11,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -54,7 +55,7 @@ public class EpisodeController : BaseController
 
     private readonly AnimeEpisodeService _episodeService;
 
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
 
     private readonly TmdbLinkingService _tmdbLinkingService;
 
@@ -65,7 +66,7 @@ public class EpisodeController : BaseController
         AnimeSeriesService seriesService,
         AnimeGroupService groupService,
         AnimeEpisodeService episodeService,
-        WatchedStatusService watchedService,
+        IUserDataService userDataService,
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService
     ) : base(settingsProvider)
@@ -73,7 +74,7 @@ public class EpisodeController : BaseController
         _seriesService = seriesService;
         _groupService = groupService;
         _episodeService = episodeService;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
     }
@@ -846,6 +847,8 @@ public class EpisodeController : BaseController
 
     #endregion
 
+    #region Watch Status
+
     /// <summary>
     /// Set the watched status on an episode
     /// </summary>
@@ -863,13 +866,16 @@ public class EpisodeController : BaseController
         if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
-        if (!User.AllowedSeries(series))
+        var user = User;
+        if (!user.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        await _watchedService.SetWatchedStatus(episode, watched, true, DateTime.Now, true, User.JMMUserID, true);
+        await _userDataService.SetEpisodeWatchedStatus(user, episode, watched);
 
         return Ok();
     }
+
+    #endregion
 
     /// <summary>
     /// Get all episodes with no files.

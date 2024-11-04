@@ -11,6 +11,8 @@ using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
@@ -39,7 +41,7 @@ public class SyncAniDBMyListJob : BaseJob
     private readonly IServerSettings _settings;
     private readonly AnimeSeriesService _seriesService;
     private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
 
     public bool ForceRefresh { get; set; }
 
@@ -179,43 +181,58 @@ public class SyncAniDBMyListJob : BaseJob
         }
     }
 
-    private async Task<int> ProcessStates(IReadOnlyList<SVR_JMMUser> aniDBUsers, SVR_VideoLocal vl, ResponseMyList myitem,
+    private async Task<int> ProcessStates(IReadOnlyList<SVR_JMMUser> aniDBUsers, SVR_VideoLocal video, ResponseMyList myItem,
         int modifiedItems, ISet<SVR_AnimeSeries> modifiedSeries)
     {
         // check watched states, read the states if needed, and update differences
         // aggregate and assume if one AniDB User has watched it, it should be marked
         // if multiple have, then take the latest
         // compare the states and update if needed
-        var localWatchedDate = aniDBUsers.Select(a => _vlUsers.GetByUserIDAndVideoLocalID(a.JMMUserID, vl.VideoLocalID)).Where(a => a?.WatchedDate != null)
+        var localWatchedDate = aniDBUsers.Select(a => _vlUsers.GetByUserIDAndVideoLocalID(a.JMMUserID, video.VideoLocalID)).Where(a => a?.WatchedDate != null)
             .Max(a => a.WatchedDate);
         if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
             localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
 
         var localState = _settings.AniDb.MyList_StorageState;
         var shouldUpdate = false;
-        var updateDate = myitem.ViewedAt;
+        var updateDate = myItem.ViewedAt;
 
         // we don't support multiple AniDB accounts, so we can just only iterate to set states
         if (_settings.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
         {
-            foreach (var juser in aniDBUsers)
+            foreach (var user in aniDBUsers)
             {
-                var watchedDate = myitem.ViewedAt;
                 modifiedItems++;
-                await _watchedService.SetWatchedStatus(vl, true, false, watchedDate, false, juser.JMMUserID, false, true);
-                vl.AnimeEpisodes.Select(a => a.AnimeSeries).Where(a => a != null)
-                    .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
+                await _userDataService.SaveVideoUserData(user, video, new()
+                {
+                    ResumePosition = TimeSpan.Zero,
+                    LastPlayedAt = updateDate,
+                    LastUpdatedAt = myItem.UpdatedAt,
+                }, UserDataSaveReason.AnidbImport, false).ConfigureAwait(false);
+                video.AnimeEpisodes
+                    .DistinctBy(a => a.AnimeSeriesID)
+                    .Select(a => a.AnimeSeries)
+                    .WhereNotNull()
+                    .ForEach(a => modifiedSeries.Add(a));
             }
         }
         // if we did the previous, then we don't want to undo it
         else if (_settings.AniDb.MyList_ReadUnwatched && localWatchedDate != null && updateDate == null)
         {
-            foreach (var juser in aniDBUsers)
+            foreach (var user in aniDBUsers)
             {
                 modifiedItems++;
-                await _watchedService.SetWatchedStatus(vl, false, false, null, false, juser.JMMUserID, false, true);
-                vl.AnimeEpisodes.Select(a => a.AnimeSeries).Where(a => a != null)
-                    .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
+                await _userDataService.SaveVideoUserData(user, video, new()
+                {
+                    ResumePosition = TimeSpan.Zero,
+                    LastPlayedAt = null,
+                    LastUpdatedAt = myItem.UpdatedAt,
+                }, UserDataSaveReason.AnidbImport, false).ConfigureAwait(false);
+                video.AnimeEpisodes
+                    .DistinctBy(a => a.AnimeSeriesID)
+                    .Select(a => a.AnimeSeries)
+                    .WhereNotNull()
+                    .ForEach(a => modifiedSeries.Add(a));
             }
         }
         else if (_settings.AniDb.MyList_SetUnwatched && localWatchedDate == null && updateDate != null)
@@ -230,13 +247,13 @@ public class SyncAniDBMyListJob : BaseJob
         }
 
         // check if the state needs to be updated
-        if ((int)myitem.State != (int)localState) shouldUpdate = true;
+        if ((int)myItem.State != (int)localState) shouldUpdate = true;
 
         if (!shouldUpdate) return modifiedItems;
 
         await (await _schedulerFactory.GetScheduler()).StartJob<UpdateMyListFileStatusJob>(a =>
         {
-            a.Hash = vl.Hash;
+            a.Hash = video.Hash;
             a.Watched = updateDate != null;
             a.WatchedDate = updateDate;
             a.UpdateSeriesStats = false;
@@ -248,12 +265,13 @@ public class SyncAniDBMyListJob : BaseJob
     private bool ShouldRun()
     {
         // we will always assume that an anime was downloaded via http first
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
-        if (sched == null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
+        if (schedule == null)
         {
-            sched = new ScheduledUpdate
+            schedule = new ScheduledUpdate
             {
-                UpdateType = (int)ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty
+                UpdateType = (int)ScheduledUpdateType.AniDBMyListSync,
+                UpdateDetails = string.Empty
             };
         }
         else
@@ -261,15 +279,13 @@ public class SyncAniDBMyListJob : BaseJob
             var freqHours = Utils.GetScheduledHours(_settings.AniDb.MyList_UpdateFrequency);
 
             // if we have run this in the last 24 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours)
-            {
-                if (!ForceRefresh) return false;
-            }
+            var lastRan = DateTime.Now - schedule.LastUpdate;
+            if (lastRan.TotalHours < freqHours && !ForceRefresh)
+                return false;
         }
 
-        sched.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(sched);
+        schedule.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(schedule);
 
         return true;
     }
@@ -313,13 +329,13 @@ public class SyncAniDBMyListJob : BaseJob
         return true;
     }
 
-    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService)
+    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
         _seriesService = seriesService;
         _vlUsers = vlUsers;
-        _watchedService = watchedService;
+        _userDataService = userDataService;
         _settings = settingsProvider.GetSettings();
     }
 

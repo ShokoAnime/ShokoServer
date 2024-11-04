@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Models.Interfaces;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -151,8 +152,8 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
                     {
                         Task.Factory.StartNew(async () =>
                             {
-                                var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
-                                await watchedService.SetWatchedStatus(r.VideoLocal, true, r.User.JMMUserID);
+                                var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+                                await userDataService.SetVideoWatchedStatus(r.User, r.VideoLocal);
                             },
                             new CancellationToken(),
                             TaskCreationOptions.LongRunning, TaskScheduler.Default);

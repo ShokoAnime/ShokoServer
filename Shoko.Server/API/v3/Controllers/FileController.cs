@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
 using Quartz;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -59,14 +61,22 @@ public class FileController : BaseController
     private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
     private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly WatchedStatusService _watchedService;
+    private readonly IUserDataService _userDataService;
 
-    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService, VideoLocal_UserRepository vlUsers, WatchedStatusService watchedService, VideoLocalService vlService) : base(settingsProvider)
+    public FileController(
+        TraktTVHelper traktHelper,
+        ISchedulerFactory schedulerFactory,
+        ISettingsProvider settingsProvider,
+        VideoLocal_PlaceService vlPlaceService,
+        VideoLocal_UserRepository vlUsers,
+        IUserDataService watchedService,
+        VideoLocalService vlService
+    ) : base(settingsProvider)
     {
         _traktHelper = traktHelper;
         _vlPlaceService = vlPlaceService;
         _vlUsers = vlUsers;
-        _watchedService = watchedService;
+        _userDataService = watchedService;
         _vlService = vlService;
         _schedulerFactory = schedulerFactory;
     }
@@ -544,7 +554,7 @@ public class FileController : BaseController
 
         if (streamPositionScrobbling)
         {
-            var scrobbleFile = new ScrobblingFileResult(file, User.JMMUserID, fileInfo.FullName, contentType)
+            var scrobbleFile = new ScrobblingFileResult(file, User, fileInfo.FullName, contentType)
             {
                 FileDownloadName = filename ?? fileInfo.Name
             };
@@ -705,7 +715,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        await _watchedService.SetWatchedStatus(file, watched, User.JMMUserID);
+        await _userDataService.SetVideoWatchedStatus(User, file, watched);
 
         return Ok();
     }
@@ -726,12 +736,6 @@ public class FileController : BaseController
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
-
-        // Handle legacy scrobble events.
-        if (string.IsNullOrEmpty(eventName))
-        {
-            return await ScrobbleStatusOnFile(file, watched, resumePosition);
-        }
 
         var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.AnimeEpisodes?.FirstOrDefault();
         if (episode == null)
@@ -768,9 +772,28 @@ public class FileController : BaseController
                 break;
         }
 
-        if (watched.HasValue)
-            await _watchedService.SetWatchedStatus(file, watched.Value, User.JMMUserID);
-        _watchedService.SetResumePosition(file, playbackPositionTicks, User.JMMUserID);
+        var reason = eventName switch
+        {
+            "play" => UserDataSaveReason.PlaybackStart,
+            "resume" => UserDataSaveReason.PlaybackResume,
+            "pause" => UserDataSaveReason.PlaybackPause,
+            "stop" => UserDataSaveReason.PlaybackEnd,
+            "scrobble" => UserDataSaveReason.PlaybackProgress,
+            "user-interaction" => UserDataSaveReason.UserInteraction,
+            _ => UserDataSaveReason.None,
+        };
+        var now = DateTime.Now;
+        var userData = _userDataService.GetVideoUserData(User.JMMUserID, file.VideoLocalID);
+        await _userDataService.SaveVideoUserData(User, file, new()
+        {
+            ResumePosition = resumePosition.HasValue
+                ? TimeSpan.FromTicks(playbackPositionTicks)
+                : (watched.HasValue ? TimeSpan.Zero : null),
+            LastPlayedAt = !watched.HasValue
+                ? (watched.Value ? now : null)
+                : userData?.LastPlayedAt,
+            LastUpdatedAt = now,
+        }, reason);
 
         return NoContent();
     }
@@ -787,32 +810,6 @@ public class FileController : BaseController
             : ScrobblePlayingType.episode;
 
         _traktHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), status, percentage);
-    }
-
-    [NonAction]
-    private async Task<OkResult> ScrobbleStatusOnFile(SVR_VideoLocal file, bool? watched, long? resumePosition)
-    {
-        if (!(watched ?? false) && resumePosition != null)
-        {
-            var safeRP = resumePosition.Value;
-            if (safeRP < 0) safeRP = 0;
-
-            if (safeRP >= file.Duration)
-                watched = true;
-            else
-                _watchedService.SetResumePosition(file, safeRP, User.JMMUserID);
-        }
-
-        if (watched != null)
-        {
-            var safeWatched = watched.Value;
-            await _watchedService.SetWatchedStatus(file, safeWatched, User.JMMUserID);
-            if (safeWatched)
-                _watchedService.SetResumePosition(file, 0, User.JMMUserID);
-
-        }
-
-        return Ok();
     }
 
     /// <summary>
