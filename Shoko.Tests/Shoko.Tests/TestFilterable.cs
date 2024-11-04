@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Tests;
@@ -18,6 +19,8 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> CustomTags { get; init; }
     public IReadOnlySet<int> Years { get; init; }
     public IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; init; }
+    public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; }
+    public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; }
     public bool HasTmdbLink { get; init; }
     public bool HasMissingTmdbLink { get; init; }
     public int AutomaticTmdbEpisodeLinks { get; init; }
