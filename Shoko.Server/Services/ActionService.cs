@@ -162,14 +162,12 @@ public class ActionService
                 dictFilesExisting[vl.FullServerPath] = vl;
             }
 
-            var baseDirectory = folder.BaseDirectory;
-            var comparer = Utils.GetComparerFor(baseDirectory.FullName);
-            Utils.GetFilesForImportFolder(baseDirectory, ref fileList);
+            Utils.GetFilesForImportFolder(folder.BaseDirectory, ref fileList);
 
             // Get Ignored Files and remove them from the scan listing
             var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
                 .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
-            fileList = fileList.Except(ignoredFiles, comparer).ToList();
+            fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
 
             // get a list of all files in the share
             foreach (var fileName in fileList)
@@ -212,26 +210,18 @@ public class ActionService
     {
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
-        // Get Ignored Files and remove them from the scan listing
-        var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos()
-            .SelectMany(a => a.Places)
-            .Select(a => a.FullServerPath)
-            .Where(a => !string.IsNullOrEmpty(a))
-            .ToList();
-
         // get a complete list of files
         var fileList = new List<string>();
-        foreach (var folder in RepoFactory.ImportFolder.GetAll())
+        foreach (var share in RepoFactory.ImportFolder.GetAll())
         {
-            if (!folder.FolderIsDropSource) continue;
-
-            var fileListForFolder = new List<string>();
-            var baseDirectory = folder.BaseDirectory;
-            var comparer = Utils.GetComparerFor(baseDirectory.FullName);
-            Utils.GetFilesForImportFolder(baseDirectory, ref fileListForFolder);
-            fileListForFolder = fileListForFolder.Except(ignoredFiles, comparer).ToList();
-            fileList.AddRange(fileListForFolder);
+            if (!share.FolderIsDropSource) continue;
+            Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
         }
+
+        // Get Ignored Files and remove them from the scan listing
+        var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
+            .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
+        fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
 
         // get a list of all the shares we are looking at
         int filesFound = 0, videosFound = 0;

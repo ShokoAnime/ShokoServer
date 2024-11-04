@@ -140,7 +140,7 @@ public class Hasher
     public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
     {
         var rhash = new Hashes();
-        if (Finalise.ModuleHandle == IntPtr.Zero && !Utils.IsLinuxOrMac)
+        if (Finalise.ModuleHandle == IntPtr.Zero && !Utils.IsLinux)
             return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
 
         var hash = new byte[56];
@@ -149,7 +149,7 @@ public class Hasher
         try
         {
             var filename = strPath;
-            if (!Utils.IsLinuxOrMac)
+            if (!Utils.IsLinux)
             {
                 filename = strPath.StartsWith(@"\\")
                     ? strPath

@@ -117,7 +117,7 @@ public class ShokoServer
 
     private bool CheckBlockedFiles()
     {
-        if (Utils.IsLinuxOrMac) return true;
+        if (Utils.IsRunningOnLinuxOrMac()) return true;
 
         var programlocation =
             Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);

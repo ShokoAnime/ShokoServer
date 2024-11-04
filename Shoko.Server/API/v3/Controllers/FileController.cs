@@ -1354,14 +1354,12 @@ public class FileController : BaseController
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="limit">Limit the number of returned results.</param>
-    /// <param name="quickCompare">Set to true to skip the per directory comparison logic and
-    /// instead rely on the global platform comparison based on the currently running platform.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith")]
     public ActionResult<List<File>> PathEndsWithQuery([FromQuery] string path, [FromQuery] bool includeXRefs = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [Range(0, 100)] int limit = 0, [FromQuery] bool quickCompare = false)
-        => PathEndsWithInternal(path, includeXRefs, includeDataFrom, limit, quickCompare);
+        [Range(0, 100)] int limit = 0)
+        => PathEndsWithInternal(path, includeXRefs, includeDataFrom, limit);
 
     /// <summary>
     /// Search for a file by path or name. Internally, it will convert forward
@@ -1372,14 +1370,12 @@ public class FileController : BaseController
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="limit">Limit the number of returned results.</param>
-    /// <param name="quickCompare">Set to true to skip the per directory comparison logic and
-    /// instead rely on the global platform comparison based on the currently running platform.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith/{*path}")]
     public ActionResult<List<File>> PathEndsWithPath([FromRoute] string path, [FromQuery] bool includeXRefs = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [Range(0, 100)] int limit = 0, [FromQuery] bool quickCompare = true)
-        => PathEndsWithInternal(Uri.UnescapeDataString(path), includeXRefs, includeDataFrom, limit, quickCompare);
+        [Range(0, 100)] int limit = 0)
+        => PathEndsWithInternal(Uri.UnescapeDataString(path), includeXRefs, includeDataFrom, limit);
 
     /// <summary>
     /// Search for a file by path or name. Internally, it will convert forward
@@ -1390,12 +1386,10 @@ public class FileController : BaseController
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="limit">Limit the number of returned results.</param>
-    /// <param name="quickCompare">Set to true to skip the per directory comparison logic and
-    /// instead rely on the global platform comparison based on the currently running platform.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [NonAction]
     private ActionResult<List<File>> PathEndsWithInternal(string path, bool includeXRefs,
-        HashSet<DataSource> includeDataFrom, int limit = 0, bool quickCompare = true)
+        HashSet<DataSource> includeDataFrom, int limit = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
             return new List<File>();
@@ -1405,15 +1399,7 @@ public class FileController : BaseController
             .Replace('\\', Path.DirectorySeparatorChar);
         var results = RepoFactory.VideoLocalPlace.GetAll()
             .AsParallel()
-            .Where(location =>
-            {
-                var serverPath = location.FullServerPath;
-                if (string.IsNullOrEmpty(serverPath))
-                    return false;
-
-                var comparison = quickCompare ? Utils.PlatformComparison : Utils.GetComparisonFor(Path.GetDirectoryName(serverPath));
-                return serverPath.EndsWith(query, comparison);
-            })
+            .Where(location => location.FullServerPath?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
             .Select(location => location.VideoLocal)
             .Where(file =>
             {

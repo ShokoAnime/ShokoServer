@@ -19,8 +19,8 @@ using NLog.Targets.Wrappers;
 using Quartz.Logging;
 using Shoko.Models.Enums;
 using Shoko.Server.API.SignalR.NLog;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
@@ -46,7 +46,7 @@ public static class Utils
             if (!string.IsNullOrWhiteSpace(shokoHome))
                 return _applicationPath = Path.GetFullPath(shokoHome);
 
-            if (IsLinuxOrMac)
+            if (IsLinux)
                 return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
                     DefaultInstance);
 
@@ -133,7 +133,7 @@ public static class Utils
         }
 
         LogProvider.SetLogProvider(new NLog.Extensions.Logging.NLogLoggerFactory());
-
+        
         LogManager.ReconfigExistingLoggers();
     }
 
@@ -414,125 +414,20 @@ public static class Utils
         }
     }
 
-    public static bool IsLinuxOrMac
-        => (int)Environment.OSVersion.Platform is 4 or 6 or 128;
-
-    public static StringComparison PlatformComparison { get; private set; } = IsLinuxOrMac
-        ? StringComparison.Ordinal
-        : StringComparison.OrdinalIgnoreCase;
-
-    /// <summary>
-    /// Returns the correct <see cref="StringComparison"/> for the given file system directories. This is useful for string operations that need to be case-sensitive or insensitive depending on the underlying file systems.
-    /// </summary>
-    /// <param name="directoryPaths">The paths to the directories to check.</param>
-    /// <returns>The correct <see cref="StringComparison"/> for the given file system directories.</returns>
-    public static StringComparison GetComparisonFor(params string[] directoryPaths) =>
-        directoryPaths.Any(directoryPath => IsFileSystemCaseSensitive(directoryPath) ?? IsLinuxOrMac) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-
-    /// <summary>
-    /// Returns the correct <see cref="StringComparer"/> for the given file system directories. This is useful for string operations that need to be case-sensitive or insensitive depending on the underlying file systems.
-    /// </summary>
-    /// <param name="directoryPaths">The paths to the directories to check.</param>
-    /// <returns>The correct <see cref="StringComparer"/> for the given file system directories.</returns>
-    public static StringComparer GetComparerFor(params string[] directoryPaths) =>
-        directoryPaths.Any(directoryPath => IsFileSystemCaseSensitive(directoryPath) ?? IsLinuxOrMac) ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-
-    // https://referencesource.microsoft.com/mscorlib/microsoft/win32/win32native.cs.html#9f6ca3226ff8f9ba
-    // https://referencesource.microsoft.com/mscorlib/microsoft/win32/win32native.cs.html#dd35d7f626262141
-    private const int ERROR_FILE_EXISTS = unchecked((int)0x80070050);
-
-    /// <summary>
-    /// Check whether the operating system handles file names case-sensitive in
-    /// the specified directory or the the first existing parent directory of
-    /// the specified directory.
-    /// </summary>
-    /// <remarks>
-    /// Modified from;
-    /// https://stackoverflow.com/questions/430256/how-do-i-determine-whether-the-filesystem-is-case-sensitive-in-net/53228078#53228078
-    /// </remarks>
-    /// <param name="directoryPath">The path to the directory to check.</param>
-    /// <returns>A value indicating whether the operating system handles file names case-sensitive in the specified directory.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="directoryPath"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="directoryPath"/> contains one or more invalid characters.</exception>
-    /// <exception cref="DirectoryNotFoundException">The specified directory does not exist.</exception>
-    /// <exception cref="UnauthorizedAccessException">The current user has no write permission to the specified directory.</exception>
-    private static bool? IsFileSystemCaseSensitive(string directoryPath)
+    public static bool IsLinux
     {
-        try
+        get
         {
-            while (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
-                directoryPath = Path.GetDirectoryName(directoryPath);
-
-            if (string.IsNullOrEmpty(directoryPath))
-                return null;
-
-            var fileWatcherService = Utils.ServiceContainer.GetRequiredService<FileWatcherService>();
-            while (true)
-            {
-                var fileNameLower = ".cstest." + Guid.NewGuid().ToString();
-                var fileNameUpper = fileNameLower.ToUpperInvariant();
-                var filePathLower = Path.Combine(directoryPath, fileNameLower);
-                var filePathUpper = Path.Combine(directoryPath, fileNameUpper);
-                FileStream fileStreamLower = null;
-                FileStream fileStreamUpper = null;
-                try
-                {
-                    fileWatcherService.AddFileWatcherExclusion(filePathLower);
-                    fileWatcherService.AddFileWatcherExclusion(filePathUpper);
-                    try
-                    {
-                        // Try to create filePathUpper to ensure a unique non-existing file.
-                        fileStreamUpper = new FileStream(filePathUpper, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 4096, FileOptions.DeleteOnClose);
-
-                        // After ensuring that it didn't exist before, filePathUpper must be closed/deleted again to ensure correct opening of filePathLower, regardless of the case-sensitivity of the file system.
-                        // On case-sensitive file systems there is a tiny chance for a race condition, where another process could create filePathUpper between closing/deleting it here and newly creating it after filePathLower.
-                        // This method would then incorrectly indicate a case-insensitive file system.
-                        fileStreamUpper.Dispose();
-                    }
-                    catch (IOException ioException) when (ioException.HResult is ERROR_FILE_EXISTS)
-                    {
-                        // filePathUpper already exists, try another file name
-                        continue;
-                    }
-
-                    try
-                    {
-                        fileStreamLower = new FileStream(filePathLower, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 4096, FileOptions.DeleteOnClose);
-                    }
-                    catch (IOException ioException) when (ioException.HResult is ERROR_FILE_EXISTS)
-                    {
-                        // filePathLower already exists, try another file name
-                        continue;
-                    }
-
-                    try
-                    {
-                        fileStreamUpper = new FileStream(filePathUpper, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 4096, FileOptions.DeleteOnClose);
-
-                        // filePathUpper does not exist, this indicates case-sensitivity
-                        return true;
-                    }
-                    catch (IOException ioException) when (ioException.HResult is ERROR_FILE_EXISTS)
-                    {
-                        // fileNameUpper already exists, this indicates case-insensitivity
-                        return false;
-                    }
-                }
-                finally
-                {
-                    fileStreamLower?.Dispose();
-                    fileStreamUpper?.Dispose();
-                    fileWatcherService.RemoveFileWatcherExclusion(filePathLower);
-                    fileWatcherService.RemoveFileWatcherExclusion(filePathUpper);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, $"Failed to determine file system case-sensitivity for directory {directoryPath}");
-            return null;
+            var p = (int)Environment.OSVersion.Platform;
+            return p == 4 || p == 6 || p == 128;
         }
     }
+
+    public static bool IsRunningOnLinuxOrMac()
+    {
+        return !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+    }
+
     /// <summary>
     /// Determines an encoded string's encoding by analyzing its byte order mark (BOM).
     /// Defaults to ASCII when detection of the text file's endianness fails.

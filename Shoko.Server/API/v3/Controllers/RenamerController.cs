@@ -588,8 +588,7 @@ public class RenamerController : BaseController
 
         // Sanitize relative path and reject paths leading to outside the import folder.
         var fullPath = Path.GetFullPath(Path.Combine(importFolder.ImportFolderLocation, body.RelativePath));
-        // We use ordinal here since we want to compare the exact path with what we got from the import folder to what the final path ends up being.
-        if (!fullPath.StartsWith(importFolder.ImportFolderLocation, StringComparison.Ordinal))
+        if (!fullPath.StartsWith(importFolder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase))
             return BadRequest("The provided relative path leads outside the import folder.");
         var sanitizedRelativePath = Path.GetRelativePath(importFolder.ImportFolderLocation, fullPath);
 

@@ -4,7 +4,6 @@ using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -74,18 +73,9 @@ public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int
             throw new Exception("Cannot find Import Folder location");
         }
 
-        if (GetAll().ExceptBy([folder.ImportFolderID], iF => iF.ImportFolderID).Any(iF =>
-        {
-            var comparison = Utils.GetComparisonFor(folder.ImportFolderLocation, iF.ImportFolderLocation);
-            var newLocation = folder.ImportFolderLocation.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-            if (newLocation[^1] != Path.DirectorySeparatorChar)
-                newLocation += Path.DirectorySeparatorChar;
-            var existingLocation = iF.ImportFolderLocation.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-            if (existingLocation[^1] != Path.DirectorySeparatorChar)
-                existingLocation += Path.DirectorySeparatorChar;
-            return newLocation.StartsWith(existingLocation, comparison) || existingLocation.StartsWith(newLocation, comparison);
-        }))
+        if (GetAll().ExceptBy([folder.ImportFolderID], iF => iF.ImportFolderID).Any(iF => folder.ImportFolderLocation.StartsWith(iF.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) || iF.ImportFolderLocation.StartsWith(folder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase)))
             throw new Exception("Unable to nest an import folder within another import folder.");
+
 
         ns.ImportFolderName = folder.ImportFolderName;
         ns.ImportFolderLocation = folder.ImportFolderLocation;
