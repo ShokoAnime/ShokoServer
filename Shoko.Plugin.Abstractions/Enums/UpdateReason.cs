@@ -7,7 +7,7 @@ namespace Shoko.Plugin.Abstractions.Enums;
 public enum UpdateReason
 {
     /// <summary>
-    /// Nothing occirred.
+    /// Nothing occurred.
     /// </summary>
     None = 0,
 

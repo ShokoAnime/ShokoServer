@@ -22,6 +22,4 @@ public interface IPlugin
     /// </summary>
     /// <param name="settings"></param>
     void OnSettingsLoaded(IPluginSettings settings);
-
-    // static void ConfigureServices(IServiceCollection serviceCollection);
 }

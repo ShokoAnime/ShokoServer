@@ -218,13 +218,23 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     #region IHashes Implementation
 
-    string IHashes.CRC => CRC32;
+    string? IHashes.CRC => CRC32;
 
-    string IHashes.MD5 => MD5;
+    string? IHashes.MD5 => MD5;
 
     string IHashes.ED2K => Hash;
 
-    string IHashes.SHA1 => SHA1;
+    string? IHashes.SHA1 => SHA1;
+
+    string? IHashes.this[HashAlgorithmName algorithm]
+        => algorithm switch
+        {
+            HashAlgorithmName.ED2K => Hash,
+            HashAlgorithmName.MD5 => MD5,
+            HashAlgorithmName.SHA1 => SHA1,
+            HashAlgorithmName.CRC32 => CRC32,
+            _ => null,
+        };
 
     #endregion
 }

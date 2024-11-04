@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
-using Shoko.Server.Renamer;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -101,32 +101,57 @@ public static class Loader
 
     private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
     {
-        s_logger.Trace("Scanning for IPlugin implementations");
-        var implementations = assemblies.SelectMany(a =>
+        s_logger.Trace("Scanning for IPlugin and IPluginServiceRegistration implementations");
+        foreach (var assembly in assemblies)
         {
+            var pluginTypes = assembly.GetTypes();
+            var pluginImpl = pluginTypes
+                .Where(a => a.GetInterfaces().Contains(typeof(IPlugin)))
+                .ToList();
+            if (pluginImpl.Count == 0)
+                continue;
+
+            if (pluginImpl.Count > 1)
+            {
+                s_logger.Warn(
+                    "Multiple implementations of IPlugin found in {0}. Using the first implementation: {1}",
+                    assembly.FullName,
+                    pluginImpl[0].Name
+                );
+            }
+
+            var pluginType = pluginImpl[0];
+            s_logger.Trace("Loaded IPlugin implementation: {0}", pluginType.Name);
+            _pluginTypes.Add(pluginType);
+
+            var registrationImpl = pluginTypes
+                .Where(a => a.GetInterfaces().Contains(typeof(IPluginServiceRegistration)))
+                .ToList();
+            if (registrationImpl.Count == 0)
+                continue;
+
+            if (registrationImpl.Count > 1)
+            {
+                s_logger.Warn(
+                    "Multiple IPluginServiceRegistrations found in {0}. Using the first implementation: {1}",
+                    assembly.FullName,
+                    registrationImpl[0].Name
+                );
+            }
+
+            var registrationType = registrationImpl[0];
+            s_logger.Trace("Registering plugin service: {0}", registrationType.Name);
+
             try
             {
-                return a.GetTypes();
+                var instance = Activator.CreateInstance(registrationType) as IPluginServiceRegistration;
+                instance?.RegisterServices(serviceCollection, AbstractApplicationPaths.Instance);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                s_logger.Debug(e);
-                return new Type[0];
+                s_logger.Error(ex, "Error registering plugin services from {0}.", registrationType.Assembly.FullName);
+                continue;
             }
-        }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
-
-        foreach (var implementation in implementations)
-        {
-            var mtd = implementation.GetMethod("ConfigureServices",
-                BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
-            if (mtd != null)
-            {
-                s_logger.Trace("Configuring Services for {0}", implementation.Name);
-                mtd.Invoke(null, new object[] { serviceCollection });
-            }
-
-            _pluginTypes.Add(implementation);
-            s_logger.Trace("Loaded IPlugin implementation: {0}", implementation.Name);
         }
     }
 
@@ -161,7 +186,7 @@ public static class Loader
             if (serverSettings.Plugins.EnabledPlugins.ContainsKey(name) && !serverSettings.Plugins.EnabledPlugins[name])
                 return;
 
-            var settingsPath = Path.Combine(Utils.ApplicationPath, "Plugins", name);
+            var settingsPath = Path.Combine(Utils.ApplicationPath, "plugins", name);
             var obj = !File.Exists(settingsPath)
                 ? Activator.CreateInstance(t)
                 : SettingsProvider.Deserialize(t, File.ReadAllText(settingsPath));
@@ -182,8 +207,8 @@ public static class Loader
 
         try
         {
-            var settingsPath = Path.Combine(Utils.ApplicationPath, "Plugins", name);
-            Directory.CreateDirectory(Path.Combine(Utils.ApplicationPath, "Plugins"));
+            var settingsPath = Path.Combine(Utils.ApplicationPath, "plugins", name);
+            Directory.CreateDirectory(Path.Combine(Utils.ApplicationPath, "plugins"));
             var json = SettingsProvider.Serialize(settings);
             File.WriteAllText(settingsPath, json);
         }

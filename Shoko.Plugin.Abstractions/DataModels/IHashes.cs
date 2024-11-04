@@ -1,3 +1,4 @@
+using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
@@ -25,4 +26,9 @@ public interface IHashes
     /// Gets the SHA1 hash if it's available.
     /// </summary>
     string? SHA1 { get; }
+
+    /// <summary>
+    /// Gets the hash for the specified algorithm.
+    /// </summary>
+    string? this[HashAlgorithmName algorithm] { get; }
 }

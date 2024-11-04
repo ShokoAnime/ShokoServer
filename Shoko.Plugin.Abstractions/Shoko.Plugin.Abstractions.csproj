@@ -13,7 +13,7 @@
         <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
         <PackageReleaseNotes>Renamer Rewrite</PackageReleaseNotes>
-        <Version>4.2.0-beta1</Version>
+        <Version>4.2.0-beta2</Version>
         <Configurations>Debug;Release;Benchmarks</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
@@ -22,5 +22,8 @@
     <ItemGroup>
         <None Include="../LICENSE" Pack="true" PackagePath="/" />
         <None Include="../icon.png" Pack="true" PackagePath="/" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     </ItemGroup>
 </Project>

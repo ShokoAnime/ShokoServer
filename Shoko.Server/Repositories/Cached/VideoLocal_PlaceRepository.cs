@@ -64,9 +64,27 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
         }
     }
 
+    /// <summary>
+    /// Gets the <see cref="SVR_VideoLocal_Place"/> associated with the given file path, but only if it is unique across all import folders.
+    /// </summary>
+    /// <param name="filePath">The file path to search for.</param>
+    /// <returns>The associated <see cref="SVR_VideoLocal_Place"/>, or null if not found.</returns>
+    /// <exception cref="InvalidStateException">When the given file path is null or empty.</exception>
+    public SVR_VideoLocal_Place? GetByFilePath(string filePath)
+        => !string.IsNullOrEmpty(filePath)
+            ? ReadLock(() => _paths!.GetMultiple(filePath) is { Count: 1 } list ? list[0] : null)
+            : null;
+
     public IReadOnlyList<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
         => ReadLock(() => _importFolderIDs!.GetMultiple(importFolderID));
 
+    /// <summary>
+    /// Gets the <see cref="SVR_VideoLocal_Place"/> associated with the given file path and import folder ID.
+    /// </summary>
+    /// <param name="filePath">The file path to search for.</param>
+    /// <param name="importFolderID">The import folder ID to search within.</param>
+    /// <returns>The associated <see cref="SVR_VideoLocal_Place"/>, or null if not found.</returns>
+    /// <exception cref="InvalidStateException">When the given file path is null or empty, or the given import folder ID is 0.</exception>
     public SVR_VideoLocal_Place? GetByFilePathAndImportFolderID(string filePath, int importFolderID)
         => !string.IsNullOrEmpty(filePath) && importFolderID > 0
             ? ReadLock(() => _paths!.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == importFolderID))
