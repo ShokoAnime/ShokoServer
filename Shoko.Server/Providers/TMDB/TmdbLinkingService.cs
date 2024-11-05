@@ -467,6 +467,17 @@ public class TmdbLinkingService
                     _logger.LogTrace("Skipping existing link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TmdbEpisodeID}, Rating: {MatchRating})", episode.EpisodeID, link.TmdbEpisodeID, link.MatchRating);
                     crossReferences.Add(link);
                     toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
+
+                    // Exclude the linked episodes from the auto-match candidates.
+                    var index = tmdbEpisodes.FindIndex(episode => episode.TmdbEpisodeID == link.TmdbEpisodeID);
+                    if (index >= 0)
+                        tmdbEpisodes.RemoveAt(index);
+                    index = tmdbNormalEpisodes.FindIndex(episode => episode.TmdbEpisodeID == link.TmdbEpisodeID);
+                    if (index >= 0)
+                        tmdbNormalEpisodes.RemoveAt(index);
+                    index = tmdbSpecialEpisodes.FindIndex(episode => episode.TmdbEpisodeID == link.TmdbEpisodeID);
+                    if (index >= 0)
+                        tmdbSpecialEpisodes.RemoveAt(index);
                 }
             }
 
