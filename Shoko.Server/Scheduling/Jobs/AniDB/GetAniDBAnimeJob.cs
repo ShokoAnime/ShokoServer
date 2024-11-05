@@ -374,7 +374,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     {
         if (!DownloadRelations) return;
         if (_settings.AniDb.MaxRelationDepth <= 0) return;
-        if (RelDepth > _settings.AniDb.MaxRelationDepth) return;
+        if (RelDepth >= _settings.AniDb.MaxRelationDepth) return;
         if (!_settings.AutoGroupSeries && !_settings.AniDb.DownloadRelatedAnime) return;
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
 
