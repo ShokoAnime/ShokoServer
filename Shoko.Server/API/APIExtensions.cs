@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
@@ -24,6 +25,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using File = System.IO.File;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
@@ -48,8 +50,8 @@ public static class APIExtensions
         services.AddSingleton<AVDumpEmitter>();
         services.AddSingleton<NetworkEmitter>();
         services.AddSingleton<QueueEmitter>();
+        services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
-        services.AddScoped<SeriesFactory>();
         services.AddScoped<WebUIFactory>();
 
         services.AddAuthentication(options =>
@@ -121,6 +123,8 @@ public static class APIExtensions
 
                 options.SchemaFilter<EnumSchemaFilter<EpisodeType>>();
                 options.SchemaFilter<EnumSchemaFilter<SeriesType>>();
+                options.SchemaFilter<EnumSchemaFilter<RenamerSettingType>>();
+                options.SchemaFilter<EnumSchemaFilter<CodeLanguage>>();
                 options.SchemaFilter<EnumSchemaFilter<Filter.FilterExpressionHelp.FilterExpressionParameterType>>();
 
                 options.CustomSchemaIds(GetTypeName);
@@ -204,7 +208,7 @@ public static class APIExtensions
     {
         return genericType.Name.Replace("+", ".").Replace("`1", "") + "[" + string.Join(",", genericType.GetGenericArguments().Select(GetTypeName)) + "]";
     }
-    
+
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
     {
         var info = new OpenApiInfo
@@ -269,8 +273,13 @@ public static class APIExtensions
             DefaultContentType = "text/html",
             OnPrepareResponse = ctx =>
             {
-                ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-                ctx.Context.Response.Headers.Append("Expires", "0");
+                var requestPath = ctx.File.PhysicalPath;
+                // We set the cache headers only for index.html file because it doesn't have a different hash when changed
+                if (requestPath?.EndsWith("index.html", StringComparison.OrdinalIgnoreCase) ?? false)
+                {
+                    ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                    ctx.Context.Response.Headers.Append("Expires", "0");
+                }
             }
         });
 
@@ -329,7 +338,7 @@ public static class APIExtensions
 
         return app;
     }
-    
+
     private static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
     {
         foreach (var dir in source.GetDirectories())

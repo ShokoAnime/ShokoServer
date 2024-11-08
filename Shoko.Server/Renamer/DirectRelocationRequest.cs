@@ -1,4 +1,4 @@
-using Shoko.Server.Models;
+using Shoko.Plugin.Abstractions.DataModels;
 
 #nullable enable
 namespace Shoko.Server.Renamer;
@@ -11,7 +11,7 @@ public record DirectRelocateRequest
     /// <summary>
     /// The import folder where the file should be relocated to.
     /// </summary>
-    public SVR_ImportFolder? ImportFolder = null;
+    public IImportFolder? ImportFolder = null;
 
     /// <summary>
     /// The relative path from the <see cref="ImportFolder"/> where the file
@@ -24,4 +24,10 @@ public record DirectRelocateRequest
     /// relocating the file.
     /// </summary>
     public bool DeleteEmptyDirectories = true;
+
+    /// <summary>
+    /// Indicates that we can relocate a video file that lives inside a
+    /// drop destination import folder that's not also a drop source.
+    /// </summary>
+    public bool AllowRelocationInsideDestination { get; set; } = true;
 }

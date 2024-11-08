@@ -3,7 +3,7 @@ using System.Linq;
 using Newtonsoft.Json.Serialization;
 using NLog;
 
-namespace Shoko.Server.Databases.NHIbernate;
+namespace Shoko.Server.Databases.NHibernate;
 
 public class SimpleNameSerializationBinder : DefaultSerializationBinder
 {
@@ -14,7 +14,7 @@ public class SimpleNameSerializationBinder : DefaultSerializationBinder
     {
         _baseType = baseType;
     }
-    
+
     public override void BindToName(
         Type serializedType, out string assemblyName, out string typeName)
     {

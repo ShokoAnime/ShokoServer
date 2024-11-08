@@ -5,18 +5,20 @@ namespace Shoko.Server.Providers.TraktTV.Contracts;
 [DataContract]
 internal class TraktV2ScrobbleEpisode
 {
-    [DataMember(Name = "episode")] public TraktV2Episode episode { get; set; }
+    [DataMember(Name = "episode")]
+    public TraktV2Episode Episode { get; set; }
 
-    [DataMember(Name = "progress")] public float progress { get; set; }
+    [DataMember(Name = "progress")]
+    public float Progress { get; set; }
 
     public void Init(float progressVal, int? traktId, string slugId, int season, int episodeNumber)
     {
-        progress = progressVal;
-        episode = new TraktV2Episode
+        Progress = progressVal;
+        Episode = new TraktV2Episode
         {
-            ids = new TraktV2EpisodeIds { trakt = traktId.ToString(), slug = slugId },
-            season = season,
-            number = episodeNumber
+            IDs = new TraktV2EpisodeIds { trakt = traktId.ToString(), slug = slugId },
+            SeasonNumber = season,
+            EpisodeNumber = episodeNumber
         };
     }
 }

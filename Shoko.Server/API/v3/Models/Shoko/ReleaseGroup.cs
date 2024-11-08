@@ -1,5 +1,5 @@
 
-using Shoko.Models.Server;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -31,7 +31,7 @@ public class ReleaseGroup
     {
         ID = group.GroupID;
         Name = group.GroupName;
-        ShortName = group.ShortName;
+        ShortName = group.GroupNameShort;
         Source = "AniDB";
     }
 }

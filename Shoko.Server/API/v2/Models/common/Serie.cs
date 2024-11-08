@@ -10,12 +10,15 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 
+#pragma warning disable CA2012
+#pragma warning disable IDE1006
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]
@@ -41,42 +44,32 @@ public class Serie : BaseDirectory, IComparable
     public Serie()
     {
         art = new ArtCollection();
-        roles = new List<Role>();
-        tags = new List<string>();
+        roles = [];
+        tags = [];
     }
 
-    public static Serie GenerateFromVideoLocal(HttpContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag,
-        int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+    public static Serie GenerateFromVideoLocal(HttpContext ctx, SVR_VideoLocal vl, int uid, bool noCast, bool noTag,
+        int level, bool all, bool allPictures, int pic, TagFilter.Filter tagFilter)
     {
-        var sr = new Serie();
-
-        if (vl == null)
-        {
-            return sr;
-        }
+        if (vl is null)
+            return new();
 
         var ser = vl.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
-        if (ser == null)
-        {
-            return sr;
-        }
+        if (ser is null)
+            return new();
 
-        sr = GenerateFromAnimeSeries(ctx, ser, uid, nocast, notag, level, all, allpics, pic, tagfilter);
-
-        return sr;
+        return GenerateFromAnimeSeries(ctx, ser, uid, noCast, noTag, level, all, allPictures, pic, tagFilter);
     }
 
-    public static Serie GenerateFromBookmark(HttpContext ctx, BookmarkedAnime bookmark, int uid, bool nocast,
-        bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+    public static Serie GenerateFromBookmark(HttpContext ctx, BookmarkedAnime bookmark, int uid, bool noCast,
+        bool noTag, int level, bool all, bool allPictures, int pic, TagFilter.Filter tagFilter)
     {
         var series = RepoFactory.AnimeSeries.GetByAnimeID(bookmark.AnimeID);
-        if (series != null)
-        {
-            return GenerateFromAnimeSeries(ctx, series, uid, nocast, notag, level, all, allpics, pic, tagfilter);
-        }
+        if (series is not null)
+            return GenerateFromAnimeSeries(ctx, series, uid, noCast, noTag, level, all, allPictures, pic, tagFilter);
 
         var aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
-        if (aniDB_Anime == null)
+        if (aniDB_Anime is null)
         {
             var scheduler = ctx.RequestServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
             scheduler.StartJob<GetAniDBAnimeJob>(
@@ -87,15 +80,14 @@ public class Serie : BaseDirectory, IComparable
                 }
             ).GetAwaiter().GetResult();
 
-            var empty_serie = new Serie { id = -1, name = "GetAnimeInfoHTTP", aid = bookmark.AnimeID };
-            return empty_serie;
+            return new Serie { id = -1, name = "GetAnimeInfoHTTP", aid = bookmark.AnimeID };
         }
 
-        return GenerateFromAniDB_Anime(ctx, aniDB_Anime, nocast, notag, allpics, pic, tagfilter);
+        return GenerateFromAniDBAnime(ctx, aniDB_Anime, noCast, noTag, allPictures, pic, tagFilter);
     }
 
-    public static Serie GenerateFromAniDB_Anime(HttpContext ctx, SVR_AniDB_Anime anime, bool nocast, bool notag,
-        bool allpics, int pic, TagFilter.Filter tagfilter)
+    public static Serie GenerateFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, bool noCast, bool noTag,
+        bool allPictures, int pic, TagFilter.Filter tagFilter)
     {
         var sr = new Serie
         {
@@ -110,7 +102,7 @@ public class Serie : BaseDirectory, IComparable
             ismovie = anime.AnimeType == (int)AnimeType.Movie ? 1 : 0
         };
 
-        if (anime.AirDate != null)
+        if (anime.AirDate.HasValue)
         {
             sr.year = anime.AirDate.Value.Year.ToString();
             var airdate = anime.AirDate.Value;
@@ -122,7 +114,7 @@ public class Serie : BaseDirectory, IComparable
 
         var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
                    RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
-        if (vote != null)
+        if (vote is not null)
         {
             sr.userrating = Math.Round(vote.VoteValue / 100D, 1).ToString(CultureInfo.InvariantCulture);
         }
@@ -130,108 +122,97 @@ public class Serie : BaseDirectory, IComparable
         sr.titles = anime.Titles.Select(title =>
             new AnimeTitle
             {
-                Language = title.LanguageCode, Title = title.Title, Type = title.TitleType.ToString().ToLower()
+                Language = title.LanguageCode,
+                Title = title.Title,
+                Type = title.TitleType.ToString().ToLower(),
             }).ToList();
 
-        PopulateArtFromAniDBAnime(ctx, anime, sr, allpics, pic);
+        PopulateArtFromAniDBAnime(ctx, anime, sr, allPictures, pic);
 
-        if (!nocast)
+        if (!noCast)
         {
-            var xref_animestaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID,
+            var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID,
                 StaffRoleType.Seiyuu);
-            foreach (var xref in xref_animestaff)
+            foreach (var xref in xrefAnimeStaff)
             {
-                if (xref.RoleID == null)
-                {
+                if (!xref.RoleID.HasValue)
                     continue;
-                }
 
                 var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
-                if (character == null)
-                {
+                if (character is null)
                     continue;
-                }
 
                 var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
-                if (staff == null)
-                {
+                if (staff is null)
                     continue;
-                }
 
                 var role = new Role
                 {
                     character = character.Name,
-                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character,
-                        xref.RoleID.Value),
+                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.Shoko, xref.RoleID.Value),
                     staff = staff.Name,
-                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff,
-                        xref.StaffID),
+                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.Shoko, xref.StaffID),
                     role = xref.Role,
                     type = ((StaffRoleType)xref.RoleType).ToString()
                 };
-                if (sr.roles == null)
-                {
-                    sr.roles = new List<Role>();
-                }
-
+                sr.roles ??= [];
                 sr.roles.Add(role);
             }
         }
 
-        if (!notag)
+        if (!noTag)
         {
             var tags = anime.GetAllTags();
-            if (tags != null)
+            if (tags is not null)
             {
-                sr.tags = TagFilter.String.ProcessTags(tagfilter, tags.ToList());
+                sr.tags = TagFilter.String.ProcessTags(tagFilter, tags.ToList());
             }
         }
 
         return sr;
     }
 
-    public static Serie GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag,
-        int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+    public static Serie GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser, int uid, bool noCast, bool noTag,
+        int level, bool all, bool allPictures, int maxPictures, TagFilter.Filter tagFilter)
     {
-        var sr = GenerateFromAniDB_Anime(ctx, ser.AniDB_Anime, nocast, notag, allpics, pic, tagfilter);
+        var sr = GenerateFromAniDBAnime(ctx, ser.AniDB_Anime, noCast, noTag, allPictures, maxPictures, tagFilter);
 
         var ael = ser.AnimeEpisodes;
 
         sr.id = ser.AnimeSeriesID;
-        sr.name = ser.SeriesName;
+        sr.name = ser.PreferredTitle;
         GenerateSizes(sr, ael, uid);
 
         var season = ael.FirstOrDefault(a =>
-                a.AniDB_Episode != null && a.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode &&
+                a.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode &&
                 a.AniDB_Episode.EpisodeNumber == 1)
-            ?.TvDBEpisode?.SeasonNumber;
-        if (season != null)
+            ?.TmdbEpisodes.FirstOrDefault()?.SeasonNumber;
+        if (season is not null)
         {
             sr.season = season.Value.ToString();
         }
 
-        var tvdbseriesID = ael.Select(a => a.TvDBEpisode)
-            .Where(a => a != null)
-            .GroupBy(a => a.SeriesID)
+        var tmdbShow = ael.SelectMany(a => a.TmdbEpisodes)
+            .DistinctBy(a => a.TmdbEpisodeID)
+            .GroupBy(a => a.TmdbShowID)
             .MaxBy(a => a.Count())
-            ?.Key;
-
-        if (tvdbseriesID != null)
+            ?.First().TmdbShow;
+        if (tmdbShow is not null)
         {
-            var tvdbseries = RepoFactory.TvDB_Series.GetByTvDBID(tvdbseriesID.Value);
-            if (tvdbseries != null)
+            sr.titles.Add(new()
             {
-                var title = new AnimeTitle { Language = "EN", Title = tvdbseries.SeriesName, Type = "TvDB" };
-                sr.titles.Add(title);
-            }
+                Language = "EN",
+                Title = tmdbShow.EnglishTitle,
+                Type = "TMDB",
+            });
         }
 
-        if (!notag)
+        if (!noTag)
         {
             var tags = ser.AniDB_Anime.GetAllTags();
-            if (tags != null)
+            if (tags is not null)
             {
-                sr.tags = TagFilter.String.ProcessTags(tagfilter, tags.ToList());
+                sr.tags = TagFilter.String.ProcessTags(tagFilter, tags.ToList());
             }
         }
 
@@ -239,7 +220,7 @@ public class Serie : BaseDirectory, IComparable
         {
             if (ael.Count > 0)
             {
-                sr.eps = new List<Episode>();
+                sr.eps = [];
                 foreach (var ae in ael)
                 {
                     if (!all && (ae?.VideoLocals?.Count ?? 0) == 0)
@@ -247,8 +228,8 @@ public class Serie : BaseDirectory, IComparable
                         continue;
                     }
 
-                    var new_ep = Episode.GenerateFromAnimeEpisode(ctx, ae, uid, level - 1, pic);
-                    if (new_ep == null)
+                    var new_ep = Episode.GenerateFromAnimeEpisode(ctx, ae, uid, level - 1, maxPictures);
+                    if (new_ep is null)
                     {
                         continue;
                     }
@@ -299,13 +280,13 @@ public class Serie : BaseDirectory, IComparable
         // single loop. Will help on long shows
         foreach (var ep in ael)
         {
-            if (ep?.AniDB_Episode == null)
+            if (ep?.AniDB_Episode is null)
             {
                 continue;
             }
 
-            var local = ep.VideoLocals.Any();
-            var watched = ep.GetUserRecord(uid)?.WatchedDate != null;
+            var local = ep.VideoLocals.Count != 0;
+            var watched = ep.GetUserRecord(uid)?.WatchedDate is not null;
             switch (ep.EpisodeTypeEnum)
             {
                 case EpisodeType.Episode:
@@ -437,139 +418,97 @@ public class Serie : BaseDirectory, IComparable
         };
     }
 
-    public static void PopulateArtFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allpics,
-        int pic)
+    public static void PopulateArtFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allPictures,
+        int maxPictures)
     {
         var rand = (Random)ctx.Items["Random"];
-        var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
-        var fanarts = tvdbIDs
-            .SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
-        var banners = tvdbIDs
-            .SelectMany(a => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
-
-        if (allpics || pic > 1)
+        var backdrops = anime.GetImages(ImageEntityType.Backdrop);
+        var banners = anime.GetImages(ImageEntityType.Banner);
+        var posters = anime.GetImages(ImageEntityType.Poster);
+        if (allPictures || maxPictures > 1)
         {
-            if (allpics)
+            if (allPictures)
+                maxPictures = 999;
+            var pictureIndex = 0;
+            foreach (var poster in posters)
             {
-                pic = 999;
-            }
-
-            var pic_index = 0;
-            var posters = anime.AllPosters;
-            if (posters != null)
-            {
-                foreach (var cont_image in posters)
-                {
-                    if (pic_index < pic)
-                    {
-                        sr.art.thumb.Add(new Art
-                        {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                                cont_image.AniDB_Anime_DefaultImageID),
-                            index = pic_index
-                        });
-                        pic_index++;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-
-            pic_index = 0;
-            foreach (var cont_image in fanarts)
-            {
-                if (pic_index < pic)
-                {
-                    sr.art.fanart.Add(new Art
-                    {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_FanArt,
-                            cont_image.TvDB_ImageFanartID),
-                        index = pic_index
-                    });
-                    pic_index++;
-                }
-                else
-                {
+                if (pictureIndex >= maxPictures)
                     break;
-                }
+                sr.art.thumb.Add(new Art
+                {
+                    index = pictureIndex++,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster.ImageType, poster.Source, poster.ID),
+                });
             }
-
-            pic_index = 0;
-            foreach (var cont_image in banners)
+            pictureIndex = 0;
+            foreach (var backdrop in backdrops)
             {
-                if (pic_index < pic)
-                {
-                    sr.art.banner.Add(new Art
-                    {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Banner,
-                            cont_image.TvDB_ImageWideBannerID),
-                        index = pic_index
-                    });
-                    pic_index++;
-                }
-                else
-                {
+                if (pictureIndex >= maxPictures)
                     break;
-                }
+                sr.art.fanart.Add(new Art
+                {
+                    index = pictureIndex++,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
+                });
+            }
+            pictureIndex = 0;
+            foreach (var banner in banners)
+            {
+                if (pictureIndex >= maxPictures)
+                    break;
+                sr.art.banner.Add(new Art
+                {
+                    index = pictureIndex++,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType, banner.Source, banner.ID),
+                });
             }
         }
-        else if (pic > 0)
+        else if (maxPictures > 0)
         {
-            var poster = anime.GetDefaultPosterDetailsNoBlanks();
+            var poster = anime.PreferredOrDefaultPoster;
             sr.art.thumb.Add(new Art
             {
-                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)poster.ImageType, poster.ImageID),
-                index = 0
+                index = 0,
+                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster.ImageType, poster.Source, poster.ID),
             });
-
-            if (fanarts.Count > 0)
+            if (backdrops.Count > 0)
             {
-                var default_fanart = anime.DefaultFanart;
-
-                if (default_fanart != null)
+                if (anime.PreferredBackdrop is { } preferredBackdrop)
                 {
                     sr.art.fanart.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
-                            default_fanart.AniDB_Anime_DefaultImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop.ImageType, preferredBackdrop.ImageSource.ToDataSourceEnum(), preferredBackdrop.ImageID),
                         index = 0
                     });
                 }
                 else
                 {
-                    var tvdbart = fanarts[rand.Next(fanarts.Count)];
+                    var backdrop = backdrops[rand.Next(backdrops.Count)];
                     sr.art.fanart.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_FanArt,
-                            tvdbart.TvDB_ImageFanartID),
-                        index = 0
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
                     });
                 }
             }
-
             if (banners.Count > 0)
             {
-                var default_fanart = anime.DefaultWideBanner;
-
-                if (default_fanart != null)
+                var preferredBanner = anime.PreferredBanner;
+                if (preferredBanner is not null)
                 {
                     sr.art.banner.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
-                            default_fanart.AniDB_Anime_DefaultImageID),
-                        index = 0
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner.ImageType, preferredBanner.ImageSource.ToDataSourceEnum(), preferredBanner.ImageID),
                     });
                 }
                 else
                 {
-                    var tvdbart = banners[rand.Next(banners.Count)];
+                    var banner = banners[rand.Next(banners.Count)];
                     sr.art.banner.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Banner,
-                            tvdbart.TvDB_ImageWideBannerID),
-                        index = 0
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType, banner.Source, banner.ID),
                     });
                 }
             }
@@ -578,8 +517,7 @@ public class Serie : BaseDirectory, IComparable
 
     public int CompareTo(object obj)
     {
-        var a = obj as Serie;
-        if (a == null)
+        if (obj is not Serie a)
         {
             return 1;
         }
@@ -618,7 +556,6 @@ public class Serie : BaseDirectory, IComparable
             }
         }
 
-        // I don't trust TvDB well enough to sort by them. Bakamonogatari...
         // Does it have a Season? Sort by it
         if (int.TryParse(a.season, out s1) && int.TryParse(season, out s))
         {

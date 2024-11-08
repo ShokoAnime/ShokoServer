@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters;
@@ -14,12 +15,12 @@ public class Filterable : IFilterable
     private readonly Lazy<decimal> _averageAniDBRating;
     private readonly Lazy<IReadOnlySet<string>> _customTags;
     private readonly Lazy<int> _episodeCount;
-    private readonly Lazy<bool> _hasMissingTMDbLink;
+    private readonly Lazy<bool> _hasMissingTmdbLink;
     private readonly Lazy<bool> _hasMissingTraktLink;
-    private readonly Lazy<bool> _hasMissingTvDBLink;
-    private readonly Lazy<bool> _hasTMDbLink;
+    private readonly Lazy<bool> _hasTmdbLink;
+    private readonly Lazy<int> _automaticTmdbEpisodeLinks;
+    private readonly Lazy<int> _userVerifiedTmdbEpisodeLinks;
     private readonly Lazy<bool> _hasTraktLink;
-    private readonly Lazy<bool> _hasTvDBLink;
     private readonly Lazy<decimal> _highestAniDBRating;
     private readonly Lazy<bool> _isFinished;
     private readonly Lazy<DateTime> _lastAddedDate;
@@ -31,6 +32,8 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlySet<string>> _names;
     private readonly Lazy<IReadOnlySet<string>> _aniDbIds;
     private readonly Lazy<IReadOnlySet<string>> _resolutions;
+    private readonly Lazy<IReadOnlySet<string>> _importFolderIDs;
+    private readonly Lazy<IReadOnlySet<string>> _importFolderNames;
     private readonly Lazy<IReadOnlySet<string>> _filePaths;
     private readonly Lazy<IReadOnlySet<(int year, AnimeSeason season)>> _seasons;
     private readonly Lazy<int> _seriesCount;
@@ -43,6 +46,8 @@ public class Filterable : IFilterable
     private readonly Lazy<int> _totalEpisodeCount;
     private readonly Lazy<IReadOnlySet<string>> _videoSources;
     private readonly Lazy<IReadOnlySet<int>> _years;
+    private readonly Lazy<IReadOnlySet<ImageEntityType>> _availableImageTypes;
+    private readonly Lazy<IReadOnlySet<ImageEntityType>> _preferredImageTypes;
 
     public string Name => _name.Value;
 
@@ -121,32 +126,46 @@ public class Filterable : IFilterable
         init => _seasons = new Lazy<IReadOnlySet<(int year, AnimeSeason season)>>(value);
     }
 
-    public bool HasTvDBLink => _hasTvDBLink.Value;
+    public IReadOnlySet<ImageEntityType> AvailableImageTypes => _availableImageTypes.Value;
 
-    public Func<bool> HasTvDBLinkDelegate
+    public Func<IReadOnlySet<ImageEntityType>> AvailableImageTypesDelegate
     {
-        init => _hasTvDBLink = new Lazy<bool>(value);
+        init => _availableImageTypes = new Lazy<IReadOnlySet<ImageEntityType>>(value);
     }
 
-    public bool HasMissingTvDbLink => _hasMissingTvDBLink.Value;
+    public IReadOnlySet<ImageEntityType> PreferredImageTypes => _preferredImageTypes.Value;
 
-    public Func<bool> HasMissingTvDbLinkDelegate
+    public Func<IReadOnlySet<ImageEntityType>> PreferredImageTypesDelegate
     {
-        init => _hasMissingTvDBLink = new Lazy<bool>(value);
+        init => _preferredImageTypes = new Lazy<IReadOnlySet<ImageEntityType>>(value);
     }
 
-    public bool HasTMDbLink => _hasTMDbLink.Value;
+    public bool HasTmdbLink => _hasTmdbLink.Value;
 
-    public Func<bool> HasTMDbLinkDelegate
+    public Func<bool> HasTmdbLinkDelegate
     {
-        init => _hasTMDbLink = new Lazy<bool>(value);
+        init => _hasTmdbLink = new Lazy<bool>(value);
     }
 
-    public bool HasMissingTMDbLink => _hasMissingTMDbLink.Value;
+    public bool HasMissingTmdbLink => _hasMissingTmdbLink.Value;
 
-    public Func<bool> HasMissingTMDbLinkDelegate
+    public Func<bool> HasMissingTmdbLinkDelegate
     {
-        init => _hasMissingTMDbLink = new Lazy<bool>(value);
+        init => _hasMissingTmdbLink = new Lazy<bool>(value);
+    }
+
+    public int AutomaticTmdbEpisodeLinks => _automaticTmdbEpisodeLinks.Value;
+
+    public Func<int> AutomaticTmdbEpisodeLinksDelegate
+    {
+        init => _automaticTmdbEpisodeLinks = new Lazy<int>(value);
+    }
+
+    public int UserVerifiedTmdbEpisodeLinks => _userVerifiedTmdbEpisodeLinks.Value;
+
+    public Func<int> UserVerifiedTmdbEpisodeLinksDelegate
+    {
+        init => _userVerifiedTmdbEpisodeLinks = new Lazy<int>(value);
     }
 
     public bool HasTraktLink => _hasTraktLink.Value;
@@ -290,7 +309,21 @@ public class Filterable : IFilterable
             _resolutions = new Lazy<IReadOnlySet<string>>(value);
         }
     }
-    
+
+    public IReadOnlySet<string> ImportFolderIDs => _importFolderIDs.Value;
+
+    public Func<IReadOnlySet<string>> ImportFolderIDsDelegate
+    {
+        init => _importFolderIDs = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> ImportFolderNames => _importFolderNames.Value;
+
+    public Func<IReadOnlySet<string>> ImportFolderNamesDelegate
+    {
+        init => _importFolderNames = new Lazy<IReadOnlySet<string>>(value);
+    }
+
     public IReadOnlySet<string> FilePaths => _filePaths.Value;
 
     public Func<IReadOnlySet<string>> FilePathsDelegate

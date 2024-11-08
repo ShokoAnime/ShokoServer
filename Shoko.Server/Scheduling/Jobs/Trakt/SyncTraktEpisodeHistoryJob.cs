@@ -38,7 +38,7 @@ public class SyncTraktEpisodeHistoryJob : BaseJob
             { "EpisodeID", AnimeEpisodeID }
         } : new()
         {
-            { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AnimeID) },
+            { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AnimeID)?.PreferredTitle },
             { "Episode Type", ((EpisodeType)_episode.EpisodeType).ToString() },
             { "Episode Number", _episode.EpisodeNumber },
             { "Sync Action", Action.ToString() }

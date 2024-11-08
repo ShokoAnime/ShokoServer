@@ -19,7 +19,8 @@ public enum FileNonDefaultIncludeType
     Ignored,
     MediaInfo,
     XRefs,
-    AbsolutePaths
+    AbsolutePaths,
+    ImportLimbo,
 }
 
 [JsonConverter(typeof(StringEnumConverter))]
@@ -30,5 +31,6 @@ public enum FileIncludeOnlyType
     Duplicates,
     Unrecognized,
     ManualLinks,
-    Ignored
+    Ignored,
+    ImportLimbo,
 }

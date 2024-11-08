@@ -24,14 +24,11 @@ public class ImportJob : BaseJob
         // drop folder
         await _service.RunImport_DropFolders();
 
-        // TvDB association checks
-        await _service.RunImport_ScanTvDB();
-
         // Trakt association checks
         _service.RunImport_ScanTrakt();
 
-        // MovieDB association checks
-        await _service.RunImport_ScanMovieDB();
+        // TMDB association checks
+        await _service.RunImport_ScanTMDB();
 
         // Check for missing images
         await _service.RunImport_GetImages();

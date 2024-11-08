@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Container object with titles.
+/// </summary>
 public interface IWithTitles
 {
     /// <summary>

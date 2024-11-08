@@ -27,7 +27,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 
     private string FullFileName { get; set; }
     public string Hash { get; set; }
-    public bool Watched { get; set; }
+    public bool? Watched { get; set; }
     public bool UpdateSeriesStats { get; set; }
     public DateTime? WatchedDate { get; set; }
 
@@ -69,8 +69,7 @@ public class UpdateMyListFileStatusJob : BaseJob
                     r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
                     r.Hash = vid.Hash;
                     r.Size = vid.FileSize;
-                    if (!Watched || WatchedDate == null) return;
-                    r.IsWatched = true;
+                    r.IsWatched = Watched;
                     r.WatchedDate = WatchedDate;
                 }
             );
@@ -92,8 +91,7 @@ public class UpdateMyListFileStatusJob : BaseJob
                         r.AnimeID = episode.AnimeID;
                         r.EpisodeNumber = episode.EpisodeNumber;
                         r.EpisodeType = (EpisodeType)episode.EpisodeType;
-                        if (!Watched || WatchedDate == null) return;
-                        r.IsWatched = true;
+                        r.IsWatched = Watched;
                         r.WatchedDate = WatchedDate;
                     }
                 );

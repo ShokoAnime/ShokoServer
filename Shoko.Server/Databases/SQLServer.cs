@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
+using MessagePack;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
@@ -11,7 +13,10 @@ using NHibernate.AdoNet;
 using NHibernate.Driver;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
-using Shoko.Server.Databases.NHIbernate;
+using Shoko.Plugin.Abstractions;
+using Shoko.Server.Databases.NHibernate;
+using Shoko.Server.Models;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -23,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 120;
+    public override int RequiredVersion { get; } = 131;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -343,8 +348,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(4, 1, "ALTER TABLE AnimeGroup ADD DefaultAnimeSeriesID int NULL"),
         new DatabaseCommand(5, 1, "ALTER TABLE JMMUser ADD CanEditServerSettings int NULL"),
         new DatabaseCommand(6, 1, "ALTER TABLE VideoInfo ADD VideoBitDepth varchar(max) NULL"),
-        new DatabaseCommand(7, 1, DatabaseFixes.FixDuplicateTvDBLinks),
-        new DatabaseCommand(7, 2, DatabaseFixes.FixDuplicateTraktLinks),
+        new DatabaseCommand(7, 1, DatabaseFixes.NoOperation),
+        new DatabaseCommand(7, 2, DatabaseFixes.NoOperation),
         new DatabaseCommand(7, 3,
             "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Season ON CrossRef_AniDB_TvDB(TvDBID, TvDBSeasonNumber)"),
         new DatabaseCommand(7, 4,
@@ -422,19 +427,19 @@ public class SQLServer : BaseDatabase<SqlConnection>
             "CREATE TABLE CrossRef_AniDB_TvDBV2( CrossRef_AniDB_TvDBV2ID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TvDBID int NOT NULL, TvDBSeasonNumber int NOT NULL, TvDBStartEpisodeNumber int NOT NULL, TvDBTitle nvarchar(MAX), CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TvDBV2] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TvDBV2ID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new DatabaseCommand(27, 2,
             "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDBV2 ON CrossRef_AniDB_TvDBV2(AnimeID, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)"),
-        new DatabaseCommand(27, 3, DatabaseFixes.MigrateTvDBLinks_V1_to_V2),
+        new DatabaseCommand(27, 3, DatabaseFixes.NoOperation),
         new DatabaseCommand(28, 1, "ALTER TABLE GroupFilter ADD Locked int NULL"),
         new DatabaseCommand(29, 1, "ALTER TABLE VideoInfo ADD FullInfo varchar(max) NULL"),
         new DatabaseCommand(30, 1,
             "CREATE TABLE CrossRef_AniDB_TraktV2( CrossRef_AniDB_TraktV2ID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TraktID nvarchar(500), TraktSeasonNumber int NOT NULL, TraktStartEpisodeNumber int NOT NULL, TraktTitle nvarchar(MAX), CrossRefSource int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_TraktV2] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_TraktV2ID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new DatabaseCommand(30, 2,
             "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TraktV2 ON CrossRef_AniDB_TraktV2(AnimeID, TraktSeasonNumber, TraktStartEpisodeNumber, AniDBStartEpisodeType, AniDBStartEpisodeNumber)"),
-        new DatabaseCommand(30, 3, DatabaseFixes.MigrateTraktLinks_V1_to_V2),
+        new DatabaseCommand(30, 3, DatabaseFixes.NoOperation),
         new DatabaseCommand(31, 1,
             "CREATE TABLE CrossRef_AniDB_Trakt_Episode( CrossRef_AniDB_Trakt_EpisodeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, AniDBEpisodeID int NOT NULL, TraktID nvarchar(500), Season int NOT NULL, EpisodeNumber int NOT NULL, CONSTRAINT [PK_CrossRef_AniDB_Trakt_Episode] PRIMARY KEY CLUSTERED ( CrossRef_AniDB_Trakt_EpisodeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new DatabaseCommand(31, 2,
             "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID ON CrossRef_AniDB_Trakt_Episode(AniDBEpisodeID)"),
-        new DatabaseCommand(32, 3, DatabaseFixes.RemoveOldMovieDBImageRecords),
+        new DatabaseCommand(32, 3, DatabaseFixes.NoOperation),
         new DatabaseCommand(33, 1,
             "CREATE TABLE CustomTag( CustomTagID int IDENTITY(1,1) NOT NULL, TagName nvarchar(500), TagDescription nvarchar(MAX), CONSTRAINT [PK_CustomTag] PRIMARY KEY CLUSTERED ( CustomTagID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new DatabaseCommand(33, 2,
@@ -449,7 +454,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(41, 1, "ALTER TABLE GroupFilter ADD FilterType int NULL"),
         new DatabaseCommand(41, 2, "UPDATE GroupFilter SET FilterType = 1"),
         new DatabaseCommand(41, 3, "ALTER TABLE GroupFilter ALTER COLUMN FilterType int NOT NULL"),
-        new DatabaseCommand(41, 4, DatabaseFixes.FixContinueWatchingGroupFilter_20160406),
+        new DatabaseCommand(41, 4, DatabaseFixes.NoOperation),
         new DatabaseCommand(42, 1,
             "ALTER TABLE AniDB_Anime ADD ContractVersion int NOT NULL DEFAULT(0), ContractString nvarchar(MAX) NULL"),
         new DatabaseCommand(42, 2,
@@ -507,7 +512,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(47, 23, "ALTER TABLE AnimeGroup ADD ContractSize int NOT NULL DEFAULT(0)"),
         new DatabaseCommand(47, 24, "ALTER TABLE AnimeGroup DROP COLUMN ContractString"),
         new DatabaseCommand(48, 1, "ALTER TABLE AniDB_Anime DROP COLUMN AllCategories"),
-        new DatabaseCommand(49, 1, DatabaseFixes.DeleteSerieUsersWithoutSeries),
+        new DatabaseCommand(49, 1, DatabaseFixes.DeleteSeriesUsersWithoutSeries),
         new DatabaseCommand(50, 1,
             "CREATE TABLE VideoLocal_Place ( VideoLocal_Place_ID int IDENTITY(1,1) NOT NULL, VideoLocalID int NOT NULL, FilePath nvarchar(MAX) NOT NULL,  ImportFolderID int NOT NULL, ImportFolderType int NOT NULL, CONSTRAINT [PK_VideoLocal_Place] PRIMARY KEY CLUSTERED (  VideoLocal_Place_ID ASC  ) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
         new DatabaseCommand(50, 2,
@@ -532,9 +537,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(53, 2,
             "CREATE TABLE ScanFile ( ScanFileID int IDENTITY(1,1) NOT NULL, ScanID int NOT NULL, ImportFolderID int NOT NULL, VideoLocal_Place_ID int NOT NULL, FullName  nvarchar(MAX) NOT NULL, FileSize bigint NOT NULL, Status int NOT NULL, CheckDate datetime NULL, Hash nvarchar(100) NOT NULL, HashResult nvarchar(100) NULL )"),
         new DatabaseCommand(53, 3, "CREATE INDEX UIX_ScanFileStatus ON ScanFile(ScanID,Status,CheckDate);"),
-        new DatabaseCommand(54, 1, DatabaseFixes.FixTagsWithInclude),
-        new DatabaseCommand(55, 1, DatabaseFixes.MakeYearsApplyToSeries),
-        new DatabaseCommand(56, 1, DatabaseFixes.FixEmptyVideoInfos),
+        new DatabaseCommand(54, 1, DatabaseFixes.NoOperation),
+        new DatabaseCommand(55, 1, DatabaseFixes.NoOperation),
+        new DatabaseCommand(56, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(57, 1, "ALTER TABLE JMMUser ADD PlexToken nvarchar(max) NULL"),
         new DatabaseCommand(58, 1, "ALTER TABLE AniDB_File ADD IsChaptered INT NOT NULL DEFAULT(-1)"),
         new DatabaseCommand(59, 1, "ALTER TABLE RenameScript ADD RenamerType nvarchar(max) NOT NULL DEFAULT('Legacy')"),
@@ -544,7 +549,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(61, 1, "ALTER TABLE TvDB_Episode ADD Rating INT NULL"),
         new DatabaseCommand(61, 2, "ALTER TABLE TvDB_Episode ADD AirDate datetime NULL"),
         new DatabaseCommand(61, 3, "ALTER TABLE TvDB_Episode DROP COLUMN FirstAired"),
-        new DatabaseCommand(61, 4, DatabaseFixes.UpdateAllTvDBSeries),
+        new DatabaseCommand(61, 4, DatabaseFixes.NoOperation),
         new DatabaseCommand(62, 1, "ALTER TABLE AnimeSeries ADD AirsOn varchar(10) NULL"),
         new DatabaseCommand(63, 1, "DROP TABLE Trakt_ImageFanart"),
         new DatabaseCommand(63, 2, "DROP TABLE Trakt_ImagePoster"),
@@ -557,7 +562,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(66, 1, "ALTER TABLE AniDB_Episode ADD Description nvarchar(max) NOT NULL DEFAULT('')"),
         new DatabaseCommand(66, 2, DatabaseFixes.FixCharactersWithGrave),
         new DatabaseCommand(67, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
-        new DatabaseCommand(68, 1, DatabaseFixes.MakeTagsApplyToSeries),
+        new DatabaseCommand(68, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(68, 2, DatabaseFixes.UpdateAllStats),
         new DatabaseCommand(69, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
         new DatabaseCommand(70, 1, "ALTER TABLE AniDB_Character ALTER COLUMN CharName nvarchar(max) NOT NULL"),
@@ -565,17 +570,17 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(71, 2, "CREATE UNIQUE INDEX UIX_AniDB_AnimeUpdate ON AniDB_AnimeUpdate(AnimeID)"),
         new DatabaseCommand(71, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
         new DatabaseCommand(72, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
-        new DatabaseCommand(73, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
-        new DatabaseCommand(74, 1, DatabaseFixes.RecalculateYears),
+        new DatabaseCommand(73, 1, DatabaseFixes.NoOperation),
+        new DatabaseCommand(74, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(75, 1, "DROP INDEX UIX_CrossRef_AniDB_MAL_Anime ON CrossRef_AniDB_MAL;"),
         new DatabaseCommand(75, 2, "ALTER TABLE AniDB_Anime ADD Site_JP nvarchar(max), Site_EN nvarchar(max), Wikipedia_ID nvarchar(max), WikipediaJP_ID nvarchar(max), SyoboiID int, AnisonID int, CrunchyrollID nvarchar(max)"),
-        new DatabaseCommand(75, 3, DatabaseFixes.PopulateResourceLinks),
+        new DatabaseCommand(75, 3, DatabaseFixes.NoOperation),
         new DatabaseCommand(76, 1, "ALTER TABLE VideoLocal ADD MyListID INT NOT NULL DEFAULT(0)"),
-        new DatabaseCommand(76, 2, DatabaseFixes.PopulateMyListIDs),
+        new DatabaseCommand(76, 2, DatabaseFixes.NoOperation),
         new DatabaseCommand(77, 1, "ALTER TABLE AniDB_Episode DROP COLUMN EnglishName"),
         new DatabaseCommand(77, 2, "ALTER TABLE AniDB_Episode DROP COLUMN RomajiName"),
         new DatabaseCommand(77, 3, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID int IDENTITY(1,1) NOT NULL, AniDB_EpisodeID int NOT NULL, Language nvarchar(50) NOT NULL, Title nvarchar(500) NOT NULL )"),
-        new DatabaseCommand(77, 4, DatabaseFixes.DummyMigrationOfObsolescence),
+        new DatabaseCommand(77, 4, DatabaseFixes.NoOperation),
         new DatabaseCommand(78, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode;"),
         new DatabaseCommand(78, 2, "exec sp_rename CrossRef_AniDB_TvDB_Episode, CrossRef_AniDB_TvDB_Episode_Override;"),
         new DatabaseCommand(78, 3, "ALTER TABLE CrossRef_AniDB_TvDB_Episode_Override DROP COLUMN AnimeID"),
@@ -587,12 +592,12 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(78, 8, "CREATE UNIQUE INDEX UIX_AniDB_TvDB_AniDBID_TvDBID ON CrossRef_AniDB_TvDB(AniDBID,TvDBID);"),
         new DatabaseCommand(78, 9, "CREATE TABLE CrossRef_AniDB_TvDB_Episode(CrossRef_AniDB_TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, MatchRating INT NOT NULL);"),
         new DatabaseCommand(78, 10, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID,TvDBEpisodeID);"),
-        new DatabaseCommand(78, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
+        new DatabaseCommand(78, 11, DatabaseFixes.NoOperation),
         // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
-        new DatabaseCommand(79, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
-        new DatabaseCommand(80, 1, DatabaseFixes.RegenTvDBMatches),
+        new DatabaseCommand(79, 1, DatabaseFixes.NoOperation),
+        new DatabaseCommand(80, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(81, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
-        new DatabaseCommand(82, 1, DatabaseFixes.MigrateAniDBToNet),
+        new DatabaseCommand(82, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(83, 1, DropVideoLocalMediaColumns),
         new DatabaseCommand(84, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL;"),
         new DatabaseCommand(85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
@@ -691,9 +696,224 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(118, 1, "DELETE FROM FilterPreset WHERE FilterType IN (16, 24, 32, 40, 64, 72)"),
         new DatabaseCommand(119, 1, DropContracts),
         new DatabaseCommand(120, 1, DropVideoLocalMediaSize),
+        new DatabaseCommand(121, 1, "CREATE TABLE AniDB_NotifyQueue( AniDB_NotifyQueueID int IDENTITY(1,1) NOT NULL, Type int NOT NULL, ID int NOT NULL, AddedAt datetime NOT NULL ); "),
+        new DatabaseCommand(121, 2, "CREATE TABLE AniDB_Message( AniDB_MessageID int IDENTITY(1,1) NOT NULL, MessageID int NOT NULL, FromUserID int NOT NULL, FromUserName nvarchar(100), SentAt datetime NOT NULL, FetchedAt datetime NOT NULL, Type int NOT NULL, Title nvarchar(MAX), Body nvarchar(MAX), Flags int NOT NULL DEFAULT(0) ); "),
+        new DatabaseCommand(122, 1, "CREATE TABLE CrossRef_AniDB_TMDB_Episode ( CrossRef_AniDB_TMDB_EpisodeID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NOT NULL, TmdbShowID INT NOT NULL, TmdbEpisodeID INT NOT NULL, Ordering INT NOT NULL, MatchRating INT NOT NULL );"),
+        new DatabaseCommand(122, 2, "CREATE TABLE CrossRef_AniDB_TMDB_Movie ( CrossRef_AniDB_TMDB_MovieID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NULL, TmdbMovieID INT NOT NULL, Source INT NOT NULL );"),
+        new DatabaseCommand(122, 3, "CREATE TABLE CrossRef_AniDB_TMDB_Show ( CrossRef_AniDB_TMDB_ShowID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, TmdbShowID INT NOT NULL, Source INT NOT NULL );"),
+        new DatabaseCommand(122, 4, "CREATE TABLE TMDB_Image ( TMDB_ImageID INT IDENTITY(1,1) NOT NULL, TmdbMovieID INT NULL, TmdbEpisodeID INT NULL, TmdbSeasonID INT NULL, TmdbShowID INT NULL, TmdbCollectionID INT NULL, TmdbNetworkID INT NULL, TmdbCompanyID INT NULL, TmdbPersonID INT NULL, ForeignType INT NOT NULL, ImageType INT NOT NULL, IsEnabled INT NOT NULL, Width INT NOT NULL, Height INT NOT NULL, Language NVARCHAR(32) NOT NULL, RemoteFileName NVARCHAR(128) NOT NULL, UserRating decimal(6,2) NOT NULL, UserVotes INT NOT NULL );"),
+        new DatabaseCommand(122, 5, "CREATE TABLE AniDB_Anime_PreferredImage ( AniDB_Anime_PreferredImageID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, ImageID INT NOT NULL, ImageType INT NOT NULL, ImageSource INT NOT NULL );"),
+        new DatabaseCommand(122, 6, "CREATE TABLE TMDB_Title ( TMDB_TitleID INT IDENTITY(1,1) NOT NULL, ParentID INT NOT NULL, ParentType INT NOT NULL, LanguageCode NVARCHAR(5) NOT NULL, CountryCode NVARCHAR(5) NOT NULL, Value  NVARCHAR(512) NOT NULL );"),
+        new DatabaseCommand(122, 7, "CREATE TABLE TMDB_Overview ( TMDB_OverviewID INT IDENTITY(1,1) NOT NULL, ParentID INT NOT NULL, ParentType INT NOT NULL, LanguageCode NVARCHAR(5) NOT NULL, CountryCode NVARCHAR(5) NOT NULL, Value NVARCHAR(MAX) NOT NULL );"),
+        new DatabaseCommand(122, 8, "CREATE TABLE TMDB_Company ( TMDB_CompanyID INT IDENTITY(1,1) NOT NULL, TmdbCompanyID INT NOT NULL, Name NVARCHAR(512) NOT NULL, CountryOfOrigin NVARCHAR(3) NOT NULL );"),
+        new DatabaseCommand(122, 9, "CREATE TABLE TMDB_Network ( TMDB_NetworkID INT IDENTITY(1,1) NOT NULL, TmdbNetworkID INT NOT NULL, Name NVARCHAR(512) NOT NULL, CountryOfOrigin NVARCHAR(3) NOT NULL );"),
+        new DatabaseCommand(122, 10, "CREATE TABLE TMDB_Person ( TMDB_PersonID INT IDENTITY(1,1) NOT NULL, TmdbPersonID INT NOT NULL, EnglishName NVARCHAR(512) NOT NULL, EnglishBiography NVARCHAR(MAX) NOT NULL, Aliases NVARCHAR(MAX) NOT NULL, Gender INT NOT NULL, IsRestricted BIT NOT NULL, BirthDay DATE NULL, DeathDay DATE NULL, PlaceOfBirth NVARCHAR(MAX) NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 11, "CREATE TABLE TMDB_Movie ( TMDB_MovieID INT IDENTITY(1,1) NOT NULL, TmdbMovieID INT NOT NULL, TmdbCollectionID INT NULL, EnglishTitle NVARCHAR(512) NOT NULL, EnglishOvervie NVARCHAR(MAX) NOT NULL, OriginalTitle NVARCHAR(512) NOT NULL, OriginalLanguageCode NVARCHAR(5) NOT NULL, IsRestricted BIT NOT NULL, IsVideo BIT NOT NULL, Genres NVARCHAR(128) NOT NULL, ContentRatings NVARCHAR(128) NOT NULL, Runtime INT NULL, UserRating decimal(6,2) NOT NULL, UserVotes INT NOT NULL, ReleasedAt DATE NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 12, "CREATE TABLE TMDB_Movie_Cast ( TMDB_Movie_CastID INT IDENTITY(1,1) NOT NULL, TmdbMovieID INT NOT NULL, TmdbPersonID INT NOT NULL, TmdbCreditID NVARCHAR(64) NOT NULL, CharacterName NVARCHAR(512) NOT NULL, Ordering INT NOT NULL );"),
+        new DatabaseCommand(122, 13, "CREATE TABLE TMDB_Company_Entity ( TMDB_Company_EntityID INT IDENTITY(1,1) NOT NULL, TmdbCompanyID INT NOT NULL, TmdbEntityType INT NOT NULL, TmdbEntityID INT NOT NULL, Ordering INT NOT NULL, ReleasedAt DATE NULL );"),
+        new DatabaseCommand(122, 14, "CREATE TABLE TMDB_Movie_Crew ( TMDB_Movie_CrewID INT IDENTITY(1,1) NOT NULL, TmdbMovieID INT NOT NULL, TmdbPersonID INT NOT NULL, TmdbCreditID NVARCHAR(64) NOT NULL, Job NVARCHAR(64) NOT NULL, Department NVARCHAR(64) NOT NULL );"),
+        new DatabaseCommand(122, 15, "CREATE TABLE TMDB_Show ( TMDB_ShowID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, EnglishTitle NVARCHAR(512) NOT NULL, EnglishOverview NVARCHAR(MAX) NOT NULL, OriginalTitle NVARCHAR(512) NOT NULL, OriginalLanguageCode NVARCHAR(5) NOT NULL, IsRestricted BIT NOT NULL, Genres NVARCHAR(128) NOT NULL, ContentRatings NVARCHAR(128) NOT NULL, EpisodeCount INT NOT NULL, SeasonCount INT NOT NULL, AlternateOrderingCount INT NOT NULL, UserRating decimal(6,2) NOT NULL, UserVotes INT NOT NULL, FirstAiredAt DATE, LastAiredAt DATE NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 16, "CREATE TABLE Tmdb_Show_Network ( TMDB_Show_NetworkID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbNetworkID INT NOT NULL, Ordering INT NOT NULL );"),
+        new DatabaseCommand(122, 17, "CREATE TABLE TMDB_Season ( TMDB_SeasonID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbSeasonID INT NOT NULL, EnglishTitle NVARCHAR(512) NOT NULL, EnglishOverview NVARCHAR(MAX) NOT NULL, EpisodeCount INT NOT NULL, SeasonNumber INT NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 18, "CREATE TABLE TMDB_Episode ( TMDB_EpisodeID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbSeasonID INT NOT NULL, TmdbEpisodeID INT NOT NULL, EnglishTitle NVARCHAR(512) NOT NULL, EnglishOverview NVARCHAR(MAX) NOT NULL, SeasonNumber INT NOT NULL, EpisodeNumber INT NOT NULL, Runtime INT NULL, UserRating decimal(6, 2) NOT NULL, UserVotes INT NOT NULL, AiredAt DATE NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 19, "CREATE TABLE TMDB_Episode_Cast ( TMDB_Episode_CastID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbSeasonID INT NOT NULL, TmdbEpisodeID INT NOT NULL, TmdbPersonID INT NOT NULL, TmdbCreditID NVARCHAR(64) NOT NULL, CharacterName NVARCHAR(512) NOT NULL, IsGuestRole BIT NOT NULL, Ordering INT NOT NULL );"),
+        new DatabaseCommand(122, 20, "CREATE TABLE TMDB_Episode_Crew ( TMDB_Episode_CrewID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbSeasonID INT NOT NULL, TmdbEpisodeID INT NOT NULL, TmdbPersonID INT NOT NULL, TmdbCreditID NVARCHAR(64) NOT NULL, Job NVARCHAR(512) NOT NULL, Department NVARCHAR(512) NOT NULL );"),
+        new DatabaseCommand(122, 21, "CREATE TABLE TMDB_AlternateOrdering ( TMDB_AlternateOrderingID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbNetworkID INT NULL, TmdbEpisodeGroupCollectionID NVARCHAR(64) NOT NULL, EnglishTitle NVARCHAR(512) NOT NULL, EnglishOverview NVARCHAR(MAX) NOT NULL, EpisodeCount INT NOT NULL, SeasonCount INT NOT NULL, Type INT NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 22, "CREATE TABLE TMDB_AlternateOrdering_Season ( TMDB_AlternateOrdering_SeasonID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbEpisodeGroupCollectionID NVARCHAR(64) NOT NULL, TmdbEpisodeGroupID NVARCHAR(64) NOT NULL, EnglishTitle NVARCHAR(512) NOT NULL, SeasonNumber INT NOT NULL, EpisodeCount INT NOT NULL, IsLocked BIT NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 23, "CREATE TABLE TMDB_AlternateOrdering_Episode ( TMDB_AlternateOrdering_EpisodeID INT IDENTITY(1,1) NOT NULL, TmdbShowID INT NOT NULL, TmdbEpisodeGroupCollectionID NVARCHAR(64) NOT NULL, TmdbEpisodeGroupID NVARCHAR(64) NOT NULL, TmdbEpisodeID INT NOT NULL, SeasonNumber INT NOT NULL, EpisodeNumber INT NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 24, "CREATE TABLE TMDB_Collection ( TMDB_CollectionID INT IDENTITY(1,1) NOT NULL, TmdbCollectionID INT NOT NULL, EnglishTitle NVARCHAR(512) NOT NULL, EnglishOverview NVARCHAR(MAX) NOT NULL, MovieCount INT NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new DatabaseCommand(122, 25, "CREATE TABLE TMDB_Collection_Movie ( TMDB_Collection_MovieID INT IDENTITY(1,1) NOT NULL, TmdbCollectionID INT NOT NULL, TmdbMovieID INT NOT NULL, Ordering INT NOT NULL );"),
+        new DatabaseCommand(122, 26, "INSERT INTO CrossRef_AniDB_TMDB_Movie ( AnidbAnimeID, TmdbMovieID, Source ) SELECT AnimeID, CAST ( CrossRefID AS INT ), CrossRefSource FROM CrossRef_AniDB_Other WHERE CrossRefType = 1;"),
+        new DatabaseCommand(122, 27, "DROP TABLE CrossRef_AniDB_Other;"),
+        new DatabaseCommand(122, 28, "DROP TABLE MovieDB_Fanart;"),
+        new DatabaseCommand(122, 29, "DROP TABLE MovieDB_Movie;"),
+        new DatabaseCommand(122, 30, "DROP TABLE MovieDB_Poster;"),
+        new DatabaseCommand(122, 31, "DROP TABLE AniDB_Anime_DefaultImage;"),
+        new DatabaseCommand(122, 32, "CREATE TABLE AniDB_Episode_PreferredImage ( AniDB_Episode_PreferredImageID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NOT NULL, ImageID INT NOT NULL, ImageType INT NOT NULL, ImageSource INT NOT NULL );"),
+        new DatabaseCommand(122, 33, DatabaseFixes.CleanupAfterAddingTMDB),
+        new DatabaseCommand(122, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression');"),
+        new DatabaseCommand(122, 35, "exec sp_rename 'TMDB_Movie.EnglishOvervie', 'EnglishOverview', 'COLUMN';"),
+        new DatabaseCommand(122, 36, "UPDATE TMDB_Image SET IsEnabled = 1;"),
+        new DatabaseCommand(123, 1, MigrateRenamers),
+        new DatabaseCommand(123, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
+        new DatabaseCommand(123, 3, DatabaseFixes.CreateDefaultRenamerConfig),
+        new DatabaseCommand(124, 1, "ALTER TABLE TMDB_Show ADD TvdbShowID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD TvdbEpisodeID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 3, "ALTER TABLE TMDB_Movie ADD ImdbMovieID INT NULL DEFAULT NULL;"),
+        new DatabaseCommand(124, 4, AlterImdbMovieIDType),
+        new DatabaseCommand(124, 5, "CREATE INDEX IX_TMDB_Overview ON TMDB_Overview(ParentType, ParentID)"),
+        new DatabaseCommand(124, 6, "CREATE INDEX IX_TMDB_Title ON TMDB_Title(ParentType, ParentID)"),
+        new DatabaseCommand(124, 7, "CREATE UNIQUE INDEX UIX_TMDB_Episode_TmdbEpisodeID ON TMDB_Episode(TmdbEpisodeID)"),
+        new DatabaseCommand(124, 8, "CREATE UNIQUE INDEX UIX_TMDB_Show_TmdbShowID ON TMDB_Show(TmdbShowID)"),
+        new DatabaseCommand(125, 1, "UPDATE CrossRef_AniDB_TMDB_Movie SET AnidbEpisodeID = (SELECT TOP 1 EpisodeID FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID ORDER BY EpisodeType, EpisodeNumber) WHERE AnidbEpisodeID IS NULL AND EXISTS (SELECT 1 FROM AniDB_Episode WHERE AniDB_Episode.AnimeID = CrossRef_AniDB_TMDB_Movie.AnidbAnimeID);"),
+        new DatabaseCommand(125, 2, "DELETE FROM CrossRef_AniDB_TMDB_Movie WHERE AnidbEpisodeID IS NULL;"),
+        new DatabaseCommand(125, 3, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ALTER COLUMN AnidbEpisodeID INT NOT NULL;"),
+        new DatabaseCommand(125, 4, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD CONSTRAINT DF_CrossRef_AniDB_TMDB_Movie_AnidbEpisodeID DEFAULT 0 FOR AnidbEpisodeID;"),
+        new DatabaseCommand(126, 1, "ALTER TABLE TMDB_Movie ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(126, 2, "ALTER TABLE TMDB_Movie ADD BackdropPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(126, 3, "ALTER TABLE TMDB_Show ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(126, 4, "ALTER TABLE TMDB_Show ADD BackdropPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(127, 1, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'MissingTMDbLinkExpression', 'MissingTmdbLinkExpression');"),
+        new DatabaseCommand(128, 1, "CREATE TABLE AniDB_Creator ( AniDB_CreatorID INT IDENTITY(1,1) NOT NULL, CreatorID INT NOT NULL, Name NVARCHAR(512) NOT NULL, OriginalName NVARCHAR(512) NULL, Type INT NOT NULL DEFAULT 0, ImagePath NVARCHAR(512) NULL, EnglishHomepageUrl NVARCHAR(512) NULL, JapaneseHomepageUrl NVARCHAR(512) NULL, EnglishWikiUrl NVARCHAR(512) NULL, JapaneseWikiUrl NVARCHAR(512) NULL, LastUpdatedAt DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00', PRIMARY KEY (AniDB_CreatorID) );"),
+        new DatabaseCommand(128, 2, "CREATE TABLE AniDB_Character_Creator ( AniDB_Character_CreatorID INT IDENTITY(1,1) NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, PRIMARY KEY (AniDB_Character_CreatorID) );"),
+        new DatabaseCommand(128, 3, "CREATE UNIQUE INDEX UIX_AniDB_Creator_CreatorID ON AniDB_Creator(CreatorID);"),
+        new DatabaseCommand(128, 4, "CREATE INDEX UIX_AniDB_Character_Creator_CreatorID ON AniDB_Character_Creator(CreatorID);"),
+        new DatabaseCommand(128, 5, "CREATE INDEX UIX_AniDB_Character_Creator_CharacterID ON AniDB_Character_Creator(CharacterID);"),
+        new DatabaseCommand(128, 6, "CREATE UNIQUE INDEX UIX_AniDB_Character_Creator_CharacterID_CreatorID ON AniDB_Character_Creator(CharacterID, CreatorID);"),
+        new DatabaseCommand(128, 7, "INSERT INTO AniDB_Creator (CreatorID, Name, ImagePath) SELECT SeiyuuID, SeiyuuName, PicName FROM AniDB_Seiyuu;"),
+        new DatabaseCommand(128, 8, "INSERT INTO AniDB_Character_Creator (CharacterID, CreatorID) SELECT CharID, SeiyuuID FROM AniDB_Character_Seiyuu;"),
+        new DatabaseCommand(128, 9, "DROP TABLE AniDB_Seiyuu;"),
+        new DatabaseCommand(128, 10, "DROP TABLE AniDB_Character_Seiyuu;"),
+        new DatabaseCommand(129, 1, "ALTER TABLE TMDB_Show ADD PreferredAlternateOrderingID NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(130, 1, "ALTER TABLE TMDB_Show ALTER COLUMN ContentRatings NVARCHAR(512) NOT NULL;"),
+        new DatabaseCommand(130, 2, "ALTER TABLE TMDB_Movie ALTER COLUMN ContentRatings NVARCHAR(512) NOT NULL;"),
+        new DatabaseCommand(131, 1, "DROP TABLE TvDB_Episode;"),
+        new DatabaseCommand(131, 2, "DROP TABLE TvDB_Series;"),
+        new DatabaseCommand(131, 3, "DROP TABLE TvDB_ImageFanart;"),
+        new DatabaseCommand(131, 4, "DROP TABLE TvDB_ImagePoster;"),
+        new DatabaseCommand(131, 5, "DROP TABLE TvDB_ImageWideBanner;"),
+        new DatabaseCommand(131, 6, "DROP TABLE CrossRef_AniDB_TvDB;"),
+        new DatabaseCommand(131, 7, "DROP TABLE CrossRef_AniDB_TvDB_Episode;"),
+        new DatabaseCommand(131, 8, "DROP TABLE CrossRef_AniDB_TvDB_Episode_Override;"),
+        new DatabaseCommand(131, 9, "ALTER TABLE Trakt_Show DROP COLUMN TvDB_ID;"),
+        new DatabaseCommand(131, 10, "ALTER TABLE Trakt_Show ADD TmdbShowID INT NULL;"),
+        new DatabaseCommand(131, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
+        new DatabaseCommand(131, 12, DatabaseFixes.ClearQuartzQueue),
     };
 
-    
+    private static void AlterImdbMovieIDType()
+    {
+        DropColumnWithDefaultConstraint("TMDB_Movie", "ImdbMovieID");
+
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var transaction = session.BeginTransaction();
+
+        const string alterCommand = "ALTER TABLE TMDB_Movie ADD ImdbMovieID NVARCHAR(12) NULL DEFAULT NULL;";
+        session.CreateSQLQuery(alterCommand).ExecuteUpdate();
+        transaction.Commit();
+    }
+
+    private static Tuple<bool, string> MigrateRenamers(object connection)
+    {
+        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
+        var settingsProvider = Utils.SettingsProvider;
+
+        var sessionFactory = factory.CreateSessionFactory();
+        using var session = sessionFactory.OpenSession();
+        using var transaction = session.BeginTransaction();
+        try
+        {
+            const string createCommand = """
+                                         CREATE TABLE RenamerInstance (ID INT IDENTITY(1,1) PRIMARY KEY, Name nvarchar(250) NOT NULL, Type nvarchar(250) NOT NULL, Settings varbinary(MAX));
+                                         CREATE INDEX IX_RenamerInstance_Name ON RenamerInstance(Name);
+                                         CREATE INDEX IX_RenamerInstance_Type ON RenamerInstance(Type);
+                                         """;
+
+            session.CreateSQLQuery(createCommand).ExecuteUpdate();
+
+            const string selectCommand = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
+            var reader = session.CreateSQLQuery(selectCommand)
+                .AddScalar("ScriptName", NHibernateUtil.String)
+                .AddScalar("RenamerType", NHibernateUtil.String)
+                .AddScalar("IsEnabledOnImport", NHibernateUtil.Int32)
+                .AddScalar("Script", NHibernateUtil.String)
+                .List<object[]>();
+            string defaultName = null;
+            var renamerInstances = reader.Select(a =>
+            {
+                try
+                {
+                    var type = ((string)a[1]).Equals("Legacy")
+                        ? typeof(WebAOMRenamer)
+                        : renamerService.RenamersByKey.ContainsKey((string)a[1])
+                            ? renamerService.RenamersByKey[(string)a[1]].GetType()
+                            : Type.GetType((string)a[1]);
+                    if (type == null)
+                    {
+                        if ((string)a[1] == "GroupAwareRenamer")
+                            return (Renamer: new RenamerConfig
+                            {
+                                Name = (string)a[0],
+                                Type = typeof(WebAOMRenamer),
+                                Settings = new WebAOMSettings
+                                {
+                                    Script = (string)a[3], GroupAwareSorting = true
+                                }
+                            }, IsDefault: (int)a[2] == 1);
+
+                        Logger.Warn("A RenameScipt could not be converted to RenamerConfig. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] +
+                                    " Script: " + (string)a[3]);
+                        return default;
+                    }
+
+                    var settingsType = type.GetInterfaces().FirstOrDefault(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>))
+                        ?.GetGenericArguments().FirstOrDefault();
+                    object settings = null;
+                    if (settingsType != null)
+                    {
+                        settings = ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
+                        settingsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
+                            ?.SetValue(settings, (string)a[3]);
+                    }
+
+                    return (Renamer: new RenamerConfig
+                    {
+                        Name = (string)a[0], Type = type, Settings = settings
+                    }, IsDefault: (int)a[2] == 1);
+                }
+                catch (Exception ex)
+                {
+                    if (a is { Length: >= 4 })
+                    {
+                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig. Renamer name: " + a[0] + " Renamer type: " + a[1] +
+                                        " Script: " + a[3]);
+                    }
+                    else
+                    {
+                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig, but there wasn't enough data to log");
+                    }
+
+                    return default;
+                }
+            }).WhereNotDefault().GroupBy(a => a.Renamer.Name).SelectMany(a => a.Select((b, i) =>
+            {
+                // Names are distinct
+                var renamer = b.Renamer;
+                if (i > 0) renamer.Name = renamer.Name + "_" + (i + 1);
+                if (b.IsDefault) defaultName = renamer.Name;
+                return renamer;
+            }));
+
+            if (defaultName != null)
+            {
+                var settings = settingsProvider.GetSettings();
+                settings.Plugins.Renamer.DefaultRenamer = defaultName;
+                settingsProvider.SaveSettings(settings);
+            }
+
+            const string insertCommand = "INSERT INTO RenamerInstance (Name, Type, Settings) VALUES (:Name, :Type, :Settings);";
+            foreach (var renamer in renamerInstances)
+            {
+                var command = session.CreateSQLQuery(insertCommand);
+                command.SetParameter("Name", renamer.Name);
+                command.SetParameter("Type", renamer.Type.ToString());
+                command.SetParameter("Settings", renamer.Settings == null ? null : MessagePackSerializer.Typeless.Serialize(renamer.Settings));
+                command.ExecuteUpdate();
+            }
+
+            const string dropCommand = "DROP TABLE RenameScript;";
+            session.CreateSQLQuery(dropCommand).ExecuteUpdate();
+            transaction.Commit();
+        }
+        catch (Exception e)
+        {
+            transaction.Rollback();
+            return new Tuple<bool, string>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string>(true, null);
+    }
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
     {
@@ -822,12 +1042,12 @@ public class SQLServer : BaseDatabase<SqlConnection>
         return long.Parse(result.ToString());
     }
 
-    protected override List<object> ExecuteReader(SqlConnection connection, string command)
+    protected override List<object[]> ExecuteReader(SqlConnection connection, string command)
     {
         using var cmd = new SqlCommand(command, connection);
         cmd.CommandTimeout = 0;
         using var reader = cmd.ExecuteReader();
-        var rows = new List<object>();
+        var rows = new List<object[]>();
         while (reader.Read())
         {
             var values = new object[reader.FieldCount];

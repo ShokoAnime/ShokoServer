@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using Shoko.Models.Server;
+using Shoko.Server.Models.Trakt;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.TraktTV;
@@ -149,7 +150,7 @@ public class TraktDetailsContainer
                         }
 
                         var ts = DateTime.Now - start;
-                        //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
+                        logger.Trace("Got TMDB Seasons in {0} ms", ts.TotalMilliseconds);
                     }
                 }
                 catch (Exception ex)

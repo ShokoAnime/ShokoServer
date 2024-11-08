@@ -3,22 +3,23 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using MessagePack;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
+
+using AniDB_ReleaseGroup = Shoko.Server.Models.AniDB.AniDB_ReleaseGroup;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
+#pragma warning disable CS0618
+#nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
+public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 {
-    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-
     #region DB columns
 
     public new bool IsIgnored { get; set; }
@@ -37,7 +38,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     /// The Version of AVDump from Last time we did a successful AVDump.
     /// </summary>
     /// <value></value>
-    public string LastAVDumpVersion { get; set; }
+    public string? LastAVDumpVersion { get; set; }
 
     #endregion
 
@@ -51,7 +52,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     /// <remarks>
     /// MediaInfo model has it in seconds, with milliseconds after the decimal point.
     /// </remarks>
-    public long Duration => (long) (MediaInfo?.GeneralStream?.Duration * 1000 ?? 0);
+    public long Duration => (long)(MediaInfo?.GeneralStream?.Duration * 1000 ?? 0);
 
     /// <summary>
     /// Playback duration as a <see cref="TimeSpan"/>.
@@ -73,14 +74,14 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     public const int MEDIA_VERSION = 5;
 
-    public MediaContainer MediaInfo { get; set; }
+    public MediaContainer? MediaInfo { get; set; }
 
 
     public List<SVR_VideoLocal_Place> Places => VideoLocalID == 0 ? new List<SVR_VideoLocal_Place>() : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
-    public SVR_AniDB_File AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
+    public SVR_AniDB_File? AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
 
-    internal AniDB_ReleaseGroup ReleaseGroup
+    internal AniDB_ReleaseGroup? ReleaseGroup
     {
         get
         {
@@ -97,9 +98,9 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs =>
         string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
 
-    public SVR_VideoLocal_Place FirstValidPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
+    public SVR_VideoLocal_Place? FirstValidPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
 
-    public SVR_VideoLocal_Place FirstResolvedPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
+    public SVR_VideoLocal_Place? FirstResolvedPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
         .FirstOrDefault(p => File.Exists(p.FullServerPath));
 
     public override string ToString()
@@ -123,7 +124,7 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
         return sb.ToString();
     }
 
-    // is the videolocal empty. This isn't complete, but without one or more of these the record is useless
+    // is the video local empty. This isn't complete, but without one or more of these the record is useless
     public bool IsEmpty()
     {
         if (!string.IsNullOrEmpty(Hash)) return false;
@@ -150,36 +151,35 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     #region IVideo Implementation
 
-    string IVideo.EarliestKnownName => RepoFactory.FileNameHash.GetByHash(Hash).MinBy(a => a.FileNameHashID)?.FileName;
+    string? IVideo.EarliestKnownName => RepoFactory.FileNameHash.GetByHash(Hash).MinBy(a => a.FileNameHashID)?.FileName;
 
     long IVideo.Size => FileSize;
 
-    IReadOnlyList<IVideoFile> IVideo.Locations => throw new NotImplementedException();
+    IReadOnlyList<IVideoFile> IVideo.Locations => Places;
 
-    IAniDBFile IVideo.AniDB => AniDBFile;
+    IAniDBFile? IVideo.AniDB => AniDBFile;
 
     IHashes IVideo.Hashes => this;
 
-    IMediaContainer IVideo.MediaInfo => MediaInfo;
+    IMediaInfo? IVideo.MediaInfo => MediaInfo;
 
     IReadOnlyList<IVideoCrossReference> IVideo.CrossReferences => EpisodeCrossRefs;
 
-    IReadOnlyList<IEpisode> IVideo.EpisodeInfo =>
+    IReadOnlyList<IShokoEpisode> IVideo.Episodes =>
         EpisodeCrossRefs
-            .Select(x => x.AniDBEpisode)
+            .Select(x => x.AnimeEpisode)
             .WhereNotNull()
             .ToArray();
 
-    IReadOnlyList<ISeries> IVideo.SeriesInfo =>
+    IReadOnlyList<IShokoSeries> IVideo.Series =>
         EpisodeCrossRefs
             .DistinctBy(x => x.AnimeID)
-            .Select(x => x.AniDBAnime)
+            .Select(x => x.AnimeSeries)
             .WhereNotNull()
-            .OrderBy(a => a.MainTitle)
-            .Cast<IAnime>()
+            .OrderBy(a => a.PreferredTitle)
             .ToArray();
 
-    IReadOnlyList<IGroup> IVideo.GroupInfo =>
+    IReadOnlyList<IShokoGroup> IVideo.Groups =>
         EpisodeCrossRefs
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
@@ -188,12 +188,26 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
             .Select(a => a.AnimeGroup)
             .WhereNotNull()
             .OrderBy(g => g.GroupName)
-            .Cast<IGroup>()
             .ToArray();
 
     int IMetadata<int>.ID => VideoLocalID;
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.Shoko;
+
+    Stream? IVideo.GetStream()
+    {
+        if (FirstResolvedPlace is not { } fileLocation)
+            return null;
+
+        var filePath = fileLocation.FullServerPath;
+        if (string.IsNullOrEmpty(filePath))
+            return null;
+
+        if (!File.Exists(filePath))
+            return null;
+
+        return File.OpenRead(filePath);
+    }
 
     #endregion
 
@@ -208,19 +222,13 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     string IHashes.SHA1 => SHA1;
 
     #endregion
-
-    string IHash.ED2KHash
-    {
-        get => Hash;
-        set => Hash = value;
-    }
 }
 
-// This is a comparer used to sort the completeness of a videolocal, more complete first.
+// This is a comparer used to sort the completeness of a video local, more complete first.
 // Because this is only used for comparing completeness of hashes, it does NOT follow the strict equality rules
 public class VideoLocalComparer : IComparer<VideoLocal>
 {
-    public int Compare(VideoLocal x, VideoLocal y)
+    public int Compare(VideoLocal? x, VideoLocal? y)
     {
         if (x == null) return 1;
         if (y == null) return -1;

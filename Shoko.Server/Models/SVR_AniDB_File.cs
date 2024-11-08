@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;
@@ -24,22 +26,22 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     [XmlIgnore]
     public List<SVR_AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash)
-        .Select(crossref => crossref.AniDBEpisode).Where(ep => ep != null).ToList();
+        .Select(crossref => crossref.AniDBEpisode)
+        .WhereNotNull()
+        .OrderBy(ep => ep.EpisodeTypeEnum)
+        .OrderBy(ep => ep.EpisodeNumber)
+        .ToList();
 
     [XmlIgnore]
     public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
 
     // NOTE: I want to cache it, but i won't for now. not until the anidb files and release groups are stored in a non-cached repo.
     public AniDB_ReleaseGroup ReleaseGroup =>
-        RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID) ?? new()
-        {
-            GroupID = GroupID,
-            GroupName = "",
-            GroupNameShort = "",
-        };
+        RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID) ?? new() { GroupID = GroupID };
 
-    public string Anime_GroupName => ReleaseGroup?.Name;
-    public string Anime_GroupNameShort => ReleaseGroup?.ShortName;
+    public string Anime_GroupName => ReleaseGroup?.GroupName;
+
+    public string Anime_GroupNameShort => ReleaseGroup?.GroupNameShort;
 
     public string SubtitlesRAW
     {
@@ -259,18 +261,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
     int IAniDBFile.AniDBFileID => FileID;
 
     IReleaseGroup IAniDBFile.ReleaseGroup
-    {
-        get
-        {
-            var group = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
-            if (group == null)
-            {
-                return null;
-            }
-
-            return new AniDB_ReleaseGroup { GroupName = group.Name, GroupNameShort = group.ShortName };
-        }
-    }
+        => RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID) ?? new() { GroupID = GroupID };
 
     string IAniDBFile.Source => File_Source;
     string IAniDBFile.Description => File_Description;

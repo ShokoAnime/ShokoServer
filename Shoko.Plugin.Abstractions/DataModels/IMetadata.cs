@@ -1,14 +1,25 @@
 using Shoko.Plugin.Abstractions.Enums;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Base metadata interface.
+/// </summary>
 public interface IMetadata
 {
+    /// <summary>
+    /// The source of the metadata.
+    /// </summary>
     DataSourceEnum Source { get; }
 }
 
+/// <summary>
+/// Base metadata interface with an ID.
+/// </summary>
 public interface IMetadata<TId> : IMetadata where TId : struct
 {
+    /// <summary>
+    /// The ID of the metadata.
+    /// </summary>
     TId ID { get; }
 }

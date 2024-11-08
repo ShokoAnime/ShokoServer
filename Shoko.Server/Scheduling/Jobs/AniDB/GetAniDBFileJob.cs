@@ -46,9 +46,9 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
     public override string Title => "Getting AniDB File Data";
     public override Dictionary<string, object> Details => new()
     {
-        {
-            "Filename", _vlocal?.FileName ?? VideoLocalID.ToString()
-        }
+#pragma warning disable CS0618
+        { "Filename", _vlocal?.FileName ?? VideoLocalID.ToString() }
+#pragma warning restore CS0618
     };
 
     public override async Task<SVR_AniDB_File> Process()
@@ -59,7 +59,8 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
         {
             throw new AniDBBannedException
             {
-                BanType = UpdateType.UDPBan, BanExpires = _handler.BanTime?.AddHours(_handler.BanTimerResetLength)
+                BanType = UpdateType.UDPBan,
+                BanExpires = _handler.BanTime?.AddHours(_handler.BanTimerResetLength),
             };
         }
 
@@ -116,12 +117,14 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
 
         RepoFactory.AniDB_File.Save(aniFile, false);
         await CreateLanguages(response.Response);
+#pragma warning disable CS0618
         await CreateXrefs(_vlocal.FileName, response.Response);
+#pragma warning restore CS0618
 
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Response.AnimeID);
         if (anime != null)
         {
-            RepoFactory.AniDB_Anime.Save(anime, false);
+            RepoFactory.AniDB_Anime.Save(anime);
         }
 
         var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);
@@ -150,7 +153,8 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                     .Where(lang => lang.Length > 0)
                     .Select(lang => new CrossRef_Languages_AniDB_File
                     {
-                        LanguageName = lang, FileID = response.FileID
+                        LanguageName = lang,
+                        FileID = response.FileID,
                     })
                     .ToList();
                 await RepoFactory.CrossRef_Languages_AniDB_File.SaveWithOpenTransactionAsync(s, toSave);
@@ -167,7 +171,8 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                     .Where(lang => lang.Length > 0)
                     .Select(lang => new CrossRef_Subtitles_AniDB_File
                     {
-                        LanguageName = lang, FileID = response.FileID
+                        LanguageName = lang,
+                        FileID = response.FileID,
                     })
                     .ToList();
                 await RepoFactory.CrossRef_Subtitles_AniDB_File.SaveWithOpenTransactionAsync(s, toSave);
@@ -233,14 +238,12 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                     }
                 }
 
-                if (epAnimeID == null) continue;
-
                 epOrder++;
                 fileEps.Add(new SVR_CrossRef_File_Episode
                 {
                     Hash = _vlocal.Hash,
                     CrossRefSource = (int)CrossRefSource.AniDB,
-                    AnimeID = epAnimeID.Value,
+                    AnimeID = epAnimeID ?? 0,
                     EpisodeID = episode.EpisodeID,
                     Percentage = episode.Percentage,
                     EpisodeOrder = epOrder,

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Settings;
@@ -16,8 +17,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class FolderController : BaseController
 {
-    private static HashSet<string> ExcludedFormats = new()
-    {
+    private readonly ILogger<FolderController> _logger;
+
+    private static readonly HashSet<string> _excludedFormats =
+    [
         "msdos", // fat32 - might be overkill, but the esp (u)efi partition is usually formatted as such.
         "ramfs",
         "configfs",
@@ -35,7 +38,12 @@ public class FolderController : BaseController
         "proc",
         "tmpfs",
         "sysfs",
-    };
+    ];
+
+    public FolderController(ILogger<FolderController> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
+        _logger = logger;
+    }
 
     [HttpGet("MountPoints")]
     [HttpGet("Drives")]
@@ -52,8 +60,9 @@ public class FolderController : BaseController
                 {
                     fullName = d.RootDirectory.FullName;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "An exception occurred while trying to get the full name of the drive: {ex}", ex.Message);
                     return null;
                 }
 
@@ -62,12 +71,13 @@ public class FolderController : BaseController
                 {
                     driveFormat = d.DriveFormat;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogError("An exception occurred while trying to get the drive format of the drive: {ex}", ex.Message);
                     return null;
                 }
 
-                foreach (var format in ExcludedFormats)
+                foreach (var format in _excludedFormats)
                 {
                     if (driveFormat == format)
                         return null;
@@ -84,8 +94,9 @@ public class FolderController : BaseController
                         }
                         : null;
                 }
-                catch (UnauthorizedAccessException)
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "An exception occurred while trying to get the child items of the drive: {ex}", ex.Message);
                 }
 
                 return new Drive()
@@ -118,20 +129,18 @@ public class FolderController : BaseController
                 {
                     childItems = new ChildItems()
                     {
-                        Files = dir.GetFiles()?.Length ?? 0, Folders = dir.GetDirectories()?.Length ?? 0
+                        Files = dir.GetFiles()?.Length ?? 0,
+                        Folders = dir.GetDirectories()?.Length ?? 0
                     };
                 }
-                catch (UnauthorizedAccessException)
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "An exception occurred while trying to get the child items of the directory: {ex}", ex.Message);
                 }
 
                 return new Folder() { Path = dir.FullName, IsAccessible = childItems != null, Sizes = childItems };
             })
             .OrderBy(folder => folder.Path)
             .ToList();
-    }
-
-    public FolderController(ISettingsProvider settingsProvider) : base(settingsProvider)
-    {
     }
 }

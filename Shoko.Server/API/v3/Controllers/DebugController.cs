@@ -15,6 +15,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Test;
 using Shoko.Server.Settings;
 
@@ -86,6 +87,19 @@ public class DebugController : BaseController
     }
 
     /// <summary>
+    /// Fetch a specific AniDB message by the provided ID.
+    /// </summary>
+    /// <param name="id">Message ID</param>
+    /// <returns></returns>
+    [HttpGet("FetchAniDBMessage/{id}")]
+    public async Task<ActionResult> FetchAniDBMessage(int id)
+    {
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<GetAniDBMessageJob>(r => r.MessageID = id);
+        return Ok();
+    }
+
+    /// <summary>
     /// Call the AniDB UDP API using the 
     /// </summary>
     /// <remarks>
@@ -108,7 +122,7 @@ public class DebugController : BaseController
             }
 
             var fullResponse = request.Unsafe ?
-                await _udpHandler.SendDirectly(request.Command, resetPingTimer: request.IsPing) :
+                await _udpHandler.SendDirectly(request.Command, isPing: request.IsPing, isLogout: request.IsLogout) :
                 await _udpHandler.Send(request.Command);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
@@ -221,6 +235,18 @@ public class DebugController : BaseController
         }
 
         /// <summary>
+        /// Indicates that this request is a ping request.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsLogout
+        {
+            get
+            {
+                return string.Equals(Action, "LOGOUT", StringComparison.InvariantCultureIgnoreCase);
+            }
+        }
+
+        /// <summary>
         /// Indicates the request needs authentication.
         /// </summary>
         [JsonIgnore]
@@ -228,7 +254,7 @@ public class DebugController : BaseController
         {
             get
             {
-                return !IsPing && (!Payload.ContainsKey("s"));
+                return !IsPing && !Payload.ContainsKey("s");
             }
         }
 

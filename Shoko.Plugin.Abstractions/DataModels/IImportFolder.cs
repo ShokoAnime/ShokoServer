@@ -1,8 +1,8 @@
-using System;
-
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Represents an import folder.
+/// </summary>
 public interface IImportFolder
 {
     /// <summary>
@@ -21,17 +21,17 @@ public interface IImportFolder
     string Path { get; }
 
     /// <summary>
+    /// The available free space in the import folder.
+    /// </summary>
+    /// <remarks>
+    /// A value of <code>-1</code> indicates that the import folder does not
+    /// exist, while a value of <code>-2</code> indicates that free space could
+    /// not be determined.
+    /// </remarks>
+    long AvailableFreeSpace { get; }
+
+    /// <summary>
     /// The rules that this Import Folder should adhere to. E.g. a folder that is both a <see cref="DropFolderType.Source"/> and <see cref="DropFolderType.Destination"/> cares not how files are moved in or out of it.
     /// </summary>
     DropFolderType DropFolderType { get; }
-
-    #region To-be-removed
-
-    [Obsolete("Use ID instead.")]
-    int ImportFolderID { get; }
-
-    [Obsolete("Use Path instead.")]
-    string Location { get; }
-
-    #endregion
 }

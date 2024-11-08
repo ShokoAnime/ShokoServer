@@ -12,6 +12,402 @@ Known bugs
 - Languages (other than english and French) : not all words are translated, I need translators!
 - Others? https://sourceforge.net/p/mediainfo/_list/tickets
 
+Version 24.06, 2024-06-27
+-------------
++ I1881, MXF & MOV: customizable seek pos and duration of caption probe
++ I1882, CEA-608/708: option for forcing all CC1-CC4/T1 if stream is detected
++ JPEG 2000: support of HTJ2K profile
++ JPEG 2000: readout of jp2h colr atom, more file extensions, better support of broken files
++ DAT: Support of raw Digital Audio Tape
++ Enable Control Flow Guard (CFG) and Control-flow Enforcement Technology (CET)
++ Conformance checker: an element is indicated bigger than its upper element
++ Conformance checker: option for max count of items per check
+x Windows GUI: Fix unwanted deactivation of the ffmpeg plugin
+x I2086, MXF: StreamOrder for tracks in ANC
+x I2076, Dolby E: StreamOrder includes all underlying streams
+x I2087, MPEG-TS: general duration includes before and after PCR offsets
+x WavPack: various fixes for multichannel & DSD files
+x Supported platforms: this is the last version compatible with RHEL/CentOS 7, SLE 12, Debian 10, Mageia 8
+
+Version 24.05, 2024-05-30
+-------------
++ I2029, MXF: decode of VBI (Line 21 & VITC)
++ I2058, VorbisCom: show MusicBrainz IDs in XML or full text output
++ I1881, MXF & MOV: customizable seek pos and duration of caption probe
++ I2005, WavPack: support of non-standard sampling rate
++ I2021, MP4: support of Qt style AudioSampleEntry in ISO MP4
++ Conformance checker: report of malformed frames for AVC & HEVC & AAC
++ Conformance checker: an element is indicated bigger than its upper element
++ Conformance checker: Add more stream synchronization related checks
++ Conformance checker: Check coherency of MXF elements having vectors
++ Conformance checker: check of MPEG Audio sync loss in raw MP3 & truncated file
++ Conformance checker: FFV1 checks also when in AVI and MOV/MP4
++ Conformance checker: check if a TIFF file is complete
++ Conformance checker: span of frames & frame/timestamp/byte offset
+x Avoid infinite loop with distant files
+x MXF: Support of SMPTE ST 422-2019 I2
+x I2055, Dolby Vision: fix crash with some files
+x I2054, ID3v2: fix crash with some malformed files
+x FFV1: fix conformance checker crash with Golomb Rice parsing
+x AC-3: fix crash with some TrueHD files
+x I2005, WavPack: handle of small files
+x BMP: fix bitdepth info
+
+Version 24.04, 2024-04-18
+-------------
++ ADM: more AdvSS Emission profile checks
++ AC-3 & Dolby E: more AC-3 metadata readouts
++ AV1: support of chroma_sample_position
++ I1999, WAV: support of BS.2088 BW64 chunkId
++ I2008, Wavpack: support of DSD
++ I1882, CEA-608/708: options for ignoring command only streams
++ I1990, FLV: support of enhanced RTMP
+x WAV: fix support of 4+ GB ADM
+x I2005, WavPack: fix duration with small files
+x I2009, IVF: fix division by zero with buggy files
+
+Version 24.03, 2024-03-28
+-------------
++ ADM: ADM v3, including profile element, support
++ ADM: conformance checks on AdvSS Emission profile
++ Dolby E: display more AC-3 metadata items
++ MOV/MP4: parsing of rtmd (real time metadata) tracks
++ PNG: packing kind (linear or indexed)
+x WAV: support of 4+ GiB axml (useful for huge ADM content)
+x MPEG-H: fix uninitialized values leading to random behavior
+x PDF: fix crash with corrupted files
+x MOV/MP4: fix bit depth info for some PCM tracks with pcmC box
+
+Version 24.01, 2024-01-31
+-------------
++ ADM: Dolby Atmos Master ADM Profile conformance checker (technology preview)
++ Dolby Vision: support of version 3, with compression info, and profile 20
++ Dolby Vision: explicit display of profile
++ HEVC: support of multiview profile signaled in VPS extension
++ MP4: parsing of vexu (Video Extended Usage) box
++ ICC: support of CCIP in ICC in JPEG, PNG, TIFF, MP4, raw files
++ MPEG-TS: detection of VVC and EVC
++ AVC: count of slices
++ PNG: support of color description chunks (CCIP CLLI MDCV)
++ GXF: support of AVC and VC-3
++ TrueHD: display of Dolby Surround EX & Dolby Pro Logic IIz
+x Matroska: better fallback in case of buggy timecode
+x I1940, MOV/MP4: fix slowness with some unrecognized metadata atoms
+x HDR10/HDR10+: fix HDR10 info even if some characteristics are not met
+
+Version 23.11, 2023-11-30
+-------------
++ XMP: support of a couple of additional metadata
++ PNG: pixel aspect ratio, gamma, active bit depth
++ PNG: support of textual metadata
++ Detection of active width/height/DAR (based on FFmpeg), Windows only
++ Matroska: show ST-12 timecode of first frame
++ ADM: rounding of FFoA to 0 decimal and Start/End time codes to 2 decimals
++ WAV: support of big (1+ GB) axml chunks
++ ADM: support of big (1+ GB) files on 32-bit systems
+x I1876, BWF: fix missing precision in TimeReference export
+x I1607, MPEG-TS/PS: Less Inform() with Open(memory) than Open(file)
+x MP4/MOV: show right time code of last frame with complex time code tracks
+x Duration: timecode output should not use drop frame for 23.976fps
+x AVC+HEVC: fix handling of DF timestamps
+x SF1188, ID3v2: fix wrong handling of chunks having padding
+x I1887, TS DVB: fix wrong handling of UTF-8 strings in service name
+x I1892, Matroska: fix date readout if before the millennium
+
+Version 23.10, 2023-10-04
+-------------
++ Italian language update
++ Languages: add 'fil' (Filipino)
++ Support of MPEG-H in MPEG-TS
++ MOV/MP4: caption probing time expanded from ~15s to ~30s
++ MPEG-7 and DVD-Video: provide title duration based on frame rate
++ WAV: better display of buggy WAV files have 2 fmt/data chunks
+x MOV/MP4: fix lack of detection of CEA-608/708 if junk at end of stream
+x DVD-Video: fix duration if more than 1 menu
+
+Version 23.09, 2023-09-14
+-------------
++ DTS-UHD support (contribution from Xperi)
++ MPEG-7 output update, supporting collections for DVD Video
++ ISO 9660: more metadata
++ AVC: read out of time code
+x DVD Video: better support of ISO having several episodes
+x MPEG Video: fix duration not including last field duration (interlaced content only)
+x I754, AVC&HEVC: fix risk of crash with some streams
+
+Version 23.07, 2023-07-12
+-------------
++ USAC conformance checker: update DRC presence check
++ USAC conformance checker: sbgp presence check
++ USAC conformance checker: difference between extra zero bytes and other extra bytes
++ ISO 9660: support of DVD video, with option for listing all contents
++ MPEG-7: support of collections (beta)
++ More Blackmagic RAW meta kinds
++ DTS-HD: DTSHDHDR header support (used for raw DTS-HD files)
+x ADIF: fix wrong detection of lot of files as ADIF (Android and MediaInfoOnline)
+x USAC conformance checker: fix arith context handling in some corner cases
+x ADM: some tweaks about FFoA/Start/End time codes
+x Remove curl default ca info message in stdout
+
+Version 23.06, 2023-06-28
+-------------
++ USAC/xHE-AAC conformance checker
++ S-ADM: support of SMPTE ST 2127-1 / SMPTE ST 2109 / SMPTE ST 2127-10 (S-ADM in MGA in MXF)
++ S-ADM: add S-ADM version and support of 1/1.001 frame rates
++ ADM: show FFoA/Start/End as timestamp and timecode
++ MPEG-7 output update with more extensions
++ MPEG-TS: support of JPEG XS
++ DTS-UHD: support of DTS-UHD (a.k.a. DTS-X P2) in MP4
++ MP4: detection of VVC
++ MP4: support of media characteristicd (spoken dialog, translation, easy to read...)
++ MP4: support of more Blackmagic RAW Codec IDs
++ MP4: support of ipcm CodecID
++ MP4: support of service kind
++ HEVC: support of SMPTE ST 2094-10
++ HDR: display of all formats if more than 1 format is detected
++ Matroska: support of SMPTE ST 12 in block additions
++ HEVC: time code SEI readout
++ AVC & HEVC: active format description readout
++ MPEG-TS: support of SMPTE ST 2038 (ancillary data)
+x ADM/Dolby: fix wrong FFoA with 1.001 frame rates
++ MOV/MP4: more info with tracks having unknown type
+x MOV/MP4: avoid to parse too much content with non stripped timecodes
+x MOV/MP4: avoid incoherent behavior if 2 tracks have the same ID
+x TTML: fix default frame rate
+x TimeCode: 1/1.001 frame rate was not always detected
+x MediaTrace: fix some random blank outputs
+x URL: remove query part of the URL in the FileExtension field
+x Referenced files: fix handling of URL encoded with UTF-8 content
+x Matroska: fix crash in support of HDR10+
+
+Version 23.04, 2023-04-26
+-------------
++ MXF: support of SMPTE ST 381-4 (AAC in MXF)
++ DTS: show MA or HRA tip in commercial name for DTS:X
++ DTS: detection of DTS:X not lossless
++ APT-X100 a.k.a. Cinema DTS: initial support
++ Matroska: support of HDR10+
++ MP4: more information about thumbnails
++ ID3v2: more information about thumbnails
++ VP9: initial support, for more information about chroma subsampling
++ AWS S3: support for reference files with AccessID:SecretKey@URL
++ Windows: fix some download errors with AWS S3 objects (libcurl update)
+x AWS S3: fix errors with some special chars in SecretKey
+x AWS S3: fix random credential issues with non geolocated URLs
+x DTS: fix freeze with some DTS-HD not DTS:X files
+x MPEG-TS: fix crash in HEVC_timing_and_HRD
+x AAC: fix samples per frame with SBR streams
+x FLAC: fix missing Tbc Tbr in ChannelLayout
+
+Version 23.03, 2023-03-29
+-------------
++ DTS: Detection of IMAX Enhanced
++ MOV/MP4: Add HDR Vivid format support
++ HEVC: Add HDR Vivid format support
++ MXF/PCM: detect silent tracks (full parsing only)
++ Monkey's Audio: support of 32-bit files, show version
++ MP4 audioProfileLevelIndication: add Low Delay AAC v2 Profile
++ MP4/MOV: support of FLAC
++ MOV/MP4: support of TTML with images
++ MPEG-7: 3 modes (strict, relaxed, extended)
++ MPEG-7: more sub-termIDs (AudioPresentationCS)
++ MPEG-7: Add more PublicIdentifiers
++ MPEG-7: more sub-termIDs (MP4, WAV, AVC, ProRes)
++ AVI/WAV: display of the kind of fmt chunk
++ AVC: detection of more profiles
++ ChannelLayout: difference between M (Mono) and C (Center, part of multichannel content)
++ AC-3: detection of channel layout also for encrypted content
++ AC-4 and MPEG-H 3D Audio: Merged channel layout (all sub-streams together)
++ DTS: Detection of real bit depth e.g. 20 instead of only byte aligned bit depth (16 or 24)
++ FLAC: support of BWF in Vorbis comments
++ N19/STL: codepage, subtitle count, max line per subtitle, more metadata
++ ISAN: detection of descriptions referencing an ISAN
++ AAC: detection of eSBR (and fix of random wrong PS detection)
++ Extract of time codes, XML format, currently only for for MXF
+x MP4/MOV: fix freezes with some unknown udta atoms
+x FLV: fix duration of 0 with some buggy files
+x AVC: fix PTS of last frame
+x FFV1: fix potential crash with malformed files
+x AV1: add HDR format line and fix HDR values
+x AAC and WAV: fix of channel layout display for 5 front channels
+x AC-4: Tl/Tr mapped to to Tsl/Tsr
+x FLAC: fix sampling count
+x ID3v2: fix Genre not showing ID 0 (Blues)
+x MPEG-7: VBR fix
+x JSON/XML: Remove minus sign from element names
+x Normalization of date/time in report
+
+Version 22.12, 2022-12-22
+-------------
++ WebVTT: more information (duration, start/end timestamp, count of lines...)
++ MP4/MOV: support of FLAC
++ MP4/MOV: support of LanguageIETF
++ ProRes: parse FFmpeg glbl atom for getting color range
++ AVI/WAV: detection of character set
++ WAV: display MD5 of raw content
++ FLAC: display MD5 of unencoded content
++ USAC: trace of UsacFrame() up to after preroll
++ MOV/MP4: option for parsing only the header, no parsing of any frame
++ MXF: option for parsing only the header, no parsing of any frame
+x MXF: quicker parsing when fast parsing is requested
+x I662, WAV: fix false-positive detection of DTS in PCM
+x I1637, MPEG-Audio: proper support of Helix MP3 encoder detection and encoder settings
+x I661, MXF: fix UKDPP FpaPass value sometimes not outputted
+x S1182, Teletext subtitle: prioritize subtitle metadata other overs
+x Matroska: Better handling in case of buggy AVC stream
+x 22.2 audio: Fix name of 1 channel (Tll --> Tsl)
+x AAC: fix wrong parsing of some bitstreams
+x Fix crash with stdin input and ctrl-c
+x Fix memory leak in JSON output
+
+Version 22.09, 2022-10-04
+-------------
++ Italian language update
++ USAC: IOD and sampling rate coherency checking
++ ADM: support of nested objects and complementary objects
++ AC-4: Display of Custom downmix targets
++ IAB: Parsing of IAB bitstream and ADM-like output
++ Frame rate: store FrameRate_Num/Den also for integer values
++ MPEG-4/MOV: support of time codes >30 fps
++ MOV/MPEG-4: List of QuickTime time code discontinuities
++ Dolby Vision: add info about more profiles
+x Text streams: show stream frame rate if not same as container frame rate
+x CDP: fix rounding of frame rate
+x SCC: fix of CEA-608 FirstDisplay_Delay_Frames
+x SCC: fix TimeCode_Last
+x MPEG-4/MOV: last time code value for all kind of QuickTime time codes
+x MOV/MPEG-4: Fix frame count for NDF non-integer frame rates
+x JSON: fix invalid output in some corner cases
+x Several other parsing bug/crash fixes (thanks to fuzzing by users)
+
+Version 22.06, 2022-06-23
+-------------
++ MXF: FFV1 support
++ Dolby Vision: add info about more profiles
++ AAC: check of missing ID_END and incoherent count of channels
++ NSV: better handling of buggy StarDiva agenda negative timestamps
++ Text: Show text frame rate
++ Text: frame rate precise numerator/denominator also for text streams
++ CDP: readout of display aspect ratio
++ MPEG-4/MOV: support of time codes >30 fps
++ TTML: Support of more timeExpression flavors
+x ADM: correctly map Dolby binaural render mode to track UID
+x Dolby Audio Metadata: first frame of action in HH:MM:SS:FF format
+x Dolby Vision: profiles and levels in decimal rather than in hexadecimal
+x MXF: fix of Dolby Vision Metadata not displayed if HDR10 metadata is present
+x MPEG-4/MOV: avoid buggy frame rates by taking frame rate from stts atom
+x CDP: better catching of wrong line21_field value
+x NSV: better handling of invalid frames
+x MXF: Include frame count in SDTI and SystemScheme1 time codes to time stamp conversion
+x TTML: do not show frame rate if it is from MediaInfo options
+x DV: timecode trace in HH:MM:SS:FF format
+
+Version 22.03, 2022-03-31
+-------------
++ NSV (Nullsoft Video): full featured support
++ NSV: support of proprietary StarDiva metadata (by reverse engineering)
++ HEVC: CEA-608/708 support
++ Dolby Audio Metadata: First frame of action, binaural render modes
++ Dolby Audio Metadata: 5.1 and 5.1.x downmix, 5.1 to 2.0 downmix, associated video frame rate, trim modes
++ MOV/MP4, TTML, SCC, MXF TC: time code of last frame
++ EIA-608: first displayed caption type
++ EIA-608: Maximum count of lines per event and total count of lines
++ EIA-608: duration of the visible content
++ TTML: Total count of lines
++ TTML: Maximum count of lines per event (including overlapping times)
++ TTML: Frame count, display aspect ratio
++ TTML: Support of timestamps in frames
++ SCC: Delay
++ Matroska: Encoding settings metadata support
++ MOV/MP4: Gamma metadata output
++ MPEG-4/MOV: difference between audio Center and Mono when possible
++ MP4/MOV: Support of dec3 atom in wave atom
++ MPEG-4/MOV: show both values in case of chan atom ChannelLayoutTag / ChannelDescriptions mismatch
++ MP4/MOV: Support of dec3 atom in wave atom
++ MXF: better support of AVC streams without SPS/PPS
++ ADM: display channel index of trackUIDs
+x WAV: fix freeze with 32-bit PCM
+x DPX: fix regression with DPX files more than 64 MB
+x Dolby E: fix crash with some invalid streams
+x E-AC-3: service kind was not correctly handled
+x EXR: fix of bad handling of files with long names in attributes
+x TTML: correct handling of 29.97 DF time codes
+x AV1: fix of the parsing of some streams, especially the ones with HDR metadata
+x WebVTT: was not correctly handling WebVTT header with comment
+x Matroska: fix false positive detection of bad CRC32
+x Several other parsing bug/crash fixes
+
+Version 21.09, 2021-09-17
+-------------
++ Graph view for 3D audio streams (thanks to graphviz)
++ ADM: full featured support (programmes, content, objects, pack formats...)
++ ADM: in WAV (axml, bxml), MXF
++ S-ADM in AES3: support of Levels A1 and AX1
++ MOV/MP4: support of Dolby Vision Metadata XML
++ MXF: detection of IAB
++ SMPTE ST 337 (AES3): support of subframe mode
++ HEVC: CEA-608/708 caption support
++ MP4/QuickTime: Android slow motion real frame rate
++ JSON output: add creatingLibrary field
+x MPEG-4: read too much data with some predecessor definitions
+x EBUCore: fix of fields order and types
+
+Version 21.03, 2021-03-26
+-------------
++ WAV: ADM profile detection of Dolby Atmos Master or MPEG-H
++ SMPTE ST 337: support of AC-4
++ AC-3/AC-4: show top layer channels after Lw/Rw, as it becomes the defacto standard layout
++ Dolby Surround EX and Pro Logic IIz detection
++ Matroska: add DV support
++ CLI: read from stdin
++ DV: remove check of zeroed bytes in timecode, considered again as valid timecode
++ TIFF; add support of compression codes 7 and 8
++ WAV: show bext (BWF) version in verbose mode / XML / JSON
++ MXF: detection fo DCI P3 mastering display color primaries
++ Options: add software version to text output
++ Options: add report creation timestamp to text output
++ macOS: native build for Apple Silicon (arm64)
+x HDR: mastering max. luminance precision was wrong
+x WM: fix EncodingTime parsing
+x MOV/MP4: skip XMP huge atoms, fix
+x MPEG-TS: fix inverted supplementary_audio_descriptor mix_type values
+x AAC: fix File_Aac::is_intensity according to ISO/IEC 14496-3:2009
+x I1353, MP4: Skip user data Xtra and free atoms
+x FFV1: fix crash with some bitstreams parsing
+x TIFF: fix division by 0
+x RF64: fix the WAV malformed chunk size test
+x Supported platforms: this is the last version compatible with Windows XP, macOS 10.5-10.9, RHEL/CentOS 6
+
+Version 20.09, 2020-10-09
+-------------
++ Dolby ED2: full featured support (presentations, presentation targets, beds, objects)
++ MKV: support of Dolby Vision metadata
++ MXF: detection of Dolby E hidden in PCM tracks having more than 2 channels
++ WAV: detection of Dolby E hidden in PCM tracks having more than 2 channels
++ CineForm: display of color space (including Bayer), bit depth
+x WAV: more precise sample count
+x SMPTE ST 337: catch of streams starting later than usual (probing increased from 4 to 16 PCM "frames")
+x PNG: detection of additional alpha plane in color space
+x MXF: detection of additional alpha plane in color space
+x AVI: detection of additional alpha plane in color space
+x MPEG Audio: was wrongly flagging Xing info tag as CBR
+x VorbisTag: does not skip DISCID
+x Miscellaneous bug/crash fixes
+
+Version 20.08, 2020-08-11
+-------------
++ MPEG-H 3D Audio full featured support (group presets, switch groups, groups, signal groups)
++ MP4/MOV: support of more metadata locations
++ JSON and XML outputs: authorize "complete" output
++ MPEG-4: support of TrueHD
++ WM: show legacy value of performer if not same as modern one
++ WAV: trace of adtl (Associated Data List) chunk
+x URL encoding detection fix for URL having a query part (issue with e.g. pre-signed AWS S3 URLs)
+x Don't try to seek to the end (false positive range related error with HTTP)
+x DPX: don't load the whole file in RAM
+x Opus: fix wrong channel mapping
+x Miscellaneous other bug fixes
+
 Version 20.03, 2020-04-03
 -------------
 + AC-4 full featured support (presentations, groups, substreams)

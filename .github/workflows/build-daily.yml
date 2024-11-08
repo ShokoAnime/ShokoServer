@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
   current_info:
     runs-on: ubuntu-latest
@@ -12,32 +15,49 @@ jobs:
     name: Current Information
 
     outputs:
+      tag: ${{ steps.release_info.outputs.tag }}
       version: ${{ steps.release_info.outputs.version }}
       date: ${{ steps.commit_date_iso8601.outputs.date }}
       sha: ${{ github.sha }}
       sha_short: ${{ steps.commit_info.outputs.sha }}
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
+      - name: Get Commit Date (as ISO8601)
+        id: commit_date_iso8601
+        shell: bash
+        env:
+          TZ: UTC0
+        run: |
+          echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
+      - name: Get Previous Version
+        id: previous_release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: false
+          prefix: "v"
+          prefixRegex: "[vV]?"
+          suffixRegex: "dev"
+          suffix: "dev"
+
       - name: Get Current Version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          branch: true
-          prefix: v
+          branch: false
+          increment: "suffix"
+          prefix: "v"
           prefixRegex: "[vV]?"
+          suffixRegex: "dev"
+          suffix: "dev"
 
-      - name: Get Commit Date (as ISO8601)
-        id: commit_date_iso8601
-        shell: bash
-        run: |
-          echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})" >> "$GITHUB_OUTPUT"
       - id: commit_info
         name: Shorten Commit Hash
         uses: actions/github-script@v6
@@ -67,7 +87,7 @@ jobs:
     name: Build CLI — ${{ matrix.build_type }} ${{ matrix.rid }} (Daily)
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
@@ -77,6 +97,7 @@ jobs:
         shell: pwsh
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Set up QEMU
@@ -90,12 +111,12 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net8.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }},\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net8.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}.zip
+          name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}
           path: Shoko.Server/bin/Release/net8.0/${{matrix.rid}}/publish/
 
   tray-service-daily:
@@ -109,7 +130,7 @@ jobs:
         dotnet: [ '8.x' ]
         build_type: ['Standalone', 'Framework']
         include:
-          - build_props: '-r win-x64 --self-contained true -f net8.0-windows'
+          - build_props: '-r win-x64 --self-contained true'
             build_type: 'Standalone'
           - build_dir: '/net8.0-windows/win-x64'
             build_type: 'Standalone'
@@ -121,7 +142,7 @@ jobs:
     name: Build Tray Service ${{ matrix.build_type }} (Daily)
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
@@ -131,6 +152,7 @@ jobs:
         shell: pwsh
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
@@ -138,25 +160,19 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: Shoko.TrayService_${{ matrix.build_type }}_win-x64.zip
+          name: Shoko.TrayService_${{ matrix.build_type }}_win-x64
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
-
-      - name: Upload to shokoanime.com
-        if: ${{ matrix.build_type == 'Standalone' }}
-        shell: pwsh
-        env:
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        run : Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0-windows\\win-x64\\publish .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   docker-daily-build:
     runs-on: ubuntu-latest
+
+    needs:
+      - current_info
 
     strategy:
       fail-fast: false
@@ -170,11 +186,8 @@ jobs:
 
     name: Build Docker Image - ${{ matrix.arch }} (Daily)
 
-    needs:
-      - current_info
-
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
@@ -184,6 +197,7 @@ jobs:
         shell: pwsh
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - uses: docker/setup-qemu-action@v2
@@ -226,6 +240,7 @@ jobs:
             channel=dev
             commit=${{ needs.current_info.outputs.sha }}
             date=${{ needs.current_info.outputs.date }}
+            tag=${{ needs.current_info.outputs.tag }}
           provenance: false
 
   docker-daily-push_manifest:
@@ -260,7 +275,7 @@ jobs:
           docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:daily
           docker manifest push ${{ secrets.DOCKER_REPO }}:daily
 
-  sentry-upload:
+  add-tag:
     runs-on: ubuntu-latest
 
     needs:
@@ -269,17 +284,39 @@ jobs:
       - tray-service-daily
       - docker-daily-push_manifest
 
+    name: Add tag for pre-release
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Push pre-release tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{ needs.current_info.outputs.tag }}
+          message: Shoko Server v${{ needs.current_info.outputs.version }} Pre-Release
+
+  sentry-upload:
+    runs-on: ubuntu-latest
+
+    needs:
+      - current_info
+      - add-tag
+
     name: Upload version info to Sentry.io
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
 
       # Only add the release to sentry if the build is successful.
-      - name: Push Sentry Release "${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}"
+      - name: Push Sentry Release "${{ needs.current_info.outputs.version }}"
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -288,7 +325,36 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'dev'
-          version: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
+          version: ${{ needs.current_info.outputs.version }}
+
+  upload-site:
+    runs-on: windows-latest
+    continue-on-error: true
+
+    needs:
+      - sentry-upload
+
+    name: Upload archive to site
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Shoko.TrayService_Standalone_win-x64
+          path: ShokoServer
+
+      - name: Upload daily archive to site
+        shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run : Compress-Archive .\\ShokoServer .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   discord-notify:
     runs-on: ubuntu-latest
@@ -306,7 +372,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
+          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "CHANGELOG<<$EOF" >> "$GITHUB_OUTPUT"
@@ -326,7 +392,7 @@ jobs:
           embed-author-icon-url: https://raw.githubusercontent.com/${{ github.repository }}/master/.github/images/Shoko.png
           embed-author-url: https://github.com/${{ github.repository }}
           embed-description: |
-            **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
+            **Version**: `${{ needs.current_info.outputs.version }}` (`${{ needs.current_info.outputs.sha_short }}`)
 
             Update by grabbing the latest daily from [our site](https://shokoanime.com/downloads/shoko-server) or through Docker using the `shokoanime/server:daily` tag!
 

@@ -1,0 +1,18 @@
+name: Cleanup untagged docker images
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Schedule to run at 00:50 every Sunday
+    - cron: '50 0 * * 0'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'server'
+          package-type: 'container'
+          min-versions-to-keep: 50
+          delete-only-untagged-versions: 'true'

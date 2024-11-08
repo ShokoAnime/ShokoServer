@@ -65,13 +65,13 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
               FROM {TablePrefixSubst}{TableTriggers} t
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
 
-    private const string SelectBlockedTypeCountsSql= @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
+    private const string SelectBlockedTypeCountsSql = @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND (({ColumnTriggerState} = '{StateWaiting}' AND jd.{ColumnJobClass} IN (@types)) OR {ColumnTriggerState} = '{StateBlocked}') AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
               GROUP BY jd.{ColumnJobClass} HAVING COUNT(1) > 0";
 
-    private const string SelectJobClassesAndCountSql= @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
+    private const string SelectJobClassesAndCountSql = @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
@@ -445,11 +445,10 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
             var jobDataMap = map != null ? new JobDataMap(map) : null;
             var blocked = GetBooleanFromDbValue(rs[Blocked]);
 
-            var job = new JobDetail
+            var job = new JobDetail(jobType)
             {
                 Name = jobName,
                 Group = jobGroup!,
-                JobType = new JobType(jobType),
                 Description = description,
                 RequestsRecovery = requestsRecovery,
                 JobDataMap = jobDataMap!
@@ -527,7 +526,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         var map = ConvertFromProperty(properties);
         return map;
     }
-    
+
     private static string GetString(IDataReader reader, string columnName)
     {
         var columnValue = reader[columnName];
@@ -535,7 +534,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         {
             return null;
         }
-        return (string) columnValue;
+        return (string)columnValue;
     }
 
     /// <summary>

@@ -6,48 +6,137 @@ namespace Shoko.Server.Settings;
 
 public interface IServerSettings
 {
-    static string ApplicationPath { get; set; }
-    ushort ServerPort { get; set; }
-    string Culture { get; set; }
-    string WebUI_Settings { get; set; }
-    bool FirstRun { get; set; }
-    int LegacyRenamerMaxEpisodeLength { get; set; }
-    LogRotatorSettings LogRotator { get; set; }
-    DatabaseSettings Database { get; set; }
-    QuartzSettings Quartz { get; set; }
-    AniDbSettings AniDb { get; set; }
-    WebCacheSettings WebCache { get; set; }
-    TvDBSettings TvDB { get; set; }
-    MovieDbSettings MovieDb { get; set; }
-    ImportSettings Import { get; set; }
-    PlexSettings Plex { get; set; }
-    PluginSettings Plugins { get; set; }
-    TraktSettings TraktTv { get; set; }
-    LinuxSettings Linux { get; set; }
-    FileQualityPreferences FileQualityPreferences { get; set; }
-    ConnectivitySettings Connectivity { get; set; }
-    bool AutoGroupSeries { get; set; }
-    List<string> AutoGroupSeriesRelationExclusions { get; set; }
-    bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
-    bool FileQualityFilterEnabled { get; set; }
-    List<string> LanguagePreference { get; set; }
-    List<string> EpisodeLanguagePreference { get; set; }
-    bool LanguageUseSynonyms { get; set; }
-    int CloudWatcherTime { get; set; }
-    DataSourceType EpisodeTitleSource { get; set; }
-    DataSourceType SeriesDescriptionSource { get; set; }
-    DataSourceType SeriesNameSource { get; set; }
     /// <summary>
     /// Path where the images are stored. If set to <c>null</c> then it will use
     /// the default location.
     /// </summary>
+    /// <remarks>
+    /// The default location is the "Images" folder in the same directory as the executable.
+    /// </remarks>
     string ImagesPath { get; set; }
+
+    /// <summary>
+    /// The port number to listen on for web requests.
+    /// </summary>
+    ushort ServerPort { get; set; }
+
+    /// <summary>
+    /// The culture to use when formatting strings.
+    /// </summary>
+    string Culture { get; set; }
+
+    /// <summary>
+    /// Indicates this the first time the server has been started.
+    /// </summary>
+    bool FirstRun { get; set; }
+
+    /// <summary>
+    /// Auto group series based on the detected relation.
+    /// </summary>
+    bool AutoGroupSeries { get; set; }
+
+    /// <summary>
+    /// The list of relation types to exclude from auto grouping.
+    /// </summary>
+    List<string> AutoGroupSeriesRelationExclusions { get; set; }
+
+    /// <summary>
+    /// Use the score algorithm for auto grouping.
+    /// </summary>
+    bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
+
     /// <summary>
     /// Load image metadata from the file system and send to the clients.
     /// </summary>
     bool LoadImageMetadata { get; set; }
-    string UpdateChannel { get; set; }
-    bool TraceLog { get; set; }
+
+    /// <summary>
+    /// The timeout in seconds for the caching database.
+    /// </summary>
     int CachingDatabaseTimeout { get; set; }
+
+    /// <summary>
+    /// The database settings.
+    /// </summary>
+    DatabaseSettings Database { get; set; }
+
+    /// <summary>
+    /// The Quartz.NET settings.
+    /// </summary>
+    QuartzSettings Quartz { get; set; }
+
+    /// <summary>
+    /// The connectivity settings.
+    /// </summary>
+    ConnectivitySettings Connectivity { get; set; }
+
+    /// <summary>
+    /// The language settings.
+    /// </summary>
+    LanguageSettings Language { get; set; }
+
+    /// <summary>
+    /// The AniDB settings.
+    /// </summary>
+    AniDbSettings AniDb { get; set; }
+
+    /// <summary>
+    /// The TMDB settings.
+    /// </summary>
+    TMDBSettings TMDB { get; set; }
+
+    /// <summary>
+    /// The import settings.
+    /// </summary>
+    ImportSettings Import { get; set; }
+
+    /// <summary>
+    /// The Plex settings.
+    /// </summary>
+    PlexSettings Plex { get; set; }
+
+    /// <summary>
+    /// The TraktTV settings.
+    /// </summary>
+    TraktSettings TraktTv { get; set; }
+
+    /// <summary>
+    /// The plugin settings.
+    /// </summary>
+    PluginSettings Plugins { get; set; }
+
+    /// <summary>
+    /// Filter out video files based on quality.
+    /// </summary>
+    bool FileQualityFilterEnabled { get; set; }
+
+    /// <summary>
+    /// The file quality preferences.
+    /// </summary>
+    FileQualityPreferences FileQualityPreferences { get; set; }
+
+    /// <summary>
+    /// The log rotator settings.
+    /// </summary>
+    LogRotatorSettings LogRotator { get; set; }
+
+    /// <summary>
+    /// Linux runtime settings. Windows users can ignore this.
+    /// </summary>
+    LinuxSettings Linux { get; set; }
+
+    /// <summary>
+    /// The web UI settings, as a stringified JSON object.
+    /// </summary>
+    string WebUI_Settings { get; set; }
+
+    /// <summary>
+    /// Indicates if trace logging enabled.
+    /// </summary>
+    bool TraceLog { get; set; }
+
+    /// <summary>
+    /// Opt out of sending error reports to Sentry.
+    /// </summary>
     bool SentryOptOut { get; set; }
 }

@@ -13,14 +13,17 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
@@ -40,17 +43,17 @@ public class AnimeCreator
 
 
 #pragma warning disable CS0618
-    public async Task<(bool animeUpdated, ISet<int> episodesAddedOrUpdated)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, Dictionary<SVR_AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
-        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, new HashSet<int>());
+        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, []);
         var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
         try
         {
             // check if we updated in a lock
             var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, new HashSet<int>());
+            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, []);
 
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
@@ -66,13 +69,13 @@ public class AnimeCreator
                 _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                                  "This is not an error on our end. It is AniDB's issue, " +
                                  "as they did not return either an ID or a title for the anime");
-                return (false, new HashSet<int>());
+                return (false, false, false, []);
             }
 
             var taskTimer = Stopwatch.StartNew();
             var totalTimer = Stopwatch.StartNew();
-            var updated = PopulateAnime(response.Anime, anime);
-            RepoFactory.AniDB_Anime.Save(anime, false);
+            var (updated, descriptionUpdated) = PopulateAnime(response.Anime, anime);
+            RepoFactory.AniDB_Anime.Save(anime);
 
             taskTimer.Stop();
             _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
@@ -87,7 +90,8 @@ public class AnimeCreator
             _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            updated = CreateTitles(response.Titles, anime) || updated;
+            var titlesUpdated = CreateTitles(response.Titles, anime);
+            updated = updated || titlesUpdated;
             taskTimer.Stop();
             _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -135,7 +139,7 @@ public class AnimeCreator
             _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
             _logger.LogTrace("------------------------------------------------");
 
-            return (updated, updated ? response.Episodes.Select(ep => ep.EpisodeID).ToHashSet() : updatedEpisodes);
+            return (updated, titlesUpdated, descriptionUpdated, updatedEpisodes);
         }
         catch (Exception ex)
         {
@@ -150,9 +154,10 @@ public class AnimeCreator
     }
 #pragma warning restore CS0618
 
-    private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
+    private static (bool animeUpdated, bool descriptionUpdated) PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
     {
         var isUpdated = false;
+        var descriptionUpdated = false;
         var isNew = anime.AnimeID == 0 || anime.AniDB_AnimeID == 0;
         var description = animeInfo.Description ?? string.Empty;
         var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
@@ -202,6 +207,7 @@ public class AnimeCreator
         {
             anime.Description = description;
             isUpdated = true;
+            descriptionUpdated = true;
         }
 
         if (anime.EndDate != animeInfo.EndDate)
@@ -252,9 +258,9 @@ public class AnimeCreator
             isUpdated = true;
         }
 
-        if (anime.Restricted != animeInfo.Restricted)
+        if (anime.IsRestricted != animeInfo.IsRestricted)
         {
-            anime.Restricted = animeInfo.Restricted;
+            anime.IsRestricted = animeInfo.IsRestricted;
             isUpdated = true;
         }
 
@@ -302,13 +308,13 @@ public class AnimeCreator
 #pragma warning restore CS0618
         }
 
-        return isUpdated;
+        return (isUpdated, descriptionUpdated);
     }
 
-    private async Task<(bool, ISet<int>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task<(bool, Dictionary<SVR_AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
-            return (false, new HashSet<int>());
+            return (false, []);
 
         var episodeCountSpecial = 0;
         var episodeCountNormal = 0;
@@ -490,8 +496,7 @@ public class AnimeCreator
         var anidbFilesToRemove = new List<SVR_AniDB_File>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
         var videosToRefetch = new List<SVR_VideoLocal>();
-        var tvdbXRefsToRemove = new List<CrossRef_AniDB_TvDB_Episode>();
-        var tvdbXRefOverridesToRemove = new List<CrossRef_AniDB_TvDB_Episode_Override>();
+        var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         if (correctSeries != null)
             shokoSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);
         foreach (var episode in epsToSave)
@@ -530,13 +535,11 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
                 .Where(anidbFile => anidbFile != null)
                 .ToList();
-            var tvdbXRefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(episode.EpisodeID);
-            var tvdbXRefOverrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(episode.EpisodeID);
+            var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             anidbFilesToRemove.AddRange(anidbFiles);
-            tvdbXRefsToRemove.AddRange(tvdbXRefs);
-            tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
+            tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
         shokoSeriesDict.Clear();
 
@@ -558,13 +561,11 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
                 .Where(anidbFile => anidbFile != null)
                 .ToList();
-            var tvdbXRefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(episode.EpisodeID);
-            var tvdbXRefOverrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(episode.EpisodeID);
+            var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             anidbFilesToRemove.AddRange(anidbFiles);
-            tvdbXRefsToRemove.AddRange(tvdbXRefs);
-            tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
+            tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
 
         RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
@@ -575,8 +576,7 @@ public class AnimeCreator
         RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
-        RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(tvdbXRefsToRemove);
-        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(tvdbXRefOverridesToRemove);
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXRefsToRemove);
 
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
@@ -597,15 +597,13 @@ public class AnimeCreator
         anime.EpisodeCountSpecial = episodeCountSpecial;
         anime.EpisodeCount = episodeCount;
 
-        // Emit anidb episode updated events.
-        foreach (var (episode, reason) in episodeEventsToEmit)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, reason);
+        // Add removed episodes to the dictionary.
         foreach (var episode in epsToRemove)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, UpdateReason.Removed);
+            episodeEventsToEmit.Add(episode, UpdateReason.Removed);
 
         return (
             episodeEventsToEmit.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0,
-            episodeEventsToEmit.Keys.Select(a => a.EpisodeID).ToHashSet()
+            episodeEventsToEmit
         );
     }
 
@@ -796,11 +794,11 @@ public class AnimeCreator
         }
 
         // delete existing relationships to seiyuu's
-        var charSeiyuusToDelete = chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharacterID)).ToList();
+        var charSeiyuusToDelete = chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Creator.GetByCharacterID(rawchar.CharacterID)).ToList();
 
         try
         {
-            RepoFactory.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
+            RepoFactory.AniDB_Character_Creator.Delete(charSeiyuusToDelete);
         }
         catch (Exception ex)
         {
@@ -810,8 +808,9 @@ public class AnimeCreator
         var chrsToSave = new List<AniDB_Character>();
         var xrefsToSave = new List<AniDB_Anime_Character>();
 
-        var seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
-        var seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
+        var creatorsToSchedule = new HashSet<int>();
+        var creatorsToSave = new Dictionary<int, AniDB_Creator>();
+        var creatorXrefToSave = new List<AniDB_Character_Creator>();
 
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
         var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
@@ -861,7 +860,7 @@ public class AnimeCreator
                         Name = chr.CharName,
                         AlternateName = rawchar.CharacterKanjiName,
                         Description = chr.CharDescription,
-                        ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
+                        ImagePath = chr.GetFullImagePath()?.Replace(charBasePath, "")
                     };
                     // we need an ID for xref
                     RepoFactory.AnimeCharacter.Save(character);
@@ -885,6 +884,7 @@ public class AnimeCreator
                     }
                 }
 
+                var settings = _settingsProvider.GetSettings();
                 foreach (var seiyuuGrouping in seiyuuLookup)
                 {
                     try
@@ -892,27 +892,39 @@ public class AnimeCreator
                         var rawSeiyuu = seiyuuGrouping.FirstOrDefault();
                         // save the link between character and seiyuu
                         // this should always be null
-                        seiyuuXrefToSave.Add(new AniDB_Character_Seiyuu { CharID = chr.CharID, SeiyuuID = rawSeiyuu.SeiyuuID });
+                        creatorXrefToSave.Add(new() { CharacterID = chr.CharID, CreatorID = rawSeiyuu.SeiyuuID });
 
                         // save the seiyuu
-                        var seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(rawSeiyuu.SeiyuuID) ?? new AniDB_Seiyuu();
+                        var creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawSeiyuu.SeiyuuID) ?? new()
+                        {
+                            CreatorID = rawSeiyuu.SeiyuuID,
+                            Name = rawSeiyuu.SeiyuuName,
+                            Type = CreatorType.Unknown,
+                            ImagePath = rawSeiyuu.PicName,
+                        };
+                        if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
+                            creator.Name = rawSeiyuu.SeiyuuName;
 
-                        seiyuu.PicName = rawSeiyuu.PicName;
-                        seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
-                        seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
-                        seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
+                        creatorsToSave[creator.CreatorID] = creator;
+                        if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
+                            creatorsToSchedule.Add(creator.CreatorID);
 
-                        var staff = RepoFactory.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
+                        var staff = RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID);
                         if (staff == null)
                         {
                             staff = new AnimeStaff
                             {
                                 // Unfortunately, most of the info is not provided
-                                AniDBID = seiyuu.SeiyuuID,
+                                AniDBID = creator.CreatorID,
                                 Name = rawSeiyuu.SeiyuuName,
-                                ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
+                                ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, "")
                             };
                             // we need an ID for xref
+                            RepoFactory.AnimeStaff.Save(staff);
+                        }
+                        else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
+                        {
+                            staff.Name = rawSeiyuu.SeiyuuName;
                             RepoFactory.AnimeStaff.Save(staff);
                         }
 
@@ -957,13 +969,15 @@ public class AnimeCreator
         {
             RepoFactory.AniDB_Character.Save(chrsToSave);
             RepoFactory.AniDB_Anime_Character.Save(xrefsToSave);
-            RepoFactory.AniDB_Seiyuu.Save(seiyuuToSave.Values.ToList());
-            RepoFactory.AniDB_Character_Seiyuu.Save(seiyuuXrefToSave);
+            RepoFactory.AniDB_Creator.Save(creatorsToSave.Values.ToList());
+            RepoFactory.AniDB_Character_Creator.Save(creatorXrefToSave);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}", anime.MainTitle);
         }
+
+        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
     }
 
     private void CreateStaff(List<ResponseStaff> staffList, SVR_AniDB_Anime anime)
@@ -982,6 +996,8 @@ public class AnimeCreator
             _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}", anime.MainTitle);
         }
 
+        var creatorsToSchedule = new HashSet<int>();
+        var creatorsToSave = new List<AniDB_Creator>();
         var animeStaffToSave = new List<AniDB_Anime_Staff>();
         var xRefToSave = new List<CrossRef_Anime_Staff>();
 
@@ -994,12 +1010,12 @@ public class AnimeCreator
             }
         }
 
+        var settings = _settingsProvider.GetSettings();
         foreach (var grouping in staffLookup)
         {
             try
             {
                 var rawStaff = grouping.FirstOrDefault();
-                // save the link between character and seiyuu
                 animeStaffToSave.Add(new AniDB_Anime_Staff
                 {
                     AnimeID = rawStaff.AnimeID,
@@ -1007,15 +1023,39 @@ public class AnimeCreator
                     CreatorType = rawStaff.CreatorType
                 });
 
+                var creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawStaff.CreatorID);
+                if (creator is null)
+                {
+                    creator = new()
+                    {
+                        CreatorID = rawStaff.CreatorID,
+                        Name = rawStaff.CreatorName,
+                        Type = CreatorType.Unknown,
+                    };
+                    creatorsToSave.Add(creator);
+                }
+                else if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
+                {
+                    creator.Name = rawStaff.CreatorName;
+                    creatorsToSave.Add(creator);
+                }
+                if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
+                    creatorsToSchedule.Add(rawStaff.CreatorID);
+
                 var staff = RepoFactory.AnimeStaff.GetByAniDBID(rawStaff.CreatorID);
                 if (staff == null)
                 {
                     staff = new AnimeStaff
                     {
-                        // Unfortunately, most of the info is not provided
-                        AniDBID = rawStaff.CreatorID, Name = rawStaff.CreatorName
+                        AniDBID = rawStaff.CreatorID,
+                        Name = rawStaff.CreatorName,
                     };
                     // we need an ID for xref
+                    RepoFactory.AnimeStaff.Save(staff);
+                }
+                else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
+                {
+                    staff.Name = rawStaff.CreatorName;
                     RepoFactory.AnimeStaff.Save(staff);
                 }
 
@@ -1032,8 +1072,7 @@ public class AnimeCreator
                     _ => StaffRoleType.Staff
                 };
 
-                var xrefAnimeStaff =
-                    RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID, null, staff.StaffID, roleType);
+                var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID, null, staff.StaffID, roleType);
                 if (xrefAnimeStaff != null)
                 {
                     continue;
@@ -1070,6 +1109,25 @@ public class AnimeCreator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unable to Save Staff for {MainTitle}", anime.MainTitle);
+        }
+
+        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+    }
+
+    private async void ScheduleCreators(IEnumerable<int> creatorIDs, string mainTitle)
+    {
+        try
+        {
+            var creatorList = creatorIDs.ToList();
+            if (creatorList.Count == 0) return;
+            var scheduler = await _schedulerFactory.GetScheduler();
+            _logger.LogInformation("Scheduling {Count} creators to be updated for {MainTitle}", creatorList.Count, mainTitle);
+            foreach (var creatorId in creatorList)
+                await scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unable to Schedule Creators for {MainTitle}", mainTitle);
         }
     }
 

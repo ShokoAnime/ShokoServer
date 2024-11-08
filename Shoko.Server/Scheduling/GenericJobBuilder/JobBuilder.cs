@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Reflection;
 using Quartz;
 using Quartz.Impl;
-using Shoko.Server.Scheduling.GenericJobBuilder.Utils;
 
+#nullable enable
 namespace Shoko.Server.Scheduling.GenericJobBuilder;
 
 public class JobBuilder<T> : IJobConfiguratorWithDataAndIdentity<T>, IJobConfiguratorWithGeneratedIdentity<T> where T : class, IJob
@@ -50,12 +49,11 @@ public class JobBuilder<T> : IJobConfiguratorWithDataAndIdentity<T>, IJobConfigu
     {
         var key = Key ?? new JobKey(Guid.NewGuid().ToString());
 
-        var job = new JobDetail
+        var job = new JobDetail(typeof(T))
         {
             Name = key.Name,
             Group = key.Group,
             Description = _description,
-            JobType = new JobType(typeof(T)),
             RequestsRecovery = _shouldRecover,
             JobDataMap = _jobDataMap
         };

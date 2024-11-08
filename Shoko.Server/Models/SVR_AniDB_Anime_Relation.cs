@@ -8,7 +8,7 @@ using RType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedAnime, IRelatedMetadata<ISeries>
+public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<ISeries>
 {
     #region IMetadata implementation
 
@@ -45,15 +45,4 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedAnime, IRe
         RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
 
     #endregion
-
-    #region IRelatedAnime implementation
-
-    IAnime? IRelatedAnime.RelatedAnime =>
-        RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
-
-    RType IRelatedAnime.RelationType => (this as IRelatedMetadata).RelationType;
-
-    #endregion
-
-
 }

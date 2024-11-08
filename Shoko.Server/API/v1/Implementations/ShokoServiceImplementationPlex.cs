@@ -30,7 +30,7 @@ public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAcce
     {
         var gfs = new PlexContract_Users
         {
-            Users = new List<PlexContract_User>()
+            Users = []
         };
         foreach (var us in RepoFactory.JMMUser.GetAll())
         {
@@ -53,7 +53,7 @@ public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAcce
         var settings = _settingsProvider.GetSettings();
         if (directories == null)
         {
-            settings.Plex.Libraries = new List<int>();
+            settings.Plex.Libraries = [];
             return;
         }
 

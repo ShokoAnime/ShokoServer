@@ -4,6 +4,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Utilities;
 
 #nullable enable

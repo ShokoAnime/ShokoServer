@@ -1,12 +1,16 @@
 using Quartz;
-using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 
+#nullable enable
 namespace Shoko.Server.Scheduling.Jobs;
 
 public interface IImageDownloadJob : IJob
 {
-    string Anime { get; set; }
-    int ImageID { get; set; }
+    string? ParentName { get; set; }
+
     bool ForceDownload { get; set; }
+
+    int ImageID { get; set; }
+
     ImageEntityType ImageType { get; set; }
 }

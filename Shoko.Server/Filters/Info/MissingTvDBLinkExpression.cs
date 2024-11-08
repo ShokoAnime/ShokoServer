@@ -2,6 +2,7 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
 
+// TODO: REMOVE THIS FILTER EXPRESSION SOMETIME IN THE FUTURE AFTER THE LEGACY FILTERS ARE REMOVED!!1!
 /// <summary>
 ///     Missing Links include logic for whether a link should exist
 /// </summary>
@@ -11,10 +12,11 @@ public class MissingTvDBLinkExpression : FilterExpression<bool>
     public override bool UserDependent => false;
     public override string Name => "Missing TvDB Link";
     public override string HelpDescription => "This condition passes if any of the anime should have a TvDB link but does not have one";
+    public override bool Deprecated => true;
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.HasMissingTvDbLink;
+        return false;
     }
 
     protected bool Equals(MissingTvDBLinkExpression other)

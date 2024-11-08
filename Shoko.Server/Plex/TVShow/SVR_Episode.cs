@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Linq;
 using Shoko.Models.Plex.TVShow;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -14,8 +16,32 @@ internal class SVR_Episode : Episode
         Helper = helper;
     }
 
-    public SVR_AnimeEpisode AnimeEpisode =>
-        RepoFactory.AnimeEpisode.GetByFilename(Path.GetFileName(Media[0].Part[0].File));
+    public SVR_AnimeEpisode AnimeEpisode
+    {
+        get
+        {
+            var separator = Helper.ServerCache.Platform.ToLower() switch
+            {
+                "linux" => '/',
+                "windows" => '\\',
+                "osx" => '/',
+                "macos" => '/',
+                "darwin" => '/',
+                "android" => '/',
+
+                _ => Path.DirectorySeparatorChar,
+            };
+
+            var filenameWithParent = Path.Join(Media[0].Part[0].File.Split(separator)[^2..]);
+
+            var file = RepoFactory.VideoLocalPlace
+                .GetAll()
+                .FirstOrDefault(location => location.FullServerPath?.EndsWith(filenameWithParent, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            return file is null ? null : RepoFactory.AnimeEpisode.GetByHash(file.VideoLocal?.Hash).FirstOrDefault();
+
+        }
+    }
 
     public void Unscrobble()
     {

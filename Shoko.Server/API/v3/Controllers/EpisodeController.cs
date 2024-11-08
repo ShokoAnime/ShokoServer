@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -13,17 +17,16 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Services;
+using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
+using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -33,11 +36,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class EpisodeController : BaseController
 {
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeGroupService _groupService;
-    private readonly WatchedStatusService _watchedService;
-
-    internal const string EpisodeWithZeroID = "episodeID must be greater than 0";
 
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
@@ -51,6 +49,36 @@ public class EpisodeController : BaseController
 
     internal const string EpisodeNoSeriesForEpisodeID = "Unable to find a Series entry for given episodeID";
 
+    private readonly AnimeSeriesService _seriesService;
+
+    private readonly AnimeGroupService _groupService;
+
+    private readonly AnimeEpisodeService _episodeService;
+
+    private readonly WatchedStatusService _watchedService;
+
+    private readonly TmdbLinkingService _tmdbLinkingService;
+
+    private readonly TmdbMetadataService _tmdbMetadataService;
+
+    public EpisodeController(
+        ISettingsProvider settingsProvider,
+        AnimeSeriesService seriesService,
+        AnimeGroupService groupService,
+        AnimeEpisodeService episodeService,
+        WatchedStatusService watchedService,
+        TmdbLinkingService tmdbLinkingService,
+        TmdbMetadataService tmdbMetadataService
+    ) : base(settingsProvider)
+    {
+        _seriesService = seriesService;
+        _groupService = groupService;
+        _episodeService = episodeService;
+        _watchedService = watchedService;
+        _tmdbLinkingService = tmdbLinkingService;
+        _tmdbMetadataService = tmdbMetadataService;
+    }
+
     /// <summary>
     /// Get all <see cref="Episode"/>s for the given filter.
     /// </summary>
@@ -60,6 +88,7 @@ public class EpisodeController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
@@ -76,6 +105,7 @@ public class EpisodeController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
@@ -108,7 +138,7 @@ public class EpisodeController : BaseController
                 if (anidb == null || shoko == null)
                     return false;
 
-                // Filter by hidden state, if spesified
+                // Filter by hidden state, if specified
                 if (includeHidden != IncludeOnlyFilter.True)
                 {
                     // If we should hide hidden episodes and the episode is hidden, then hide it.
@@ -132,8 +162,17 @@ public class EpisodeController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var noFiles = shoko.VideoLocals.Count == 0;
-                    if (shouldHideMissing == noFiles)
+                    var isMissing = shoko.VideoLocals.Count == 0 && anidb.HasAired;
+                    if (shouldHideMissing == isMissing)
+                        return false;
+                }
+                if (includeUnaired != IncludeOnlyFilter.True)
+                {
+                    // If we should hide unaired episodes and the episode has no files, then hide it.
+                    // Or if we should only show unaired episodes and the episode has files, the hide it.
+                    var shouldHideUnaired = includeUnaired == IncludeOnlyFilter.False;
+                    var isUnaired = shoko.VideoLocals.Count == 0 && !anidb.HasAired;
+                    if (shouldHideUnaired == isUnaired)
                         return false;
                 }
 
@@ -153,7 +192,7 @@ public class EpisodeController : BaseController
         if (hasSearch)
         {
             var languages = SettingsProvider.GetSettings()
-                .LanguagePreference
+                .Language.EpisodeTitleLanguageOrder
                 .Select(lang => lang.GetTitleLanguage())
                 .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
                 .ToHashSet();
@@ -228,66 +267,7 @@ public class EpisodeController : BaseController
             .ToListResult(episode => new Episode.AniDB(episode), page, pageSize);
     }
 
-    /// <summary>
-    /// Get all <see cref="Episode.TvDB"/>s. Admins only.
-    /// </summary>
-    /// <remarks>
-    /// It's admins only since i don't want to add the logic to
-    /// </remarks>
-    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
-    /// <param name="page">The page index.</param>
-    /// <returns></returns>
-    [HttpGet("TvDB")]
-    public ActionResult<ListResult<Episode.TvDB>> GetAllTvDBEpisodes(
-        [FromQuery, Range(0, 1000)] int pageSize = 20,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1)
-    {
-        var user = User;
-        var isAdmin = user.IsAdmin == 1;
-        var allowedShowDict = new ConcurrentDictionary<int, bool>();
-        return RepoFactory.TvDB_Episode.GetAll()
-            .Where(episode =>
-            {
-                // Only show episodes the user is allowed to view.
-                if (!allowedShowDict.TryGetValue(episode.SeriesID, out var isAllowed))
-                {
-                    // If this is an episode not tied to a missing show, then
-                    // just hide it.
-                    var show = RepoFactory.TvDB_Series.GetByTvDBID(episode.SeriesID);
-                    if (show == null)
-                    {
-                        isAllowed = false;
-                        goto addValue;
-                    }
-
-                    // If there are no cross-references, then hide it if the
-                    // user is not an admin.
-                    var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(episode.SeriesID)
-                        .FirstOrDefault();
-                    if (xref == null)
-                    {
-                        isAllowed = isAdmin;
-                        goto addValue;
-                    }
-
-                    // Or if the cross-reference is broken then also hide it if
-                    // the user is not an admin, otherwise check if the user can
-                    // view the series.
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
-                    isAllowed = anime == null ? isAdmin : user.AllowedAnime(anime);
-
-addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
-                }
-                if (!isAllowed)
-                    return false;
-
-                return true;
-            })
-            .OrderBy(episode => episode.SeriesID)
-            .ThenBy(episode => episode.SeasonNumber)
-            .ThenBy(episode => episode.EpisodeNumber)
-            .ToListResult(episode => new Episode.TvDB(episode), page, pageSize);
-    }
+    #region Shoko
 
     /// <summary>
     /// Get the <see cref="Episode"/> entry for the given <paramref name="episodeID"/>.
@@ -301,16 +281,13 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns></returns>
     [HttpGet("{episodeID}")]
     public ActionResult<Episode> GetEpisodeByEpisodeID(
-        [FromRoute] int episodeID,
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -333,11 +310,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/OverrideTitle")]
-    public ActionResult OverrideEpisodeTitle([FromRoute] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] EpisodeTitleOverride body)
+    public ActionResult OverrideEpisodeTitle([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Episode.Input.EpisodeTitleOverrideBody body)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
 
         if (episode == null)
@@ -371,11 +345,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/SetHidden")]
-    public ActionResult PostEpisodeSetHidden([FromRoute] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
+    public ActionResult PostEpisodeSetHidden([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -405,17 +376,18 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         return Ok();
     }
 
+    #endregion
+
+    #region AniDB
+
     /// <summary>
     /// Get the <see cref="Episode.AniDB"/> entry for the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{episodeID}/AniDB")]
-    public ActionResult<Episode.AniDB> GetEpisodeAnidbByEpisodeID([FromRoute] int episodeID)
+    public ActionResult<Episode.AniDB> GetEpisodeAnidbByEpisodeID([FromRoute, Range(1, int.MaxValue)] int episodeID)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -479,11 +451,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="vote"></param>
     /// <returns></returns>
     [HttpPost("{episodeID}/Vote")]
-    public ActionResult PostEpisodeVote([FromRoute] int episodeID, [FromBody] Vote vote)
+    public async Task<ActionResult> PostEpisodeVote([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] Vote vote)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -498,21 +467,260 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        Episode.AddEpisodeVote(HttpContext, episode, User.JMMUserID, vote);
+        await _episodeService.AddEpisodeVote(episode, vote.GetRating());
+
+        return NoContent();
+    }
+
+    #endregion
+
+    #region TMDB
+
+    /// <summary>
+    /// Get all TMDB Movies linked directly to the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <param name="language">Language to fetch some details in.</param>
+    /// <returns>All TMDB Movies linked directly to the Shoko Episode.</returns>
+    [HttpGet("{episodeID}/TMDB/Movie")]
+    public ActionResult<List<TmdbMovie>> GetTmdbMoviesByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.TmdbMovieCrossReferences
+            .Select(xref => xref.TmdbMovie)
+            .WhereNotNull()
+            .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
+            .ToList();
+    }
+
+
+    /// <summary>
+    /// Add a new TMDB Movie cross-reference to the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="body">Body containing the information about the new cross-reference to be made.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{episodeID}/TMDB/Movie")]
+    public async Task<ActionResult> AddLinkToTMDBMoviesByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        await _tmdbLinkingService.AddMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, additiveLink: !body.Replace);
+
+        var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
+        if (needRefresh)
+            await _tmdbMetadataService.ScheduleUpdateOfMovie(body.ID, forceRefresh: body.Refresh, downloadImages: true);
 
         return NoContent();
     }
 
     /// <summary>
-    /// Get the TvDB details for episode with Shoko ID
+    /// Remove one or all TMDB Movie links from the episode.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="body">Optional. Body containing information about the link to be removed.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("{episodeID}/TMDB/Movie")]
+    public async Task<ActionResult> RemoveLinkToTMDBMoviesByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkMovieBody body
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        if (body != null && body.ID > 0)
+            await _tmdbLinkingService.RemoveMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, body.Purge);
+        else
+            await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episode.AniDB_EpisodeID, body?.Purge ?? false);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Get all TMDB Movie cross-references for the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Episode ID.</param>
+    /// <returns>All TMDB Movie cross-references for the Shoko Episode.</returns>
+    [HttpGet("{seriesID}/TMDB/Movie/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbMovie.CrossReference>> GetTMDBMovieCrossReferenceByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.TmdbMovieCrossReferences
+            .Select(xref => new TmdbMovie.CrossReference(xref))
+            .OrderBy(xref => xref.TmdbMovieID)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all TMDB Episodes linked to the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <param name="language">Language to fetch some details for.</param>
+    /// <returns>All TMDB Episodes linked to the Shoko Episode.</returns>
+    [HttpGet("{episodeID}/TMDB/Episode")]
+    public ActionResult<List<TmdbEpisode>> GetTmdbEpisodesByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.TmdbEpisodeCrossReferences
+            .Select(xref => xref.TmdbEpisode)
+            .WhereNotNull()
+            .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
+            .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
+            .Where(tuple => tuple.TmdbShow is not null)
+            .SelectMany(tuple0 =>
+                string.IsNullOrEmpty(tuple0.TmdbShow.PreferredAlternateOrderingID)
+                    ? tuple0.TmdbEpisodes.Select(tmdbEpisode => new TmdbEpisode(tuple0.TmdbShow, tmdbEpisode, include?.CombineFlags(), language))
+                    : tuple0.TmdbEpisodes
+                        .Select(tmdbEpisode => (TmdbEpisode: tmdbEpisode, TmdbAlternateOrdering: tmdbEpisode.GetTmdbAlternateOrderingEpisodeById(tuple0.TmdbShow.PreferredAlternateOrderingID)))
+                        .Where(tuple1 => tuple1.TmdbAlternateOrdering is not null)
+                        .Select(tuple1 => new TmdbEpisode(tuple0.TmdbShow, tuple1.TmdbEpisode, tuple1.TmdbAlternateOrdering, include?.CombineFlags(), language)
+            ))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all TMDB Episode cross-references for the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Episode ID.</param>
+    /// <returns>All TMDB Episode cross-references for the Shoko Episode.</returns>
+    [HttpGet("{seriesID}/TMDB/Episode/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbEpisode.CrossReference>> GetTMDBEpisodeCrossReferenceByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.TmdbEpisodeCrossReferences
+            .Select(xref => new TmdbEpisode.CrossReference(xref))
+            .OrderBy(xref => xref.TmdbEpisodeID)
+            .ToList();
+    }
+
+    #endregion
+
+    #region Images
+
+    #region All images
+
+    private static readonly HashSet<Image.ImageType> _allowedImageTypes = [Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Backdrop, Image.ImageType.Logo, Image.ImageType.Thumbnail];
+
+    private const string InvalidIDForSource = "Invalid image id for selected source.";
+
+    private const string InvalidImageIsDisabled = "Image is disabled.";
+
+    /// <summary>
+    /// Get all images for episode with ID, optionally with Disabled images, as well.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
+    /// <param name="includeDisabled"></param>
     /// <returns></returns>
-    [HttpGet("{episodeID}/TvDB")]
-    public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails([FromRoute] int episodeID)
+    [HttpGet("{episodeID}/Images")]
+    public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool includeDisabled)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.GetImages().ToDto(includeDisabled: includeDisabled, includeThumbnails: true);
+    }
+
+    #endregion
+
+    #region Default image
+
+    /// <summary>
+    /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// </summary>
+    /// <param name="episodeID">Series ID</param>
+    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <returns></returns>
+    [HttpGet("{episodeID}/Images/{imageType}")]
+    public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromRoute] Image.ImageType imageType)
+    {
+        if (!_allowedImageTypes.Contains(imageType))
+            return NotFound();
 
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -525,10 +733,106 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return episode.TvDBEpisodes
-            .Select(a => new Episode.TvDB(a))
-            .ToList();
+        var imageEntityType = imageType.ToServer();
+        var preferredImage = episode.GetPreferredImageForType(imageEntityType);
+        if (preferredImage != null)
+            return new Image(preferredImage);
+
+        var images = episode.GetImages().ToDto();
+        return imageEntityType switch
+        {
+            ImageEntityType.Poster => images.Posters.FirstOrDefault(),
+            ImageEntityType.Banner => images.Banners.FirstOrDefault(),
+            ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
+            ImageEntityType.Logo => images.Logos.FirstOrDefault(),
+            _ => null
+        };
     }
+
+
+    /// <summary>
+    /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// </summary>
+    /// <param name="episodeID">Series ID</param>
+    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="body">The body containing the source and id used to set.</param>
+    /// <returns></returns>
+    [HttpPut("{episodeID}/Images/{imageType}")]
+    public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+    {
+        if (!_allowedImageTypes.Contains(imageType))
+            return NotFound();
+
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        // Check if the id is valid for the given type and source.
+        var dataSource = body.Source.ToServer();
+        var imageEntityType = imageType.ToServer();
+        var image = ImageUtils.GetImageMetadata(dataSource, imageEntityType, body.ID);
+        if (image is null)
+            return ValidationProblem(InvalidIDForSource);
+        if (!image.IsEnabled)
+            return ValidationProblem(InvalidImageIsDisabled);
+
+        // Create or update the entry.
+        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType) ??
+            new() { AnidbAnimeID = episode.AniDB_EpisodeID, ImageType = imageEntityType };
+        defaultImage.ImageID = body.ID;
+        defaultImage.ImageSource = dataSource;
+        RepoFactory.AniDB_Episode_PreferredImage.Save(defaultImage);
+
+        return new Image(body.ID, imageEntityType, dataSource, true);
+    }
+
+    /// <summary>
+    /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// </summary>
+    /// <param name="episodeID"></param>
+    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <returns></returns>
+    [HttpDelete("{episodeID}/Images/{imageType}")]
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.ImageType imageType)
+    {
+        if (!_allowedImageTypes.Contains(imageType))
+            return NotFound();
+
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        // Check if a default image is set.
+        var imageEntityType = imageType.ToServer();
+        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType);
+        if (defaultImage == null)
+            return ValidationProblem("No default banner.");
+
+        // Delete the entry.
+        RepoFactory.AniDB_Episode_PreferredImage.Delete(defaultImage);
+
+        // Don't return any content.
+        return NoContent();
+    }
+
+    #endregion
+
+    #endregion
 
     /// <summary>
     /// Set the watched status on an episode
@@ -537,11 +841,8 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// <param name="watched"></param>
     /// <returns></returns>
     [HttpPost("{episodeID}/Watched/{watched}")]
-    public async Task<ActionResult> SetWatchedStatusOnEpisode([FromRoute] int episodeID, [FromRoute] bool watched)
+    public async Task<ActionResult> SetWatchedStatusOnEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] bool watched)
     {
-        if (episodeID == 0)
-            return BadRequest(EpisodeWithZeroID);
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -563,6 +864,7 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     /// </summary>
     /// <param name="includeSpecials">Include specials in the list.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="onlyAiredEpisodes">Only show episodes which has aired.</param>
     /// <param name="onlyFinishedSeries">Only show episodes for completed series.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
@@ -571,11 +873,12 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
     public ActionResult<ListResult<Episode>> GetMissingEpisodes(
         [FromQuery] bool includeSpecials = false,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool onlyAiredEpisodes = false,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials);
+        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials, onlyAiredEpisodes);
         if (onlyFinishedSeries)
         {
             var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()
@@ -586,12 +889,5 @@ addValue: allowedShowDict.TryAdd(episode.SeriesID, isAllowed);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, withXRefs: includeXRefs), page, pageSize);
-    }
-
-    public EpisodeController(ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeGroupService groupService, WatchedStatusService watchedService) : base(settingsProvider)
-    {
-        _seriesService = seriesService;
-        _groupService = groupService;
-        _watchedService = watchedService;
     }
 }

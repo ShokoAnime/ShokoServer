@@ -41,11 +41,11 @@ public class WebUI
         /// <summary>
         /// The name of the author of the theme definition.
         /// </summary>
-        public string Author { get; init; } = definition.Author;
+        public string Author { get; init; } = definition.Author ?? "<unknown>";
 
         /// <summary>
         /// Indicates this is only a preview of the theme metadata and the theme
-        /// might not actaully be installed yet.
+        /// might not actually be installed yet.
         /// </summary>
         public bool IsPreview { get; init; } = definition.IsPreview;
 
@@ -60,14 +60,14 @@ public class WebUI
         public Version Version { get; init; } = definition.Version;
 
         /// <summary>
-        /// Author-defined tags assosiated with the theme.
+        /// Author-defined tags associated with the theme.
         /// </summary>
         public IReadOnlyList<string> Tags { get; init; } = definition.Tags;
 
         /// <summary>
         /// The URL for where the theme definition lives. Used for updates.
         /// </summary>
-        public string? URL { get; init; } = definition.URL;
+        public string? URL { get; init; } = definition.UpdateUrl;
 
         /// <summary>
         /// The CSS representation of the theme.
@@ -127,7 +127,7 @@ public class WebUI
         /// The first season this show was aired in.
         /// </summary>
         /// <value></value>
-        public Filter? FirstAirSeason { get; set; }
+        public string? FirstAirSeason { get; set; }
 
         /// <summary>
         /// A pre-filtered list of studios for the show.
@@ -167,7 +167,7 @@ public class WebUI
             var episodes = series.AllAnimeEpisodes
                 .Select(shoko =>
                 {
-                    var anidb = shoko.AniDB_Episode;
+                    var anidb = shoko.AniDB_Episode!;
                     var type = Episode.MapAniDBEpisodeType(anidb.GetEpisodeTypeEnum());
                     var airDate = anidb.GetAirDateAsDate();
                     return new
@@ -196,7 +196,7 @@ public class WebUI
                 .Distinct()
                 .Where(groupID => groupID != 0)
                 .Select(RepoFactory.AniDB_ReleaseGroup.GetByGroupID)
-                .Where(releaseGroup => releaseGroup != null)
+                .WhereNotNull()
                 .ToDictionary(releaseGroup => releaseGroup.GroupID);
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
             var filesWithXrefAndLocation = crossRefs
@@ -215,21 +215,21 @@ public class WebUI
                 .Select(tuple =>
                 {
                     var (file, xref, location) = tuple;
-                    var media = new MediaInfo(file, file.MediaInfo);
+                    var media = new MediaInfo(file, file.MediaInfo!);
                     var episode = episodes[xref.EpisodeID];
                     var isAutoLinked = (CrossRefSource)xref.CrossRefSource == CrossRefSource.AniDB;
                     var anidbFile = isAutoLinked && anidbFiles.TryGetValue(xref.Hash, out var aniFi) ? aniFi : null;
                     var releaseGroup = anidbFile != null && anidbFile.GroupID != 0 && releaseGroups.TryGetValue(anidbFile.GroupID, out var reGr) ? reGr : null;
                     var groupByDetails = new GroupByDetails();
 
-                    // Release group criterias
+                    // Release group criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.GroupName))
                     {
                         groupByDetails.GroupName = isAutoLinked ? releaseGroup?.GroupName ?? "Unknown" : "None";
                         groupByDetails.GroupNameShort = isAutoLinked ? releaseGroup?.GroupNameShort ?? "Unk" : "-";
                     }
 
-                    // File criterias
+                    // File criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileVersion))
                         groupByDetails.FileVersion = isAutoLinked ? anidbFile?.FileVersion ?? 1 : 1;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
@@ -238,8 +238,10 @@ public class WebUI
                         groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
                         groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
+                        groupByDetails.ImportFolder = $"{location.ImportFolder?.ImportFolderName ?? "N/A"} (ID: {location.ImportFolderID})";
 
-                    // Video criterias
+                    // Video criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoCodecs))
                         groupByDetails.VideoCodecs = string.Join(", ", media.Video
                             .Select(stream => stream.Codec.Simplified)
@@ -264,7 +266,7 @@ public class WebUI
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoHasChapters))
                         groupByDetails.VideoHasChapters = media.Chapters.Count > 0;
 
-                    // Audio criterias
+                    // Audio criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.AudioCodecs))
                         groupByDetails.AudioCodecs = string.Join(", ", media.Audio
                             .Select(stream => stream.Codec.Simplified)
@@ -280,7 +282,7 @@ public class WebUI
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.AudioStreamCount))
                         groupByDetails.AudioStreamCount = media.Audio.Count;
 
-                    // Text criterias
+                    // Text criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.SubtitleCodecs))
                         groupByDetails.SubtitleCodecs = string.Join(", ", media.Subtitles
                             .Select(stream => stream.Codec.Simplified)
@@ -321,6 +323,8 @@ public class WebUI
                 TotalFileSize = files.Sum(fileWrapper => fileWrapper.Episode.Size),
                 ReleaseGroups = releaseGroups.Values
                     .Select(group => group.GroupNameShort ?? group.GroupName)
+                    .WhereNotNull()
+                    .Distinct()
                     .ToList(),
                 SourcesByType = filesWithXrefAndLocation
                     .Select(t =>
@@ -384,6 +388,7 @@ public class WebUI
                         FileSource = details.FileSource,
                         FileLocation = details.FileLocation,
                         FileIsDeprecated = details.FileIsDeprecated,
+                        ImportFolder = details.ImportFolder,
                         VideoCodecs = details.VideoCodecs,
                         VideoBitDepth = details.VideoBitDepth,
                         VideoResolution = details.VideoResolution,
@@ -439,6 +444,7 @@ public class WebUI
             SubtitleStreamCount = 4096,
             VideoHasChapters = 8192,
             FileIsDeprecated = 16384,
+            ImportFolder = 32768,
         }
 
         /// <summary>
@@ -486,6 +492,12 @@ public class WebUI
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public bool? FileIsDeprecated { get; set; }
+
+            /// <summary>
+            /// The import folder name of the files in this range.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string? ImportFolder { get; set; }
 
             /// <summary>
             /// The video codecs used in the files of this range (e.g., h264, h265, etc.).
@@ -613,7 +625,7 @@ public class WebUI
             public int LastEpisode { get; set; }
 
             /// <summary>
-            /// All episodes in the range, but as a seqence for programmatically comparrison.
+            /// All episodes in the range, but as a sequence for programmatically comparison.
             /// </summary>
             /// <value></value>
             [JsonIgnore]
@@ -674,7 +686,7 @@ public class WebUI
             public int LastEpisode { get; set; } = lastEpisode;
 
             /// <summary>
-            /// All episodes in the range, but as a seqence for programmatically comparrison.
+            /// All episodes in the range, but as a sequence for programmatically comparison.
             /// </summary>
             public List<int> Sequence { get; set; } = sequence;
 
@@ -745,6 +757,8 @@ public class WebUI
 
             public bool? FileIsDeprecated { get; set; }
 
+            public string? ImportFolder { get; set; }
+
             public override bool Equals(object? obj)
             {
                 return Equals(obj as GroupByDetails);
@@ -762,6 +776,7 @@ public class WebUI
                     FileSource == other.FileSource &&
                     FileLocation == other.FileLocation &&
                     FileIsDeprecated == other.FileIsDeprecated &&
+                    ImportFolder == other.ImportFolder &&
 
                     VideoCodecs == other.VideoCodecs &&
                     VideoBitDepth == other.VideoBitDepth &&
@@ -790,6 +805,7 @@ public class WebUI
                 hash = hash * 31 + FileSource.GetHashCode();
                 hash = hash * 31 + (FileLocation?.GetHashCode() ?? 0);
                 hash = hash * 31 + (FileIsDeprecated?.GetHashCode() ?? 0);
+                hash = hash * 31 + (ImportFolder?.GetHashCode() ?? 0);
 
                 hash = hash * 31 + (VideoCodecs?.GetHashCode() ?? 0);
                 hash = hash * 31 + VideoBitDepth.GetHashCode();
@@ -852,7 +868,7 @@ public class WebUI
             public long TotalFileSize { get; set; }
 
             /// <summary>
-            /// A summarised list of all the locally available release groups for a series.
+            /// A summarized list of all the locally available release groups for a series.
             /// </summary>
             public List<string> ReleaseGroups { get; set; } = [];
 
@@ -928,11 +944,11 @@ public class WebUI
             return string.Join(", ", ranges);
         }
 
-        private static int CompareSequences(List<int> sequenceA, List<int> seqenceB)
+        private static int CompareSequences(List<int> sequenceA, List<int> sequenceB)
         {
             for (var index = 0; index < sequenceA.Count; index++)
             {
-                var result = sequenceA[index].CompareTo(seqenceB[index]);
+                var result = sequenceA[index].CompareTo(sequenceB[index]);
                 if (result != 0)
                     return result;
             }

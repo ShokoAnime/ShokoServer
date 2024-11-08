@@ -38,6 +38,7 @@ jobs:
         shell: pwsh
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Get release info
@@ -53,7 +54,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true -f net8.0-windows Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - uses: actions/upload-artifact@v3
         with:

@@ -83,7 +83,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
                 Locked = true,
                 ApplyAtSeriesLevel = false,
                 FilterType = GroupFilterType.None,
-                Expression = new AndExpression{ Left = new HasWatchedEpisodesExpression(), Right = new HasUnwatchedEpisodesExpression() },
+                Expression = new AndExpression { Left = new HasWatchedEpisodesExpression(), Right = new HasUnwatchedEpisodesExpression() },
                 SortingExpression = new LastWatchedDateSortingSelector { Descending = true }
             };
             Save(gf);
@@ -102,7 +102,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
             Save(gf);
         }
     }
-    
+
     public void CreateInitialFilters()
     {
         // group filters
@@ -127,7 +127,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
             Name = Constants.GroupFilterName.MissingEpisodes,
             FilterType = GroupFilterType.UserDefined,
             Expression = new HasMissingEpisodesCollectingExpression(),
-            SortingExpression = new MissingEpisodeCollectingCountSortingSelector{ Descending = true}
+            SortingExpression = new MissingEpisodeCollectingCountSortingSelector { Descending = true }
         };
         Save(gf);
 
@@ -142,7 +142,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
                 Left = new DateAddFunction(new LastAddedDateSelector(), TimeSpan.FromDays(10)),
                 Right = new TodayFunction()
             },
-            SortingExpression = new LastAddedDateSortingSelector { Descending = true}
+            SortingExpression = new LastAddedDateSortingSelector { Descending = true }
         };
         Save(gf);
 
@@ -193,7 +193,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         {
             Name = Constants.GroupFilterName.RecentlyWatched,
             FilterType = GroupFilterType.UserDefined,
-            Expression = new AndExpression(new HasWatchedEpisodesExpression(), new 
+            Expression = new AndExpression(new HasWatchedEpisodesExpression(), new
                 DateGreaterThanEqualsExpression(new DateAddFunction(new LastWatchedDateSelector(), TimeSpan.FromDays(10)), new TodayFunction())),
             SortingExpression = new LastWatchedDateSortingSelector
             {
@@ -202,13 +202,13 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         };
         Save(gf);
 
-        // TvDB/MovieDB Link Missing
+        // TMDB Link Missing
         gf = new FilterPreset
         {
             Name = Constants.GroupFilterName.MissingLinks,
             ApplyAtSeriesLevel = true,
             FilterType = GroupFilterType.UserDefined,
-            Expression = new OrExpression(new MissingTvDBLinkExpression(), new MissingTMDbLinkExpression()),
+            Expression = new MissingTmdbLinkExpression(),
             SortingExpression = new NameSortingSelector()
         };
         Save(gf);

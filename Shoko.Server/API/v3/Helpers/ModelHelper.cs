@@ -6,17 +6,47 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
+
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
+using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using SeriesType = Shoko.Server.API.v3.Models.Shoko.SeriesType;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Helpers;
 
 public static class ModelHelper
 {
+    public static T CombineFlags<T>(this IEnumerable<T> flags) where T : struct, Enum
+    {
+        T combinedFlags = default;
+        foreach (var flag in flags)
+            combinedFlags = CombineFlags(combinedFlags, flag);
+        return combinedFlags;
+    }
+
+    private static T CombineFlags<T>(T a, T b) where T : Enum
+        => (T)Enum.ToObject(typeof(T), Convert.ToInt64(a) | Convert.ToInt64(b));
+
+    // Note: there is no `this` because if it's set then the compiler will
+    // complain that there is no `System.Enum` defined.
+    public static IEnumerable<T> UnCombineFlags<T>(T flags) where T : struct, Enum
+    {
+        var allValues = Enum.GetValues<T>();
+        var flagLong = Convert.ToInt64(flags);
+        foreach (var value in allValues)
+        {
+            var valueLong = Convert.ToInt64(value);
+            if (valueLong != 0 && (flagLong & valueLong) == valueLong)
+                yield return value;
+        }
+    }
+
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
         return new ListResult<T>
@@ -55,7 +85,9 @@ public static class ModelHelper
             return new ListResult<U>
             {
                 Total = enumerable.Count(),
-                List = enumerable.ToList()
+                List = enumerable
+                    .AsParallel()
+                    .AsOrdered()
                     .Select(mapper)
                     .ToList()
             };
@@ -67,7 +99,8 @@ public static class ModelHelper
             List = enumerable.AsQueryable()
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
-                .ToList()
+                .AsParallel()
+                .AsOrdered()
                 .Select(mapper)
                 .ToList()
         };
@@ -81,7 +114,9 @@ public static class ModelHelper
             return new ListResult<U>
             {
                 Total = total,
-                List = enumerable.ToList()
+                List = enumerable
+                    .AsParallel()
+                    .AsOrdered()
                     .Select(mapper)
                     .ToList()
             };
@@ -93,13 +128,90 @@ public static class ModelHelper
             List = enumerable.AsQueryable()
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
-                .ToList()
+                .AsParallel()
+                .AsOrdered()
                 .Select(mapper)
                 .ToList()
         };
     }
 
-    public static (int, EpisodeType?, string) GetEpisodeNumberAndTypeFromInput(string input)
+    public static List<List<CrossRef_AniDB_TMDB_Episode>> GroupByCrossReferenceType(this IEnumerable<CrossRef_AniDB_TMDB_Episode> episodes)
+    {
+        var episodeList = episodes is IReadOnlyList<CrossRef_AniDB_TMDB_Episode> readOnlyList ? readOnlyList : episodes.ToList();
+        var remainingXrefs = new List<CrossRef_AniDB_TMDB_Episode>();
+        var anidbEpisodeDictionary = episodeList
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .Select(xref => (xref, anidb: xref.AnidbEpisode))
+            .Where(tuple => tuple.anidb is not null)
+            .ToDictionary(tuple => tuple.xref.AnidbEpisodeID, tuple => tuple.anidb);
+        var anidbXrefs = episodeList
+            .Select(xref => (xref, anidb: anidbEpisodeDictionary.GetValueOrDefault(xref.AnidbEpisodeID)))
+            .Where(tuple => tuple.anidb is not null)
+            .OrderBy(tuple => tuple.anidb!.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidb!.EpisodeNumber)
+            .ThenBy(tuple => tuple.xref.Ordering)
+            .Select(tuple => tuple.xref)
+            .GroupBy(tuple => tuple.AnidbEpisodeID)
+            .Aggregate(new List<List<CrossRef_AniDB_TMDB_Episode>>(), (list, group) =>
+            {
+                var grouped = group.ToList();
+                if (grouped.Count > 1)
+                    list.Add(grouped);
+                else
+                    remainingXrefs.Add(grouped[0]);
+                return list;
+            });
+        var tmdbXrefs = remainingXrefs
+            .Select(xref => (xref, tmdb: xref.TmdbEpisode, anidb: anidbEpisodeDictionary[xref.AnidbEpisodeID]!))
+            .Where(tuple => tuple.tmdb is not null)
+            .OrderBy(tuple => tuple.tmdb!.SeasonNumber)
+            .ThenBy(tuple => tuple.tmdb!.EpisodeNumber)
+            .ThenBy(tuple => tuple.anidb.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidb.EpisodeNumber)
+            .Select(tuple => tuple.xref)
+            .GroupBy(tuple => tuple.TmdbEpisodeID)
+            .Aggregate(new List<List<CrossRef_AniDB_TMDB_Episode>>(), (list, group) =>
+            {
+                var currentList = new List<CrossRef_AniDB_TMDB_Episode>();
+                foreach (var xref in group)
+                {
+                    if (currentList.Count > 0 && xref.Ordering == 0)
+                    {
+                        list.Add(currentList);
+                        currentList = [];
+                    }
+                    currentList.Add(xref);
+                }
+                if (currentList.Count > 0)
+                    list.Add(currentList);
+                return list;
+            });
+        var allXrefs = anidbXrefs.Concat(tmdbXrefs)
+            .Select(xref => (xref, anidb: anidbEpisodeDictionary[xref[0].AnidbEpisodeID]!))
+            .OrderBy(tuple => tuple.anidb.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidb.EpisodeNumber)
+            .ThenBy(tuple => tuple.xref[0].Ordering)
+            .Select(tuple => tuple.xref)
+            .ToList();
+        return allXrefs;
+    }
+
+    public static SeriesType ToAniDBSeriesType(this int animeType)
+        => ToAniDBSeriesType((AniDBAnimeType)animeType);
+
+    public static SeriesType ToAniDBSeriesType(this AniDBAnimeType animeType)
+        => animeType switch
+        {
+            AniDBAnimeType.TVSeries => SeriesType.TV,
+            AniDBAnimeType.Movie => SeriesType.Movie,
+            AniDBAnimeType.OVA => SeriesType.OVA,
+            AniDBAnimeType.TVSpecial => SeriesType.TVSpecial,
+            AniDBAnimeType.Web => SeriesType.Web,
+            AniDBAnimeType.Other => SeriesType.Other,
+            _ => SeriesType.Unknown,
+        };
+
+    public static (int, EpisodeType?, string?) GetEpisodeNumberAndTypeFromInput(string input)
     {
         EpisodeType? episodeType = null;
         if (!int.TryParse(input, out var episodeNumber))
@@ -137,7 +249,7 @@ public static class ModelHelper
             .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
     }
 
-    public static string ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary modelState = null)
+    public static string? ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary? modelState = null)
     {
         if (byteArray == null || string.IsNullOrEmpty(contentType))
         {
@@ -147,7 +259,7 @@ public static class ModelHelper
 
         try
         {
-            string base64 = Convert.ToBase64String(byteArray);
+            var base64 = Convert.ToBase64String(byteArray);
             return $"data:{contentType};base64,{base64}";
         }
         catch (Exception)
@@ -157,9 +269,12 @@ public static class ModelHelper
         }
     }
 
-    public static (byte[] byteArray, string contentType) FromDataURL(string dataUrl, string fieldName = "DataUrlToByteArray", ModelStateDictionary modelState = null)
+    private static readonly string[] _dataUrlSeparators = [":", ";", ","];
+
+
+    public static (byte[]? byteArray, string? contentType) FromDataURL(string dataUrl, string fieldName = "DataUrlToByteArray", ModelStateDictionary? modelState = null)
     {
-        var parts = dataUrl.Split(new[] { ":", ";", "," }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = dataUrl.Split(_dataUrlSeparators, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length != 4 || parts[0] != "data")
         {
             modelState?.AddModelError(fieldName, $"Invalid data URL format for field '{fieldName}'.");
@@ -364,7 +479,7 @@ public static class ModelHelper
         foreach (var series in seriesList)
         {
             var anime = series.AniDB_Anime;
-            switch (SeriesFactory.GetAniDBSeriesType(anime?.AnimeType))
+            switch (anime?.AnimeType.ToAniDBSeriesType())
             {
                 case SeriesType.Unknown:
                     sizes.SeriesTypes.Unknown++;
@@ -394,15 +509,16 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[] include,
-        FileExcludeTypes[] exclude, FileIncludeOnlyType[] include_only, List<string> sortOrder, HashSet<DataSource> includeDataFrom, bool skipSort = false)
+    public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[]? include,
+        FileExcludeTypes[]? exclude, FileIncludeOnlyType[]? include_only, List<string>? sortOrder, HashSet<DataSource>? includeDataFrom, bool skipSort = false)
     {
-        include ??= Array.Empty<FileNonDefaultIncludeType>();
-        exclude ??= Array.Empty<FileExcludeTypes>();
-        include_only ??= Array.Empty<FileIncludeOnlyType>();
+        include ??= [];
+        exclude ??= [];
+        include_only ??= [];
 
         var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) ||
-                               (sortOrder?.Any(criteria => criteria.Contains(File.FileSortCriteria.DuplicateCount.ToString())) ?? false);
+            include_only.Contains(FileIncludeOnlyType.Duplicates) ||
+            (sortOrder?.Any(criteria => criteria.Contains(File.FileSortCriteria.DuplicateCount.ToString())) ?? false);
         var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
             criteria.Contains(File.FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(File.FileSortCriteria.WatchedAt.ToString())) ?? false);
         var enumerable = input
@@ -417,9 +533,8 @@ public static class ModelHelper
                 var (video, _, locations, userRecord) = tuple;
                 var xrefs = video.EpisodeCrossRefs;
                 var isAnimeAllowed = xrefs
-                    .Select(xref => xref.AnimeID)
-                    .Distinct()
-                    .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
+                    .DistinctBy(xref => xref.AnimeID)
+                    .Select(xref => xref.AniDBAnime)
                     .WhereNotNull()
                     .All(user.AllowedAnime);
                 if (!isAnimeAllowed)
@@ -429,13 +544,15 @@ public static class ModelHelper
                 if (!include_only.Contains(FileIncludeOnlyType.Ignored) && !include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
 
-                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
+                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations!.Count > 1) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations!.Count <= 1) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0 && xrefs.Any(x =>
-                        RepoFactory.AnimeSeries.GetByAnimeID(x.AnimeID) != null &&
-                        RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(x.EpisodeID) != null)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
+
+                // this one is also special because files in import limbo are excluded by default
+                if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
                     xrefs.All(xref => xref.CrossRefSource == (int)CrossRefSource.User)) return false;
@@ -451,7 +568,7 @@ public static class ModelHelper
         // Sorting.
         if (sortOrder != null && sortOrder.Count > 0)
             enumerable = File.OrderBy(enumerable, sortOrder);
-        else if (skipSort)
+        else if (!skipSort)
             enumerable = File.OrderBy(enumerable, new()
             {
                 // First sort by import folder from A-Z.

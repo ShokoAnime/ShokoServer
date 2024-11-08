@@ -19,6 +19,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
@@ -528,6 +529,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     private static bool IsImported(SVR_CrossRef_File_Episode xref)
     {
+        if (xref.AnimeID == 0) return false;
         var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
         if (ep?.AniDB_Episode == null) return false;
         var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);

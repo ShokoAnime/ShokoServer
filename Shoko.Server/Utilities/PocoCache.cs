@@ -318,13 +318,15 @@ public class BiDictionaryOneToMany<T, S>
                     return;
                 }
 
-                if (_inverse.TryGetValue(oldValue, out var inverseValue) && inverseValue.Contains(key))
+                if (_valueIsNullable && oldValue is null)
+                    _inverseNullValueSet?.Remove(key);
+                else if (_inverse.TryGetValue(oldValue, out var inverseValue) && inverseValue.Contains(key))
                     inverseValue.Remove(key);
             }
 
-            if (_valueIsNullable && value == null)
+            if (_valueIsNullable && value is null)
             {
-                _inverseNullValueSet ??= new HashSet<T>();
+                _inverseNullValueSet ??= [];
                 _inverseNullValueSet.Add(key);
             }
             else
@@ -332,7 +334,7 @@ public class BiDictionaryOneToMany<T, S>
                 if (_inverse.TryGetValue(value, out var set))
                     set.Add(key);
                 else
-                    _inverse.Add(value, new HashSet<T>{key});
+                    _inverse.Add(value, [key]);
             }
 
             _direct[key] = value;

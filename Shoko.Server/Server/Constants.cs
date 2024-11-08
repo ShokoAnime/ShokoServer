@@ -91,30 +91,30 @@ public static class Constants
 
     public struct URLS
     {
-        public static readonly string MAL_Series = @"https://myanimelist.net/anime/{0}";
-        public static readonly string AniDB_Series = @"https://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
+        public const string MAL_Series = @"https://myanimelist.net/anime/{0}";
+        public const string AniDB_Series = @"https://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
 
-        public static readonly string AniDB_SeriesDiscussion =
+        public const string AniDB_SeriesDiscussion =
             @"https://anidb.net/perl-bin/animedb.pl?show=threads&do=anime&id={0}";
 
-        public static readonly string AniDB_Images = @"https://{0}/images/main/{{0}}";
+        public const string AniDB_Images = @"https://{0}/images/main/{{0}}";
 
         // This is the fallback if the API response does not work.
-        public static readonly string AniDB_Images_Domain = @"cdn.anidb.net";
+        public const string AniDB_Images_Domain = @"cdn.anidb.net";
 
-        public static readonly string TvDB_Series = @"https://thetvdb.com/?tab=series&id={0}";
+        public const string Trakt_Series = @"https://trakt.tv/show/{0}";
 
-        //public static readonly string tvDBEpisodeURLPrefix = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
-        public static readonly string TvDB_Images = @"https://artworks.thetvdb.com/banners/{0}";
-        public static readonly string TvDB_Episode_Images = @"https://thetvdb.com/banners/{0}";
 
-        public static readonly string Trakt_Series = @"https://trakt.tv/show/{0}";
+        public const string TMDB_Movie = @"https://www.themoviedb.org/movie/{0}";
 
-        public static readonly string MovieDB_Images = @"https://image.tmdb.org/t/p/original{0}";
+        public const string TMDB_Images = @"https://image.tmdb.org/t/p/original{0}";
+
+        public const string TMDB_Export = @"https://files.tmdb.org/p/exports/{0}_ids_{1}_{2}_{3}.json.gz";
     }
 
-    public struct TvDB
+    public struct TMDB
     {
-        public static readonly string apiKey = "B178B8940CAF4A2C";
+        // For local development, please replace the text below with your TMDB API key, or insert the key in your settings.
+        public const string ApiKey = "TMDB_API_KEY_GOES_HERE";
     }
 }

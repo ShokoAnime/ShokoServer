@@ -19,15 +19,17 @@ public class AniDbSettings
 
     public ushort UDPServerPort { get; set; } = 9000;
 
+    // We set it to 60 seconds due to issues with UDP timeouts behind NAT.
+    // 60 seconds is a good default for most users.
+    public int UDPPingFrequency { get; set; } = 60;
+
     public ushort ClientPort { get; set; } = 4556;
 
     public string AVDumpKey { get; set; }
 
     public ushort AVDumpClientPort { get; set; } = 4557;
 
-    public bool DownloadRelatedAnime { get; set; } = true;
-
-    public bool DownloadSimilarAnime { get; set; } = true;
+    public bool DownloadRelatedAnime { get; set; } = false;
 
     public bool DownloadReviews { get; set; } = false;
 
@@ -51,13 +53,15 @@ public class AniDbSettings
 
     public ScheduledUpdateFrequency MyList_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
-    public ScheduledUpdateFrequency Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
+    public ScheduledUpdateFrequency Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
-    public ScheduledUpdateFrequency Anime_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
-
-    public ScheduledUpdateFrequency MyListStats_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
+    public ScheduledUpdateFrequency Anime_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
     public ScheduledUpdateFrequency File_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
+
+    public ScheduledUpdateFrequency Notification_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
+
+    public bool Notification_HandleMovedFiles { get; set; } = false;
 
     public bool DownloadCharacters { get; set; } = true;
 
@@ -71,4 +75,8 @@ public class AniDbSettings
     public bool AutomaticallyImportSeries { get; set; } = false;
 
     public AVDumpSettings AVDump { get; set; } = new();
+
+    public AnidbRateLimitSettings HTTPRateLimit { get; set; } = new();
+
+    public AnidbRateLimitSettings UDPRateLimit { get; set; } = new();
 }

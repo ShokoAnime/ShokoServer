@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using MessagePack;
+using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,9 +17,9 @@ using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
@@ -35,7 +37,7 @@ public class Startup
     private readonly ILogger<Startup> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private IWebHost _webHost;
-    public event EventHandler<ServerAboutToStartEventArgs> AboutToStart; 
+    public event EventHandler<ServerAboutToStartEventArgs> AboutToStart;
 
     public Startup(ILogger<Startup> logger, ISettingsProvider settingsProvider)
     {
@@ -48,13 +50,17 @@ public class Startup
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<IRelocationService, RelocationService>();
+            services.AddSingleton<RenameFileService>();
             services.AddSingleton<ISettingsProvider, SettingsProvider>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<ShokoServer>();
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
-            services.AddSingleton<TvDBApiHelper>();
-            services.AddSingleton<MovieDBHelper>();
+            services.AddSingleton<TmdbImageService>();
+            services.AddSingleton<TmdbLinkingService>();
+            services.AddSingleton<TmdbMetadataService>();
+            services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
@@ -168,7 +174,7 @@ public class Startup
             .UseSentryConfig();
 
         var result = builder.Build();
-        
+
         Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         Utils.ServiceContainer = result.Services;
         return result;

@@ -6,32 +6,27 @@ namespace Shoko.Server.Providers.TraktTV.Contracts;
 [DataContract]
 public class TraktV2SearchShowResult
 {
-    [DataMember(Name = "type")] public string type { get; set; }
+    [DataMember(Name = "type")]
+    public string Type { get; set; }
 
-    [DataMember(Name = "score")] public float score { get; set; }
+    [DataMember(Name = "score")]
+    public string Score { get; set; }
 
-    [DataMember(Name = "show")] public TraktV2Show show { get; set; }
+    [DataMember(Name = "show")]
+    public TraktV2Show Show { get; set; }
 
     public override string ToString()
-    {
-        return string.Format("{0} - {1} - {2}", show.Title, show.Year, show.Overview);
-    }
-
-    public string ShowURL => string.Format(TraktURIs.WebsiteShow, show.ids.slug);
-
+        => string.Format("{0} - {1} - {2}", Show.Title, Show.Year, Show.Overview);
 
     public CL_TraktTVShowResponse ToContract()
-    {
-        var contract = new CL_TraktTVShowResponse
+        => new()
         {
-            title = show.Title,
-            year = show.Year.ToString(),
-            url = ShowURL,
+            title = Show.Title,
+            year = Show.Year.ToString(),
+            url = string.Format(TraktURIs.WebsiteShow, Show.IDs.TraktSlug),
             first_aired = string.Empty,
             country = string.Empty,
-            overview = show.Overview,
-            tvdb_id = show.ids.tvdb.ToString()
+            overview = Show.Overview,
+            tvdb_id = Show.IDs.TvdbID.ToString(),
         };
-        return contract;
-    }
 }

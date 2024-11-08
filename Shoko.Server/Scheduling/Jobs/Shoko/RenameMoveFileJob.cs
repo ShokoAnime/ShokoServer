@@ -49,7 +49,11 @@ public class RenameMoveFileJob : BaseJob
 
         var places = _vlocal.Places;
         foreach (var place in places)
-            await _vlPlaceService.RenameAndMoveAsRequired(place);
+        {
+            var result = await _vlPlaceService.AutoRelocateFile(place);
+            if (!result.Success)
+                _logger.LogTrace(result.Exception, "Unable to move/rename file; {ErrorMessage}", result.ErrorMessage);
+        }
     }
 
     public RenameMoveFileJob(VideoLocal_PlaceService vlPlaceService)

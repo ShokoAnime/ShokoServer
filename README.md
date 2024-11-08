@@ -12,7 +12,8 @@ Shoko takes the hassle out of managing your anime collection. With its user-frie
 back and let it do the work for you. No more manual inputting or renaming - just effortless organization and access to
 your favorite anime.
 
-[Learn More About Shoko](https://shokoanime.com)
+[Learn More About Shoko](https://shokoanime.com)  
+[User Docs](https://docs.shokoanime.com/getting-started/installing-shoko-server)
 
 # Supported Media Players
 Shoko currently supports the following media players. 
@@ -29,4 +30,26 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 
 # Building Shoko
 
+Install the latest .net sdk
 
+## Windows:
+Build TrayService or CLI from VS Code or command line via:
+
+`dotnet build Shoko.TrayService/Shoko.TrayService.csproj`
+
+## Linux:
+Install mediainfo and rhash. For apt, that would be:
+
+`sudo apt install mediainfo librhash-dev`
+
+
+Build from CLI:
+
+`dotnet build -c=Release -r linux-x64 -f net8.0 Shoko.CLI/Shoko.CLI.csproj`
+
+If that doesn't work, this document may be out of date. Check the dockerfile for guaranteedly updated build steps.
+
+# Contributing
+We are always accepting help, and there are a million little things that always need done. Hop on our [discord](https://discord.gg/vpeHDsg) and talk to us. Communication is important in any team. No offesnse, but it's difficult to help anyone that shows up out of nowhere, opens 3 issues, then creates a PR without even talking to us. We have a wealth of experience. Let us help you...preferably before the ADHD takes over, you hyperfixate, and you come up with a fantastic solution to problem that isn't at all what you expected. Support is also best found in the discord, in case you read this far.
+
+![Alt](https://repobeats.axiom.co/api/embed/c233a2de69d1f2f56e4cbe96b4b4cd33dc223d19.svg "Repobeats analytics image")

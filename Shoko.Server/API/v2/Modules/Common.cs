@@ -1,22 +1,21 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using NLog;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
@@ -33,6 +32,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
 
+#pragma warning disable IDE1006
 namespace Shoko.Server.API.v2.Modules;
 
 //As responds for this API we throw object that will be converted to json/xml
@@ -216,9 +216,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("stats_update")]
-    public ActionResult UpdateStats()
+    public async Task<ActionResult> UpdateStats()
     {
-        _actionService.UpdateAllStats();
+        await _actionService.UpdateAllStats();
         return Ok();
     }
 
@@ -471,15 +471,9 @@ public class Common : BaseController
     [HttpGet("myid/get")]
     public object MyID()
     {
-        JMMUser user = HttpContext.GetUser();
+        var user = HttpContext.GetUser();
         dynamic x = new ExpandoObject();
-        if (user != null)
-        {
-            x.userid = user.JMMUserID;
-            return x;
-        }
-
-        x.userid = 0;
+        x.userid = user.JMMUserID;
         return x;
     }
 
@@ -490,38 +484,7 @@ public class Common : BaseController
     [HttpGet("news/get")]
     public List<WebNews> GetNews(int max)
     {
-        var client = new WebClient();
-        client.Headers.Add("User-Agent", "jmmserver");
-        client.Headers.Add("Accept", "application/json");
-        var response = client.DownloadString(new Uri("https://shokoanime.com/feed.json"));
-        var newsFeed = JsonConvert.DeserializeObject<dynamic>(response);
-        var news = new List<WebNews>();
-        var limit = 0;
-        foreach (var post in newsFeed.items)
-        {
-            limit++;
-            var postAuthor = "shoko team";
-            if ((string)post.author != "")
-            {
-                postAuthor = (string)post.author;
-            }
-
-            var wn = new WebNews
-            {
-                author = postAuthor,
-                date = post.date_published,
-                link = post.url,
-                title = HttpUtility.HtmlDecode((string)post.title),
-                description = post.content_text
-            };
-            news.Add(wn);
-            if (limit >= max)
-            {
-                break;
-            }
-        }
-
-        return news;
+        return [];
     }
 
     /// <summary>
@@ -725,8 +688,7 @@ public class Common : BaseController
     [HttpGet("queue/images/pause")]
     public async Task<ActionResult> PauseImagesQueue()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.Standby();
+        await _queueHandler.Pause();
         return Ok();
     }
 
@@ -768,16 +730,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/hasher/clear")]
-    public async Task<ActionResult> ClearHasherQueue()
+    public ActionResult ClearHasherQueue()
     {
-        try
-        {
-            return Ok();
-        }
-        catch
-        {
-            return InternalError();
-        }
+        return Ok();
     }
 
     /// <summary>
@@ -787,14 +742,7 @@ public class Common : BaseController
     [HttpGet("queue/general/clear")]
     public ActionResult ClearGeneralQueue()
     {
-        try
-        {
-            return Ok();
-        }
-        catch
-        {
-            return InternalError();
-        }
+        return Ok();
     }
 
     /// <summary>
@@ -804,14 +752,7 @@ public class Common : BaseController
     [HttpGet("queue/images/clear")]
     public ActionResult ClearImagesQueue()
     {
-        try
-        {
-            return Ok();
-        }
-        catch
-        {
-            return InternalError();
-        }
+        return Ok();
     }
 
     #endregion
@@ -841,12 +782,12 @@ public class Common : BaseController
     {
         JMMUser user = HttpContext.GetUser();
 
-        var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
+        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
             .ToDictionary(a => a, a => a.AniDBFile);
-        return allvids.Keys.Select(vid => new { vid, anidb = allvids[vid] })
+        return allVideos.Keys.Select(vid => new { vid, anidb = allVideos[vid] })
             .Where(tuple => tuple.anidb != null)
             .Where(tuple => !tuple.anidb.IsDeprecated)
-            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Any() != tuple.anidb.IsChaptered)
+            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
 
@@ -861,20 +802,23 @@ public class Common : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             return BadRequest("Missing AVDump API key");
 
-        var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
+        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
             .ToDictionary(a => a, a => a.AniDBFile);
         var logger = LogManager.GetCurrentClassLogger();
 
-        var list = allvids.Keys.Select(vid => new
+        var list = allVideos.Keys
+            .Select(vid => new
             {
-                vid, anidb = allvids[vid]
+                vid,
+                anidb = allVideos[vid],
             })
             .Where(tuple => tuple.anidb != null)
             .Where(tuple => !tuple.anidb.IsDeprecated)
-            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Any() != tuple.anidb.IsChaptered)
+            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(_tuple => new
             {
-                Path = _tuple.vid.FirstResolvedPlace?.FullServerPath, Video = _tuple.vid
+                Path = _tuple.vid.FirstResolvedPlace?.FullServerPath,
+                Video = _tuple.vid
             })
             .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
 
@@ -896,9 +840,9 @@ public class Common : BaseController
     {
         JMMUser user = HttpContext.GetUser();
 
-        var allvids = RepoFactory.VideoLocal.GetAll()
+        var allVideos = RepoFactory.VideoLocal.GetAll()
             .Where(a => !a.IsEmpty() && a.AniDBFile != null && a.AniDBFile.IsDeprecated).ToList();
-        return allvids.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
+        return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
 
     /// <summary>
@@ -1115,8 +1059,9 @@ public class Common : BaseController
     /// Internal function returning files
     /// </summary>
     /// <param name="limit">number of return items</param>
-    /// <param name="offset">offset to start from</param>
-    /// <returns>List<RawFile></returns>
+    /// <param name="level"></param>
+    /// <param name="uid"></param>
+    /// <returns>List%lt;RawFile%gt;</returns>
     internal object GetAllFiles(int limit, int level, int uid)
     {
         var list = new List<RawFile>();
@@ -1199,7 +1144,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep
     /// </summary>
-    /// <returns>List<Episode> or Episode</returns>
+    /// <returns>List&lt;Episode&gt; or Episode</returns>
     [HttpGet("ep")]
     public object GetEpisode([FromQuery] API_Call_Parameters para)
     {
@@ -1279,7 +1224,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep/recent
     /// </summary>
-    /// <returns>List<Episode></returns>
+    /// <returns>List&lt;Episode&gt;</returns>
     [HttpGet("ep/recent")]
     public List<Episode> GetRecentEpisodes([FromQuery] API_Call_Parameters para)
     {
@@ -1320,7 +1265,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep/missing
     /// </summary>
-    /// <returns>List<Serie></returns>
+    /// <returns>List&lt;Serie&gt;</returns>
     [HttpGet("ep/missing")]
     public List<Serie> GetMissingEpisodes(bool all, int pic, TagFilter.Filter tagfilter)
     {
@@ -1395,7 +1340,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("ep/vote")]
-    public ActionResult VoteOnEpisode(int id, int score)
+    public async Task<ActionResult> VoteOnEpisode(int id, int score)
     {
         JMMUser user = HttpContext.GetUser();
 
@@ -1403,7 +1348,7 @@ public class Common : BaseController
         {
             if (score != 0)
             {
-                return EpisodeVote(id, score, user.JMMUserID);
+                return await EpisodeVote(id, score, user.JMMUserID);
             }
 
             return BadRequest("missing 'score'");
@@ -1458,7 +1403,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/ep/last_watched
     /// </summary>
-    /// <returns>List<></returns>
+    /// <returns>List&lt;&gt;</returns>
     [HttpGet("ep/last_watched")]
     public List<Episode> ListWatchedEpisodes(string query, int pic, int level, int limit, int offset)
     {
@@ -1535,7 +1480,7 @@ public class Common : BaseController
     /// <summary>
     /// Return All known Episodes for current user
     /// </summary>
-    /// <returns>List<Episode></returns>
+    /// <returns>List&lt;Episode&gt;</returns>
     internal object GetAllEpisodes(int uid, int limit, int offset, int level, bool all, int pic)
     {
         var eps = new List<Episode>();
@@ -1573,6 +1518,8 @@ public class Common : BaseController
     /// </summary>
     /// <param name="id">episode id</param>
     /// <param name="uid">user id</param>
+    /// <param name="level"></param>
+    /// <param name="pic"></param>
     /// <returns>Episode or APIStatus</returns>
     internal object GetEpisodeById(int id, int uid, int level, int pic)
     {
@@ -1614,37 +1561,43 @@ public class Common : BaseController
     /// <param name="score">rating score as 1-10 or 100-1000</param>
     /// <param name="uid"></param>
     /// <returns>APIStatus</returns>
-    internal ActionResult EpisodeVote(int id, int score, int uid)
+    internal async Task<ActionResult> EpisodeVote(int id, int score, int uid)
     {
-        if (id > 0)
+        if (id <= 0)
         {
-            if (score > 0 && score < 1000)
-            {
-                var thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Episode);
+            return BadRequest("'id' value is wrong");
+        }
 
-                if (thisVote == null)
-                {
-                    thisVote = new AniDB_Vote { VoteType = (int)AniDBVoteType.Episode, EntityID = id };
-                }
-
-                if (score <= 10)
-                {
-                    score = score * 100;
-                }
-
-                thisVote.VoteValue = score;
-                RepoFactory.AniDB_Vote.Save(thisVote);
-
-                //CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, voteType, voteValue);
-                //cmdVote.Save();
-
-                return Ok();
-            }
-
+        if (score <= 0 || score > 1000)
+        {
             return BadRequest("'score' value is wrong");
         }
 
-        return BadRequest("'id' value is wrong");
+        var episode = RepoFactory.AnimeEpisode.GetByID(id);
+        if (episode == null)
+        {
+            return BadRequest($"Episode with id {id} was not found");
+        }
+
+        var thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Episode) ??
+                       new AniDB_Vote { EntityID = id, VoteType = (int)AniDBVoteType.Episode };
+
+        if (score <= 10)
+        {
+            score *= 100;
+        }
+
+        thisVote.VoteValue = score;
+        RepoFactory.AniDB_Vote.Save(thisVote);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<VoteAniDBEpisodeJob>(c =>
+        {
+            c.EpisodeID = episode.AniDB_EpisodeID;
+            c.VoteValue = Convert.ToDouble(thisVote);
+        });
+
+        return Ok();
     }
 
     #endregion
@@ -1656,7 +1609,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie
     /// </summary>
-    /// <returns>List<Serie> or Serie</returns>
+    /// <returns>List&lt;Serie&gt; or Serie</returns>
     [HttpGet("serie")]
     public object GetSerie([FromQuery] API_Call_Parameters para)
     {
@@ -1683,7 +1636,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/today
     /// </summary>
-    /// <returns>List<Serie> or Serie</returns>
+    /// <returns>List&lt;Serie&gt; or Serie</returns>
     [HttpGet("serie/today")]
     public ActionResult<Group> SeriesToday([FromQuery] API_Call_Parameters para)
     {
@@ -1729,7 +1682,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/bookmark
     /// </summary>
-    /// <returns>List<Serie></returns>
+    /// <returns>List&lt;Serie&gt;</returns>
     [HttpGet("serie/bookmark")]
     public ActionResult<Group> SeriesBookmark([FromQuery] API_Call_Parameters para)
     {
@@ -1864,7 +1817,7 @@ public class Common : BaseController
 
             anime_count++;
             return true;
-        }).OrderBy(a => a.AirDate).Select(ser => Serie.GenerateFromAniDB_Anime(HttpContext, ser, para.nocast == 1,
+        }).OrderBy(a => a.AirDate).Select(ser => Serie.GenerateFromAniDBAnime(HttpContext, ser, para.nocast == 1,
             para.notag == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
 
         return new Group
@@ -1881,7 +1834,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/byfolder
     /// </summary>
-    /// <returns>List<Serie> or APIStatus</returns>
+    /// <returns>List&lt;Serie&gt; or APIStatus</returns>
     [HttpGet("serie/byfolder")]
     public ActionResult<IEnumerable<Serie>> GetSeriesByFolderId([FromQuery] API_Call_Parameters para)
     {
@@ -1899,7 +1852,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/infobyfolder
     /// </summary>
-    /// <returns>List<ObjectList> or APIStatus</returns>
+    /// <returns>List&lt;ObjectList&gt; or APIStatus</returns>
     [HttpGet("serie/infobyfolder")]
     public object GetSeriesInfoByFolderId(int id)
     {
@@ -1916,7 +1869,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/recent
     /// </summary>
-    /// <returns>List<Serie></returns>
+    /// <returns>List&lt;Serie&gt;</returns>
     [HttpGet("serie/recent")]
     public ActionResult<IEnumerable<Serie>> GetSeriesRecent([FromQuery] API_Call_Parameters para)
     {
@@ -1998,7 +1951,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/search
     /// </summary>
-    /// <returns>List<Serie> or APIStatus</returns>
+    /// <returns>List&lt;Serie&gt; or APIStatus</returns>
     [HttpGet("serie/search")]
     public ActionResult<IEnumerable<Serie>> SearchForSerie([FromQuery] API_Call_Parameters para)
     {
@@ -2024,7 +1977,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/serie/tag
     /// </summary>
-    /// <returns>List<Serie> or APIStatus</returns>
+    /// <returns>List&lt;Serie&gt; or APIStatus</returns>
     [HttpGet("serie/tag")]
     public ActionResult<IEnumerable<Serie>> SearchForTag([FromQuery] API_Call_Parameters para)
     {
@@ -2121,7 +2074,10 @@ public class Common : BaseController
     /// <param name="level">deep level</param>
     /// <param name="all"></param>
     /// <param name="limit"></param>
-    /// <returns>List<Serie></returns>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Serie&gt;</returns>
     internal List<Serie> GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit,
         bool allpic, int pic, TagFilter.Filter tagfilter)
     {
@@ -2211,9 +2167,9 @@ public class Common : BaseController
             var path = (Path.GetDirectoryName(place.FilePath) ?? string.Empty) + "/";
             foreach (var series in seriesList)
             {
-                if (output.ContainsKey(series.AnimeSeriesID))
+                if (output.TryGetValue(series.AnimeSeriesID, out var value))
                 {
-                    var ser = output[series.AnimeSeriesID];
+                    var ser = value;
 
                     ser.filesize += vl.FileSize;
                     ser.size++;
@@ -2231,7 +2187,7 @@ public class Common : BaseController
                     {
                         id = series.AnimeSeriesID,
                         filesize = vl.FileSize,
-                        name = series.SeriesName,
+                        name = series.PreferredTitle,
                         size = 1,
                         paths = new List<string> { path }
                     };
@@ -2257,10 +2213,11 @@ public class Common : BaseController
     /// <param name="id">import folder id</param>
     /// <param name="uid">user id</param>
     /// <param name="limit"></param>
-    /// <returns>List<ObjectList></returns>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;ObjectList&gt;</returns>
     internal object GetSeriesInfoByFolder(int id, int uid, int limit, TagFilter.Filter tagfilter)
     {
-        var tmp_list = new Dictionary<string, long>();
+        var tempDict = new Dictionary<string, long>();
         var allseries = new List<object>();
         var vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
             .Select(a => a.VideoLocal)
@@ -2279,21 +2236,21 @@ public class Common : BaseController
             var objl = new ObjectList(ser.name, ObjectList.ListType.SERIE, ser.filesize);
             if (ser.name != null)
             {
-                if (!tmp_list.ContainsKey(ser.name))
+                if (!tempDict.TryGetValue(ser.name, out var value))
                 {
-                    tmp_list.Add(ser.name, ser.filesize);
+                    tempDict.Add(ser.name, ser.filesize);
                     allseries.Add(objl);
                 }
                 else
                 {
-                    if (tmp_list[ser.name] != ser.filesize)
+                    if (value != ser.filesize)
                     {
-                        while (tmp_list.ContainsKey(objl.name))
+                        while (tempDict.ContainsKey(objl.name))
                         {
-                            objl.name = objl.name + "*";
+                            objl.name += "*";
                         }
 
-                        tmp_list.Add(objl.name, ser.filesize);
+                        tempDict.Add(objl.name, ser.filesize);
                         allseries.Add(objl);
                     }
                 }
@@ -2317,6 +2274,9 @@ public class Common : BaseController
     /// <param name="notag">disable tag</param>
     /// <param name="level">deep level</param>
     /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns></returns>
     internal ActionResult<Serie> GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all,
         bool allpic, int pic, TagFilter.Filter tagfilter)
@@ -2331,23 +2291,24 @@ public class Common : BaseController
         return NotFound("serie not found");
     }
 
-    // <summary>
+    /// <summary>
     /// Return Serie for given aid (AniDB ID)
     /// </summary>
     /// <param name="id">AniDB ID</param>
-    /// <param name="uid">user id</param>
     /// <param name="nocast">disable cast</param>
     /// <param name="notag">disable tag</param>
-    /// <param name="level">deep level</param>
-    /// <param name="all"></param>
+    /// <param name="_"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns></returns>
-    internal ActionResult<Serie> GetSerieFromAniDBID(int id, bool nocast, bool notag, bool all, bool allpic, int pic,
+    internal ActionResult<Serie> GetSerieFromAniDBID(int id, bool nocast, bool notag, bool _, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
         var adba = RepoFactory.AniDB_Anime.GetByAnimeID(id);
         if (adba != null)
         {
-            return Serie.GenerateFromAniDB_Anime(HttpContext, adba, nocast, notag, allpic, pic, tagfilter);
+            return Serie.GenerateFromAniDBAnime(HttpContext, adba, nocast, notag, allpic, pic, tagfilter);
         }
 
         return NotFound("serie not found");
@@ -2359,7 +2320,13 @@ public class Common : BaseController
     /// <param name="nocast">disable cast</param>
     /// <param name="limit">number of return items</param>
     /// <param name="offset">offset to start from</param>
-    /// <returns>List<Serie></returns>
+    /// <param name="notag"></param>
+    /// <param name="level"></param>
+    /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Serie&gt;</returns>
     internal List<Serie> GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic,
         int pic, TagFilter.Filter tagfilter)
     {
@@ -2392,6 +2359,12 @@ public class Common : BaseController
     /// </summary>
     /// <param name="series_id">serie id</param>
     /// <param name="nocast">disable cast</param>
+    /// <param name="notag"></param>
+    /// <param name="level"></param>
+    /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns></returns>
     internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
@@ -2471,7 +2444,10 @@ public class Common : BaseController
     /// <param name="level">deep level</param>
     /// <param name="all"></param>
     /// <param name="fuzzy">Disable searching for invalid path characters</param>
-    /// <returns>List<Serie></returns>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Serie&gt;</returns>
     internal ActionResult<IEnumerable<Serie>> Search(string query, int limit, int limit_tag, int offset, int tagSearch,
         int uid, bool nocast,
         bool notag, int level, bool all, bool fuzzy, bool allpic, int pic, TagFilter.Filter tagfilter)
@@ -2504,24 +2480,19 @@ public class Common : BaseController
         return series_list;
     }
 
-    private SeriesSearch.SearchFlags GetFlags(int tagSearch, bool fuzzy)
-    {
-        switch (tagSearch)
+    private static SeriesSearch.SearchFlags GetFlags(int tagSearch, bool fuzzy)
+        => tagSearch switch
         {
-            case 0:
-                return fuzzy
-                    ? SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy
-                    : SeriesSearch.SearchFlags.Titles;
-            case 1:
-                return fuzzy
-                    ? SeriesSearch.SearchFlags.Tags | SeriesSearch.SearchFlags.Fuzzy
-                    : SeriesSearch.SearchFlags.Tags;
-            default:
-                return fuzzy
-                    ? SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Tags | SeriesSearch.SearchFlags.Fuzzy
-                    : SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Tags;
-        }
-    }
+            0 => fuzzy
+                ? SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy
+                : SeriesSearch.SearchFlags.Titles,
+            1 => fuzzy
+                ? SeriesSearch.SearchFlags.Tags | SeriesSearch.SearchFlags.Fuzzy
+                : SeriesSearch.SearchFlags.Tags,
+            _ => fuzzy
+                ? SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Tags | SeriesSearch.SearchFlags.Fuzzy
+                : SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Tags,
+        };
 
     private static void CheckTitlesStartsWith(SVR_AnimeSeries a, string query,
         ref ConcurrentDictionary<SVR_AnimeSeries, string> series, int limit)
@@ -2601,9 +2572,9 @@ public class Common : BaseController
     /// </summary>
     /// <param name="id">serie id</param>
     /// <param name="score">rating score as 1-10 or 100-1000</param>
-    /// <param name="uid"></param>
+    /// <param name="_"></param>
     /// <returns>APIStatus</returns>
-    internal async Task<ActionResult> SerieVote(int id, int score, int uid)
+    internal async Task<ActionResult> SerieVote(int id, int score, int _)
     {
         if (id <= 0)
         {
@@ -2624,14 +2595,9 @@ public class Common : BaseController
         var voteType = ser.AniDB_Anime.GetFinishedAiring() ? (int)AniDBVoteType.Anime : (int)AniDBVoteType.AnimeTemp;
 
         var thisVote =
-            RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.AnimeTemp) ??
-            RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Anime);
-
-        if (thisVote == null)
-        {
-            thisVote = new AniDB_Vote { EntityID = ser.AniDB_ID };
-        }
-
+            (RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.AnimeTemp) ??
+            RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Anime)) ??
+            new AniDB_Vote { EntityID = ser.AniDB_ID };
         if (score <= 10)
         {
             score *= 100;
@@ -2648,7 +2614,7 @@ public class Common : BaseController
             {
                 c.AnimeID = ser.AniDB_ID;
                 c.VoteType = (AniDBVoteType)voteType;
-                c.VoteValue = Convert.ToDecimal(score / 100);
+                c.VoteValue = score / 100D;
             }
         );
         return Ok();
@@ -2725,16 +2691,23 @@ public class Common : BaseController
     /// <param name="nocast">disable cast</param>
     /// <param name="notag">disable tag</param>
     /// <param name="level">deep level</param>
-    /// <returns>List<Filter></returns>
+    /// <param name="all"></param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Filter&gt;</returns>
     internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
         var filters = new APIFilters
         {
-            id = 0, name = "Filters", viewed = 0, url = APIV2Helper.ConstructFilterUrl(HttpContext)
+            id = 0,
+            name = "Filters",
+            viewed = 0,
+            url = APIV2Helper.ConstructFilterUrl(HttpContext),
         };
 
-        var _filters = new List<APIFilters>();
+        var filterList = new List<APIFilters>();
         var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
         var user = HttpContext.GetUser();
         var hideCategories = user.GetHideCategories();
@@ -2756,28 +2729,29 @@ public class Common : BaseController
                 filter = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter, result);
             }
 
-            _filters.Add(filter);
+            filterList.Add(filter);
         }
 
         // Include 'Unsort'
         var vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted();
-        if (vids.Any())
+        if (vids.Count != 0)
         {
             var filter = new Filter { url = APIV2Helper.ConstructUnsortUrl(HttpContext), name = "Unsort" };
             filter.art.fanart.Add(new Art
             {
-                url = APIV2Helper.ConstructSupportImageLink(HttpContext, "plex_unsort.png"), index = 0
+                url = APIV2Helper.ConstructSupportImageLink(HttpContext, "plex_unsort.png"),
+                index = 0,
             });
             filter.art.thumb.Add(
                 new Art { url = APIV2Helper.ConstructSupportImageLink(HttpContext, "plex_unsort.png"), index = 0 });
             filter.size = vids.Count;
             filter.viewed = 0;
 
-            _filters.Add(filter);
+            filterList.Add(filter);
         }
 
-        filters.filters = _filters.OrderBy(a => a.name).ToList();
-        filters.size = _filters.Count();
+        filters.filters = filterList.OrderBy(a => a.name).ToList();
+        filters.size = filterList.Count;
 
         return filters;
     }
@@ -2791,6 +2765,9 @@ public class Common : BaseController
     /// <param name="notag">disable tag</param>
     /// <param name="level">deep level</param>
     /// <param name="all">include missing episodes</param>
+    /// <param name="allpic"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns>Filter or Filters</returns>
     internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
@@ -2892,7 +2869,10 @@ public class Common : BaseController
     /// <param name="notag"></param>
     /// <param name="level"></param>
     /// <param name="all"></param>
-    /// <returns>List<Group></returns>
+    /// <param name="allpics"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
+    /// <returns>List&lt;Group&gt;</returns>
     internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic,
         TagFilter.Filter tagfilter)
     {
@@ -2919,6 +2899,9 @@ public class Common : BaseController
     /// <param name="level">deep level</param>
     /// <param name="all">add all known episodes</param>
     /// <param name="filterid"></param>
+    /// <param name="allpics"></param>
+    /// <param name="pic"></param>
+    /// <param name="tagfilter"></param>
     /// <returns>Group or APIStatus</returns>
     internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics,
         int pic, TagFilter.Filter tagfilter)
@@ -3150,12 +3133,10 @@ public class Common : BaseController
             var role = new Role
             {
                 character = character.Name,
-                character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character,
-                    xref.RoleID.Value),
+                character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.Shoko, xref.RoleID.Value),
                 character_description = cdescription,
                 staff = staff.Name,
-                staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff,
-                    xref.StaffID),
+                staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.Shoko, xref.StaffID),
                 staff_description = sdescription,
                 role = xref.Role,
                 type = ((StaffRoleType)xref.RoleType).ToString()
@@ -3222,7 +3203,7 @@ public class Common : BaseController
             return result;
         }
 
-        return string.Compare(staff1.Key.SeriesName, staff2.Key.SeriesName,
+        return string.Compare(staff1.Key.PreferredTitle, staff2.Key.PreferredTitle,
             StringComparison.InvariantCultureIgnoreCase);
     }
 
@@ -3232,8 +3213,8 @@ public class Common : BaseController
         var results = new List<Serie>();
         var user = HttpContext.GetUser();
 
-        var search_filter = new Filter { name = "Search By Staff", groups = new List<Group>() };
-        var search_group = new Group { name = para.query, series = new List<Serie>() };
+        var search_filter = new Filter { name = "Search By Staff", groups = [] };
+        var search_group = new Group { name = para.query, series = [] };
 
         var seriesDict = _seriesService.SearchSeriesByStaff(para.query, para.fuzzy == 1).ToList();
 
@@ -3243,33 +3224,29 @@ public class Common : BaseController
             para.tagfilter)));
 
         search_group.series = results;
-        search_group.size = search_group.series.Count();
+        search_group.size = search_group.series.Count;
         search_filter.groups.Add(search_group);
-        search_filter.size = search_filter.groups.Count();
+        search_filter.size = search_filter.groups.Count;
         return search_filter;
     }
 
     #endregion
 
     [HttpGet("links/serie")]
-    public Dictionary<string, object> GetLinks(int id)
+    public static Dictionary<string, object> GetLinks(int id)
     {
         var links = new Dictionary<string, object>();
 
         var serie = RepoFactory.AnimeSeries.GetByID(id);
         var trakt = serie?.TraktShow;
-        if (trakt != null) links.Add("trakt", trakt.Where(a => !string.IsNullOrEmpty(a.URL)).Select(x => x.URL).ToArray());
-        var tvdb = serie?.TvDBSeries;
-        if (tvdb != null)
-        {
-            links.Add("tvdb", tvdb.Select(x => x.SeriesID).ToArray());
-        }
+        if (trakt != null)
+            links.Add("trakt", trakt.Where(a => !string.IsNullOrEmpty(a.URL)).Select(x => x.URL).ToArray());
 
-        var tmdb = serie?.CrossRefMovieDB;
-        if (tmdb != null)
-        {
-            links.Add("tmdb", tmdb.CrossRefID); //not sure this will work.
-        }
+        if (serie?.TmdbShows is { Count: > 0 } tmdbShows)
+            links.Add("tvdb", tmdbShows.Select(x => x.TvdbShowID).WhereNotNull().ToArray());
+
+        if (serie?.TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieXrefs)
+            links.Add("tmdb", tmdbMovieXrefs[0].TmdbMovieID);
 
         return links;
     }
@@ -3281,7 +3258,9 @@ public class Common : BaseController
 [ApiController]
 public class Common_v2_1 : BaseController
 {
+#pragma warning disable ASP0018
     [HttpGet("v{version:apiVersion}/ep/getbyfilename")]
+#pragma warning restore ASP0018
     [HttpGet("ep/getbyfilename")] //to allow via the header explicitly.
     public ActionResult<IEnumerable<Episode>> GetEpisodeFromName_v2([FromQuery] string filename,
         [FromQuery] int pic = 1, [FromQuery] int level = 0)
@@ -3295,13 +3274,13 @@ public class Common_v2_1 : BaseController
         var items = RepoFactory.VideoLocalPlace.GetAll()
             .Where(v => filename.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                 StringComparison.InvariantCultureIgnoreCase))
-            .Where(a => a.VideoLocal != null)
+            .Where(a => a.VideoLocal is not null)
             .Select(a => a.VideoLocal.AnimeEpisodes)
-            .Where(a => a != null && a.Any())
+            .Where(a => a is not null && a.Count is not 0)
             .Select(a => a.First())
             .Select(aep => Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, level, pic)).ToList();
 
-        if (items.Any())
+        if (items.Count is not 0)
         {
             return Ok(items);
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Tests;
@@ -18,10 +19,12 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> CustomTags { get; init; }
     public IReadOnlySet<int> Years { get; init; }
     public IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; init; }
-    public bool HasTvDBLink { get; init; }
-    public bool HasMissingTvDbLink { get; init; }
-    public bool HasTMDbLink { get; init; }
-    public bool HasMissingTMDbLink { get; init; }
+    public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; }
+    public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; }
+    public bool HasTmdbLink { get; init; }
+    public bool HasMissingTmdbLink { get; init; }
+    public int AutomaticTmdbEpisodeLinks { get; init; }
+    public int UserVerifiedTmdbEpisodeLinks { get; init; }
     public bool HasTraktLink { get; init; }
     public bool HasMissingTraktLink { get; init; }
     public bool IsFinished { get; init; }
@@ -42,5 +45,7 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> SubtitleLanguages { get; init; }
     public IReadOnlySet<string> SharedSubtitleLanguages { get; init; }
     public IReadOnlySet<string> Resolutions { get; init; }
+    public IReadOnlySet<string> ImportFolderIDs { get; init; }
+    public IReadOnlySet<string> ImportFolderNames { get; init; }
     public IReadOnlySet<string> FilePaths { get; init; }
 }

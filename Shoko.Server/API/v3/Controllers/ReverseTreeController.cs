@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,8 +25,6 @@ public class ReverseTreeController : BaseController
 {
     private readonly FilterFactory _filterFactory;
 
-    private readonly SeriesFactory _seriesFactory;
-
     /// <summary>
     /// Get the parent <see cref="Filter"/> for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
@@ -40,7 +39,7 @@ public class ReverseTreeController : BaseController
     /// <param name="topLevel">Always get the top-level <see cref="Filter"/></param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Parent")]
-    public ActionResult<Filter> GetParentFromFilter([FromRoute] int filterID, [FromQuery] bool topLevel = false)
+    public ActionResult<Filter> GetParentFromFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool topLevel = false)
     {
         var filter = RepoFactory.FilterPreset.GetByID(filterID);
         if (filter == null)
@@ -76,9 +75,8 @@ public class ReverseTreeController : BaseController
     /// <param name="topLevel">Always get the top-level <see cref="Group"/></param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Parent")]
-    public ActionResult<Group> GetParentFromGroup([FromRoute] int groupID, [FromQuery] bool topLevel = false)
+    public ActionResult<Group> GetParentFromGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool topLevel = false)
     {
-        if (groupID == 0) return BadRequest(GroupController.GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -101,7 +99,7 @@ public class ReverseTreeController : BaseController
             return InternalError("No parent Group entry for the given groupID");
         }
 
-        return new Group(HttpContext, parentGroup);
+        return new Group(parentGroup, User.JMMUserID);
     }
 
     /// <summary>
@@ -116,9 +114,8 @@ public class ReverseTreeController : BaseController
     /// <param name="topLevel">Always get the top-level <see cref="Group"/></param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Group")]
-    public ActionResult<Group> GetGroupFromSeries([FromRoute] int seriesID, [FromQuery] bool topLevel = false)
+    public ActionResult<Group> GetGroupFromSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool topLevel = false)
     {
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -136,18 +133,18 @@ public class ReverseTreeController : BaseController
             return InternalError("No Group entry for the Series");
         }
 
-        return new Group(HttpContext, group);
+        return new Group(group, User.JMMUserID);
     }
 
     /// <summary>
     /// Get the <see cref="Series"/> for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID"><see cref="Episode"/> ID</param>
-    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/Series")]
-    public ActionResult<Series> GetSeriesFromEpisode([FromRoute] int episodeID, [FromQuery] bool randomImages = false,
+    public ActionResult<Series> GetSeriesFromEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
@@ -167,7 +164,7 @@ public class ReverseTreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        return _seriesFactory.GetSeries(series, randomImages, includeDataFrom);
+        return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -182,7 +179,7 @@ public class ReverseTreeController : BaseController
     /// <returns></returns>
     [HttpGet("File/{fileID}/Episode")]
     public ActionResult<List<Episode>> GetEpisodeFromFile(
-        [FromRoute] int fileID,
+        [FromRoute, Range(1, int.MaxValue)] int fileID,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
@@ -206,9 +203,8 @@ public class ReverseTreeController : BaseController
             .ToList();
     }
 
-    public ReverseTreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory, SeriesFactory seriesFactory) : base(settingsProvider)
+    public ReverseTreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory) : base(settingsProvider)
     {
         _filterFactory = filterFactory;
-        _seriesFactory = seriesFactory;
     }
 }

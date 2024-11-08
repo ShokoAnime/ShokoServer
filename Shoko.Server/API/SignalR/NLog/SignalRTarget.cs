@@ -39,7 +39,6 @@ public class SignalRTarget : TargetWithLayout
         ConnectMethodName = "GetBacklog";
         MaxLogsCount = 10;
         Logs = new List<LogEvent>(MaxLogsCount);
-        OptimizeBufferReuse = true;
     }
 
     protected override void Write(LogEventInfo logEvent)

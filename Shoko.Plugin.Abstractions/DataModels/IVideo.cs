@@ -1,9 +1,13 @@
 
 using System.Collections.Generic;
+using System.IO;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
+/// <summary>
+/// Video.
+/// </summary>
 public interface IVideo : IMetadata<int>
 {
     /// <summary>
@@ -34,7 +38,7 @@ public interface IVideo : IMetadata<int>
     /// <summary>
     /// The MediaInfo data for the file. This can be null, but it shouldn't be.
     /// </summary>
-    IMediaContainer? MediaInfo { get; }
+    IMediaInfo? MediaInfo { get; }
 
     /// <summary>
     /// All cross-references linked to the video.
@@ -44,15 +48,20 @@ public interface IVideo : IMetadata<int>
     /// <summary>
     /// All episodes linked to the video.
     /// </summary>
-    IReadOnlyList<IEpisode> EpisodeInfo { get; }
+    IReadOnlyList<IShokoEpisode> Episodes { get; }
 
     /// <summary>
     /// All shows linked to the show.
     /// </summary>
-    IReadOnlyList<ISeries> SeriesInfo { get; }
+    IReadOnlyList<IShokoSeries> Series { get; }
 
     /// <summary>
     /// Information about the group
     /// </summary>
-    IReadOnlyList<IGroup> GroupInfo { get; }
+    IReadOnlyList<IShokoGroup> Groups { get; }
+
+    /// <summary>
+    /// Get the stream for the video, if any files are still available.
+    /// </summary>
+    Stream? GetStream();
 }

@@ -6,9 +6,12 @@ namespace Shoko.Server.Providers.TraktTV.Contracts;
 [DataContract]
 public class TraktV2Season
 {
-    [DataMember(Name = "number")] public int number { get; set; }
+    [DataMember(Name = "number")]
+    public int SeasonNumber { get; set; }
 
-    [DataMember(Name = "ids")] public TraktV2SeasonIds ids { get; set; }
+    [DataMember(Name = "ids")]
+    public TraktV2SeasonIds IDs { get; set; }
 
-    [DataMember(Name = "episodes")] public List<TraktV2Episode> episodes { get; set; }
+    [DataMember(Name = "episodes")]
+    public List<TraktV2Episode> Episodes { get; set; }
 }

@@ -1,32 +1,33 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Models;
 
 public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 {
-    internal SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
+    internal SVR_ImportFolder? ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
-    public string FullServerPath
+    public string? FullServerPath
     {
         get
         {
-            if (string.IsNullOrEmpty(ImportFolder?.ImportFolderLocation) || string.IsNullOrEmpty(FilePath))
-            {
+            var importFolderLocation = ImportFolder?.ImportFolderLocation;
+            if (string.IsNullOrEmpty(importFolderLocation) || string.IsNullOrEmpty(FilePath))
                 return null;
-            }
 
-            return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
+            return Path.Combine(importFolderLocation, FilePath);
         }
     }
 
     public string FileName => Path.GetFileName(FilePath);
 
-    public SVR_VideoLocal VideoLocal => VideoLocalID == 0 ? null : RepoFactory.VideoLocal.GetByID(VideoLocalID);
+    public SVR_VideoLocal? VideoLocal => VideoLocalID is 0 ? null : RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
-    public FileInfo GetFile()
+    public FileInfo? GetFile()
     {
         if (!File.Exists(FullServerPath))
         {
@@ -40,20 +41,21 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     int IVideoFile.ID => VideoLocal_Place_ID;
 
-    int IVideoFile.ImportFolderID => ImportFolderID;
-
     int IVideoFile.VideoID => VideoLocalID;
 
-    IVideo IVideoFile.VideoInfo => VideoLocal;
+    IVideo IVideoFile.Video => VideoLocal
+        ?? throw new NullReferenceException("Unable to get the associated IVideo for the IVideoFile with ID " + VideoLocal_Place_ID);
 
-    string IVideoFile.Path => FullServerPath;
+    string IVideoFile.Path => FullServerPath
+        ?? throw new NullReferenceException("Unable to get the absolute path for the IVideoFile with ID " + VideoLocal_Place_ID);
 
     string IVideoFile.RelativePath
     {
         get
         {
             var path = FilePath.Replace('\\', '/');
-            if (path.Length > 0 && path[0] != '/')
+            // Windows compat. home/folder -> /home/folder, but not C:/folder -> /C:/folder
+            if (path.Length > 0 && path[0] != '/' && (path.Length < 2 || path[1] != ':'))
                 path = '/' + path;
             return path;
         }
@@ -61,21 +63,20 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     long IVideoFile.Size => VideoLocal?.FileSize ?? 0;
 
-    IImportFolder IVideoFile.ImportFolder => ImportFolder;
+    IImportFolder IVideoFile.ImportFolder => ImportFolder
+        ?? throw new NullReferenceException("Unable to get the associated IImportFolder for the IVideoFile with ID " + VideoLocal_Place_ID);
 
-    int IVideoFile.VideoFileID => VideoLocalID;
+    Stream? IVideoFile.GetStream()
+    {
+        var filePath = FullServerPath;
+        if (string.IsNullOrEmpty(filePath))
+            return null;
 
-    string IVideoFile.Filename => Path.GetFileName(FilePath);
+        if (!File.Exists(filePath))
+            return null;
 
-    string IVideoFile.FilePath => FullServerPath;
-
-    long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
-
-    IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.AniDBFile;
-
-    public IHashes Hashes => VideoLocal;
-
-    public IMediaContainer MediaInfo => VideoLocal?.MediaInfo;
+        return File.OpenRead(filePath);
+    }
 
     #endregion
 }

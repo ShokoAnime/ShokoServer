@@ -4,13 +4,19 @@ using Shoko.Plugin.Abstractions.Extensions;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Episode_Title : AniDB_Episode_Title
+public class SVR_AniDB_Episode_Title
 {
+    public int AniDB_Episode_TitleID { get; set; }
+
+    public int AniDB_EpisodeID { get; set; }
+
+    public string Title { get; set; }
+
     /// <summary>
     /// The language.
     /// </summary>
     /// <value></value>
-    public new TitleLanguage Language { get; set; }
+    public TitleLanguage Language { get; set; }
 
     /// <summary>
     /// The language code.
@@ -29,7 +35,7 @@ public class SVR_AniDB_Episode_Title : AniDB_Episode_Title
 
     public override bool Equals(object obj)
     {
-        if (ReferenceEquals(null, obj))
+        if (obj is null)
         {
             return false;
         }
@@ -39,7 +45,7 @@ public class SVR_AniDB_Episode_Title : AniDB_Episode_Title
             return true;
         }
 
-        if (obj.GetType() != this.GetType())
+        if (obj.GetType() != GetType())
         {
             return false;
         }
@@ -52,7 +58,7 @@ public class SVR_AniDB_Episode_Title : AniDB_Episode_Title
         unchecked
         {
             var hashCode = AniDB_EpisodeID;
-            hashCode = (hashCode * 397) ^ (Language != null ? Language.GetHashCode() : 0);
+            hashCode = (hashCode * 397) ^ Language.GetHashCode();
             hashCode = (hashCode * 397) ^ (Title != null ? Title.GetHashCode() : 0);
             return hashCode;
         }

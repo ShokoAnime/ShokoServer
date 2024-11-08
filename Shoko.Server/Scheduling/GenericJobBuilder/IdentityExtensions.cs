@@ -1,5 +1,6 @@
 ﻿using Quartz;
 
+#nullable enable
 namespace Shoko.Server.Scheduling.GenericJobBuilder;
 
 public static class IdentityExtensions
@@ -20,7 +21,7 @@ public static class IdentityExtensions
         var key = JobKeyBuilder<T>.Create().WithGroup(group).UsingJobData(jobConfigurator.GetJobData()).Build();
         return jobConfigurator.WithIdentity(key);
     }
-    
+
     /// <summary>
     /// Generate a <see cref="JobKey" /> to identify the JobDetail from the set JobDataMap using <see cref="JobKey"/> on members.
     /// If none are marked, then all public properties will be considered, in the default order, with the member names.
@@ -49,7 +50,7 @@ public static class IdentityExtensions
     /// <param name="jobConfigurator"></param>
     /// <param name="name">the name element for the Job's JobKey</param>
     /// <returns>the updated JobBuilder</returns>
-    /// <seealso cref="JobKey" /> 
+    /// <seealso cref="JobKey" />
     /// <seealso cref="IJobDetail.Key" />
     public static IJobConfiguratorWithIdentity<T> WithIdentity<T>(this IJobConfigurator<T> jobConfigurator, string name)
         where T : class, IJob
@@ -109,7 +110,7 @@ public static class IdentityExtensions
     /// <param name="jobConfigurator"></param>
     /// <param name="name">the name element for the Job's JobKey</param>
     /// <returns>the updated JobBuilder</returns>
-    /// <seealso cref="JobKey" /> 
+    /// <seealso cref="JobKey" />
     /// <seealso cref="IJobDetail.Key" />
     public static IJobConfiguratorWithDataAndIdentity<T> WithIdentity<T>(this IJobConfiguratorWithData<T> jobConfigurator, string name)
         where T : class, IJob

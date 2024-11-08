@@ -51,7 +51,7 @@ public static class SentryInit
             if (extraInfo.TryGetValue("tag", out var gitTag)) opts.DefaultTags.Add("commit.tag", gitTag);
 
             // Append the release channel for the release on non-stable branches.
-            if (environment != "stable") opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
+            if (environment is not "stable" and not "dev") opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
 
             opts.SampleRate = 0.5f;
 
@@ -78,7 +78,7 @@ public static class SentryInit
         typeof(GenericADOException),
         typeof(UnexpectedUDPResponseException)
     };
-    
+
     private static SentryEvent? BeforeSentrySend(SentryEvent arg)
     {
         var ex = arg.Exception;

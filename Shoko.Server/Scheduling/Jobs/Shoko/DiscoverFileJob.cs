@@ -15,6 +15,8 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS8618
+#pragma warning disable CS0618
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
@@ -83,8 +85,7 @@ public class DiscoverFileJob : BaseJob
         var scheduler = await _schedulerFactory.GetScheduler();
 
         // if !shouldHash, then we definitely have a hash
-        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a =>
-            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
+        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
         if (!shouldHash && hasXrefs && !vlocal.DateTimeImported.HasValue)
         {
             vlocal.DateTimeImported = DateTime.Now;
@@ -153,10 +154,10 @@ public class DiscoverFileJob : BaseJob
             return default;
         }
 
-        var nshareID = folder.ImportFolderID;
+        var importFolderID = folder.ImportFolderID;
 
         // check if we have already processed this file
-        var vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
+        var vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, importFolderID);
         SVR_VideoLocal vlocal = null;
         var filename = Path.GetFileName(filePath);
 
@@ -205,19 +206,21 @@ public class DiscoverFileJob : BaseJob
             _logger.LogTrace("No existing VideoLocal_Place, creating a new record");
             vlocalplace = new SVR_VideoLocal_Place
             {
-                FilePath = filePath, ImportFolderID = nshareID, ImportFolderType = folder.ImportFolderType
+                FilePath = filePath,
+                ImportFolderID = importFolderID,
+                ImportFolderType = folder.ImportFolderType,
             };
             if (vlocal.VideoLocalID != 0) vlocalplace.VideoLocalID = vlocal.VideoLocalID;
         }
-        
+
         return (vlocal, vlocalplace);
     }
-    
+
     private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
     {
         var crossRefs =
             RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
-        if (!crossRefs.Any()) return false;
+        if (crossRefs.Count == 0) return false;
 
         vlocal.Hash = crossRefs[0].Hash;
         vlocal.HashSource = (int)HashSource.DirectHash;
@@ -228,28 +231,28 @@ public class DiscoverFileJob : BaseJob
     private bool TrySetHashFromFileNameHash(string filename, SVR_VideoLocal vlocal)
     {
         // TODO support reading MD5 and SHA1 from files via the standard way
-        var fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
-        if (fnhashes is { Count: > 1 })
+        var hashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+        if (hashes is { Count: > 1 })
         {
             // if we have more than one record it probably means there is some sort of corruption
             // lets delete the local records
-            foreach (var fnh in fnhashes)
+            foreach (var fnh in hashes)
             {
                 RepoFactory.FileNameHash.Delete(fnh.FileNameHashID);
             }
         }
 
         // reinit this to check if we erased them
-        fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+        hashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
 
-        if (fnhashes is not { Count: 1 }) return false;
+        if (hashes is not { Count: 1 }) return false;
 
-        _logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FilePath, fnhashes[0].Hash);
-        vlocal.Hash = fnhashes[0].Hash;
+        _logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FilePath, hashes[0].Hash);
+        vlocal.Hash = hashes[0].Hash;
         vlocal.HashSource = (int)HashSource.FileNameCache;
         return true;
     }
-    
+
     private static bool FillHashesAgainstVideoLocalRepo(SVR_VideoLocal v)
     {
         var changed = false;
@@ -336,7 +339,7 @@ public class DiscoverFileJob : BaseJob
 
         return false;
     }
-    
+
     private (bool needEd2k, bool needCRC32, bool needMD5, bool needSHA1) ShouldHash(SVR_VideoLocal vlocal)
     {
         var hasherSettings = _settingsProvider.GetSettings().Import.Hasher;
@@ -348,7 +351,7 @@ public class DiscoverFileJob : BaseJob
     }
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <param name="vlocal"></param>
     /// <param name="vlocalplace"></param>

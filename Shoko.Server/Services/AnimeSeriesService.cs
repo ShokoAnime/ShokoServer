@@ -20,6 +20,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
@@ -36,29 +37,88 @@ public class AnimeSeriesService
     private readonly AniDB_AnimeService _animeService;
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly JobFactory _jobFactory;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
     {
         _logger = logger;
         _seriesUsers = seriesUsers;
         _schedulerFactory = schedulerFactory;
+        _jobFactory = jobFactory;
         _animeService = animeService;
         _groupService = groupService;
         _vlUsers = vlUsers;
     }
 
-    public async Task<bool> CreateAnimeEpisodes(SVR_AnimeSeries series)
+    public async Task AddSeriesVote(SVR_AnimeSeries series, AniDBVoteType voteType, decimal vote)
+    {
+        var dbVote = (RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.AnimeTemp) ??
+                     RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.Anime)) ??
+                     new AniDB_Vote { EntityID = series.AniDB_ID };
+        dbVote.VoteValue = (int)Math.Floor(vote * 100);
+        dbVote.VoteType = (int)voteType;
+
+        RepoFactory.AniDB_Vote.Save(dbVote);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+            {
+                c.AnimeID = series.AniDB_ID;
+                c.VoteType = voteType;
+                c.VoteValue = Convert.ToDouble(vote);
+            }
+        );
+    }
+
+    public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
+        bool cacheOnly = false)
+    {
+        if (animeID == 0) return false;
+        if (immediate)
+        {
+            var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
+            {
+                c.AnimeID = animeID;
+                c.DownloadRelations = downloadRelations;
+                c.ForceRefresh = force;
+                c.CacheOnly = !force && cacheOnly;
+                c.CreateSeriesEntry = createSeriesEntry;
+            });
+
+            try
+            {
+                return await job.Process() != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+        {
+            c.AnimeID = animeID;
+            c.DownloadRelations = downloadRelations;
+            c.ForceRefresh = force;
+            c.CacheOnly = !force && cacheOnly;
+            c.CreateSeriesEntry = createSeriesEntry;
+        });
+        return false;
+    }
+
+    public async Task<(bool, Dictionary<SVR_AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(SVR_AnimeSeries series)
     {
         var anime = series.AniDB_Anime;
         if (anime == null)
-            return false;
+            return (false, []);
         var anidbEpisodes = anime.AniDBEpisodes;
         // Cleanup deleted episodes
         var epsToRemove = RepoFactory.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID)
             .Where(a => a.AniDB_Episode is null)
             .ToList();
         var filesToUpdate = epsToRemove
-            .SelectMany(a => a.FileCrossRefs)
+            .SelectMany(a => a.FileCrossReferences)
             .ToList();
         var vlIDsToUpdate = filesToUpdate
             .Select(a => a.VideoLocal?.VideoLocalID)
@@ -107,13 +167,14 @@ public class AnimeSeriesService
 
         RepoFactory.AnimeEpisode.Delete(epsToRemove);
 
-        // Emit shoko episode updated events.
-        foreach (var (episode, reason) in episodeDict)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, reason);
+        // Add removed episodes to the dictionary.
         foreach (var episode in epsToRemove)
-            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Removed);
+            episodeDict.Add(episode, UpdateReason.Removed);
 
-        return episodeDict.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0;
+        return (
+            episodeDict.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0,
+            episodeDict
+        );
     }
 
     private (SVR_AnimeEpisode episode, bool isNew, bool isUpdated) CreateAnimeEpisode(SVR_AniDB_Episode episode, int animeSeriesID)
@@ -191,41 +252,16 @@ public class AnimeSeriesService
             SeriesNameOverride = series.SeriesNameOverride,
             DefaultFolder = series.DefaultFolder,
             AniDBAnime = _animeService.GetV1DetailedContract(series.AniDB_Anime),
+            CrossRefAniDBTvDBV2 = [],
+            TvDB_Series = [],
         };
-
-        var tvDBCrossRefs = series.TvDBXrefs;
-        var movieDBCrossRef = series.CrossRefMovieDB;
-        MovieDB_Movie movie = null;
-        if (movieDBCrossRef != null)
+        if (series.TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieXrefs)
         {
-            movie = movieDBCrossRef.GetMovieDB_Movie();
+            contract.CrossRefAniDBMovieDB = tmdbMovieXrefs[0].ToClient();
+            contract.MovieDB_Movie = tmdbMovieXrefs[0].TmdbMovie?.ToClient();
         }
 
-        var sers = new List<TvDB_Series>();
-        foreach (var xref in tvDBCrossRefs)
-        {
-            var tvser = xref.GetTvDBSeries();
-            if (tvser != null)
-            {
-                sers.Add(tvser);
-            }
-            else
-            {
-                _logger.LogWarning("You are missing database information for TvDB series: {0}", xref.TvDBID);
-            }
-        }
-
-        contract.CrossRefAniDBTvDBV2 = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(series.AniDB_ID);
-
-        contract.TvDB_Series = sers;
-        contract.CrossRefAniDBMovieDB = null;
-        if (movieDBCrossRef != null)
-        {
-            contract.CrossRefAniDBMovieDB = movieDBCrossRef;
-            contract.MovieDB_Movie = movie;
-        }
-
-        contract.CrossRefAniDBMAL = series.CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
+        contract.CrossRefAniDBMAL = series.MALCrossReferences?.ToList() ?? new List<CrossRef_AniDB_MAL>();
         try
         {
 
@@ -238,13 +274,13 @@ public class AnimeSeriesService
                 contract.PlayedCount = rr.PlayedCount;
                 contract.WatchedCount = rr.WatchedCount;
                 contract.StoppedCount = rr.StoppedCount;
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.SeriesName;
+                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.PreferredTitle;
                 return contract;
             }
 
             if (contract.AniDBAnime?.AniDBAnime != null)
             {
-                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.SeriesName;
+                contract.AniDBAnime.AniDBAnime.FormattedTitle = series.PreferredTitle;
             }
 
             return contract;
@@ -316,7 +352,7 @@ public class AnimeSeriesService
                     RepoFactory.AnimeGroup.Save(oldGroup);
             }
 
-            // Update the top group 
+            // Update the top group
             var topGroup = oldGroup.TopLevelAnimeGroup;
             if (topGroup.AnimeGroupID != oldGroup.AnimeGroupID)
             {
@@ -347,7 +383,7 @@ public class AnimeSeriesService
                 watchedStats, missingEpsStats);
 
             var startEps = DateTime.Now;
-            var eps = series.AllAnimeEpisodes.Where(a => a.AniDB_Episode != null).ToList();
+            var eps = series.AllAnimeEpisodes.Where(a => a.AniDB_Episode is not null).ToList();
             var tsEps = DateTime.Now - startEps;
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
 
@@ -514,7 +550,7 @@ public class AnimeSeriesService
 
                 return aniFiles.Select(b => b.GroupID);
             }
-        ).ToList();
+        ).Distinct().ToList();
 
         var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
                 a.VideoLocals.Select(b => new
@@ -527,10 +563,41 @@ public class AnimeSeriesService
         // This was always Episodes only. Maybe in the future, we'll have a reliable way to check specials.
         eps.AsParallel().Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).ForAll(ep =>
         {
-            var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
-
             var aniEp = ep.AniDB_Episode;
+            // Un-aired episodes should not be included in the stats.
+            if (aniEp is not { HasAired: true }) return;
+
             var thisEpNum = aniEp.EpisodeNumber;
+            // does this episode have a file released
+            var epReleased = false;
+            // does this episode have a file released by the group the user is collecting
+            var epReleasedGroup = false;
+
+            if (grpStatuses.Count == 0)
+            {
+                // If there are no group statuses, the UDP command has not been run yet or has failed
+                // The current has aired, as un-aired episodes are filtered out above
+                epReleased = true;
+                // We do not set epReleasedGroup here because we have no way to know
+            }
+            else
+            {
+                // Get all groups which have their status set to complete or finished or have released this episode
+                var filteredGroups = grpStatuses
+                    .Where(
+                        a => a.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished
+                             || a.HasGroupReleasedEpisode(thisEpNum))
+                    .ToList();
+                // Episode is released if any of the groups have released it
+                epReleased = filteredGroups.Count > 0;
+                // Episode is released by one of the groups user is collecting if one of the userReleaseGroups is included in filteredGroups
+                epReleasedGroup = filteredGroups.Any(a => userReleaseGroups.Contains(a.GroupID));
+            }
+
+            // If epReleased is false, then we consider the episode to be not released, even if it has aired, as no group has released it
+            if (!epReleased) return;
+
+            var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
 
             if (thisEpNum > latestLocalEpNumber && vids.Any())
             {
@@ -540,7 +607,7 @@ public class AnimeSeriesService
             var airdate = ep.AniDB_Episode.GetAirDateAsDate();
 
             // If episode air date is unknown, air date of the anime is used instead
-            airdate ??= ep.AniDB_Episode.AniDB_Anime.AirDate;
+            airdate ??= series.AniDB_Anime?.AirDate;
 
             // Only count episodes that have already aired
             // airdate could, in theory, only be null here if AniDB neither has information on the episode
@@ -563,7 +630,7 @@ public class AnimeSeriesService
                 lock (daysofweekcounter)
                 {
                     daysofweekcounter.TryAdd(airdateLocal.DayOfWeek, 0);
-                            daysofweekcounter[airdateLocal.DayOfWeek]++;
+                    daysofweekcounter[airdateLocal.DayOfWeek]++;
                 }
 
                 if (lastEpAirDate == null || lastEpAirDate < airdate)
@@ -572,36 +639,19 @@ public class AnimeSeriesService
                 }
             }
 
-            // does this episode have a file released
-            // does this episode have a file released by the group the user is collecting
-            var epReleased = false;
-            var epReleasedGroup = false;
-            foreach (var gs in grpStatuses)
-            {
-                // if it's complete, then assume the episode is included
-                if (gs.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished)
-                {
-                    epReleased = true;
-                    if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
-                    continue;
-                }
-
-                if (!gs.HasGroupReleasedEpisode(thisEpNum)) continue;
-
-                epReleased = true;
-                if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
-            }
-
             try
             {
                 lock (epReleasedList)
                 {
-                    epReleasedList.Add(ep, !epReleased || vids.Any());
+                    epReleasedList.Add(ep, vids.Count > 0);
                 }
+
+                // Skip adding to epGroupReleasedList if the episode has not been released by one of the groups user is collecting
+                if (!epReleasedGroup) return;
 
                 lock (epGroupReleasedList)
                 {
-                    epGroupReleasedList.Add(ep, !epReleasedGroup || vids.Any());
+                    epGroupReleasedList.Add(ep, vids.Count > 0);
                 }
             }
             catch (Exception e)
@@ -766,13 +816,13 @@ label0:;
         if (completelyRemove)
         {
             // episodes, anime, characters, images, staff relations, tag relations, titles
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(series.AniDB_ID);
-            RepoFactory.AniDB_Anime_DefaultImage.Delete(images);
+            var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(series.AniDB_ID);
+            RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
 
             var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID);
             var characters = characterXrefs.Select(a => RepoFactory.AniDB_Character.GetByCharID(a.CharID)).ToList();
-            var seiyuuXrefs = characters.SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID)).ToList();
-            RepoFactory.AniDB_Character_Seiyuu.Delete(seiyuuXrefs);
+            var seiyuuXrefs = characters.SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID)).ToList();
+            RepoFactory.AniDB_Character_Creator.Delete(seiyuuXrefs);
             RepoFactory.AniDB_Character.Delete(characters);
             RepoFactory.AniDB_Anime_Character.Delete(characterXrefs);
 
@@ -796,67 +846,94 @@ label0:;
     }
 
     /// <summary>
-    /// Get the most recent activly watched episode for the user.
+    /// Get the most recent actively watched episode for the user.
     /// </summary>
     /// <param name="series"></param>
     /// <param name="userID">User ID</param>
     /// <param name="includeSpecials">Include specials when searching.</param>
+    /// <param name="includeOthers">Include other type episodes when searching.</param>
     /// <returns></returns>
-    public SVR_AnimeEpisode GetActiveEpisode(SVR_AnimeSeries series, int userID, bool includeSpecials = true)
+    public SVR_AnimeEpisode GetActiveEpisode(SVR_AnimeSeries series, int userID, bool includeSpecials = true, bool includeOthers = false)
     {
         // Filter the episodes to only normal or special episodes and order them in rising order.
-        var episodes = series.AllAnimeEpisodes
+        var order = includeOthers ? new List<EpisodeType> { EpisodeType.Episode, EpisodeType.Other, EpisodeType.Special } : null;
+        var episodes = series.AnimeEpisodes
             .Select(e => (episode: e, e.AniDB_Episode))
-            .Where(tuple => !tuple.episode.IsHidden && (tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode ||
-                                                        (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Special)))
-            .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
+            .Where(tuple => tuple.AniDB_Episode.EpisodeTypeEnum is EpisodeType.Episode || (includeSpecials && tuple.AniDB_Episode.EpisodeTypeEnum is EpisodeType.Special) || (includeOthers && tuple.AniDB_Episode.EpisodeTypeEnum is EpisodeType.Other))
+            .OrderBy(tuple => order?.IndexOf(tuple.AniDB_Episode.EpisodeTypeEnum) ?? tuple.AniDB_Episode.EpisodeType)
             .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
             .Select(tuple => tuple.episode)
             .ToList();
         // Look for active watch sessions and return the episode for the most recent session if found.
         var (episode, _) = episodes
             .SelectMany(episode => episode.VideoLocals.Select(file => (episode, _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
-            .Where(tuple => tuple.Item2 != null)
+            .Where(tuple => tuple.Item2 is not null)
             .OrderByDescending(tuple => tuple.Item2.LastUpdated)
             .FirstOrDefault(tuple => tuple.Item2.ResumePosition > 0);
         return episode;
     }
 
+    #region Next-up Episode(s)
+#nullable enable
+
     /// <summary>
-    /// Series next-up query options for use with <see cref="GetNextEpisode"/>.
+    /// Series next-up query options for use with <see cref="GetNextUpEpisode"/>.
     /// </summary>
-    public class NextUpQueryOptions
+    public class NextUpQuerySingleOptions : NextUpQueryOptions
     {
         /// <summary>
         /// Disable the first episode in the series from showing up.
         /// /// </summary>
-        public bool DisableFirstEpisode = false;
+        public bool DisableFirstEpisode { get; set; } = false;
 
+        public NextUpQuerySingleOptions() { }
+
+        public NextUpQuerySingleOptions(NextUpQueryOptions options)
+        {
+            IncludeCurrentlyWatching = options.IncludeCurrentlyWatching;
+            IncludeMissing = options.IncludeMissing;
+            IncludeUnaired = options.IncludeUnaired;
+            IncludeRewatching = options.IncludeRewatching;
+            IncludeSpecials = options.IncludeSpecials;
+            IncludeOthers = options.IncludeOthers;
+        }
+    }
+
+    /// <summary>
+    /// Series next-up query options for use with <see cref="GetNextUpEpisode"/>.
+    /// </summary>
+    public class NextUpQueryOptions
+    {
         /// <summary>
         /// Include currently watching episodes in the search.
         /// </summary>
-        public bool IncludeCurrentlyWatching = false;
-
-        /// <summary>
-        /// Include hidden episodes in the search.
-        /// </summary>
-        public bool IncludeHidden = false;
+        public bool IncludeCurrentlyWatching { get; set; } = false;
 
         /// <summary>
         /// Include missing episodes in the search.
         /// </summary>
-        public bool IncludeMissing = false;
+        public bool IncludeMissing { get; set; } = false;
+
+        /// <summary>
+        /// Include unaired episodes in the search.
+        /// </summary>
+        public bool IncludeUnaired { get; set; } = false;
 
         /// <summary>
         /// Include already watched episodes in the search if we determine the
         /// user is "re-watching" the series.
         /// </summary>
-        public bool IncludeRewatching = false;
+        public bool IncludeRewatching { get; set; } = false;
 
         /// <summary>
         /// Include specials in the search.
         /// </summary>
-        public bool IncludeSpecials = true;
+        public bool IncludeSpecials { get; set; } = true;
+
+        /// <summary>
+        /// Include other type episodes in the search.
+        /// </summary>
+        public bool IncludeOthers { get; set; } = false;
     }
 
     /// <summary>
@@ -866,60 +943,48 @@ label0:;
     /// <param name="userID">User ID</param>
     /// <param name="options">Next-up query options.</param>
     /// <returns></returns>
-    public SVR_AnimeEpisode GetNextEpisode(SVR_AnimeSeries series, int userID, NextUpQueryOptions options = null)
+    public SVR_AnimeEpisode? GetNextUpEpisode(SVR_AnimeSeries series, int userID, NextUpQuerySingleOptions options)
     {
-        // Initialise the options if they're not provided.
-        options ??= new NextUpQueryOptions();
-
-        // Filter the episodes to only normal or special episodes and order them
-        // in rising order. Also count the number of episodes and specials if
-        // we're searching for the next episode for "re-watching" sessions.
-        var episodesCount = 0;
-        var speicalsCount = 0;
-        var episodeList = (options.IncludeHidden ? series.AllAnimeEpisodes : series.AnimeEpisodes)
-            .Select(episode => (episode, episode.AniDB_Episode))
+        var episodeList = series.AnimeEpisodes
+            .Select(shoko => (shoko, anidb: shoko.AniDB_Episode!))
             .Where(tuple =>
-            {
-                if (tuple.episode.IsHidden)
-                {
-                    return false;
-                }
-
-                if (tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode)
-                {
-                    episodesCount++;
-                    return true;
-                }
-
-                if (options.IncludeSpecials && tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Special)
-                {
-                    speicalsCount++;
-                    return true;
-                }
-
-                return false;
-            }).ToList();
+                tuple.anidb is not null && (
+                    (tuple.anidb.EpisodeTypeEnum is EpisodeType.Episode) ||
+                    (options.IncludeSpecials && tuple.anidb.EpisodeTypeEnum is EpisodeType.Special) ||
+                    (options.IncludeOthers && tuple.anidb.EpisodeTypeEnum is EpisodeType.Other)
+                )
+            )
+            .ToList();
 
         // Look for active watch sessions and return the episode for the most
         // recent session if found.
         if (options.IncludeCurrentlyWatching)
         {
             var (currentlyWatchingEpisode, _) = episodeList
-                .SelectMany(tuple => tuple.episode.VideoLocals.Select(file => (tuple.episode, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
-                .Where(tuple => tuple.fileUR != null)
+                .SelectMany(tuple => tuple.shoko.VideoLocals.Select(file => (tuple.shoko, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
+                .Where(tuple => tuple.fileUR is not null)
                 .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
                 .FirstOrDefault(tuple => tuple.fileUR.ResumePosition > 0);
 
-            if (currentlyWatchingEpisode != null)
-            {
+            if (currentlyWatchingEpisode is not null)
                 return currentlyWatchingEpisode;
-            }
         }
         // Skip check if there is an active watch session for the series, and we
         // don't allow active watch sessions.
-        else if (episodeList.Any(tuple => tuple.episode.VideoLocals.Any(file => (_vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID)?.ResumePosition ?? 0) > 0)))
+        else if (episodeList.Any(tuple => tuple.shoko.VideoLocals.Any(file => (_vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID)?.ResumePosition ?? 0) > 0)))
         {
             return null;
+        }
+
+        // If we're listing out other type episodes, then they should be listed
+        // before specials, so order them now.
+        if (options.IncludeOthers)
+        {
+            var order = new List<EpisodeType>() { EpisodeType.Episode, EpisodeType.Other, EpisodeType.Special };
+            episodeList = episodeList
+                .OrderBy(tuple => order.IndexOf(tuple.anidb.EpisodeTypeEnum))
+                .ThenBy(tuple => tuple.anidb.EpisodeNumber)
+                .ToList();
         }
 
         // When "re-watching" we look for the next episode after the last
@@ -927,22 +992,21 @@ label0:;
         if (options.IncludeRewatching)
         {
             var (lastWatchedEpisode, _) = episodeList
-                .SelectMany(tuple => tuple.episode.VideoLocals.Select(file => (tuple.episode, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
+                .SelectMany(tuple => tuple.shoko.VideoLocals.Select(file => (tuple.shoko, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
                 .Where(tuple => tuple.fileUR is { WatchedDate: not null })
                 .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
                 .FirstOrDefault();
 
-            if (lastWatchedEpisode != null)
+            if (lastWatchedEpisode is not null)
             {
-                // Return `null` if we're on the last episode in the list, or
-                // if we're on the last normal episode and there is no specials
-                // after it.
-                var nextIndex = episodeList.FindIndex(tuple => Equals(tuple.episode, lastWatchedEpisode)) + 1;
-                if ((nextIndex == episodeList.Count) || (nextIndex == episodesCount) && (!options.IncludeSpecials || speicalsCount == 0))
+                // Return `null` if we're on the last episode in the list.
+                var nextIndex = episodeList.FindIndex(tuple => tuple.shoko.AnimeEpisodeID == lastWatchedEpisode.AnimeEpisodeID) + 1;
+                if (nextIndex == episodeList.Count)
                     return null;
 
-                var (nextEpisode, _) = episodeList.Skip(nextIndex)
-                    .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.VideoLocals.Count > 0);
+                var (nextEpisode, _) = episodeList
+                    .Skip(nextIndex)
+                    .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired : tuple => tuple.shoko.VideoLocals.Count > 0 && tuple.anidb.HasAired);
                 return nextEpisode;
             }
         }
@@ -951,22 +1015,53 @@ label0:;
         var (unwatchedEpisode, anidbEpisode) = episodeList
             .Where(tuple =>
             {
-                var episodeUserRecord = tuple.episode.GetUserRecord(userID);
-                if (episodeUserRecord == null)
-                {
+                var episodeUserRecord = tuple.shoko.GetUserRecord(userID);
+                if (episodeUserRecord is null)
                     return true;
-                }
 
                 return !episodeUserRecord.WatchedDate.HasValue;
             })
-            .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.VideoLocals.Count > 0);
+            .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired : tuple => tuple.shoko.VideoLocals.Count > 0 && tuple.anidb.HasAired);
 
         // Disable first episode from showing up in the search.
-        if (options.DisableFirstEpisode && anidbEpisode != null && anidbEpisode.EpisodeType == (int)EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)
+        if (options.DisableFirstEpisode && anidbEpisode is not null && anidbEpisode.EpisodeType == (int)EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)
             return null;
 
         return unwatchedEpisode;
     }
+
+    public IReadOnlyList<SVR_AnimeEpisode> GetNextUpEpisodes(SVR_AnimeSeries series, int userID, NextUpQueryOptions options)
+    {
+        var firstEpisode = GetNextUpEpisode(series, userID, new(options));
+        if (firstEpisode is null)
+            return [];
+
+        var order = new List<EpisodeType>() { EpisodeType.Episode, EpisodeType.Other, EpisodeType.Special };
+        var allEpisodes = series.AnimeEpisodes
+            .Select(shoko => (shoko, anidb: shoko.AniDB_Episode!))
+            .Where(tuple =>
+                tuple.anidb is not null && (
+                    (tuple.anidb.EpisodeTypeEnum is EpisodeType.Episode) ||
+                    (options.IncludeSpecials && tuple.anidb.EpisodeTypeEnum is EpisodeType.Special) ||
+                    (options.IncludeOthers && tuple.anidb.EpisodeTypeEnum is EpisodeType.Other)
+                )
+            )
+            .Where(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired : tuple => tuple.shoko.VideoLocals.Count > 0 && tuple.anidb.HasAired)
+            .OrderBy(tuple => order.IndexOf(tuple.anidb.EpisodeTypeEnum))
+            .ThenBy(tuple => tuple.anidb.EpisodeNumber)
+            .ToList();
+        var index = allEpisodes.FindIndex(tuple => tuple.shoko.AnimeEpisodeID == firstEpisode.AnimeEpisodeID);
+        if (index == -1)
+            return [];
+
+        return allEpisodes
+            .Skip(index)
+            .Select(tuple => tuple.shoko)
+            .ToList();
+    }
+
+#nullable disable
+    #endregion
 
     internal class EpisodeList : List<EpisodeList.StatEpisodes>
     {

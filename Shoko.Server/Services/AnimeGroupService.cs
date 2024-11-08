@@ -68,7 +68,7 @@ public class AnimeGroupService
             ? RepoFactory.AnimeSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
             : group.AllSeries.FirstOrDefault());
         if (group.IsManuallyNamed == 0 && current != null)
-            group.GroupName = current!.SeriesName;
+            group.GroupName = current!.PreferredTitle;
         if (group.OverrideDescription == 0 && current != null)
             group.Description = current!.AniDB_Anime.Description;
 
@@ -132,7 +132,7 @@ public class AnimeGroupService
             {
                 // Reset the name/description as needed.
                 if (grp.IsManuallyNamed == 0)
-                    grp.GroupName = series.SeriesName;
+                    grp.GroupName = series.PreferredTitle;
                 if (grp.OverrideDescription == 0)
                     grp.Description = series.AniDB_Anime.Description;
 
@@ -150,7 +150,7 @@ public class AnimeGroupService
     /// </summary>
     public void UpdateStatsFromTopLevel(SVR_AnimeGroup group, bool watchedStats, bool missingEpsStats)
     {
-        if (group?.AnimeGroupParentID == null)
+        if (group is not { AnimeGroupParentID: null })
         {
             return;
         }
@@ -182,11 +182,11 @@ public class AnimeGroupService
         var seriesList = group.AllSeries;
 
         // Reset the name/description for the group if needed.
-        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries ?? group.AllSeries.FirstOrDefault() : null;
+        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries ?? seriesList.FirstOrDefault() : null;
         if (mainSeries is not null)
         {
             if (group.IsManuallyNamed == 0)
-                group.GroupName = mainSeries.SeriesName;
+                group.GroupName = mainSeries.PreferredTitle;
             if (group.OverrideDescription == 0)
                 group.Description = mainSeries.AniDB_Anime.Description;
         }
@@ -208,6 +208,7 @@ public class AnimeGroupService
             });
         }
 
+        group.DateTimeUpdated = DateTime.Now;
         _groups.Save(group, false);
         _logger.LogTrace($"Finished Updating STATS for GROUP {group.GroupName} in {(DateTime.Now - start).TotalMilliseconds}ms");
     }
@@ -291,7 +292,8 @@ public class AnimeGroupService
             {
                 userRecord = new AnimeGroup_User
                 {
-                    JMMUserID = juser.JMMUserID, AnimeGroupID = animeGroup.AnimeGroupID
+                    JMMUserID = juser.JMMUserID,
+                    AnimeGroupID = animeGroup.AnimeGroupID
                 };
                 isNewRecord = true;
             }
@@ -405,19 +407,22 @@ public class AnimeGroupService
         var hasFinishedAiring = false;
         var isCurrentlyAiring = false;
         var videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        var tvDbXrefByAnime = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeIDs(allIDs);
         var traktXrefByAnime = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allIDs);
         var allVidQualByGroup = allSeriesForGroup.SelectMany(a => _fileEpisodes.GetByAnimeID(a.AniDB_ID)).Select(a => _files.GetByHash(a.Hash)?.File_Source)
             .WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        var movieDbXRefByAnime = allIDs.Select(a => RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(a, CrossRefType.MovieDB)).WhereNotNull()
-            .ToDictionary(a => a.AnimeID);
+        var tmdbShowXrefByAnime = allIDs
+            .Select(RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID)
+            .Where(a => a is { Count: > 0 })
+            .ToDictionary(a => a[0].AnidbAnimeID);
+        var tmdbMovieXrefByAnime = allIDs
+            .Select(RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID)
+            .Where(a => a is { Count: > 0 })
+            .ToDictionary(a => a[0].AnidbAnimeID);
         var malXRefByAnime = allIDs.SelectMany(a => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(a)).ToLookup(a => a.AnimeID);
         // Even though the contract value says 'has link', it's easier to think about whether it's missing
-        var missingTvDBLink = false;
         var missingTraktLink = false;
         var missingMALLink = false;
-        var missingMovieDBLink = false;
-        var missingTvDBAndMovieDBLink = false;
+        var missingTMDBLink = false;
         var seriesCount = 0;
         var epCount = 0;
 
@@ -434,7 +439,7 @@ public class AnimeGroupService
             var dictVids = new Dictionary<string, SVR_VideoLocal>();
 
             foreach (var vid in vidsTemp)
-                // Hashes may be repeated from multiple locations, but we don't care
+            // Hashes may be repeated from multiple locations, but we don't care
             {
                 dictVids[vid.Hash] = vid;
             }
@@ -562,30 +567,22 @@ public class AnimeGroupService
                 seriesCreatedDate = createdDate;
             }
 
-            // For the group, if any of the series don't have a tvdb link
-            // we will consider the group as not having a tvdb link
-            var foundTvDBLink = tvDbXrefByAnime[anime.AnimeID].Any();
+            // For the group, if any of the series don't have a tmdb link
+            // we will consider the group as not having a tmdb link
             var foundTraktLink = traktXrefByAnime[anime.AnimeID].Any();
-            var foundMovieDBLink = movieDbXRefByAnime.TryGetValue(anime.AnimeID, out var movieDbLink) && movieDbLink != null;
+            var foundTMDBShowLink = tmdbShowXrefByAnime.TryGetValue(anime.AnimeID, out var _);
+            var foundTMDBMovieLink = tmdbMovieXrefByAnime.TryGetValue(anime.AnimeID, out var _);
             var isMovie = anime.AnimeType == (int)AnimeType.Movie;
-            if (!foundTvDBLink)
-            {
-                if (!isMovie && !(anime.Restricted > 0))
-                {
-                    missingTvDBLink = true;
-                }
-            }
-
             if (!foundTraktLink)
             {
                 missingTraktLink = true;
             }
 
-            if (!foundMovieDBLink)
+            if (!foundTMDBShowLink && !foundTMDBMovieLink)
             {
-                if (isMovie && !(anime.Restricted > 0))
+                if (!series.IsTMDBAutoMatchingDisabled)
                 {
-                    missingMovieDBLink = true;
+                    missingTMDBLink = true;
                 }
             }
 
@@ -594,33 +591,31 @@ public class AnimeGroupService
                 missingMALLink = true;
             }
 
-            missingTvDBAndMovieDBLink |= !(anime.Restricted > 0) && !foundTvDBLink && !foundMovieDBLink;
-
-            var endyear = anime.EndYear;
-            if (endyear == 0)
+            var endYear = anime.EndYear;
+            if (endYear == 0)
             {
-                endyear = DateTime.Today.Year;
+                endYear = DateTime.Today.Year;
             }
 
-            var startyear = anime.BeginYear;
-            if (endyear < startyear)
+            var startYear = anime.BeginYear;
+            if (endYear < startYear)
             {
-                endyear = startyear;
+                endYear = startYear;
             }
 
-            if (startyear != 0)
+            if (startYear != 0)
             {
                 List<int> years;
-                if (startyear == endyear)
+                if (startYear == endYear)
                 {
                     years = new List<int>
                     {
-                        startyear
+                        startYear
                     };
                 }
                 else
                 {
-                    years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1)
+                    years = Enumerable.Range(anime.BeginYear, endYear - anime.BeginYear + 1)
                         .Where(anime.IsInYear).ToList();
                 }
 
@@ -639,11 +634,11 @@ public class AnimeGroupService
         contract.Stat_IsComplete = isComplete;
         contract.Stat_HasFinishedAiring = hasFinishedAiring;
         contract.Stat_IsCurrentlyAiring = isCurrentlyAiring;
-        contract.Stat_HasTvDBLink = !missingTvDBLink; // Has a link if it isn't missing
+        contract.Stat_HasTvDBLink = false; // Deprecated
         contract.Stat_HasTraktLink = !missingTraktLink; // Has a link if it isn't missing
         contract.Stat_HasMALLink = !missingMALLink; // Has a link if it isn't missing
-        contract.Stat_HasMovieDBLink = !missingMovieDBLink; // Has a link if it isn't missing
-        contract.Stat_HasMovieDBOrTvDBLink = !missingTvDBAndMovieDBLink; // Has a link if it isn't missing
+        contract.Stat_HasMovieDBLink = !missingTMDBLink; // Has a link if it isn't missing
+        contract.Stat_HasMovieDBOrTvDBLink = !missingTMDBLink; // Has a link if it isn't missing
         contract.Stat_SeriesCount = seriesCount;
         contract.Stat_EpisodeCount = epCount;
         contract.Stat_AllVideoQuality_Episodes = videoQualityEpisodes;

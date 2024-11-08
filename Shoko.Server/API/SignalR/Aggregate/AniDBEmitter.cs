@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
@@ -27,32 +28,20 @@ public class AniDBEmitter : BaseEmitter, IDisposable
 
     private async void OnUDPStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("AniDBUDPStateUpdate", e);
+        await SendAsync("AniDBUDPStateUpdate", new AniDBStatusUpdateSignalRModel(e));
     }
 
     private async void OnHttpStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("AniDBHttpStateUpdate", e);
+        await SendAsync("AniDBHttpStateUpdate", new AniDBStatusUpdateSignalRModel(e));
     }
 
     public override object GetInitialMessage()
     {
-        return new List<AniDBStateUpdate>
+        return new List<AniDBStatusUpdateSignalRModel>
         {
-            new()
-            {
-                UpdateType = UpdateType.UDPBan,
-                UpdateTime = UDPHandler.BanTime ?? DateTime.Now,
-                Value = UDPHandler.IsBanned,
-                PauseTimeSecs = (int)TimeSpan.FromHours(UDPHandler.BanTimerResetLength).TotalSeconds
-            },
-            new()
-            {
-                UpdateType = UpdateType.HTTPBan,
-                UpdateTime = HttpHandler.BanTime ?? DateTime.Now,
-                Value = HttpHandler.IsBanned,
-                PauseTimeSecs = (int)TimeSpan.FromHours(HttpHandler.BanTimerResetLength).TotalSeconds
-            }
+            new(UpdateType.UDPBan, UDPHandler.IsBanned, UDPHandler.BanTime ?? DateTime.Now, (int)TimeSpan.FromHours(UDPHandler.BanTimerResetLength).TotalSeconds),
+            new(UpdateType.HTTPBan, HttpHandler.IsBanned, HttpHandler.BanTime ?? DateTime.Now, (int)TimeSpan.FromHours(HttpHandler.BanTimerResetLength).TotalSeconds),
         };
     }
 }

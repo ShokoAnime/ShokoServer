@@ -1,10 +1,11 @@
-
 using System;
 using System.Collections.Generic;
 
-#nullable enable
-namespace Shoko.Plugin.Abstractions;
+namespace Shoko.Plugin.Abstractions.Events;
 
+/// <summary>
+/// AVDump event.
+/// </summary>
 public class AVDumpEventArgs : EventArgs
 {
     /// <summary>
@@ -83,12 +84,22 @@ public class AVDumpEventArgs : EventArgs
     /// </summary>
     public DateTime? EndedAt { get; set; }
 
+    /// <summary>
+    /// Create a new AVDump event.
+    /// </summary>
+    /// <param name="messageType">The type of event.</param>
+    /// <param name="message">The message.</param>
     public AVDumpEventArgs(AVDumpEventType messageType, string? message = null)
     {
         Type = messageType;
         Message = message;
     }
 
+    /// <summary>
+    /// Create a new AVDump event.
+    /// </summary>
+    /// <param name="messageType">The type of event.</param>
+    /// <param name="ex">The exception.</param>
     public AVDumpEventArgs(AVDumpEventType messageType, Exception ex)
     {
         Type = messageType;
@@ -96,6 +107,9 @@ public class AVDumpEventArgs : EventArgs
     }
 }
 
+/// <summary>
+/// The type of AVDump event.
+/// </summary>
 public enum AVDumpEventType
 {
     /// <summary>

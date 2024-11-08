@@ -134,4 +134,16 @@ public static class QuartzExtensions
 
         cmd.CommandText = cmd.CommandText.Replace("@" + paramNameRoot, string.Join(",", parameterNames));
     }
+
+    public static async Task RescheduleJob(this IJobExecutionContext context)
+    {
+        var triggerKey = context.Trigger.Key;
+        var newKey = new TriggerKey(triggerKey.Name + "_Retry", triggerKey.Group);
+        
+        if (await context.Scheduler.GetTrigger(newKey) != null) return;
+
+        var newTrigger = context.Trigger.GetTriggerBuilder();
+        newTrigger.WithIdentity(newKey);
+        await context.Scheduler.ScheduleJob(newTrigger.Build(), context.CancellationToken);
+    }
 }

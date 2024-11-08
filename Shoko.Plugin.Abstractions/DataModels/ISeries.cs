@@ -2,20 +2,17 @@ using System;
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-#nullable enable
 namespace Shoko.Plugin.Abstractions.DataModels;
 
-public interface ISeries : IWithTitles, IWithDescriptions, IMetadata<int>
+/// <summary>
+/// Series metadata.
+/// </summary>
+public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IMetadata<int>
 {
     /// <summary>
     /// The shoko series ID, if we have any.
     /// /// </summary>
     IReadOnlyList<int> ShokoSeriesIDs { get; }
-
-    /// <summary>
-    /// The shoko group IDs, if we have any.
-    /// </summary>
-    IReadOnlyList<int> ShokoGroupIDs { get; }
 
     /// <summary>
     /// The Anime Type.
@@ -44,24 +41,24 @@ public interface ISeries : IWithTitles, IWithDescriptions, IMetadata<int>
     bool Restricted { get; }
 
     /// <summary>
+    /// Default poster for the series.
+    /// </summary>
+    IImageMetadata? DefaultPoster { get; }
+
+    /// <summary>
     /// All shoko series linked to this entity.
     /// </summary>
     IReadOnlyList<IShokoSeries> ShokoSeries { get; }
 
     /// <summary>
-    /// All shoko series linked to this entity.
-    /// </summary>
-    IReadOnlyList<IShokoGroup> ShokoGroups { get; }
-
-    /// <summary>
-    /// All series linked to this entity.
-    /// </summary>
-    IReadOnlyList<ISeries> LinkedSeries { get; }
-
-    /// <summary>
     /// Related series.
     /// </summary>
     IReadOnlyList<IRelatedMetadata<ISeries>> RelatedSeries { get; }
+
+    /// <summary>
+    /// Related movies.
+    /// </summary>
+    IReadOnlyList<IRelatedMetadata<IMovie>> RelatedMovies { get; }
 
     /// <summary>
     /// All cross-references linked to the series.
@@ -71,15 +68,15 @@ public interface ISeries : IWithTitles, IWithDescriptions, IMetadata<int>
     /// <summary>
     /// All known episodes for the show.
     /// </summary>
-    IReadOnlyList<IEpisode> EpisodeList { get; }
+    IReadOnlyList<IEpisode> Episodes { get; }
 
     /// <summary>
-    /// Episode counts for every episode type.
+    /// The number of total episodes in the series.
     /// </summary>
-    IReadOnlyDictionary<EpisodeType, int> EpisodeCountDict { get; }
+    EpisodeCounts EpisodeCounts { get; }
 
     /// <summary>
     /// Get all videos linked to the series, if any.
     /// </summary>
-    IReadOnlyList<IVideo> VideoList { get; }
+    IReadOnlyList<IVideo> Videos { get; }
 }

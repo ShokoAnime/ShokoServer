@@ -4,19 +4,34 @@ using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Extensions;
 
+/// <summary>
+/// Extensions for the <see cref="TitleLanguage"/> enum.
+/// </summary>
 public static class LanguageExtensions
 {
+    /// <summary>
+    /// Convert a language code to a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">The language code or name.</param>
+    /// <returns>The <see cref="TitleLanguage"/> or <see cref="TitleLanguage.Unknown"/> if not found.</returns>
     public static TitleLanguage GetTitleLanguage(this string lang)
-    {
-        return lang.ToUpper() switch
+        => lang?.ToUpper() switch
         {
             "EN" or "ENG" => TitleLanguage.English,
+            "EN-US" => TitleLanguage.EnglishAmerican,
+            "EN-GB" => TitleLanguage.EnglishBritish,
+            "EN-AU" => TitleLanguage.EnglishAustralian,
+            "EN-CA" => TitleLanguage.EnglishCanadian,
+            "EN-IN" => TitleLanguage.EnglishIndia,
+            "EN-NZ" => TitleLanguage.EnglishNewZealand,
             "X-JAT" => TitleLanguage.Romaji,
             "JA" or "JPN" => TitleLanguage.Japanese,
             "AR" or "ARA" => TitleLanguage.Arabic,
             "BD" or "BAN" => TitleLanguage.Bangladeshi,
             "BG" or "BUL" => TitleLanguage.Bulgarian,
-            "CA" => TitleLanguage.FrenchCanadian,
+            // CA isn't actually french canadian, but we have it mapped as such
+            // because anidb have it mapped as such.
+            "CA" or "FR-CA" => TitleLanguage.FrenchCanadian,
             "CS" or "CES" or "CZ" => TitleLanguage.Czech,
             "DA" or "DAN" or "DK" => TitleLanguage.Danish,
             "DE" or "DEU" => TitleLanguage.German,
@@ -24,12 +39,13 @@ public static class LanguageExtensions
             "ES" or "SPA" => TitleLanguage.Spanish,
             "ET" or "EST" => TitleLanguage.Estonian,
             "FI" or "FIN" => TitleLanguage.Finnish,
-            "FR" or "FRA" or "CA" => TitleLanguage.French,
+            "FR" or "FRA" => TitleLanguage.French,
             "GL" or "GLG" => TitleLanguage.Galician,
             "HE" or "HEB" or "IL" => TitleLanguage.Hebrew,
             "HU" or "HUN" => TitleLanguage.Hungarian,
             "IT" or "ITA" => TitleLanguage.Italian,
             "KO" or "KOR" => TitleLanguage.Korean,
+            "X-KOT" => TitleLanguage.KoreanTranscription,
             "LT" or "LIT" => TitleLanguage.Lithuanian,
             "MN" or "MON" => TitleLanguage.Mongolian,
             "MS" or "MSA" or "MY" => TitleLanguage.Malaysian,
@@ -67,11 +83,13 @@ public static class LanguageExtensions
             "HR" or "HRV" => TitleLanguage.Croatian,
             "DV" or "DIV" => TitleLanguage.Divehi,
             "EO" or "EPO" => TitleLanguage.Esperanto,
+            "TL" or "FIL" => TitleLanguage.Filipino,
             "FJ" or "FIJ" => TitleLanguage.Fijian,
             "KA" or "KAT" => TitleLanguage.Georgian,
             "GU" or "GUJ" => TitleLanguage.Gujarati,
             "HT" or "HAT" => TitleLanguage.HaitianCreole,
             "HA" or "HAU" => TitleLanguage.Hausa,
+            "HI" or "HIN" => TitleLanguage.Hindi,
             "IS" or "ISL" => TitleLanguage.Icelandic,
             "IG" or "IBO" => TitleLanguage.Igbo,
             "ID" or "IND" => TitleLanguage.Indonesian,
@@ -119,39 +137,73 @@ public static class LanguageExtensions
             "YI" or "YID" => TitleLanguage.Yiddish,
             "YO" or "YOR" => TitleLanguage.Yoruba,
             "ZU" or "ZUL" => TitleLanguage.Zulu,
-            "UNK" => TitleLanguage.Unknown,
-            _ => TitleLanguage.Unknown,
+            "UR" or "URD" => TitleLanguage.Urdu,
+            "GREEK (ANCIENT)" => TitleLanguage.Greek,
+            "JAVANESE" or "MALAY" or "INDONESIAN" => TitleLanguage.Malaysian,
+            "PORTUGUESE (BRAZILIAN)" => TitleLanguage.BrazilianPortuguese,
+            "THAI (TRANSCRIPTION)" => TitleLanguage.ThaiTranscription,
+            "CHINESE (SIMPLIFIED)" => TitleLanguage.ChineseSimplified,
+            "CHINESE (TRADITIONAL)" => TitleLanguage.ChineseTraditional,
+            "CHINESE (CANTONESE)" or "CHINESE (MANDARIN)" or
+            "CHINESE (UNSPECIFIED)" or "TAIWANESE" => TitleLanguage.Chinese,
+            "CHINESE (TRANSCRIPTION)" => TitleLanguage.Pinyin,
+            "JAPANESE (TRANSCRIPTION)" => TitleLanguage.Romaji,
+            "CATALAN" or "SPANISH (LATIN AMERICAN)" => TitleLanguage.Spanish,
+            "KOREAN (TRANSCRIPTION)" => TitleLanguage.KoreanTranscription,
+            "FILIPINO (TAGALOG)" => TitleLanguage.Filipino,
+            "" => TitleLanguage.None,
+            "X-MAIN" => TitleLanguage.Main,
+            null => TitleLanguage.None,
+            _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage) ?
+                titleLanguage : TitleLanguage.Unknown,
         };
-    }
-    
+
+    /// <summary>
+    /// Get a user friendly description of a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">Language value.</param>
+    /// <returns>The friendly description.</returns>
     public static string GetDescription(this TitleLanguage lang)
-    {
-        return lang switch
+        => lang switch
         {
-            TitleLanguage.Romaji => "Japanese (romanji/x-jat)",
-            TitleLanguage.Japanese => "Japanese (kanji)",
+            TitleLanguage.English => "English (Any)",
+            TitleLanguage.EnglishAmerican => "English (American)",
+            TitleLanguage.EnglishBritish => "English (British)",
+            TitleLanguage.EnglishAustralian => "English (Australian)",
+            TitleLanguage.EnglishCanadian => "English (Canadian)",
+            TitleLanguage.EnglishIndia => "English (India)",
+            TitleLanguage.EnglishNewZealand => "English (New Zealand)",
+            TitleLanguage.Romaji => "Japanese (Romaji / Transcription)",
+            TitleLanguage.Japanese => "Japanese (Kanji)",
             TitleLanguage.Bangladeshi => "Bangladesh",
             TitleLanguage.FrenchCanadian => "Canadian-French",
             TitleLanguage.BrazilianPortuguese => "Brazilian Portuguese",
             TitleLanguage.Chinese => "Chinese (any)",
-            TitleLanguage.ChineseSimplified => "Chinese (simplified)",
-            TitleLanguage.ChineseTraditional => "Chinese (traditional)",
-            TitleLanguage.Pinyin => "Chinese (pinyin/x-zhn)",
+            TitleLanguage.ChineseSimplified => "Chinese (Simplified)",
+            TitleLanguage.ChineseTraditional => "Chinese (Traditional)",
+            TitleLanguage.Pinyin => "Chinese (Pinyin / Transcription)",
+            TitleLanguage.KoreanTranscription => "Korean (Transcription)",
+            TitleLanguage.ThaiTranscription => "Thai (Transcription)",
             _ => lang.ToString(),
         };
-    }
 
+    /// <summary>
+    /// Get the preferred language-code for a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">Language value.</param>
+    /// <returns>The preferred language-code.</returns>
     public static string GetString(this TitleLanguage lang)
-    {
-        return lang switch
+        => lang switch
         {
+            TitleLanguage.Main => "x-main",
+            TitleLanguage.None => "none",
             TitleLanguage.English => "en",
             TitleLanguage.Romaji => "x-jat",
             TitleLanguage.Japanese => "ja",
             TitleLanguage.Arabic => "ar",
             TitleLanguage.Bangladeshi => "bd",
             TitleLanguage.Bulgarian => "bg",
-            TitleLanguage.FrenchCanadian => "ca",
+            TitleLanguage.FrenchCanadian => "fr-CA",
             TitleLanguage.Czech => "cz",
             TitleLanguage.Danish => "da",
             TitleLanguage.German => "de",
@@ -165,6 +217,7 @@ public static class LanguageExtensions
             TitleLanguage.Hungarian => "hu",
             TitleLanguage.Italian => "it",
             TitleLanguage.Korean => "ko",
+            TitleLanguage.KoreanTranscription => "x-kot",
             TitleLanguage.Lithuanian => "lt",
             TitleLanguage.Mongolian => "mn",
             TitleLanguage.Malaysian => "ms",
@@ -172,7 +225,7 @@ public static class LanguageExtensions
             TitleLanguage.Norwegian => "no",
             TitleLanguage.Polish => "pl",
             TitleLanguage.Portuguese => "pt",
-            TitleLanguage.BrazilianPortuguese => "pt-br",
+            TitleLanguage.BrazilianPortuguese => "pt-BR",
             TitleLanguage.Romanian => "ro",
             TitleLanguage.Russian => "ru",
             TitleLanguage.Slovak => "sk",
@@ -180,6 +233,7 @@ public static class LanguageExtensions
             TitleLanguage.Serbian => "sr",
             TitleLanguage.Swedish => "sv",
             TitleLanguage.Thai => "th",
+            TitleLanguage.ThaiTranscription => "x-tha",
             TitleLanguage.Turkish => "tr",
             TitleLanguage.Ukrainian => "uk",
             TitleLanguage.Vietnamese => "vi",
@@ -202,11 +256,13 @@ public static class LanguageExtensions
             TitleLanguage.Croatian => "hr",
             TitleLanguage.Divehi => "dv",
             TitleLanguage.Esperanto => "eo",
+            TitleLanguage.Filipino => "tl",
             TitleLanguage.Fijian => "fj",
             TitleLanguage.Georgian => "ka",
             TitleLanguage.Gujarati => "gu",
             TitleLanguage.HaitianCreole => "ht",
             TitleLanguage.Hausa => "ha",
+            TitleLanguage.Hindi => "hi",
             TitleLanguage.Icelandic => "is",
             TitleLanguage.Igbo => "ig",
             TitleLanguage.Indonesian => "id",
@@ -249,34 +305,317 @@ public static class LanguageExtensions
             TitleLanguage.Turkmen => "tk",
             TitleLanguage.Uighur => "ug",
             TitleLanguage.Uzbek => "uz",
+            TitleLanguage.Urdu => "ur",
             TitleLanguage.Welsh => "cy",
             TitleLanguage.Xhosa => "xh",
             TitleLanguage.Yiddish => "yi",
             TitleLanguage.Yoruba => "yo",
             TitleLanguage.Zulu => "zu",
+            TitleLanguage.EnglishAmerican => "en-US",
+            TitleLanguage.EnglishBritish => "en-GB",
+            TitleLanguage.EnglishAustralian => "en-AU",
+            TitleLanguage.EnglishCanadian => "en-CA",
+            TitleLanguage.EnglishIndia => "en-IN",
+            TitleLanguage.EnglishNewZealand => "en-NZ",
             _ => "unk",
         };
-    }
-    
+
+    /// <summary>
+    /// Get the language and country code for a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="lang">Language value.</param>
+    public static (string languageCode, string? countryCode) GetLanguageAndCountryCode(this TitleLanguage lang)
+        => lang.GetString() is { Length: 5 } l && l[2] == '-' ? (l.Substring(0, 2), l.Substring(3)) : (lang.GetString(), null);
+
+    /// <summary>
+    /// Get the text form of a title language.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
     public static string GetString(this TitleType type)
-    {
-        return type.ToString().ToLowerInvariant();
-    }
+        => type.ToString().ToLowerInvariant();
 
+    /// <summary>
+    /// Convert from a string to a <see cref="TitleType"/>.
+    /// </summary>
+    /// <param name="name">Name or value.</param>
+    /// <returns>The parse <see cref="TitleType"/> or <see cref="TitleType.None"/> if not found.</returns>
     public static TitleType GetTitleType(this string name)
-    {
-        foreach (var type in Enum.GetValues(typeof(TitleType)).Cast<TitleType>())
-        {
-            if (type.GetString().Equals(name.ToLowerInvariant())) return type;
-        }
-
-        return name.ToLowerInvariant() switch
+        => name.ToLowerInvariant() switch
         {
             "syn" => TitleType.Synonym,
             "card" => TitleType.TitleCard,
             "kana" => TitleType.KanjiReading,
             "kanareading" => TitleType.KanjiReading,
-            _ => TitleType.None,
+            _ => Enum.TryParse<TitleType>(name, true, out var type) ? type : TitleType.None,
         };
-    }
+
+    /// <summary>
+    /// Convert from an ISO3166 Alpha-2 or Alpha-3 country code to an ISO639-1
+    /// language code.
+    /// </summary>
+    /// <remarks>
+    /// This conversion list was compiled using
+    /// https://github.com/annexare/Countries as a base, since it was the most
+    /// complete library i could find that contained some kind of mapping
+    /// between countries and languages, and with some minor modifications
+    /// afterwards.
+    /// </remarks>
+    /// <param name="countryCode">Alpha-2 or Alpha-3 country code.</param>
+    /// <returns></returns>
+    public static string FromIso3166ToIso639(this string? countryCode)
+        => countryCode?.ToUpper() switch
+        {
+            "AD" or "AND" => "CA",
+            "AE" or "ARE" => "AR",
+            "AF" or "AFG" => "PS",
+            "AG" or "ATG" => "EN",
+            "AI" or "AIA" => "EN",
+            "AL" or "ALB" => "SQ",
+            "AM" or "ARM" => "HY",
+            "AO" or "AGO" => "PT",
+            "AQ" or "ATA" => "EN",
+            "AR" or "ARG" => "ES",
+            "AS" or "ASM" => "EN",
+            "AT" or "AUT" => "DE",
+            "AU" or "AUS" => "EN-AU",
+            "AW" or "ABW" => "NL",
+            "AX" or "ALA" => "SV",
+            "AZ" or "AZE" => "AZ",
+            "BA" or "BIH" => "BS",
+            "BB" or "BRB" => "EN",
+            "BD" or "BGD" => "BN",
+            "BE" or "BEL" => "NL",
+            "BF" or "BFA" => "FR",
+            "BG" or "BGR" => "BG",
+            "BH" or "BHR" => "AR",
+            "BI" or "BDI" => "FR",
+            "BJ" or "BEN" => "FR",
+            "BL" or "BLM" => "FR",
+            "BM" or "BMU" => "EN",
+            "BN" or "BRN" => "MS",
+            "BO" or "BOL" => "ES",
+            "BQ" or "BES" => "NL",
+            "BR" or "BRA" => "PT-BR",
+            "BS" or "BHS" => "EN",
+            "BT" or "BTN" => "DZ",
+            "BV" or "BVT" => "NO",
+            "BW" or "BWA" => "EN",
+            "BY" or "BLR" => "BE",
+            "BZ" or "BLZ" => "EN",
+            "CA" or "CAN" => "EN-CA",
+            "CC" or "CCK" => "EN",
+            "CD" or "COD" => "FR",
+            "CF" or "CAF" => "FR",
+            "CG" or "COG" => "FR",
+            "CH" or "CHE" => "DE",
+            "CI" or "CIV" => "FR",
+            "CK" or "COK" => "EN",
+            "CL" or "CHL" => "ES",
+            "CM" or "CMR" => "EN",
+            "CN" or "CHN" => "ZH-HANS",
+            "CO" or "COL" => "ES",
+            "CR" or "CRI" => "ES",
+            "CU" or "CUB" => "ES",
+            "CV" or "CPV" => "PT",
+            "CW" or "CUW" => "NL",
+            "CX" or "CXR" => "EN",
+            "CY" or "CYP" => "EL",
+            "CZ" or "CZE" => "CS",
+            "DE" or "DEU" => "DE",
+            "DJ" or "DJI" => "FR",
+            "DK" or "DNK" => "DA",
+            "DM" or "DMA" => "EN",
+            "DO" or "DOM" => "ES",
+            "DZ" or "DZA" => "AR",
+            "EC" or "ECU" => "ES",
+            "EE" or "EST" => "ET",
+            "EG" or "EGY" => "AR",
+            "EH" or "ESH" => "ES",
+            "ER" or "ERI" => "TI",
+            "ES" or "ESP" => "ES",
+            "ET" or "ETH" => "AM",
+            "FI" or "FIN" => "FI",
+            "FJ" or "FJI" => "EN",
+            "FK" or "FLK" => "EN",
+            "FM" or "FSM" => "EN",
+            "FO" or "FRO" => "FO",
+            "FR" or "FRA" => "FR",
+            "GA" or "GAB" => "FR",
+            "GB" or "GBR" => "EN-GB",
+            "GD" or "GRD" => "EN",
+            "GE" or "GEO" => "KA",
+            "GF" or "GUF" => "FR",
+            "GG" or "GGY" => "EN",
+            "GH" or "GHA" => "EN",
+            "GI" or "GIB" => "EN",
+            "GL" or "GRL" => "KL",
+            "GM" or "GMB" => "EN",
+            "GN" or "GIN" => "FR",
+            "GP" or "GLP" => "FR",
+            "GQ" or "GNQ" => "ES",
+            "GR" or "GRC" => "EL",
+            "GS" or "SGS" => "EN",
+            "GT" or "GTM" => "ES",
+            "GU" or "GUM" => "EN",
+            "GW" or "GNB" => "PT",
+            "GY" or "GUY" => "EN",
+            "HK" or "HKG" => "ZH-HANT",
+            "HM" or "HMD" => "EN",
+            "HN" or "HND" => "ES",
+            "HR" or "HRV" => "HR",
+            "HT" or "HTI" => "FR",
+            "HU" or "HUN" => "HU",
+            "ID" or "IDN" => "ID",
+            "IE" or "IRL" => "GA",
+            "IL" or "ISR" => "HE",
+            "IM" or "IMN" => "EN",
+            "IN" or "IND" => "EN-IN",
+            "IO" or "IOT" => "EN",
+            "IQ" or "IRQ" => "AR",
+            "IR" or "IRN" => "FA",
+            "IS" or "ISL" => "IS",
+            "IT" or "ITA" => "IT",
+            "JE" or "JEY" => "EN",
+            "JM" or "JAM" => "EN",
+            "JO" or "JOR" => "AR",
+            "JP" or "JPN" => "JA",
+            "KE" or "KEN" => "EN",
+            "KG" or "KGZ" => "KY",
+            "KH" or "KHM" => "KM",
+            "KI" or "KIR" => "EN",
+            "KM" or "COM" => "AR",
+            "KN" or "KNA" => "EN",
+            "KP" or "PRK" => "KO",
+            "KR" or "KOR" => "KO",
+            "KW" or "KWT" => "AR",
+            "KY" or "CYM" => "EN",
+            "KZ" or "KAZ" => "KK",
+            "LA" or "LAO" => "LO",
+            "LB" or "LBN" => "AR",
+            "LC" or "LCA" => "EN",
+            "LI" or "LIE" => "DE",
+            "LK" or "LKA" => "SI",
+            "LR" or "LBR" => "EN",
+            "LS" or "LSO" => "EN",
+            "LT" or "LTU" => "LT",
+            "LU" or "LUX" => "FR",
+            "LV" or "LVA" => "LV",
+            "LY" or "LBY" => "AR",
+            "MA" or "MAR" => "AR",
+            "MC" or "MCO" => "FR",
+            "MD" or "MDA" => "RO",
+            "ME" or "MNE" => "SR",
+            "MF" or "MAF" => "EN",
+            "MG" or "MDG" => "FR",
+            "MH" or "MHL" => "EN",
+            "MK" or "MKD" => "MK",
+            "ML" or "MLI" => "FR",
+            "MM" or "MMR" => "MY",
+            "MN" or "MNG" => "MN",
+            "MO" or "MAC" => "ZH",
+            "MP" or "MNP" => "EN",
+            "MQ" or "MTQ" => "FR",
+            "MR" or "MRT" => "AR",
+            "MS" or "MSR" => "EN",
+            "MT" or "MLT" => "MT",
+            "MU" or "MUS" => "EN",
+            "MV" or "MDV" => "DV",
+            "MW" or "MWI" => "EN",
+            "MX" or "MEX" => "ES",
+            "MY" or "MYS" => "MS",
+            "MZ" or "MOZ" => "PT",
+            "NA" or "NAM" => "EN",
+            "NC" or "NCL" => "FR",
+            "NE" or "NER" => "FR",
+            "NF" or "NFK" => "EN",
+            "NG" or "NGA" => "EN",
+            "NI" or "NIC" => "ES",
+            "NL" or "NLD" => "NL",
+            "NO" or "NOR" => "NO",
+            "NP" or "NPL" => "NE",
+            "NR" or "NRU" => "EN",
+            "NU" or "NIU" => "EN",
+            "NZ" or "NZL" => "EN-NZ",
+            "OM" or "OMN" => "AR",
+            "PA" or "PAN" => "ES",
+            "PE" or "PER" => "ES",
+            "PF" or "PYF" => "FR",
+            "PG" or "PNG" => "EN",
+            "PH" or "PHL" => "EN",
+            "PK" or "PAK" => "EN",
+            "PL" or "POL" => "PL",
+            "PM" or "SPM" => "FR",
+            "PN" or "PCN" => "EN",
+            "PR" or "PRI" => "ES",
+            "PS" or "PSE" => "AR",
+            "PT" or "PRT" => "PT",
+            "PW" or "PLW" => "EN",
+            "PY" or "PRY" => "ES",
+            "QA" or "QAT" => "AR",
+            "RE" or "REU" => "FR",
+            "RO" or "ROU" => "RO",
+            "RS" or "SRB" => "SR",
+            "RU" or "RUS" => "RU",
+            "RW" or "RWA" => "RW",
+            "SA" or "SAU" => "AR",
+            "SB" or "SLB" => "EN",
+            "SC" or "SYC" => "FR",
+            "SD" or "SDN" => "AR",
+            "SE" or "SWE" => "SV",
+            "SG" or "SGP" => "EN",
+            "SH" or "SHN" => "EN",
+            "SI" or "SVN" => "SL",
+            "SJ" or "SJM" => "NO",
+            "SK" or "SVK" => "SK",
+            "SL" or "SLE" => "EN",
+            "SM" or "SMR" => "IT",
+            "SN" or "SEN" => "FR",
+            "SO" or "SOM" => "SO",
+            "SR" or "SUR" => "NL",
+            "SS" or "SSD" => "EN",
+            "ST" or "STP" => "PT",
+            "SV" or "SLV" => "ES",
+            "SX" or "SXM" => "NL",
+            "SY" or "SYR" => "AR",
+            "SZ" or "SWZ" => "EN",
+            "TC" or "TCA" => "EN",
+            "TD" or "TCD" => "FR",
+            "TF" or "ATF" => "FR",
+            "TG" or "TGO" => "FR",
+            "TH" or "THA" => "TH",
+            "TJ" or "TJK" => "TG",
+            "TK" or "TKL" => "EN",
+            "TL" or "TLS" => "PT",
+            "TM" or "TKM" => "TK",
+            "TN" or "TUN" => "AR",
+            "TO" or "TON" => "EN",
+            "TR" or "TUR" => "TR",
+            "TT" or "TTO" => "EN",
+            "TV" or "TUV" => "EN",
+            "TW" or "TWN" => "ZH-HANT",
+            "TZ" or "TZA" => "SW",
+            "UA" or "UKR" => "UK",
+            "UG" or "UGA" => "EN",
+            "UM" or "UMI" => "EN",
+            "US" or "USA" => "EN-US",
+            "UY" or "URY" => "ES",
+            "UZ" or "UZB" => "UZ",
+            "VA" or "VAT" => "IT",
+            "VC" or "VCT" => "EN",
+            "VE" or "VEN" => "ES",
+            "VG" or "VGB" => "EN",
+            "VI" or "VIR" => "EN",
+            "VN" or "VNM" => "VI",
+            "VU" or "VUT" => "BI",
+            "WF" or "WLF" => "FR",
+            "WS" or "WSM" => "SM",
+            "XK" or "XKX" => "SQ",
+            "YE" or "YEM" => "AR",
+            "YT" or "MYT" => "FR",
+            "ZA" or "ZAF" => "AF",
+            "ZM" or "ZMB" => "EN",
+            "ZW" or "ZWE" => "EN",
+            _ => countryCode?.ToUpper() ?? "UNK",
+        };
 }

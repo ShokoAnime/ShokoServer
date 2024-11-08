@@ -9,189 +9,282 @@ using Shoko.Server.Server;
 
 // ReSharper disable InconsistentNaming
 
+#pragma warning disable CA2211
 namespace Shoko.Server.Repositories;
 
 public class RepoFactory
 {
-    private readonly ILogger<RepoFactory> logger;
-    private readonly ICachedRepository[] CachedRepositories;
+    private readonly ILogger<RepoFactory> _logger;
+    private readonly ICachedRepository[] _cachedRepositories;
 
-    public static VersionsRepository Versions;
-    public static Trakt_ShowRepository Trakt_Show;
-    public static Trakt_SeasonRepository Trakt_Season;
-    public static Trakt_EpisodeRepository Trakt_Episode;
-    public static ScheduledUpdateRepository ScheduledUpdate;
-    public static RenameScriptRepository RenameScript;
-    public static PlaylistRepository Playlist;
-    public static MovieDB_PosterRepository MovieDB_Poster;
-    public static MovieDB_FanartRepository MovieDB_Fanart;
-    public static MovieDb_MovieRepository MovieDb_Movie;
-    public static IgnoreAnimeRepository IgnoreAnime;
-    public static FileNameHashRepository FileNameHash;
-    public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate;
-    public static AniDB_FileUpdateRepository AniDB_FileUpdate;
-    public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File;
-    public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File;
-    public static CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other;
-    public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL;
-    public static BookmarkedAnimeRepository BookmarkedAnime;
-    public static AniDB_SeiyuuRepository AniDB_Seiyuu;
-    public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup;
-    public static AniDB_GroupStatusRepository AniDB_GroupStatus;
-    public static AniDB_CharacterRepository AniDB_Character;
-    public static AniDB_Character_SeiyuuRepository AniDB_Character_Seiyuu;
-    public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar;
-    public static AniDB_Anime_RelationRepository AniDB_Anime_Relation;
-    public static AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage;
     public static AniDB_Anime_CharacterRepository AniDB_Anime_Character;
+    public static AniDB_Anime_PreferredImageRepository AniDB_Anime_PreferredImage;
+    public static AniDB_Anime_RelationRepository AniDB_Anime_Relation;
+    public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar;
     public static AniDB_Anime_StaffRepository AniDB_Anime_Staff;
-    public static ScanRepository Scan;
-    public static ScanFileRepository ScanFile;
-
-    public static JMMUserRepository JMMUser;
-    public static AuthTokensRepository AuthTokens;
-    public static ImportFolderRepository ImportFolder;
+    public static AniDB_Anime_TagRepository AniDB_Anime_Tag;
+    public static AniDB_Anime_TitleRepository AniDB_Anime_Title;
     public static AniDB_AnimeRepository AniDB_Anime;
+    public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate;
+    public static AniDB_Character_CreatorRepository AniDB_Character_Creator;
+    public static AniDB_CharacterRepository AniDB_Character;
+    public static AniDB_CreatorRepository AniDB_Creator;
+    public static AniDB_Episode_PreferredImageRepository AniDB_Episode_PreferredImage;
     public static AniDB_Episode_TitleRepository AniDB_Episode_Title;
     public static AniDB_EpisodeRepository AniDB_Episode;
     public static AniDB_FileRepository AniDB_File;
-    public static AniDB_Anime_TitleRepository AniDB_Anime_Title;
-    public static AniDB_Anime_TagRepository AniDB_Anime_Tag;
+    public static AniDB_FileUpdateRepository AniDB_FileUpdate;
+    public static AniDB_GroupStatusRepository AniDB_GroupStatus;
+    public static AniDB_MessageRepository AniDB_Message;
+    public static AniDB_NotifyQueueRepository AniDB_NotifyQueue;
+    public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup;
     public static AniDB_TagRepository AniDB_Tag;
-    public static CustomTagRepository CustomTag;
+    public static AniDB_VoteRepository AniDB_Vote;
+    public static AnimeCharacterRepository AnimeCharacter;
+    public static AnimeEpisode_UserRepository AnimeEpisode_User;
+    public static AnimeEpisodeRepository AnimeEpisode;
+    public static AnimeGroup_UserRepository AnimeGroup_User;
+    public static AnimeGroupRepository AnimeGroup;
+    public static AnimeSeries_UserRepository AnimeSeries_User;
+    public static AnimeSeriesRepository AnimeSeries;
+    public static AnimeStaffRepository AnimeStaff;
+    public static AuthTokensRepository AuthTokens;
+    public static BookmarkedAnimeRepository BookmarkedAnime;
+    public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL;
+    public static CrossRef_AniDB_TMDB_EpisodeRepository CrossRef_AniDB_TMDB_Episode;
+    public static CrossRef_AniDB_TMDB_MovieRepository CrossRef_AniDB_TMDB_Movie;
+    public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show;
+    public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2;
+    public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode;
-    public static VideoLocal_PlaceRepository VideoLocalPlace;
-    public static VideoLocalRepository VideoLocal;
-    public static VideoLocal_UserRepository VideoLocalUser;
-    public static AnimeEpisodeRepository AnimeEpisode;
-    public static AnimeEpisode_UserRepository AnimeEpisode_User;
-    public static AnimeSeriesRepository AnimeSeries;
-    public static AnimeSeries_UserRepository AnimeSeries_User;
-    public static AnimeGroupRepository AnimeGroup;
-    public static AnimeGroup_UserRepository AnimeGroup_User;
-    public static AniDB_VoteRepository AniDB_Vote;
-    public static TvDB_EpisodeRepository TvDB_Episode;
-    public static TvDB_SeriesRepository TvDB_Series;
-    public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB;
-    public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode;
-    public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override;
-    public static TvDB_ImagePosterRepository TvDB_ImagePoster;
-    public static TvDB_ImageFanartRepository TvDB_ImageFanart;
-    public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner;
-    public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2;
-    public static AnimeCharacterRepository AnimeCharacter;
-    public static AnimeStaffRepository AnimeStaff;
-    public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff;
+    public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File;
+    public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File;
+    public static CustomTagRepository CustomTag;
+    public static FileNameHashRepository FileNameHash;
     public static FilterPresetRepository FilterPreset;
+    public static IgnoreAnimeRepository IgnoreAnime;
+    public static ImportFolderRepository ImportFolder;
+    public static JMMUserRepository JMMUser;
+    public static PlaylistRepository Playlist;
+    public static RenamerConfigRepository RenamerConfig;
+    public static ScanFileRepository ScanFile;
+    public static ScanRepository Scan;
+    public static ScheduledUpdateRepository ScheduledUpdate;
+    public static TMDB_AlternateOrdering_EpisodeRepository TMDB_AlternateOrdering_Episode;
+    public static TMDB_AlternateOrdering_SeasonRepository TMDB_AlternateOrdering_Season;
+    public static TMDB_AlternateOrderingRepository TMDB_AlternateOrdering;
+    public static TMDB_Collection_MovieRepository TMDB_Collection_Movie;
+    public static TMDB_CollectionRepository TMDB_Collection;
+    public static TMDB_Company_EntityRepository TMDB_Company_Entity;
+    public static TMDB_CompanyRepository TMDB_Company;
+    public static TMDB_Episode_CastRepository TMDB_Episode_Cast;
+    public static TMDB_Episode_CrewRepository TMDB_Episode_Crew;
+    public static TMDB_EpisodeRepository TMDB_Episode;
+    public static TMDB_ImageRepository TMDB_Image;
+    public static TMDB_Movie_CastRepository TMDB_Movie_Cast;
+    public static TMDB_Movie_CrewRepository TMDB_Movie_Crew;
+    public static TMDB_MovieRepository TMDB_Movie;
+    public static TMDB_NetworkRepository TMDB_Network;
+    public static TMDB_OverviewRepository TMDB_Overview;
+    public static TMDB_PersonRepository TMDB_Person;
+    public static TMDB_SeasonRepository TMDB_Season;
+    public static TMDB_Show_NetworkRepository TMDB_Show_Network;
+    public static TMDB_ShowRepository TMDB_Show;
+    public static TMDB_TitleRepository TMDB_Title;
+    public static Trakt_EpisodeRepository Trakt_Episode;
+    public static Trakt_SeasonRepository Trakt_Season;
+    public static Trakt_ShowRepository Trakt_Show;
+    public static VersionsRepository Versions;
+    public static VideoLocal_PlaceRepository VideoLocalPlace;
+    public static VideoLocal_UserRepository VideoLocalUser;
+    public static VideoLocalRepository VideoLocal;
 
-    public RepoFactory(ILogger<RepoFactory> logger, IEnumerable<ICachedRepository> repositories, VersionsRepository versions, Trakt_ShowRepository traktShow,
-        Trakt_SeasonRepository traktSeason, Trakt_EpisodeRepository traktEpisode, ScheduledUpdateRepository scheduledUpdate,
-        RenameScriptRepository renameScript, PlaylistRepository playlist, MovieDB_PosterRepository movieDBPoster, MovieDB_FanartRepository movieDBFanart,
-        MovieDb_MovieRepository movieDbMovie, IgnoreAnimeRepository ignoreAnime, FileNameHashRepository fileNameHash,
-        AniDB_AnimeUpdateRepository aniDBAnimeUpdate, AniDB_FileUpdateRepository aniDBFileUpdate,
-        CrossRef_Subtitles_AniDB_FileRepository crossRefSubtitlesAniDBFile, CrossRef_Languages_AniDB_FileRepository crossRefLanguagesAniDBFile,
-        CrossRef_AniDB_OtherRepository crossRefAniDBOther, CrossRef_AniDB_MALRepository crossRefAniDBMal, BookmarkedAnimeRepository bookmarkedAnime,
-        AniDB_SeiyuuRepository aniDBSeiyuu, AniDB_ReleaseGroupRepository aniDBReleaseGroup, AniDB_GroupStatusRepository aniDBGroupStatus,
-        AniDB_CharacterRepository aniDBCharacter, AniDB_Character_SeiyuuRepository aniDBCharacterSeiyuu, AniDB_Anime_SimilarRepository aniDBAnimeSimilar,
-        AniDB_Anime_RelationRepository aniDBAnimeRelation, AniDB_Anime_DefaultImageRepository aniDBAnimeDefaultImage,
-        AniDB_Anime_CharacterRepository aniDBAnimeCharacter, AniDB_Anime_StaffRepository aniDBAnimeStaff, ScanRepository scan, ScanFileRepository scanFile,
-        JMMUserRepository jmmUser, AuthTokensRepository authTokens, ImportFolderRepository importFolder, AniDB_AnimeRepository aniDBAnime,
-        AniDB_Episode_TitleRepository aniDBEpisodeTitle, AniDB_EpisodeRepository aniDBEpisode, AniDB_FileRepository aniDBFile,
-        AniDB_Anime_TitleRepository aniDBAnimeTitle, AniDB_Anime_TagRepository aniDBAnimeTag, AniDB_TagRepository aniDBTag, CustomTagRepository customTag,
-        CrossRef_CustomTagRepository crossRefCustomTag, CrossRef_File_EpisodeRepository crossRefFileEpisode, VideoLocal_PlaceRepository videoLocalPlace,
-        VideoLocalRepository videoLocal, VideoLocal_UserRepository videoLocalUser, AnimeEpisodeRepository animeEpisode,
-        AnimeEpisode_UserRepository animeEpisodeUser, AnimeSeriesRepository animeSeries, AnimeSeries_UserRepository animeSeriesUser,
-        AnimeGroupRepository animeGroup, AnimeGroup_UserRepository animeGroupUser, AniDB_VoteRepository aniDBVote, TvDB_EpisodeRepository tvDBEpisode,
-        TvDB_SeriesRepository tvDBSeries, CrossRef_AniDB_TvDBRepository crossRefAniDBTvDB, CrossRef_AniDB_TvDB_EpisodeRepository crossRefAniDBTvDBEpisode,
-        CrossRef_AniDB_TvDB_Episode_OverrideRepository crossRefAniDBTvDBEpisodeOverride, TvDB_ImagePosterRepository tvDBImagePoster,
-        TvDB_ImageFanartRepository tvDBImageFanart, TvDB_ImageWideBannerRepository tvDBImageWideBanner, CrossRef_AniDB_TraktV2Repository crossRefAniDBTraktV2,
-        AnimeCharacterRepository animeCharacter, AnimeStaffRepository animeStaff, CrossRef_Anime_StaffRepository crossRefAnimeStaff,
-        FilterPresetRepository filterPreset)
+    public RepoFactory(
+        ILogger<RepoFactory> logger,
+        IEnumerable<ICachedRepository> repositories,
+        AniDB_Anime_CharacterRepository anidbAnimeCharacter,
+        AniDB_Anime_PreferredImageRepository anidbAnimePreferredImage,
+        AniDB_Anime_RelationRepository anidbAnimeRelation,
+        AniDB_Anime_SimilarRepository anidbAnimeSimilar,
+        AniDB_Anime_StaffRepository anidbAnimeStaff,
+        AniDB_Anime_TagRepository anidbAnimeTag,
+        AniDB_Anime_TitleRepository anidbAnimeTitle,
+        AniDB_AnimeRepository anidbAnime,
+        AniDB_AnimeUpdateRepository anidbAnimeUpdate,
+        AniDB_Character_CreatorRepository anidbCharacterCreator,
+        AniDB_CharacterRepository anidbCharacter,
+        AniDB_CreatorRepository anidbCreator,
+        AniDB_Episode_PreferredImageRepository anidbEpisodePreferredImage,
+        AniDB_Episode_TitleRepository anidbEpisodeTitle,
+        AniDB_EpisodeRepository anidbEpisode,
+        AniDB_FileRepository anidbFile,
+        AniDB_FileUpdateRepository anidbFileUpdate,
+        AniDB_GroupStatusRepository anidbGroupStatus,
+        AniDB_MessageRepository anidbMessage,
+        AniDB_NotifyQueueRepository anidbNotifyQueue,
+        AniDB_ReleaseGroupRepository anidbReleaseGroup,
+        AniDB_TagRepository anidbTag,
+        AniDB_VoteRepository anidbVote,
+        AnimeCharacterRepository animeCharacter,
+        AnimeEpisode_UserRepository animeEpisodeUser,
+        AnimeEpisodeRepository animeEpisode,
+        AnimeGroup_UserRepository animeGroupUser,
+        AnimeGroupRepository animeGroup,
+        AnimeSeries_UserRepository animeSeriesUser,
+        AnimeSeriesRepository animeSeries,
+        AnimeStaffRepository animeStaff,
+        AuthTokensRepository authTokens,
+        BookmarkedAnimeRepository bookmarkedAnime,
+        CrossRef_AniDB_MALRepository crossRefAniDBMal,
+        CrossRef_AniDB_TMDB_EpisodeRepository crossRefAniDBTmdbEpisode,
+        CrossRef_AniDB_TMDB_MovieRepository crossRefAniDBTmdbMovie,
+        CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
+        CrossRef_AniDB_TraktV2Repository crossRefAniDBTraktV2,
+        CrossRef_Anime_StaffRepository crossRefAnimeStaff,
+        CrossRef_CustomTagRepository crossRefCustomTag,
+        CrossRef_File_EpisodeRepository crossRefFileEpisode,
+        CrossRef_Languages_AniDB_FileRepository crossRefLanguagesAniDBFile,
+        CrossRef_Subtitles_AniDB_FileRepository crossRefSubtitlesAniDBFile,
+        CustomTagRepository customTag,
+        FileNameHashRepository fileNameHash,
+        FilterPresetRepository filterPreset,
+        IgnoreAnimeRepository ignoreAnime,
+        ImportFolderRepository importFolder,
+        JMMUserRepository jmmUser,
+        PlaylistRepository playlist,
+        RenamerConfigRepository renamerConfig,
+        ScanFileRepository scanFile,
+        ScanRepository scan,
+        ScheduledUpdateRepository scheduledUpdate,
+        Trakt_EpisodeRepository traktEpisode,
+        Trakt_SeasonRepository traktSeason,
+        Trakt_ShowRepository traktShow,
+        TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisode,
+        TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeason,
+        TMDB_AlternateOrderingRepository tmdbAlternateOrdering,
+        TMDB_Collection_MovieRepository tmdbCollectionMovie,
+        TMDB_CollectionRepository tmdbCollection,
+        TMDB_Company_EntityRepository tmdbCompanyEntity,
+        TMDB_CompanyRepository tmdbCompany,
+        TMDB_Episode_CastRepository tmdbEpisodeCast,
+        TMDB_Episode_CrewRepository tmdbEpisodeCrew,
+        TMDB_EpisodeRepository tmdbEpisode,
+        TMDB_ImageRepository tmdbImage,
+        TMDB_Movie_CastRepository tmdbMovieCast,
+        TMDB_Movie_CrewRepository tmdbMovieCrew,
+        TMDB_MovieRepository tmdbMovie,
+        TMDB_NetworkRepository tmdbNetwork,
+        TMDB_OverviewRepository tmdbOverview,
+        TMDB_PersonRepository tmdbPerson,
+        TMDB_SeasonRepository tmdbSeason,
+        TMDB_Show_NetworkRepository tmdbShowNetwork,
+        TMDB_ShowRepository tmdbShow,
+        TMDB_TitleRepository tmdbTitle,
+        VersionsRepository versions,
+        VideoLocal_PlaceRepository videoLocalPlace,
+        VideoLocal_UserRepository videoLocalUser,
+        VideoLocalRepository videoLocal
+    )
     {
-        this.logger = logger;
-        CachedRepositories = repositories.ToArray();
-        Versions = versions;
-        Trakt_Show = traktShow;
-        Trakt_Season = traktSeason;
-        Trakt_Episode = traktEpisode;
-        ScheduledUpdate = scheduledUpdate;
-        RenameScript = renameScript;
-        Playlist = playlist;
-        MovieDB_Poster = movieDBPoster;
-        MovieDB_Fanart = movieDBFanart;
-        MovieDb_Movie = movieDbMovie;
-        IgnoreAnime = ignoreAnime;
-        FileNameHash = fileNameHash;
-        AniDB_AnimeUpdate = aniDBAnimeUpdate;
-        AniDB_FileUpdate = aniDBFileUpdate;
-        CrossRef_Subtitles_AniDB_File = crossRefSubtitlesAniDBFile;
-        CrossRef_Languages_AniDB_File = crossRefLanguagesAniDBFile;
-        CrossRef_AniDB_Other = crossRefAniDBOther;
-        CrossRef_AniDB_MAL = crossRefAniDBMal;
-        BookmarkedAnime = bookmarkedAnime;
-        AniDB_Seiyuu = aniDBSeiyuu;
-        AniDB_ReleaseGroup = aniDBReleaseGroup;
-        AniDB_GroupStatus = aniDBGroupStatus;
-        AniDB_Character = aniDBCharacter;
-        AniDB_Character_Seiyuu = aniDBCharacterSeiyuu;
-        AniDB_Anime_Similar = aniDBAnimeSimilar;
-        AniDB_Anime_Relation = aniDBAnimeRelation;
-        AniDB_Anime_DefaultImage = aniDBAnimeDefaultImage;
-        AniDB_Anime_Character = aniDBAnimeCharacter;
-        AniDB_Anime_Staff = aniDBAnimeStaff;
-        Scan = scan;
-        ScanFile = scanFile;
-        JMMUser = jmmUser;
-        AuthTokens = authTokens;
-        ImportFolder = importFolder;
-        AniDB_Anime = aniDBAnime;
-        AniDB_Episode_Title = aniDBEpisodeTitle;
-        AniDB_Episode = aniDBEpisode;
-        AniDB_File = aniDBFile;
-        AniDB_Anime_Title = aniDBAnimeTitle;
-        AniDB_Anime_Tag = aniDBAnimeTag;
-        AniDB_Tag = aniDBTag;
-        CustomTag = customTag;
-        CrossRef_CustomTag = crossRefCustomTag;
-        CrossRef_File_Episode = crossRefFileEpisode;
-        VideoLocalPlace = videoLocalPlace;
-        VideoLocal = videoLocal;
-        VideoLocalUser = videoLocalUser;
+        _logger = logger;
+        _cachedRepositories = repositories.ToArray();
+        AniDB_Anime = anidbAnime;
+        AniDB_Anime_Character = anidbAnimeCharacter;
+        AniDB_Anime_PreferredImage = anidbAnimePreferredImage;
+        AniDB_Anime_Relation = anidbAnimeRelation;
+        AniDB_Anime_Similar = anidbAnimeSimilar;
+        AniDB_Anime_Staff = anidbAnimeStaff;
+        AniDB_Anime_Tag = anidbAnimeTag;
+        AniDB_Anime_Title = anidbAnimeTitle;
+        AniDB_AnimeUpdate = anidbAnimeUpdate;
+        AniDB_Character = anidbCharacter;
+        AniDB_Character_Creator = anidbCharacterCreator;
+        AniDB_Creator = anidbCreator;
+        AniDB_Episode = anidbEpisode;
+        AniDB_Episode_PreferredImage = anidbEpisodePreferredImage;
+        AniDB_Episode_Title = anidbEpisodeTitle;
+        AniDB_File = anidbFile;
+        AniDB_FileUpdate = anidbFileUpdate;
+        AniDB_GroupStatus = anidbGroupStatus;
+        AniDB_Message = anidbMessage;
+        AniDB_NotifyQueue = anidbNotifyQueue;
+        AniDB_ReleaseGroup = anidbReleaseGroup;
+        AniDB_Tag = anidbTag;
+        AniDB_Vote = anidbVote;
+        AnimeCharacter = animeCharacter;
         AnimeEpisode = animeEpisode;
         AnimeEpisode_User = animeEpisodeUser;
-        AnimeSeries = animeSeries;
-        AnimeSeries_User = animeSeriesUser;
         AnimeGroup = animeGroup;
         AnimeGroup_User = animeGroupUser;
-        AniDB_Vote = aniDBVote;
-        TvDB_Episode = tvDBEpisode;
-        TvDB_Series = tvDBSeries;
-        CrossRef_AniDB_TvDB = crossRefAniDBTvDB;
-        CrossRef_AniDB_TvDB_Episode = crossRefAniDBTvDBEpisode;
-        CrossRef_AniDB_TvDB_Episode_Override = crossRefAniDBTvDBEpisodeOverride;
-        TvDB_ImagePoster = tvDBImagePoster;
-        TvDB_ImageFanart = tvDBImageFanart;
-        TvDB_ImageWideBanner = tvDBImageWideBanner;
-        CrossRef_AniDB_TraktV2 = crossRefAniDBTraktV2;
-        AnimeCharacter = animeCharacter;
+        AnimeSeries = animeSeries;
+        AnimeSeries_User = animeSeriesUser;
         AnimeStaff = animeStaff;
+        AuthTokens = authTokens;
+        BookmarkedAnime = bookmarkedAnime;
+        CrossRef_AniDB_MAL = crossRefAniDBMal;
+        CrossRef_AniDB_TMDB_Episode = crossRefAniDBTmdbEpisode;
+        CrossRef_AniDB_TMDB_Movie = crossRefAniDBTmdbMovie;
+        CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
+        CrossRef_AniDB_TraktV2 = crossRefAniDBTraktV2;
         CrossRef_Anime_Staff = crossRefAnimeStaff;
+        CrossRef_CustomTag = crossRefCustomTag;
+        CrossRef_File_Episode = crossRefFileEpisode;
+        CrossRef_Languages_AniDB_File = crossRefLanguagesAniDBFile;
+        CrossRef_Subtitles_AniDB_File = crossRefSubtitlesAniDBFile;
+        CustomTag = customTag;
+        FileNameHash = fileNameHash;
         FilterPreset = filterPreset;
+        IgnoreAnime = ignoreAnime;
+        ImportFolder = importFolder;
+        JMMUser = jmmUser;
+        Playlist = playlist;
+        RenamerConfig = renamerConfig;
+        Scan = scan;
+        ScanFile = scanFile;
+        ScheduledUpdate = scheduledUpdate;
+        TMDB_AlternateOrdering = tmdbAlternateOrdering;
+        TMDB_AlternateOrdering_Episode = tmdbAlternateOrderingEpisode;
+        TMDB_AlternateOrdering_Season = tmdbAlternateOrderingSeason;
+        TMDB_Collection = tmdbCollection;
+        TMDB_Collection_Movie = tmdbCollectionMovie;
+        TMDB_Company = tmdbCompany;
+        TMDB_Company_Entity = tmdbCompanyEntity;
+        TMDB_Episode = tmdbEpisode;
+        TMDB_Episode_Cast = tmdbEpisodeCast;
+        TMDB_Episode_Crew = tmdbEpisodeCrew;
+        TMDB_Image = tmdbImage;
+        TMDB_Movie = tmdbMovie;
+        TMDB_Movie_Cast = tmdbMovieCast;
+        TMDB_Movie_Crew = tmdbMovieCrew;
+        TMDB_Network = tmdbNetwork;
+        TMDB_Overview = tmdbOverview;
+        TMDB_Person = tmdbPerson;
+        TMDB_Season = tmdbSeason;
+        TMDB_Show = tmdbShow;
+        TMDB_Show_Network = tmdbShowNetwork;
+        TMDB_Title = tmdbTitle;
+        Trakt_Episode = traktEpisode;
+        Trakt_Season = traktSeason;
+        Trakt_Show = traktShow;
+        Versions = versions;
+        VideoLocal = videoLocal;
+        VideoLocalPlace = videoLocalPlace;
+        VideoLocalUser = videoLocalUser;
     }
 
     public void Init()
     {
         try
         {
-            foreach (var repo in CachedRepositories)
+            foreach (var repo in _cachedRepositories)
             {
                 repo.Populate();
             }
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "There was an error starting the Database Factory - Caching: {Ex}", exception);
+            _logger.LogError(exception, "There was an error starting the Database Factory - Caching: {Ex}", exception);
             throw;
         }
     }
@@ -201,22 +294,22 @@ public class RepoFactory
         // Update Contracts if necessary
         try
         {
-            logger.LogInformation("Starting Server: RepoFactory.PostInit()");
-            foreach (var repo in CachedRepositories)
+            _logger.LogInformation("Starting Server: RepoFactory.PostInit()");
+            foreach (var repo in _cachedRepositories)
             {
                 ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, repo.GetType().Name.Replace("Repository", ""), " DbRegen");
+                    Resources.Database_Validating, repo.GetType().Name.Replace("Repository", ""), " Database Regeneration");
                 repo.RegenerateDb();
             }
 
-            foreach (var repo in CachedRepositories)
+            foreach (var repo in _cachedRepositories)
             {
                 repo.PostProcess();
             }
         }
         catch (Exception e)
         {
-            logger.LogError(e, "There was an error starting the Database Factory - Regenerating: {Ex}", e);
+            _logger.LogError(e, "There was an error starting the Database Factory - Regenerating: {Ex}", e);
             throw;
         }
     }

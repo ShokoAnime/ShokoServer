@@ -1,7 +1,14 @@
-namespace Shoko.Plugin.Abstractions
+
+namespace Shoko.Plugin.Abstractions;
+
+/// <summary>
+/// Plugin settings provider.
+/// </summary>
+public interface ISettingsProvider
 {
-    public interface ISettingsProvider
-    {
-        void SaveSettings(IPluginSettings settings);
-    }
+    /// <summary>
+    /// Save the plugin settings.
+    /// </summary>
+    /// <param name="settings">Settings to save.</param>
+    void SaveSettings(IPluginSettings settings);
 }

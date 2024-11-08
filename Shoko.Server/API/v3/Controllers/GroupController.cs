@@ -30,8 +30,6 @@ public class GroupController : BaseController
 
     #region Return messages
 
-    internal const string GroupWithZeroID = "GroupID must be greater than 0";
-
     internal const string GroupNotFound = "No Group entry for the given groupID";
 
     internal const string GroupForbiddenForUser = "Accessing Group is not allowed for the current user";
@@ -48,13 +46,13 @@ public class GroupController : BaseController
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
-    /// <param name="randomImages">Randomise images shown for the main <see cref="Series"/> within the <see cref="Group"/>.</param>
+    /// <param name="randomImages">Randomize images shown for the main <see cref="Series"/> within the <see cref="Group"/>.</param>
     /// <param name="topLevelOnly">Only list the top level groups if set.</param>
     /// <param name="startsWith">Search only for groups that start with the given query.</param>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<ListResult<Group>> GetAllGroups([FromQuery] [Range(0, 100)] int pageSize = 50,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeEmpty = false,
+    public ActionResult<ListResult<Group>> GetAllGroups([FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeEmpty = false,
         [FromQuery] bool randomImages = false, [FromQuery] bool topLevelOnly = true, [FromQuery] string startsWith = "")
     {
         startsWith = startsWith.ToLowerInvariant();
@@ -67,7 +65,7 @@ public class GroupController : BaseController
                     return false;
                 }
 
-                if (!string.IsNullOrEmpty(startsWith) && !group.GroupName.ToLowerInvariant().StartsWith(startsWith))
+                if (!string.IsNullOrEmpty(startsWith) && !group.GroupName.StartsWith(startsWith, StringComparison.InvariantCultureIgnoreCase))
                 {
                     return false;
                 }
@@ -81,7 +79,7 @@ public class GroupController : BaseController
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
             .OrderBy(group => group.SortName)
-            .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
+            .ToListResult(group => new Group(group, User.JMMUserID, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -143,7 +141,7 @@ public class GroupController : BaseController
             MissingEpisodeCountGroups = 0,
             OverrideDescription = 0,
         };
-        var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
+        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -162,9 +160,8 @@ public class GroupController : BaseController
     /// <param name="groupID"></param>
     /// <returns></returns>
     [HttpGet("{groupID}")]
-    public ActionResult<Group> GetGroup([FromRoute] int groupID)
+    public ActionResult<Group> GetGroup([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -176,7 +173,7 @@ public class GroupController : BaseController
             return Forbid(GroupForbiddenForUser);
         }
 
-        return new Group(HttpContext, group);
+        return new Group(group, User.JMMUserID);
     }
 
     /// <summary>
@@ -190,9 +187,8 @@ public class GroupController : BaseController
     /// <param name="body">The new details for the group.</param>
     /// <returns>The updated group.</returns>
     [HttpPut("{groupID}")]
-    public ActionResult<Group> PutGroup([FromRoute] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
+    public ActionResult<Group> PutGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
         if (animeGroup == null)
         {
@@ -204,7 +200,7 @@ public class GroupController : BaseController
             return Forbid(GroupForbiddenForUser);
         }
 
-        var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
+        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -226,9 +222,8 @@ public class GroupController : BaseController
     /// <param name="patchDocument">The JSON Patch document containing the changes to be applied to the group.</param>
     /// <returns>The updated group.</returns>
     [HttpPatch("{groupID}")]
-    public ActionResult<Group> PatchGroup([FromRoute] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
+    public ActionResult<Group> PatchGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
         if (animeGroup == null)
         {
@@ -248,7 +243,7 @@ public class GroupController : BaseController
             return ValidationProblem(ModelState);
         }
 
-        var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
+        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -268,10 +263,9 @@ public class GroupController : BaseController
     /// <param name="recursive">Show relations for all series within the group, even for series within sub-groups.</param>
     /// <returns></returns>
     [HttpGet("{groupID}/Relations")]
-    public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int groupID,
+    public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -315,9 +309,8 @@ public class GroupController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{groupID}")]
-    public async Task<ActionResult> DeleteGroup(int groupID, bool deleteSeries = false, bool deleteFiles = false)
+    public async Task<ActionResult> DeleteGroup([FromRoute, Range(1, int.MaxValue)] int groupID, bool deleteSeries = false, bool deleteFiles = false)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -351,9 +344,8 @@ public class GroupController : BaseController
     /// <param name="groupID"></param>
     /// <returns></returns>
     [HttpPost("{groupID}/Recalculate")]
-    public async Task<ActionResult> RecalculateStats(int groupID)
+    public async Task<ActionResult> RecalculateStats([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        if (groupID == 0) return BadRequest(GroupWithZeroID);
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
         {
@@ -374,7 +366,7 @@ public class GroupController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("RecreateAllGroups")]
-    [Obsolete]
+    [Obsolete("Use the actions endpoint instead.")]
     public ActionResult RecreateAllGroups()
     {
         Task.Run(async () => await _groupCreator.RecreateAllGroups());

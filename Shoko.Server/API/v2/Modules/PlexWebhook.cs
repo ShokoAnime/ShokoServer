@@ -100,7 +100,7 @@ public class PlexWebhook : BaseController
         if (episode == null) return;
 
         var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
-        if (vl == null || vl.Duration == 0) return; 
+        if (vl == null || vl.Duration == 0) return;
 
         var per = 100 *
                   (metadata.ViewOffset /
@@ -201,17 +201,15 @@ public class PlexWebhook : BaseController
         //if only one possible match
         if (animeEps.Count == 1) return (animeEps.First(), anime);
 
-        //if TvDB matched.
+        // Check for Tmdb matches
         SVR_AnimeEpisode result;
-        if ((result = animeEps.FirstOrDefault(a => a.TvDBEpisode?.SeasonNumber == series)) != null)
+        if ((result = animeEps.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == series))) != null)
         {
             return (result, anime);
         }
 
-
         //catch all
-        _logger.LogInformation(
-            $"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
+        _logger.LogInformation($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multiple episodes linked, but no tmdb link.");
         return (null, anime);
     }
 
@@ -295,12 +293,20 @@ public class PlexWebhook : BaseController
     {
         return CallPlexHelper(h =>
         {
+            if (ids.Count == 0)
+            {
+                SettingsProvider.GetSettings().Plex.Libraries = new ();
+                SettingsProvider.SaveSettings();
+                return APIStatus.OK();
+            }
+            
             var dirs = h.GetDirectories();
             var selected = dirs.Where(d => ids.Contains(d.Key)).ToList();
             if (selected.Count == 0)
                 return APIStatus.BadRequest("No directories found please ensure server token is set and try again");
 
             SettingsProvider.GetSettings().Plex.Libraries = selected.Select(s => s.Key).ToList();
+            SettingsProvider.SaveSettings();
             return APIStatus.OK();
         });
     }

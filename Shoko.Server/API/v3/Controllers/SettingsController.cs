@@ -1,16 +1,18 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
+#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -21,9 +23,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [InitFriendly]
 public class SettingsController : BaseController
 {
-    private readonly IConnectivityService _connectivityService;
     private readonly IUDPConnectionHandler _udpHandler;
-    private readonly IHttpConnectionHandler _httpHandler;
     private readonly ILogger<SettingsController> _logger;
 
     // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
@@ -101,41 +101,17 @@ public class SettingsController : BaseController
         return Ok();
     }
 
-    /// <summary>
-    /// Gets the current network connectivity details for the server.
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("Connectivity")]
-    public ActionResult<ConnectivityDetails> GetNetworkAvailability()
+    public SettingsController(ISettingsProvider settingsProvider, ILogger<SettingsController> logger, IUDPConnectionHandler udpHandler) : base(settingsProvider)
     {
-        return new ConnectivityDetails
-        {
-            NetworkAvailability = _connectivityService.NetworkAvailability,
-            LastChangedAt = _connectivityService.LastChangedAt,
-            IsAniDBUdpReachable = _udpHandler.IsAlive && _udpHandler.IsNetworkAvailable,
-            IsAniDBUdpBanned = _udpHandler.IsBanned,
-            IsAniDBHttpBanned = _httpHandler.IsBanned
-        };
-    }
-
-    /// <summary>
-    /// Forcefully re-checks the current network connectivity, then returns the
-    /// updated details for the server.
-    /// </summary>
-    /// <returns></returns>
-    [HttpPost("Connectivity")]
-    public async Task<ActionResult<object>> CheckNetworkAvailability()
-    {
-        await _connectivityService.CheckAvailability();
-
-        return GetNetworkAvailability();
-    }
-
-    public SettingsController(ISettingsProvider settingsProvider, IConnectivityService connectivityService, ILogger<SettingsController> logger, IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler) : base(settingsProvider)
-    {
-        _connectivityService = connectivityService;
         _logger = logger;
         _udpHandler = udpHandler;
-        _httpHandler = httpHandler;
     }
+
+    /// <summary>
+    /// Get a list of all supported languages.
+    /// </summary>
+    /// <returns>A list of all supported languages.</returns>
+    [HttpGet("SupportedLanguages")]
+    public ActionResult<List<LanguageDetails>> GetAllSupportedLanguages() =>
+        Languages.AllNamingLanguages.Select(a => new LanguageDetails(a.Language)).ToList();
 }

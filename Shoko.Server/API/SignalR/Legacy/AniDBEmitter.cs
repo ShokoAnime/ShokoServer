@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
@@ -33,21 +34,21 @@ public class AniDBEmitter : IDisposable
         await caller.SendAsync("AniDBState", new Dictionary<string, object>
         {
             {"UDPBanned", UDPHandler.IsBanned},
-            {"UDPBanTime", UDPHandler.BanTime},
+            {"UDPBanTime", UDPHandler.BanTime?.ToUniversalTime()},
             {"UDPBanWaitPeriod", UDPHandler.BanTimerResetLength},
             {"HttpBanned", HttpHandler.IsBanned},
-            {"HttpBanTime", HttpHandler.BanTime},
+            {"HttpBanTime", HttpHandler.BanTime?.ToUniversalTime()},
             {"HttpBanWaitPeriod", HttpHandler.BanTimerResetLength},
         });
     }
 
     private async void OnUDPStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await Hub.Clients.All.SendAsync("AniDBUDPStateUpdate", e);
+        await Hub.Clients.All.SendAsync("AniDBUDPStateUpdate", new AniDBStatusUpdateSignalRModel(e));
     }
 
     private async void OnHttpStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await Hub.Clients.All.SendAsync("AniDBHttpStateUpdate", e);
+        await Hub.Clients.All.SendAsync("AniDBHttpStateUpdate", new AniDBStatusUpdateSignalRModel(e));
     }
 }

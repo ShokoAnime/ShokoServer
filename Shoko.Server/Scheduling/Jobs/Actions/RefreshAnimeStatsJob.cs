@@ -6,6 +6,8 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Services;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [DatabaseRequired]
@@ -18,7 +20,8 @@ public class RefreshAnimeStatsJob : BaseJob
     private readonly AnimeGroupService _groupService;
 
     public int AnimeID { get; set; }
-    private string _anime;
+
+    private string? _anime;
 
     public override string TypeName => "Refresh Anime Stats";
     public override string Title => "Refreshing Anime Stats";
@@ -38,8 +41,21 @@ public class RefreshAnimeStatsJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {Anime}", nameof(RefreshAnimeStatsJob), _anime);
         var anime = _animeRepo.GetByAnimeID(AnimeID);
+        if (anime == null)
+        {
+            _logger.LogWarning("AniDB_Anime not found: {AnimeID}", AnimeID);
+            return Task.CompletedTask;
+        }
         _animeRepo.Save(anime);
         var series = _seriesRepo.GetByAnimeID(AnimeID);
+
+        if (series is not null)
+        {
+            series.ResetAnimeTitles();
+            series.ResetPreferredTitle();
+            series.ResetPreferredOverview();
+        }
+
         // Updating stats saves everything and updates groups
         _seriesService.UpdateStats(series, true, true);
         _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);

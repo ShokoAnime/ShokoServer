@@ -1,15 +1,12 @@
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions;
+
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
 public class HttpRateLimiter : AniDBRateLimiter
 {
-    protected override int ShortDelay { get; init; } = 2000;
-    protected override int LongDelay { get; init; } = 4000;
-    protected override long shortPeriod { get; init; } = 1000000;
-    protected override long resetPeriod { get; init; } = 1800000;
-
-    public HttpRateLimiter(ILogger<HttpRateLimiter> logger) : base(logger)
-    {
-    }
+    public HttpRateLimiter(ILogger<HttpRateLimiter> logger, ISettingsProvider settingsProvider, IShokoEventHandler eventHandler)
+        : base(logger, settingsProvider, eventHandler, s => s.AniDb.HTTPRateLimit) { }
 }

@@ -10,13 +10,13 @@ using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -25,7 +25,6 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Utils = Shoko.Server.Utilities.Utils;
@@ -38,21 +37,28 @@ public class ActionService
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_PlaceService _placeService;
-    private readonly MovieDBHelper _movieDBHelper;
-    private readonly TvDBApiHelper _tvdbHelper;
+    private readonly TmdbMetadataService _tmdbService;
     private readonly TraktTVHelper _traktHelper;
     private readonly ImportFolderRepository _importFolders;
     private readonly DatabaseFactory _databaseFactory;
 
-    public ActionService(ILogger<ActionService> logger, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService placeService, TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ImportFolderRepository importFolders, DatabaseFactory databaseFactory)
+    public ActionService(
+        ILogger<ActionService> logger,
+        ISchedulerFactory schedulerFactory,
+        ISettingsProvider settingsProvider,
+        VideoLocal_PlaceService placeService,
+        TraktTVHelper traktHelper,
+        TmdbMetadataService tmdbService,
+        ImportFolderRepository importFolders,
+        DatabaseFactory databaseFactory
+    )
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
         _placeService = placeService;
-        _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
-        _movieDBHelper = movieDBHelper;
+        _tmdbService = tmdbService;
         _importFolders = importFolders;
         _databaseFactory = databaseFactory;
     }
@@ -145,18 +151,18 @@ public class ActionService
 
         try
         {
-            var fldr = RepoFactory.ImportFolder.GetByID(importFolderID);
-            if (fldr == null) return;
+            var folder = RepoFactory.ImportFolder.GetByID(importFolderID);
+            if (folder == null) return;
 
             // first build a list of files that we already know about, as we don't want to process them again
-            var filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(fldr.ImportFolderID);
+            var filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID);
             var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
             foreach (var vl in filesAll.Where(a => a.FullServerPath != null))
             {
                 dictFilesExisting[vl.FullServerPath] = vl;
             }
 
-            Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
+            Utils.GetFilesForImportFolder(folder.BaseDirectory, ref fileList);
 
             // Get Ignored Files and remove them from the scan listing
             var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
@@ -168,8 +174,8 @@ public class ActionService
             {
                 i++;
 
-                if (dictFilesExisting.TryGetValue(fileName, out var value) && fldr.IsDropSource == 1)
-                    await _placeService.RenameAndMoveAsRequired(value);
+                if (dictFilesExisting.TryGetValue(fileName, out var value) && folder.IsDropSource == 1)
+                    await _placeService.AutoRelocateFile(value);
 
                 if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
                 {
@@ -196,7 +202,7 @@ public class ActionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
         }
     }
 
@@ -288,7 +294,7 @@ public class ActionService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                _logger.LogError(ex, "{ex}", ex.ToString());
             }
         }
 
@@ -320,8 +326,8 @@ public class ActionService
             if (!FileHashHelper.IsVideo(fileName)) continue;
             videosFound++;
 
-            var tup = _importFolders.GetFromFullPath(fileName);
-            ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(fileName));
+            var (folder, relativePath) = _importFolders.GetFromFullPath(fileName);
+            ShokoEventHandler.Instance.OnFileDetected(folder, new FileInfo(fileName));
 
             await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
         }
@@ -359,195 +365,140 @@ public class ActionService
             });
         }
 
-        // TvDB Posters
-        if (settings.TvDB.AutoPosters)
+        // TMDB Images
+        if (settings.TMDB.AutoDownloadPosters)
+            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Poster, settings.TMDB.MaxAutoPosters);
+        if (settings.TMDB.AutoDownloadLogos)
+            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Logo, settings.TMDB.MaxAutoLogos);
+        if (settings.TMDB.AutoDownloadBackdrops)
+            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Backdrop, settings.TMDB.MaxAutoBackdrops);
+        if (settings.TMDB.AutoDownloadStaffImages)
+            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Person, settings.TMDB.MaxAutoStaffImages);
+        if (settings.TMDB.AutoDownloadThumbnails)
+            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Thumbnail, settings.TMDB.MaxAutoThumbnails);
+    }
+
+    private static async Task RunImport_DownloadTmdbImagesForType(ISchedulerFactory schedulerFactory, ImageEntityType type, int maxCount)
+    {
+        // Build a few dictionaries to check how many images exist for each type.
+        var countsForMovies = new Dictionary<int, int>();
+        var countForEpisodes = new Dictionary<int, int>();
+        var countForSeasons = new Dictionary<int, int>();
+        var countForShows = new Dictionary<int, int>();
+        var countForCollections = new Dictionary<int, int>();
+        var countForNetworks = new Dictionary<int, int>();
+        var countForCompanies = new Dictionary<int, int>();
+        var countForPersons = new Dictionary<int, int>();
+        var allImages = RepoFactory.TMDB_Image.GetByType(type);
+        foreach (var image in allImages)
         {
-            var postersCount = new Dictionary<int, int>();
+            var path = image.LocalPath;
+            if (string.IsNullOrEmpty(path))
+                continue;
 
-            // build a dictionary of series and how many images exist
-            var allPosters = RepoFactory.TvDB_ImagePoster.GetAll();
-            foreach (var tvPoster in allPosters)
-            {
-                if (string.IsNullOrEmpty(tvPoster.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvPoster.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!postersCount.TryAdd(tvPoster.SeriesID, 1)) postersCount[tvPoster.SeriesID] += 1;
-            }
+            if (!File.Exists(path))
+                continue;
 
-            foreach (var tvPoster in allPosters)
-            {
-                if (string.IsNullOrEmpty(tvPoster.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvPoster.GetFullImagePath());
-                var postersAvailable = 0;
-                if (postersCount.TryGetValue(tvPoster.SeriesID, out var value)) postersAvailable = value;
-
-                if (fileExists || postersAvailable >= settings.TvDB.AutoPostersAmount) continue;
-
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
-                    {
-                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvPoster.SeriesID)?.SeriesName;
-                        c.ImageID = tvPoster.TvDB_ImagePosterID;
-                        c.ImageType = ImageEntityType.TvDB_Cover;
-                    }
-                );
-
-                if (!postersCount.TryAdd(tvPoster.SeriesID, 1)) postersCount[tvPoster.SeriesID] += 1;
-            }
+            if (image.TmdbMovieID.HasValue)
+                if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
+                    countsForMovies[image.TmdbMovieID.Value] += 1;
+                else
+                    countsForMovies[image.TmdbMovieID.Value] = 1;
+            if (image.TmdbEpisodeID.HasValue)
+                if (countForEpisodes.ContainsKey(image.TmdbEpisodeID.Value))
+                    countForEpisodes[image.TmdbEpisodeID.Value] += 1;
+                else
+                    countForEpisodes[image.TmdbEpisodeID.Value] = 1;
+            if (image.TmdbSeasonID.HasValue)
+                if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
+                    countForSeasons[image.TmdbSeasonID.Value] += 1;
+                else
+                    countForSeasons[image.TmdbSeasonID.Value] = 1;
+            if (image.TmdbShowID.HasValue)
+                if (countForShows.ContainsKey(image.TmdbShowID.Value))
+                    countForShows[image.TmdbShowID.Value] += 1;
+                else
+                    countForShows[image.TmdbShowID.Value] = 1;
+            if (image.TmdbCollectionID.HasValue)
+                if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
+                    countForCollections[image.TmdbCollectionID.Value] += 1;
+                else
+                    countForCollections[image.TmdbCollectionID.Value] = 1;
+            if (image.TmdbNetworkID.HasValue)
+                if (countForNetworks.ContainsKey(image.TmdbNetworkID.Value))
+                    countForNetworks[image.TmdbNetworkID.Value] += 1;
+                else
+                    countForNetworks[image.TmdbNetworkID.Value] = 1;
+            if (image.TmdbCompanyID.HasValue)
+                if (countForCompanies.ContainsKey(image.TmdbCompanyID.Value))
+                    countForCompanies[image.TmdbCompanyID.Value] += 1;
+                else
+                    countForCompanies[image.TmdbCompanyID.Value] = 1;
+            if (image.TmdbPersonID.HasValue)
+                if (countForPersons.ContainsKey(image.TmdbPersonID.Value))
+                    countForPersons[image.TmdbPersonID.Value] += 1;
+                else
+                    countForPersons[image.TmdbPersonID.Value] = 1;
         }
 
-        // TvDB Fanart
-        if (settings.TvDB.AutoFanart)
+        var scheduler = await schedulerFactory.GetScheduler();
+        foreach (var image in allImages)
         {
-            var fanartCount = new Dictionary<int, int>();
-            var allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
-            foreach (var tvFanart in allFanart)
+            var path = image.LocalPath;
+            if (string.IsNullOrEmpty(path) || File.Exists(path))
+                continue;
+
+            // Check if we should download the image or not.
+            var limitEnabled = maxCount > 0;
+            var shouldDownload = !limitEnabled;
+            if (limitEnabled)
             {
-                // build a dictionary of series and how many images exist
-                if (string.IsNullOrEmpty(tvFanart.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvFanart.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!fanartCount.TryAdd(tvFanart.SeriesID, 1)) fanartCount[tvFanart.SeriesID] += 1;
+                if (countsForMovies.TryGetValue(image.TmdbMovieID ?? 0, out var count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForEpisodes.TryGetValue(image.TmdbEpisodeID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForSeasons.TryGetValue(image.TmdbSeasonID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForShows.TryGetValue(image.TmdbShowID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForCollections.TryGetValue(image.TmdbCollectionID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForNetworks.TryGetValue(image.TmdbNetworkID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForCompanies.TryGetValue(image.TmdbCompanyID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForPersons.TryGetValue(image.TmdbPersonID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
             }
 
-            foreach (var tvFanart in allFanart)
+            if (shouldDownload)
             {
-                if (string.IsNullOrEmpty(tvFanart.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvFanart.GetFullImagePath());
-
-                var fanartAvailable = 0;
-                if (fanartCount.TryGetValue(tvFanart.SeriesID, out var value)) fanartAvailable = value;
-                if (fileExists || fanartAvailable >= settings.TvDB.AutoFanartAmount) continue;
-
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
-                    {
-                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvFanart.SeriesID)?.SeriesName;
-                        c.ImageID = tvFanart.TvDB_ImageFanartID;
-                        c.ImageType = ImageEntityType.TvDB_FanArt;
-                    }
-                );
-
-                if (!fanartCount.TryAdd(tvFanart.SeriesID, 1)) fanartCount[tvFanart.SeriesID] += 1;
-            }
-        }
-
-        // TvDB Wide Banners
-        if (settings.TvDB.AutoWideBanners)
-        {
-            var fanartCount = new Dictionary<int, int>();
-
-            // build a dictionary of series and how many images exist
-            var allBanners = RepoFactory.TvDB_ImageWideBanner.GetAll();
-            foreach (var tvBanner in allBanners)
-            {
-                if (string.IsNullOrEmpty(tvBanner.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvBanner.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!fanartCount.TryAdd(tvBanner.SeriesID, 1)) fanartCount[tvBanner.SeriesID] += 1;
-            }
-
-            foreach (var tvBanner in allBanners)
-            {
-                if (string.IsNullOrEmpty(tvBanner.GetFullImagePath())) continue;
-                var fileExists = File.Exists(tvBanner.GetFullImagePath());
-                var bannersAvailable = 0;
-                if (fanartCount.TryGetValue(tvBanner.SeriesID, out var value)) bannersAvailable = value;
-                if (fileExists || bannersAvailable >= settings.TvDB.AutoWideBannersAmount) continue;
-
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
-                    {
-                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvBanner.SeriesID)?.SeriesName;
-                        c.ImageID = tvBanner.TvDB_ImageWideBannerID;
-                        c.ImageType = ImageEntityType.TvDB_Banner;
-                    }
-                );
-
-                if (!fanartCount.TryAdd(tvBanner.SeriesID, 1)) fanartCount[tvBanner.SeriesID] += 1;
-            }
-        }
-
-        // TvDB Episodes
-
-        foreach (var tvEpisode in RepoFactory.TvDB_Episode.GetAll())
-        {
-            if (string.IsNullOrEmpty(tvEpisode.GetFullImagePath())) continue;
-            var fileExists = File.Exists(tvEpisode.GetFullImagePath());
-            if (fileExists) continue;
-
-            await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                await scheduler.StartJob<DownloadTmdbImageJob>(c =>
                 {
-                    c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvEpisode.SeriesID)?.SeriesName;
-                    c.ImageID = tvEpisode.TvDB_EpisodeID;
-                    c.ImageType = ImageEntityType.TvDB_Episode;
-                }
-            );
-        }
+                    c.ImageID = image.TMDB_ImageID;
+                    c.ImageType = image.ImageType;
+                });
 
-        // MovieDB Posters
-        if (settings.MovieDb.AutoPosters)
-        {
-            var postersCount = new Dictionary<int, int>();
-
-            // build a dictionary of series and how many images exist
-            var allPosters = RepoFactory.MovieDB_Poster.GetAll();
-            foreach (var moviePoster in allPosters)
-            {
-                if (string.IsNullOrEmpty(moviePoster.GetFullImagePath())) continue;
-                var fileExists = File.Exists(moviePoster.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!postersCount.TryAdd(moviePoster.MovieId, 1)) postersCount[moviePoster.MovieId] += 1;
-            }
-
-            foreach (var moviePoster in allPosters)
-            {
-                if (string.IsNullOrEmpty(moviePoster.GetFullImagePath())) continue;
-                var fileExists = File.Exists(moviePoster.GetFullImagePath());
-                var postersAvailable = 0;
-                if (postersCount.TryGetValue(moviePoster.MovieId, out var value)) postersAvailable = value;
-
-                if (fileExists || postersAvailable >= settings.MovieDb.AutoPostersAmount) continue;
-
-                await scheduler.StartJob<DownloadTMDBImageJob>(c =>
-                    {
-                        c.ImageID = moviePoster.MovieDB_PosterID;
-                        c.ImageType = ImageEntityType.MovieDB_Poster;
-                    }
-                );
-
-                if (!postersCount.TryAdd(moviePoster.MovieId, 1)) postersCount[moviePoster.MovieId] += 1;
-            }
-        }
-
-        // MovieDB Fanart
-        if (settings.MovieDb.AutoFanart)
-        {
-            var fanartCount = new Dictionary<int, int>();
-
-            // build a dictionary of series and how many images exist
-            var allFanarts = RepoFactory.MovieDB_Fanart.GetAll();
-            foreach (var movieFanart in allFanarts)
-            {
-                if (string.IsNullOrEmpty(movieFanart.GetFullImagePath())) continue;
-                var fileExists = File.Exists(movieFanart.GetFullImagePath());
-                if (!fileExists) continue;
-                if (!fanartCount.TryAdd(movieFanart.MovieId, 1)) fanartCount[movieFanart.MovieId] += 1;
-            }
-
-            foreach (var movieFanart in RepoFactory.MovieDB_Fanart.GetAll())
-            {
-                if (string.IsNullOrEmpty(movieFanart.GetFullImagePath())) continue;
-                var fileExists = File.Exists(movieFanart.GetFullImagePath());
-                var fanartAvailable = 0;
-                if (fanartCount.TryGetValue(movieFanart.MovieId, out var value)) fanartAvailable = value;
-                if (fileExists || fanartAvailable >= settings.MovieDb.AutoFanartAmount) continue;
-
-                await scheduler.StartJob<DownloadTMDBImageJob>(c =>
-                    {
-                        c.ImageID = movieFanart.MovieDB_FanartID;
-                        c.ImageType = ImageEntityType.MovieDB_FanArt;
-                    }
-                );
-
-                if (!fanartCount.TryAdd(movieFanart.MovieId, 1)) fanartCount[movieFanart.MovieId] += 1;
+                if (image.TmdbMovieID.HasValue)
+                    if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
+                        countsForMovies[image.TmdbMovieID.Value] += 1;
+                    else
+                        countsForMovies[image.TmdbMovieID.Value] = 1;
+                if (image.TmdbSeasonID.HasValue)
+                    if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
+                        countForSeasons[image.TmdbSeasonID.Value] += 1;
+                    else
+                        countForSeasons[image.TmdbSeasonID.Value] = 1;
+                if (image.TmdbShowID.HasValue)
+                    if (countForShows.ContainsKey(image.TmdbShowID.Value))
+                        countForShows[image.TmdbShowID.Value] += 1;
+                    else
+                        countForShows[image.TmdbShowID.Value] = 1;
+                if (image.TmdbCollectionID.HasValue)
+                    if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
+                        countForCollections[image.TmdbCollectionID.Value] += 1;
+                    else
+                        countForCollections[image.TmdbCollectionID.Value] = 1;
             }
         }
     }
@@ -557,18 +508,18 @@ public class ActionService
         if (!settings.AniDb.DownloadCreators) return false;
 
         foreach (var seiyuu in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID)
-                     .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
-                     .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)))
+                    .SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID))
+                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.PicName)) continue;
-            if (!File.Exists(seiyuu.GetPosterPath())) return true;
+            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
+            if (!File.Exists(seiyuu.GetFullImagePath())) return true;
         }
 
         foreach (var seiyuu in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)
-                     .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.CreatorID)))
+                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.PicName)) continue;
-            if (!File.Exists(seiyuu.GetPosterPath())) return true;
+            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
+            if (!File.Exists(seiyuu.GetFullImagePath())) return true;
         }
 
         return false;
@@ -581,15 +532,10 @@ public class ActionService
         foreach (var chr in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID))
         {
             if (string.IsNullOrEmpty(chr.PicName)) continue;
-            if (!File.Exists(chr.GetPosterPath())) return true;
+            if (!File.Exists(chr.GetFullImagePath())) return true;
         }
 
         return false;
-    }
-
-    public async Task RunImport_ScanTvDB()
-    {
-        await _tvdbHelper.ScanForMatches();
     }
 
     public void RunImport_ScanTrakt()
@@ -599,14 +545,9 @@ public class ActionService
         _traktHelper.ScanForMatches();
     }
 
-    public async Task RunImport_ScanMovieDB()
+    public async Task RunImport_ScanTMDB()
     {
-        await _movieDBHelper.ScanForMatches();
-    }
-
-    public async Task RunImport_UpdateTvDB(bool forced)
-    {
-        await _tvdbHelper.UpdateAllInfo(forced);
+        await _tmdbService.ScanForMatches();
     }
 
     public async Task RunImport_UpdateAllAniDB()
@@ -647,7 +588,7 @@ public class ActionService
         }
 
         var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
-        // remove empty videolocals
+        // remove empty video locals
         BaseRepository.Lock(session, videoLocalsAll, (s, vls) =>
         {
             using var transaction = s.BeginTransaction();
@@ -655,7 +596,7 @@ public class ActionService
             transaction.Commit();
         });
 
-        // Remove duplicate videolocals
+        // Remove duplicate video locals
         var locals = videoLocalsAll
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
@@ -668,8 +609,8 @@ public class ActionService
             var values = locals[hash];
             values.Sort(comparer);
             var to = values.First();
-            var froms = values.Except(to).ToList();
-            foreach (var places in froms.Select(from => from.Places).Where(places => places != null && places.Count != 0))
+            var from = values.Except(to).ToList();
+            foreach (var places in from.Select(from => from.Places).Where(places => places != null && places.Count != 0))
             {
                 BaseRepository.Lock(session, places, (s, ps) =>
                 {
@@ -684,7 +625,7 @@ public class ActionService
                 });
             }
 
-            toRemove.AddRange(froms);
+            toRemove.AddRange(from);
         }
 
         BaseRepository.Lock(session, toRemove, (s, ps) =>
@@ -709,7 +650,9 @@ public class ActionService
                     using var transaction = s.BeginTransaction();
                     foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
                     {
+#pragma warning disable CS0618
                         _logger.LogInformation("RemoveRecordsWithOrphanedImportFolder : {Filename}", v.FileName);
+#pragma warning restore CS0618
                         seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                             .DistinctBy(a => a.AnimeSeriesID));
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
@@ -726,7 +669,7 @@ public class ActionService
             if (places?.Count > 0)
             {
                 places = places.DistinctBy(a => a.FullServerPath).ToList();
-                places = v.Places?.Except(places).ToList() ?? new List<SVR_VideoLocal_Place>();
+                places = v.Places?.Except(places).ToList() ?? [];
                 foreach (var place in places)
                 {
                     BaseRepository.Lock(session, place, (s, p) =>
@@ -741,7 +684,9 @@ public class ActionService
             if (v.Places?.Count > 0) continue;
 
             // delete video local record
+#pragma warning disable CS0618
             _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
+#pragma warning restore CS0618
             seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                 .DistinctBy(a => a.AnimeSeriesID));
 
@@ -752,6 +697,9 @@ public class ActionService
                     var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
                     foreach (var xref in xrefs)
                     {
+                        if (xref.AnimeID is 0)
+                            continue;
+
                         var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                         if (ep == null)
                         {
@@ -788,8 +736,8 @@ public class ActionService
         // Clean up failed imports
         var list = RepoFactory.VideoLocal.GetAll()
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-            .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                        a.AniDBEpisode == null).ToArray();
+            .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
+            .ToArray();
         BaseRepository.Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();
@@ -801,7 +749,7 @@ public class ActionService
 
             transaction.Commit();
         });
-        
+
         // clean up orphaned video local places
         var placesToRemove = RepoFactory.VideoLocalPlace.GetAll().Where(a => a.VideoLocal == null).ToList();
         BaseRepository.Lock(session, s =>
@@ -840,22 +788,20 @@ public class ActionService
 
             var scheduler = await _schedulerFactory.GetScheduler();
             await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
-                
 
             return string.Empty;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "{ex}", ex.ToString());
             return ex.Message;
         }
     }
 
-    public void UpdateAllStats()
+    public async Task UpdateAllStats()
     {
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter()
-            .GetResult();
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
     public async Task<int> UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)
@@ -911,50 +857,59 @@ public class ActionService
         return vidsToUpdate.Count;
     }
 
-    public async Task CheckForTvDBUpdates(bool forceRefresh)
+    public async Task CheckForUnreadNotifications(bool ignoreSchedule)
     {
         var settings = _settingsProvider.GetSettings();
-        if (settings.TvDB.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+        if (!ignoreSchedule && settings.AniDb.Notification_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
+
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
+        if (schedule == null)
+        {
+            schedule = new()
+            {
+                UpdateType = (int)ScheduledUpdateType.AniDBNotify,
+                UpdateDetails = string.Empty
+            };
+        }
+        else
+        {
+            var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
+
+            // The NOTIFY command must not be issued more than once every 20 minutes according to the AniDB UDP API documentation:
+            // https://wiki.anidb.net/UDP_API_Definition#NOTIFY:_Notifications
+            // We will use 30 minutes as a safe interval.
+            if (tsLastRun.TotalMinutes < 30) return;
+
+            // if we have run this in the last freqHours and are not forcing it, then exit
+            if (!ignoreSchedule && tsLastRun.TotalHours < freqHours) return;
+        }
+
+        schedule.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(schedule);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        var freqHours = Utils.GetScheduledHours(settings.TvDB.UpdateFrequency);
+        await scheduler.StartJob<GetAniDBNotifyJob>();
 
-        // update tvdb info every 12 hours
+        // process any unhandled moved file messages
+        await RefreshAniDBMovedFiles(false);
+    }
 
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TvDBInfo);
-        if (sched != null)
+    public async Task RefreshAniDBMovedFiles(bool force)
+    {
+        var settings = _settingsProvider.GetSettings();
+        if (force || settings.AniDb.Notification_HandleMovedFiles)
         {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        var tvDBIDs = new List<int>();
-        var tvDBOnline = false;
-        var serverTime = _tvdbHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
-
-        if (tvDBOnline)
-        {
-            foreach (var tvid in tvDBIDs)
+            var messages = RepoFactory.AniDB_Message.GetUnhandledFileMoveMessages();
+            if (messages.Count > 0)
             {
-                // download and update series info, episode info and episode images
-                // will also download fanart, posters and wide banners
-                await scheduler.StartJob<GetTvDBSeriesJob>(c =>
-                    {
-                        c.TvDBSeriesID = tvid;
-                        c.ForceRefresh = true;
-                    }
-                );
+                var scheduler = await _schedulerFactory.GetScheduler();
+                foreach (var msg in messages)
+                {
+                    await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
+                }
             }
         }
-
-        sched ??= new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TvDBInfo };
-
-        sched.LastUpdate = DateTime.Now;
-        sched.UpdateDetails = serverTime;
-        RepoFactory.ScheduledUpdate.Save(sched);
-
-        await _tvdbHelper.ScanForMatches();
     }
 
     public async Task CheckForCalendarUpdate(bool forceRefresh)
@@ -968,11 +923,11 @@ public class ActionService
         // update the calendar every 12 hours
         // we will always assume that an anime was downloaded via http first
 
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
-        if (sched != null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
+        if (schedule != null)
         {
             // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
@@ -989,11 +944,11 @@ public class ActionService
 
         // check for any updated anime info every 12 hours
 
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
-        if (sched != null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
+        if (schedule != null)
         {
             // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
             if (tsLastRun.TotalHours < freqHours) return;
         }
 
@@ -1010,11 +965,11 @@ public class ActionService
 
         // update the calendar every 24 hours
 
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
-        if (sched != null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
+        if (schedule != null)
         {
             // if we have run this in the last 24 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
             _logger.LogTrace("Last AniDB MyList Sync: {Time} minutes ago", tsLastRun.TotalMinutes);
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
@@ -1029,12 +984,13 @@ public class ActionService
         if (settings.TraktTv.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
 
         // update the calendar every xxx hours
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
-        if (sched == null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
+        if (schedule == null)
         {
-            sched = new ScheduledUpdate
+            schedule = new ScheduledUpdate
             {
-                UpdateType = (int)ScheduledUpdateType.TraktUpdate, UpdateDetails = string.Empty
+                UpdateType = (int)ScheduledUpdateType.TraktUpdate,
+                UpdateDetails = string.Empty
             };
         }
         else
@@ -1042,12 +998,12 @@ public class ActionService
             var freqHours = Utils.GetScheduledHours(settings.TraktTv.UpdateFrequency);
 
             // if we have run this in the last xxx hours then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
-        sched.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(sched);
+        schedule.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(schedule);
 
         var scheduler = await _schedulerFactory.GetScheduler();
 
@@ -1078,11 +1034,11 @@ public class ActionService
                 _traktHelper.RefreshAuthToken();
 
                 // Update the last token refresh timestamp
-                var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken)
+                var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken)
                             ?? new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktToken, UpdateDetails = string.Empty };
 
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
+                schedule.LastUpdate = DateTime.Now;
+                RepoFactory.ScheduledUpdate.Save(schedule);
 
                 _logger.LogInformation("Trakt token refreshed successfully. Expiry date: {Date}", expirationDate);
             }
@@ -1096,7 +1052,7 @@ public class ActionService
             _logger.LogError(ex, "Error in CheckForTraktTokenUpdate: {Ex}", ex);
         }
     }
-    
+
     public async Task CheckForAniDBFileUpdate(bool forceRefresh)
     {
         var settings = _settingsProvider.GetSettings();
@@ -1110,12 +1066,11 @@ public class ActionService
 
         // check for any updated anime info every 12 hours
 
-        var sched =
-            RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
-        if (sched != null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
+        if (schedule != null)
         {
             // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
@@ -1141,16 +1096,17 @@ public class ActionService
         // now check for any files which have been manually linked and are less than 30 days old
 
 
-        sched ??= new ScheduledUpdate
+        schedule ??= new ScheduledUpdate
         {
-            UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates, UpdateDetails = string.Empty
+            UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
+            UpdateDetails = string.Empty
         };
 
-        sched.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(sched);
+        schedule.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(schedule);
     }
 
-    public  void CheckForPreviouslyIgnored()
+    public void CheckForPreviouslyIgnored()
     {
         try
         {
@@ -1165,7 +1121,7 @@ public class ActionService
                     var resultVideoLocalsIgnored =
                         filesIgnored.Where(s => s.Hash == vl.Hash).ToList();
 
-                    if (resultVideoLocalsIgnored.Any())
+                    if (resultVideoLocalsIgnored.Count != 0)
                     {
                         vl.IsIgnored = true;
                         RepoFactory.VideoLocal.Save(vl, false);
@@ -1177,5 +1133,39 @@ public class ActionService
         {
             _logger.LogError(ex, "Error in CheckForPreviouslyIgnored: {Ex}", ex);
         }
+    }
+
+    public async Task ScheduleMissingAnidbCreators()
+    {
+        if (!_settingsProvider.GetSettings().AniDb.DownloadCreators) return;
+
+        var allCreators = RepoFactory.AniDB_Creator.GetAll();
+        var allMissingCreators = RepoFactory.AnimeStaff.GetAll()
+            .Select(s => s.AniDBID)
+            .Distinct()
+            .Except(allCreators.Select(a => a.CreatorID))
+            .ToList();
+        var missingCount = allMissingCreators.Count;
+        allMissingCreators.AddRange(
+            allCreators
+                .Where(creator => creator.Type is Providers.AniDB.CreatorType.Unknown)
+                .Select(creator => creator.CreatorID)
+                .Distinct()
+        );
+        var partiallyMissingCount = allMissingCreators.Count - missingCount;
+
+        var startedAt = DateTime.Now;
+        _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Missing={MissingCount},PartiallyMissing={PartiallyMissingCount},Total={Total})", allMissingCreators.Count, missingCount, partiallyMissingCount, allMissingCreators.Count);
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var progressCount = 0;
+        foreach (var creatorID in allMissingCreators)
+        {
+            await scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
+
+            if (++progressCount % 10 == 0)
+                _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Progress={Count}/{Total})", allMissingCreators.Count, progressCount, allMissingCreators.Count);
+        }
+
+        _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
     }
 }

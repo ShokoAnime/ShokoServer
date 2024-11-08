@@ -60,7 +60,7 @@
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="Libuv" Version="1.10.0" />
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.6.0" />
-    <PackageReference Include="MessagePack" Version="2.5.140" />
+    <PackageReference Include="MessagePack" Version="2.5.187" />
     <PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -107,7 +107,7 @@
     <!-- This needs to be explicit because of https://github.com/MySqlBackupNET/MySqlBackup.Net/issues/61 -->
     <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
-    <PackageReference Include="TMDbLib" Version="1.6.0" />
+    <PackageReference Include="TMDbLib" Version="2.2.0" />
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
     <PackageReference Include="TvDbSharper" Version="3.2.0" />
   </ItemGroup>

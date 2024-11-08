@@ -84,6 +84,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     /// <returns></returns>
     public List<SVR_AnimeEpisode> GetByHash(string hash)
     {
+        if (string.IsNullOrEmpty(hash)) return [];
         return RepoFactory.CrossRef_File_Episode.GetByHash(hash)
             .Select(a => GetByAniDBEpisodeID(a.EpisodeID))
             .Where(a => a != null)
@@ -121,7 +122,12 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
 
         return ids
             .Select(GetByAniDBEpisodeID)
-            .Where(a => a != null)
+            .Select(episode => (episode, anidbEpisode: episode?.AniDB_Episode))
+            .Where(tuple => tuple.anidbEpisode is not null)
+            .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
+            .Select(tuple => tuple.episode!)
             .ToList();
     }
 
@@ -148,7 +154,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
         return list;
     }
 
-    public List<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials)
+    public List<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials, bool includeOnlyAired = false)
     {
         var all = GetAll().Where(a =>
             {
@@ -170,13 +176,18 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
                     return false;
                 }
 
+                if (includeOnlyAired && !aniep.HasAired)
+                {
+                    return false;
+                }
+
                 return a.VideoLocals.Count == 0;
             })
             .ToList();
         all.Sort((a1, a2) =>
         {
-            var name1 = a1.AnimeSeries?.SeriesName;
-            var name2 = a2.AnimeSeries?.SeriesName;
+            var name1 = a1.AnimeSeries?.PreferredTitle;
+            var name2 = a2.AnimeSeries?.PreferredTitle;
 
             if (!string.IsNullOrEmpty(name1) && !string.IsNullOrEmpty(name2))
             {

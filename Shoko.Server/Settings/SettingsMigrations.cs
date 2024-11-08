@@ -2,13 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 
 namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 6;
+    public const int Version = 9;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -40,13 +44,17 @@ public static class SettingsMigrations
         { 3, MigrateAutoGroupRelations },
         { 4, MigrateHostnameToHost },
         { 5, MigrateAutoGroupRelationsAlternateToAlternative },
-        { 6, MigrateAniDBServerAddresses }
+        { 6, MigrateAniDBServerAddresses },
+        { 7, MigrateLanguageSettings },
+        { 8, MigrateRenamerFromImportToPluginsSettings },
+        { 9, MigrateFixDefaultRenamer },
+        { 10, MigrateLanguageSourceOrders },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
     {
         var regex = new Regex("(\"EpisodeTitleSource\"\\:\\s*\")(TheTvDB)(\")", RegexOptions.Compiled);
-        return regex.Replace(settings, "$1TvDB$3");
+        return regex.Replace(settings, "$1AniDB$3");
     }
 
     private static string MigrateEpisodeLanguagePreference(string settings)
@@ -96,13 +104,98 @@ public static class SettingsMigrations
 
         if (currentSettings["AniDb"] is null)
             return settings;
-        
+
         var serverAddress = currentSettings["AniDb"]["ServerAddress"]?.Value<string>() ?? "api.anidb.net";
-        var serverPort = currentSettings["AniDb"]["ServerPort"]?.Value<ushort>() ?? 9001;
-        
+        var serverPort = currentSettings["AniDb"]["ServerPort"]?.Value<ushort>() ?? 9000;
+
         currentSettings["AniDb"]["HTTPServerUrl"] = $"http://{serverAddress}:{serverPort + 1}";
         currentSettings["AniDb"]["UDPServerAddress"] = serverAddress;
         currentSettings["AniDb"]["UDPServerPort"] = serverPort;
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateLanguageSettings(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["Language"] is not null)
+            return settings;
+
+        var seriesTitlePreference = (currentSettings["LanguagePreference"] as JArray)?.Values<string>() ?? [];
+        var episodeTitlePreference = (currentSettings["EpisodeLanguagePreference"] as JArray)?.Values<string>() ?? [];
+        var language = new LanguageSettings
+        {
+            UseSynonyms = currentSettings["LanguageUseSynonyms"]?.Value<bool>() ?? false,
+            SeriesTitleLanguageOrder = seriesTitlePreference
+                .Select(val => val.GetTitleLanguage())
+                .Except([TitleLanguage.None, TitleLanguage.Unknown])
+                .Select(val => val.GetString())
+                .ToList(),
+            EpisodeTitleLanguageOrder = episodeTitlePreference
+                .Select(val => val.GetTitleLanguage())
+                .Except([TitleLanguage.None, TitleLanguage.Unknown])
+                .Select(val => val.GetString())
+                .ToList(),
+        };
+        currentSettings["Language"] = JObject.Parse(JsonConvert.SerializeObject(language));
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateRenamerFromImportToPluginsSettings(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        var importSettings = currentSettings["Import"];
+        if (importSettings is null)
+            return settings;
+
+        var renameOnImport = importSettings["RenameOnImport"]?.Value<bool>() ?? false;
+        var moveOnImport = importSettings["MoveOnImport"]?.Value<bool>() ?? false;
+        var pluginsSettings = currentSettings["Plugins"] ?? (currentSettings["Plugins"] = new JObject());
+        var renamerSettings = pluginsSettings["Renamer"] ?? (pluginsSettings["Renamer"] = new JObject());
+        renamerSettings["RenameOnImport"] = renameOnImport;
+        renamerSettings["MoveOnImport"] = moveOnImport;
+        renamerSettings["EnabledRenamers"] = pluginsSettings["EnabledRenamers"] ?? new JObject();
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateFixDefaultRenamer(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        if (currentSettings["Plugins"]?["Renamer"] is null)
+            return settings;
+
+        var renamerSettings = currentSettings["Plugins"]["Renamer"];
+
+        if (string.IsNullOrEmpty(renamerSettings["DefaultRenamer"]?.Value<string>()))
+            renamerSettings["DefaultRenamer"] = "Default";
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateLanguageSourceOrders(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        var languageSettings = currentSettings["Language"] ?? (currentSettings["Language"] = new JObject());
+
+        languageSettings["SeriesTitleSourceOrder"] = new JArray
+        {
+            DataSourceType.AniDB, DataSourceType.TMDB
+        };
+;
+        languageSettings["EpisodeTitleSourceOrder"] = new JArray
+        {
+            DataSourceType.AniDB, DataSourceType.TMDB
+        };
+
+        languageSettings["DescriptionSourceOrder"] = new JArray
+        {
+            DataSourceType.AniDB, DataSourceType.TMDB
+        };
 
         return currentSettings.ToString();
     }

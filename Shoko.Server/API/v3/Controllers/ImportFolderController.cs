@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -40,14 +42,19 @@ public class ImportFolderController : BaseController
     public ActionResult<ImportFolder> AddImportFolder([FromBody] ImportFolder folder)
     {
         if (!ModelState.IsValid)
-        {
             return ValidationProblem(ModelState);
-        }
 
-        if (folder.Path == string.Empty)
-        {
-            return ValidationProblem("The Folder path must not be Empty", nameof(folder.Path));
-        }
+        if (string.IsNullOrEmpty(folder.Path))
+            return ValidationProblem("Path not provided. Import Folders must be a location that exists on the server.", nameof(folder.Path));
+
+        folder.Path = folder.Path.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+        if (folder.Path[^1] != Path.DirectorySeparatorChar)
+            folder.Path += Path.DirectorySeparatorChar;
+        if (!Directory.Exists(folder.Path))
+            return ValidationProblem("Path does not exist. Import Folders must be a location that exists on the server.", nameof(folder.Path));
+
+        if (RepoFactory.ImportFolder.GetAll().ExceptBy([folder.ID], iF => iF.ImportFolderID).Any(iF => folder.Path.StartsWith(iF.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) || iF.ImportFolderLocation.StartsWith(folder.Path, StringComparison.OrdinalIgnoreCase)))
+            return ValidationProblem("Unable to nest an import folder within another import folder.");
 
         try
         {
@@ -69,9 +76,8 @@ public class ImportFolderController : BaseController
     /// <param name="folderID">Import Folder ID</param>
     /// <returns></returns>
     [HttpGet("{folderID}")]
-    public ActionResult<ImportFolder> GetImportFolderByFolderID([FromRoute] int folderID)
+    public ActionResult<ImportFolder> GetImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID)
     {
-        if (folderID == 0) return BadRequest("ID must be greater than 0");
         var folder = RepoFactory.ImportFolder.GetByID(folderID);
         if (folder == null)
         {
@@ -89,7 +95,7 @@ public class ImportFolderController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPatch("{folderID}")]
-    public ActionResult PatchImportFolderByFolderID([FromRoute] int folderID,
+    public ActionResult PatchImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID,
         [FromBody] JsonPatchDocument<ImportFolder> patch)
     {
         if (patch == null)
@@ -105,11 +111,8 @@ public class ImportFolderController : BaseController
 
         var patchModel = new ImportFolder(existing);
         patch.ApplyTo(patchModel, ModelState);
-        TryValidateModel(patchModel);
-        if (!ModelState.IsValid)
-        {
+        if (!TryValidateModel(patchModel))
             return ValidationProblem(ModelState);
-        }
 
         var serverModel = patchModel.GetServerModel();
         RepoFactory.ImportFolder.SaveImportFolder(serverModel);
@@ -126,7 +129,17 @@ public class ImportFolderController : BaseController
     public ActionResult EditImportFolder([FromBody] ImportFolder folder)
     {
         if (string.IsNullOrEmpty(folder.Path))
-            ModelState.AddModelError(nameof(folder.Path), "Path missing. Import Folders must be a location that exists on the server.");
+            ModelState.AddModelError(nameof(folder.Path), "Path not provided. Import Folders must be a location that exists on the server.");
+
+        folder.Path = folder.Path?.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar) ?? string.Empty;
+        if (folder.Path[^1] != Path.DirectorySeparatorChar)
+            folder.Path += Path.DirectorySeparatorChar;
+        if (!string.IsNullOrEmpty(folder.Path) && !Directory.Exists(folder.Path))
+            ModelState.AddModelError(nameof(folder.Path), "Path does not exist. Import Folders must be a location that exists on the server.");
+
+        if (RepoFactory.ImportFolder.GetAll().ExceptBy([folder.ID], iF => iF.ImportFolderID)
+            .Any(iF => folder.Path.StartsWith(iF.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) || iF.ImportFolderLocation.StartsWith(folder.Path, StringComparison.OrdinalIgnoreCase)))
+            ModelState.AddModelError(nameof(folder.Path), "Unable to nest an import folder within another import folder.");
 
         if (folder.ID == 0)
             ModelState.AddModelError(nameof(folder.ID), "ID missing. If this is a new Folder, then use POST.");
@@ -150,14 +163,9 @@ public class ImportFolderController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{folderID}")]
-    public async Task<ActionResult> DeleteImportFolderByFolderID([FromRoute] int folderID, [FromQuery] bool removeRecords = true,
+    public async Task<ActionResult> DeleteImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID, [FromQuery] bool removeRecords = true,
         [FromQuery] bool updateMyList = true)
     {
-        if (folderID == 0)
-        {
-            return NotFound("Folder not found.");
-        }
-
         if (!removeRecords)
         {
             // These are annoying to clean up later, so do it now. We can easily recreate them.
@@ -182,7 +190,7 @@ public class ImportFolderController : BaseController
     /// <param name="folderID">Import Folder ID</param>
     /// <returns></returns>
     [HttpGet("{folderID}/Scan")]
-    public async Task<ActionResult> ScanImportFolderByFolderID([FromRoute] int folderID)
+    public async Task<ActionResult> ScanImportFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID)
     {
         var folder = RepoFactory.ImportFolder.GetByID(folderID);
         if (folder == null)

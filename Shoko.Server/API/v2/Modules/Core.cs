@@ -400,36 +400,15 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("tvdb/update")]
-    public async Task<ActionResult> ScanTvDB()
+    public ActionResult ScanTvDB()
     {
-        await _actionService.RunImport_ScanTvDB();
         return APIStatus.OK();
     }
 
     [HttpGet("tvdb/regenlinks")]
     public ActionResult RegenerateAllEpisodeLinks()
     {
-        try
-        {
-            RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
-            RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
-                TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-            return APIStatus.InternalError(e.Message);
-        }
-
         return APIStatus.OK();
-    }
-
-    public class EpisodeMatchComparison
-    {
-        public string Anime { get; set; }
-        public int AnimeID { get; set; }
-        public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Current { get; set; }
-        public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Calculated { get; set; }
     }
 
     public class AniEpSummary
@@ -476,119 +455,10 @@ public class Core : BaseController
         }
     }
 
-    public class TvDBEpSummary
-    {
-        public int TvDBSeason { get; set; }
-        public int TvDBEpisodeNumber { get; set; }
-        public string TvDBEpisodeName { get; set; }
-
-        protected bool Equals(TvDBEpSummary other)
-        {
-            return TvDBSeason == other.TvDBSeason && TvDBEpisodeNumber == other.TvDBEpisodeNumber &&
-                   string.Equals(TvDBEpisodeName, other.TvDBEpisodeName);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            if (obj.GetType() != GetType())
-            {
-                return false;
-            }
-
-            return Equals((TvDBEpSummary)obj);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                var hashCode = TvDBSeason;
-                hashCode = (hashCode * 397) ^ TvDBEpisodeNumber;
-                hashCode = (hashCode * 397) ^ (TvDBEpisodeName != null ? TvDBEpisodeName.GetHashCode() : 0);
-                return hashCode;
-            }
-        }
-    }
-
     [HttpGet("tvdb/checklinks")]
-    public ActionResult<List<EpisodeMatchComparison>> CheckAllEpisodeLinksAgainstCurrent()
+    public ActionResult<List<object>> CheckAllEpisodeLinksAgainstCurrent()
     {
-        try
-        {
-            // This is for testing changes in the algorithm. It will be slow.
-            var list = RepoFactory.AnimeSeries.GetAll().Select(a => a.AniDB_Anime)
-                .Where(a => !string.IsNullOrEmpty(a?.MainTitle)).OrderBy(a => a.MainTitle).ToList();
-            var result = new List<EpisodeMatchComparison>();
-            foreach (var animeseries in list)
-            {
-                var tvxrefs =
-                    RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
-                var tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
-                var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, tvdbID).Select(a => (
-                    AniDB: new AniEpSummary
-                    {
-                        AniDBEpisodeType = a.AniDB.EpisodeType,
-                        AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
-                        AniDBEpisodeName = a.AniDB.DefaultTitle
-                    },
-                    TvDB: a.TvDB == null
-                        ? null
-                        : new TvDBEpSummary
-                        {
-                            TvDBSeason = a.TvDB.SeasonNumber,
-                            TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
-                            TvDBEpisodeName = a.TvDB.EpisodeName
-                        })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
-                var currentMatches = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
-                    .Select(a =>
-                    {
-                        var AniDB = RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
-                        var TvDB = RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
-                        return (
-                            AniDB: new AniEpSummary
-                            {
-                                AniDBEpisodeType = AniDB.EpisodeType,
-                                AniDBEpisodeNumber = AniDB.EpisodeNumber,
-                                AniDBEpisodeName = AniDB.DefaultTitle
-                            },
-                            TvDB: TvDB == null
-                                ? null
-                                : new TvDBEpSummary
-                                {
-                                    TvDBSeason = TvDB.SeasonNumber,
-                                    TvDBEpisodeNumber = TvDB.EpisodeNumber,
-                                    TvDBEpisodeName = TvDB.EpisodeName
-                                });
-                    }).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
-                if (!currentMatches.SequenceEqual(matches))
-                {
-                    result.Add(new EpisodeMatchComparison
-                    {
-                        Anime = animeseries.MainTitle,
-                        AnimeID = animeseries.AnimeID,
-                        Current = currentMatches,
-                        Calculated = matches
-                    });
-                }
-            }
-
-            return result;
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-            return APIStatus.InternalError(e.Message);
-        }
+        return new List<object>();
     }
 
     #endregion
@@ -600,9 +470,9 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("moviedb/update")]
-    public async Task<ActionResult> ScanMovieDB()
+    public async Task<ActionResult> ScanTMDB()
     {
-        await _actionService.RunImport_ScanMovieDB();
+        await _actionService.RunImport_ScanTMDB();
         return APIStatus.OK();
     }
 
@@ -868,9 +738,8 @@ public class Core : BaseController
     #region 11. Image Actions
 
     [HttpGet("images/update")]
-    public async Task<ActionResult> UpdateImages()
+    public ActionResult UpdateImages()
     {
-        await _actionService.RunImport_UpdateTvDB(true);
         Utils.ShokoServer.DownloadAllImages();
 
         return APIStatus.OK();

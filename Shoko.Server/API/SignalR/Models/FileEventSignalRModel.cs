@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Models;
 
 #nullable enable
@@ -11,28 +13,26 @@ public class FileEventSignalRModel
     public FileEventSignalRModel(FileEventArgs eventArgs)
     {
         RelativePath = eventArgs.RelativePath;
-        FileID = eventArgs.FileInfo.VideoID;
-        FileLocationID = eventArgs.FileInfo.ID;
+        FileID = eventArgs.File.VideoID;
+        FileLocationID = eventArgs.File.ID;
         ImportFolderID = eventArgs.ImportFolder.ID;
-        var xrefs = eventArgs.VideoInfo.CrossReferences;
-        var episodeDict = eventArgs.EpisodeInfo
-            .Cast<SVR_AniDB_Episode>()
-            .Select(e => e.AnimeEpisode)
-            .Where(e => e != null)
-            .ToDictionary(e => e!.AniDB_EpisodeID, e => e!);
+        var xrefs = eventArgs.Video.CrossReferences;
+        var episodeDict = eventArgs.Episodes
+            .WhereNotNull()
+            .ToDictionary(e => e.AnidbEpisodeID, e => e);
         var animeToGroupDict = episodeDict.Values
-            .DistinctBy(e => e.AnimeSeriesID)
-            .Select(e => e.AnimeSeries)
-            .Where(s => s != null)
-            .ToDictionary(s => s.AniDB_ID, s => (s.AnimeSeriesID, s.AnimeGroupID));
+            .DistinctBy(e => e.SeriesID)
+            .Select(e => e.Series)
+            .WhereNotNull()
+            .ToDictionary(s => s.AnidbAnimeID, s => (s.ID, s.ParentGroupID));
         CrossReferences = xrefs
             .Select(xref => new FileCrossReferenceSignalRModel
             {
-                EpisodeID = episodeDict.TryGetValue(xref.AnidbEpisodeID, out var shokoEpisode) ? shokoEpisode.AnimeEpisodeID : null,
+                EpisodeID = episodeDict.TryGetValue(xref.AnidbEpisodeID, out var shokoEpisode) ? shokoEpisode.ID : null,
                 AnidbEpisodeID = xref.AnidbEpisodeID,
-                SeriesID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out var tuple) ? tuple.AnimeSeriesID : null,
+                SeriesID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out var tuple) ? tuple.ID : null,
                 AnidbAnimeID = xref.AnidbAnimeID,
-                GroupID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out tuple) ? tuple.AnimeGroupID : null,
+                GroupID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out tuple) ? tuple.ParentGroupID : null,
             })
             .ToList();
     }

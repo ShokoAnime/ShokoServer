@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -14,6 +13,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -21,9 +21,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiV3]
 public class ReleaseManagementController : BaseController
 {
-    private readonly ILogger<ReleaseManagementController> _logger;
-    private readonly SeriesFactory _seriesFactory;
-
     /// <summary>
     /// Get series with multiple releases.
     /// </summary>
@@ -34,7 +31,7 @@ public class ReleaseManagementController : BaseController
     /// <param name="page">Page number.</param>
     /// <returns></returns>
     [HttpGet("Series")]
-    public ActionResult<ListResult<SeriesWithMultipleReleasesResult>> GetSeriesWithMultipleReleases(
+    public ActionResult<ListResult<Series.WithMultipleReleasesResult>> GetSeriesWithMultipleReleases(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool ignoreVariations = true,
         [FromQuery] bool onlyFinishedSeries = false,
@@ -45,9 +42,9 @@ public class ReleaseManagementController : BaseController
         if (onlyFinishedSeries) enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
-            .OrderBy(series => series.SeriesName)
+            .OrderBy(series => series.PreferredTitle)
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => _seriesFactory.GetSeriesWithMultipleReleasesResult(series, false, includeDataFrom, ignoreVariations), page, pageSize);
+            .ToListResult(series => new Series.WithMultipleReleasesResult(series, User.JMMUserID, includeDataFrom, ignoreVariations), page, pageSize);
     }
 
     /// <summary>
@@ -65,7 +62,7 @@ public class ReleaseManagementController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
@@ -75,7 +72,6 @@ public class ReleaseManagementController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
@@ -127,11 +123,10 @@ public class ReleaseManagementController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episode/FilesToDelete")]
     public ActionResult<List<int>> GetFileIdsWithPreference(
-        [FromRoute] int seriesID,
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool ignoreVariations = true
     )
     {
-        if (seriesID == 0) return BadRequest(SeriesController.SeriesWithZeroID);
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return new List<int>();
@@ -182,9 +177,7 @@ public class ReleaseManagementController : BaseController
             .ToList();
     }
 
-    public ReleaseManagementController(ISettingsProvider settingsProvider, ILogger<ReleaseManagementController> logger, SeriesFactory seriesFactory) : base(settingsProvider)
+    public ReleaseManagementController(ISettingsProvider settingsProvider) : base(settingsProvider)
     {
-        _logger = logger;
-        _seriesFactory = seriesFactory;
     }
 }

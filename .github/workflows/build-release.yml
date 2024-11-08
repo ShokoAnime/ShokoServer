@@ -5,32 +5,39 @@ on:
     types:
       - released
 
-
 jobs:
-  cli-framework-stable:
+  current_info:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        dotnet: [ '8.x' ]
+    name: Current Information
 
-    name: Build CLI — Framework dependent (Stable)
+    outputs:
+      tag: ${{ steps.release_info.outputs.tag }}
+      tag_major: v${{ steps.release_info.outputs.version_major }}
+      tag_minor: v${{ steps.release_info.outputs.version_major }}.${{ steps.release_info.outputs.version_minor }}
+      version: ${{ steps.release_info.outputs.version }}
+      version_short: ${{ steps.release_info.outputs.version_short }}
+      date: ${{ steps.commit_date_iso8601.outputs.date }}
+      sha: ${{ github.sha }}
+      sha_short: ${{ steps.commit_info.outputs.sha }}
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.sha }}"
         uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Replace Sentry DSN and other keys
-        shell: pwsh
+      - name: Get Commit Date (as ISO8601)
+        id: commit_date_iso8601
+        shell: bash
+        env:
+          TZ: UTC0
         run: |
-          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+          echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
-      - name: Get release version
+      - name: Get Current Version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
@@ -38,56 +45,53 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+      - id: commit_info
+        name: Shorten Commit Hash
+        uses: actions/github-script@v6
         with:
-          dotnet-version: ${{ matrix.dotnet }}
+          script: |
+            const sha = context.sha.substring(0, 7);
+            core.setOutput("sha", sha);
 
-      - run: dotnet publish -c Release --no-self-contained Shoko.CLI /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }},\""
-
-      - name: Archive Release
-        shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\publish .\\Shoko.CLI_Framework_any-x64.zip
-
-      - name: Upload Release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Shoko.CLI*.zip
-          tag: ${{ steps.release_info.outputs.tag }}
-          file_glob: true
-
-  cli-standalone-stable:
+  cli-release:
     runs-on: ubuntu-latest
+
+    needs:
+      - current_info
 
     strategy:
       matrix:
-        rid: ['win-x64', 'linux-x64', 'linux-arm64']
-        dotnet: [ '8.x' ]
+        dotnet:
+          - '8.x'
+        include:
+          - build_type: 'Standalone'
+            build_props: ''
+            display_id: 'linux-x64'
+            rid: 'linux-x64'
+          - build_type: 'Standalone'
+            build_props: ''
+            display_id: 'linux-arm64'
+            rid: 'linux-arm64'
+          - build_type: 'Framework'
+            build_props: '--no-self-contained'
+            display_id: 'any-x64'
+            rid: 'linux-x64'
 
-    name: Build CLI — Standalone ${{ matrix.rid }} (Stable)
+    name: Build CLI — ${{ matrix.build_type }} ${{ matrix.display_id }} (Release)
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
-
-      - name: Get release version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          tag: "${{ github.ref }}"
-          prefix: v
-          prefixRegex: "[vV]?"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -100,67 +104,53 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }},\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net8.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{  needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
-      - name: Archive Release (${{ matrix.rid }})
+      - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\${{ matrix.rid }}\\publish .\\Shoko.CLI_Standalone_${{ matrix.rid }}.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
 
-      - name: Upload Release (${{ matrix.rid }})
+      - name: Upload Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.CLI*.zip
-          tag: ${{ steps.release_info.outputs.tag }}
+          tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
-      - name: Upload Artifact to shokoanime.com
-        if: ${{ matrix.rid != 'win-x64' }}
-        shell: pwsh
-        env:
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        run:
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-${{ matrix.rid }}.zip" -local "Shoko.CLI_Standalone_${{ matrix.rid }}.zip";
+  tray-service-framework:
+    runs-on: windows-latest
 
-  tray-service-framework-stable:
-    runs-on: windows-2022
+    needs:
+      - current_info
 
     strategy:
       matrix:
-        dotnet: [ '8.x' ]
+        dotnet:
+          - '8.x'
 
     name: Build Tray Service — Framework dependent (Stable)
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.ref }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
-
-      - name: Get release version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          tag: "${{ github.ref }}"
-          prefix: v
-          prefixRegex: "[vV]?"
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh
@@ -171,46 +161,42 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.TrayService*.zip
-          tag: ${{ steps.release_info.outputs.tag }}
+          tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
-  tray-service-standalone-stable:
-    runs-on: windows-2022
+  tray-service-installer:
+    runs-on: windows-latest
+
+    needs:
+      - current_info
 
     strategy:
       matrix:
-        dotnet: [ '8.x' ]
+        dotnet:
+          - '8.x'
 
-    name: Build Tray Service — Standalone (Stable)
+    name: Build Tray Service — Installer (Stable)
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.ref }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
-
-      - name: Get release version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          tag: "${{ github.ref }}"
-          prefix: v
-          prefixRegex: "[vV]?"
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true -f net8.0-windows Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ steps.release_info.outputs.tag }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh
@@ -221,7 +207,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.TrayService*.zip
-          tag: ${{ steps.release_info.outputs.tag }}
+          tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
       - name: Build Installer
@@ -232,46 +218,162 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.Setup.exe
-          tag: ${{ steps.release_info.outputs.tag }}
+          tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
-      - name: Upload Installer to shokoanime.com
+      - name: Upload Installer to site
         shell: pwsh
         env:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
         run:
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-Win.exe" -local "Shoko.Setup.exe";
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ needs.current_info.outputs.version_short }}-Win.exe" -local "Shoko.Setup.exe";
+
+  docker-release-build:
+    runs-on: ubuntu-latest
+
+    needs:
+      - current_info
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: 'amd64'
+            dockerfile: 'Dockerfile'
+
+          - arch: 'arm64'
+            dockerfile: 'Dockerfile.aarch64'
+
+    name: Build Docker Image - ${{ matrix.arch }} (Release)
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+
+      - name: Replace Sentry DSN and other keys
+        shell: pwsh
+        run: |
+          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
+          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+
+      - uses: docker/setup-qemu-action@v2
+        name: Set up QEMU
+        with:
+          platforms: arm64
+        if: ${{ matrix.arch == 'arm64' }}
+
+      - uses: docker/setup-buildx-action@v2
+        name: Set up Docker Buildx
+
+      - uses: docker/login-action@v2
+        name: Log into GitHub Container Registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@v2
+        name: Log into Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Disabled provenance for now, until it works with docker manifest create.
+      # The manifest list produced by the new feature is incompatible with the
+      # expected format used in the docker manifest create command.
+      - uses: docker/build-push-action@v4
+        name: Build and Push the Docker image
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ secrets.DOCKER_REPO }}:latest-${{ matrix.arch }}
+            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag }}-${{ matrix.arch }}
+            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag_major }}-${{ matrix.arch }}
+            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag_minor }}-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:latest-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag }}-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag_major }}-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag_minor }}-${{ matrix.arch }}
+          platforms: linux/${{ matrix.arch }}
+          build-args: |
+            version=${{ needs.current_info.outputs.version }}
+            channel=stable
+            commit=${{ github.sha }}
+            date=${{ needs.current_info.outputs.date }}
+            tag=${{ needs.current_info.outputs.tag }}
+          provenance: false
+
+  docker-release-push_manifest:
+    runs-on: ubuntu-latest
+
+    needs:
+      - current_info
+      - docker-release-build
+
+    name: Push combined tag "${{ matrix.tag }}" for both images
+
+    strategy:
+      fail-fast: false
+      matrix:
+        tag:
+          - latest
+          - ${{ needs.current_info.outputs.tag }}
+          - ${{ needs.current_info.outputs.tag_major }}
+          - ${{ needs.current_info.outputs.tag_minor }}
+
+    steps:
+      - uses: docker/login-action@v2
+        name: Log into GitHub Container Registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@v2
+        name: Log into Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create manifest
+        run: |
+          docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }} --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-arm64
+          docker manifest create ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }} --amend ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-amd64 --amend ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-arm64
+
+      - name: Push manifest
+        run: |
+          docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}
+          docker manifest push ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}
 
   sentry-upload:
     runs-on: ubuntu-latest
 
     needs:
-      - cli-framework-stable
-      - cli-standalone-stable
-      - tray-service-framework-stable
-      - tray-service-standalone-stable
+      - current_info
+      - cli-release
+      - tray-service-framework
+      - tray-service-installer
+      - docker-release-build
+      - docker-release-push_manifest
 
     name: Upload version info to Sentry.io
 
     steps:
-      - name: Checkout master
+      - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@master
         with:
           ref: "${{ github.ref }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Get release version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          tag: "${{ github.ref }}"
-          prefix: v
-          prefixRegex: "[vV]?"
-
-      - name: Push Sentry release "${{ steps.release_info.outputs.version }}"
+      - name: Push Sentry release "${{ needs.current_info.outputs.version }}"
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -280,4 +382,4 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'stable'
-          version: ${{ steps.release_info.outputs.version }}
+          version: ${{ needs.current_info.outputs.version }}

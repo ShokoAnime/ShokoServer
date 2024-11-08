@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -17,7 +18,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
-public class File
+public partial class File
 {
     /// <summary>
     /// The ID of the File. You'll need this to play it.
@@ -128,11 +129,12 @@ public class File
 
     public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
+        var mediaInfo = file.MediaInfo as IMediaInfo;
         ID = file.VideoLocalID;
         Size = file.FileSize;
         IsVariation = file.IsVariation;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
-        Resolution = FileQualityFilter.GetResolution(file);
+        Resolution = mediaInfo?.VideoStream?.Resolution;
         Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
         Duration = file.DurationTimeSpan;
@@ -152,19 +154,15 @@ public class File
                 _AniDB = new AniDB(anidbFile);
         }
 
-        if (includeMediaInfo)
-        {
-            var mediaContainer = file?.MediaInfo ??
-                throw new Exception("Unable to find media container for File");
-            MediaInfo = new MediaInfo(file, mediaContainer);
-        }
+        if (includeMediaInfo && mediaInfo is not null)
+            MediaInfo = new MediaInfo(file, mediaInfo);
     }
 
 #nullable enable
     /// <summary>
     /// Represents a file location.
     /// </summary>
-    public class Location
+    public partial class Location
     {
         /// <summary>
         /// The file location id.
@@ -246,32 +244,6 @@ public class File
             public bool DeleteEmptyDirectories { get; set; } = true;
         }
 
-        /// <summary>
-        /// Represents the information required to create or move to a new file
-        /// location.
-        /// </summary>
-        public class NewLocationBody
-        {
-            /// <summary>
-            /// The id of the <see cref="ImportFolder"/> where this file should
-            /// be relocated to.
-            /// </summary>
-            [Required]
-            public int ImportFolderID { get; set; }
-
-            /// <summary>
-            /// The new relative path from the <see cref="ImportFolder"/>'s path
-            /// on the server.
-            /// </summary>
-            [Required]
-            public string RelativePath { get; set; } = string.Empty;
-
-            /// <summary>
-            /// Indicates whether empty directories should be deleted after
-            /// relocating the file.
-            /// </summary>
-            public bool DeleteEmptyDirectories { get; set; } = true;
-        }
     }
 #nullable disable
 
