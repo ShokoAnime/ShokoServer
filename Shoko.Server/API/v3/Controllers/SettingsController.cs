@@ -85,7 +85,6 @@ public class SettingsController : BaseController
             return ValidationProblem(ModelState);
         }
 
-        var alive = _udpHandler.IsAlive;
         var settings = SettingsProvider.GetSettings();
         if (!_udpHandler.IsAlive)
             await _udpHandler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
@@ -97,7 +96,6 @@ public class SettingsController : BaseController
             return ValidationProblem("Failed to log in.", "Connection");
         }
 
-        if (!alive) await _udpHandler.CloseConnections();
         return Ok();
     }
 
