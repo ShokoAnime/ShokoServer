@@ -68,7 +68,7 @@ public class AniDbSettings
     public bool DownloadCreators { get; set; } = true;
 
     [Range(0, 5, ErrorMessage = "Max Relation Depth may only be between 0 and 5")]
-    public int MaxRelationDepth { get; set; } = 3;
+    public int MaxRelationDepth { get; set; } = 1;
 
     public int MinimumHoursToRedownloadAnimeInfo { get; set; } = 24;
 
