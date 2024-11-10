@@ -2525,12 +2525,12 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var existingTagIds = RepoFactory.CrossRef_CustomTag.GetByAnimeID(seriesID);
+        var existingTagIds = RepoFactory.CrossRef_CustomTag.GetByAnimeID(series.AniDB_ID);
         var toAdd = body.IDs
             .Except(existingTagIds.Select(xref => xref.CustomTagID))
             .Select(id => new CrossRef_CustomTag
             {
-                CrossRefID = seriesID,
+                CrossRefID = series.AniDB_ID,
                 CrossRefType = (int)CustomTagCrossRefType.Anime,
                 CustomTagID = id,
             })
@@ -2567,7 +2567,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        var existingTagIds = RepoFactory.CrossRef_CustomTag.GetByAnimeID(seriesID);
+        var existingTagIds = RepoFactory.CrossRef_CustomTag.GetByAnimeID(series.AniDB_ID);
         var toRemove = existingTagIds
             .IntersectBy(body.IDs, xref => xref.CustomTagID)
             .ToList();
@@ -2575,6 +2575,7 @@ public class SeriesController : BaseController
             return NoContent();
 
         RepoFactory.CrossRef_CustomTag.Delete(toRemove);
+
         return Ok();
     }
 
