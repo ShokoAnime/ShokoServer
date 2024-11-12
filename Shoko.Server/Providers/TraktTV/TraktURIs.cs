@@ -21,7 +21,7 @@ public static class TraktURIs
 
     //types
     // movie , show , episode , person , list 
-    public const string SearchByQuery = TraktConstants.BaseAPIURL + @"/search?fields=title&type={1}&query={0}"; // /search?fields=title&type=:type&query=:query
+    public const string SearchByQuery = TraktConstants.BaseAPIURL + @"/search?fields=title&type={0}&query={1}"; // /search?fields=title&type=:type&query=:query
     // search criteria / search type
 
     // trakt-movie , trakt-show , trakt-episode , imdb , tmdb 
