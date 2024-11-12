@@ -65,11 +65,11 @@ jobs:
           - '8.x'
         include:
           - build_type: 'Standalone'
-            build_props: ''
+            build_props: '--self-contained true'
             display_id: 'linux-x64'
             rid: 'linux-x64'
           - build_type: 'Standalone'
-            build_props: ''
+            build_props: '--self-contained true'
             display_id: 'linux-arm64'
             rid: 'linux-arm64'
           - build_type: 'Framework'

@@ -78,8 +78,8 @@ jobs:
         dotnet: [ '8.x' ]
         build_type: ['Standalone']
         include:
-          - build_props: ''
-            build_type: 'Standalone'
+          - build_type: 'Standalone'
+            build_props: '--self-contained true'
           - build_type: 'Framework'
             build_props: '--no-self-contained'
             rid: 'linux-x64'
