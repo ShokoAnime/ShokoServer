@@ -339,6 +339,14 @@ namespace Shoko.Commons.Extensions
             }
         }
 
+        public static void InvalidateHideCategoriesCache(this JMMUser user)
+        {
+            lock (_hidecategoriescache)
+            {
+                _hidecategoriescache.Remove(user.JMMUserID);
+            }
+        }
+
         public static HashSet<string> GetPlexUsers(this JMMUser user)
         {
             if (string.IsNullOrEmpty(user.PlexUsers)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
