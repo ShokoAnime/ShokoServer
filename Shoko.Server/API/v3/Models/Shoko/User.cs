@@ -228,7 +228,7 @@ public class User
                 // Update restricted tags for the user.
                 if (RestrictedTags != null)
                 {
-                    user.ClearHideCategories();
+                    user.InvalidateHideCategoriesCache();
                     var tags = RestrictedTags
                         .Select(tagID => RepoFactory.AniDB_Tag.GetByTagID(tagID))
                         .Where(tag => tag != null)
