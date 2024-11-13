@@ -208,18 +208,10 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         try
         {
             if (!_isLoggedOn) return;
-            _socketHandlerLock.Wait();
-            try
-            {
-                if (_socketHandler == null || _socketHandler.IsLocked || !_socketHandler.IsConnected) return;
-                if (IsBanned || BackoffSecs.HasValue) return;
+            if (_socketHandler == null || _socketHandler.IsLocked || !_socketHandler.IsConnected) return;
+            if (IsBanned || BackoffSecs.HasValue) return;
 
-                ForceLogout();
-            }
-            finally
-            {
-                _socketHandlerLock.Release();
-            }
+            ForceLogout();
         }
         catch (Exception exception)
         {
