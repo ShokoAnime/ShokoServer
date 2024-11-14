@@ -204,6 +204,13 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     public bool Populate(Movie movie, HashSet<TitleLanguage>? crLanguages)
     {
         var translation = movie.Translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+        var lang = movie.ProductionCountries.FirstOrDefault()?.Iso_3166_1;
+        var releaseDate = !string.IsNullOrEmpty(lang) && movie.ReleaseDates.Results.FirstOrDefault(obj0 => obj0.Iso_3166_1 == lang) is { } obj1
+            ? obj1.ReleaseDates.FirstOrDefault(obj2 => obj2.Type is ReleaseDateType.TheatricalLimited or ReleaseDateType.Theatrical)?.ReleaseDate ??
+                obj1.ReleaseDates.FirstOrDefault(obj2 => obj2.Type is ReleaseDateType.Premiere)?.ReleaseDate ??
+                obj1.ReleaseDates.FirstOrDefault()?.ReleaseDate ??
+                movie.ReleaseDate
+            : movie.ReleaseDate;
         var updatedList = new[]
         {
             UpdateProperty(PosterPath, movie.PosterPath, v => PosterPath = v),
@@ -230,7 +237,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
             UpdateProperty(Runtime, movie.Runtime.HasValue ? TimeSpan.FromMinutes(movie.Runtime.Value) : null, v => Runtime = v),
             UpdateProperty(UserRating, movie.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, movie.VoteCount, v => UserVotes = v),
-            UpdateProperty(ReleasedAt, movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null, v => ReleasedAt = v),
+            UpdateProperty(ReleasedAt, releaseDate.HasValue ? DateOnly.FromDateTime(releaseDate.Value) : null, v => ReleasedAt = v),
         };
 
         return updatedList.Any(updated => updated);
