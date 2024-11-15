@@ -1863,7 +1863,15 @@ public partial class TmdbController : BaseController
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return new List<Series>();
+            return altOrderSeason.TmdbAlternateOrderingEpisodes
+                .Select(altOrderEpisode => altOrderEpisode.TmdbEpisode)
+                .WhereNotNull()
+                .SelectMany(episode => episode.CrossReferences)
+                .DistinctBy(xref => xref.AnidbAnimeID)
+                .Select(xref => xref.AnimeSeries)
+                .WhereNotNull()
+                .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
+                .ToList();
         }
 
         var seasonId = int.Parse(seasonID);
