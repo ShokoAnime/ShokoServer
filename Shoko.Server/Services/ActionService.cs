@@ -1018,41 +1018,6 @@ public class ActionService
         _traktHelper.ScanForMatches();
     }
 
-    public void CheckForTraktTokenUpdate(bool forceRefresh)
-    {
-        try
-        {
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.TokenExpirationDate)) return;
-
-            // Convert the Unix timestamp to DateTime directly
-            var expirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
-
-            // Check if force refresh is requested or the token is expired
-            if (forceRefresh || DateTime.Now.Add(TimeSpan.FromDays(45)) >= expirationDate)
-            {
-                _traktHelper.RefreshAuthToken();
-
-                // Update the last token refresh timestamp
-                var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken)
-                            ?? new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktToken, UpdateDetails = string.Empty };
-
-                schedule.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(schedule);
-
-                _logger.LogInformation("Trakt token refreshed successfully. Expiry date: {Date}", expirationDate);
-            }
-            else
-            {
-                _logger.LogInformation("Trakt token is still valid. Expiry date: {Date}", expirationDate);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in CheckForTraktTokenUpdate: {Ex}", ex);
-        }
-    }
-
     public async Task CheckForAniDBFileUpdate(bool forceRefresh)
     {
         var settings = _settingsProvider.GetSettings();
