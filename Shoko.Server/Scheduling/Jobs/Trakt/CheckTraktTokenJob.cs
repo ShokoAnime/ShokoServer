@@ -23,8 +23,6 @@ public class CheckTraktTokenJob : BaseJob
     public override string TypeName => "Check and Refresh Trakt Token";
     public override string Title => "Checking and Refreshing Trakt Token";
 
-    public override Dictionary<string, object> Details => new() { { "Action", "Check and Refresh Trakt Token" } };
-
     public override Task Process()
     {
         try
