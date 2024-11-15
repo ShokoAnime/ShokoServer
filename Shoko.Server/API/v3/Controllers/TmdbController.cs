@@ -30,10 +30,11 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using InternalEpisodeType = Shoko.Models.Enums.EpisodeType;
 using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
-using MatchRating = Shoko.Models.Enums.MatchRating;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
+using File = Shoko.Server.API.v3.Models.Shoko.File;
+using InternalEpisodeType = Shoko.Models.Enums.EpisodeType;
+using MatchRating = Shoko.Models.Enums.MatchRating;
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 using TmdbSearch = Shoko.Server.API.v3.Models.TMDB.Search;
@@ -429,6 +430,42 @@ public partial class TmdbController : BaseController
             .WhereNotNull()
             .Select(episode => new Episode(HttpContext, episode, includeDataFrom))
             .ToList();
+    }
+
+    /// <summary>
+    /// Get all files linked to a TMDB Movie.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID.</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns></returns>
+    [HttpGet("Movie/{movieID}/Shoko/Files")]
+    public ActionResult<ListResult<File>> GetShokoFilesByMovieID(
+        [FromRoute] int movieID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie is null)
+            return NotFound(MovieNotFound);
+
+        var videoLocals = movie.CrossReferences
+            .Select(xref => xref.AnimeEpisode)
+            .WhereNotNull()
+            .SelectMany(xref => xref.VideoLocals)
+            .DistinctBy(video => video.VideoLocalID);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
 
     #endregion
@@ -1343,6 +1380,42 @@ public partial class TmdbController : BaseController
             .ToList();
     }
 
+    /// <summary>
+    /// Get all files linked to a TMDB Show.
+    /// </summary>
+    /// <param name="showID">TMDB Show ID.</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns></returns>
+    [HttpGet("Show/{showID}/Shoko/Files")]
+    public ActionResult<ListResult<File>> GetShokoFilesByTmdbShowID(
+        [FromRoute] int showID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        var videoLocals = show.EpisodeCrossReferences
+            .Select(xref => xref.AnimeEpisode)
+            .WhereNotNull()
+            .SelectMany(xref => xref.VideoLocals)
+            .DistinctBy(video => video.VideoLocalID);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+    }
+
     #endregion
 
     #region Actions
@@ -1807,6 +1880,61 @@ public partial class TmdbController : BaseController
             .ToList();
     }
 
+    /// <summary>
+    /// Get all files linked to a TMDB Season.
+    /// </summary>
+    /// <param name="seasonID">TMDB Season ID.</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns></returns>
+    [HttpGet("Season/{seasonID}/Shoko/Files")]
+    public ActionResult<ListResult<File>> GetShokoFilesBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason is null)
+                return NotFound(SeasonNotFound);
+
+            var videoLocals1 = altOrderSeason.TmdbAlternateOrderingEpisodes
+                .Select(altOrderEpisode => altOrderEpisode.TmdbEpisode)
+                .WhereNotNull()
+                .SelectMany(episode => episode.CrossReferences)
+                .Select(xref => xref.AnimeEpisode)
+                .WhereNotNull()
+                .SelectMany(xref => xref.VideoLocals)
+                .DistinctBy(video => video.VideoLocalID);
+            return ModelHelper.FilterFiles(videoLocals1, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season is null)
+            return NotFound(SeasonNotFound);
+
+        var videoLocals0 = season.TmdbEpisodes
+            .SelectMany(episode => episode.CrossReferences)
+            .Select(xref => xref.AnimeEpisode)
+            .WhereNotNull()
+            .SelectMany(xref => xref.VideoLocals)
+            .DistinctBy(video => video.VideoLocalID);
+        return ModelHelper.FilterFiles(videoLocals0, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+    }
+
     #endregion
 
     #endregion
@@ -2156,6 +2284,42 @@ public partial class TmdbController : BaseController
             .WhereNotNull()
             .Select(shokoEpisode => new Episode(HttpContext, shokoEpisode, includeDataFrom))
             .ToList();
+    }
+
+    /// <summary>
+    /// Get all files linked to a TMDB Episode.
+    /// </summary>
+    /// <param name="episodeID">TMDB Episode ID.</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/Shoko/Files")]
+    public ActionResult<ListResult<File>> GetShokoFilesByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is null)
+            return NotFound(EpisodeNotFound);
+
+        var videoLocals = episode.CrossReferences
+            .Select(xref => xref.AnimeEpisode)
+            .WhereNotNull()
+            .SelectMany(xref => xref.VideoLocals)
+            .DistinctBy(video => video.VideoLocalID);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
 
     #endregion
