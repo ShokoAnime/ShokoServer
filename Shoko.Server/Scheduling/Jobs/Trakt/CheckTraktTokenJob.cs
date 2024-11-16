@@ -27,7 +27,7 @@ public class CheckTraktTokenJob : BaseJob
     {
         try
         {
-            _logger.LogInformation("Processing {Job}", nameof(CheckTraktTokenJob));
+            _logger.LogInformation("Processing {Job} (ForceRefresh: {ForceRefresh})", nameof(CheckTraktTokenJob), ForceRefresh);
             var settings = _settingsProvider.GetSettings();
             if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.TokenExpirationDate))
             {
@@ -41,9 +41,11 @@ public class CheckTraktTokenJob : BaseJob
             // Check if the token needs refreshing
             if (ForceRefresh || DateTime.Now.Add(TimeSpan.FromDays(45)) >= expirationDate)
             {
-                _traktHelper.RefreshAuthToken();
-                var newExpirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
-                _logger.LogInformation("Trakt token refreshed successfully. New expiry date: {Date}", newExpirationDate);
+                if (_traktHelper.RefreshAuthToken())
+                {
+                    var newExpirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
+                    _logger.LogInformation("Trakt token refreshed successfully. New expiry date: {Date}", newExpirationDate);
+                }
             }
             else
             {
