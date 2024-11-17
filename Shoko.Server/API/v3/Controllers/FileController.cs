@@ -502,7 +502,7 @@ public class FileController : BaseController
     /// <param name="filename">Can use this to select a specific place (if the name is different). This is mostly used as a hint for players</param>
     /// <param name="streamPositionScrobbling">If this is enabled, then the file is marked as watched when the stream reaches the end.
     /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
-    /// The readahead buffer on the player would determine the required percentage to scrobble.</param>
+    /// The read-ahead buffer on the player would determine the required percentage to scrobble.</param>
     /// <returns>A file stream for the specified file.</returns>
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream")]
@@ -1111,7 +1111,7 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Unlink all the episodes if no body is given, or only the spesified episodes from the file.
+    /// Unlink all the episodes if no body is given, or only the specified episodes from the file.
     /// </summary>
     /// <param name="fileID">The file id.</param>
     /// <param name="body">Optional. The body.</param>
