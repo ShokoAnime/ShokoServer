@@ -2546,7 +2546,7 @@ public partial class TmdbController : BaseController
         var currentHeader = "";
         var movieIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbMovie, bool isAutomatic)>();
         var episodeIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbShow, int tmdbEpisode, MatchRating rating)>();
-        while (!string.IsNullOrEmpty(line = stream.ReadLine()))
+        while ((line = stream.ReadLine()) is not null)
         {
             lineNumber++;
             if (line.Length == 0 || line[0] == '#')
