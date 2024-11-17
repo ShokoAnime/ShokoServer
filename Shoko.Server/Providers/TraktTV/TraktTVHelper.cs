@@ -235,7 +235,7 @@ public class TraktTVHelper
 
     #region Authorization
 
-    public void RefreshAuthToken()
+    public bool RefreshAuthToken()
     {
         var settings = _settingsProvider.GetSettings();
         try
@@ -248,7 +248,7 @@ public class TraktTVHelper
                 settings.TraktTv.RefreshToken = string.Empty;
                 settings.TraktTv.TokenExpirationDate = string.Empty;
 
-                return;
+                return false;
             }
 
             var token = new TraktV2RefreshToken { refresh_token = settings.TraktTv.RefreshToken };
@@ -272,7 +272,7 @@ public class TraktTVHelper
 
                 settings.TraktTv.TokenExpirationDate = expireDate.ToString();
 
-                return;
+                return true;
             }
 
             settings.TraktTv.AuthToken = string.Empty;
@@ -286,11 +286,13 @@ public class TraktTVHelper
             settings.TraktTv.TokenExpirationDate = string.Empty;
 
             _logger.LogError(ex, "Error in TraktTVHelper.RefreshAuthToken");
+            return false;
         }
         finally
         {
             Utils.SettingsProvider.SaveSettings();
         }
+        return false;
     }
 
     #endregion
