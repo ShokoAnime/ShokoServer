@@ -2616,7 +2616,7 @@ public partial class TmdbController : BaseController
             }
         }
 
-        if (ModelState.IsValid && movieIdXrefs.Count == 0)
+        if (ModelState.IsValid && movieIdXrefs.Count == 0 && episodeIdXrefs.Count == 0)
             ModelState.AddModelError("Body", "File contained no lines to import.");
 
         if (!ModelState.IsValid)
