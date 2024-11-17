@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
@@ -325,56 +328,23 @@ public abstract class BaseDatabase<T> : IDatabase
             return;
         }
 
-        var initialScript = new RenamerConfig();
-
-        initialScript.Name = Resources.Rename_Default;
-        initialScript.Type = typeof(WebAOMRenamer);
-        initialScript.Settings = new WebAOMSettings
+        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
+        renamerService.RenamersByKey.TryGetValue("WebAOM", out var renamer);
+        
+        if (renamer == null)
+            return;
+        
+        var defaultSettings = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
+            ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault(a => a.Name == "DefaultSettings")?.GetMethod?.Invoke(renamer, null);
+        
+        var config = new RenamerConfig
         {
-            Script =
-                "// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv" +
-                Environment.NewLine +
-                "// Sub group name" + Environment.NewLine +
-                "DO ADD '[%grp] '" + Environment.NewLine +
-                "// Anime Name, use english name if it exists, otherwise use the Romaji name" + Environment.NewLine +
-                "IF I(eng) DO ADD '%eng '" + Environment.NewLine +
-                "IF I(ann);I(!eng) DO ADD '%ann '" + Environment.NewLine +
-                "// Episode Number, don't use episode number for movies" + Environment.NewLine +
-                "IF T(!Movie) DO ADD '- %enr'" + Environment.NewLine +
-                "// If the file version is v2 or higher add it here" + Environment.NewLine +
-                "IF F(!1) DO ADD 'v%ver'" + Environment.NewLine +
-                "// Video Resolution" + Environment.NewLine +
-                "DO ADD ' (%res'" + Environment.NewLine +
-                "// Video Source (only if blu-ray or DVD)" + Environment.NewLine +
-                "IF R(DVD),R(Blu-ray) DO ADD ' %src'" + Environment.NewLine +
-                "// Video Codec" + Environment.NewLine +
-                "DO ADD ' %vid'" + Environment.NewLine +
-                "// Video Bit Depth (only if 10bit)" + Environment.NewLine +
-                "IF Z(10) DO ADD ' %bitbit'" + Environment.NewLine +
-                "DO ADD ') '" + Environment.NewLine +
-                "DO ADD '[%CRC]'" + Environment.NewLine +
-                string.Empty + Environment.NewLine +
-                "// Replacement rules (cleanup)" + Environment.NewLine +
-                "DO REPLACE ' ' '_' // replace spaces with underscores" + Environment.NewLine +
-                "DO REPLACE 'H264/AVC' 'H264'" + Environment.NewLine +
-                "DO REPLACE '0x0' ''" + Environment.NewLine +
-                "DO REPLACE '__' '_'" + Environment.NewLine +
-                "DO REPLACE '__' '_'" + Environment.NewLine +
-                string.Empty + Environment.NewLine +
-                "// Replace all illegal file name characters" + Environment.NewLine +
-                "DO REPLACE '<' '('" + Environment.NewLine +
-                "DO REPLACE '>' ')'" + Environment.NewLine +
-                "DO REPLACE ':' '-'" + Environment.NewLine +
-                "DO REPLACE '" + (char)34 + "' '`'" + Environment.NewLine +
-                "DO REPLACE '/' '_'" + Environment.NewLine +
-                "DO REPLACE '/' '_'" + Environment.NewLine +
-                "DO REPLACE '\\' '_'" + Environment.NewLine +
-                "DO REPLACE '|' '_'" + Environment.NewLine +
-                "DO REPLACE '?' '_'" + Environment.NewLine +
-                "DO REPLACE '*' '_'" + Environment.NewLine,
+            Name = "Default",
+            Type = typeof(WebAOMRenamer),
+            Settings = defaultSettings,
         };
 
-        RepoFactory.RenamerConfig.Save(initialScript);
+        RepoFactory.RenamerConfig.Save(config);
     }
 
     public void CreateInitialCustomTags()

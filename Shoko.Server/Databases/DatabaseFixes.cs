@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -11,6 +12,7 @@ using Quartz;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
@@ -18,6 +20,7 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -802,12 +805,21 @@ public class DatabaseFixes
         var existingRenamer = RepoFactory.RenamerConfig.GetByName("Default");
         if (existingRenamer != null)
             return;
+        
+        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
+        renamerService.RenamersByKey.TryGetValue("WebAOM", out var renamer);
+        
+        if (renamer == null)
+            return;
+        
+        var defaultSettings = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
+            ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault(a => a.Name == "DefaultSettings")?.GetMethod?.Invoke(renamer, null);
 
         var config = new RenamerConfig
         {
             Name = "Default",
-            Type = typeof(Renamer.WebAOMRenamer),
-            Settings = new Renamer.WebAOMSettings(),
+            Type = typeof(WebAOMRenamer),
+            Settings = defaultSettings,
         };
 
         RepoFactory.RenamerConfig.Save(config);
