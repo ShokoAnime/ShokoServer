@@ -2072,11 +2072,11 @@ public class TmdbMetadataService
         await _imageService.DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
     }
 
-    public async Task<bool> PurgePerson(int personId, bool removeImageFiles = true)
+    public async Task<bool> PurgePerson(int personId, bool removeImageFiles = true, bool forceRemoval = false)
     {
         using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Purge"))
         {
-            if (IsPersonLinkedToOtherEntities(personId))
+            if (!forceRemoval && IsPersonLinkedToOtherEntities(personId))
                 return false;
 
             var person = _tmdbPeople.GetByTmdbPersonID(personId);
