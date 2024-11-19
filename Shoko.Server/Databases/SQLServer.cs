@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 131;
+    public override int RequiredVersion { get; } = 132;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -779,6 +779,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(131, 10, "ALTER TABLE Trakt_Show ADD TmdbShowID INT NULL;"),
         new DatabaseCommand(131, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
         new DatabaseCommand(131, 12, DatabaseFixes.ClearQuartzQueue),
+        new DatabaseCommand(132, 1, DatabaseFixes.RepairMissingTMDBPersons)
     };
 
     private static void AlterImdbMovieIDType()
