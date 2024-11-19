@@ -1486,38 +1486,8 @@ public partial class TmdbController : BaseController
     [HttpGet("Person/DownloadMissing")]
     public async Task<ActionResult> RepairMissingTmdbPersons([FromQuery] bool removeErrors = false)
     {
-        var personIds = new HashSet<int>();
-        var (errorCount, removedCount) = (0, 0);
-        
-        var people = RepoFactory.TMDB_Person.GetAll().Select(person => person.TmdbPersonID).ToList();
-
-        RepoFactory.TMDB_Episode_Cast.GetAll().AsParallel().Where(p =>
-            !people.Contains(p.TmdbPersonID)).ForEach(p => personIds.Add(p.TmdbPersonID));
-        RepoFactory.TMDB_Episode_Crew.GetAll().AsParallel().Where(p => 
-            !people.Contains(p.TmdbPersonID)).ForEach(p => personIds.Add(p.TmdbPersonID));
-        
-        RepoFactory.TMDB_Movie_Cast.GetAll().AsParallel().Where(p => 
-            !people.Contains(p.TmdbPersonID)).ForEach(p => personIds.Add(p.TmdbPersonID));
-        RepoFactory.TMDB_Movie_Crew.GetAll().AsParallel().Where(p => 
-            !people.Contains(p.TmdbPersonID)).ForEach(p => personIds.Add(p.TmdbPersonID));
-        
-        foreach (var id in personIds)
-            try
-            {
-                await _tmdbMetadataService.UpdatePerson(id, forceRefresh: true);
-            }
-            catch (NullReferenceException)
-            {
-                _logger.LogInformation("Unable to find TMDB Person record {@Id} on TMDB", id);
-                errorCount++;
-                if (removeErrors && await _tmdbMetadataService.PurgePerson(id, forceRemoval: true))
-                    removedCount++;
-            }
-        
-        var updateCount = personIds.Count - errorCount;
-        var skippedCount = errorCount - removedCount;
-
-        return Ok($"(Found/Updated/Skipped/Deleted) ({personIds.Count}/{updateCount}/{skippedCount}/{removedCount}) missing TMDB person(s).");
+        var result = await _tmdbMetadataService.RepairMissingPersons();
+        return Ok($"(Found/Updated/Skipped/Deleted) ({result.Found}/{result.Updated}/{result.Skipped}/{result.Removed}) missing TMDB person(s).");
     }
     
     #endregion

@@ -2031,6 +2031,50 @@ public class TmdbMetadataService
 
     #region People
 
+    public async Task<(int Found, int Updated, int Skipped, int Removed)> RepairMissingPersons(bool removeErrors = false)
+    {
+        var missingIds = new HashSet<int>();
+        var (updateCount, skippedCount, removedCount) = (0, 0, 0);
+        
+        var people = _tmdbPeople.GetAll().Select(person => person.TmdbPersonID).ToList();
+        
+        _tmdbEpisodeCast.GetAll().AsParallel()
+            .Where(p => !people.Contains(p.TmdbPersonID))
+            .ForAll(p => missingIds.Add(p.TmdbPersonID));
+        _tmdbEpisodeCrew.GetAll().AsParallel()
+            .Where(p => !people.Contains(p.TmdbPersonID))
+            .ForAll(p => missingIds.Add(p.TmdbPersonID));
+        
+        _tmdbMovieCast.GetAll().AsParallel()
+            .Where(p => !people.Contains(p.TmdbPersonID))
+            .ForAll(p => missingIds.Add(p.TmdbPersonID));
+        _tmdbMovieCrew.GetAll().AsParallel()
+            .Where(p => !people.Contains(p.TmdbPersonID))
+            .ForAll(p => missingIds.Add(p.TmdbPersonID));
+
+        foreach (var personId in missingIds)
+        {
+            try
+            {
+                await UpdatePerson(personId, forceRefresh: true);
+                updateCount++;
+            }
+            catch (NullReferenceException)
+            {
+                _logger.LogDebug("Unable to update TMDB Person ({@PersonId})", personId);
+
+                if (removeErrors && await PurgePerson(personId, removeImageFiles: true, forceRemoval: true))
+                {
+                    removedCount++;
+                    continue;
+                }
+                skippedCount++;
+            }
+        }
+        
+        return (missingIds.Count, updateCount, skippedCount, removedCount);
+    }
+    
     public async Task<(bool added, bool updated)> UpdatePerson(int personId, bool forceRefresh = false, bool downloadImages = false)
     {
         using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Update").ConfigureAwait(false))
