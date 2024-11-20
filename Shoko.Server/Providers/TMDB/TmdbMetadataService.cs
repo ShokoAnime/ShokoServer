@@ -2104,20 +2104,20 @@ public class TmdbMetadataService
     {
         var showIds = new HashSet<int>();
         var movieIds = new HashSet<int>();
-        
+
         foreach (var staff in _tmdbEpisodeCast.GetByTmdbPersonID(tmdbPersonId))
             showIds.Add(staff.TmdbShowID);
         foreach (var staff in _tmdbEpisodeCrew.GetByTmdbPersonID(tmdbPersonId))
             showIds.Add(staff.TmdbShowID);
-        
+
         foreach (var staff in _tmdbMovieCast.GetByTmdbPersonID(tmdbPersonId))
             movieIds.Add(staff.TmdbMovieID);
         foreach (var staff in _tmdbMovieCrew.GetByTmdbPersonID(tmdbPersonId))
             movieIds.Add(staff.TmdbMovieID);
-        
+
         foreach (var showId in showIds)
             await ScheduleUpdateOfShow(showId, downloadCrewAndCast: true, forceRefresh: true);
-        
+
         foreach (var movieId in movieIds)
             await ScheduleUpdateOfMovie(movieId, downloadCrewAndCast: true, forceRefresh: true);
     }
