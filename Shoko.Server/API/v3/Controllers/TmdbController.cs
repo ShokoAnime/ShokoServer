@@ -1479,17 +1479,15 @@ public partial class TmdbController : BaseController
     }
 
     /// <summary>
-    /// Download any missing TMDB Persons.
+    /// Download any missing TMDB Person records.
     /// </summary>
-    /// <param name="removeErrors">Removes all references to the bad TMDB Person if unable to successfully download the person</param>
-    /// <returns> <see cref="OkResult"/> with a summary of found/updated/skipped/deleted actions. </returns>
     [HttpGet("Person/DownloadMissing")]
-    public async Task<ActionResult> RepairMissingTmdbPersons([FromQuery] bool removeErrors = false)
+    public ActionResult RepairMissingTmdbPersonRecords()
     {
-        var result = await _tmdbMetadataService.RepairMissingPersons();
-        return Ok($"(Found/Updated/Skipped/Deleted) ({result.Found}/{result.Updated}/{result.Skipped}/{result.Removed}) missing TMDB person(s).");
+        Task.Run(() => _tmdbMetadataService.RepairMissingPersonRecords()).ConfigureAwait(false);
+        return Ok();
     }
-    
+
     #endregion
 
     #region Online (Search / Bulk / Single)

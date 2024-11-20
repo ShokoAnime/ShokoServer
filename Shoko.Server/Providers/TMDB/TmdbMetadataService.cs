@@ -2031,48 +2031,36 @@ public class TmdbMetadataService
 
     #region People
 
-    public async Task<(int Found, int Updated, int Skipped, int Removed)> RepairMissingPersons(bool removeErrors = false)
+    public async Task RepairMissingPersonRecords()
     {
         var missingIds = new HashSet<int>();
-        var (updateCount, skippedCount, removedCount) = (0, 0, 0);
+        var (updateCount, skippedCount) = (0, 0);
         
-        var people = _tmdbPeople.GetAll().Select(person => person.TmdbPersonID).ToList();
-        
-        _tmdbEpisodeCast.GetAll().AsParallel()
-            .Where(p => !people.Contains(p.TmdbPersonID))
-            .ForAll(p => missingIds.Add(p.TmdbPersonID));
-        _tmdbEpisodeCrew.GetAll().AsParallel()
-            .Where(p => !people.Contains(p.TmdbPersonID))
-            .ForAll(p => missingIds.Add(p.TmdbPersonID));
-        
-        _tmdbMovieCast.GetAll().AsParallel()
-            .Where(p => !people.Contains(p.TmdbPersonID))
-            .ForAll(p => missingIds.Add(p.TmdbPersonID));
-        _tmdbMovieCrew.GetAll().AsParallel()
-            .Where(p => !people.Contains(p.TmdbPersonID))
-            .ForAll(p => missingIds.Add(p.TmdbPersonID));
+        var peopleIds = _tmdbPeople.GetAll().Select(person => person.TmdbPersonID).ToHashSet();
 
+        foreach (var person in _tmdbEpisodeCast.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+        foreach (var person in _tmdbEpisodeCrew.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+        
+        foreach (var person in _tmdbMovieCast.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+        foreach (var person in _tmdbMovieCrew.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+
+        _logger.LogDebug("Found {@Count} unique missing TMDB Person record(s) for Episode & Movie staff", missingIds.Count);
+        
         foreach (var personId in missingIds)
         {
-            try
-            {
-                await UpdatePerson(personId, forceRefresh: true);
+            var (_, updated) = await UpdatePerson(personId, forceRefresh: true);
+            if (updated) 
                 updateCount++;
-            }
-            catch (NullReferenceException)
-            {
-                _logger.LogDebug("Unable to update TMDB Person ({@PersonId})", personId);
-
-                if (removeErrors && await PurgePerson(personId, removeImageFiles: true, forceRemoval: true))
-                {
-                    removedCount++;
-                    continue;
-                }
+            else
                 skippedCount++;
-            }
         }
         
-        return (missingIds.Count, updateCount, skippedCount, removedCount);
+        _logger.LogInformation("Updated missing TMDB People: Found/Updated/Skipped {@Found}/{@Updated}/{@Skipped}",
+            missingIds.Count, updateCount, skippedCount);
     }
     
     public async Task<(bool added, bool updated)> UpdatePerson(int personId, bool forceRefresh = false, bool downloadImages = false)
@@ -2092,6 +2080,13 @@ public class TmdbMetadataService
                 methods |= PersonMethods.Images;
             var newlyAdded = tmdbPerson.TMDB_PersonID is 0;
             var person = await UseClient(c => c.GetPersonAsync(personId, methods), $"Get person {personId}");
+            if (person is null)
+            {
+                _logger.LogDebug("Unable to update staff; Refreshing related links. (Person={PersonId})", personId);
+                // Defer the update to avoid recursively locking the person...
+                _ = Task.Run(() => UpdateMoviesAndShowsByPerson(personId)).ConfigureAwait(false);
+                return (newlyAdded, false);
+            }
             var updated = tmdbPerson.Populate(person);
             if (updated)
             {
@@ -2105,6 +2100,28 @@ public class TmdbMetadataService
             return (newlyAdded, updated);
         }
     }
+    
+    private async Task UpdateMoviesAndShowsByPerson(int tmdbPersonId)
+    {
+        var showIds = new HashSet<int>();
+        var movieIds = new HashSet<int>();
+
+        foreach (var staff in _tmdbEpisodeCast.GetByTmdbPersonID(tmdbPersonId))
+            showIds.Add(staff.TmdbShowID);
+        foreach (var staff in _tmdbEpisodeCrew.GetByTmdbPersonID(tmdbPersonId))
+            showIds.Add(staff.TmdbShowID);
+
+        foreach (var staff in _tmdbMovieCast.GetByTmdbPersonID(tmdbPersonId))
+            movieIds.Add(staff.TmdbMovieID);
+        foreach (var staff in _tmdbMovieCrew.GetByTmdbPersonID(tmdbPersonId))
+            movieIds.Add(staff.TmdbMovieID);
+
+        foreach (var showId in showIds)
+            await UpdateShow(showId, downloadCrewAndCast: true);
+        
+        foreach (var movieId in movieIds)
+            await UpdateMovie(movieId, downloadCrewAndCast: true);
+    }
 
     private async Task DownloadPersonImages(int personId, ProfileImages images, bool forceDownload = false)
     {
@@ -2116,11 +2133,11 @@ public class TmdbMetadataService
         await _imageService.DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
     }
 
-    public async Task<bool> PurgePerson(int personId, bool removeImageFiles = true, bool forceRemoval = false)
+    public async Task<bool> PurgePerson(int personId, bool removeImageFiles = true)
     {
         using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Purge"))
         {
-            if (!forceRemoval && IsPersonLinkedToOtherEntities(personId))
+            if (IsPersonLinkedToOtherEntities(personId))
                 return false;
 
             var person = _tmdbPeople.GetByTmdbPersonID(personId);
