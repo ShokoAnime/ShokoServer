@@ -841,6 +841,6 @@ public class DatabaseFixes
     public static void RepairMissingTMDBPersons()
     {
         var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
-        service.RepairMissingPersonRecords().ConfigureAwait(false).GetAwaiter().GetResult();
+        service.RepairMissingPeople().ConfigureAwait(false).GetAwaiter().GetResult();
     }
 }

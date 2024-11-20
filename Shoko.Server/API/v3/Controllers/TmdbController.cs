@@ -1479,12 +1479,12 @@ public partial class TmdbController : BaseController
     }
 
     /// <summary>
-    /// Download any missing TMDB Person records.
+    /// Download any missing TMDB People.
     /// </summary>
     [HttpGet("Person/DownloadMissing")]
-    public ActionResult RepairMissingTmdbPersonRecords()
+    public ActionResult RepairMissingTmdbPeople()
     {
-        Task.Run(() => _tmdbMetadataService.RepairMissingPersonRecords()).ConfigureAwait(false);
+        Task.Run(() => _tmdbMetadataService.RepairMissingPeople()).ConfigureAwait(false);
         return Ok();
     }
 

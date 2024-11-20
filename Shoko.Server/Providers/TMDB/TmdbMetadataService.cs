@@ -2031,7 +2031,7 @@ public class TmdbMetadataService
 
     #region People
 
-    public async Task RepairMissingPersonRecords()
+    public async Task RepairMissingPeople()
     {
         var missingIds = new HashSet<int>();
         var (updateCount, skippedCount) = (0, 0);
@@ -2048,7 +2048,7 @@ public class TmdbMetadataService
         foreach (var person in _tmdbMovieCrew.GetAll())
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
 
-        _logger.LogDebug("Found {@Count} unique missing TMDB Person record(s) for Episode & Movie staff", missingIds.Count);
+        _logger.LogDebug("Found {@Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
         
         foreach (var personId in missingIds)
         {
