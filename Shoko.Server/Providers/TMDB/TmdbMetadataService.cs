@@ -2082,10 +2082,9 @@ public class TmdbMetadataService
             var person = await UseClient(c => c.GetPersonAsync(personId, methods), $"Get person {personId}");
             if (person is null)
             {
-                _logger.LogDebug("Unable to update staff; Refreshing related links. (Person={PersonId})", personId);
-                // Defer the update to avoid recursively locking the person...
-                _ = Task.Run(() => UpdateMoviesAndShowsByPerson(personId)).ConfigureAwait(false);
-                return (newlyAdded, false);
+                _logger.LogDebug("Unable to update staff; Scheduling refresh of related links. (Person={PersonId})", personId);
+                await ScheduleUpdateMoviesAndShowsByPerson(personId);
+                return (false, false);
             }
             var updated = tmdbPerson.Populate(person);
             if (updated)
@@ -2100,27 +2099,27 @@ public class TmdbMetadataService
             return (newlyAdded, updated);
         }
     }
-    
-    private async Task UpdateMoviesAndShowsByPerson(int tmdbPersonId)
+
+    private async Task ScheduleUpdateMoviesAndShowsByPerson(int tmdbPersonId)
     {
         var showIds = new HashSet<int>();
         var movieIds = new HashSet<int>();
-
+        
         foreach (var staff in _tmdbEpisodeCast.GetByTmdbPersonID(tmdbPersonId))
             showIds.Add(staff.TmdbShowID);
         foreach (var staff in _tmdbEpisodeCrew.GetByTmdbPersonID(tmdbPersonId))
             showIds.Add(staff.TmdbShowID);
-
+        
         foreach (var staff in _tmdbMovieCast.GetByTmdbPersonID(tmdbPersonId))
             movieIds.Add(staff.TmdbMovieID);
         foreach (var staff in _tmdbMovieCrew.GetByTmdbPersonID(tmdbPersonId))
             movieIds.Add(staff.TmdbMovieID);
-
+        
         foreach (var showId in showIds)
-            await UpdateShow(showId, downloadCrewAndCast: true);
+            await ScheduleUpdateOfShow(showId, downloadCrewAndCast: true, forceRefresh: true);
         
         foreach (var movieId in movieIds)
-            await UpdateMovie(movieId, downloadCrewAndCast: true);
+            await ScheduleUpdateOfMovie(movieId, downloadCrewAndCast: true, forceRefresh: true);
     }
 
     private async Task DownloadPersonImages(int personId, ProfileImages images, bool forceDownload = false)
