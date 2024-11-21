@@ -1478,16 +1478,6 @@ public partial class TmdbController : BaseController
         return NoContent();
     }
 
-    /// <summary>
-    /// Download any missing TMDB People.
-    /// </summary>
-    [HttpGet("Person/DownloadMissing")]
-    public ActionResult RepairMissingTmdbPeople()
-    {
-        Task.Run(() => _tmdbMetadataService.RepairMissingPeople()).ConfigureAwait(false);
-        return Ok();
-    }
-
     #endregion
 
     #region Online (Search / Bulk / Single)
