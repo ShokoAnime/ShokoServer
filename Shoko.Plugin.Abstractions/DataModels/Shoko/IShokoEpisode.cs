@@ -13,6 +13,11 @@ public interface IShokoEpisode : IEpisode
     int AnidbEpisodeID { get; }
 
     /// <summary>
+    /// Indicates the episode is hidden by the user.
+    /// </summary>
+    bool IsHidden { get; }
+
+    /// <summary>
     /// Get the shoko series info for the episode, if available.
     /// </summary>
     new IShokoSeries? Series { get; }
