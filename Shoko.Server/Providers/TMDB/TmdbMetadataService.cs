@@ -2034,7 +2034,8 @@ public class TmdbMetadataService
     public async Task RepairMissingPeople()
     {
         var missingIds = new HashSet<int>();
-        var (updateCount, skippedCount) = (0, 0);
+        var updateCount = 0;
+        var skippedCount = 0;
         
         var peopleIds = _tmdbPeople.GetAll().Select(person => person.TmdbPersonID).ToHashSet();
 
