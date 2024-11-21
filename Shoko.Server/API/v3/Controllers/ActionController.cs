@@ -193,6 +193,16 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Download any missing TMDB People.
+    /// </summary>
+    [HttpGet("DownloadMissingTmdbPeople")]
+    public ActionResult DownloadMissingTmdbPeople()
+    {
+        Task.Factory.StartNew(() => _tmdbService.RepairMissingPeople());
+        return Ok();
+    }
+
+    /// <summary>
     /// Purge all unused TMDB Shows that are not linked to any AniDB anime.
     /// </summary>
     /// <returns></returns>

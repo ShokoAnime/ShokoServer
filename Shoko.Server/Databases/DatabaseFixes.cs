@@ -837,4 +837,10 @@ public class DatabaseFixes
         var queueHandler = Utils.ServiceContainer.GetRequiredService<QueueHandler>();
         queueHandler.Clear().ConfigureAwait(false).GetAwaiter().GetResult();
     }
+
+    public static void RepairMissingTMDBPersons()
+    {
+        var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+        service.RepairMissingPeople().ConfigureAwait(false).GetAwaiter().GetResult();
+    }
 }
