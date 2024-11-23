@@ -615,7 +615,7 @@ public class TmdbMetadataService
             .ToHashSet();
         foreach (var personId in peopleToKeep)
         {
-            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages);
+            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
             if (added)
                 peopleAdded++;
             if (updated)
@@ -1046,8 +1046,8 @@ public class TmdbMetadataService
         var episodesToSkip = new ConcurrentBag<int>();
         var episodesToSave = new ConcurrentBag<TMDB_Episode>();
         var episodeEventsToEmit = new Dictionary<TMDB_Episode, UpdateReason>();
-        var allPeopleToCheck = new ConcurrentBag<int>();
-        var allPeopleToRemove = new ConcurrentBag<int>();
+        var allPeopleToAddOrKeep = new ConcurrentBag<int>();
+        var allPeopleToPotentiallyRemove = new ConcurrentBag<int>();
         foreach (var reducedSeason in show.Seasons)
         {
             _logger.LogDebug("Checking season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedSeason.SeasonNumber, show.Name, show.Id);
@@ -1104,12 +1104,12 @@ public class TmdbMetadataService
                     // Update crew & cast.
                     if (downloadCrewAndCast)
                     {
-                        var (castOrCrewUpdated, peopleToCheck, peopleToRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits);
+                        var (castOrCrewUpdated, peopleToAddOrKeep, peopleToPotentiallyRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits);
                         episodeUpdated |= castOrCrewUpdated;
-                        foreach (var personId in peopleToCheck)
-                            allPeopleToCheck.Add(personId);
-                        foreach (var personId in peopleToRemove)
-                            allPeopleToRemove.Add(personId);
+                        foreach (var personId in peopleToAddOrKeep)
+                            allPeopleToAddOrKeep.Add(personId);
+                        foreach (var personId in peopleToPotentiallyRemove)
+                            allPeopleToPotentiallyRemove.Add(personId);
                     }
                 }
 
@@ -1175,11 +1175,11 @@ public class TmdbMetadataService
         var peopleAdded = 0;
         var peopleUpdated = 0;
         var peoplePurged = 0;
-        var peopleToCheck = allPeopleToCheck.ToArray().Distinct().ToList();
-        var peopleToPurge = allPeopleToRemove.ToArray().Distinct().Except(peopleToCheck).ToList();
+        var peopleToCheck = allPeopleToAddOrKeep.ToArray().Distinct().ToList();
+        var peopleToPurge = allPeopleToPotentiallyRemove.ToArray().Distinct().Except(peopleToCheck).ToList();
         foreach (var personId in peopleToCheck)
         {
-            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages);
+            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentShowId: show.Id);
             if (added)
                 peopleAdded++;
             if (updated)
@@ -1344,9 +1344,7 @@ public class TmdbMetadataService
 
     private (bool, IEnumerable<int>, IEnumerable<int>) UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits)
     {
-        var peopleToAdd = new HashSet<int>();
-        var knownPeopleDict = new Dictionary<int, TMDB_Person>();
-
+        var peopleToAddOrKeep = new HashSet<int>();
         var counter = 0;
         var castToAdd = 0;
         var castToKeep = new HashSet<string>();
@@ -1359,7 +1357,7 @@ public class TmdbMetadataService
             var ordering = counter++;
             var isGuestRole = ordering >= guestOffset;
             castToKeep.Add(cast.CreditId);
-            peopleToAdd.Add(cast.Id);
+            peopleToAddOrKeep.Add(cast.Id);
 
             var roleUpdated = false;
             if (!existingCastDict.TryGetValue(cast.CreditId, out var role))
@@ -1409,7 +1407,7 @@ public class TmdbMetadataService
             .ToDictionary(crew => crew.TmdbCreditID);
         foreach (var crew in credits.Crew)
         {
-            peopleToAdd.Add(crew.Id);
+            peopleToAddOrKeep.Add(crew.Id);
             crewToKeep.Add(crew.CreditId);
             var roleUpdated = false;
             if (!existingCrewDict.TryGetValue(crew.CreditId, out var role))
@@ -1456,11 +1454,10 @@ public class TmdbMetadataService
         _tmdbEpisodeCast.Delete(castToRemove);
         _tmdbEpisodeCrew.Delete(crewToRemove);
 
-        var peopleToCheck = existingCastDict.Values
-            .Select(cast => cast.TmdbPersonID)
-            .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
-            .Except(knownPeopleDict.Keys)
-            .ToHashSet();
+        var peopleToPotentiallyRemove = new HashSet<int>([
+            ..existingCastDict.Values.Select(cast => cast.TmdbPersonID),
+            ..existingCrewDict.Values.Select(crew => crew.TmdbPersonID),
+        ]);
 
         _logger.LogDebug(
             "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew for episode {EpisodeTitle} (Show={ShowId},Season={SeasonId},Episode={EpisodeId})",
@@ -1482,8 +1479,8 @@ public class TmdbMetadataService
             castToRemove.Count > 0 ||
             crewToSave.Count > 0 ||
             crewToRemove.Count > 0,
-            peopleToAdd,
-            peopleToCheck
+            peopleToAddOrKeep,
+            peopleToPotentiallyRemove
         );
     }
 
@@ -2036,40 +2033,37 @@ public class TmdbMetadataService
         var missingIds = new HashSet<int>();
         var updateCount = 0;
         var skippedCount = 0;
-        
         var peopleIds = _tmdbPeople.GetAll().Select(person => person.TmdbPersonID).ToHashSet();
-
         foreach (var person in _tmdbEpisodeCast.GetAll())
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
         foreach (var person in _tmdbEpisodeCrew.GetAll())
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
-        
+
         foreach (var person in _tmdbMovieCast.GetAll())
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
         foreach (var person in _tmdbMovieCrew.GetAll())
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
 
-        _logger.LogDebug("Found {@Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
-        
+        _logger.LogDebug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
         foreach (var personId in missingIds)
         {
             var (_, updated) = await UpdatePerson(personId, forceRefresh: true);
-            if (updated) 
+            if (updated)
                 updateCount++;
             else
                 skippedCount++;
         }
-        
-        _logger.LogInformation("Updated missing TMDB People: Found/Updated/Skipped {@Found}/{@Updated}/{@Skipped}",
+
+        _logger.LogInformation("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
             missingIds.Count, updateCount, skippedCount);
     }
-    
-    public async Task<(bool added, bool updated)> UpdatePerson(int personId, bool forceRefresh = false, bool downloadImages = false)
+
+    public async Task<(bool added, bool updated)> UpdatePerson(int personId, bool forceRefresh = false, bool downloadImages = false, int? currentShowId = null, int? currentMovieId = null)
     {
         using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Update").ConfigureAwait(false))
         {
             var tmdbPerson = _tmdbPeople.GetByTmdbPersonID(personId) ?? new(personId);
-            if (!forceRefresh && tmdbPerson.LastUpdatedAt > DateTime.UtcNow.AddMinutes(-15))
+            if (!forceRefresh && tmdbPerson.TMDB_PersonID is not 0 && tmdbPerson.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
                 _logger.LogDebug("Skipping update for staff. (Person={PersonId})", personId);
                 return (false, false);
@@ -2083,10 +2077,11 @@ public class TmdbMetadataService
             var person = await UseClient(c => c.GetPersonAsync(personId, methods), $"Get person {personId}");
             if (person is null)
             {
-                _logger.LogDebug("Unable to update staff; Scheduling refresh of related links. (Person={PersonId})", personId);
-                await ScheduleUpdateMoviesAndShowsByPerson(personId);
-                return (false, false);
+                _logger.LogWarning("Failed to find staff at remote. Purging local records and scheduling shows/movies to-be forcefully updated. (Person={PersonId})", personId);
+                await PurgePersonInternal(personId, currentShowId: currentShowId, currentMovieId: currentMovieId);
+                return (false, !newlyAdded);
             }
+
             var updated = tmdbPerson.Populate(person);
             if (updated)
             {
@@ -2099,28 +2094,6 @@ public class TmdbMetadataService
 
             return (newlyAdded, updated);
         }
-    }
-
-    private async Task ScheduleUpdateMoviesAndShowsByPerson(int tmdbPersonId)
-    {
-        var showIds = new HashSet<int>();
-        var movieIds = new HashSet<int>();
-
-        foreach (var staff in _tmdbEpisodeCast.GetByTmdbPersonID(tmdbPersonId))
-            showIds.Add(staff.TmdbShowID);
-        foreach (var staff in _tmdbEpisodeCrew.GetByTmdbPersonID(tmdbPersonId))
-            showIds.Add(staff.TmdbShowID);
-
-        foreach (var staff in _tmdbMovieCast.GetByTmdbPersonID(tmdbPersonId))
-            movieIds.Add(staff.TmdbMovieID);
-        foreach (var staff in _tmdbMovieCrew.GetByTmdbPersonID(tmdbPersonId))
-            movieIds.Add(staff.TmdbMovieID);
-
-        foreach (var showId in showIds)
-            await ScheduleUpdateOfShow(showId, downloadCrewAndCast: true, forceRefresh: true);
-
-        foreach (var movieId in movieIds)
-            await ScheduleUpdateOfMovie(movieId, downloadCrewAndCast: true, forceRefresh: true);
     }
 
     private async Task DownloadPersonImages(int personId, ProfileImages images, bool forceDownload = false)
@@ -2140,47 +2113,78 @@ public class TmdbMetadataService
             if (IsPersonLinkedToOtherEntities(personId))
                 return false;
 
-            var person = _tmdbPeople.GetByTmdbPersonID(personId);
-            if (person != null)
-            {
-                _logger.LogDebug("Removing staff. (Person={PersonId})", personId);
-                _tmdbPeople.Delete(person);
-            }
-
-            var images = _tmdbImages.GetByTmdbPersonID(personId);
-            if (images.Count > 0)
-                foreach (var image in images)
-                    _imageService.PurgeImage(image, ForeignEntityType.Person, removeImageFiles);
-
-            var movieCast = _tmdbMovieCast.GetByTmdbPersonID(personId);
-            if (movieCast.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} movie cast roles for staff. (Person={PersonId})", movieCast.Count, personId);
-                _tmdbMovieCast.Delete(movieCast);
-            }
-
-            var movieCrew = _tmdbMovieCrew.GetByTmdbPersonID(personId);
-            if (movieCrew.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} movie crew roles for staff. (Person={PersonId})", movieCrew.Count, personId);
-                _tmdbMovieCrew.Delete(movieCrew);
-            }
-
-            var episodeCast = _tmdbEpisodeCast.GetByTmdbPersonID(personId);
-            if (episodeCast.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} show cast roles for staff. (Person={PersonId})", episodeCast.Count, personId);
-                _tmdbEpisodeCast.Delete(episodeCast);
-            }
-
-            var episodeCrew = _tmdbEpisodeCrew.GetByTmdbPersonID(personId);
-            if (episodeCrew.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} show crew roles for staff. (Person={PersonId})", episodeCrew.Count, personId);
-                _tmdbEpisodeCrew.Delete(episodeCrew);
-            }
+            await PurgePersonInternal(personId, removeImageFiles).ConfigureAwait(false);
 
             return true;
+        }
+    }
+
+    internal async Task PurgePersonInternal(int personId, bool removeImageFiles = true, int? currentShowId = null, int? currentMovieId = null)
+    {
+        var person = _tmdbPeople.GetByTmdbPersonID(personId);
+        if (person != null)
+        {
+            _logger.LogDebug("Removing staff. (Person={PersonId})", personId);
+            _tmdbPeople.Delete(person);
+        }
+
+        var images = _tmdbImages.GetByTmdbPersonID(personId);
+        if (images.Count > 0)
+            foreach (var image in images)
+                _imageService.PurgeImage(image, ForeignEntityType.Person, removeImageFiles);
+
+        var movieCast = _tmdbMovieCast.GetByTmdbPersonID(personId);
+        if (movieCast.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} movie cast roles for staff. (Person={PersonId})", movieCast.Count, personId);
+            _tmdbMovieCast.Delete(movieCast);
+        }
+
+        var movieCrew = _tmdbMovieCrew.GetByTmdbPersonID(personId);
+        if (movieCrew.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} movie crew roles for staff. (Person={PersonId})", movieCrew.Count, personId);
+            _tmdbMovieCrew.Delete(movieCrew);
+        }
+
+        var episodeCast = _tmdbEpisodeCast.GetByTmdbPersonID(personId);
+        if (episodeCast.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} show cast roles for staff. (Person={PersonId})", episodeCast.Count, personId);
+            _tmdbEpisodeCast.Delete(episodeCast);
+        }
+
+        var episodeCrew = _tmdbEpisodeCrew.GetByTmdbPersonID(personId);
+        if (episodeCrew.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} show crew roles for staff. (Person={PersonId})", episodeCrew.Count, personId);
+            _tmdbEpisodeCrew.Delete(episodeCrew);
+        }
+
+        var showIds = new HashSet<int>([
+            ..episodeCast.Select(x => x.TmdbShowID),
+            ..episodeCrew.Select(x => x.TmdbShowID),
+        ]);
+        if (currentShowId.HasValue)
+            showIds.Remove(currentShowId.Value);
+        if (showIds.Count > 0)
+        {
+            _logger.LogDebug("Scheduling {count} shows to be updated. (Person={PersonId})", showIds.Count, personId);
+            foreach (var showId in showIds)
+                await ScheduleUpdateOfShow(showId, downloadCrewAndCast: true);
+        }
+
+        var movieIds = new HashSet<int>([
+            ..movieCast.Select(x => x.TmdbMovieID),
+            ..movieCrew.Select(x => x.TmdbMovieID),
+        ]);
+        if (currentMovieId.HasValue)
+            movieIds.Remove(currentMovieId.Value);
+        if (movieIds.Count > 0)
+        {
+            _logger.LogDebug("Scheduling {count} movies to be updated. (Person={PersonId})", movieIds.Count, personId);
+            foreach (var movieId in movieIds)
+                await ScheduleUpdateOfMovie(movieId, downloadCrewAndCast: true);
         }
     }
 
@@ -2264,6 +2268,9 @@ public class TmdbMetadataService
                 continue;
             }
         }
+
+        if (exceptions.Count > 0)
+            throw new AggregateException(exceptions);
     }
 
     #endregion
