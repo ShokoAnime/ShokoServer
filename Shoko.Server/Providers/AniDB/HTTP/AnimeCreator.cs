@@ -747,8 +747,10 @@ public class AnimeCreator
                 continue;
 
             var tag = FindOrCreateTag(rawtag);
+            if (newTagIDs.Add(tag.TagID))
+                continue;
+
             tagsToSave.Add(tag);
-            newTagIDs.Add(tag.TagID);
 
             var xref = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, tag.TagID) ?? new();
             xref.AnimeID = rawtag.AnimeID;
