@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
@@ -54,8 +55,7 @@ public class Show
     /// <summary>
     /// Original language the show was shot in.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
-    public TitleLanguage OriginalLanguage { get; init; }
+    public string OriginalLanguage { get; init; }
 
     /// <summary>
     /// Indicates the show is restricted to an age group above the legal age,
@@ -178,7 +178,7 @@ public class Show
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = show.GetAllOverviews()
                 .ToDto(show.EnglishTitle, preferredOverview, language);
-        OriginalLanguage = show.OriginalLanguage;
+        OriginalLanguage = show.OriginalLanguageCode;
         IsRestricted = show.IsRestricted;
         UserRating = new()
         {

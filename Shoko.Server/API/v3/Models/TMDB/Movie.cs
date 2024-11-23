@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -59,8 +60,7 @@ public class Movie
     /// <summary>
     /// Original language the movie was shot in.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
-    public TitleLanguage OriginalLanguage { get; init; }
+    public string OriginalLanguage { get; init; }
 
     /// <summary>
     /// Indicates the movie is restricted to an age group above the legal age,
@@ -176,7 +176,7 @@ public class Movie
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = movie.GetAllOverviews()
                 .ToDto(movie.EnglishOverview, preferredOverview, language);
-        OriginalLanguage = movie.OriginalLanguage;
+        OriginalLanguage = movie.OriginalLanguageCode;
         IsRestricted = movie.IsRestricted;
         IsVideo = movie.IsVideo;
         UserRating = new()

@@ -113,8 +113,7 @@ public static class Search
         /// <summary>
         /// Original language the movie was shot in.
         /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public TitleLanguage OriginalLanguage { get; init; }
+        public string OriginalLanguage { get; init; }
 
         /// <summary>
         /// Preferred overview based upon description preference.
@@ -175,7 +174,7 @@ public static class Search
             ID = movie.Id;
             Title = movie.EnglishTitle;
             OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage;
+            OriginalLanguage = movie.OriginalLanguageCode;
             Overview = movie.EnglishOverview ?? string.Empty;
             IsRestricted = movie.IsRestricted;
             IsVideo = movie.IsVideo;
@@ -202,7 +201,7 @@ public static class Search
             ID = movie.Id;
             Title = movie.Title;
             OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = movie.OriginalLanguage;
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
@@ -229,7 +228,7 @@ public static class Search
             ID = movie.Id;
             Title = movie.Title;
             OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = movie.OriginalLanguage;
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
@@ -275,8 +274,7 @@ public static class Search
         /// <summary>
         /// Original language the show was shot in.
         /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public TitleLanguage OriginalLanguage { get; init; }
+        public string OriginalLanguage { get; init; }
 
         /// <summary>
         /// Preferred overview based upon description preference.
@@ -313,7 +311,7 @@ public static class Search
             ID = show.Id;
             Title = show.EnglishTitle;
             OriginalTitle = show.OriginalTitle;
-            OriginalLanguage = show.OriginalLanguage;
+            OriginalLanguage = show.OriginalLanguageCode;
             Overview = show.EnglishOverview ?? string.Empty;
             FirstAiredAt = show.FirstAiredAt;
             Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
@@ -338,7 +336,7 @@ public static class Search
             ID = show.Id;
             Title = show.Name;
             OriginalTitle = show.OriginalName;
-            OriginalLanguage = show.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = show.OriginalLanguage;
             Overview = show.Overview ?? string.Empty;
             FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
             Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
@@ -363,7 +361,7 @@ public static class Search
             ID = show.Id;
             Title = show.Name;
             OriginalTitle = show.OriginalName;
-            OriginalLanguage = show.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = show.OriginalLanguage;
             Overview = show.Overview ?? string.Empty;
             FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
             Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
