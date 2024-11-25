@@ -520,9 +520,10 @@ public class TmdbMetadataService
                 roleUpdated = true;
             }
 
-            if (role.CharacterName != cast.Character)
+            var characterName = cast.Character.Replace(" (voice)", "");
+            if (role.CharacterName != characterName)
             {
-                role.CharacterName = cast.Character;
+                role.CharacterName = characterName;
                 roleUpdated = true;
             }
 
@@ -1376,9 +1377,10 @@ public class TmdbMetadataService
                 roleUpdated = true;
             }
 
-            if (role.CharacterName != cast.Character)
+            var characterName = cast.Character.Replace(" (voice)", "");
+            if (role.CharacterName != characterName)
             {
-                role.CharacterName = cast.Character;
+                role.CharacterName = characterName;
                 roleUpdated = true;
             }
 
