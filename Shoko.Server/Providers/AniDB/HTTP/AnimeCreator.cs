@@ -747,7 +747,7 @@ public class AnimeCreator
                 continue;
 
             var tag = FindOrCreateTag(rawtag);
-            if (newTagIDs.Add(tag.TagID))
+            if (!newTagIDs.Add(tag.TagID))
                 continue;
 
             tagsToSave.Add(tag);
