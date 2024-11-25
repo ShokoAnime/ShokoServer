@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 140;
+    public override int RequiredVersion { get; } = 141;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -849,7 +849,11 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(139, 10, "ALTER TABLE Trakt_Show ADD COLUMN TmdbShowID INT NULL;"),
         new(139, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
         new(139, 12, DatabaseFixes.ClearQuartzQueue),
-        new(140, 1, DatabaseFixes.RepairMissingTMDBPersons)
+        new(140, 1, DatabaseFixes.RepairMissingTMDBPersons),
+        new(141, 1, "ALTER TABLE `TMDB_Movie` ADD COLUMN `Keywords` VARCHAR(512) NULL DEFAULT NULL;"),
+        new(141, 2, "ALTER TABLE `TMDB_Movie` ADD COLUMN `ProductionCountries` VARCHAR(32) NULL DEFAULT NULL;"),
+        new(141, 3, "ALTER TABLE `TMDB_Show` ADD COLUMN `Keywords` VARCHAR(512) NULL DEFAULT NULL;"),
+        new(141, 4, "ALTER TABLE `TMDB_Show` ADD COLUMN `ProductionCountries` VARCHAR(32) NULL DEFAULT NULL;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

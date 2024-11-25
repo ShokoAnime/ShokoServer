@@ -434,7 +434,7 @@ public class TmdbMetadataService
             }
 
             // Abort if we couldn't find the movie by id.
-            var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds;
+            var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds | MovieMethods.Keywords;
             if (downloadCrewAndCast)
                 methods |= MovieMethods.Credits;
             var movie = await UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods), $"Get movie {movieId}").ConfigureAwait(false);
@@ -965,7 +965,7 @@ public class TmdbMetadataService
                 return false;
             }
 
-            var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds;
+            var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds | TvShowMethods.Keywords;
             if (downloadAlternateOrdering && !quickRefresh)
                 methods |= TvShowMethods.EpisodeGroups;
             var show = await UseClient(c => c.GetTvShowAsync(showId, methods, "en-US"), $"Get Show {showId}").ConfigureAwait(false);

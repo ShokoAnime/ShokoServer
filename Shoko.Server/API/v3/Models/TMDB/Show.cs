@@ -74,6 +74,12 @@ public class Show
     public IReadOnlyList<string> Genres { get; init; }
 
     /// <summary>
+    /// Keywords.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<string>? Keywords { get; init; }
+
+    /// <summary>
     /// Content ratings for different countries for this show.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -84,6 +90,12 @@ public class Show
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<Studio>? Studios { get; init; }
+
+    /// <summary>
+    /// Production countries.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyDictionary<string, string>? ProductionCountries { get; init; }
 
     /// <summary>
     /// The television networks that aired the show.
@@ -240,6 +252,11 @@ public class Show
                 .OrderBy(xref => xref.AnidbAnimeID)
                 .ThenBy(xref => xref.TmdbShowID)
                 .ToList();
+        if (include.HasFlag(IncludeDetails.Keywords))
+            Keywords = show.Keywords;
+        if (include.HasFlag(IncludeDetails.ProductionCountries))
+            ProductionCountries = show.ProductionCountries
+                .ToDictionary(country => country.CountryCode, country => country.CountryName);
         FirstAiredAt = show.FirstAiredAt;
         LastAiredAt = show.LastAiredAt;
         CreatedAt = show.CreatedAt.ToUniversalTime();
@@ -358,5 +375,7 @@ public class Show
         Studios = 128,
         Networks = 256,
         ContentRatings = 512,
+        Keywords = 1024,
+        ProductionCountries = 2048,
     }
 }

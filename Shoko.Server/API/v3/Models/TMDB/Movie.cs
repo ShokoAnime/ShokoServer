@@ -102,6 +102,12 @@ public class Movie
     public IReadOnlyList<string> Genres { get; init; }
 
     /// <summary>
+    /// Keywords.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<string>? Keywords { get; init; }
+
+    /// <summary>
     /// Content ratings for different countries for this show.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -112,6 +118,12 @@ public class Movie
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<Studio>? Studios { get; init; }
+
+    /// <summary>
+    /// Production countries.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyDictionary<string, string>? ProductionCountries { get; init; }
 
     /// <summary>
     /// Images associated with the movie, if they should be included.
@@ -217,6 +229,11 @@ public class Movie
                 .ToList();
         if (include.HasFlag(IncludeDetails.FileCrossReferences))
             FileCrossReferences = FileCrossReference.From(movie.FileCrossReferences);
+        if (include.HasFlag(IncludeDetails.Keywords))
+            Keywords = movie.Keywords;
+        if (include.HasFlag(IncludeDetails.ProductionCountries))
+            ProductionCountries = movie.ProductionCountries
+                .ToDictionary(country => country.CountryCode, country => country.CountryName);
         ReleasedAt = movie.ReleasedAt;
         CreatedAt = movie.CreatedAt.ToUniversalTime();
         LastUpdatedAt = movie.LastUpdatedAt.ToUniversalTime();
@@ -356,5 +373,7 @@ public class Movie
         Studios = 64,
         ContentRatings = 128,
         FileCrossReferences = 256,
+        Keywords = 512,
+        ProductionCountries = 1024,
     }
 }

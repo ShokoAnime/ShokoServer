@@ -317,6 +317,31 @@ public partial class TmdbController : BaseController
         return new(movie.ContentRatings.ToDto(language));
     }
 
+    [HttpGet("Movie/{movieID}/Keywords")]
+    public ActionResult<IReadOnlyList<string>> GetKeywordsForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie is null)
+            return NotFound(MovieNotFound);
+
+        return movie.Keywords;
+    }
+
+    [HttpGet("Movie/{movieID}/ProductionCountries")]
+    public ActionResult<IReadOnlyDictionary<string, string>> GetProductionCountriesForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie is null)
+            return NotFound(MovieNotFound);
+
+        return movie.ProductionCountries
+            .ToDictionary(country => country.CountryCode, country => country.CountryName);
+    }
+
     #endregion
 
     #region Same-Source Linked Entries
@@ -1142,6 +1167,31 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         return new(show.ContentRatings.ToDto(language));
+    }
+
+    [HttpGet("Show/{showID}/Keywords")]
+    public ActionResult<IReadOnlyList<string>> GetKeywordsForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        return show.Keywords;
+    }
+
+    [HttpGet("Show/{showID}/ProductionCountries")]
+    public ActionResult<IReadOnlyDictionary<string, string>> GetProductionCountriesForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        return show.ProductionCountries
+            .ToDictionary(country => country.CountryCode, country => country.CountryName);
     }
 
     #endregion

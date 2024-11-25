@@ -126,9 +126,19 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     public List<string> Genres { get; set; } = [];
 
     /// <summary>
+    /// Keywords / Tags.
+    /// </summary>
+    public List<string> Keywords { get; set; } = [];
+
+    /// <summary>
     /// Content ratings for different countries for this movie.
     /// </summary>
     public List<TMDB_ContentRating> ContentRatings { get; set; } = [];
+
+    /// <summary>
+    /// Production countries.
+    /// </summary>
+    public List<TMDB_ProductionCountry> ProductionCountries { get; set; } = [];
 
     /// <summary>
     /// Movie run-time in minutes.
@@ -223,6 +233,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
             UpdateProperty(IsRestricted, movie.Adult, v => IsRestricted = v),
             UpdateProperty(IsVideo, movie.Video, v => IsVideo = v),
             UpdateProperty(Genres, movie.GetGenres(), v => Genres = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
+            UpdateProperty(Keywords, movie.Keywords.Keywords.Select(k => k.Name).ToList(), v => Keywords = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
             UpdateProperty(
                 ContentRatings,
                 movie.ReleaseDates.Results
@@ -232,6 +243,15 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ContentRatings = v,
+                (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
+            ),
+            UpdateProperty(
+                ProductionCountries,
+                movie.ProductionCountries
+                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1, country.Name))
+                    .OrderBy(c => c.CountryCode)
+                    .ToList(),
+                v => ProductionCountries = v,
                 (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
             ),
             UpdateProperty(Runtime, movie.Runtime.HasValue ? TimeSpan.FromMinutes(movie.Runtime.Value) : null, v => Runtime = v),

@@ -8,20 +8,20 @@ using NHibernate;
 using NHibernate.Engine;
 using System.Globalization;
 using System.Collections;
-using NHibernate.Mapping;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.TMDB;
 
 #nullable enable
 namespace Shoko.Server.Databases.NHibernate;
 
-public class StringListConverter : TypeConverter, IUserType
+public class TmdbProductionCountryConverter : TypeConverter, IUserType
 {
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type? sourceType)
         => sourceType?.FullName switch
         {
-            nameof(List<string>) => true,
+            nameof(List<TMDB_ProductionCountry>) => true,
             nameof(String) => true,
             _ => false
         };
@@ -37,8 +37,8 @@ public class StringListConverter : TypeConverter, IUserType
         => value switch
         {
             null => [],
-            string i => i.Split("|||").ToList(),
-            List<string> l => l,
+            string i => i.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(s => TMDB_ProductionCountry.FromString(s)).ToList(),
+            List<TMDB_ProductionCountry> l => l,
             _ => throw new ArgumentException($"DestinationType must be {nameof(String)}.")
         };
 
@@ -47,8 +47,8 @@ public class StringListConverter : TypeConverter, IUserType
         {
             null => string.Empty,
             string i => i,
-            List<string> l => l.Join("|||"),
-            _ => throw new ArgumentException($"DestinationType must be {typeof(List<string>).FullName}."),
+            List<TMDB_ProductionCountry> l => l.Select(r => r.ToString()).Join('|'),
+            _ => throw new ArgumentException($"DestinationType must be {typeof(List<TMDB_ProductionCountry>).FullName}."),
         };
 
     public override object CreateInstance(ITypeDescriptorContext? context, IDictionary? propertyValues)
@@ -75,13 +75,13 @@ public class StringListConverter : TypeConverter, IUserType
         => ConvertFrom(null, null, NHibernateUtil.String.NullSafeGet(rs, names[0], impl));
 
     public void NullSafeSet(DbCommand cmd, object value, int index, ISessionImplementor session)
-        => ((IDataParameter)cmd.Parameters[index]).Value = value == null ? DBNull.Value : ConvertTo(null, null, value, typeof(List<string>));
+        => ((IDataParameter)cmd.Parameters[index]).Value = value == null ? DBNull.Value : ConvertTo(null, null, value, typeof(List<TMDB_ProductionCountry>));
 
     public object Replace(object original, object target, object owner)
         => original;
 
     public Type ReturnedType
-        => typeof(List<string>);
+        => typeof(List<TMDB_ProductionCountry>);
 
     public SqlType[] SqlTypes
         => new[] { NHibernateUtil.String.SqlType };

@@ -103,9 +103,19 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public List<string> Genres { get; set; } = [];
 
     /// <summary>
+    /// Keywords / Tags.
+    /// </summary>
+    public List<string> Keywords { get; set; } = [];
+
+    /// <summary>
     /// Content ratings for different countries for this show.
     /// </summary>
     public List<TMDB_ContentRating> ContentRatings { get; set; } = [];
+
+    /// <summary>
+    /// Production countries.
+    /// </summary>
+    public List<TMDB_ProductionCountry> ProductionCountries { get; set; } = [];
 
     /// <summary>
     /// Number of episodes using the default ordering.
@@ -209,6 +219,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : show.Overview, v => EnglishOverview = v),
             UpdateProperty(IsRestricted, show.Adult, v => IsRestricted = v),
             UpdateProperty(Genres, show.GetGenres(), v => Genres = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
+            UpdateProperty(Keywords, show.Keywords.Results.Select(k => k.Name).ToList(), v => Keywords = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
             UpdateProperty(
                 ContentRatings,
                 show.ContentRatings.Results
@@ -217,6 +228,15 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ContentRatings = v,
+                (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
+            ),
+            UpdateProperty(
+                ProductionCountries,
+                show.ProductionCountries
+                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1, country.Name))
+                    .OrderBy(c => c.CountryCode)
+                    .ToList(),
+                v => ProductionCountries = v,
                 (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
             ),
             UpdateProperty(EpisodeCount, show.NumberOfEpisodes, v => EpisodeCount = v),
