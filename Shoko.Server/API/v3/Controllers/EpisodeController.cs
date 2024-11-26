@@ -710,13 +710,13 @@ public class EpisodeController : BaseController
     #region Default image
 
     /// <summary>
-    /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Episode"/>.
     /// </summary>
-    /// <param name="episodeID">Series ID</param>
+    /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [HttpGet("{episodeID}/Images/{imageType}")]
-    public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
+    public ActionResult<Image> GetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
@@ -738,27 +738,28 @@ public class EpisodeController : BaseController
         if (preferredImage != null)
             return new Image(preferredImage);
 
-        var images = episode.GetImages().ToDto();
+        var images = episode.GetImages().ToDto(includeThumbnails: true);
         return imageEntityType switch
         {
             ImageEntityType.Poster => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
             ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
             ImageEntityType.Logo => images.Logos.FirstOrDefault(),
+            ImageEntityType.Thumbnail => images.Thumbnails.FirstOrDefault(),
             _ => null
         };
     }
 
 
     /// <summary>
-    /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Episode"/>.
     /// </summary>
-    /// <param name="episodeID">Series ID</param>
+    /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [HttpPut("{episodeID}/Images/{imageType}")]
-    public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
+    public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         if (!_allowedImageTypes.Contains(imageType))
@@ -768,11 +769,11 @@ public class EpisodeController : BaseController
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.AnimeSeries;
-        if (series is null)
+        var anime = episode.AnimeSeries?.AniDB_Anime;
+        if (anime is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
-        if (!User.AllowedSeries(series))
+        if (!User.AllowedAnime(anime))
             return Forbid(EpisodeForbiddenForUser);
 
         // Check if the id is valid for the given type and source.
@@ -786,7 +787,7 @@ public class EpisodeController : BaseController
 
         // Create or update the entry.
         var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType) ??
-            new() { AnidbAnimeID = episode.AniDB_EpisodeID, ImageType = imageEntityType };
+            new(anime.AnimeID, episode.AniDB_EpisodeID, imageEntityType);
         defaultImage.ImageID = body.ID;
         defaultImage.ImageSource = dataSource;
         RepoFactory.AniDB_Episode_PreferredImage.Save(defaultImage);
@@ -795,13 +796,13 @@ public class EpisodeController : BaseController
     }
 
     /// <summary>
-    /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Episode"/>.
     /// </summary>
-    /// <param name="episodeID"></param>
+    /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [HttpDelete("{episodeID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.ImageType imageType)
+    public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.ImageType imageType)
     {
         if (!_allowedImageTypes.Contains(imageType))
             return NotFound();
