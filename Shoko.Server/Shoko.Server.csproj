@@ -76,13 +76,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     <PackageReference Include="MimeMapping" Version="3.0.1" />
     <PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1-preview" />
     <PackageReference Include="MySqlBackup.NET.MySqlConnector" Version="2.3.8" />
-    <PackageReference Include="MySqlConnector" Version="2.3.6" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
     <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NHibernate" Version="5.5.2" />
@@ -96,9 +96,9 @@
     <PackageReference Include="Sentry.NLog" Version="4.2.1" />
     <PackageReference Include="SharpCompress" Version="0.36.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.5.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="7.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.1.0" />
     <!-- This needs to be explicit because of dep BS -->
     <!--<PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />-->
     <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
