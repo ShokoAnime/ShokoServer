@@ -393,7 +393,7 @@ public partial class TmdbController : BaseController
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <returns></returns>
-    [HttpGet("Movie/{movieID}/AniDB/Episodes")]
+    [HttpGet("Movie/{movieID}/AniDB/Episode")]
     public ActionResult<List<Episode.AniDB>> GetAniDBEpisodesByTmdbMovieID(
         [FromRoute] int movieID
     )
@@ -440,7 +440,7 @@ public partial class TmdbController : BaseController
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Movie/{movieID}/Shoko/Episodes")]
+    [HttpGet("Movie/{movieID}/Shoko/Episode")]
     public ActionResult<List<Episode>> GetShokoEpisodesByTmdbMovieID(
         [FromRoute] int movieID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
@@ -469,7 +469,7 @@ public partial class TmdbController : BaseController
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Movie/{movieID}/Shoko/Files")]
+    [HttpGet("Movie/{movieID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesByMovieID(
         [FromRoute] int movieID,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
@@ -1442,7 +1442,7 @@ public partial class TmdbController : BaseController
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Show/{showID}/Shoko/Files")]
+    [HttpGet("Show/{showID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesByTmdbShowID(
         [FromRoute] int showID,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
@@ -1950,7 +1950,7 @@ public partial class TmdbController : BaseController
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Season/{seasonID}/Shoko/Files")]
+    [HttpGet("Season/{seasonID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
@@ -2356,7 +2356,7 @@ public partial class TmdbController : BaseController
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Episode/{episodeID}/Shoko/Files")]
+    [HttpGet("Episode/{episodeID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesByEpisodeID(
         [FromRoute] int episodeID,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
