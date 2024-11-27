@@ -48,6 +48,34 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
             .ToList());
     }
 
+    public List<SVR_AniDB_Anime_Relation> GetByRelatedAnimeID(int id)
+    {
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+            return GetByRelatedAnimeID(session.Wrap(), id);
+        });
+    }
+
+    public List<SVR_AniDB_Anime_Relation> GetByRelatedAnimeID(IEnumerable<int> ids)
+    {
+        var aids = ids.ToArray();
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<SVR_AniDB_Anime_Relation>()
+                .Where(a => aids.Contains(a.RelatedAnimeID))
+                .ToList();
+        });
+    }
+
+    public List<SVR_AniDB_Anime_Relation> GetByRelatedAnimeID(ISessionWrapper session, int id)
+    {
+        return Lock(() => session.Query<SVR_AniDB_Anime_Relation>()
+            .Where(a => a.RelatedAnimeID == id)
+            .ToList());
+    }
+
     /// <summary>
     /// Return a list of Anime IDs in a prequel/sequel line, including the given animeID, in order
     /// </summary>

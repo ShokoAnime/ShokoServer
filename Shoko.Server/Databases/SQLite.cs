@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 125;
+    public override int RequiredVersion => 126;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -779,6 +779,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(125, 2, "ALTER TABLE TMDB_Movie ADD COLUMN ProductionCountries TEXT NULL DEFAULT NULL;"),
         new(125, 3, "ALTER TABLE TMDB_Show ADD COLUMN Keywords TEXT NULL DEFAULT NULL;"),
         new(125, 4, "ALTER TABLE TMDB_Show ADD COLUMN ProductionCountries TEXT NULL DEFAULT NULL;"),
+        new(126, 1, "CREATE INDEX IX_AniDB_Anime_Relation_RelatedAnimeID on AniDB_Anime_Relation(RelatedAnimeID);"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

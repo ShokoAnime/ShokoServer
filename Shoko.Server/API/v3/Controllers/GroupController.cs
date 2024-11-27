@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -285,12 +286,15 @@ public class GroupController : BaseController
             .ToHashSet();
 
         // TODO: Replace with a more generic implementation capable of supplying relations from more than just AniDB.
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds)
-            .Select(relation =>
-                (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID)))
+        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds).OfType<IRelatedMetadata>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(animeIds).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+            .Distinct()
+            .Select(relation => (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID)))
             .Where(tuple => tuple.relatedSeries != null && animeIds.Contains(tuple.relatedSeries.AniDB_ID))
-            .Select(tuple => new SeriesRelation(HttpContext, tuple.relation, seriesDict[tuple.relation.AnimeID],
-                tuple.relatedSeries))
+            .OrderBy(tuple => tuple.relation.BaseID)
+            .ThenBy(tuple => tuple.relation.RelatedID)
+            .ThenBy(tuple => tuple.relation.RelationType)
+            .Select(tuple => new SeriesRelation(tuple.relation, seriesDict[tuple.relation.BaseID], tuple.relatedSeries))
             .ToList();
     }
 

@@ -416,7 +416,13 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     IImageMetadata? ISeries.DefaultPoster => this.GetImageMetadata();
 
     IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries =>
-        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
+        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries>>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries>>().Select(a => a.Reversed))
+            .Distinct()
+            .OrderBy(a => a.BaseID)
+            .ThenBy(a => a.RelatedID)
+            .ThenBy(a => a.RelationType)
+            .ToList();
 
     IReadOnlyList<IRelatedMetadata<IMovie>> ISeries.RelatedMovies => [];
 

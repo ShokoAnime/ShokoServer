@@ -519,13 +519,13 @@ public class Series : BaseModel
         public AniDB(ResponseAniDBTitles.Anime result, SVR_AnimeSeries? series = null, bool includeTitles = true)
             : this(result.AnimeID, includeTitles, series) { }
 
-        public AniDB(SVR_AniDB_Anime_Relation relation, SVR_AnimeSeries? series = null, bool includeTitles = true)
-            : this(relation.RelatedAnimeID, includeTitles, series)
+        public AniDB(IRelatedMetadata relation, SVR_AnimeSeries? series = null, bool includeTitles = true)
+            : this(relation.RelatedID, includeTitles, series)
         {
-            Relation = ((IRelatedMetadata)relation).RelationType;
+            Relation = relation.RelationType;
             // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
-            if (Type == SeriesType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedAnimeID) is not null)
-                Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.AnimeID) is { IsRestricted: true };
+            if (Type == SeriesType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID) is not null)
+                Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
         }
 
         public AniDB(AniDB_Anime_Similar similar, SVR_AnimeSeries? series = null, bool includeTitles = true)
