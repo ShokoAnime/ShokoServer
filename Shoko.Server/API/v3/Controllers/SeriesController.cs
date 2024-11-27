@@ -316,11 +316,15 @@ public class SeriesController : BaseController
         }
 
         // TODO: Replace with a more generic implementation capable of supplying relations from more than just AniDB.
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(series.AniDB_ID)
-            .Select(relation =>
-                (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID)))
+        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(series.AniDB_ID).OfType<IRelatedMetadata>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(series.AniDB_ID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+            .Distinct()
+            .Select(relation => (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID)))
             .Where(tuple => tuple.relatedSeries != null)
-            .Select(tuple => new SeriesRelation(HttpContext, tuple.relation, series, tuple.relatedSeries))
+            .OrderBy(tuple => tuple.relation.BaseID)
+            .ThenBy(tuple => tuple.relation.RelatedID)
+            .ThenBy(tuple => tuple.relation.RelationType)
+            .Select(tuple => new SeriesRelation(tuple.relation, series, tuple.relatedSeries))
             .ToList();
     }
 
@@ -453,9 +457,13 @@ public class SeriesController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         return RepoFactory.AniDB_Anime_Relation.GetAll()
-            .OrderBy(a => a.AnimeID)
-            .ThenBy(a => a.RelatedAnimeID)
-            .ToListResult(relation => new SeriesRelation(HttpContext, relation), page, pageSize);
+            .OfType<IRelatedMetadata>()
+            .SelectMany<IRelatedMetadata, IRelatedMetadata>(a => [a, a.Reversed])
+            .Distinct()
+            .OrderBy(a => a.BaseID)
+            .ThenBy(a => a.RelatedID)
+            .ThenBy(a => a.RelationType)
+            .ToListResult(relation => new SeriesRelation(relation), page, pageSize);
     }
 
     /// <summary>
@@ -541,7 +549,12 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID)
+        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+            .Distinct()
+            .OrderBy(a => a.BaseID)
+            .ThenBy(a => a.RelatedID)
+            .ThenBy(a => a.RelationType)
             .Select(relation => new Series.AniDB(relation))
             .ToList();
     }
@@ -571,8 +584,13 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID)
-            .Select(relation => new SeriesRelation(HttpContext, relation, series))
+        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+            .Distinct()
+            .OrderBy(a => a.BaseID)
+            .ThenBy(a => a.RelatedID)
+            .ThenBy(a => a.RelationType)
+            .Select(relation => new SeriesRelation(relation, series))
             .ToList();
     }
 
@@ -823,7 +841,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidbID)
-            .Select(relation => new SeriesRelation(HttpContext, relation))
+            .Select(relation => new SeriesRelation(relation))
             .ToList();
     }
 

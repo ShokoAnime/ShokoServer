@@ -37,22 +37,15 @@ public class SeriesRelation
     [Required]
     public string Source { get; set; }
 
-    public SeriesRelation(HttpContext context, AniDB_Anime_Relation relation, AnimeSeries series = null,
+    public SeriesRelation(IRelatedMetadata relation, AnimeSeries series = null,
         AnimeSeries relatedSeries = null)
     {
-        if (series == null)
-        {
-            series = RepoFactory.AnimeSeries.GetByAnimeID(relation.AnimeID);
-        }
+        series ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.BaseID);
+        relatedSeries ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID);
 
-        if (relatedSeries == null)
-        {
-            relatedSeries = RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID);
-        }
-
-        IDs = new RelationIDs { AniDB = relation.AnimeID, Shoko = series?.AnimeSeriesID };
-        RelatedIDs = new RelationIDs { AniDB = relation.RelatedAnimeID, Shoko = relatedSeries?.AnimeSeriesID };
-        Type = ((IRelatedMetadata)relation).RelationType;
+        IDs = new RelationIDs { AniDB = relation.BaseID, Shoko = series?.AnimeSeriesID };
+        RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, Shoko = relatedSeries?.AnimeSeriesID };
+        Type = relation.RelationType;
         Source = "AniDB";
     }
 
@@ -70,27 +63,5 @@ public class SeriesRelation
         /// The ID of the <see cref="Series.AniDB"/> entry.
         /// </summary>
         public int? AniDB { get; set; }
-    }
-}
-
-public static class RelationExtensions
-{
-    /// <summary>
-    /// Reverse the relation.
-    /// </summary>
-    /// <param name="type">The relation to reverse.</param>
-    /// <returns>The reversed relation.</returns>
-    public static RelationType Reverse(this RelationType type)
-    {
-        return type switch
-        {
-            RelationType.Prequel => RelationType.Sequel,
-            RelationType.Sequel => RelationType.Prequel,
-            RelationType.MainStory => RelationType.SideStory,
-            RelationType.SideStory => RelationType.MainStory,
-            RelationType.FullStory => RelationType.Summary,
-            RelationType.Summary => RelationType.FullStory,
-            _ => type
-        };
     }
 }

@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 133;
+    public override int RequiredVersion { get; } = 134;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -784,6 +784,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(133, 2, "ALTER TABLE TMDB_Movie ADD ProductionCountries NVARCHAR(32) NULL DEFAULT NULL;"),
         new DatabaseCommand(133, 3, "ALTER TABLE TMDB_Show ADD Keywords NVARCHAR(512) NULL DEFAULT NULL;"),
         new DatabaseCommand(133, 4, "ALTER TABLE TMDB_Show ADD ProductionCountries NVARCHAR(32) NULL DEFAULT NULL;"),
+        new DatabaseCommand(134, 1, "CREATE INDEX IX_AniDB_Anime_Relation_RelatedAnimeID on AniDB_Anime_Relation(RelatedAnimeID);"),
     };
 
     private static void AlterImdbMovieIDType()
