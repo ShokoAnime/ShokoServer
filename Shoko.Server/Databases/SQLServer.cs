@@ -785,8 +785,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(133, 3, "ALTER TABLE TMDB_Show ADD Keywords NVARCHAR(512) NULL DEFAULT NULL;"),
         new DatabaseCommand(133, 4, "ALTER TABLE TMDB_Show ADD ProductionCountries NVARCHAR(32) NULL DEFAULT NULL;"),
         new DatabaseCommand(134, 1, "CREATE INDEX IX_AniDB_Anime_Relation_RelatedAnimeID on AniDB_Anime_Relation(RelatedAnimeID);"),
-        new DatabaseCommand(135, 1, "ALTER TABLE TMDB_Movie ALTER COLUMN ProductionCountries NVARCHAR(255) NULL DEFAULT NULL;"),
-        new DatabaseCommand(135, 2, "ALTER TABLE TMDB_Show ALTER COLUMN ProductionCountries NVARCHAR(255) NULL DEFAULT NULL;"),
+        new DatabaseCommand(135, 1, "ALTER TABLE TMDB_Movie ALTER COLUMN ProductionCountries NVARCHAR(255) NULL;"),
+        new DatabaseCommand(135, 2, "ALTER TABLE TMDB_Show ALTER COLUMN ProductionCountries NVARCHAR(255) NULL;"),
     };
 
     private static void AlterImdbMovieIDType()
