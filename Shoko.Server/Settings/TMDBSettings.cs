@@ -24,6 +24,17 @@ public class TMDBSettings
     public bool AutoLinkRestricted { get; set; } = false;
 
     /// <summary>
+    /// Determines whether to consider existing cross-reference links to other
+    /// AniDB anime when linking an AniDB anime to a TMDB show.
+    /// </summary>
+    /// <remarks>
+    /// This setting also applies to the auto-matching process and can be
+    /// overridden on a per request basis for the API when previewing or
+    /// linking.
+    /// </remarks>
+    public bool ConsiderExistingOtherLinks { get; set; } = false;
+
+    /// <summary>
     /// Indicates that all titles should be stored locally for the TMDB entity,
     /// otherwise it will use
     /// <seealso cref="LanguageSettings.SeriesTitleLanguageOrder"/> or

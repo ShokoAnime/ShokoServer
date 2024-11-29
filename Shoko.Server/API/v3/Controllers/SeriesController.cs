@@ -1570,7 +1570,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <param name="tmdbShowID">The specified TMDB Show ID to search for links. This parameter is used to select a specific show.</param>
     /// <param name="tmdbSeasonID">The specified TMDB Season ID to search for links. If not provided, links are searched for any season of the selected or first linked show.</param>
-    /// <param name="keepExisting">Determines whether to retain any and all existing links.</param>
+    /// <param name="keepExisting">Determines whether to retain existing links when picking episodes.</param>
+    /// <param name="considerExistingOtherLinks">Determines whether to consider existing links for other series when picking episodes.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns>A preview of the automagically matched episodes.</returns>
@@ -1581,6 +1582,7 @@ public class SeriesController : BaseController
         [FromQuery] int? tmdbShowID,
         [FromQuery] int? tmdbSeasonID,
         [FromQuery] bool keepExisting = true,
+        [FromQuery] bool? considerExistingOtherLinks = null,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -1612,7 +1614,7 @@ public class SeriesController : BaseController
                 return ValidationProblem("The selected tmdbSeasonID does not belong to the selected tmdbShowID", "tmdbSeasonID");
         }
 
-        return _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: false)
+        return _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, useExisting: keepExisting, useExistingOtherShows: considerExistingOtherLinks, saveToDatabase: false)
             .ToListResult(x => new TmdbEpisode.CrossReference(x), page, pageSize);
     }
 
@@ -1674,7 +1676,7 @@ public class SeriesController : BaseController
         if (isMissing)
             await _tmdbLinkingService.AddShowLink(series.AniDB_ID, body.TmdbShowID.Value, additiveLink: true);
         else
-            _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, body.TmdbShowID.Value, body.TmdbSeasonID, body.KeepExisting, saveToDatabase: true);
+            _tmdbLinkingService.MatchAnidbToTmdbEpisodes(series.AniDB_ID, body.TmdbShowID.Value, body.TmdbSeasonID, useExisting: body.KeepExisting, useExistingOtherShows: body.ConsiderExistingOtherLinks, saveToDatabase: true);
 
         if (tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
         {

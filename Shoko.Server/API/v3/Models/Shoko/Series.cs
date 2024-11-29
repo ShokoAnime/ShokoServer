@@ -711,10 +711,15 @@ public class Series : BaseModel
             public int? TmdbSeasonID { get; set; }
 
             /// <summary>
-            /// Determines whether to retain any and all existing links.
+            /// Determines whether to retain existing links for the current series.
             /// </summary>
             [DefaultValue(true)]
             public bool KeepExisting { get; set; } = true;
+
+            /// <summary>
+            /// Determines whether to consider existing links for other series when picking episodes.
+            /// </summary>
+            public bool? ConsiderExistingOtherLinks { get; set; }
         }
 
         public class OverrideTmdbEpisodeMappingBody

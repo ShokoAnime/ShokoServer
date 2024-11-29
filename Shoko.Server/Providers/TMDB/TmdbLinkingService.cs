@@ -14,6 +14,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
@@ -31,6 +32,8 @@ public class TmdbLinkingService
     private readonly ILogger<TmdbLinkingService> _logger;
 
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly ISettingsProvider _settingsProvider;
 
     private readonly TmdbImageService _imageService;
 
@@ -55,6 +58,7 @@ public class TmdbLinkingService
     public TmdbLinkingService(
         ILogger<TmdbLinkingService> logger,
         ISchedulerFactory schedulerFactory,
+        ISettingsProvider settingsProvider,
         TmdbImageService imageService,
         AnimeSeriesRepository animeSeries,
         AniDB_AnimeRepository anidbAnime,
@@ -69,6 +73,7 @@ public class TmdbLinkingService
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
+        _settingsProvider = settingsProvider;
         _imageService = imageService;
         _animeSeries = animeSeries;
         _anidbAnime = anidbAnime;
@@ -382,7 +387,7 @@ public class TmdbLinkingService
         return true;
     }
 
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false, bool useExistingOtherShows = true)
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false, bool? useExistingOtherShows = null)
     {
         var anime = _anidbAnime.GetByAnimeID(anidbAnimeId);
         if (anime == null)
@@ -416,6 +421,21 @@ public class TmdbLinkingService
         var tmdbEpisodes = tmdbEpisodeDict.Values
             .Where(episode => episode.SeasonNumber == 0 || !tmdbSeasonId.HasValue || episode.TmdbSeasonID == tmdbSeasonId.Value)
             .ToList();
+        var considerExistingOtherLinks = useExistingOtherShows ?? _settingsProvider.GetSettings().TMDB.ConsiderExistingOtherLinks;
+        if (considerExistingOtherLinks)
+        {
+            var otherShowsExisting = existing.Values.SelectMany(xref => xref).ExceptBy(anidbEpisodes.Keys.Append(0), xref => xref.AnidbEpisodeID).ToList();
+            foreach (var link in otherShowsExisting)
+            {
+                _logger.LogTrace("Skipping existing episode link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB episode (EpisodeID={TmdbID})", link.AnidbEpisodeID, link.AnidbAnimeID, link.TmdbEpisodeID);
+
+                // Exclude the linked episodes from the auto-match candidates.
+                var index = tmdbEpisodes.FindIndex(episode => episode.TmdbEpisodeID == link.TmdbEpisodeID);
+                if (index >= 0)
+                    tmdbEpisodes.RemoveAt(index);
+            }
+        }
+
         var tmdbNormalEpisodes = isOVA ? tmdbEpisodes : tmdbEpisodes
             .Where(episode => episode.SeasonNumber != 0)
             .OrderBy(episode => episode.SeasonNumber)
