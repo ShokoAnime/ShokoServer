@@ -2120,7 +2120,7 @@ public partial class TmdbController : BaseController
     }
 
     [HttpGet("Episode/{episodeID}/Images")]
-    public ActionResult<IReadOnlyList<Image>> GetImagesForTmdbEpisodeByEpisodeID(
+    public ActionResult<Images> GetImagesForTmdbEpisodeByEpisodeID(
         [FromRoute] int episodeID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
@@ -2129,10 +2129,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return episode.GetImages()
-            .InLanguage(language)
-            .Select(image => new Image(image))
-            .ToList();
+        return episode.GetImages().ToDto(language, includeThumbnails: true);
     }
 
     [HttpGet("Episode/{episodeID}/Cast")]
