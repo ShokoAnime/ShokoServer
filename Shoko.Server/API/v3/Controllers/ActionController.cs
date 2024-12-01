@@ -182,6 +182,17 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Purge all unused TMDB Movie Collections.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("PurgeAllUnusedTmdbMovieCollections")]
+    public ActionResult PurgeAllUnusedTmdbMovieCollections()
+    {
+        Task.Factory.StartNew(() => _tmdbService.PurgeAllMovieCollections());
+        return Ok();
+    }
+
+    /// <summary>
     /// Update all TMDB Shows in the local database.
     /// </summary>
     /// <returns></returns>
@@ -210,6 +221,17 @@ public class ActionController : BaseController
     public ActionResult PurgeAllUnusedTmdbShows()
     {
         Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedShows());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all unused TMDB Show Alternate Orderings.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("PurgeAllUnusedTmdbShowAlternateOrderings")]
+    public ActionResult PurgeAllUnusedTmdbShowAlternateOrderings()
+    {
+        Task.Factory.StartNew(() => _tmdbService.PurgeAllShowEpisodeGroups());
         return Ok();
     }
 

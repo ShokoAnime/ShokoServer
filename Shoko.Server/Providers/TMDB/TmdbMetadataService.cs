@@ -882,6 +882,21 @@ public class TmdbMetadataService
         }
     }
 
+    public void PurgeAllMovieCollections(bool removeImageFiles = true)
+    {
+        var collections = _tmdbCollections.GetAll();
+        var collectionXRefs = _xrefTmdbCollectionMovies.GetAll();
+        var collectionIDs = new HashSet<int>([
+            ..collections.Select(x => x.TmdbCollectionID),
+            ..collectionXRefs.Select(x => x.TmdbCollectionID),
+        ]);
+
+        _logger.LogInformation("Removing {Count} movie collections to be purged.", collectionIDs.Count);
+
+        foreach (var collectionID in collectionIDs)
+            PurgeMovieCollection(collectionID, removeImageFiles);
+    }
+
     #endregion
 
     #endregion
@@ -1762,6 +1777,25 @@ public class TmdbMetadataService
         var orderings = _tmdbAlternateOrdering.GetByTmdbShowID(showId);
 
         _logger.LogDebug("Removing {EpisodeCount} episodes and {SeasonCount} seasons across {OrderingCount} alternate orderings for show. (Show={ShowId})", episodes.Count, seasons.Count, orderings.Count, showId);
+        _tmdbAlternateOrderingEpisodes.Delete(episodes);
+        _tmdbAlternateOrderingSeasons.Delete(seasons);
+        _tmdbAlternateOrdering.Delete(orderings);
+    }
+
+    public void PurgeAllShowEpisodeGroups()
+    {
+        _logger.LogInformation("Purging all show episode groups.");
+
+        var episodes = _tmdbAlternateOrderingEpisodes.GetAll();
+        var seasons = _tmdbAlternateOrderingSeasons.GetAll();
+        var orderings = _tmdbAlternateOrdering.GetAll();
+        var shows = new HashSet<int>([
+            ..episodes.Select(e => e.TmdbShowID),
+            ..seasons.Select(s => s.TmdbShowID),
+            ..orderings.Select(o => o.TmdbShowID),
+        ]);
+
+        _logger.LogDebug("Removing {EpisodeCount} episodes and {SeasonCount} seasons across {OrderingCount} alternate orderings for {ShowCount} shows.", episodes.Count, seasons.Count, orderings.Count, shows.Count);
         _tmdbAlternateOrderingEpisodes.Delete(episodes);
         _tmdbAlternateOrderingSeasons.Delete(seasons);
         _tmdbAlternateOrdering.Delete(orderings);
