@@ -542,7 +542,7 @@ public class TmdbLinkingService
         {
             // Filter the new links by the currently in use seasons from the existing (and/or new) OV/DT links.
             var currentSessions = crossReferences
-                .Select(xref => xref.TmdbEpisodeID is not 0 && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1)
+                .Select(NormalEpisodeSeasonNumberSelector)
                 .Except([-1])
                 .ToHashSet();
             if (currentSessions.Count > 0)
@@ -596,7 +596,7 @@ public class TmdbLinkingService
         {
             // Filter the new links by the currently in use seasons from the existing (and/or new) OV/DT links.
             var currentSessions = crossReferences
-                .Select(xref => xref.TmdbEpisodeID is not 0 && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1)
+                .Select(NormalEpisodeSeasonNumberSelector)
                 .Except([-1])
                 .ToHashSet();
             if (currentSessions.Count > 0)
@@ -650,7 +650,7 @@ public class TmdbLinkingService
         {
             // Filter the new links by the currently in use seasons from the existing (and/or new) OV/DT links.
             var currentSessions = crossReferences
-                .Select(xref => xref.TmdbEpisodeID is not 0 && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1)
+                .Select(NormalEpisodeSeasonNumberSelector)
                 .Except([-1])
                 .ToHashSet();
             if (currentSessions.Count > 0)
@@ -730,6 +730,8 @@ public class TmdbLinkingService
         _xrefAnidbTmdbEpisodes.Delete(toRemove);
 
         return crossReferences;
+
+        int NormalEpisodeSeasonNumberSelector(CrossRef_AniDB_TMDB_Episode xref) => xref.TmdbEpisodeID is not 0 && (isOVA || anidbEpisodes[xref.AnidbEpisodeID].AbstractEpisodeType is EpisodeType.Episode) && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1;
     }
 
     private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(SVR_AniDB_Anime anime, SVR_AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
