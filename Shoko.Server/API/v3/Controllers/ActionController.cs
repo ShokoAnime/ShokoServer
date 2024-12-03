@@ -182,11 +182,11 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Purge all unused TMDB Movie Collections.
+    /// Purge all TMDB Movie Collections.
     /// </summary>
     /// <returns></returns>
-    [HttpGet("PurgeAllUnusedTmdbMovieCollections")]
-    public ActionResult PurgeAllUnusedTmdbMovieCollections()
+    [HttpGet("PurgeAllTmdbMovieCollections")]
+    public ActionResult PurgeAllTmdbMovieCollections()
     {
         Task.Factory.StartNew(() => _tmdbService.PurgeAllMovieCollections());
         return Ok();
@@ -225,11 +225,11 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Purge all unused TMDB Show Alternate Orderings.
+    /// Purge all TMDB Show Alternate Orderings.
     /// </summary>
     /// <returns></returns>
-    [HttpGet("PurgeAllUnusedTmdbShowAlternateOrderings")]
-    public ActionResult PurgeAllUnusedTmdbShowAlternateOrderings()
+    [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
+    public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
         Task.Factory.StartNew(() => _tmdbService.PurgeAllShowEpisodeGroups());
         return Ok();
