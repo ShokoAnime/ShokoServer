@@ -307,7 +307,7 @@ public class TmdbLinkingService
 
             // Add missing xrefs.
             var anidbEpisodesWithoutXrefs = _anidbEpisodes.GetByAnimeID(anidbAnimeId)
-                .Where(episode => !existingIDs.Contains(episode.AniDB_EpisodeID) && episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special)
+                .Where(episode => !existingIDs.Contains(episode.AniDB_EpisodeID) && episode.AbstractEpisodeType is EpisodeType.Episode or EpisodeType.Special)
                 .ToList();
             foreach (var anidbEpisode in anidbEpisodesWithoutXrefs)
                 toSave.Add(new(anidbEpisode.AniDB_EpisodeID, anidbAnimeId, 0, 0, allowAuto ? MatchRating.SarahJessicaParker : MatchRating.UserVerified));
@@ -412,7 +412,7 @@ public class TmdbLinkingService
             .GroupBy(xref => xref.AnidbEpisodeID)
             .ToDictionary(grouped => grouped.Key, grouped => grouped.ToList());
         var anidbEpisodes = _anidbEpisodes.GetByAnimeID(anidbAnimeId)
-            .Where(episode => episode.EpisodeType is (int)EpisodeType.Episode or (int)EpisodeType.Special)
+            .Where(episode => episode.AbstractEpisodeType is EpisodeType.Episode or EpisodeType.Special)
             .OrderBy(episode => episode.EpisodeTypeEnum)
             .ThenBy(episode => episode.EpisodeNumber)
             .ToDictionary(episode => episode.EpisodeID);
