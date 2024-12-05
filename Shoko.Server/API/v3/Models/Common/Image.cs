@@ -79,13 +79,13 @@ public class Image
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public ImageSeriesInfo? Series { get; set; } = null;
 
-    public Image(IImageMetadata imageMetadata)
+    public Image(IImageMetadata imageMetadata, bool? preferredOverride = null)
     {
         ID = imageMetadata.ID;
         Type = imageMetadata.ImageType.ToV3Dto();
         Source = imageMetadata.Source.ToV3Dto();
 
-        Preferred = imageMetadata.IsPreferred;
+        Preferred = preferredOverride ?? imageMetadata.IsPreferred;
         Disabled = !imageMetadata.IsEnabled;
         LanguageCode = imageMetadata.LanguageCode;
 

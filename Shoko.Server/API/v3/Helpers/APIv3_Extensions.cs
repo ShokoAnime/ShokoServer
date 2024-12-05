@@ -38,7 +38,15 @@ public static class APIv3_Extensions
             ? imageList.Where(title => language.Contains(title.Language))
             : imageList;
 
-    public static Images ToDto(this IEnumerable<IImageMetadata> imageList, IReadOnlySet<TitleLanguage>? language = null, bool includeDisabled = false, bool includeThumbnails = false, bool preferredImages = false, bool randomizeImages = false)
+    public static Images ToDto(
+        this IEnumerable<IImageMetadata> imageList,
+        IReadOnlySet<TitleLanguage>? language = null,
+        IImageMetadata? preferredPoster = null,
+        IImageMetadata? preferredBackdrop = null,
+        bool includeDisabled = false,
+        bool includeThumbnails = false,
+        bool preferredImages = false,
+        bool randomizeImages = false)
     {
         var images = new Images();
         if (includeThumbnails)
@@ -51,23 +59,27 @@ public static class APIv3_Extensions
             if (language != null && !language.Contains(image.Language))
                 continue;
 
-            var dto = new Image(image);
+            bool? preferredOverride = null;
             switch (image.ImageType)
             {
                 case ImageEntityType.Poster:
-                    images.Posters.Add(dto);
+                    if (image.IsEnabled && preferredPoster is not null && preferredPoster.Equals(image))
+                        preferredOverride = true;
+                    images.Posters.Add(new(image, preferredOverride));
                     break;
                 case ImageEntityType.Banner:
-                    images.Banners.Add(dto);
+                    images.Banners.Add(new(image));
                     break;
                 case ImageEntityType.Backdrop:
-                    images.Backdrops.Add(dto);
+                    if (image.IsEnabled && preferredBackdrop is not null && preferredBackdrop.Equals(image))
+                        preferredOverride = true;
+                    images.Backdrops.Add(new(image, preferredOverride));
                     break;
                 case ImageEntityType.Logo:
-                    images.Logos.Add(dto);
+                    images.Logos.Add(new(image));
                     break;
                 case ImageEntityType.Thumbnail when includeThumbnails:
-                    images.Thumbnails!.Add(dto);
+                    images.Thumbnails!.Add(new(image));
                     break;
                 default:
                     break;

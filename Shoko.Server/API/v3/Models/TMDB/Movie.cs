@@ -211,7 +211,7 @@ public class Movie
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
             Images = movie.GetImages()
-                .ToDto(language);
+                .ToDto(language, preferredPoster: movie.DefaultPoster, preferredBackdrop: movie.DefaultBackdrop);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = movie.Cast
                 .Select(cast => new Role(cast))

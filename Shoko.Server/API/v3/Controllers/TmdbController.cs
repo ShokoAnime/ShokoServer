@@ -225,6 +225,7 @@ public partial class TmdbController : BaseController
     [HttpGet("Movie/{movieID}/Images")]
     public ActionResult<Images> GetImagesForTmdbMovieByMovieID(
         [FromRoute] int movieID,
+        [FromQuery] bool includeDisabled = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -233,7 +234,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.GetImages()
-            .ToDto(language);
+            .ToDto(language, includeDisabled: includeDisabled, preferredPoster: movie.DefaultPoster, preferredBackdrop: movie.DefaultBackdrop);
     }
 
     [HttpGet("Movie/{movieID}/Cast")]
@@ -757,6 +758,7 @@ public partial class TmdbController : BaseController
     [HttpGet("Movie/Collection/{collectionID}/Images")]
     public ActionResult<Images> GetImagesForMovieCollectionByCollectionID(
         [FromRoute] int collectionID,
+        [FromQuery] bool includeDisabled = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -765,7 +767,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieCollectionNotFound);
 
         return collection.GetImages()
-            .ToDto(language);
+            .ToDto(language, includeDisabled: includeDisabled);
     }
 
     #endregion
@@ -969,6 +971,7 @@ public partial class TmdbController : BaseController
     [HttpGet("Show/{showID}/Images")]
     public ActionResult<Images> GetImagesForTmdbShowByShowID(
         [FromRoute] int showID,
+        [FromQuery] bool includeDisabled = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -977,7 +980,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         return show.GetImages()
-            .ToDto(language);
+            .ToDto(language, includeDisabled: includeDisabled, preferredPoster: show.DefaultPoster, preferredBackdrop: show.DefaultBackdrop);
     }
 
     [HttpGet("Show/{showID}/Ordering")]
@@ -1724,6 +1727,7 @@ public partial class TmdbController : BaseController
     [HttpGet("Season/{seasonID}/Images")]
     public ActionResult<Images> GetImagesForTmdbSeasonBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
+        [FromQuery] bool includeDisabled = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -1741,7 +1745,8 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetImages().ToDto(language);
+        return season.GetImages()
+            .ToDto(language, includeDisabled: includeDisabled, preferredPoster: season.DefaultPoster);
     }
 
     [HttpGet("Season/{seasonID}/Cast")]
@@ -2122,6 +2127,7 @@ public partial class TmdbController : BaseController
     [HttpGet("Episode/{episodeID}/Images")]
     public ActionResult<Images> GetImagesForTmdbEpisodeByEpisodeID(
         [FromRoute] int episodeID,
+        [FromQuery] bool includeDisabled = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -2129,7 +2135,8 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return episode.GetImages().ToDto(language, includeThumbnails: true);
+        return episode.GetImages()
+            .ToDto(language, includeDisabled: includeDisabled, includeThumbnails: true);
     }
 
     [HttpGet("Episode/{episodeID}/Cast")]

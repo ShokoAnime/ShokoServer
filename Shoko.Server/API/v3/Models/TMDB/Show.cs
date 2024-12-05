@@ -212,7 +212,7 @@ public class Show
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
             Images = show.GetImages()
-                .ToDto(language);
+                .ToDto(language, preferredPoster: show.DefaultPoster, preferredBackdrop: show.DefaultBackdrop);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = (alternateOrdering is null ? show.Cast : alternateOrdering.Cast)
                 .Select(cast => new Role(cast))
