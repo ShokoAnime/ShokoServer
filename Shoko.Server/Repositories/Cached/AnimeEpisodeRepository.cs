@@ -53,7 +53,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
 
 
     /// <summary>
-    /// Get the AnimeEpisode 
+    /// Get the AnimeEpisode
     /// </summary>
     /// <param name="name">The filename of the anime to search for.</param>
     /// <returns>the AnimeEpisode given the file information</returns>
@@ -132,61 +132,61 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     }
 
     private const string DuplicateFilesWithAnimeQuery = @"
-SELECT 
+SELECT
     ani.EpisodeID
-FROM 
+FROM
     (
-        SELECT 
-            vlp.VideoLocal_Place_ID, 
-            vl.FileSize, 
+        SELECT
+            vlp.VideoLocal_Place_ID,
+            vl.FileSize,
             vl.Hash
-        FROM 
+        FROM
             VideoLocal AS vl
-        INNER JOIN 
-            VideoLocal_Place AS vlp 
+        INNER JOIN
+            VideoLocal_Place AS vlp
             ON vlp.VideoLocalID = vl.VideoLocalID
-        WHERE 
+        WHERE
             vl.Hash != ''
-        GROUP BY 
+        GROUP BY
             vl.VideoLocalID
-        HAVING 
+        HAVING
             COUNT(vl.VideoLocalID) > 1
     ) AS filtered_vlp
-INNER JOIN 
-    CrossRef_File_Episode ani 
-    ON filtered_vlp.Hash = ani.Hash 
+INNER JOIN
+    CrossRef_File_Episode ani
+    ON filtered_vlp.Hash = ani.Hash
        AND filtered_vlp.FileSize = ani.FileSize
 WHERE ani.AnimeID = :animeID
-GROUP BY 
+GROUP BY
     ani.EpisodeID
 ";
 
     private const string DuplicateFilesQuery = @"
-SELECT 
+SELECT
     ani.EpisodeID
-FROM 
+FROM
     (
-        SELECT 
-            vlp.VideoLocal_Place_ID, 
-            vl.FileSize, 
+        SELECT
+            vlp.VideoLocal_Place_ID,
+            vl.FileSize,
             vl.Hash
-        FROM 
+        FROM
             VideoLocal AS vl
-        INNER JOIN 
-            VideoLocal_Place AS vlp 
+        INNER JOIN
+            VideoLocal_Place AS vlp
             ON vlp.VideoLocalID = vl.VideoLocalID
-        WHERE 
+        WHERE
             vl.Hash != ''
-        GROUP BY 
+        GROUP BY
             vl.VideoLocalID
-        HAVING 
+        HAVING
             COUNT(vl.VideoLocalID) > 1
     ) AS filtered_vlp
-INNER JOIN 
-    CrossRef_File_Episode ani 
-    ON filtered_vlp.Hash = ani.Hash 
+INNER JOIN
+    CrossRef_File_Episode ani
+    ON filtered_vlp.Hash = ani.Hash
        AND filtered_vlp.FileSize = ani.FileSize
-GROUP BY 
+GROUP BY
     ani.EpisodeID
 ";
 

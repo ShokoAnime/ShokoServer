@@ -346,29 +346,29 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     private const string DuplicateFilesQuery = @"
 SELECT DISTINCT
     ani.AnimeID
-FROM 
+FROM
     (
-        SELECT 
-            vlp.VideoLocal_Place_ID, 
-            vl.FileSize, 
+        SELECT
+            vlp.VideoLocal_Place_ID,
+            vl.FileSize,
             vl.Hash
-        FROM 
+        FROM
             VideoLocal AS vl
-        INNER JOIN 
-            VideoLocal_Place AS vlp 
+        INNER JOIN
+            VideoLocal_Place AS vlp
             ON vlp.VideoLocalID = vl.VideoLocalID
-        WHERE 
+        WHERE
             vl.Hash != ''
-        GROUP BY 
+        GROUP BY
             vl.VideoLocalID
-        HAVING 
+        HAVING
             COUNT(vl.VideoLocalID) > 1
     ) AS vlp_selected
-INNER JOIN 
-    CrossRef_File_Episode ani 
-    ON vlp_selected.Hash = ani.Hash 
+INNER JOIN
+    CrossRef_File_Episode ani
+    ON vlp_selected.Hash = ani.Hash
        AND vlp_selected.FileSize = ani.FileSize
-GROUP BY 
+GROUP BY
     ani.AnimeID
 ";
 
