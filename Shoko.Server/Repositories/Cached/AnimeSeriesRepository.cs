@@ -319,9 +319,9 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 .ToList());
     }
 
-    private const string IgnoreVariationsQuery =
+    private const string MultipleReleasesIgnoreVariationsQuery =
         @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-    private const string CountVariationsQuery =
+    private const string MultipleReleasesCountVariationsQuery =
         @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
     public List<SVR_AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
@@ -330,7 +330,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         {
             using var session = _databaseFactory.SessionFactory.OpenSession();
 
-            var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
+            var query = ignoreVariations ? MultipleReleasesIgnoreVariationsQuery : MultipleReleasesCountVariationsQuery;
             return session.CreateSQLQuery(query)
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
                 .List<int>();
@@ -341,6 +341,52 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             .Select(GetByAnimeID)
             .WhereNotNull()
             .ToList();
+    }
+
+    private const string DuplicateFilesQuery = @"
+SELECT DISTINCT
+    ani.AnimeID
+FROM 
+    (
+        SELECT 
+            vlp.VideoLocal_Place_ID, 
+            vl.FileSize, 
+            vl.Hash
+        FROM 
+            VideoLocal AS vl
+        INNER JOIN 
+            VideoLocal_Place AS vlp 
+            ON vlp.VideoLocalID = vl.VideoLocalID
+        WHERE 
+            vl.Hash != ''
+        GROUP BY 
+            vl.VideoLocalID
+        HAVING 
+            COUNT(vl.VideoLocalID) > 1
+    ) AS vlp_selected
+INNER JOIN 
+    CrossRef_File_Episode ani 
+    ON vlp_selected.Hash = ani.Hash 
+       AND vlp_selected.FileSize = ani.FileSize
+GROUP BY 
+    ani.AnimeID
+";
+
+    public IEnumerable<SVR_AnimeSeries> GetWithDuplicateFiles()
+    {
+        var ids = Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+
+            return session.CreateSQLQuery(DuplicateFilesQuery)
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .List<int>();
+        });
+
+        return ids
+            .Distinct()
+            .Select(GetByAnimeID)
+            .WhereNotNull();
     }
 
     public ImageEntityType[] GetAllImageTypes()

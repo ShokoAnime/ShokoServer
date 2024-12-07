@@ -851,6 +851,23 @@ public class Series : BaseModel
             EpisodeCount = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, ser.AniDB_ID).Count;
         }
     }
+
+    /// <summary>
+    /// An extended model for use with the hard duplicate endpoint.
+    /// </summary>
+    public class WithDuplicateFilesResult : Series
+    {
+        /// <summary>
+        /// Number of episodes in the series which have duplicate files.
+        /// </summary>
+        public int EpisodeCount { get; set; }
+
+        public WithDuplicateFilesResult(SVR_AnimeSeries ser, int userId = 0, HashSet<DataSource>? includeDataFrom = null)
+            : base(ser, userId, false, includeDataFrom)
+        {
+            EpisodeCount = RepoFactory.AnimeEpisode.GetWithDuplicateFiles(ser.AniDB_ID).Count();
+        }
+    }
 }
 
 public enum SeriesType

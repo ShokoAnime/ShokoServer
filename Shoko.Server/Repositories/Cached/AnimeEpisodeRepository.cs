@@ -91,13 +91,13 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .ToList();
     }
 
-    private const string IgnoreVariationsWithAnimeQuery =
+    private const string MultipleReleasesIgnoreVariationsWithAnimeQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID = :animeID AND vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-    private const string CountVariationsWithAnimeQuery =
+    private const string MultipleReleasesCountVariationsWithAnimeQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID = :animeID AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-    private const string IgnoreVariationsQuery =
+    private const string MultipleReleasesIgnoreVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-    private const string CountVariationsQuery =
+    private const string MultipleReleasesCountVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
     public List<SVR_AnimeEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
@@ -107,14 +107,14 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             using var session = _databaseFactory.SessionFactory.OpenSession();
             if (animeID.HasValue && animeID.Value > 0)
             {
-                var animeQuery = ignoreVariations ? IgnoreVariationsWithAnimeQuery : CountVariationsWithAnimeQuery;
+                var animeQuery = ignoreVariations ? MultipleReleasesIgnoreVariationsWithAnimeQuery : MultipleReleasesCountVariationsWithAnimeQuery;
                 return session.CreateSQLQuery(animeQuery)
                     .AddScalar("EpisodeID", NHibernateUtil.Int32)
                     .SetParameter("animeID", animeID.Value)
                     .List<int>();
             }
 
-            var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
+            var query = ignoreVariations ? MultipleReleasesIgnoreVariationsQuery : MultipleReleasesCountVariationsQuery;
             return session.CreateSQLQuery(query)
                 .AddScalar("EpisodeID", NHibernateUtil.Int32)
                 .List<int>();
@@ -129,6 +129,93 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
             .Select(tuple => tuple.episode!)
             .ToList();
+    }
+
+    private const string DuplicateFilesWithAnimeQuery = @"
+SELECT 
+    ani.EpisodeID
+FROM 
+    (
+        SELECT 
+            vlp.VideoLocal_Place_ID, 
+            vl.FileSize, 
+            vl.Hash
+        FROM 
+            VideoLocal AS vl
+        INNER JOIN 
+            VideoLocal_Place AS vlp 
+            ON vlp.VideoLocalID = vl.VideoLocalID
+        WHERE 
+            vl.Hash != ''
+        GROUP BY 
+            vl.VideoLocalID
+        HAVING 
+            COUNT(vl.VideoLocalID) > 1
+    ) AS filtered_vlp
+INNER JOIN 
+    CrossRef_File_Episode ani 
+    ON filtered_vlp.Hash = ani.Hash 
+       AND filtered_vlp.FileSize = ani.FileSize
+WHERE ani.AnimeID = :animeID
+GROUP BY 
+    ani.EpisodeID
+";
+
+    private const string DuplicateFilesQuery = @"
+SELECT 
+    ani.EpisodeID
+FROM 
+    (
+        SELECT 
+            vlp.VideoLocal_Place_ID, 
+            vl.FileSize, 
+            vl.Hash
+        FROM 
+            VideoLocal AS vl
+        INNER JOIN 
+            VideoLocal_Place AS vlp 
+            ON vlp.VideoLocalID = vl.VideoLocalID
+        WHERE 
+            vl.Hash != ''
+        GROUP BY 
+            vl.VideoLocalID
+        HAVING 
+            COUNT(vl.VideoLocalID) > 1
+    ) AS filtered_vlp
+INNER JOIN 
+    CrossRef_File_Episode ani 
+    ON filtered_vlp.Hash = ani.Hash 
+       AND filtered_vlp.FileSize = ani.FileSize
+GROUP BY 
+    ani.EpisodeID
+";
+
+    public IEnumerable<SVR_AnimeEpisode> GetWithDuplicateFiles(int? animeID = null)
+    {
+        var ids = Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+            if (animeID.HasValue && animeID.Value > 0)
+            {
+                return session.CreateSQLQuery(DuplicateFilesWithAnimeQuery)
+                    .AddScalar("EpisodeID", NHibernateUtil.Int32)
+                    .SetParameter("animeID", animeID.Value)
+                    .List<int>();
+            }
+
+            return session.CreateSQLQuery(DuplicateFilesQuery)
+                .AddScalar("EpisodeID", NHibernateUtil.Int32)
+                .List<int>();
+        });
+
+        return ids
+            .Select(GetByAniDBEpisodeID)
+            .Select(episode => (episode, anidbEpisode: episode?.AniDB_Episode))
+            .Where(tuple => tuple.anidbEpisode is not null)
+            .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
+            .Select(tuple => tuple.episode!);
     }
 
     public List<SVR_AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
