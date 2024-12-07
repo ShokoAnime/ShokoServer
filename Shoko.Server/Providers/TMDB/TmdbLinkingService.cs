@@ -714,7 +714,7 @@ public class TmdbLinkingService
         // Remove the current anidb episodes that does not overlap with the show.
         var toRemove = existing.Values
             .SelectMany(list => list)
-            .Where(xref => anidbEpisodes.ContainsKey(xref.AnidbEpisodeID) && !toSkip.Contains(xref.CrossRef_AniDB_TMDB_EpisodeID))
+            .Where(xref => (anidbEpisodes.ContainsKey(xref.AnidbEpisodeID) && !toSkip.Contains(xref.CrossRef_AniDB_TMDB_EpisodeID)) || (xref.TmdbShowID == tmdbShowId && !tmdbEpisodeDict.ContainsKey(xref.TmdbEpisodeID)))
             .ToList();
 
         _logger.LogDebug(
