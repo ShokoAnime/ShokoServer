@@ -947,16 +947,6 @@ public class SeriesController : BaseController
             createSeriesEntry.Value, immediate, cacheOnly);
     }
 
-    /// <summary>
-    /// Forcefully refresh the AniDB Info from XML on disk for series with ID
-    /// </summary>
-    /// <param name="seriesID">Shoko ID</param>
-    /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
-    [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
-    [Obsolete("Use Refresh with cacheOnly set to true")]
-    public async Task<ActionResult<bool>> RefreshAniDBFromXML([FromRoute, Range(1, int.MaxValue)] int seriesID)
-        => await RefreshAniDBBySeriesID(seriesID, false, false, true, true, true);
-
     #endregion
 
     #region TMDB
@@ -2597,22 +2587,6 @@ public class SeriesController : BaseController
         RepoFactory.CrossRef_CustomTag.Delete(toRemove);
 
         return Ok();
-    }
-
-    /// <summary>
-    /// Get tags for Series with ID, applying the given TagFilter (0 is show all)
-    /// </summary>
-    ///
-    /// <param name="seriesID">Shoko ID</param>
-    /// <param name="filter"></param>
-    /// <param name="excludeDescriptions"></param>
-    /// <returns></returns>
-    [HttpGet("{seriesID}/Tags/{filter}")]
-    [Obsolete("Use Tags with query parameter instead.")]
-    public ActionResult<List<Tag>> GetSeriesTagsFromPath([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] TagFilter.Filter filter,
-        [FromQuery] bool excludeDescriptions = false)
-    {
-        return GetSeriesTags(seriesID, filter, excludeDescriptions);
     }
 
     #endregion

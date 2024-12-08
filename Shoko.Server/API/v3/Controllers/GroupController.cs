@@ -362,23 +362,6 @@ public class GroupController : BaseController
 
     #endregion
 
-    #region Obsolete
-
-    /// <summary>
-    /// Recreate all groups from scratch. Use <see cref="ActionController.RecreateAllGroups"/> instead.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("RecreateAllGroups")]
-    [Obsolete("Use the actions endpoint instead.")]
-    public ActionResult RecreateAllGroups()
-    {
-        Task.Run(async () => await _groupCreator.RecreateAllGroups());
-        return Ok("Check the server status via init/status or SignalR's Events hub");
-    }
-
-    #endregion
-
     public GroupController(ISettingsProvider settingsProvider, AnimeGroupCreator groupCreator, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
     {
         _groupCreator = groupCreator;

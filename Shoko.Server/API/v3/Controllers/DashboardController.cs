@@ -142,19 +142,6 @@ public class DashboardController : BaseController
     }
 
     /// <summary>
-    /// Gets the top <para>number</para> of the most common tags visible to the current user.
-    /// </summary>
-    /// <param name="number">The max number of results to return. (Defaults to 10)</param>
-    /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
-    /// <returns></returns>
-    [HttpGet("TopTags/{number}")]
-    [Obsolete("Provide pageSize in query instead.")]
-    public List<Tag> GetTopTagsObsolete(int number = 10,
-        [FromQuery] TagFilter.Filter filter =
-            TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
-        => GetTopTags(number, 1, filter);
-
-    /// <summary>
     /// Gets the top number of the most common tags visible to the current user.
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
@@ -188,17 +175,6 @@ public class DashboardController : BaseController
             .Skip(pageSize * (page - 1))
             .Take(pageSize)
             .ToList();
-    }
-
-    /// <summary>
-    /// Gets counts for all of the commands currently queued
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("QueueSummary")]
-    [Obsolete("Use /api/v3/Queue/Types instead.")]
-    public async Task<Dictionary<string, int>> GetQueueSummary()
-    {
-        return await _queueHandler.GetJobCounts();
     }
 
     /// <summary>

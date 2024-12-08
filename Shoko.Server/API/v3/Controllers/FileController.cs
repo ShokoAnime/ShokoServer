@@ -1490,25 +1490,4 @@ public class FileController : BaseController
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
     }
-
-    /// <summary>
-    /// Get all files with missing cross-references data.
-    /// </summary>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
-    /// <returns></returns>
-    [Obsolete("Use the universal file endpoint instead.")]
-    [HttpGet("MissingCrossReferenceData")]
-    public ActionResult<ListResult<File>> GetFilesWithMissingCrossReferenceData(
-        [FromQuery, Range(0, 1000)] int pageSize = 100,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
-    {
-        return RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
-            .ToListResult(
-                file => new File(HttpContext, file, includeXRefs),
-                page,
-                pageSize
-            );
-    }
 }

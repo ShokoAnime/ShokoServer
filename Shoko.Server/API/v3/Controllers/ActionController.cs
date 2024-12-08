@@ -146,19 +146,6 @@ public class ActionController : BaseController
         return Ok();
     }
 
-
-    /// <summary>
-    /// Updates All TMDB Movie Info.
-    /// </summary>
-    /// <returns></returns>
-    [Obsolete("Use 'UpdateAllTMDBMovieInfo' instead.")]
-    [HttpGet("UpdateAllMovieDBInfo")]
-    public ActionResult UpdateAllMovieDBInfo()
-    {
-        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
-        return Ok();
-    }
-
     /// <summary>
     /// Updates all TMDB Movies in the local database.
     /// </summary>
