@@ -11,16 +11,12 @@ namespace Shoko.Server.API;
 /// This controller should be the base for every other controller. It has overrides to do anything before or after requests.
 /// An example is made for a request wide Random, solving the issue of a static Random somewhere/
 /// </summary>
-public class BaseController : Controller
+public class BaseController(ISettingsProvider settingsProvider) : Controller
 {
     // Override Controller.User to be the SVR_JMMUser, since we'll almost never need HttpContext.User
     protected new SVR_JMMUser User => HttpContext.GetUser();
-    protected readonly ISettingsProvider SettingsProvider;
-    
-    public BaseController(ISettingsProvider settingsProvider)
-    {
-        SettingsProvider = settingsProvider;
-    }
+
+    protected readonly ISettingsProvider SettingsProvider = settingsProvider;
 
     [NonAction]
     public override void OnActionExecuting(ActionExecutingContext context)

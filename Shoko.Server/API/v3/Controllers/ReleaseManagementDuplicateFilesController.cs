@@ -15,9 +15,9 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/[controller]")]
+[Route("/api/v{version:apiVersion}/ReleaseManagement/DuplicateFiles")]
 [ApiV3]
-public class DuplicateManagementController : BaseController
+public class ReleaseManagementDuplicateFilesController(ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get episodes with duplicate files, with only the files with duplicates for each episode.
@@ -37,6 +37,7 @@ public class DuplicateManagementController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles();
+
         return enumerable
             .ToListResult(episode =>
             {
@@ -61,6 +62,7 @@ public class DuplicateManagementController : BaseController
     public ActionResult<List<FileIdSet>> GetFileIdsWithPreference()
     {
         var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles();
+
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
@@ -124,6 +126,7 @@ public class DuplicateManagementController : BaseController
             return new ListResult<Episode>();
 
         var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+
         return enumerable
             .ToListResult(episode =>
             {
@@ -158,6 +161,7 @@ public class DuplicateManagementController : BaseController
             return new List<FileIdSet>();
 
         var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
@@ -167,10 +171,6 @@ public class DuplicateManagementController : BaseController
             .GroupBy(tuple => tuple.VideoLocalID, tuple => (tuple.VideoLocal_Place_ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
-    }
-
-    public DuplicateManagementController(ISettingsProvider settingsProvider) : base(settingsProvider)
-    {
     }
 
     public class FileIdSet(IGrouping<int, (int VideoLocal_Place_ID, int AnimeEpisodeID, int AnimeSeriesID)> grouping)
