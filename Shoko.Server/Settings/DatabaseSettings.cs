@@ -96,4 +96,10 @@ public class DatabaseSettings
 
     [JsonIgnore]
     private string _sqliteFile = "JMMServer.db3";
+
+    /// <summary>
+    /// Log SQL in Console.
+    /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public bool LogSqlInConsole { get; set; } = false;
 }

@@ -84,6 +84,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
 
     public override ISessionFactory CreateSessionFactory()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2012.Driver<MicrosoftDataSqlClientDriver>().ConnectionString(GetConnectionString()))
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
@@ -91,8 +92,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
             {
                 prop.Batcher<NonBatchingBatcherFactory>();
                 prop.BatchSize = 0;
-                // uncomment this for SQL output
-                //prop.LogSqlInConsole = true;
+                prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
             .BuildSessionFactory();
     }

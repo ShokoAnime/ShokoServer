@@ -1248,8 +1248,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
-                // uncomment this for SQL output
-                //prop.LogSqlInConsole = true;
+                prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
             .BuildSessionFactory();
     }

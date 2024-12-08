@@ -70,14 +70,14 @@ public class SQLite : BaseDatabase<SqliteConnection>
 
     public override ISessionFactory CreateSessionFactory()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
             .Database(MsSqliteConfiguration.Standard.ConnectionString(c => c.Is(GetConnectionString()))
                 .Dialect<SqliteDialectFix>().Driver<SqliteDriverFix>())
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
-                // uncomment this for SQL output
-                //prop.LogSqlInConsole = true;
+                prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
             .BuildSessionFactory();
     }
