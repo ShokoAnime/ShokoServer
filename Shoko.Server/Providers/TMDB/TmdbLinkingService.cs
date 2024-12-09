@@ -449,7 +449,7 @@ public class TmdbLinkingService
         foreach (var episode in anidbEpisodes.Values)
         {
             current++;
-            _logger.LogTrace("Checking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {AnidbEpisodeID}, Progress: {Current}/{Total}, Pass: 1/2)", episode.EpisodeTypeEnum, episode.EpisodeNumber, episode.EpisodeID, current, anidbEpisodes.Count);
+            _logger.LogTrace("Checking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {AnidbEpisodeID}, Progress: {Current}/{Total}, Pass: 1/4)", episode.EpisodeTypeEnum, episode.EpisodeNumber, episode.EpisodeID, current, anidbEpisodes.Count);
             var shouldAddNewLinks = true;
             if (useExisting && existing.TryGetValue(episode.EpisodeID, out var existingLinks) && existingLinks.Any(link => link.MatchRating is MatchRating.UserVerified or MatchRating.DateAndTitleMatches))
             {
