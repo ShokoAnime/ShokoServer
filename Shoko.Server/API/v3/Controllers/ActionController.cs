@@ -147,6 +147,17 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Scan for TMDB matches for all unlinked AniDB anime.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("SearchForTmdbMatches")]
+    public ActionResult SearchForTmdbMatches()
+    {
+        Task.Factory.StartNew(() => _tmdbService.ScanForMatches());
+        return Ok();
+    }
+
+    /// <summary>
     /// Updates all TMDB Movies in the local database.
     /// </summary>
     /// <returns></returns>
@@ -161,6 +172,7 @@ public class ActionController : BaseController
     /// Purge all unused TMDB Movies that are not linked to any AniDB anime.
     /// </summary>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpGet("PurgeAllUnusedTmdbMovies")]
     public ActionResult PurgeAllUnusedTmdbMovies()
     {
@@ -172,6 +184,7 @@ public class ActionController : BaseController
     /// Purge all TMDB Movie Collections.
     /// </summary>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpGet("PurgeAllTmdbMovieCollections")]
     public ActionResult PurgeAllTmdbMovieCollections()
     {
@@ -204,6 +217,7 @@ public class ActionController : BaseController
     /// Purge all unused TMDB Shows that are not linked to any AniDB anime.
     /// </summary>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpGet("PurgeAllUnusedTmdbShows")]
     public ActionResult PurgeAllUnusedTmdbShows()
     {
@@ -215,6 +229,7 @@ public class ActionController : BaseController
     /// Purge all TMDB Show Alternate Orderings.
     /// </summary>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
