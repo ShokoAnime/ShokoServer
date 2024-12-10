@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -62,6 +63,12 @@ public class Episode
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<Overview>? Overviews { get; init; }
+
+    /// <summary>
+    /// Indicates that the episode should be hidden from view unless explicitly
+    /// requested, and should now be used internally at all.
+    /// </summary>
+    public bool IsHidden { get; init; }
 
     /// <summary>
     /// The episode number for the main ordering or alternate ordering in use.
@@ -161,6 +168,7 @@ public class Episode
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = episode.GetAllOverviews()
                 .ToDto(episode.EnglishOverview, preferredOverview, language);
+        IsHidden = episode.IsHidden;
 
         if (alternateOrderingEpisode != null)
         {
@@ -354,6 +362,15 @@ public class Episode
             if (xref.MatchRating != MatchRatingEnum.SarahJessicaParker)
                 Rating = xref.MatchRating.ToString();
         }
+    }
+
+    public class SetHiddenStateForTmdbEpisodeByEpisodeIDRequestBody
+    {
+        /// <summary>
+        /// The new hidden state of the episode.
+        /// </summary>
+        [DefaultValue(true)]
+        public bool Value { get; set; } = true;
     }
 
     [Flags]

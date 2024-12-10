@@ -127,6 +127,11 @@ public class Show
     public int EpisodeCount { get; init; }
 
     /// <summary>
+    /// Count of hidden episodes associated with the show.
+    /// </summary>
+    public int HiddenEpisodeCount { get; init; }
+
+    /// <summary>
     /// Count of seasons associated with the show.
     /// </summary>
     public int SeasonCount { get; init; }
@@ -224,11 +229,13 @@ public class Show
         if (alternateOrdering != null)
         {
             EpisodeCount = alternateOrdering.EpisodeCount;
+            HiddenEpisodeCount = alternateOrdering.HiddenEpisodeCount;
             SeasonCount = alternateOrdering.SeasonCount;
         }
         else
         {
             EpisodeCount = show.EpisodeCount;
+            HiddenEpisodeCount = show.HiddenEpisodeCount;
             SeasonCount = show.SeasonCount;
         }
         AlternateOrderingCount = show.AlternateOrderingCount;
@@ -287,6 +294,11 @@ public class Show
         public int EpisodeCount { get; init; }
 
         /// <summary>
+        /// The number of hidden episodes in the ordering scheme.
+        /// </summary>
+        public int HiddenEpisodeCount { get; init; }
+
+        /// <summary>
         /// The number of seasons in the ordering scheme.
         /// </summary>
         public int SeasonCount { get; init; }
@@ -312,6 +324,7 @@ public class Show
             OrderingName = "Seasons";
             OrderingType = null;
             EpisodeCount = show.EpisodeCount;
+            HiddenEpisodeCount = show.HiddenEpisodeCount;
             SeasonCount = show.SeasonCount;
             IsDefault = true;
             IsPreferred = string.IsNullOrEmpty(show.PreferredAlternateOrderingID) || string.Equals(show.Id.ToString(), show.PreferredAlternateOrderingID);
@@ -324,6 +337,7 @@ public class Show
             OrderingName = ordering.EnglishTitle;
             OrderingType = ordering.Type;
             EpisodeCount = ordering.EpisodeCount;
+            HiddenEpisodeCount = ordering.HiddenEpisodeCount;
             SeasonCount = ordering.SeasonCount;
             IsDefault = false;
             IsPreferred = string.Equals(ordering.TmdbEpisodeGroupCollectionID, show.PreferredAlternateOrderingID);

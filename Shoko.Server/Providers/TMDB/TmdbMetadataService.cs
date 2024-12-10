@@ -1003,8 +1003,18 @@ public class TmdbMetadataService
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;
             updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
-            var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh, shouldFireEvents);
+            var (episodesOrSeasonsUpdated, updatedEpisodes, episodeCount, hiddenEpisodeCount) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh, shouldFireEvents);
             updated = episodesOrSeasonsUpdated || updated;
+            if (tmdbShow.EpisodeCount != episodeCount)
+            {
+                tmdbShow.EpisodeCount = episodeCount;
+                updated = true;
+            }
+            if (tmdbShow.HiddenEpisodeCount != hiddenEpisodeCount)
+            {
+                tmdbShow.HiddenEpisodeCount = hiddenEpisodeCount;
+                updated = true;
+            }
             if (downloadAlternateOrdering && !quickRefresh)
                 updated = await UpdateShowAlternateOrdering(show) || updated;
             if (newlyAdded || updated)
@@ -1043,7 +1053,7 @@ public class TmdbMetadataService
         }
     }
 
-    private async Task<(bool episodesOrSeasonsUpdated, Dictionary<TMDB_Episode, UpdateReason> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
+    private async Task<(bool episodesOrSeasonsUpdated, Dictionary<TMDB_Episode, UpdateReason> updatedEpisodes, int episodeCount, int hiddenEpisodeCount)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
     {
         var settings = _settingsProvider.GetSettings();
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -1055,6 +1065,8 @@ public class TmdbMetadataService
         var seasonsToSkip = new HashSet<int>();
         var seasonsToSave = new List<TMDB_Season>();
 
+        var totalEpisodeCount = 0;
+        var totalHiddenEpisodeCount = 0;
         var existingEpisodes = new ConcurrentDictionary<int, TMDB_Episode>();
         foreach (var episode in _tmdbEpisodes.GetByTmdbShowID(show.Id))
             existingEpisodes.TryAdd(episode.Id, episode);
@@ -1081,10 +1093,13 @@ public class TmdbMetadataService
             {
                 tmdbSeason.LastUpdatedAt = DateTime.Now;
                 seasonsToSave.Add(tmdbSeason);
+                seasonUpdated = false;
             }
 
             seasonsToSkip.Add(tmdbSeason.Id);
 
+            var episodeBag = new ConcurrentBag<TMDB_Episode>();
+            var hiddenEpisodeBag = new ConcurrentBag<TMDB_Episode>();
             await ProcessWithConcurrencyAsync(_maxConcurrency, season.Episodes, async (reducedEpisode) =>
             {
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
@@ -1138,7 +1153,34 @@ public class TmdbMetadataService
                 }
 
                 episodesToSkip.Add(tmdbEpisode.Id);
+                if (tmdbEpisode.IsHidden)
+                    hiddenEpisodeBag.Add(tmdbEpisode);
+                else
+                    episodeBag.Add(tmdbEpisode);
             });
+
+            var episodeCount = episodeBag.Count;
+            var hiddenEpisodeCount = hiddenEpisodeBag.Count;
+            if (tmdbSeason.EpisodeCount != episodeCount)
+            {
+                tmdbSeason.EpisodeCount = episodeCount;
+                seasonUpdated = true;
+            }
+            if (tmdbSeason.HiddenEpisodeCount != hiddenEpisodeCount)
+            {
+                tmdbSeason.HiddenEpisodeCount = hiddenEpisodeCount;
+                seasonUpdated = true;
+            }
+            if (seasonUpdated)
+            {
+                tmdbSeason.LastUpdatedAt = DateTime.Now;
+                if (!seasonsToSave.Contains(tmdbSeason))
+                    seasonsToSave.Add(tmdbSeason);
+            }
+            totalEpisodeCount += episodeCount;
+            totalHiddenEpisodeCount += hiddenEpisodeCount;
+            episodeBag.Clear();
+            hiddenEpisodeBag.Clear();
         }
 
         var seasonsToRemove = existingSeasons.Values
@@ -1184,7 +1226,9 @@ public class TmdbMetadataService
         if (quickRefresh)
             return (
                 seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0,
-                episodeEventsToEmit
+                episodeEventsToEmit,
+                totalEpisodeCount,
+                totalHiddenEpisodeCount
             );
 
         // Only add/remove staff if we're not doing a quick refresh.
@@ -1218,7 +1262,9 @@ public class TmdbMetadataService
 
         return (
             seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0 || peopleAdded > 0 || peoplePurged > 0,
-            episodeEventsToEmit
+            episodeEventsToEmit,
+            totalEpisodeCount,
+            totalHiddenEpisodeCount
         );
     }
 
@@ -1230,6 +1276,10 @@ public class TmdbMetadataService
             show.Name,
             show.Id);
 
+        var hiddenEpisodes = _tmdbEpisodes.GetByTmdbShowID(show.Id)
+            .Where(episode => episode.IsHidden)
+            .Select(episode => episode.Id)
+            .ToHashSet();
         var existingOrdering = _tmdbAlternateOrdering.GetByTmdbShowID(show.Id)
             .ToDictionary(ordering => ordering.Id);
         var orderingToAdd = 0;
@@ -1263,12 +1313,9 @@ public class TmdbMetadataService
             }
 
             var orderingUpdated = tmdbOrdering.Populate(collection, show.Id);
-            if (orderingUpdated)
-            {
-                tmdbOrdering.LastUpdatedAt = DateTime.Now;
-                orderingToSave.Add(tmdbOrdering);
-            }
 
+            var totalEpisodeCount = 0;
+            var totalHiddenEpisodeCount = 0;
             foreach (var episodeGroup in collection.Groups)
             {
                 if (!existingSeasons.TryGetValue(episodeGroup.Id, out var tmdbSeason))
@@ -1278,12 +1325,9 @@ public class TmdbMetadataService
                 }
 
                 var seasonUpdated = tmdbSeason.Populate(episodeGroup, collection.Id, show.Id, episodeGroup.Order);
-                if (seasonUpdated)
-                {
-                    tmdbSeason.LastUpdatedAt = DateTime.Now;
-                    seasonsToSave.Add(tmdbSeason);
-                }
 
+                var episodeCount = 0;
+                var hiddenEpisodeCount = 0;
                 var episodeNumberCount = 1;
                 foreach (var episode in episodeGroup.Episodes)
                 {
@@ -1292,6 +1336,10 @@ public class TmdbMetadataService
 
                     var episodeNumber = episodeNumberCount++;
                     var episodeId = episode.Id.Value;
+                    if (hiddenEpisodes.Contains(episodeId))
+                        hiddenEpisodeCount++;
+                    else
+                        episodeCount++;
 
                     if (!existingEpisodes.TryGetValue($"{episodeGroup.Id}:{episodeId}", out var tmdbEpisode))
                     {
@@ -1309,7 +1357,43 @@ public class TmdbMetadataService
                     episodesToSkip.Add(tmdbEpisode.Id);
                 }
 
+                if (tmdbSeason.EpisodeCount != episodeCount)
+                {
+                    tmdbSeason.EpisodeCount = episodeCount;
+                    seasonUpdated = true;
+                }
+                if (tmdbSeason.HiddenEpisodeCount != hiddenEpisodeCount)
+                {
+                    tmdbSeason.HiddenEpisodeCount = hiddenEpisodeCount;
+                    seasonUpdated = true;
+                }
+
+                if (seasonUpdated)
+                {
+                    tmdbSeason.LastUpdatedAt = DateTime.Now;
+                    seasonsToSave.Add(tmdbSeason);
+                }
+
+                totalEpisodeCount += episodeCount;
+                totalHiddenEpisodeCount += hiddenEpisodeCount;
                 seasonsToSkip.Add(tmdbSeason.Id);
+            }
+
+            if (tmdbOrdering.EpisodeCount != totalEpisodeCount)
+            {
+                tmdbOrdering.EpisodeCount = totalEpisodeCount;
+                orderingUpdated = true;
+            }
+            if (tmdbOrdering.HiddenEpisodeCount != totalHiddenEpisodeCount)
+            {
+                tmdbOrdering.HiddenEpisodeCount = totalHiddenEpisodeCount;
+                orderingUpdated = true;
+            }
+
+            if (orderingUpdated)
+            {
+                tmdbOrdering.LastUpdatedAt = DateTime.Now;
+                orderingToSave.Add(tmdbOrdering);
             }
 
             orderingToSkip.Add(tmdbOrdering.Id);

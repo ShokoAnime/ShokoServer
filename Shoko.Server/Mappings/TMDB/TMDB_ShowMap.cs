@@ -27,6 +27,7 @@ public class TMDB_ShowMap : ClassMap<TMDB_Show>
         Map(x => x.ContentRatings).Not.Nullable().CustomType<TmdbContentRatingConverter>();
         Map(x => x.ProductionCountries).Not.Nullable().CustomType<TmdbProductionCountryConverter>();
         Map(x => x.EpisodeCount).Not.Nullable();
+        Map(x => x.HiddenEpisodeCount).Not.Nullable();
         Map(x => x.SeasonCount).Not.Nullable();
         Map(x => x.AlternateOrderingCount).Not.Nullable();
         Map(x => x.UserRating).Not.Nullable();

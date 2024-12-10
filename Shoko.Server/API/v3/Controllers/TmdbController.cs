@@ -1248,6 +1248,7 @@ public partial class TmdbController : BaseController
     /// <param name="showID">The ID of the show.</param>
     /// <param name="include">The optional details to include in the response.</param>
     /// <param name="language">The optional language to use for the episode titles.</param>
+    /// <param name="includeHidden">Whether or not to include hidden episodes.</param>
     /// <param name="alternateOrderingID">The optional ID of an alternate ordering.</param>
     /// <param name="pageSize">The number of entries to return per page.</param>
     /// <param name="page">The page of entries to return.</param>
@@ -1259,6 +1260,7 @@ public partial class TmdbController : BaseController
         [FromRoute] int showID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails>? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
+        [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
@@ -1309,6 +1311,11 @@ public partial class TmdbController : BaseController
                     .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
                     .Where(tuple => tuple.episode is not null)
                     .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
+                if (includeHidden is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
+                    altEpisodes = altEpisodes.Where(t => t.episode.IsHidden == shouldHideHidden);
+                }
                 if (seasonNumber is not null && episodeNumber is not null)
                     altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber && t.episode.EpisodeNumber == episodeNumber);
                 else if (seasonNumber is not null)
@@ -1326,6 +1333,11 @@ public partial class TmdbController : BaseController
         }
 
         IEnumerable<TMDB_Episode> episodes = show.TmdbEpisodes;
+        if (includeHidden is not IncludeOnlyFilter.True)
+        {
+            var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
+            episodes = episodes.Where(e => e.IsHidden == shouldHideHidden);
+        }
         if (seasonNumber is not null && episodeNumber is not null)
             episodes = episodes.Where(e => e.SeasonNumber == seasonNumber && e.EpisodeNumber == episodeNumber);
         else if (seasonNumber is not null)
@@ -1842,6 +1854,7 @@ public partial class TmdbController : BaseController
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails>? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
+        [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -1856,8 +1869,17 @@ public partial class TmdbController : BaseController
             if (altShow is null)
                 return NotFound(ShowNotFoundBySeasonID);
 
-            return altOrderSeason.TmdbAlternateOrderingEpisodes
-                .ToListResult(e => new TmdbEpisode(altShow, e.TmdbEpisode!, e, include?.CombineFlags(), language), page, pageSize);
+            var altEpisodes = altOrderSeason.TmdbAlternateOrderingEpisodes
+                .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
+                .Where(tuple => tuple.episode is not null)
+                .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
+            if (includeHidden is not IncludeOnlyFilter.True)
+            {
+                var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
+                altEpisodes = altEpisodes.Where(t => t.episode.IsHidden == shouldHideHidden);
+            }
+            return altEpisodes
+                .ToListResult(t => new TmdbEpisode(altShow, t.episode, t.ordering, include?.CombineFlags(), language), page, pageSize);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -1869,7 +1891,13 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFoundBySeasonID);
 
-        return season.TmdbEpisodes
+        IEnumerable<TMDB_Episode> episodes = season.TmdbEpisodes;
+        if (includeHidden is not IncludeOnlyFilter.True)
+        {
+            var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
+            episodes = episodes.Where(e => e.IsHidden == shouldHideHidden);
+        }
+        return episodes
             .ToListResult(e => new TmdbEpisode(show, e, include?.CombineFlags(), language), page, pageSize);
     }
 
@@ -2191,6 +2219,26 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         return FileCrossReference.From(episode.FileCrossReferences);
+    }
+
+    #endregion
+
+    #region Actions
+
+    [HttpPost("Episode/{episodeID}/Action/SetHiddenState")]
+    public ActionResult SetHiddenStateForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] TmdbEpisode.SetHiddenStateForTmdbEpisodeByEpisodeIDRequestBody? body
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is null)
+            return NotFound(EpisodeNotFound);
+
+        episode.IsHidden = body?.Value ?? true;
+        RepoFactory.TMDB_Episode.Save(episode);
+
+        return Ok();
     }
 
     #endregion

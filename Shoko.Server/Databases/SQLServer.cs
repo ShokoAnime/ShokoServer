@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 136;
+    public override int RequiredVersion { get; } = 137;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -789,6 +789,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(135, 2, "ALTER TABLE TMDB_Show ALTER COLUMN ProductionCountries NVARCHAR(255) NULL;"),
         new DatabaseCommand(136, 1, "CREATE INDEX IX_TMDB_Episode_TmdbSeasonID ON TMDB_Episode(TmdbSeasonID);"),
         new DatabaseCommand(136, 2, "CREATE INDEX IX_TMDB_Episode_TmdbShowID ON TMDB_Episode(TmdbShowID);"),
+        new DatabaseCommand(137, 1, "ALTER TABLE TMDB_Episode ADD IsHidden int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(137, 2, "ALTER TABLE TMDB_Season ADD HiddenEpisodeCount int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(137, 3, "ALTER TABLE TMDB_Show ADD HiddenEpisodeCount int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(137, 4, "ALTER TABLE TMDB_AlternateOrdering_Season ADD HiddenEpisodeCount int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(137, 5, "ALTER TABLE TMDB_AlternateOrdering ADD HiddenEpisodeCount int NOT NULL DEFAULT 0;"),
     };
 
     private static void AlterImdbMovieIDType()

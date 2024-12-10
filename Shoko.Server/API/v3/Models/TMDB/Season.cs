@@ -84,6 +84,11 @@ public class Season
     public int EpisodeCount { get; init; }
 
     /// <summary>
+    /// Count of hidden episodes associated with the season.
+    /// </summary>
+    public int HiddenEpisodeCount { get; init; }
+
+    /// <summary>
     /// Indicates the alternate ordering season is locked. Will not be set if
     /// <seealso cref="AlternateOrderingID"/> is not set.
     /// </summary>
@@ -131,6 +136,7 @@ public class Season
                 .ToList();
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
+        HiddenEpisodeCount = season.HiddenEpisodeCount;
         IsLocked = null;
         CreatedAt = season.CreatedAt.ToUniversalTime();
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
@@ -153,6 +159,7 @@ public class Season
             Images = new();
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
+        HiddenEpisodeCount = season.HiddenEpisodeCount;
         IsLocked = season.IsLocked;
         CreatedAt = season.CreatedAt.ToUniversalTime();
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();

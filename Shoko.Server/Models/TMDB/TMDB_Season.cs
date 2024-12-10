@@ -63,6 +63,11 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     public int EpisodeCount { get; set; }
 
     /// <summary>
+    /// Number of episodes within the season that are hidden.
+    /// </summary>
+    public int HiddenEpisodeCount { get; set; }
+
+    /// <summary>
     /// Season number for default ordering.
     /// </summary>
     public int SeasonNumber { get; set; }
@@ -119,7 +124,6 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
             UpdateProperty(TmdbShowID, show.Id, v => TmdbShowID = v),
             UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : season.Name, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : season.Overview, v => EnglishOverview = v),
-            UpdateProperty(EpisodeCount, season.Episodes.Count, v => EpisodeCount = v),
             UpdateProperty(SeasonNumber, season.SeasonNumber, v => SeasonNumber = v),
         };
 

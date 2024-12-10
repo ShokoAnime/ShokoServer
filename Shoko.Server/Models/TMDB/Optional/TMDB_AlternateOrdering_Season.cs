@@ -50,6 +50,11 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     public int EpisodeCount { get; set; }
 
     /// <summary>
+    /// Number of episodes within the season that are hidden.
+    /// </summary>
+    public int HiddenEpisodeCount { get; set; }
+
+    /// <summary>
     /// Indicates the alternate ordering season is locked.
     /// </summary>
     /// <remarks>
@@ -90,7 +95,6 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
             UpdateProperty(TmdbEpisodeGroupCollectionID, collectionId, v => TmdbEpisodeGroupCollectionID = v),
             UpdateProperty(EnglishTitle, episodeGroup.Name, v => EnglishTitle = v),
             UpdateProperty(SeasonNumber, seasonNumber, v => SeasonNumber = v),
-            UpdateProperty(EpisodeCount, episodeGroup.Episodes.Count, v => EpisodeCount = v),
             UpdateProperty(IsLocked, episodeGroup.Locked, v => IsLocked = v),
         };
 

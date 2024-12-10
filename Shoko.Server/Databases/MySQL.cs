@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 144;
+    public override int RequiredVersion { get; } = 145;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -859,6 +859,11 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(143, 2, "ALTER TABLE `TMDB_Show` CHANGE COLUMN `ProductionCountries` `ProductionCountries` VARCHAR(255) NULL;"),
         new(144, 1, "CREATE INDEX IX_TMDB_Episode_TmdbSeasonID ON TMDB_Episode(TmdbSeasonID);"),
         new(144, 2, "CREATE INDEX IX_TMDB_Episode_TmdbShowID ON TMDB_Episode(TmdbShowID);"),
+        new(145, 1, "ALTER TABLE `TMDB_Episode` ADD COLUMN `IsHidden` int NOT NULL DEFAULT 0;"),
+        new(145, 2, "ALTER TABLE `TMDB_Season` ADD COLUMN `HiddenEpisodeCount` int NOT NULL DEFAULT 0;"),
+        new(145, 3, "ALTER TABLE `TMDB_Show` ADD COLUMN `HiddenEpisodeCount` int NOT NULL DEFAULT 0;"),
+        new(145, 4, "ALTER TABLE `TMDB_AlternateOrdering_Season` ADD COLUMN `HiddenEpisodeCount` int NOT NULL DEFAULT 0;"),
+        new(145, 5, "ALTER TABLE `TMDB_AlternateOrdering` ADD COLUMN `HiddenEpisodeCount` int NOT NULL DEFAULT 0;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

@@ -59,6 +59,11 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>
     public int EpisodeCount { get; set; }
 
     /// <summary>
+    /// Number of episodes within the season that are hidden.
+    /// </summary>
+    public int HiddenEpisodeCount { get; set; }
+
+    /// <summary>
     /// Number of seasons within the episode group.
     /// </summary>
     public int SeasonCount { get; set; }
@@ -101,7 +106,6 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>
             UpdateProperty(TmdbNetworkID, collection.Network?.Id, v => TmdbNetworkID = v),
             UpdateProperty(EnglishTitle, collection.Name, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, collection.Description, v => EnglishOverview = v),
-            UpdateProperty(EpisodeCount, collection.EpisodeCount, v => EpisodeCount = v),
             UpdateProperty(SeasonCount, collection.GroupCount, v => SeasonCount = v),
             UpdateProperty(Type, Enum.Parse<AlternateOrderingType>(collection.Type.ToString()), v => Type = v),
         };

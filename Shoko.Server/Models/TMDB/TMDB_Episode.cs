@@ -72,6 +72,12 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     public string EnglishOverview { get; set; } = string.Empty;
 
     /// <summary>
+    /// Indicates that the episode should be hidden from view unless explicitly
+    /// requested, and should now be used internally at all.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>
     /// Season number for default ordering.
     /// </summary>
     public int SeasonNumber { get; set; }
