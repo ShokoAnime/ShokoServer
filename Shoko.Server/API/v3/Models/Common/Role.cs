@@ -153,7 +153,7 @@ public class Role
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     public Role(TMDB_Show_Crew crew)
@@ -169,7 +169,7 @@ public class Role
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     public Role(TMDB_Season_Crew crew)
@@ -185,7 +185,7 @@ public class Role
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     public Role(TMDB_Episode_Crew crew)
@@ -201,7 +201,7 @@ public class Role
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     /// <summary>
