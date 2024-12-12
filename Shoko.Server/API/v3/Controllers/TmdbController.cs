@@ -1314,7 +1314,7 @@ public partial class TmdbController : BaseController
                 if (includeHidden is not IncludeOnlyFilter.True)
                 {
                     var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
-                    altEpisodes = altEpisodes.Where(t => t.episode.IsHidden == shouldHideHidden);
+                    altEpisodes = altEpisodes.Where(t => t.episode.IsHidden != shouldHideHidden);
                 }
                 if (seasonNumber is not null && episodeNumber is not null)
                     altEpisodes = altEpisodes.Where(t => t.episode.SeasonNumber == seasonNumber && t.episode.EpisodeNumber == episodeNumber);
@@ -1336,7 +1336,7 @@ public partial class TmdbController : BaseController
         if (includeHidden is not IncludeOnlyFilter.True)
         {
             var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
-            episodes = episodes.Where(e => e.IsHidden == shouldHideHidden);
+            episodes = episodes.Where(e => e.IsHidden != shouldHideHidden);
         }
         if (seasonNumber is not null && episodeNumber is not null)
             episodes = episodes.Where(e => e.SeasonNumber == seasonNumber && e.EpisodeNumber == episodeNumber);
@@ -1876,7 +1876,7 @@ public partial class TmdbController : BaseController
             if (includeHidden is not IncludeOnlyFilter.True)
             {
                 var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
-                altEpisodes = altEpisodes.Where(t => t.episode.IsHidden == shouldHideHidden);
+                altEpisodes = altEpisodes.Where(t => t.episode.IsHidden != shouldHideHidden);
             }
             return altEpisodes
                 .ToListResult(t => new TmdbEpisode(altShow, t.episode, t.ordering, include?.CombineFlags(), language), page, pageSize);
@@ -1895,7 +1895,7 @@ public partial class TmdbController : BaseController
         if (includeHidden is not IncludeOnlyFilter.True)
         {
             var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
-            episodes = episodes.Where(e => e.IsHidden == shouldHideHidden);
+            episodes = episodes.Where(e => e.IsHidden != shouldHideHidden);
         }
         return episodes
             .ToListResult(e => new TmdbEpisode(show, e, include?.CombineFlags(), language), page, pageSize);
