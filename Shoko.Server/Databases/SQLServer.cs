@@ -812,6 +812,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(138, 16, "ALTER TABLE TMDB_AlternateOrdering_Episode ALTER COLUMN LastUpdatedAt datetime2;"),
         new DatabaseCommand(138, 17, "ALTER TABLE TMDB_Collection ALTER COLUMN CreatedAt datetime2;"),
         new DatabaseCommand(138, 18, "ALTER TABLE TMDB_Collection ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 19, DropDefaultOnCreatorLastUpdatedAt),
+        new DatabaseCommand(138, 20, "ALTER TABLE AniDB_Creator ALTER COLUMN LastUpdatedAt datetime2;"),
     };
 
     private static void AlterImdbMovieIDType()
@@ -1043,6 +1045,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
         query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
         session.CreateSQLQuery(query).ExecuteUpdate();
         trans.Commit();
+    }
+    private static Tuple<bool, string> DropDefaultOnCreatorLastUpdatedAt(object connection)
+    {
+        DropDefaultConstraint("AniDB_Creator", "LastUpdatedAt");
+        return Tuple.Create<bool, string>(true, null);
     }
 
     protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
