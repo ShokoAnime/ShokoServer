@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -99,7 +99,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     private const string MultipleReleasesCountVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public List<SVR_AnimeEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
+    public IEnumerable<SVR_AnimeEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
     {
         var ids = Lock(() =>
         {
@@ -126,8 +126,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
             .ThenBy(tuple => tuple.anidbEpisode!.EpisodeTypeEnum)
             .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
-            .Select(tuple => tuple.episode!)
-            .ToList();
+            .Select(tuple => tuple.episode!);
     }
 
     private const string DuplicateFilesWithAnimeQuery = @"
@@ -215,6 +214,78 @@ GROUP BY
             .ThenBy(tuple => tuple.anidbEpisode!.EpisodeTypeEnum)
             .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
             .Select(tuple => tuple.episode!);
+    }
+
+    public IEnumerable<SVR_AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
+    {
+        // NOTE: For comments about this code, see the AnimeSeriesService.
+        var allSeries = animeID.HasValue
+            ? new List<SVR_AnimeSeries?>([RepoFactory.AnimeSeries.GetByAnimeID(animeID.Value)]).WhereNotNull()
+            : RepoFactory.AnimeSeries.GetWithMissingEpisodes(collecting);
+        foreach (var series in allSeries)
+        {
+            var animeType = (AnimeType)series.AniDB_Anime!.AnimeType;
+            var episodeReleasedList = new AnimeSeriesService.EpisodeList(animeType);
+            var episodeReleasedGroupList = new AnimeSeriesService.EpisodeList(animeType);
+            var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
+            var allEpisodes = series.AllAnimeEpisodes
+                .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode!, videos: episode.VideoLocals))
+                .Where(tuple => tuple.anidbEpisode is not null)
+                .ToList();
+            var localReleaseGroups = allEpisodes
+                .Where(tuple => tuple.anidbEpisode.EpisodeTypeEnum == EpisodeType.Episode)
+                .SelectMany(a =>
+                {
+                    var videos = a.videos;
+                    if (videos.Count is 0)
+                        return [];
+
+                    var aniFiles = videos
+                        .Select(b => b.AniDBFile)
+                        .WhereNotNull()
+                        .ToList();
+                    if (aniFiles.Count is 0)
+                        return [];
+
+                    return aniFiles
+                        .Select(b => b.GroupID);
+                })
+                .ToHashSet();
+            foreach (var (episode, anidbEpisode, videos) in allEpisodes)
+            {
+                if (anidbEpisode.EpisodeTypeEnum is not EpisodeType.Episode || videos.Count is not 0 || !anidbEpisode.HasAired)
+                    continue;
+
+                if (animeGroupStatuses.Count is 0)
+                {
+                    episodeReleasedList.Add(episode, videos.Count is not 0);
+                    continue;
+                }
+
+                var filteredGroups = animeGroupStatuses
+                    .Where(status =>
+                        status.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished ||
+                        status.HasGroupReleasedEpisode(anidbEpisode.EpisodeNumber)
+                    )
+                    .ToList();
+                if (filteredGroups.Count is 0)
+                    continue;
+
+                episodeReleasedList.Add(episode, videos.Count is not 0);
+                if (filteredGroups.Any(a => localReleaseGroups.Contains(a.GroupID)))
+                    episodeReleasedGroupList.Add(episode, videos.Count is not 0);
+            }
+
+            foreach (var episodeStats in collecting ? episodeReleasedGroupList : episodeReleasedList)
+            {
+                if (episodeStats.Available)
+                    continue;
+
+                foreach (var episodeStat in episodeStats)
+                    if (!episodeStat.Episode.IsHidden)
+                        yield return episodeStat.Episode;
+            }
+        }
     }
 
     public IReadOnlyList<SVR_AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)

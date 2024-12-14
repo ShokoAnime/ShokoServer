@@ -324,7 +324,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     private const string MultipleReleasesCountVariationsQuery =
         @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public List<SVR_AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
+    public IEnumerable<SVR_AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
     {
         var ids = Lock(() =>
         {
@@ -339,8 +339,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         return ids
             .Distinct()
             .Select(GetByAnimeID)
-            .WhereNotNull()
-            .ToList();
+            .WhereNotNull();
     }
 
     private const string DuplicateFilesQuery = @"
@@ -380,6 +379,28 @@ GROUP BY
 
             return session.CreateSQLQuery(DuplicateFilesQuery)
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .List<int>();
+        });
+
+        return ids
+            .Distinct()
+            .Select(GetByAnimeID)
+            .WhereNotNull();
+    }
+
+    public const string MissingEpisodesCollectingQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCountGroups > 0";
+
+    public const string MissingEpisodesQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCount > 0";
+
+    public IEnumerable<SVR_AnimeSeries> GetWithMissingEpisodes(bool collecting)
+    {
+        var ids = Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+
+            var query = collecting ? MissingEpisodesCollectingQuery : MissingEpisodesQuery;
+            return session.CreateSQLQuery(query)
+                .AddScalar("AniDB_ID", NHibernateUtil.Int32)
                 .List<int>();
         });
 

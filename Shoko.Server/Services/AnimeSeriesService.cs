@@ -1080,7 +1080,6 @@ label0:;
 
         public void Add(SVR_AnimeEpisode ep, bool available)
         {
-            var hidden = ep.IsHidden;
             if (AnimeType == AnimeType.OVA || AnimeType == AnimeType.Movie)
             {
                 var ename = ep.PreferredTitle;
@@ -1091,7 +1090,7 @@ label0:;
                     m = partmatch.Match(ename);
                 }
 
-                var s = new StatEpisodes.StatEpisode { Available = available, Hidden = hidden };
+                var s = new StatEpisodes.StatEpisode { Available = available, Episode = ep };
                 if (m?.Success ?? false)
                 {
                     int.TryParse(m.Groups[1].Value, out var _);
@@ -1154,7 +1153,7 @@ label0:;
                     EpisodeType = StatEpisodes.StatEpisode.EpType.Complete,
                     PartCount = 0,
                     Available = available,
-                    Hidden = hidden,
+                    Episode = ep,
                 };
                 eps.Add(es);
                 Add(eps);
@@ -1175,7 +1174,7 @@ label0:;
                 public int PartCount;
                 public EpType EpisodeType { get; set; }
                 public bool Available { get; set; }
-                public bool Hidden { get; set; }
+                public SVR_AnimeEpisode Episode { get; set; }
             }
 
             public bool Available
@@ -1206,7 +1205,7 @@ label0:;
             }
 
             public bool Hidden
-                => this.Any(e => e.Hidden);
+                => this.Any(e => e.Episode.IsHidden);
         }
     }
 }

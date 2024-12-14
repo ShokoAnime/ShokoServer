@@ -83,7 +83,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     /// <param name="page">Page number.</param>
     /// <returns></returns>
     [HttpGet("Series")]
-    public ActionResult<ListResult<Series.WithDuplicateFilesResult>> GetSeriesWithDuplicateFiles(
+    public ActionResult<ListResult<Series.WithEpisodeCount>> GetSeriesWithDuplicateFiles(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
@@ -96,7 +96,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         return enumerable
             .OrderBy(series => series.PreferredTitle)
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithDuplicateFilesResult(series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
