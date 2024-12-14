@@ -23,55 +23,55 @@ public class TMDB_ImageRepository : BaseCachedRepository<TMDB_Image, int>
     private PocoIndex<int, TMDB_Image, (string filePath, ImageEntityType type)>? _tmdbRemoteFileNames;
 
     public IReadOnlyList<TMDB_Image> GetByTmdbMovieID(int? movieId)
-        => movieId.HasValue ? ReadLock(() => _tmdbMovieIDs!.GetMultiple(movieId)) ?? new() : new();
+        => movieId.HasValue ? ReadLock(() => _tmdbMovieIDs!.GetMultiple(movieId)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbMovieIDAndType(int? movieId, ImageEntityType type)
         => GetByTmdbMovieID(movieId).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByTmdbEpisodeID(int? episodeId)
-        => episodeId.HasValue ? ReadLock(() => _tmdbEpisodeIDs!.GetMultiple(episodeId)) ?? new() : new();
+        => episodeId.HasValue ? ReadLock(() => _tmdbEpisodeIDs!.GetMultiple(episodeId)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbEpisodeIDAndType(int? episodeId, ImageEntityType type)
         => GetByTmdbEpisodeID(episodeId).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByTmdbSeasonID(int? seasonId)
-        => seasonId.HasValue ? ReadLock(() => _tmdbSeasonIDs!.GetMultiple(seasonId)) ?? new() : new();
+        => seasonId.HasValue ? ReadLock(() => _tmdbSeasonIDs!.GetMultiple(seasonId)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbSeasonIDAndType(int? seasonId, ImageEntityType type)
         => GetByTmdbSeasonID(seasonId).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByTmdbShowID(int? showId)
-        => showId.HasValue ? ReadLock(() => _tmdbShowIDs!.GetMultiple(showId)) ?? new() : new();
+        => showId.HasValue ? ReadLock(() => _tmdbShowIDs!.GetMultiple(showId)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbShowIDAndType(int? showId, ImageEntityType type)
         => GetByTmdbShowID(showId).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByTmdbCollectionID(int? collectionId)
-        => collectionId.HasValue ? ReadLock(() => _tmdbCollectionIDs!.GetMultiple(collectionId)) ?? new() : new();
+        => collectionId.HasValue ? ReadLock(() => _tmdbCollectionIDs!.GetMultiple(collectionId)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbCollectionIDAndType(int? collectionId, ImageEntityType type)
         => ReadLock(() => _tmdbCollectionIDs!.GetMultiple(collectionId)).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByTmdbNetworkID(int? networkId)
-        => networkId.HasValue ? ReadLock(() => _tmdbNetworkIDs!.GetMultiple(networkId.Value)) ?? new() : new();
+        => networkId.HasValue ? ReadLock(() => _tmdbNetworkIDs!.GetMultiple(networkId.Value)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbNetworkIDAndType(int? networkId, ImageEntityType type)
         => GetByTmdbNetworkID(networkId).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByTmdbCompanyID(int? companyId)
-        => companyId.HasValue ? ReadLock(() => _tmdbCompanyIDs!.GetMultiple(companyId.Value)) ?? new() : new();
+        => companyId.HasValue ? ReadLock(() => _tmdbCompanyIDs!.GetMultiple(companyId.Value)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbCompanyIDAndType(int? companyId, ImageEntityType type)
         => GetByTmdbCompanyID(companyId).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByTmdbPersonID(int? personId)
-        => personId.HasValue ? ReadLock(() => _tmdbPersonIDs!.GetMultiple(personId.Value)) ?? new() : new();
+        => personId.HasValue ? ReadLock(() => _tmdbPersonIDs!.GetMultiple(personId.Value)) ?? [] : [];
 
     public IReadOnlyList<TMDB_Image> GetByTmdbPersonIDAndType(int? personId, ImageEntityType type)
         => GetByTmdbPersonID(personId).Where(image => image.ImageType == type).ToList();
 
     public IReadOnlyList<TMDB_Image> GetByType(ImageEntityType type)
-        => ReadLock(() => _tmdbTypes!.GetMultiple(type)) ?? new();
+        => ReadLock(() => _tmdbTypes!.GetMultiple(type)) ?? [];
 
     public IReadOnlyList<TMDB_Image> GetByForeignID(int? id, ForeignEntityType foreignType)
         => foreignType switch
