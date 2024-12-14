@@ -422,7 +422,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return _episodeService.GetV1Contract(RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, userID)?.GetAnimeEpisode(), userID);
+            return _episodeService.GetV1Contract(RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, userID)?.AnimeEpisode, userID);
         }
         catch (Exception ex)
         {

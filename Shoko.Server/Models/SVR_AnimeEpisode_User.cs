@@ -1,6 +1,7 @@
 ﻿using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Models;
 
 public class SVR_AnimeEpisode_User : AnimeEpisode_User
@@ -18,8 +19,6 @@ public class SVR_AnimeEpisode_User : AnimeEpisode_User
         WatchedDate = null;
     }
 
-    public SVR_AnimeEpisode GetAnimeEpisode()
-    {
-        return RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
-    }
+    public SVR_AnimeEpisode? AnimeEpisode
+        => RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
 }
