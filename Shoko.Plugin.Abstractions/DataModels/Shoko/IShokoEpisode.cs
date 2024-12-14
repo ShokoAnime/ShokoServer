@@ -28,6 +28,16 @@ public interface IShokoEpisode : IEpisode
     IEpisode AnidbEpisode { get; }
 
     /// <summary>
+    /// A direct link to all tmdb episodes linked to the shoko episode.
+    /// </summary>
+    IReadOnlyList<IEpisode> TmdbEpisodes { get; }
+
+    /// <summary>
+    /// A direct link to all tmdb movies linked to the shoko episode.
+    /// </summary>
+    IReadOnlyList<IMovie> TmdbMovies { get; }
+
+    /// <summary>
     /// All episodes linked to this shoko episode.
     /// </summary>
     IReadOnlyList<IEpisode> LinkedEpisodes { get; }

@@ -23,9 +23,19 @@ public interface IShokoSeries : ISeries
     int TopLevelGroupID { get; }
 
     /// <summary>
-    /// A direct link to the anidb series metadata.
+    /// A direct link to the anidb anime metadata.
     /// </summary>
     ISeries AnidbAnime { get; }
+
+    /// <summary>
+    /// A direct link to all tmdb shows linked to the shoko series.
+    /// </summary>
+    IReadOnlyList<ISeries> TmdbShows { get; }
+
+    /// <summary>
+    /// A direct link to all tmdb movies linked to the shoko series.
+    /// </summary>
+    IReadOnlyList<IMovie> TmdbMovies { get; }
 
     /// <summary>
     /// All series linked to this shoko series.

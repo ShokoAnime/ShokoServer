@@ -648,15 +648,18 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     int IShokoSeries.TopLevelGroupID => TopLevelAnimeGroup.AnimeGroupID;
 
-    ISeries IShokoSeries.AnidbAnime => AniDB_Anime ??
-        throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IShokoSeries.AnidbAnime");
-
     IShokoGroup IShokoSeries.ParentGroup => AnimeGroup;
 
     IShokoGroup IShokoSeries.TopLevelGroup => TopLevelAnimeGroup;
 
     IReadOnlyList<IShokoGroup> IShokoSeries.AllParentGroups => AllGroupsAbove;
 
+    ISeries IShokoSeries.AnidbAnime => AniDB_Anime ??
+        throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IShokoSeries.AnidbAnime");
+
+    IReadOnlyList<ISeries> IShokoSeries.TmdbShows => TmdbShows;
+
+    IReadOnlyList<IMovie> IShokoSeries.TmdbMovies => TmdbMovies;
 
     IReadOnlyList<ISeries> IShokoSeries.LinkedSeries
     {
@@ -675,6 +678,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             return seriesList;
         }
     }
+
     IReadOnlyList<IMovie> IShokoSeries.LinkedMovies
     {
         get

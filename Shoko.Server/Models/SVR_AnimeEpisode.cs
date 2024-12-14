@@ -330,6 +330,31 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => [this];
 
+    IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
+        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
+
+    IReadOnlyList<IVideo> IEpisode.VideoList =>
+        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID)
+            .DistinctBy(xref => xref.Hash)
+            .Select(xref => xref.VideoLocal)
+            .WhereNotNull()
+            .ToList();
+
+    #endregion
+
+    #region IShokoEpisode Implementation
+
+    int IShokoEpisode.AnidbEpisodeID => AniDB_EpisodeID;
+
+    IShokoSeries? IShokoEpisode.Series => AnimeSeries;
+
+    IEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??
+        throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for AnimeEpisode {AnimeEpisodeID}");
+
+    IReadOnlyList<IEpisode> IShokoEpisode.TmdbEpisodes => TmdbEpisodes;
+
+    IReadOnlyList<IMovie> IShokoEpisode.TmdbMovies => TmdbMovies;
+
     IReadOnlyList<IEpisode> IShokoEpisode.LinkedEpisodes
     {
         get
@@ -361,27 +386,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             return movieList;
         }
     }
-
-    IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
-        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
-
-    IReadOnlyList<IVideo> IEpisode.VideoList =>
-        RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID)
-            .DistinctBy(xref => xref.Hash)
-            .Select(xref => xref.VideoLocal)
-            .WhereNotNull()
-            .ToList();
-
-    #endregion
-
-    #region IShokoEpisode Implementation
-
-    int IShokoEpisode.AnidbEpisodeID => AniDB_EpisodeID;
-
-    IShokoSeries? IShokoEpisode.Series => AnimeSeries;
-
-    IEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??
-        throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for AnimeEpisode {AnimeEpisodeID}");
 
     #endregion
 }
