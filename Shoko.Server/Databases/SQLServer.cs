@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 137;
+    public override int RequiredVersion { get; } = 138;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -794,6 +794,26 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(137, 3, "ALTER TABLE TMDB_Show ADD HiddenEpisodeCount int NOT NULL DEFAULT 0;"),
         new DatabaseCommand(137, 4, "ALTER TABLE TMDB_AlternateOrdering_Season ADD HiddenEpisodeCount int NOT NULL DEFAULT 0;"),
         new DatabaseCommand(137, 5, "ALTER TABLE TMDB_AlternateOrdering ADD HiddenEpisodeCount int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(138, 1, "ALTER TABLE TMDB_Person ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 2, "ALTER TABLE TMDB_Person ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 3, "ALTER TABLE TMDB_Movie ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 4, "ALTER TABLE TMDB_Movie ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 5, "ALTER TABLE TMDB_Show ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 6, "ALTER TABLE TMDB_Show ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 7, "ALTER TABLE TMDB_Season ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 8, "ALTER TABLE TMDB_Season ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 9, "ALTER TABLE TMDB_Episode ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 10, "ALTER TABLE TMDB_Episode ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 11, "ALTER TABLE TMDB_AlternateOrdering ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 12, "ALTER TABLE TMDB_AlternateOrdering ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 13, "ALTER TABLE TMDB_AlternateOrdering_Season ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 14, "ALTER TABLE TMDB_AlternateOrdering_Season ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 15, "ALTER TABLE TMDB_AlternateOrdering_Episode ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 16, "ALTER TABLE TMDB_AlternateOrdering_Episode ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 17, "ALTER TABLE TMDB_Collection ALTER COLUMN CreatedAt datetime2;"),
+        new DatabaseCommand(138, 18, "ALTER TABLE TMDB_Collection ALTER COLUMN LastUpdatedAt datetime2;"),
+        new DatabaseCommand(138, 19, DropDefaultOnCreatorLastUpdatedAt),
+        new DatabaseCommand(138, 20, "ALTER TABLE AniDB_Creator ALTER COLUMN LastUpdatedAt datetime2;"),
     };
 
     private static void AlterImdbMovieIDType()
@@ -1025,6 +1045,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
         query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
         session.CreateSQLQuery(query).ExecuteUpdate();
         trans.Commit();
+    }
+    private static Tuple<bool, string> DropDefaultOnCreatorLastUpdatedAt(object connection)
+    {
+        DropDefaultConstraint("AniDB_Creator", "LastUpdatedAt");
+        return Tuple.Create<bool, string>(true, null);
     }
 
     protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
