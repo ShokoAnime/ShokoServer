@@ -43,6 +43,11 @@ public interface IFilterable
     int MissingEpisodesCollecting { get; }
 
     /// <summary>
+    /// Number of video files for the filterable.
+    /// </summary>
+    int VideoFiles { get; }
+
+    /// <summary>
     /// All of the tags
     /// </summary>
     IReadOnlySet<string> Tags { get; }

@@ -15,6 +15,7 @@ public class TestFilterable : IFilterable
     public int SeriesCount { get; init; }
     public int MissingEpisodes { get; init; }
     public int MissingEpisodesCollecting { get; init; }
+    public int VideoFiles { get; init; }
     public IReadOnlySet<string> Tags { get; init; }
     public IReadOnlySet<string> CustomTags { get; init; }
     public IReadOnlySet<int> Years { get; init; }

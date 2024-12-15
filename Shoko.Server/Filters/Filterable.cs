@@ -28,6 +28,7 @@ public class Filterable : IFilterable
     private readonly Lazy<decimal> _lowestAniDBRating;
     private readonly Lazy<int> _missingEpisodes;
     private readonly Lazy<int> _missingEpisodesCollecting;
+    private readonly Lazy<int> _videoFiles;
     private readonly Lazy<string> _name;
     private readonly Lazy<IReadOnlySet<string>> _names;
     private readonly Lazy<IReadOnlySet<string>> _aniDbIds;
@@ -96,6 +97,13 @@ public class Filterable : IFilterable
     public Func<int> MissingEpisodesCollectingDelegate
     {
         init => _missingEpisodesCollecting = new Lazy<int>(value);
+    }
+
+    public int VideoFiles => _videoFiles.Value;
+
+    public Func<int> VideoFilesDelegate
+    {
+        init => _videoFiles = new Lazy<int>(value);
     }
 
     public IReadOnlySet<string> Tags => _tags.Value;

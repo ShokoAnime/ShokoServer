@@ -49,6 +49,8 @@ public static class FilterExtensions
                 series.MissingEpisodeCount,
             MissingEpisodesCollectingDelegate = () =>
                 series.MissingEpisodeCountGroups,
+            VideoFilesDelegate = () =>
+                series.VideoLocals.Count,
             TagsDelegate = () =>
                 series.AniDB_Anime?.Tags.Select(a => a.TagName).ToHashSet() ?? [],
             CustomTagsDelegate = () =>
@@ -199,6 +201,8 @@ public static class FilterExtensions
                 group.MissingEpisodeCount,
             MissingEpisodesCollectingDelegate = () =>
                 group.MissingEpisodeCountGroups,
+            VideoFilesDelegate = () =>
+                series.SelectMany(s => s.VideoLocals).DistinctBy(a => a.VideoLocalID).Count(),
             TagsDelegate = () =>
                 group.Tags.Select(a => a.TagName).ToHashSet(),
             CustomTagsDelegate = () =>
