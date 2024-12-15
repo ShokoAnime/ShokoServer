@@ -73,6 +73,12 @@ public class Image
     public int? Height { get; set; }
 
     /// <summary>
+    /// Community rating for the image, if available.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public Rating? CommunityRating { get; set; }
+
+    /// <summary>
     /// Series info for the image, currently only set when sending a random
     /// image.
     /// </summary>
@@ -97,6 +103,14 @@ public class Image
         {
             Width = tmdbImage.Width;
             Height = tmdbImage.Height;
+            CommunityRating = new()
+            {
+                Value = (decimal)tmdbImage.UserRating,
+                Votes = tmdbImage.UserVotes,
+                MaxValue = 10,
+                Type = "User",
+                Source = "TMDB",
+            };
         }
         else if (imageMetadata is Image_Base imageBase && imageBase._width.HasValue && imageBase._height.HasValue)
         {
@@ -152,6 +166,14 @@ public class Image
                     }
                     Width = tmdbImage.Width;
                     Height = tmdbImage.Height;
+                    CommunityRating = new()
+                    {
+                        Value = (decimal)tmdbImage.UserRating,
+                        Votes = tmdbImage.UserVotes,
+                        MaxValue = 10,
+                        Type = "User",
+                        Source = "TMDB",
+                    };
                 }
                 break;
 
