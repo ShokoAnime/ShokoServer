@@ -130,7 +130,7 @@ public class ImageController : BaseController
             if (series == null || (series.AniDB_Anime?.IsRestricted ?? false))
                 continue;
 
-            if (metadata.GetStream(allowRemote: false) is not { } stream)
+            if (metadata.GetStream() is not { } stream)
                 continue;
 
             return File(stream, metadata.ContentType);

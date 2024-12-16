@@ -130,7 +130,7 @@ public class Image : BaseController
         while (tries++ < 5)
         {
             var metadata = ImageUtils.GetRandomImageID(imageType);
-            if (metadata is not null && metadata.GetStream(allowRemote: false) is { } stream)
+            if (metadata is not null && metadata.GetStream() is { } stream)
                 return File(stream, metadata.ContentType);
         }
 

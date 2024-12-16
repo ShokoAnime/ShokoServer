@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Shoko.Plugin.Abstractions.Enums;
 
@@ -37,11 +38,6 @@ public interface IImageMetadata : IMetadata<int>, IEquatable<IImageMetadata>
     /// still be disabled though.
     /// </summary>
     public bool IsLocked { get; }
-
-    /// <summary>
-    /// Indicates the image is readily available.
-    /// </summary>
-    public bool IsAvailable { get; }
 
     /// <summary>
     /// Indicates that the image is readily available from the local file system.
@@ -95,25 +91,21 @@ public interface IImageMetadata : IMetadata<int>, IEquatable<IImageMetadata>
     string? LocalPath { get; }
 
     /// <summary>
-    /// Get a stream that reads the image contents from the local copy or remote
-    /// copy of the image. Returns null if the image is currently unavailable.
+    /// Get a stream that reads the image contents from the local copy. Returns
+    /// null if the image is currently unavailable.
     /// </summary>
-    /// <param name="allowLocal">
-    /// Allow retrieving the stream from the local cache.
-    /// </param>
-    /// <param name="allowRemote">
-    /// Allow retrieving the stream from the remote cache.
-    /// </param>
     /// <returns>
     /// A stream of the image content, or null. The stream will never be
     /// interrupted partway through.
     /// </returns>
-    Stream? GetStream(bool allowLocal = true, bool allowRemote = true);
+    Stream? GetStream();
 
     /// <summary>
     /// Will attempt to download the remote copy of the image available at
     /// <see cref="RemoteURL"/> to the <see cref="LocalPath"/>.
     /// </summary>
     /// <returns>Indicates that the image is available locally.</returns>
+    /// <exception cref="HttpRequestException">An error occurred while downloading the resource.</exception>
+    /// <exception cref="IOException">An error occurred while writing the file.</exception>
     Task<bool> DownloadImage(bool force = false);
 }

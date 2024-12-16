@@ -115,12 +115,6 @@ public class Image_Base : IImageMetadata
     /// <inheritdoc/>
     public virtual bool IsLocked => true;
 
-    /// <inheritdoc/>
-    public bool IsAvailable
-    {
-        get => IsLocalAvailable || IsRemoteAvailable;
-    }
-
     [MemberNotNullWhen(true, nameof(LocalPath))]
     public bool IsLocalAvailable
     {
@@ -295,12 +289,9 @@ public class Image_Base : IImageMetadata
         }
     }
 
-    public Stream? GetStream(bool allowLocal = true, bool allowRemote = true)
+    public Stream? GetStream()
     {
-        if (allowLocal && IsLocalAvailable)
-            return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
-
-        if (allowRemote && DownloadImage().ConfigureAwait(false).GetAwaiter().GetResult() && IsLocalAvailable)
+        if (IsLocalAvailable)
             return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
 
         return null;
