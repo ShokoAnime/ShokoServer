@@ -75,7 +75,7 @@ public class ValidateAllImagesJob : BaseJob
         UpdateProgress(" - AniDB Posters");
         _logger.LogInformation(ScanForType, "AniDB posters");
         var animeList = RepoFactory.AniDB_Anime.GetAll()
-            .Where(anime => !anime.GetImageMetadata().IsLocalAvailable)
+            .Where(anime => !string.IsNullOrEmpty(anime.Picname) && !anime.GetImageMetadata().IsLocalAvailable)
             .ToList();
 
         _logger.LogInformation(FoundCorruptedOfType, animeList.Count, animeList.Count == 1 ? "AniDB poster" : "AniDB posters");
@@ -94,7 +94,7 @@ public class ValidateAllImagesJob : BaseJob
             UpdateProgress(" - AniDB Characters");
             _logger.LogInformation(ScanForType, "AniDB characters");
             var characters = RepoFactory.AniDB_Character.GetAll()
-                .Where(character => !Misc.IsImageValid(character.GetFullImagePath()))
+                .Where(character => !(character.GetImageMetadata()?.IsLocalAvailable ?? true))
                 .ToList();
 
             _logger.LogInformation(FoundCorruptedOfType, characters.Count, characters.Count == 1 ? "AniDB Character" : "AniDB Characters");
@@ -113,19 +113,18 @@ public class ValidateAllImagesJob : BaseJob
             count = 0;
             UpdateProgress(" - AniDB Creators");
             _logger.LogInformation(ScanForType, "AniDB Creator");
-            var staff = RepoFactory.AniDB_Creator.GetAll()
-                .Where(va => !Misc.IsImageValid(va.GetFullImagePath()))
+            var creators = RepoFactory.AniDB_Creator.GetAll()
+                .Where(creator => !(creator.GetImageMetadata()?.IsLocalAvailable ?? true))
                 .ToList();
 
-            _logger.LogInformation(FoundCorruptedOfType, staff.Count, "AniDB Creator");
-            foreach (var seiyuu in staff)
+            _logger.LogInformation(FoundCorruptedOfType, creators.Count, "AniDB Creator");
+            foreach (var creator in creators)
             {
-                _logger.LogTrace(CorruptImageFound, seiyuu.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Person, seiyuu.CreatorID);
+                _logger.LogTrace(CorruptImageFound, creator.GetFullImagePath());
+                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Person, creator.CreatorID);
                 if (++count % 10 != 0) continue;
-                _logger.LogInformation(ReQueueingForDownload, count,
-                    staff.Count);
-                UpdateProgress($" - AniDB Creators - {count}/{staff.Count}");
+                _logger.LogInformation(ReQueueingForDownload, count, creators.Count);
+                UpdateProgress($" - AniDB Creators - {count}/{creators.Count}");
             }
         }
     }

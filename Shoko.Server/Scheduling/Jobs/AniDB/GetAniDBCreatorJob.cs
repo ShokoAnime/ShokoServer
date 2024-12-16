@@ -88,7 +88,7 @@ public class GetAniDBCreatorJob : BaseJob
             RepoFactory.AnimeStaff.Save(staff);
         }
 
-        if (!string.IsNullOrEmpty(creator.ImagePath) && (!creator.GetImageMetadata()?.IsLocalAvailable ?? false))
+        if (!(creator.GetImageMetadata()?.IsLocalAvailable ?? true))
         {
             _logger.LogInformation("Image not found locally, queuing image download for {Creator} (ID={CreatorID},Type={Type})", response.Name, response.ID, response.Type.ToString());
             var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
