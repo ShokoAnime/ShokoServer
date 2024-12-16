@@ -867,6 +867,33 @@ public class AnimeCreator
                     // we need an ID for xref
                     RepoFactory.AnimeCharacter.Save(character);
                 }
+                else
+                {
+                    var updated = false;
+                    if (character.Name != chr.CharName)
+                    {
+                        character.Name = chr.CharName;
+                        updated = true;
+                    }
+                    if (character.AlternateName != chr.CharKanjiName)
+                    {
+                        character.AlternateName = chr.CharKanjiName;
+                        updated = true;
+                    }
+                    if (character.Description != chr.CharDescription)
+                    {
+                        character.Description = chr.CharDescription;
+                        updated = true;
+                    }
+                    var imagePath = chr.GetFullImagePath()?.Replace(charBasePath, "");
+                    if (character.ImagePath != imagePath)
+                    {
+                        character.ImagePath = imagePath;
+                        updated = true;
+                    }
+                    if (updated)
+                        RepoFactory.AnimeCharacter.Save(character);
+                }
 
                 // create cross ref's between anime and character, but don't actually download anything
                 var animeChar = new AniDB_Anime_Character();
@@ -906,6 +933,8 @@ public class AnimeCreator
                         };
                         if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
                             creator.Name = rawSeiyuu.SeiyuuName;
+                        if (string.IsNullOrEmpty(creator.ImagePath) && !string.IsNullOrEmpty(rawSeiyuu.PicName))
+                            creator.ImagePath = rawSeiyuu.PicName;
 
                         creatorsToSave[creator.CreatorID] = creator;
                         if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
@@ -919,15 +948,32 @@ public class AnimeCreator
                                 // Unfortunately, most of the info is not provided
                                 AniDBID = creator.CreatorID,
                                 Name = rawSeiyuu.SeiyuuName,
-                                ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, "")
+                                ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, ""),
                             };
                             // we need an ID for xref
                             RepoFactory.AnimeStaff.Save(staff);
                         }
-                        else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
+                        else
                         {
-                            staff.Name = rawSeiyuu.SeiyuuName;
-                            RepoFactory.AnimeStaff.Save(staff);
+                            var updated = false;
+                            if (!string.IsNullOrEmpty(creator.Name) && !string.Equals(staff.Name, creator.Name))
+                            {
+                                staff.Name = creator.Name;
+                                updated = true;
+                            }
+                            if (!string.IsNullOrEmpty(creator.OriginalName) && !string.Equals(staff.AlternateName, creator.OriginalName))
+                            {
+                                staff.AlternateName = creator.OriginalName;
+                                updated = true;
+                            }
+                            var imagePath = creator.GetFullImagePath().Replace(creatorBasePath, "");
+                            if (!string.IsNullOrEmpty(imagePath) && !string.Equals(staff.ImagePath, imagePath))
+                            {
+                                staff.ImagePath = imagePath;
+                                updated = true;
+                            }
+                            if (updated)
+                                RepoFactory.AnimeStaff.Save(staff);
                         }
 
                         var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID,
@@ -998,6 +1044,7 @@ public class AnimeCreator
             _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}", anime.MainTitle);
         }
 
+        var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
         var creatorsToSchedule = new HashSet<int>();
         var creatorsToSave = new List<AniDB_Creator>();
         var animeStaffToSave = new List<AniDB_Anime_Staff>();
@@ -1042,23 +1089,40 @@ public class AnimeCreator
                     creatorsToSave.Add(creator);
                 }
                 if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
-                    creatorsToSchedule.Add(rawStaff.CreatorID);
+                    creatorsToSchedule.Add(creator.CreatorID);
 
-                var staff = RepoFactory.AnimeStaff.GetByAniDBID(rawStaff.CreatorID);
+                var staff = RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID);
                 if (staff == null)
                 {
                     staff = new AnimeStaff
                     {
-                        AniDBID = rawStaff.CreatorID,
-                        Name = rawStaff.CreatorName,
+                        AniDBID = creator.CreatorID,
+                        Name = creator.Name,
                     };
                     // we need an ID for xref
                     RepoFactory.AnimeStaff.Save(staff);
                 }
-                else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
+                else
                 {
-                    staff.Name = rawStaff.CreatorName;
-                    RepoFactory.AnimeStaff.Save(staff);
+                    var updated = false;
+                    if (!string.IsNullOrEmpty(creator.Name) && !string.Equals(staff.Name, creator.Name))
+                    {
+                        staff.Name = creator.Name;
+                        updated = true;
+                    }
+                    if (!string.IsNullOrEmpty(creator.OriginalName) && !string.Equals(staff.AlternateName, creator.OriginalName))
+                    {
+                        staff.AlternateName = creator.OriginalName;
+                        updated = true;
+                    }
+                    var imagePath = creator.GetFullImagePath().Replace(creatorBasePath, "");
+                    if (!string.IsNullOrEmpty(imagePath) && !string.Equals(staff.ImagePath, imagePath))
+                    {
+                        staff.ImagePath = imagePath;
+                        updated = true;
+                    }
+                    if (updated)
+                        RepoFactory.AnimeStaff.Save(staff);
                 }
 
                 var roleType = rawStaff.CreatorType switch
