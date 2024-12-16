@@ -109,19 +109,4 @@ namespace Shoko.Models.Enums
         Parody = 5,
         Other = 6
     }
-
-    public enum EpisodeSourceType
-    {
-        File = 1,
-        Episode = 2,
-        HTTPAPI = 3
-    }
-
-    public enum CharacterAppearanceType
-    {
-        Main_Character,
-        Minor_Character,
-        Background_Character,
-        Cameo
-    }
 }

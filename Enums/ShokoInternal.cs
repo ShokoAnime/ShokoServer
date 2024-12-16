@@ -395,54 +395,6 @@ namespace Shoko.Models.Enums
         Descending = 2
     }
 
-    public enum StaffRoleType
-    {
-        /// <summary>
-        /// Voice actor or voice actress.
-        /// </summary>
-        Seiyuu,
-
-        /// <summary>
-        /// This can be anything involved in writing the show.
-        /// </summary>
-        Staff,
-
-        /// <summary>
-        /// The studio responsible for publishing the show.
-        /// </summary>
-        Studio,
-
-        /// <summary>
-        /// The main producer(s) for the show.
-        /// </summary>
-        Producer,
-
-        /// <summary>
-        /// Direction.
-        /// </summary>
-        Director,
-
-        /// <summary>
-        /// Series Composition.
-        /// </summary>
-        SeriesComposer,
-
-        /// <summary>
-        /// Character Design.
-        /// </summary>
-        CharacterDesign,
-
-        /// <summary>
-        /// Music composer.
-        /// </summary>
-        Music,
-
-        /// <summary>
-        /// Responsible for the creation of the source work this show is detrived from.
-        /// </summary>
-        SourceWork,
-    }
-
     public enum StatCountType
     {
         Watched = 1,
