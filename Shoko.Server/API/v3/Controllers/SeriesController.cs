@@ -1818,10 +1818,11 @@ public class SeriesController : BaseController
         }
         
         var scheduler = await _schedulerFactory.GetScheduler();
-        traktShows
-            .Select(show => show.TraktID)
-            .Distinct()
-            .ForEach(traktID => scheduler.StartJob<UpdateTraktShowJob>(c => c.TraktShowID = traktID).GetAwaiter().GetResult());
+        
+        foreach(var show in traktShows)
+        {
+            await scheduler.StartJob<UpdateTraktShowJob>(c => c.TraktShowID = show.TraktID);
+        }
         
         return Ok();
     }
