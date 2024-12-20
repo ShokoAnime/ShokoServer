@@ -1818,12 +1818,10 @@ public class SeriesController : BaseController
         }
         
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = seriesID);
-        
         traktShows
             .Select(show => show.TraktID)
             .Distinct()
-            .ForEach(traktID => scheduler.StartJob<UpdateTraktSeriesJob>(c =>
+            .ForEach(traktID => scheduler.StartJob<UpdateTraktShowJob>(c =>
             {
                 c.AnimeSeriesID = seriesID;
                 c.TraktShowID = traktID;

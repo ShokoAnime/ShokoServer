@@ -14,7 +14,7 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 [NetworkRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
 [JobKeyGroup(JobKeyGroup.Trakt)]
-public class UpdateTraktSeriesJob : BaseJob
+public class UpdateTraktShowJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
@@ -22,8 +22,8 @@ public class UpdateTraktSeriesJob : BaseJob
     public int AnimeSeriesID { get; set; }
     public string TraktShowID { get; set; }
 
-    public override string TypeName => "Update Trakt Series data";
-    public override string Title => "Updating Trakt Series data";
+    public override string TypeName => "Update Trakt Show data";
+    public override string Title => "Updating Trakt Show data";
     
     public override void PostInit()
     {
@@ -34,7 +34,7 @@ public class UpdateTraktSeriesJob : BaseJob
     
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job} -> Series: {Name}", nameof(UpdateTraktSeriesJob), _seriesName);
+        _logger.LogInformation("Processing {Job} -> Series: {Name}", nameof(UpdateTraktShowJob), _seriesName);
         var settings = _settingsProvider.GetSettings();
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
@@ -50,11 +50,11 @@ public class UpdateTraktSeriesJob : BaseJob
         return Task.CompletedTask;
     }
     
-    public UpdateTraktSeriesJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+    public UpdateTraktShowJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
     }
 
-    protected UpdateTraktSeriesJob() { }
+    protected UpdateTraktShowJob() { }
 }
