@@ -1821,11 +1821,7 @@ public class SeriesController : BaseController
         traktShows
             .Select(show => show.TraktID)
             .Distinct()
-            .ForEach(traktID => scheduler.StartJob<UpdateTraktShowJob>(c =>
-            {
-                c.AnimeSeriesID = seriesID;
-                c.TraktShowID = traktID;
-            }).GetAwaiter().GetResult());
+            .ForEach(traktID => scheduler.StartJob<UpdateTraktShowJob>(c => c.TraktShowID = traktID).GetAwaiter().GetResult());
         
         return Ok();
     }
