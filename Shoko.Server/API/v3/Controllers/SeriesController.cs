@@ -1814,7 +1814,7 @@ public class SeriesController : BaseController
         var traktShows = series.TraktShow;
         if (traktShows.Count == 0)
         {
-            return InternalError(TraktShowNotFound);
+            return ValidationProblem(TraktShowNotFound);
         }
         
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -1855,7 +1855,7 @@ public class SeriesController : BaseController
         var traktShows = series.TraktShow;
         if (traktShows.Count == 0)
         {
-            return InternalError(TraktShowNotFound);
+            return ValidationProblem(TraktShowNotFound);
         }
         
         var scheduler = await _schedulerFactory.GetScheduler();
