@@ -31,6 +31,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -1779,6 +1780,40 @@ public class SeriesController : BaseController
 
     #endregion
 
+    #endregion
+    
+    #region Trakt
+    
+    /// <summary>
+    /// Queue a job for syncing series status to Trakt
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <returns></returns>
+    [HttpPost("{seriesID}/Trakt/Sync")]
+    public async Task<ActionResult> SyncTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesForbiddenForUser);
+        }
+
+        var anidb = series.AniDB_Anime;
+        if (anidb == null)
+        {
+            return InternalError(AnidbNotFoundForSeriesID);
+        }
+        
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = seriesID);
+        return Ok();
+    }
+    
     #endregion
 
     #endregion
