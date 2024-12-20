@@ -115,6 +115,8 @@ public class SeriesController : BaseController
     internal const string TmdbNotFoundForSeriesID = "No TMDB.Show entry for the given seriesID";
 
     internal const string TmdbForbiddenForUser = "Accessing TMDB.Show is not allowed for the current user";
+    
+    internal const string TraktShowNotFound = "No Trakt_Show entry for the given showID";
 
     #endregion
 
@@ -1783,6 +1785,52 @@ public class SeriesController : BaseController
     #endregion
     
     #region Trakt
+
+    /// <summary>
+    /// Queue a job for refreshing series data from Trakt
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <returns></returns>
+    [HttpPost("{seriesID}/Trakt/Refresh")]
+    public async Task<ActionResult> RefreshTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesForbiddenForUser);
+        }
+
+        var anidb = series.AniDB_Anime;
+        if (anidb == null)
+        {
+            return InternalError(AnidbNotFoundForSeriesID);
+        }
+
+        var traktShows = series.TraktShow;
+        if (traktShows.Count == 0)
+        {
+            return InternalError(TraktShowNotFound);
+        }
+        
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = seriesID);
+        
+        traktShows
+            .Select(show => show.TraktID)
+            .Distinct()
+            .ForEach(traktID => scheduler.StartJob<UpdateTraktSeriesJob>(c =>
+            {
+                c.AnimeSeriesID = seriesID;
+                c.TraktShowID = traktID;
+            }).GetAwaiter().GetResult());
+        
+        return Ok();
+    }
     
     /// <summary>
     /// Queue a job for syncing series status to Trakt
@@ -1807,6 +1855,12 @@ public class SeriesController : BaseController
         if (anidb == null)
         {
             return InternalError(AnidbNotFoundForSeriesID);
+        }
+        
+        var traktShows = series.TraktShow;
+        if (traktShows.Count == 0)
+        {
+            return InternalError(TraktShowNotFound);
         }
         
         var scheduler = await _schedulerFactory.GetScheduler();
