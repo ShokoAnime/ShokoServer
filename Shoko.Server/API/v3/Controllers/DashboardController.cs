@@ -211,7 +211,7 @@ public class DashboardController : BaseController
     public ListResult<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes(
         [FromQuery, Range(0, 1000)] int pageSize = 30,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeRestricted = false
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False
     )
     {
         var user = HttpContext.GetUser();
@@ -227,7 +227,21 @@ public class DashboardController : BaseController
         var animeDict = seriesDict.Values
             .ToDictionary(series => series.AnimeSeriesID, series => series.AniDB_Anime);
         return episodeList
-            .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) && (includeRestricted || !anime.IsRestricted))
+            .Where(tuple =>
+            {
+                if (!animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime))
+                    return false;
+
+                if (includeRestricted is not IncludeOnlyFilter.True)
+                {
+                    var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
+                    var isRestricted = anime.IsRestricted;
+                    if (onlyRestricted != isRestricted)
+                        return false;
+                }
+
+                return true;
+            })
             .ToListResult(
                 tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file),
                 page,
@@ -246,7 +260,7 @@ public class DashboardController : BaseController
     public ListResult<Series> GetRecentlyAddedSeries(
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeRestricted = false
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False
     )
     {
         var user = HttpContext.GetUser();
@@ -256,8 +270,21 @@ public class DashboardController : BaseController
             .SelectMany(file => file.AnimeEpisodes.Select(episode => episode.AnimeSeriesID))
             .Distinct()
             .Select(RepoFactory.AnimeSeries.GetByID)
-            .Where(series => series != null && user.AllowedSeries(series) &&
-                (includeRestricted || !series.AniDB_Anime.IsRestricted))
+            .Where(series =>
+            {
+                if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
+                    return false;
+
+                if (includeRestricted is not IncludeOnlyFilter.True)
+                {
+                    var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
+                    var isRestricted = anime.IsRestricted;
+                    if (onlyRestricted != isRestricted)
+                        return false;
+                }
+
+                return true;
+            })
             .ToListResult(a => new Series(a, User.JMMUserID), page, pageSize);
     }
 
@@ -276,7 +303,7 @@ public class DashboardController : BaseController
         [FromQuery, Range(0, int.MaxValue)] int page = 0,
         [FromQuery] bool includeSpecials = true,
         [FromQuery] bool includeOthers = false,
-        [FromQuery] bool includeRestricted = false
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False
     )
     {
         var user = HttpContext.GetUser();
@@ -284,8 +311,21 @@ public class DashboardController : BaseController
             .Where(record => record.LastEpisodeUpdate.HasValue)
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
-            .Where(series => series is not null && user.AllowedSeries(series) &&
-                (includeRestricted || !series.AniDB_Anime.IsRestricted))
+            .Where(series =>
+            {
+                if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
+                    return false;
+
+                if (includeRestricted is not IncludeOnlyFilter.True)
+                {
+                    var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
+                    var isRestricted = anime.IsRestricted;
+                    if (onlyRestricted != isRestricted)
+                        return false;
+                }
+
+                return true;
+            })
             .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials, includeOthers)))
             .Where(tuple => tuple.episode != null)
             .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
@@ -311,7 +351,7 @@ public class DashboardController : BaseController
         [FromQuery] bool onlyUnwatched = true,
         [FromQuery] bool includeSpecials = true,
         [FromQuery] bool includeOthers = false,
-        [FromQuery] bool includeRestricted = false,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] bool includeMissing = false,
         [FromQuery] bool includeRewatching = false
     )
@@ -322,8 +362,21 @@ public class DashboardController : BaseController
                 record.LastEpisodeUpdate.HasValue && (!onlyUnwatched || record.UnwatchedEpisodeCount > 0))
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => RepoFactory.AnimeSeries.GetByID(record.AnimeSeriesID))
-            .Where(series => user.AllowedSeries(series) &&
-                (includeRestricted || !series.AniDB_Anime.IsRestricted))
+            .Where(series =>
+            {
+                if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
+                    return false;
+
+                if (includeRestricted is not IncludeOnlyFilter.True)
+                {
+                    var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
+                    var isRestricted = anime.IsRestricted;
+                    if (onlyRestricted != isRestricted)
+                        return false;
+                }
+
+                return true;
+            })
             .Select(series => (series, episode: _seriesService.GetNextUpEpisode(
                 series,
                 user.JMMUserID,
@@ -375,9 +428,31 @@ public class DashboardController : BaseController
     [HttpGet("AniDBCalendar")]
     public List<Dashboard.EpisodeDetails> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7,
         [FromQuery] bool showAll = false, [FromQuery] bool includeRestricted = false)
+        => GetCalendarEpisodes(
+            DateOnly.FromDateTime(DateTime.Today),
+            DateOnly.FromDateTime(DateTime.Today).AddDays(numberOfDays),
+            showAll ? IncludeOnlyFilter.True : IncludeOnlyFilter.False,
+            includeRestricted ? IncludeOnlyFilter.True : IncludeOnlyFilter.False
+        );
+
+    /// <summary>
+    /// Get the episodes within the given time-frame on the calendar.
+    /// </summary>
+    /// <param name="startDate">Start date.</param>
+    /// <param name="endDate">End date.</param>
+    /// <param name="includeMissing">Include missing episodes.</param>
+    /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
+    /// <returns></returns>
+    [HttpGet("CalendarEpisodes")]
+    public List<Dashboard.EpisodeDetails> GetCalendarEpisodes(
+        [FromQuery] DateOnly startDate = default,
+        [FromQuery] DateOnly endDate = default,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False
+    )
     {
         var user = HttpContext.GetUser();
-        var episodeList = RepoFactory.AniDB_Episode.GetForDate(DateTime.Today, DateTime.Today.AddDays(numberOfDays))
+        var episodeList = RepoFactory.AniDB_Episode.GetForDate(startDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), endDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified))
             .ToList();
         var animeDict = episodeList
             .Select(episode => RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID))
@@ -389,10 +464,29 @@ public class DashboardController : BaseController
             .Distinct()
             .ToDictionary(anime => anime.AniDB_ID);
         return episodeList
-            .Where(episode => animeDict.TryGetValue(episode.AnimeID, out var anime) &&
-                    user.AllowedAnime(anime) &&
-                    (includeRestricted || !anime.IsRestricted) &&
-                    (showAll || seriesDict.ContainsKey(episode.AnimeID)))
+            .Where(episode =>
+            {
+                if (!animeDict.TryGetValue(episode.AnimeID, out var anime) || !user.AllowedAnime(anime))
+                    return false;
+
+                if (includeRestricted is not IncludeOnlyFilter.True)
+                {
+                    var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
+                    var isRestricted = anime.IsRestricted;
+                    if (onlyRestricted != isRestricted)
+                        return false;
+                }
+
+                if (includeMissing is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideMissing = includeMissing is IncludeOnlyFilter.False;
+                    var isMissing = !seriesDict.ContainsKey(episode.AnimeID);
+                    if (shouldHideMissing == isMissing)
+                        return false;
+                }
+
+                return true;
+            })
             .OrderBy(episode => episode.GetAirDateAsDate())
             .Select(episode =>
             {
