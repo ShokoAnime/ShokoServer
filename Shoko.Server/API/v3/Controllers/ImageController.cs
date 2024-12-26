@@ -1,11 +1,16 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -143,12 +148,20 @@ public class ImageController : BaseController
     /// Returns the metadata for a random image for the <paramref name="imageType"/>.
     /// </summary>
     /// <param name="imageType">Poster, Backdrop, Banner, Thumb</param>
+    /// <param name="includeRestricted">Include or exclude restricted images</param>
+    /// <param name="seriesType">Series types to include in the search</param>
+    /// <param name="maxAttempts">Maximum number of attempts to find a valid image</param>
     /// <returns>200 on found, 400 if the type or source are invalid</returns>
     [HttpGet("Random/{imageType}/Metadata")]
     [ProducesResponseType(typeof(Image), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
-    public ActionResult<Image> GetRandomImageMetadataForType([FromRoute] Image.ImageType imageType)
+    public ActionResult<Image> GetRandomImageMetadataForType(
+        [FromRoute] Image.ImageType imageType,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<SeriesType> seriesType = null,
+        [FromQuery, Range(0, 100)] int maxAttempts = 5
+    )
     {
         if (imageType == Image.ImageType.Avatar)
             return ValidationProblem("Unsupported image type for random image.", "imageType");
@@ -171,13 +184,23 @@ public class ImageController : BaseController
 
             var image = new Image(metadata);
             var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series == null || (series.AniDB_Anime?.IsRestricted ?? false))
+            if (series.AniDB_Anime is not { } anime)
+                continue;
+
+            if (includeRestricted != IncludeOnlyFilter.True)
+            {
+                var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
+                if (onlyRestricted != anime.IsRestricted)
+                    continue;
+            }
+
+            if (seriesType is not null && !seriesType.Contains(anime.GetAnimeTypeEnum().ToAniDBSeriesType()))
                 continue;
 
             image.Series = new(series.AnimeSeriesID, series.PreferredTitle);
 
             return image;
-        } while (tries++ < 5);
+        } while (tries++ < maxAttempts);
 
         return InternalError("Unable to find a random image to send.");
     }
