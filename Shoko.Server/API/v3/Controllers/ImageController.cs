@@ -15,6 +15,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -159,7 +160,7 @@ public class ImageController : BaseController
     public ActionResult<Image> GetRandomImageMetadataForType(
         [FromRoute] Image.ImageType imageType,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<SeriesType> seriesType = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<SeriesType>? seriesType = null,
         [FromQuery, Range(0, 100)] int maxAttempts = 5
     )
     {
@@ -184,7 +185,7 @@ public class ImageController : BaseController
 
             var image = new Image(metadata);
             var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series.AniDB_Anime is not { } anime)
+            if (series?.AniDB_Anime is not { } anime)
                 continue;
 
             if (includeRestricted != IncludeOnlyFilter.True)
