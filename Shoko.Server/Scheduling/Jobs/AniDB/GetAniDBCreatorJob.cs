@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -60,6 +62,44 @@ public class GetAniDBCreatorJob : BaseJob
         if (response is null)
         {
             _logger.LogError("Unable to find an AniDB Creator with the given ID: {CreatorID}", CreatorID);
+            var anidbAnimeStaffRoles = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(CreatorID);
+            var anidbCharacterCreators = RepoFactory.AniDB_Character_Creator.GetByCreatorID(CreatorID);
+            var anidbAnimeCharacters = anidbCharacterCreators
+                .SelectMany(c => RepoFactory.AniDB_Anime_Character.GetByCharID(c.CharacterID))
+                .ToList();
+            var animeStaff = RepoFactory.AnimeStaff.GetByAniDBID(CreatorID);
+            var animeStaffRoles = animeStaff is not null ? RepoFactory.CrossRef_Anime_Staff.GetByStaffID(animeStaff.StaffID) : [];
+            var anidbAnime = anidbAnimeStaffRoles.Select(a => a.AnimeID)
+                .Concat(anidbAnimeCharacters.Select(a => a.AnimeID))
+                .Distinct()
+                .Select(RepoFactory.AniDB_Anime.GetByAnimeID)
+                .WhereNotNull()
+                .ToList();
+
+            RepoFactory.AniDB_Creator.Delete(CreatorID);
+            RepoFactory.AniDB_Character_Creator.Delete(anidbCharacterCreators);
+            RepoFactory.AniDB_Anime_Staff.Delete(anidbAnimeStaffRoles);
+            if (animeStaff is not null)
+            {
+                RepoFactory.AnimeStaff.Delete(animeStaff);
+                RepoFactory.CrossRef_Anime_Staff.Delete(animeStaffRoles);
+            }
+
+            if (anidbAnime.Count > 0)
+            {
+                _logger.LogInformation("Scheduling {Count} AniDB Anime for a refresh due to removal of creator: {CreatorID}", anidbAnime.Count, CreatorID);
+                var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+                foreach (var anime in anidbAnime)
+                    await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+                    {
+                        c.AnimeID = anime.AnimeID;
+                        c.ForceRefresh = true;
+                        c.CacheOnly = false;
+                        c.CreateSeriesEntry = false;
+                        c.DownloadRelations = false;
+                    });
+            }
+
             return;
         }
 
