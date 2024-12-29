@@ -86,6 +86,61 @@ public class TmdbLinkingService
         _xrefAnidbTmdbEpisodes = xrefAnidbTmdbEpisodes;
     }
 
+    #region Shared
+    public void RemoveAllLinks(bool removeShowLinks = true, bool removeMovieLinks = true)
+    {
+        _logger.LogInformation("Removing AniDB - TMDB links.");
+        if (removeShowLinks)
+        {
+            var showXrefs = _xrefAnidbTmdbShows.GetAll();
+
+            _logger.LogInformation("Removing {Count} TMDB show links.", showXrefs.Count);
+            _xrefAnidbTmdbShows.Delete(showXrefs);
+
+            var episodeXrefs = _xrefAnidbTmdbEpisodes.GetAll();
+
+            _logger.LogInformation("Removing {Count} TMDB episode links.", episodeXrefs.Count);
+            _xrefAnidbTmdbEpisodes.Delete(episodeXrefs);
+        }
+
+        if (removeMovieLinks)
+        {
+            var movieXrefs = _xrefAnidbTmdbMovies.GetAll();
+
+            _logger.LogInformation("Removing {Count} TMDB movie links.", movieXrefs.Count);
+            _xrefAnidbTmdbMovies.Delete(movieXrefs);
+        }
+
+        _logger.LogInformation("Done removing AniDB - TMDB links.");
+    }
+
+    public void ResetAutoLinkingState(bool disabled = false)
+    {
+        var series = _animeSeries.GetAll();
+        var count = series.Count;
+        if (disabled)
+            _logger.LogInformation("Disabling auto-linking for {Count} Shoko series.", count);
+        else
+            _logger.LogInformation("Enabling auto-linking for {Count} Shoko series.", count);
+
+        var itemNo = 0;
+        foreach (var seriesItem in series)
+        {
+            seriesItem.IsTMDBAutoMatchingDisabled = disabled;
+            _animeSeries.Save(seriesItem, false, true, false);
+
+            if (++itemNo % 100 == 0)
+            {
+                if (disabled)
+                    _logger.LogInformation("Disabling auto-linking for {Count} Shoko series. (Processed {Processed})", count, itemNo);
+                else
+                    _logger.LogInformation("Enabling auto-linking for {Count} Shoko series. (Processed {Processed})", count, itemNo);
+            }
+        }
+    }
+
+    #endregion
+
     #region Movie Links
 
     public async Task AddMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool additiveLink = false, bool isAutomatic = false)
@@ -119,7 +174,7 @@ public class TmdbLinkingService
         if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, false);
         }
 
         await RemoveMovieLink(xref, removeImageFiles, purge);
@@ -136,7 +191,7 @@ public class TmdbLinkingService
         if (_animeSeries.GetByAnimeID(anidbAnimeId) is { } series && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, false);
         }
 
         foreach (var xref in xrefs)
@@ -154,7 +209,7 @@ public class TmdbLinkingService
         if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, false);
         }
 
         foreach (var xref in xrefs)
@@ -217,7 +272,7 @@ public class TmdbLinkingService
         if (series != null && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, false);
         }
 
         await RemoveShowLink(xref, removeImageFiles, purge);
@@ -235,7 +290,7 @@ public class TmdbLinkingService
         if (series != null && !series.IsTMDBAutoMatchingDisabled)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, true);
+            _animeSeries.Save(series, false, true, false);
         }
 
         foreach (var xref in xrefs)

@@ -39,16 +39,18 @@ public class ActionController : BaseController
     private readonly AnimeGroupService _groupService;
     private readonly TraktTVHelper _traktHelper;
     private readonly TmdbMetadataService _tmdbService;
+    private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IRequestFactory _requestFactory;
     private readonly AnimeSeriesService _seriesService;
 
-    public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, TmdbMetadataService tmdbService, ISchedulerFactory schedulerFactory,
+    public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, TmdbMetadataService tmdbService, TmdbLinkingService tmdbLinkingService, ISchedulerFactory schedulerFactory,
         IRequestFactory requestFactory, ISettingsProvider settingsProvider, ActionService actionService, AnimeSeriesService seriesService, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
     {
         _logger = logger;
         _traktHelper = traktHelper;
         _tmdbService = tmdbService;
+        _tmdbLinkingService = tmdbLinkingService;
         _schedulerFactory = schedulerFactory;
         _requestFactory = requestFactory;
         _actionService = actionService;
@@ -234,6 +236,26 @@ public class ActionController : BaseController
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
         Task.Factory.StartNew(() => _tmdbService.PurgeAllShowEpisodeGroups());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all AniDB-TMDB links, optionally removing the links and resetting the auto-linking state.
+    /// </summary>
+    /// <param name="removeShowLinks">Whether to remove show links.</param>
+    /// <param name="removeMovieLinks">Whether to remove movie links.</param>
+    /// <param name="resetAutoLinkingState">Whether to reset the auto-linking state.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllTmdbLinks")]
+    public ActionResult PurgeAllTmdbLinks([FromQuery] bool removeShowLinks = true, [FromQuery] bool removeMovieLinks = true, [FromQuery] bool? resetAutoLinkingState = null)
+    {
+        if (removeShowLinks || removeMovieLinks)
+            Task.Factory.StartNew(() => _tmdbLinkingService.RemoveAllLinks(removeShowLinks, removeMovieLinks));
+
+        if (resetAutoLinkingState.HasValue)
+            Task.Factory.StartNew(() => _tmdbLinkingService.ResetAutoLinkingState(resetAutoLinkingState.Value));
+
         return Ok();
     }
 
