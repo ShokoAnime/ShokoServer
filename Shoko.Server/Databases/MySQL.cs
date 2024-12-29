@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 145;
+    public override int RequiredVersion { get; } = 146;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -864,6 +864,49 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(145, 3, "ALTER TABLE `TMDB_Show` ADD COLUMN `HiddenEpisodeCount` int NOT NULL DEFAULT 0;"),
         new(145, 4, "ALTER TABLE `TMDB_AlternateOrdering_Season` ADD COLUMN `HiddenEpisodeCount` int NOT NULL DEFAULT 0;"),
         new(145, 5, "ALTER TABLE `TMDB_AlternateOrdering` ADD COLUMN `HiddenEpisodeCount` int NOT NULL DEFAULT 0;"),
+        new(146, 01, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Episode_AnidbAnimeID ON CrossRef_AniDB_TMDB_Episode(AnidbAnimeID);"),
+        new(146, 02, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Episode_AnidbAnimeID_TmdbShowID ON CrossRef_AniDB_TMDB_Episode(AnidbAnimeID, TmdbShowID);"),
+        new(146, 03, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Episode_AnidbEpisodeID ON CrossRef_AniDB_TMDB_Episode(AnidbEpisodeID);"),
+        new(146, 04, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Episode_AnidbEpisodeID_TmdbEpisodeID ON CrossRef_AniDB_TMDB_Episode(AnidbEpisodeID, TmdbEpisodeID);"),
+        new(146, 05, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Episode_TmdbEpisodeID ON CrossRef_AniDB_TMDB_Episode(TmdbEpisodeID);"),
+        new(146, 06, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Episode_TmdbShowID ON CrossRef_AniDB_TMDB_Episode(TmdbShowID);"),
+        new(146, 07, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Movie_AnidbAnimeID ON CrossRef_AniDB_TMDB_Movie(AnidbAnimeID);"),
+        new(146, 08, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Movie_AnidbEpisodeID ON CrossRef_AniDB_TMDB_Movie(AnidbEpisodeID);"),
+        new(146, 09, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Movie_AnidbEpisodeID_TmdbMovieID ON CrossRef_AniDB_TMDB_Movie(AnidbEpisodeID, TmdbMovieID);"),
+        new(146, 10, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Movie_TmdbMovieID ON CrossRef_AniDB_TMDB_Movie(TmdbMovieID);"),
+        new(146, 11, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Show_AnidbAnimeID ON CrossRef_AniDB_TMDB_Show(AnidbAnimeID);"),
+        new(146, 12, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Show_AnidbAnimeID_TmdbShowID ON CrossRef_AniDB_TMDB_Show(AnidbAnimeID, TmdbShowID);"),
+        new(146, 13, "CREATE INDEX IX_CrossRef_AniDB_TMDB_Show_TmdbShowID ON CrossRef_AniDB_TMDB_Show(TmdbShowID);"),
+        new(146, 14, "CREATE UNIQUE INDEX UIX_TMDB_AlternateOrdering_Season_TmdbEpisodeGroupID ON TMDB_AlternateOrdering_Season(TmdbEpisodeGroupID);"),
+        new(146, 15, "CREATE INDEX IX_TMDB_AlternateOrdering_Season_TmdbEpisodeGroupCollectionID ON TMDB_AlternateOrdering_Season(TmdbEpisodeGroupCollectionID);"),
+        new(146, 16, "CREATE INDEX IX_TMDB_AlternateOrdering_Season_TmdbShowID ON TMDB_AlternateOrdering_Season(TmdbShowID);"),
+        new(146, 17, "CREATE UNIQUE INDEX UIX_TMDB_AlternateOrdering_TmdbEpisodeGroupCollectionID ON TMDB_AlternateOrdering(TmdbEpisodeGroupCollectionID);"),
+        new(146, 18, "CREATE INDEX IX_TMDB_AlternateOrdering_TmdbEpisodeGroupCollectionID_TmdbShowID ON TMDB_AlternateOrdering(TmdbEpisodeGroupCollectionID, TmdbShowID);"),
+        new(146, 19, "CREATE INDEX IX_TMDB_AlternateOrdering_TmdbShowID ON TMDB_AlternateOrdering(TmdbShowID);"),
+        new(146, 20, "CREATE UNIQUE INDEX UIX_TMDB_Collection_TmdbCollectionID ON TMDB_Collection(TmdbCollectionID);"),
+        new(146, 21, "CREATE INDEX IX_TMDB_Collection_Movie_TmdbCollectionID ON TMDB_Collection_Movie(TmdbCollectionID);"),
+        new(146, 22, "CREATE INDEX IX_TMDB_Collection_Movie_TmdbMovieID ON TMDB_Collection_Movie(TmdbMovieID);"),
+        new(146, 23, "CREATE INDEX IX_TMDB_Company_Entity_TmdbCompanyID ON TMDB_Company_Entity(TmdbCompanyID);"),
+        new(146, 24, "CREATE INDEX IX_TMDB_Company_Entity_TmdbEntityType_TmdbEntityID ON TMDB_Company_Entity(TmdbEntityType, TmdbEntityID);"),
+        new(146, 25, "CREATE INDEX IX_TMDB_Company_TmdbCompanyID ON TMDB_Company(TmdbCompanyID);"),
+        new(146, 26, "CREATE INDEX IX_TMDB_Episode_Cast_TmdbEpisodeID ON TMDB_Episode_Cast(TmdbEpisodeID);"),
+        new(146, 27, "CREATE INDEX IX_TMDB_Episode_Cast_TmdbPersonID ON TMDB_Episode_Cast(TmdbPersonID);"),
+        new(146, 28, "CREATE INDEX IX_TMDB_Episode_Cast_TmdbSeasonID ON TMDB_Episode_Cast(TmdbSeasonID);"),
+        new(146, 29, "CREATE INDEX IX_TMDB_Episode_Cast_TmdbShowID ON TMDB_Episode_Cast(TmdbShowID);"),
+        new(146, 30, "CREATE INDEX IX_TMDB_Episode_Crew_TmdbEpisodeID ON TMDB_Episode_Crew(TmdbEpisodeID);"),
+        new(146, 31, "CREATE INDEX IX_TMDB_Episode_Crew_TmdbPersonID ON TMDB_Episode_Crew(TmdbPersonID);"),
+        new(146, 32, "CREATE INDEX IX_TMDB_Episode_Crew_TmdbSeasonID ON TMDB_Episode_Crew(TmdbSeasonID);"),
+        new(146, 33, "CREATE INDEX IX_TMDB_Episode_Crew_TmdbShowID ON TMDB_Episode_Crew(TmdbShowID);"),
+        new(146, 34, "CREATE INDEX IX_TMDB_Movie_Cast_TmdbMovieID ON TMDB_Movie_Cast(TmdbMovieID);"),
+        new(146, 35, "CREATE INDEX IX_TMDB_Movie_Cast_TmdbPersonID ON TMDB_Movie_Cast(TmdbPersonID);"),
+        new(146, 36, "CREATE INDEX IX_TMDB_Movie_Crew_TmdbMovieID ON TMDB_Movie_Crew(TmdbMovieID);"),
+        new(146, 37, "CREATE INDEX IX_TMDB_Movie_Crew_TmdbPersonID ON TMDB_Movie_Crew(TmdbPersonID);"),
+        new(146, 38, "CREATE UNIQUE INDEX UIX_TMDB_Movie_TmdbMovieID ON TMDB_Movie(TmdbMovieID);"),
+        new(146, 39, "CREATE INDEX IX_TMDB_Movie_TmdbCollectionID ON TMDB_Movie(TmdbCollectionID);"),
+        new(146, 40, "CREATE INDEX IX_TMDB_Person_TmdbPersonID ON TMDB_Person(TmdbPersonID);"),
+        new(146, 41, "CREATE UNIQUE INDEX UIX_TMDB_Season_TmdbSeasonID ON TMDB_Season(TmdbSeasonID);"),
+        new(146, 42, "CREATE INDEX IX_TMDB_Season_TmdbShowID ON TMDB_Season(TmdbShowID);"),
+        new(146, 43, "CREATE UNIQUE INDEX UIX_TMDB_Network_TmdbNetworkID ON TMDB_Network(TmdbNetworkID);"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
