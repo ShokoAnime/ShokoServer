@@ -2622,10 +2622,16 @@ public partial class TmdbController : BaseController
     /// export it then we can import it!
     /// </remarks>
     /// <param name="file">The CSV file to import.</param>
+    /// <param name="removeExisting">Remove existing cross-references for the same AniDB episodes.</param>
+    /// <param name="addMissingMovies">Add missing movies.</param>
+    /// <param name="addMissingShows">Add missing shows.</param>
     /// <returns>Void.</returns>
     [HttpPost("Import")]
     public async Task<ActionResult> ImportMovieCrossReferences(
-        IFormFile file
+        IFormFile file,
+        [FromQuery] bool removeExisting = true,
+        [FromQuery] bool addMissingMovies = true,
+        [FromQuery] bool addMissingShows = true
     )
     {
         if (file is null || file.Length == 0)
@@ -2718,24 +2724,34 @@ public partial class TmdbController : BaseController
             }
         }
 
-        if (ModelState.IsValid && movieIdXrefs.Count == 0 && episodeIdXrefs.Count == 0)
-            ModelState.AddModelError("Body", "File contained no lines to import.");
-
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        if (movieIdXrefs.Count == 0 && episodeIdXrefs.Count == 0)
+            ModelState.AddModelError("Body", "File contained no lines to import.");
+
         var moviesToPull = new HashSet<int>();
-        var exitingMovieXrefs = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
-            .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}:{xref.TmdbMovieID}");
+        var existingMovieXrefs = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
+            .GroupBy(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}")
+            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToDictionary(xref => xref.TmdbMovieID));
         var movieXrefsToAdd = 0;
+        var movieXrefsToPotentiallyRemove = new List<CrossRef_AniDB_TMDB_Movie>();
+        var movieXrefsToKeep = new List<CrossRef_AniDB_TMDB_Movie>();
         var movieXrefsToSave = new List<CrossRef_AniDB_TMDB_Movie>();
         foreach (var (animeId, episodeId, movieId, isAutomatic) in movieIdXrefs)
         {
-            var id = $"{animeId}:{episodeId}:{movieId}";
+            var id = $"{animeId}:{episodeId}";
             var updated = false;
             var isNew = false;
             var source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
-            if (!exitingMovieXrefs.TryGetValue(id, out var xref))
+            CrossRef_AniDB_TMDB_Movie? xref = null;
+            if (existingMovieXrefs.TryGetValue(id, out var xrefDict))
+            {
+                xrefDict.TryGetValue(movieId, out xref);
+                if (removeExisting)
+                    movieXrefsToPotentiallyRemove.AddRange(xrefDict.Values);
+            }
+            if (xref is null)
             {
                 // Make sure an xref exists.
                 movieXrefsToAdd++;
@@ -2758,6 +2774,11 @@ public partial class TmdbController : BaseController
 
             if (updated)
                 movieXrefsToSave.Add(xref);
+            else if (!isNew)
+                movieXrefsToKeep.Add(xref);
+
+            if (!addMissingMovies)
+                continue;
 
             var seriesExists = xref.AnimeSeries is not null;
             var tmdbMovieExists = xref.TmdbMovie is not null;
@@ -2766,41 +2787,50 @@ public partial class TmdbController : BaseController
         }
 
         var showsToPull = new HashSet<int>();
-        var usedEpisodeIdsWithZeroSet = new HashSet<string>();
-        var existingShowXrefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
+        var existingShowXrefsDict = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
+            .GroupBy(xref => xref.AnidbAnimeID)
+            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToDictionary(xref => xref.TmdbShowID));
+        var existingShowXrefs = existingShowXrefsDict.Values
+            .SelectMany(xrefDict => xrefDict.Values)
             .Select(xref => $"{xref.AnidbAnimeID}:{xref.TmdbShowID}")
             .ToHashSet();
-        var exitingEpisodeXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
-            .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}:{xref.TmdbShowID}:{xref.TmdbEpisodeID}");
+        var existingEpisodeXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
+            .GroupBy(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}")
+            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToDictionary(xref => $"{xref.TmdbShowID}:{xref.TmdbEpisodeID}"));
         var episodeXrefsToAdd = 0;
+        var episodeXrefsToKeep = new List<CrossRef_AniDB_TMDB_Episode>();
         var episodeXrefsToSave = new List<CrossRef_AniDB_TMDB_Episode>();
+        var episodeXrefsToPotentiallyRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         var showXrefsToSave = new Dictionary<string, CrossRef_AniDB_TMDB_Show>();
         foreach (var (animeId, anidbEpisodeId, showId, tmdbEpisodeId, matchRating) in episodeIdXrefs)
         {
-            var idWithZero = $"{animeId}:{anidbEpisodeId}:{showId}:0";
-            var id = $"{animeId}:{anidbEpisodeId}:{showId}:{tmdbEpisodeId}";
+            var anidbId = $"{animeId}:{anidbEpisodeId}";
+            var tmdbId = $"{showId}:{tmdbEpisodeId}";
+            var isNew = false;
             var updated = false;
-            if (!exitingEpisodeXrefs.TryGetValue(id, out var xref))
+            CrossRef_AniDB_TMDB_Episode? xref = null;
+            if (existingEpisodeXrefs.TryGetValue(anidbId, out var xrefDict))
             {
-                // Also check the zero id if we haven't already.
-                if (!usedEpisodeIdsWithZeroSet.Contains(idWithZero) && (id == idWithZero || !exitingEpisodeXrefs.TryGetValue(idWithZero, out xref) || true))
-                    usedEpisodeIdsWithZeroSet.Add(idWithZero);
+                xrefDict.TryGetValue(tmdbId, out xref);
+                if (removeExisting)
+                    episodeXrefsToPotentiallyRemove.AddRange(xrefDict.Values);
+            }
 
-                // Make sure an xref exists.
-                if (xref is null)
+            // Make sure an xref exists.
+            if (xref is null)
+            {
+                episodeXrefsToAdd++;
+                isNew = true;
+                updated = true;
+                xref = new()
                 {
-                    episodeXrefsToAdd++;
-                    updated = true;
-                    xref = new()
-                    {
-                        AnidbAnimeID = animeId,
-                        AnidbEpisodeID = anidbEpisodeId,
-                        TmdbShowID = showId,
-                        TmdbEpisodeID = tmdbEpisodeId,
-                        Ordering = 0,
-                        MatchRating = matchRating,
-                    };
-                }
+                    AnidbAnimeID = animeId,
+                    AnidbEpisodeID = anidbEpisodeId,
+                    TmdbShowID = showId,
+                    TmdbEpisodeID = tmdbEpisodeId,
+                    Ordering = 0,
+                    MatchRating = matchRating,
+                };
             }
 
             if (xref.TmdbEpisodeID != tmdbEpisodeId)
@@ -2817,45 +2847,62 @@ public partial class TmdbController : BaseController
 
             if (updated)
                 episodeXrefsToSave.Add(xref);
+            else if (!isNew)
+                episodeXrefsToKeep.Add(xref);
+
+            if (!existingShowXrefs.Contains($"{animeId}:{showId}"))
+                showXrefsToSave.TryAdd($"{animeId}:{showId}", new(animeId, showId, CrossRefSource.User));
+
+            if (!addMissingShows)
+                continue;
 
             var seriesExists = xref.AnimeSeries is not null;
             var tmdbEpisodeExists = xref.TmdbEpisode is not null;
             if (seriesExists && !tmdbEpisodeExists)
                 showsToPull.Add(xref.TmdbShowID);
-
-            if (!existingShowXrefs.Contains($"{animeId}:{showId}"))
-                showXrefsToSave.TryAdd($"{animeId}:{showId}", new(animeId, showId, CrossRefSource.User));
         }
 
-        if (movieXrefsToSave.Count > 0 || moviesToPull.Count > 0)
+        var movieXrefsToRemove = movieXrefsToPotentiallyRemove
+            .Except([.. movieXrefsToSave, .. movieXrefsToKeep])
+            .ToList();
+        if (movieXrefsToSave.Count > 0 || movieXrefsToRemove.Count > 0 || moviesToPull.Count > 0)
         {
             _logger.LogDebug(
-                "Inserted {InsertedCount} and updated {UpdatedCount} out of {TotalCount} movie cross-references in the imported file, and scheduling {MovieCount} movies for update.",
+                "Inserted {InsertedCount}, updated {UpdatedCount}, and skipped {SkippedCount} out of {TotalCount} movie cross-references in the imported file, removed {RemovedCount} existing movie cross-references, and scheduling {MovieCount} movies for update.",
                 movieXrefsToAdd,
                 movieXrefsToSave.Count - movieXrefsToAdd,
+                movieXrefsToKeep.Count,
                 movieIdXrefs.Count,
+                movieXrefsToRemove.Count,
                 moviesToPull.Count
             );
 
             RepoFactory.CrossRef_AniDB_TMDB_Movie.Save(movieXrefsToSave);
+            RepoFactory.CrossRef_AniDB_TMDB_Movie.Delete(movieXrefsToRemove);
 
             foreach (var movieId in moviesToPull)
                 await _tmdbMetadataService.ScheduleUpdateOfMovie(movieId);
         }
 
-        if (episodeXrefsToSave.Count > 0 || showXrefsToSave.Count > 0 || showsToPull.Count > 0)
+        var episodeXrefsToRemove = episodeXrefsToPotentiallyRemove
+            .Except([.. episodeXrefsToSave, .. episodeXrefsToKeep])
+            .ToList();
+        if (episodeXrefsToSave.Count > 0 || episodeXrefsToRemove.Count > 0 || showXrefsToSave.Count > 0 || showsToPull.Count > 0)
         {
             _logger.LogDebug(
-                "Inserted {InsertedCount} and updated {UpdatedCount} out of {TotalCount} episode cross-references in the imported file, inserted {TotalCount} show cross-references and scheduling {ShowCount} shows for update.",
+                "Inserted {InsertedCount}, updated {UpdatedCount}, and skipped {SkippedCount} out of {TotalCount} episode cross-references in the imported file, removed {RemovedCount} existing episode cross-references, inserted {TotalCount} show cross-references, and scheduling {ShowCount} shows for update.",
                 episodeXrefsToAdd,
                 episodeXrefsToSave.Count - episodeXrefsToAdd,
+                episodeXrefsToKeep.Count,
                 episodeIdXrefs.Count,
+                episodeXrefsToRemove.Count,
                 showXrefsToSave.Count,
                 showsToPull.Count
             );
 
             RepoFactory.CrossRef_AniDB_TMDB_Show.Save(showXrefsToSave.Values.ToList());
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(episodeXrefsToSave);
+            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(episodeXrefsToRemove);
 
             foreach (var showId in showsToPull)
                 await _tmdbMetadataService.ScheduleUpdateOfShow(showId);
