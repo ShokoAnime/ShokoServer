@@ -160,7 +160,7 @@ public class TmdbMetadataService
     private TMDbClient CachedClient => _rawClient ??= new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
             ? Constants.TMDB.ApiKey
-            : throw new Exception("You need to provide an api key before using the TMDB provider!")
+            : throw new TmdbApiKeyUnavailableException()
     ));
 
     // This policy will ensure only 10 requests can be in-flight at the same time.
