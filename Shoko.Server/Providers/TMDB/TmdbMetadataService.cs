@@ -70,6 +70,8 @@ public class TmdbMetadataService
 
     private static string? _imageServerUrl = null;
 
+    private static readonly object _imageServerUrlLockObj = new();
+
     public static string? ImageServerUrl
     {
         get
@@ -78,20 +80,36 @@ public class TmdbMetadataService
             if (_imageServerUrl is not null)
                 return _imageServerUrl;
 
-            // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available.
-            var instance = Instance;
-            if (instance is null)
-                return null;
+            // Lock before getting the config, in case multiple threads are trying to get the image server url at the same time.
+            lock (_imageServerUrlLockObj)
+            {
+                // Try one more time, in case it has been initialized while we were waiting.
+                if (_imageServerUrl is not null)
+                    return _imageServerUrl;
 
-            try
-            {
-                var config = instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result;
-                return _imageServerUrl = config.Images.SecureBaseUrl;
-            }
-            catch (Exception ex)
-            {
-                instance._logger.LogError(ex, "Encountered an exception while trying to find the image server url to use; {ErrorMessage}", ex.Message);
-                throw;
+                // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available, otherwise abort.
+                var instance = Instance;
+                if (instance is null)
+                    return null;
+
+                try
+                {
+                    var config = instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result;
+                    return _imageServerUrl = config.Images.SecureBaseUrl;
+                }
+                catch (Exception ex)
+                {
+                    // If the API key is unavailable or if we can't establish a connection to the api server, then use the default image server url if we ever need to resolve the image URLs for whatever reason.
+                    if (ex is TmdbApiKeyUnavailableException || (ex is HttpRequestException httpEx && httpEx.HttpRequestError is HttpRequestError.NameResolutionError or HttpRequestError.ConnectionError or HttpRequestError.SecureConnectionError))
+                    {
+                        // If you can't be arsed to look it up yourself on their site, then here, waste more time than it's worth by decoding and reversing this string. No matter how you do it, it will be more effort compared to looking it up on their dev
+                        // site. And while you're there, go get yourself a personal API key to use. ;)
+                        char[] url = ['\x2f', '\x70', '\x2f', '\x74', '\x2f', '\x67', '\x72', '\x6f', '\x2e', '\x64', '\x62', '\x6d', '\x74', '\x2e', '\x65', '\x67', '\x61', '\x6d', '\x69', '\x2f', '\x2f', '\x3a', '\x73', '\x70', '\x74', '\x74', '\x68'];
+                        return _imageServerUrl = new string(url.Reverse().ToArray());
+                    }
+                    instance._logger.LogError(ex, "Encountered an exception while trying to find the image server url to use; {ErrorMessage}", ex.Message);
+                    throw;
+                }
             }
         }
     }
