@@ -97,6 +97,8 @@ public class TMDB_ImageRepository : BaseCachedRepository<TMDB_Image, int>
 
     public TMDB_Image? GetByRemoteFileNameAndType(string fileName, ImageEntityType type)
     {
+        if (string.IsNullOrEmpty(fileName))
+            return null;
         if (fileName.EndsWith(".svg"))
             fileName = fileName[..^4] + ".png";
         return ReadLock(() => _tmdbRemoteFileNames!.GetOne((fileName, type)));
