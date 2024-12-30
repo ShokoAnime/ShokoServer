@@ -361,8 +361,7 @@ public class TmdbMetadataService
             if (ser.IsTMDBAutoMatchingDisabled)
                 continue;
 
-            var anime = ser.AniDB_Anime;
-            if (anime == null)
+            if (ser.AniDB_Anime is not { } anime)
                 continue;
 
             if (anime.IsRestricted && !settings.TMDB.AutoLinkRestricted)
@@ -456,7 +455,7 @@ public class TmdbMetadataService
             if (downloadCrewAndCast)
                 methods |= MovieMethods.Credits;
             var movie = await UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods), $"Get movie {movieId}").ConfigureAwait(false);
-            if (movie == null)
+            if (movie is null)
                 return false;
 
             var settings = _settingsProvider.GetSettings();
@@ -816,7 +815,7 @@ public class TmdbMetadataService
             _imageService.PurgeImages(ForeignEntityType.Movie, movieId, removeImageFiles);
 
             var movie = _tmdbMovies.GetByTmdbMovieID(movieId);
-            if (movie != null)
+            if (movie is not null)
             {
                 _logger.LogTrace("Removing movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
                 _tmdbMovies.Delete(movie);
@@ -1010,7 +1009,7 @@ public class TmdbMetadataService
             if (downloadAlternateOrdering && !quickRefresh)
                 methods |= TvShowMethods.EpisodeGroups;
             var show = await UseClient(c => c.GetTvShowAsync(showId, methods, "en-US"), $"Get Show {showId}").ConfigureAwait(false);
-            if (show == null)
+            if (show is null)
                 return false;
 
             var settings = _settingsProvider.GetSettings();
@@ -1743,7 +1742,7 @@ public class TmdbMetadataService
 
             _imageService.PurgeImages(ForeignEntityType.Show, showId, removeImageFiles);
 
-            if (show != null)
+            if (show is not null)
             {
                 _logger.LogTrace(
                     "Removing show {ShowName} (Show={ShowId})",
@@ -1800,7 +1799,7 @@ public class TmdbMetadataService
     private void PurgeShowNetwork(int networkId, bool removeImageFiles = true)
     {
         var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(networkId);
-        if (tmdbNetwork != null)
+        if (tmdbNetwork is not null)
         {
             _logger.LogDebug("Removing TMDB Network (Network={NetworkId})", networkId);
             _tmdbNetwork.Delete(tmdbNetwork);
@@ -1979,7 +1978,7 @@ public class TmdbMetadataService
                 (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode != tmdbEntity.OriginalLanguageCode && !string.IsNullOrEmpty(tmdbEntity.OriginalTitle) && string.Equals(tmdbEntity.OriginalTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase))
             ))
             {
-                if (existingTitle == null)
+                if (existingTitle is null)
                 {
                     titlesToAdd++;
                     titlesToSave.Add(new(tmdbEntity.Type, tmdbEntity.Id, currentTitle, languageCode, countryCode));
@@ -2007,7 +2006,7 @@ public class TmdbMetadataService
             var existingOverview = existingOverviews.FirstOrDefault(overview => overview.LanguageCode == languageCode && overview.CountryCode == countryCode);
             if (shouldInclude && !string.IsNullOrEmpty(currentOverview))
             {
-                if (existingOverview == null)
+                if (existingOverview is null)
                 {
                     overviewsToAdd++;
                     overviewsToSave.Add(new(tmdbEntity.Type, tmdbEntity.Id, currentOverview, languageCode, countryCode));
@@ -2150,7 +2149,7 @@ public class TmdbMetadataService
     private void PurgeCompany(int companyId, bool removeImageFiles = true)
     {
         var tmdbCompany = _tmdbCompany.GetByTmdbCompanyID(companyId);
-        if (tmdbCompany != null)
+        if (tmdbCompany is not null)
         {
             _logger.LogDebug("Removing studio. (Company={CompanyId})", companyId);
             _tmdbCompany.Delete(tmdbCompany);
@@ -2267,7 +2266,7 @@ public class TmdbMetadataService
     internal async Task PurgePersonInternal(int personId, bool removeImageFiles = true, int? currentShowId = null, int? currentMovieId = null)
     {
         var person = _tmdbPeople.GetByTmdbPersonID(personId);
-        if (person != null)
+        if (person is not null)
         {
             _logger.LogDebug("Removing staff. (Person={PersonId})", personId);
             _tmdbPeople.Delete(person);
