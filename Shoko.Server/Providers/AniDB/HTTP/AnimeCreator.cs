@@ -1118,6 +1118,7 @@ public class AnimeCreator
                 {
                     staff.Ordering = staffIndex;
                     staff.RoleType = roleType;
+                    creatorXrefsToSave.Add(staff);
                 }
                 else
                 {
