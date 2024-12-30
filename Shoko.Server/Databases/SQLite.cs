@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 129;
+    public override int RequiredVersion => 130;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -537,20 +537,20 @@ public class SQLite : BaseDatabase<SqliteConnection>
             "CREATE TABLE AnimeStaff ( StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
         new(60, 3,
             "CREATE TABLE CrossRef_Anime_Staff ( CrossRef_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_AnimeID INTEGER NOT NULL, StaffID INTEGER NOT NULL, Role TEXT NULL, RoleID INTEGER, RoleType INTEGER NOT NULL, Language TEXT NOT NULL )"),
-        new(60, 4, DatabaseFixes.PopulateCharactersAndStaff),
+        new(60, 4, DatabaseFixes.NoOperation),
         new(61, 1, "ALTER TABLE MovieDB_Movie ADD Rating INT NOT NULL DEFAULT 0"),
         new(61, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
         new(62, 1, "ALTER TABLE AniDB_Episode ADD Description TEXT NOT NULL DEFAULT ''"),
-        new(62, 2, DatabaseFixes.FixCharactersWithGrave),
+        new(62, 2, DatabaseFixes.NoOperation),
         new(63, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
         new(64, 1, DatabaseFixes.NoOperation),
         new(64, 2, DatabaseFixes.UpdateAllStats),
-        new(65, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+        new(65, 1, DatabaseFixes.NoOperation),
         new(66, 1,
             "CREATE TABLE AniDB_AnimeUpdate ( AniDB_AnimeUpdateID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, UpdatedAt timestamp NOT NULL )"),
         new(66, 2, "CREATE UNIQUE INDEX UIX_AniDB_AnimeUpdate ON AniDB_AnimeUpdate(AnimeID)"),
         new(66, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
-        new(67, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+        new(67, 1, DatabaseFixes.NoOperation),
         new(68, 1, DatabaseFixes.NoOperation),
         new(69, 1, DatabaseFixes.NoOperation),
         new(70, 1, "DROP INDEX UIX_CrossRef_AniDB_MAL_Anime;"),
@@ -830,6 +830,18 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(129, 41, "CREATE UNIQUE INDEX UIX_TMDB_Season_TmdbSeasonID ON TMDB_Season(TmdbSeasonID);"),
         new(129, 42, "CREATE INDEX IX_TMDB_Season_TmdbShowID ON TMDB_Season(TmdbShowID);"),
         new(129, 43, "CREATE UNIQUE INDEX UIX_TMDB_Network_TmdbNetworkID ON TMDB_Network(TmdbNetworkID);"),
+        new(130, 01, "DROP TABLE IF EXISTS AnimeStaff"),
+        new(130, 02, "DROP TABLE IF EXISTS CrossRef_Anime_Staff"),
+        new(130, 03, "DROP TABLE IF EXISTS AniDB_Character"),
+        new(130, 04, "DROP TABLE IF EXISTS AniDB_Anime_Staff"),
+        new(130, 05, "DROP TABLE IF EXISTS AniDB_Anime_Character"),
+        new(130, 06, "DROP TABLE IF EXISTS AniDB_Character_Creator"),
+        new(130, 07, "CREATE TABLE AniDB_Character (AniDB_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, CharacterID INTEGER NOT NULL, Name TEXT NOT NULL, OriginalName TEXT NOT NULL, Description TEXT NOT NULL, ImagePath TEXT NOT NULL, Gender INTEGER NOT NULL);"),
+        new(130, 08, "CREATE TABLE AniDB_Anime_Staff (AniDB_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CreatorID INTEGER NOT NULL, Role TEXT NOT NULL, RoleType INTEGER NOT NULL, Ordering INTEGER NOT NULL);"),
+        new(130, 09, "CREATE TABLE AniDB_Anime_Character (AniDB_Anime_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CharacterID INTEGER NOT NULL, Appearance TEXT NOT NULL, AppearanceType INTEGER NOT NULL, Ordering INTEGER NOT NULL);"),
+        new(130, 10, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CharacterID INTEGER NOT NULL, CreatorID INTEGER NOT NULL, Ordering INTEGER NOT NULL);"),
+        new(130, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
+        new(130, 12, DatabaseFixes.RecreateAnimeCharactersAndCreators),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

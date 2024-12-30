@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 146;
+    public override int RequiredVersion { get; } = 147;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -596,20 +596,20 @@ public class MySQL : BaseDatabase<MySqlConnection>
             "CREATE TABLE `AnimeStaff` ( `StaffID` INT NOT NULL AUTO_INCREMENT, `AniDBID` INT NOT NULL, `Name` text character set utf8 NOT NULL, `AlternateName` text character set utf8 NULL, `Description` text character set utf8 NULL, `ImagePath` text character set utf8 NULL, PRIMARY KEY (`StaffID`) )"),
         new(70, 3,
             "CREATE TABLE `CrossRef_Anime_Staff` ( `CrossRef_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AniDB_AnimeID` INT NOT NULL, `StaffID` INT NOT NULL, `Role` text character set utf8 NULL, `RoleID` INT, `RoleType` INT NOT NULL, `Language` text character set utf8 NOT NULL, PRIMARY KEY (`CrossRef_Anime_StaffID`) )"),
-        new(70, 4, DatabaseFixes.PopulateCharactersAndStaff),
+        new(70, 4, DatabaseFixes.NoOperation),
         new(71, 1, "ALTER TABLE `MovieDB_Movie` ADD `Rating` INT NOT NULL DEFAULT 0"),
         new(71, 2, "ALTER TABLE `TvDB_Series` ADD `Rating` INT NULL"),
         new(72, 1, "ALTER TABLE `AniDB_Episode` ADD `Description` text character set utf8 NOT NULL"),
-        new(72, 2, DatabaseFixes.FixCharactersWithGrave),
+        new(72, 2, DatabaseFixes.NoOperation),
         new(73, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
         new(74, 1, DatabaseFixes.NoOperation),
         new(74, 2, DatabaseFixes.UpdateAllStats),
-        new(75, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+        new(75, 1, DatabaseFixes.NoOperation),
         new(76, 1,
             "CREATE TABLE `AniDB_AnimeUpdate` ( `AniDB_AnimeUpdateID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_AnimeUpdateID`) );"),
         new(76, 2, "ALTER TABLE `AniDB_AnimeUpdate` ADD INDEX `UIX_AniDB_AnimeUpdate` (`AnimeID` ASC) ;"),
         new(76, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
-        new(77, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+        new(77, 1, DatabaseFixes.NoOperation),
         new(78, 1, DatabaseFixes.NoOperation),
         new(79, 1, DatabaseFixes.NoOperation),
         new(80, 1, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;"),
@@ -908,6 +908,19 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(146, 41, "CREATE UNIQUE INDEX UIX_TMDB_Season_TmdbSeasonID ON TMDB_Season(TmdbSeasonID);"),
         new(146, 42, "CREATE INDEX IX_TMDB_Season_TmdbShowID ON TMDB_Season(TmdbShowID);"),
         new(146, 43, "CREATE UNIQUE INDEX UIX_TMDB_Network_TmdbNetworkID ON TMDB_Network(TmdbNetworkID);"),
+        new(147, 01, "DROP TABLE IF EXISTS `AnimeStaff`;"),
+        new(147, 02, "DROP TABLE IF EXISTS `CrossRef_Anime_Staff`;"),
+        new(147, 03, "DROP TABLE IF EXISTS `AniDB_Character`;"),
+        new(147, 04, "DROP TABLE IF EXISTS `AniDB_Anime_Staff`;"),
+        new(147, 05, "DROP TABLE IF EXISTS `AniDB_Anime_Character`;"),
+        new(147, 06, "DROP TABLE IF EXISTS `AniDB_Character_Creator`;"),
+        // One character's name is 502 characters long, so 512 it is. Blame Gintama.
+        new(147, 07, "CREATE TABLE `AniDB_Character` (`AniDB_CharacterID` INT NOT NULL AUTO_INCREMENT, `CharacterID` INT NOT NULL, `Name` VARCHAR(512) CHARACTER SET UTF8 NOT NULL, `OriginalName` VARCHAR(512) CHARACTER SET UTF8 NOT NULL, `Description` TEXT CHARACTER SET UTF8 NOT NULL, `ImagePath` VARCHAR(20) CHARACTER SET UTF8 NOT NULL, Gender INT NOT NULL, PRIMARY KEY (`AniDB_CharacterID`));"),
+        new(147, 08, "CREATE TABLE `AniDB_Anime_Staff` (`AniDB_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `CreatorID` INT NOT NULL, `Role` VARCHAR(64) CHARACTER SET UTF8 NOT NULL, `RoleType` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`AniDB_Anime_StaffID`));"),
+        new(147, 09, "CREATE TABLE `AniDB_Anime_Character` (`AniDB_Anime_CharacterID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `CharacterID` INT NOT NULL, `Appearance` VARCHAR(20) CHARACTER SET UTF8 NOT NULL, `AppearanceType` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`AniDB_Anime_CharacterID`));"),
+        new(147, 10, "CREATE TABLE `AniDB_Anime_Character_Creator` (`AniDB_Anime_Character_CreatorID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `CharacterID` INT NOT NULL, `CreatorID` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`AniDB_Anime_Character_CreatorID`));"),
+        new(147, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
+        new(147, 12, DatabaseFixes.RecreateAnimeCharactersAndCreators),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

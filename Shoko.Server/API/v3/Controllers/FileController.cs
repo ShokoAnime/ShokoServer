@@ -192,7 +192,7 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetByHashAndSize(hash, size);
+        var file = RepoFactory.VideoLocal.GetByEd2kAndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -219,7 +219,7 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetByCRC32AndSize(hash, size);
+        var file = RepoFactory.VideoLocal.GetByCrc32AndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -246,7 +246,7 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetByMD5AndSize(hash, size);
+        var file = RepoFactory.VideoLocal.GetByMd5AndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -273,7 +273,7 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetBySHA1AndSize(hash, size);
+        var file = RepoFactory.VideoLocal.GetBySha1AndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -449,7 +449,7 @@ public class FileController : BaseController
         if (anidb == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var file = RepoFactory.VideoLocal.GetByHash(anidb.Hash);
+        var file = RepoFactory.VideoLocal.GetByEd2k(anidb.Hash);
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
@@ -469,7 +469,7 @@ public class FileController : BaseController
         if (anidb == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var file = RepoFactory.VideoLocal.GetByHash(anidb.Hash);
+        var file = RepoFactory.VideoLocal.GetByEd2k(anidb.Hash);
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
@@ -1129,7 +1129,7 @@ public class FileController : BaseController
         var seriesIDs = new HashSet<int>();
         var episodeList = file.AnimeEpisodes
             .Where(episode => all || episodeIdSet.Contains(episode.AniDB_EpisodeID))
-            .Select(episode => (Episode: episode, XRef: RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(file.Hash, episode.AniDB_EpisodeID)))
+            .Select(episode => (Episode: episode, XRef: file.EpisodeCrossReferences.FirstOrDefault(x => x.EpisodeID == episode.AniDB_EpisodeID)))
             .Where(obj => obj.XRef != null)
             .ToList();
         foreach (var (_, xref) in episodeList)
@@ -1321,7 +1321,7 @@ public class FileController : BaseController
     [NonAction]
     private static void RemoveXRefsForFile(SVR_VideoLocal file)
     {
-        foreach (var xref in RepoFactory.CrossRef_File_Episode.GetByHash(file.Hash))
+        foreach (var xref in file.EpisodeCrossReferences)
         {
             if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
                 return;
@@ -1340,7 +1340,7 @@ public class FileController : BaseController
     [NonAction]
     private static void CheckXRefsForFile(SVR_VideoLocal file, ModelStateDictionary modelState)
     {
-        foreach (var xref in RepoFactory.CrossRef_File_Episode.GetByHash(file.Hash))
+        foreach (var xref in file.EpisodeCrossReferences)
             if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
                 modelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
     }
@@ -1406,7 +1406,7 @@ public class FileController : BaseController
                 if (file == null)
                     return false;
 
-                var xrefs = file.EpisodeCrossRefs;
+                var xrefs = file.EpisodeCrossReferences;
                 var series = xrefs.FirstOrDefault(xref => xref.AnimeID is not 0)?.AnimeSeries;
                 return series == null || User.AllowedSeries(series);
             })

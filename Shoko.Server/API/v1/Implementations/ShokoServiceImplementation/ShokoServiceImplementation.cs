@@ -1278,7 +1278,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 return chars;
             }
 
-            var links = RepoFactory.AniDB_Character_Creator.GetByCreatorID(seiyuu.CreatorID);
+            var links = RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(seiyuu.CreatorID);
 
             foreach (var chrSei in links)
             {
@@ -1286,7 +1286,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 if (chr != null)
                 {
                     var aniChars =
-                        RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID);
+                        RepoFactory.AniDB_Anime_Character.GetByCharacterID(chr.CharacterID);
                     if (aniChars.Count > 0)
                     {
                         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniChars[0].AnimeID);

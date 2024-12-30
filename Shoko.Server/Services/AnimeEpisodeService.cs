@@ -52,7 +52,8 @@ public class AnimeEpisodeService
     public List<CL_VideoDetailed> GetV1VideoDetailedContracts(SVR_AnimeEpisode ep, int userID)
     {
         // get all the cross refs
-        return ep?.FileCrossReferences.Select(xref => _videoLocals.GetByHash(xref.Hash))
+        return ep?.FileCrossReferences
+            .Select(xref => xref.VideoLocal)
             .Where(v => v != null)
             .Select(v => _vlService.GetV1DetailedContract(v, userID)).ToList() ?? [];
     }

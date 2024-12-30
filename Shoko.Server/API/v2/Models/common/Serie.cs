@@ -131,29 +131,26 @@ public class Serie : BaseDirectory, IComparable
 
         if (!noCast)
         {
-            var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID,
-                StaffRoleType.Seiyuu);
+            var xrefAnimeStaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID);
             foreach (var xref in xrefAnimeStaff)
             {
-                if (!xref.RoleID.HasValue)
-                    continue;
+                var character = RepoFactory.AniDB_Character.GetByID(xref.CharacterID);
+                if (character == null) continue;
 
-                var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
-                if (character is null)
-                    continue;
+                var staff = RepoFactory.AniDB_Creator.GetByID(xref.CreatorID);
+                if (staff == null) continue;
 
-                var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
-                if (staff is null)
-                    continue;
+                var xref2 = xref.CharacterCrossReference;
+                if (xref2 == null) continue;
 
                 var role = new Role
                 {
                     character = character.Name,
-                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.Shoko, xref.RoleID.Value),
+                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.AniDB, xref.CharacterID),
                     staff = staff.Name,
-                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.Shoko, xref.StaffID),
-                    role = xref.Role,
-                    type = ((StaffRoleType)xref.RoleType).ToString()
+                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.AniDB, xref.CreatorID),
+                    role = xref2.AppearanceType.ToString().Replace("_", " "),
+                    type = "Seiyuu",
                 };
                 sr.roles ??= [];
                 sr.roles.Add(role);

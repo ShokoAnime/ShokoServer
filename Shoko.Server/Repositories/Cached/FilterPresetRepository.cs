@@ -6,7 +6,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
-using Shoko.Server.Filters;
 using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Logic.DateTimes;
@@ -16,64 +15,56 @@ using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Filters.User;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
+
 using Constants = Shoko.Server.Server.Constants;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
+public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<FilterPreset, int>(databaseFactory)
 {
-    private PocoIndex<int, FilterPreset, int> Parents;
     public static readonly FilterPreset[] DirectoryFilters = [
-        new FilterPreset
+        new()
         {
             Name = "Seasons", Locked = true, FilterType = GroupFilterType.Season | GroupFilterType.Directory, FilterPresetID = -1
         },
-        new FilterPreset
+        new()
         {
             Name = "Tags", Locked = true, FilterType = GroupFilterType.Tag | GroupFilterType.Directory, FilterPresetID = -2
         },
-        new FilterPreset
+        new()
         {
             Name = "Years", Locked = true, FilterType = GroupFilterType.Season | GroupFilterType.Directory, FilterPresetID = -3
         }
     ];
 
+    private PocoIndex<int, FilterPreset, int>? _parentIDs;
+
     protected override int SelectKey(FilterPreset entity)
-    {
-        return entity.FilterPresetID;
-    }
+        => entity.FilterPresetID;
 
     public override void PopulateIndexes()
     {
-        Parents = Cache.CreateIndex(a => a.ParentFilterPresetID ?? 0);
+        _parentIDs = Cache.CreateIndex(a => a.ParentFilterPresetID ?? 0);
     }
 
-    public override void RegenerateDb() { }
-
+    private const string Template = "FilterPreset";
 
     public override void PostProcess()
     {
-        const string t = "FilterPreset";
-
         // Clean up. This will populate empty conditions and remove duplicate filters
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
-            t,
-            " " + Resources.GroupFilter_Cleanup);
+        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, Template, " " + Resources.GroupFilter_Cleanup);
         var all = GetAll();
         var set = new HashSet<FilterPreset>(all);
-        var notin = all.Except(set).ToList();
-        Delete(notin);
+        var notIn = all.Except(set).ToList();
+        Delete(notIn);
     }
 
     public void CreateOrVerifyLockedFilters()
     {
-        const string t = "FilterPreset";
-
         var lockedGFs = GetLockedGroupFilters();
 
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, t,
-            " " + Resources.Filter_CreateContinueWatching);
+        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, Template, " " + Resources.Filter_CreateContinueWatching);
 
         if (!lockedGFs.Any(a => a.Name == Constants.GroupFilterName.ContinueWatching))
         {
@@ -235,12 +226,10 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         }
     }
 
-    public List<FilterPreset> GetByParentID(int parentid)
-    {
-        return ReadLock(() => Parents.GetMultiple(parentid));
-    }
+    public IReadOnlyList<FilterPreset> GetByParentID(int parentID)
+        => ReadLock(() => _parentIDs!.GetMultiple(parentID));
 
-    public FilterPreset GetTopLevelFilter(int filterID)
+    public FilterPreset? GetTopLevelFilter(int filterID)
     {
         var parent = GetByID(filterID);
         if (parent == null || parent.ParentFilterPresetID is null or 0)
@@ -256,55 +245,47 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         }
     }
 
-    public List<FilterPreset> GetTopLevel()
-    {
-        return GetByParentID(0);
-    }
+    public IReadOnlyList<FilterPreset> GetTopLevel()
+        => GetByParentID(0);
 
-    public List<FilterPreset> GetLockedGroupFilters()
-    {
-        return ReadLock(() => Cache.Values.Where(a => a.Locked).ToList());
-    }
+    public IReadOnlyList<FilterPreset> GetLockedGroupFilters()
+        => ReadLock(() => Cache.Values.Where(a => a.Locked).ToList());
 
-    public List<FilterPreset> GetTimeDependentFilters()
-    {
-        return ReadLock(() => GetAll().Where(a => a.Expression.TimeDependent).ToList());
-    }
+    public IReadOnlyList<FilterPreset> GetTimeDependentFilters()
+        => ReadLock(() => GetAll().Where(a => a.Expression.TimeDependent).ToList());
 
     public static IReadOnlyList<FilterPreset> GetAllYearFilters(int offset = 0)
-    {
-        var years = RepoFactory.AnimeSeries.GetAllYears();
-        return years.Select((s, i) => new FilterPreset
-        {
-            Name = s.ToString(),
-            FilterPresetID = offset - i,
-            ParentFilterPresetID = -3,
-            FilterType = GroupFilterType.Year,
-            Locked = true,
-            ApplyAtSeriesLevel = true,
-            Expression = new InYearExpression
+        => RepoFactory.AnimeSeries.GetAllYears()
+            .Select((s, i) => new FilterPreset
             {
-                Parameter = s
-            },
-            SortingExpression = new NameSortingSelector()
-        }).ToList();
-    }
+                Name = s.ToString(),
+                FilterPresetID = offset - i,
+                ParentFilterPresetID = -3,
+                FilterType = GroupFilterType.Year,
+                Locked = true,
+                ApplyAtSeriesLevel = true,
+                Expression = new InYearExpression
+                {
+                    Parameter = s
+                },
+                SortingExpression = new NameSortingSelector()
+            })
+            .ToList();
 
     public static IReadOnlyList<FilterPreset> GetAllSeasonFilters(int offset = 0)
-    {
-        var seasons = RepoFactory.AnimeSeries.GetAllSeasons();
-        return seasons.Select((season, i) => new FilterPreset
-        {
-            Name = season.Season + " " + season.Year,
-            FilterPresetID = offset - i,
-            ParentFilterPresetID = -1,
-            Locked = true,
-            FilterType = GroupFilterType.Season,
-            ApplyAtSeriesLevel = true,
-            Expression = new InSeasonExpression { Season = season.Season, Year = season.Year },
-            SortingExpression = new NameSortingSelector()
-        }).ToList();
-    }
+        => RepoFactory.AnimeSeries.GetAllSeasons()
+            .Select((season, i) => new FilterPreset
+            {
+                Name = season.Season + " " + season.Year,
+                FilterPresetID = offset - i,
+                ParentFilterPresetID = -1,
+                Locked = true,
+                FilterType = GroupFilterType.Season,
+                ApplyAtSeriesLevel = true,
+                Expression = new InSeasonExpression { Season = season.Season, Year = season.Year },
+                SortingExpression = new NameSortingSelector()
+            })
+            .ToList();
 
     public static IReadOnlyList<FilterPreset> GetAllTagFilters(int offset = 0)
     {
@@ -335,6 +316,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
 
         var filters = GetAll().ToList();
         filters.AddRange(DirectoryFilters);
+
         var offset = -4;
         var result = GetAllSeasonFilters(offset);
         offset -= result.Count;
@@ -345,9 +327,5 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         result = GetAllYearFilters(offset);
         filters.AddRange(result);
         return filters;
-    }
-
-    public FilterPresetRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

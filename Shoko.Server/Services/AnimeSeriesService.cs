@@ -15,6 +15,7 @@ using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -261,7 +262,7 @@ public class AnimeSeriesService
             contract.MovieDB_Movie = tmdbMovieXrefs[0].TmdbMovie?.ToClient();
         }
 
-        contract.CrossRefAniDBMAL = series.MALCrossReferences?.ToList() ?? new List<CrossRef_AniDB_MAL>();
+        contract.CrossRefAniDBMAL = series.MalCrossReferences?.ToList() ?? new List<CrossRef_AniDB_MAL>();
         try
         {
 
@@ -404,7 +405,7 @@ public class AnimeSeriesService
     {
         var vls = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID)
             .Where(a => !string.IsNullOrEmpty(a?.Hash)).Select(xref =>
-                (xref.EpisodeID, VideoLocal: RepoFactory.VideoLocal.GetByHash(xref.Hash)))
+                (xref.EpisodeID, xref.VideoLocal))
             .Where(a => a.VideoLocal != null).ToLookup(a => a.EpisodeID, b => b.VideoLocal);
         var vlUsers = vls.SelectMany(
             xref =>
@@ -694,71 +695,55 @@ public class AnimeSeriesService
         start = DateTime.Now;
     }
 
-    public Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff> SearchSeriesByStaff(string staffname,
-        bool fuzzy = false)
+    public Dictionary<SVR_AnimeSeries, AniDB_Anime_Staff> SearchSeriesByStaff(string staffName, bool fuzzy = false)
     {
-        var allseries = RepoFactory.AnimeSeries.GetAll();
-        var results = new Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff>();
+        var allSeries = RepoFactory.AnimeSeries.GetAll();
+        var results = new Dictionary<SVR_AnimeSeries, AniDB_Anime_Staff>();
         var stringsToSearchFor = new List<string>();
-        if (staffname.Contains(" "))
+        if (staffName.Contains(' '))
         {
-            stringsToSearchFor.AddRange(staffname.Split(' ').GetPermutations()
+            stringsToSearchFor.AddRange(staffName.Split(' ').GetPermutations()
                 .Select(permutation => string.Join(" ", permutation)));
-            stringsToSearchFor.Remove(staffname);
-            stringsToSearchFor.Insert(0, staffname);
+            stringsToSearchFor.Remove(staffName);
+            stringsToSearchFor.Insert(0, staffName);
         }
         else
         {
-            stringsToSearchFor.Add(staffname);
+            stringsToSearchFor.Add(staffName);
         }
 
-        foreach (var series in allseries)
+        foreach (var series in allSeries)
         {
-            List<(CrossRef_Anime_Staff, AnimeStaff)> staff = RepoFactory.CrossRef_Anime_Staff
-                .GetByAnimeID(series.AniDB_ID).Select(a => (a, RepoFactory.AnimeStaff.GetByID(a.StaffID))).ToList();
-
-            foreach (var animeStaff in staff)
+            foreach (var (xref, staff) in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => (a, a.Creator)))
                 foreach (var search in stringsToSearchFor)
                 {
                     if (fuzzy)
                     {
-                        if (!animeStaff.Item2.Name.FuzzyMatch(search))
+                        if (!staff.Name.FuzzyMatch(search))
                         {
                             continue;
                         }
                     }
                     else
                     {
-                        if (!animeStaff.Item2.Name.Equals(search, StringComparison.InvariantCultureIgnoreCase))
+                        if (!staff.Name.Equals(search, StringComparison.InvariantCultureIgnoreCase))
                         {
                             continue;
                         }
                     }
 
-                    if (!results.TryAdd(series, animeStaff.Item1))
+                    if (!results.TryAdd(series, xref))
                     {
-                        if (!Enum.TryParse(results[series].Role, out CharacterAppearanceType type1))
-                        {
-                            continue;
-                        }
-
-                        if (!Enum.TryParse(animeStaff.Item1.Role, out CharacterAppearanceType type2))
-                        {
-                            continue;
-                        }
-
-                        var comparison = ((int)type1).CompareTo((int)type2);
+                        var comparison = ((int)results[series].RoleType).CompareTo((int)xref.RoleType);
                         if (comparison == 1)
-                        {
-                            results[series] = animeStaff.Item1;
-                        }
+                            results[series] = xref;
                     }
 
                     goto label0;
                 }
 
-// People hate goto, but this is a legit use for it.
-label0:;
+            // People hate goto, but this is a legit use for it.
+            label0:;
         }
 
         return results;
@@ -820,14 +805,27 @@ label0:;
             RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
 
             var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID);
-            var characters = characterXrefs.Select(a => RepoFactory.AniDB_Character.GetByCharID(a.CharID)).ToList();
-            var seiyuuXrefs = characters.SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID)).ToList();
-            RepoFactory.AniDB_Character_Creator.Delete(seiyuuXrefs);
-            RepoFactory.AniDB_Character.Delete(characters);
+            var characters = characterXrefs
+                .Select(x => x.Character)
+                .WhereNotNull()
+                .Where(x => !x.GetRoles().ExceptBy(characterXrefs.Select(y => y.AniDB_Anime_CharacterID), y => y.AniDB_Anime_CharacterID).Any())
+                .ToList();
             RepoFactory.AniDB_Anime_Character.Delete(characterXrefs);
+            RepoFactory.AniDB_Character.Delete(characters);
 
+            var actorXrefs = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID);
             var staffXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID);
+            var creators = actorXrefs.Select(x => x.Creator)
+                .Concat(staffXrefs.Select(x => x.Creator))
+                .WhereNotNull()
+                .Where(x =>
+                    !x.Staff.ExceptBy(staffXrefs.Select(y => y.AniDB_Anime_StaffID), y => y.AniDB_Anime_StaffID).Any() &&
+                    !x.Characters.ExceptBy(actorXrefs.Select(y => y.AniDB_Anime_Character_CreatorID), y => y.AniDB_Anime_Character_CreatorID).Any()
+                )
+                .ToList();
+            RepoFactory.AniDB_Anime_Character_Creator.Delete(actorXrefs);
             RepoFactory.AniDB_Anime_Staff.Delete(staffXrefs);
+            RepoFactory.AniDB_Creator.Delete(creators);
 
             var tagXrefs = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(series.AniDB_ID);
             RepoFactory.AniDB_Anime_Tag.Delete(tagXrefs);
@@ -963,8 +961,8 @@ label0:;
             var (currentlyWatchingEpisode, _) = episodeList
                 .SelectMany(tuple => tuple.shoko.VideoLocals.Select(file => (tuple.shoko, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
                 .Where(tuple => tuple.fileUR is not null)
-                .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
-                .FirstOrDefault(tuple => tuple.fileUR.ResumePosition > 0);
+                .OrderByDescending(tuple => tuple.fileUR!.LastUpdated)
+                .FirstOrDefault(tuple => tuple.fileUR!.ResumePosition > 0);
 
             if (currentlyWatchingEpisode is not null)
                 return currentlyWatchingEpisode;
@@ -994,7 +992,7 @@ label0:;
             var (lastWatchedEpisode, _) = episodeList
                 .SelectMany(tuple => tuple.shoko.VideoLocals.Select(file => (tuple.shoko, fileUR: _vlUsers.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID))))
                 .Where(tuple => tuple.fileUR is { WatchedDate: not null })
-                .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
+                .OrderByDescending(tuple => tuple.fileUR!.LastUpdated)
                 .FirstOrDefault();
 
             if (lastWatchedEpisode is not null)

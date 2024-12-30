@@ -136,7 +136,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             contract.AniDB_DiscussURL = string.Format(Constants.URLS.AniDB_SeriesDiscussion, animeID);
 
             // MAL
-            var malRef = anime.GetCrossRefMAL();
+            var malRef = anime.MalCrossReferences;
             if (malRef is not null && malRef.Count > 0)
             {
                 contract.MAL_ID = malRef[0].MALID.ToString();
@@ -145,7 +145,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             }
 
             // Trakt
-            var traktRef = anime.GetCrossRefTraktV2();
+            var traktRef = anime.TraktShowCrossReferences;
             if (traktRef is not null && traktRef.Count > 0)
             {
                 contract.Trakt_ID = traktRef[0].TraktID;
@@ -644,46 +644,29 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 return retAnime;
             }
 
-
-            var allAnime = RepoFactory.AniDB_Anime.SearchByName(queryText);
-            foreach (var anidb_anime in allAnime)
+            var allAnime = SeriesSearch.SearchSeries(user, queryText, maxRecords, SeriesSearch.SearchFlags.Titles);
+            foreach (var result in allAnime)
             {
-                if (!user.AllowedAnime(anidb_anime))
-                {
+                var ser = result.Result;
+                var anidb_anime = ser.AniDB_Anime!;
+                if (anidb_anime is null || !user.AllowedSeries(ser))
                     continue;
-                }
 
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
-
+                var imgDet = anidb_anime.PreferredOrDefaultPoster;
                 var summary = new Metro_Anime_Summary
                 {
                     AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds(),
-                    AnimeID = anidb_anime.AnimeID
+                    AnimeID = anidb_anime.AnimeID,
+                    AnimeName = ser.PreferredTitle,
+                    AnimeSeriesID = ser.AnimeSeriesID,
+                    BeginYear = anidb_anime.BeginYear,
+                    EndYear = anidb_anime.EndYear,
+                    PosterName = imgDet.LocalPath,
+                    ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source),
+                    ImageID = imgDet.ID,
                 };
-                if (ser is not null)
-                {
-                    summary.AnimeName = ser.PreferredTitle;
-                    summary.AnimeSeriesID = ser.AnimeSeriesID;
-                }
-                else
-                {
-                    summary.AnimeName = anidb_anime.MainTitle;
-                    summary.AnimeSeriesID = 0;
-                }
-
-                summary.BeginYear = anidb_anime.BeginYear;
-                summary.EndYear = anidb_anime.EndYear;
-
-                var imgDet = anidb_anime.PreferredOrDefaultPoster;
-                summary.PosterName = imgDet.LocalPath;
-                summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-                summary.ImageID = imgDet.ID;
 
                 retAnime.Add(summary);
-                if (retAnime.Count == maxRecords)
-                {
-                    break;
-                }
             }
         }
         catch (Exception ex)
@@ -924,7 +907,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         try
         {
             var animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID)
-                .OrderByDescending(item => item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
+                .OrderByDescending(item => item.AppearanceType is Server.CharacterAppearanceType.Main_Character)
                 .ToList();
             if (animeChars.Count == 0)
             {
@@ -937,7 +920,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             foreach (var animeChar in animeChars)
             {
                 index++;
-                var character = RepoFactory.AniDB_Character.GetByID(animeChar.CharID);
+                var character = RepoFactory.AniDB_Character.GetByID(animeChar.CharacterID);
                 if (character is not null)
                 {
                     var contract = new Metro_AniDB_Character();

@@ -67,7 +67,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
         _vlocal ??= RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) return null;
 
-        var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(_vlocal.Hash, _vlocal.FileSize);
+        var aniFile = RepoFactory.AniDB_File.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize);
 
         UDPResponse<ResponseGetFile> response = null;
         if (aniFile == null || ForceAniDB)
@@ -186,7 +186,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
     {
         if (response.EpisodeIDs.Count <= 0) return;
 
-        var fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(_vlocal.Hash);
+        var fileEps = RepoFactory.CrossRef_File_Episode.GetByEd2k(_vlocal.Hash).ToList();
 
         // Use a single session A. for efficiency and B. to prevent regenerating stats
 
@@ -252,7 +252,6 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                 });
             }
         }
-
 
         // There is a chance that AniDB returned a dup, however unlikely
         await BaseRepository.Lock(fileEps, async x =>

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using NLog;
+using Microsoft.Extensions.Logging;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -12,14 +12,15 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<AnimeGroupRepository> _logger;
 
-    private PocoIndex<int, SVR_AnimeGroup, int> Parents;
+    private PocoIndex<int, SVR_AnimeGroup, int> _parentIDs;
 
-    private ChangeTracker<int> Changes = new();
+    private readonly ChangeTracker<int> _changes = new();
 
-    public AnimeGroupRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
+    public AnimeGroupRepository(ILogger<AnimeGroupRepository> logger, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
+        _logger = logger;
         BeginDeleteCallback = cr =>
         {
             RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
@@ -28,84 +29,68 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         {
             if (cr.AnimeGroupParentID.HasValue && cr.AnimeGroupParentID.Value > 0)
             {
-                logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}",
-                    cr.AnimeGroupParentID.Value);
-                var ngrp = GetByID(cr.AnimeGroupParentID.Value);
-                if (ngrp != null)
+                _logger.LogTrace("Updating group stats by group from AnimeGroupRepository.Delete: {Count}", cr.AnimeGroupParentID.Value);
+                var parentGroup = GetByID(cr.AnimeGroupParentID.Value);
+                if (parentGroup != null)
                 {
-                    Save(ngrp, true);
+                    Save(parentGroup, true);
                 }
             }
         };
     }
 
     protected override int SelectKey(SVR_AnimeGroup entity)
-    {
-        return entity.AnimeGroupID;
-    }
+        => entity.AnimeGroupID;
 
     public override void PopulateIndexes()
     {
-        Changes.AddOrUpdateRange(Cache.Keys);
-        Parents = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
-    }
-
-    public override void RegenerateDb()
-    {
+        _changes.AddOrUpdateRange(Cache.Keys);
+        _parentIDs = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
     }
 
     public override void Save(SVR_AnimeGroup obj)
-    {
-        Save(obj, true);
-    }
+        => Save(obj, true);
 
-    public void Save(SVR_AnimeGroup grp, bool recursive)
+    public void Save(SVR_AnimeGroup group, bool recursive)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         Lock(session, s =>
         {
             //We are creating one, and we need the AnimeGroupID before Update the contracts
-            if (grp.AnimeGroupID == 0)
+            if (group.AnimeGroupID == 0)
             {
                 using var transaction = s.BeginTransaction();
-                s.SaveOrUpdate(grp);
+                s.SaveOrUpdate(group);
                 transaction.Commit();
             }
         });
 
-        UpdateCache(grp);
+        UpdateCache(group);
         Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();
-            SaveWithOpenTransaction(s, grp);
+            SaveWithOpenTransaction(s, group);
             transaction.Commit();
         });
 
-        Changes.AddOrUpdate(grp.AnimeGroupID);
+        _changes.AddOrUpdate(group.AnimeGroupID);
 
-        if (grp.AnimeGroupParentID.HasValue && recursive)
+        if (group.AnimeGroupParentID.HasValue && recursive)
         {
-            var pgroup = GetByID(grp.AnimeGroupParentID.Value);
+            var parentGroup = GetByID(group.AnimeGroupParentID.Value);
             // This will avoid the recursive error that would be possible, it won't update it, but that would be
             // the least of the issues
-            if (pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
+            if (parentGroup != null && parentGroup.AnimeGroupParentID == group.AnimeGroupID)
             {
-                Save(pgroup, true);
+                Save(parentGroup, true);
             }
         }
     }
 
     public async Task InsertBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
-        if (groups == null)
-        {
-            throw new ArgumentNullException(nameof(groups));
-        }
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(groups);
 
         using var trans = session.BeginTransaction();
         foreach (var group in groups)
@@ -113,22 +98,16 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
             await session.InsertAsync(group);
             UpdateCache(group);
         }
+
         await trans.CommitAsync();
 
-        Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
+        _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
 
     public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
-        if (groups == null)
-        {
-            throw new ArgumentNullException(nameof(groups));
-        }
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(groups);
 
         using var trans = session.BeginTransaction();
         foreach (var group in groups)
@@ -136,9 +115,10 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
             await session.UpdateAsync(group);
             UpdateCache(group);
         }
+
         await trans.CommitAsync();
 
-        Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
+        _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
 
     /// <summary>
@@ -152,13 +132,10 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
     public async Task DeleteAll(ISessionWrapper session, int? excludeGroupId = null)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
+        ArgumentNullException.ThrowIfNull(session);
 
         // First, get all of the current groups so that we can inform the change tracker that they have been removed later
-        var allGrps = GetAll();
+        var allGroups = GetAll();
 
         await Lock(async () =>
         {
@@ -178,12 +155,12 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
 
         if (excludeGroupId != null)
         {
-            Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
+            _changes.RemoveRange(allGroups.Select(g => g.AnimeGroupID)
                 .Where(id => id != excludeGroupId.Value));
         }
         else
         {
-            Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
+            _changes.RemoveRange(allGroups.Select(g => g.AnimeGroupID));
         }
 
         // Finally, we need to clear the cache so that it is in sync with the database
@@ -192,7 +169,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         // If we're excluding a group from deletion, and it was in the cache originally, then re-add it back in
         if (excludeGroupId != null)
         {
-            var excludedGroup = allGrps.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
+            var excludedGroup = allGroups.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
 
             if (excludedGroup != null)
             {
@@ -201,18 +178,12 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         }
     }
 
-    public List<SVR_AnimeGroup> GetByParentID(int parentid)
-    {
-        return ReadLock(() => Parents.GetMultiple(parentid));
-    }
+    public List<SVR_AnimeGroup> GetByParentID(int parentID)
+        => ReadLock(() => _parentIDs.GetMultiple(parentID));
 
     public List<SVR_AnimeGroup> GetAllTopLevelGroups()
-    {
-        return GetByParentID(0);
-    }
+        => GetByParentID(0);
 
     public ChangeTracker<int> GetChangeTracker()
-    {
-        return Changes;
-    }
+        => _changes;
 }

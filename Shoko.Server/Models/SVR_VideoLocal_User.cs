@@ -2,6 +2,7 @@ using System;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Models;
 
 public class SVR_VideoLocal_User : VideoLocal_User
@@ -28,16 +29,17 @@ public class SVR_VideoLocal_User : VideoLocal_User
     /// <summary>
     /// Get the related <see cref="SVR_VideoLocal"/>.
     /// </summary>
-    public SVR_VideoLocal GetVideoLocal()
-    {
-        return RepoFactory.VideoLocal.GetByID(VideoLocalID);
-    }
+    public SVR_VideoLocal? VideoLocal
+        => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
     public override string ToString()
     {
-        var file = GetVideoLocal();
+        var video = VideoLocal;
+        if (video == null)
+            return $"{VideoLocalID} -- User {JMMUserID}";
+
 #pragma warning disable CS0618
-        return $"{file.FileName} --- {file.Hash} --- User {JMMUserID}";
+        return $"{video.FileName} --- {video.Hash} --- User {JMMUserID}";
 #pragma warning restore CS0618
     }
 }

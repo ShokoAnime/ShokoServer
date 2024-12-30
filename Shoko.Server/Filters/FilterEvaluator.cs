@@ -98,7 +98,7 @@ public class FilterEvaluator
     /// <param name="skipSorting"></param>
     /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(List<FilterPreset> filters, int? userID, bool skipSorting = false)
+    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(IReadOnlyList<FilterPreset> filters, int? userID, bool skipSorting = false)
     {
         ArgumentNullException.ThrowIfNull(filters);
         if (filters.Count == 0) return [];

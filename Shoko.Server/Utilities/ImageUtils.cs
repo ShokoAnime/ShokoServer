@@ -120,15 +120,9 @@ public class ImageUtils
         {
             DataSourceType.AniDB => imageType switch
             {
-                ImageEntityType.Character => RepoFactory.AniDB_Character.GetByCharID(imageId)?.GetImageMetadata(),
+                ImageEntityType.Character => RepoFactory.AniDB_Character.GetByCharacterID(imageId)?.GetImageMetadata(),
                 ImageEntityType.Person => RepoFactory.AniDB_Creator.GetByCreatorID(imageId)?.GetImageMetadata(),
                 ImageEntityType.Poster => RepoFactory.AniDB_Anime.GetByAnimeID(imageId)?.GetImageMetadata(),
-                _ => null,
-            },
-            DataSourceType.Shoko => imageType switch
-            {
-                ImageEntityType.Character => RepoFactory.AnimeCharacter.GetByID(imageId)?.GetImageMetadata(),
-                ImageEntityType.Person => RepoFactory.AnimeStaff.GetByID(imageId)?.GetImageMetadata(),
                 _ => null,
             },
             DataSourceType.TMDB => RepoFactory.TMDB_Image.GetByID(imageId),
@@ -149,28 +143,15 @@ public class ImageUtils
                     .GetRandomElement()?.GetImageMetadata(false),
                 ImageEntityType.Character => RepoFactory.AniDB_Anime.GetAll()
                     .Where(a => a is not null && !a.GetAllTags().Contains("18 restricted"))
-                    .SelectMany(a => a.Characters).Select(a => a.GetCharacter()).WhereNotNull()
+                    .SelectMany(a => a.Characters).Select(a => a.Character)
+                    .WhereNotNull()
                     .GetRandomElement()?.GetImageMetadata(),
                 ImageEntityType.Person => RepoFactory.AniDB_Anime.GetAll()
                     .Where(a => a is not null && !a.GetAllTags().Contains("18 restricted"))
                     .SelectMany(a => a.Characters)
-                    .SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID))
-                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull()
-                    .GetRandomElement()?.GetImageMetadata(),
-                _ => null,
-            },
-            DataSourceType.Shoko => imageType switch
-            {
-                ImageEntityType.Character => RepoFactory.AniDB_Anime.GetAll()
-                    .Where(a => a is not null && !a.GetAllTags().Contains("18 restricted"))
-                    .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
-                    .Where(a => a.RoleType == (int)StaffRoleType.Seiyuu && a.RoleID.HasValue)
-                    .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID!.Value))
-                    .GetRandomElement()?.GetImageMetadata(),
-                ImageEntityType.Person => RepoFactory.AniDB_Anime.GetAll()
-                    .Where(a => a is not null && !a.GetAllTags().Contains("18 restricted"))
-                    .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
-                    .Select(a => RepoFactory.AnimeStaff.GetByID(a.StaffID))
+                    .SelectMany(a => RepoFactory.AniDB_Anime_Character_Creator.GetByCharacterID(a.CharacterID))
+                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID))
+                    .WhereNotNull()
                     .GetRandomElement()?.GetImageMetadata(),
                 _ => null,
             },

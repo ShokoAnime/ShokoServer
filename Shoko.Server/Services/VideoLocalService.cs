@@ -97,7 +97,7 @@ public class VideoLocalService
     public CL_VideoDetailed GetV1DetailedContract(SVR_VideoLocal vl, int userID)
     {
         // get the cross ref episode
-        var xrefs = vl.EpisodeCrossRefs;
+        var xrefs = vl.EpisodeCrossReferences;
         if (xrefs.Count == 0) return null;
 
         var userRecord = _vlUsers.GetByUserIDAndVideoLocalID(userID, vl.VideoLocalID);

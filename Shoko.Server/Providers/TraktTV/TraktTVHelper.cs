@@ -1765,7 +1765,7 @@ public class TraktTVHelper
     }
 
     private EpisodeSyncDetails ReconSyncTraktEpisode(SVR_AnimeSeries ser, SVR_AnimeEpisode ep,
-        List<SVR_JMMUser> traktUsers, List<TraktV2ShowCollectedResult> collected,
+        IReadOnlyList<SVR_JMMUser> traktUsers, List<TraktV2ShowCollectedResult> collected,
         List<TraktV2ShowWatchedResult> watched, bool sendNow)
     {
         try

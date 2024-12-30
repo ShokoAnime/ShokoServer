@@ -75,7 +75,7 @@ public class HashFileJob : BaseJob
         // We should have a hash by now
         // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
         // TODO change this back to lookup by hash and filesize, but it'll need database migration and changes to other lookups
-        var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
+        var tlocal = RepoFactory.VideoLocal.GetByEd2k(vlocal.Hash);
 
         if (tlocal != null)
         {
@@ -338,7 +338,7 @@ public class HashFileJob : BaseJob
     {
         if (!string.IsNullOrEmpty(v.Hash))
         {
-            var n = RepoFactory.VideoLocal.GetByHash(v.Hash);
+            var n = RepoFactory.VideoLocal.GetByEd2k(v.Hash);
             if (n != null)
             {
                 if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32)) v.CRC32 = n.CRC32.ToUpperInvariant();
@@ -351,7 +351,7 @@ public class HashFileJob : BaseJob
 
         if (!string.IsNullOrEmpty(v.SHA1))
         {
-            var n = RepoFactory.VideoLocal.GetBySHA1(v.SHA1);
+            var n = RepoFactory.VideoLocal.GetBySha1(v.SHA1);
             if (n != null)
             {
                 if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32)) v.CRC32 = n.CRC32.ToUpperInvariant();
@@ -364,7 +364,7 @@ public class HashFileJob : BaseJob
 
         if (!string.IsNullOrEmpty(v.MD5))
         {
-            var n = RepoFactory.VideoLocal.GetByMD5(v.MD5);
+            var n = RepoFactory.VideoLocal.GetByMd5(v.MD5);
             if (n != null)
             {
                 if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32)) v.CRC32 = n.CRC32.ToUpperInvariant();

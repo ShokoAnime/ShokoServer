@@ -19,7 +19,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             if (string.IsNullOrEmpty(importFolderLocation) || string.IsNullOrEmpty(FilePath))
                 return null;
 
-            return Path.Combine(importFolderLocation, FilePath);
+            return Path.Join(importFolderLocation, FilePath);
         }
     }
 

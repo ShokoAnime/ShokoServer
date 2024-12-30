@@ -500,8 +500,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
 
                 animeSeriesID = ep.AnimeSeriesID;
-                var xref =
-                    RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(vid.Hash, ep.AniDB_EpisodeID);
+                var xref = vid.EpisodeCrossReferences.FirstOrDefault(x => x.EpisodeID == ep.AniDB_EpisodeID);
                 if (xref != null)
                 {
                     if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
@@ -586,7 +585,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     private static void RemoveXRefsForFile(int videoLocalID)
     {
         var vlocal = RepoFactory.VideoLocal.GetByID(videoLocalID);
-        var fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+        var fileEps = RepoFactory.CrossRef_File_Episode.GetByEd2k(vlocal.Hash);
 
         foreach (var fileEp in fileEps)
         {
@@ -1193,7 +1192,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep != null)
             {
-                var files = ep.VideoLocals;
+                var files = ep.VideoLocals.ToList();
                 files.Sort(FileQualityFilter.CompareTo);
                 return files.Select(a => _videoLocalService.GetV1DetailedContract(a, userID)).ToList();
             }
@@ -3348,10 +3347,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var xrefs =
-                RepoFactory.CrossRef_CustomTag.GetByUniqueID(customTagID, crossRefType, crossRefID);
-
-            if (xrefs is null || xrefs.Count == 0)
+            var xrefs = RepoFactory.CrossRef_CustomTag.GetByUniqueID(customTagID, (CustomTagCrossRefType)crossRefType, crossRefID);
+            if (xrefs.Count == 0)
             {
                 return "Custom Tag not found";
             }

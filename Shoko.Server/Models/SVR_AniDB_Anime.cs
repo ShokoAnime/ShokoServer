@@ -147,7 +147,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     public List<AniDB_Anime_Similar> SimilarAnime
         => RepoFactory.AniDB_Anime_Similar.GetByAnimeID(AnimeID);
 
-    public List<AniDB_Anime_Character> Characters
+    public IReadOnlyList<AniDB_Anime_Character> Characters
         => RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID);
 
     #endregion
@@ -274,16 +274,14 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #region AniDB
 
-    public List<SVR_AniDB_Episode> AniDBEpisodes => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
+    public IReadOnlyList<SVR_AniDB_Episode> AniDBEpisodes => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
 
     #endregion
 
     #region Trakt
 
-    public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
-    {
-        return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
-    }
+    public IReadOnlyList<CrossRef_AniDB_TraktV2> TraktShowCrossReferences
+        => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
 
     #endregion
 
@@ -346,10 +344,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #region MAL
 
-    public List<CrossRef_AniDB_MAL> GetCrossRefMAL()
-    {
-        return RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
-    }
+    public IReadOnlyList<CrossRef_AniDB_MAL> MalCrossReferences
+        => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
 
     #endregion
 

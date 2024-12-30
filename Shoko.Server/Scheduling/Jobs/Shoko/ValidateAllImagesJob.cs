@@ -101,7 +101,7 @@ public class ValidateAllImagesJob : BaseJob
             foreach (var character in characters)
             {
                 _logger.LogTrace(CorruptImageFound, character.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Character, character.CharID);
+                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Character, character.CharacterID);
                 if (++count % 10 != 0) continue;
                 _logger.LogInformation(ReQueueingForDownload, count, characters.Count);
                 UpdateProgress($" - AniDB Characters - {count}/{characters.Count}");

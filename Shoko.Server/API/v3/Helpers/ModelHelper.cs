@@ -531,7 +531,7 @@ public static class ModelHelper
             .Where(tuple =>
             {
                 var (video, _, locations, userRecord) = tuple;
-                var xrefs = video.EpisodeCrossRefs;
+                var xrefs = video.EpisodeCrossReferences;
                 var isAnimeAllowed = xrefs
                     .DistinctBy(xref => xref.AnimeID)
                     .Select(xref => xref.AniDBAnime)

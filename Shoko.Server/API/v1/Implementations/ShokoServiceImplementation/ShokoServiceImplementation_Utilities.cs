@@ -146,7 +146,7 @@ public partial class ShokoServiceImplementation
 
             foreach (var ep in eps)
             {
-                var videoLocals = ep.VideoLocals;
+                var videoLocals = ep.VideoLocals.ToList();
                 videoLocals.Sort(FileQualityFilter.CompareTo);
                 var keep = videoLocals
                     .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -196,7 +196,7 @@ public partial class ShokoServiceImplementation
 
         foreach (var ep in eps)
         {
-            var videoLocals = ep.VideoLocals;
+            var videoLocals = ep.VideoLocals.ToList();
             videoLocals.Sort(FileQualityFilter.CompareTo);
             var keep = videoLocals
                 .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -222,7 +222,7 @@ public partial class ShokoServiceImplementation
 
         foreach (var ep in eps)
         {
-            var videoLocals = ep.VideoLocals;
+            var videoLocals = ep.VideoLocals.ToList();
             videoLocals.Sort(FileQualityFilter.CompareTo);
             var keep = videoLocals
                 .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -275,7 +275,7 @@ public partial class ShokoServiceImplementation
                     break;
 
                 case FileSearchCriteria.ED2KHash:
-                    var vidl = RepoFactory.VideoLocal.GetByHash(searchCriteria.Trim());
+                    var vidl = RepoFactory.VideoLocal.GetByEd2k(searchCriteria.Trim());
                     if (vidl != null)
                         vids.Add(_videoLocalService.GetV1Contract(vidl, userID));
                     break;
@@ -598,7 +598,7 @@ public partial class ShokoServiceImplementation
                     else
                     {
                         // now check if the file actually exists on disk
-                        var v = RepoFactory.VideoLocal.GetByHash(hash);
+                        var v = RepoFactory.VideoLocal.GetByEd2k(hash);
                         fileMissing = true;
                         if (v == null) break;
                         foreach (var p in v.Places)
@@ -850,7 +850,7 @@ public partial class ShokoServiceImplementation
                 var vl = first.VideoLocal;
                 SVR_AniDB_Anime anime = null;
                 SVR_AniDB_Episode episode = null;
-                var xref = RepoFactory.CrossRef_File_Episode.GetByHash(vl.Hash);
+                var xref = RepoFactory.CrossRef_File_Episode.GetByEd2k(vl.Hash);
                 if (xref.Count > 0)
                 {
                     if (xref.FirstOrDefault(x => x.AnimeID is not 0)?.AnimeID is { } animeId)
@@ -1138,7 +1138,7 @@ public partial class ShokoServiceImplementation
     {
         var vidQuals = new List<CL_GroupVideoQuality>();
 
-        var files = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID);
+        var files = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).ToList();
         files.Sort(FileQualityFilter.CompareTo);
         var lookup = files.ToLookup(a =>
         {

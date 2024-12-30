@@ -8,6 +8,7 @@ using FluentNHibernate.Utils;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
@@ -124,14 +125,14 @@ public class ActionService
         {
             // queue scan for files that are automatically linked but missing AniDB_File data
             var aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
-            if (aniFile == null && vl.EpisodeCrossRefs.Any(a => a.CrossRefSource == (int)CrossRefSource.AniDB))
+            if (aniFile == null && vl.EpisodeCrossReferences.Any(a => a.CrossRefSource == (int)CrossRefSource.AniDB))
                 await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
 
             if (aniFile == null) continue;
 
             // the cross ref is created before the actually episode data is downloaded
             // so lets check for that
-            var missingEpisodes = aniFile.EpisodeCrossRefs.Any(a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.EpisodeID) == null);
+            var missingEpisodes = aniFile.EpisodeCrossReferences.Any(a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.EpisodeID) == null);
 
             // this will then download the anime etc
             if (missingEpisodes) await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
@@ -155,7 +156,7 @@ public class ActionService
             if (folder == null) return;
 
             // first build a list of files that we already know about, as we don't want to process them again
-            var filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID);
+            var filesAll = folder.Places;
             var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
             foreach (var vl in filesAll.Where(a => a.FullServerPath != null))
             {
@@ -507,19 +508,16 @@ public class ActionService
     {
         if (!settings.AniDb.DownloadCreators) return false;
 
-        foreach (var seiyuu in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID)
-                    .SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID))
-                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
+        foreach (var creator in RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID).Select(a => a.Creator).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
-            if (!File.Exists(seiyuu.GetFullImagePath())) return true;
+            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
+            if (!Misc.IsImageValid(creator.GetFullImagePath())) return true;
         }
 
-        foreach (var seiyuu in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)
-                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
+        foreach (var creator in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID).Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
-            if (!File.Exists(seiyuu.GetFullImagePath())) return true;
+            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
+            if (!Misc.IsImageValid(creator.GetFullImagePath())) return true;
         }
 
         return false;
@@ -531,8 +529,8 @@ public class ActionService
 
         foreach (var chr in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID))
         {
-            if (string.IsNullOrEmpty(chr.PicName)) continue;
-            if (!File.Exists(chr.GetFullImagePath())) return true;
+            if (string.IsNullOrEmpty(chr.ImagePath)) continue;
+            if (!Misc.IsImageValid(chr.GetFullImagePath())) return true;
         }
 
         return false;
@@ -694,7 +692,7 @@ public class ActionService
             {
                 if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
                 {
-                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                    var xrefs = v.EpisodeCrossReferences;
                     foreach (var xref in xrefs)
                     {
                         if (xref.AnimeID is 0)
@@ -735,7 +733,7 @@ public class ActionService
 
         // Clean up failed imports
         var list = RepoFactory.VideoLocal.GetAll()
-            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+            .SelectMany(a => a.EpisodeCrossReferences)
             .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
             .ToArray();
         BaseRepository.Lock(session, s =>
@@ -828,7 +826,7 @@ public class ActionService
 
             var missingFiles = RepoFactory.AniDB_File.GetAll()
                 .Where(a => a.GroupID == 0)
-                .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
+                .Select(a => RepoFactory.VideoLocal.GetByEd2k(a.Hash))
                 .Where(f => f != null)
                 .Select(a => a.VideoLocalID)
                 .ToList();
@@ -1105,22 +1103,14 @@ public class ActionService
         if (!_settingsProvider.GetSettings().AniDb.DownloadCreators) return;
 
         var allCreators = RepoFactory.AniDB_Creator.GetAll();
-        var allMissingCreators = RepoFactory.AnimeStaff.GetAll()
-            .Select(s => s.AniDBID)
-            .Distinct()
-            .Except(allCreators.Select(a => a.CreatorID))
-            .ToList();
-        var missingCount = allMissingCreators.Count;
-        allMissingCreators.AddRange(
-            allCreators
+        var allMissingCreators = allCreators
                 .Where(creator => creator.Type is Providers.AniDB.CreatorType.Unknown)
                 .Select(creator => creator.CreatorID)
                 .Distinct()
-        );
-        var partiallyMissingCount = allMissingCreators.Count - missingCount;
+                .ToList();
 
         var startedAt = DateTime.Now;
-        _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Missing={MissingCount},PartiallyMissing={PartiallyMissingCount},Total={Total})", allMissingCreators.Count, missingCount, partiallyMissingCount, allMissingCreators.Count);
+        _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh.", allMissingCreators.Count);
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         var progressCount = 0;
         foreach (var creatorID in allMissingCreators)

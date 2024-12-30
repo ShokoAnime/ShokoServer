@@ -63,12 +63,10 @@ public class GetAniDBCreatorJob : BaseJob
         {
             _logger.LogError("Unable to find an AniDB Creator with the given ID: {CreatorID}", CreatorID);
             var anidbAnimeStaffRoles = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(CreatorID);
-            var anidbCharacterCreators = RepoFactory.AniDB_Character_Creator.GetByCreatorID(CreatorID);
+            var anidbCharacterCreators = RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID);
             var anidbAnimeCharacters = anidbCharacterCreators
-                .SelectMany(c => RepoFactory.AniDB_Anime_Character.GetByCharID(c.CharacterID))
+                .SelectMany(c => RepoFactory.AniDB_Anime_Character.GetByCharacterID(c.CharacterID))
                 .ToList();
-            var animeStaff = RepoFactory.AnimeStaff.GetByAniDBID(CreatorID);
-            var animeStaffRoles = animeStaff is not null ? RepoFactory.CrossRef_Anime_Staff.GetByStaffID(animeStaff.StaffID) : [];
             var anidbAnime = anidbAnimeStaffRoles.Select(a => a.AnimeID)
                 .Concat(anidbAnimeCharacters.Select(a => a.AnimeID))
                 .Distinct()
@@ -77,13 +75,8 @@ public class GetAniDBCreatorJob : BaseJob
                 .ToList();
 
             RepoFactory.AniDB_Creator.Delete(CreatorID);
-            RepoFactory.AniDB_Character_Creator.Delete(anidbCharacterCreators);
+            RepoFactory.AniDB_Anime_Character_Creator.Delete(anidbCharacterCreators);
             RepoFactory.AniDB_Anime_Staff.Delete(anidbAnimeStaffRoles);
-            if (animeStaff is not null)
-            {
-                RepoFactory.AnimeStaff.Delete(animeStaff);
-                RepoFactory.CrossRef_Anime_Staff.Delete(animeStaffRoles);
-            }
 
             if (anidbAnime.Count > 0)
             {
@@ -118,15 +111,6 @@ public class GetAniDBCreatorJob : BaseJob
         creator.JapaneseWikiUrl = response.JapaneseWikiUrl;
         creator.LastUpdatedAt = response.LastUpdateAt;
         RepoFactory.AniDB_Creator.Save(creator);
-
-        if (RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID) is { } staff)
-        {
-            var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
-            staff.Name = creator.Name;
-            staff.AlternateName = creator.OriginalName;
-            staff.ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, "");
-            RepoFactory.AnimeStaff.Save(staff);
-        }
 
         if (!(creator.GetImageMetadata()?.IsLocalAvailable ?? true))
         {

@@ -61,7 +61,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public void OnFileHashed(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp, SVR_VideoLocal vl)
     {
         var relativePath = vlp.FilePath;
-        var xrefs = vl.EpisodeCrossRefs;
+        var xrefs = vl.EpisodeCrossReferences;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()
@@ -82,7 +82,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public void OnFileDeleted(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp, SVR_VideoLocal vl)
     {
         var path = vlp.FilePath;
-        var xrefs = vl.EpisodeCrossRefs;
+        var xrefs = vl.EpisodeCrossReferences;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()
@@ -103,7 +103,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public void OnFileMatched(SVR_VideoLocal_Place vlp, SVR_VideoLocal vl)
     {
         var path = vlp.FilePath;
-        var xrefs = vl.EpisodeCrossRefs;
+        var xrefs = vl.EpisodeCrossReferences;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()
@@ -124,7 +124,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public void OnFileNotMatched(SVR_VideoLocal_Place vlp, SVR_VideoLocal vl, int autoMatchAttempts, bool hasXRefs, bool isUDPBanned)
     {
         var path = vlp.FilePath;
-        var xrefs = vl.EpisodeCrossRefs;
+        var xrefs = vl.EpisodeCrossReferences;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()
@@ -145,7 +145,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public void OnFileMoved(IImportFolder oldFolder, IImportFolder newFolder, string oldPath, string newPath, SVR_VideoLocal_Place vlp)
     {
         var vl = vlp.VideoLocal!;
-        var xrefs = vl.EpisodeCrossRefs;
+        var xrefs = vl.EpisodeCrossReferences;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()
@@ -167,7 +167,7 @@ public class ShokoEventHandler : IShokoEventHandler
     {
         var path = vlp.FilePath;
         var vl = vlp.VideoLocal!;
-        var xrefs = vl.EpisodeCrossRefs;
+        var xrefs = vl.EpisodeCrossReferences;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()

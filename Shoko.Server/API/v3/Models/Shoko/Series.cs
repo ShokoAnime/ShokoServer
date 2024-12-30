@@ -14,16 +14,15 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using InternalEpisodeType = Shoko.Models.Enums.EpisodeType;
 using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
 using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
@@ -145,7 +144,7 @@ public class Series : BaseModel
                 Show = tmdbShowXRefs.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
             TraktTv = ser.TraktShowCrossReferences.Select(a => a.TraktID).Distinct().ToList(),
-            MAL = ser.MALCrossReferences.Select(a => a.MALID).Distinct().ToList()
+            MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList()
         };
         Links = anime.Resources
             .Select(tuple => new Resource(tuple))
@@ -235,23 +234,36 @@ public class Series : BaseModel
     /// <param name="animeID"></param>
     /// <param name="roleTypes"></param>
     /// <returns></returns>
-    public static List<Role> GetCast(int animeID, HashSet<Role.CreatorRoleType>? roleTypes = null)
+    public static List<Role> GetCast(int animeID, HashSet<CreatorRoleType>? roleTypes = null)
     {
         var roles = new List<Role>();
-        var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
-        foreach (var xref in xrefAnimeStaff)
+        if (roleTypes == null || roleTypes.Contains(CreatorRoleType.Actor))
+        {
+            var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID);
+            foreach (var xref in characterXrefs.OrderBy(x => x.Ordering))
+            {
+                if (xref.Creators is not { Count: > 0 } creators)
+                    continue;
+
+                if (xref.Character is not { } character)
+                    continue;
+
+                foreach (var creator in creators)
+                    roles.Add(new(xref, creator, character));
+            }
+        }
+
+        var staff = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(animeID);
+        foreach (var xref in staff.OrderBy(x => x.Ordering))
         {
             // Filter out any roles that are not of the desired type.
-            if (roleTypes != null && !roleTypes.Contains((Role.CreatorRoleType)xref.RoleType))
+            if (roleTypes != null && !roleTypes.Contains(xref.RoleType))
                 continue;
 
-            var character = xref.RoleID.HasValue ? RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value) : null;
-            var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
-            if (staff == null)
+            if (xref.Creator is not { } creator)
                 continue;
 
-            var role = new Role(xref, staff, character);
-            roles.Add(role);
+            roles.Add(new(xref, creator));
         }
 
         return roles;

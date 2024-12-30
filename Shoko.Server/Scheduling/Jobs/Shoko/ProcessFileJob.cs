@@ -74,7 +74,7 @@ public class ProcessFileJob : BaseJob
         }
 
         // Store a hash-set of the old cross-references for comparison later.
-        var oldXRefs = _vlocal.EpisodeCrossRefs
+        var oldXRefs = _vlocal.EpisodeCrossReferences
             .Select(xref => xref.ToString())
             .Join(',');
 
@@ -82,7 +82,7 @@ public class ProcessFileJob : BaseJob
         var aniFile = await ProcessFile_AniDB().ConfigureAwait(false);
 
         // Check if an AniDB file is now available and if the cross-references changed.
-        var newXRefs = _vlocal.EpisodeCrossRefs
+        var newXRefs = _vlocal.EpisodeCrossReferences
             .Select(xref => xref.ToString())
             .Join(',');
         var xRefsMatch = newXRefs == oldXRefs;
@@ -122,7 +122,7 @@ public class ProcessFileJob : BaseJob
             aniFile ??= await TryGetAniDBFileFromAniDB(animeIDs).ConfigureAwait(false);
         if (aniFile == null) return null;
 
-        await PopulateAnimeForFile(_vlocal, aniFile.EpisodeCrossRefs, animeIDs).ConfigureAwait(false);
+        await PopulateAnimeForFile(_vlocal, aniFile.EpisodeCrossReferences, animeIDs).ConfigureAwait(false);
 
         // We do this inside, as the info will not be available as needed otherwise
         var videoLocals =
@@ -218,7 +218,7 @@ public class ProcessFileJob : BaseJob
         SVR_AniDB_File aniFile = null;
         if (!ForceAniDB)
         {
-            aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, _vlocal.FileSize);
+            aniFile = RepoFactory.AniDB_File.GetByEd2kAndFileSize(vidLocal.Hash, _vlocal.FileSize);
 
             if (aniFile == null)
             {
@@ -226,8 +226,8 @@ public class ProcessFileJob : BaseJob
             }
         }
 
-        // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
-        var crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+        // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to re-query the info
+        var crossRefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vidLocal.Hash);
         if (crossRefs == null || crossRefs.Count == 0)
         {
             aniFile = null;
@@ -236,7 +236,7 @@ public class ProcessFileJob : BaseJob
         return aniFile;
     }
 
-    private async Task PopulateAnimeForFile(SVR_VideoLocal vidLocal, List<SVR_CrossRef_File_Episode> xrefs, Dictionary<int, bool> animeIDs)
+    private async Task PopulateAnimeForFile(SVR_VideoLocal vidLocal, IReadOnlyList<SVR_CrossRef_File_Episode> xrefs, Dictionary<int, bool> animeIDs)
     {
         // check if we have the episode info
         // if we don't, we will need to re-download the anime info (which also has episode info)
@@ -326,7 +326,7 @@ public class ProcessFileJob : BaseJob
     private async Task<SVR_AniDB_File> TryGetAniDBFileFromAniDB(Dictionary<int, bool> animeIDs)
     {
         // check if we already have a record
-        var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(_vlocal.Hash, _vlocal.FileSize);
+        var aniFile = RepoFactory.AniDB_File.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize);
 
         if (aniFile == null || aniFile.FileSize != _vlocal.FileSize)
         {
@@ -366,7 +366,7 @@ public class ProcessFileJob : BaseJob
         }
 
         // get Anime IDs from the file for processing, the episodes might not be created yet here
-        aniFile.EpisodeCrossRefs.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
+        aniFile.EpisodeCrossReferences.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
         {
             animeIDs[animeID] = false;
         });

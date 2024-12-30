@@ -97,7 +97,7 @@ public class SearchTraktSeriesJob : BaseJob
         }
 
         // finally lets try searching Trakt directly
-        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
         if (anime == null) return Task.CompletedTask;
 
         var searchCriteria = anime.MainTitle;

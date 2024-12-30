@@ -11,5 +11,6 @@ public class ResponseCharacter
     public string CharacterKanjiName { get; set; }
     public string CharacterDescription { get; set; }
     public string CharacterType { get; set; }
+    public string Gender { get; set; }
     public List<ResponseSeiyuu> Seiyuus { get; set; }
 }

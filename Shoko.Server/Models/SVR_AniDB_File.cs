@@ -21,11 +21,11 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID).ToList();
 
     [XmlIgnore]
-    public List<int> EpisodeIDs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash)
+    public List<int> EpisodeIDs => RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash)
         .Select(crossref => crossref.EpisodeID).ToList();
 
     [XmlIgnore]
-    public List<SVR_AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash)
+    public List<SVR_AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash)
         .Select(crossref => crossref.AniDBEpisode)
         .WhereNotNull()
         .OrderBy(ep => ep.EpisodeTypeEnum)
@@ -33,7 +33,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         .ToList();
 
     [XmlIgnore]
-    public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+    public IReadOnlyList<SVR_CrossRef_File_Episode> EpisodeCrossReferences => RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash);
 
     // NOTE: I want to cache it, but i won't for now. not until the anidb files and release groups are stored in a non-cached repo.
     public AniDB_ReleaseGroup ReleaseGroup =>

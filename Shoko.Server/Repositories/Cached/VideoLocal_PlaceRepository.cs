@@ -9,77 +9,69 @@ using Shoko.Server.Exceptions;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Place, int>
 {
-    private PocoIndex<int, SVR_VideoLocal_Place, int> VideoLocals;
-    private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
-    private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
+    private PocoIndex<int, SVR_VideoLocal_Place, int>? _videoLocalIDs;
+
+    private PocoIndex<int, SVR_VideoLocal_Place, int>? _importFolderIDs;
+
+    private PocoIndex<int, SVR_VideoLocal_Place, string>? _paths;
 
     public VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         BeginSaveCallback = place =>
         {
-            if (place.VideoLocalID == 0) throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
+            if (place.VideoLocalID == 0)
+                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
+            if (string.IsNullOrEmpty(place.FilePath))
+                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a null or empty FilePath");
+            if (place.VideoLocal_Place_ID is 0 && GetByFilePathAndImportFolderID(place.FilePath, place.ImportFolderID) is { } secondPlace)
+                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a FilePath and ImportFolderID that already exists in the database");
         };
     }
 
     protected override int SelectKey(SVR_VideoLocal_Place entity)
-    {
-        return entity.VideoLocal_Place_ID;
-    }
+        => entity.VideoLocal_Place_ID;
 
     public override void PopulateIndexes()
     {
-        VideoLocals = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.VideoLocalID);
-        ImportFolders = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.ImportFolderID);
-        Paths = new PocoIndex<int, SVR_VideoLocal_Place, string>(Cache, a => a.FilePath);
+        _videoLocalIDs = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.VideoLocalID);
+        _importFolderIDs = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.ImportFolderID);
+        _paths = new PocoIndex<int, SVR_VideoLocal_Place, string>(Cache, a => a.FilePath);
     }
 
     public override void RegenerateDb()
     {
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal_Place), " Removing orphaned VideoLocal_Places");
-        var count = 0;
-        int max;
-
-        var list = Cache.Values.Where(a => a is { VideoLocalID: 0 }).ToList();
-        max = list.Count;
-
+        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(VideoLocal_Place), " Removing orphaned VideoLocal_Places");
+        var entries = Cache.Values.Where(a => a is { VideoLocalID: 0 } or { ImportFolderID: 0 } or { FilePath: null or "" }).ToList();
+        var total = entries.Count;
+        var current = 0;
         using var session = _databaseFactory.SessionFactory.OpenSession();
-        foreach (var batch in list.Batch(50))
+        foreach (var batch in entries.Batch(50))
         {
             using var transaction = session.BeginTransaction();
-            foreach (var a in batch)
+            foreach (var entry in batch)
             {
-                DeleteWithOpenTransaction(session, a);
-                count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(VideoLocal_Place),
-                    " Removing Orphaned VideoLocal_Places - " + count + "/" + max);
+                DeleteWithOpenTransaction(session, entry);
+                current++;
+                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(VideoLocal_Place), " Removing Orphaned VideoLocal_Places - " + current + "/" + total);
             }
 
             transaction.Commit();
         }
     }
 
-    public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
-    {
-        if (importFolderID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
-        return ReadLock(() => ImportFolders.GetMultiple(importFolderID));
-    }
+    public IReadOnlyList<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
+        => ReadLock(() => _importFolderIDs!.GetMultiple(importFolderID));
 
-    public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int importFolderID)
-    {
-        if (string.IsNullOrEmpty(filePath)) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an empty File Path");
-        if (importFolderID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
-        return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == importFolderID));
-    }
+    public SVR_VideoLocal_Place? GetByFilePathAndImportFolderID(string filePath, int importFolderID)
+        => !string.IsNullOrEmpty(filePath) && importFolderID > 0
+            ? ReadLock(() => _paths!.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == importFolderID))
+            : null;
 
-    public List<SVR_VideoLocal_Place> GetByVideoLocal(int videoLocalID)
-    {
-        if (videoLocalID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by a VideoLocalID of 0");
-        return ReadLock(() => VideoLocals.GetMultiple(videoLocalID));
-    }
+    public IReadOnlyList<SVR_VideoLocal_Place> GetByVideoLocal(int videoLocalID)
+        => ReadLock(() => _videoLocalIDs!.GetMultiple(videoLocalID));
 }

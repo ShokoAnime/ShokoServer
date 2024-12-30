@@ -66,7 +66,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         return enumerable
             .SelectMany(episode =>
             {
-                var files = episode.VideoLocals;
+                var files = episode.VideoLocals.ToList();
                 files.Sort(FileQualityFilter.CompareTo);
                 return files
                     .Skip(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
@@ -167,7 +167,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         return enumerable
             .SelectMany(episode =>
             {
-                var files = episode.VideoLocals;
+                var files = episode.VideoLocals.ToList();
                 files.Sort(FileQualityFilter.CompareTo);
                 return files
                     .Skip(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)

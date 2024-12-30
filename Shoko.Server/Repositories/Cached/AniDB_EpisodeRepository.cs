@@ -7,62 +7,40 @@ using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AniDB_EpisodeRepository : BaseCachedRepository<SVR_AniDB_Episode, int>
+public class AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_AniDB_Episode, int>(databaseFactory)
 {
-    private PocoIndex<int, SVR_AniDB_Episode, int> EpisodesIds;
-    private PocoIndex<int, SVR_AniDB_Episode, int> Animes;
+    private PocoIndex<int, SVR_AniDB_Episode, int>? _episodesIDs;
+
+    private PocoIndex<int, SVR_AniDB_Episode, int>? _animeIDs;
+
+    protected override int SelectKey(SVR_AniDB_Episode entity)
+        => entity.AniDB_EpisodeID;
 
     public override void PopulateIndexes()
     {
-        EpisodesIds = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.EpisodeID);
-        Animes = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.AnimeID);
+        _episodesIDs = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.EpisodeID);
+        _animeIDs = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.AnimeID);
     }
 
-    protected override int SelectKey(SVR_AniDB_Episode entity)
-    {
-        return entity.AniDB_EpisodeID;
-    }
+    public SVR_AniDB_Episode? GetByEpisodeID(int episodeID)
+        => ReadLock(() => _episodesIDs!.GetOne(episodeID));
 
-    public override void RegenerateDb()
-    {
-    }
+    public IReadOnlyList<SVR_AniDB_Episode> GetByAnimeID(int animeID)
+        => ReadLock(() => _animeIDs!.GetMultiple(animeID));
 
-    public SVR_AniDB_Episode GetByEpisodeID(int id)
-    {
-        return ReadLock(() => EpisodesIds.GetOne(id));
-    }
+    public IReadOnlyList<SVR_AniDB_Episode> GetForDate(DateTime startDate, DateTime endDate)
+        => ReadLock(() => Cache.Values.Where(a => a.GetAirDateAsDate() is { } date && date >= startDate && date <= endDate).ToList());
 
-    public List<SVR_AniDB_Episode> GetByAnimeID(int id)
-    {
-        return ReadLock(() => Animes.GetMultiple(id));
-    }
-
-    public List<SVR_AniDB_Episode> GetForDate(DateTime startDate, DateTime endDate)
-    {
-        return ReadLock(() => Cache.Values.Where(a =>
-        {
-            var date = a.GetAirDateAsDate();
-            return date.HasValue && date.Value >= startDate && date.Value <= endDate;
-        }).ToList());
-    }
-
-    public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
-    {
-        return GetByAnimeID(animeid)
-            .Where(a => a.EpisodeNumber == epnumber && a.EpisodeTypeEnum == EpisodeType.Episode)
+    public IReadOnlyList<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeID, int episodeNumber)
+        => GetByAnimeID(animeID)
+            .Where(a => a.EpisodeNumber == episodeNumber && a.EpisodeTypeEnum == EpisodeType.Episode)
             .ToList();
-    }
 
-    public List<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
-    {
-        return GetByAnimeID(animeid)
-            .Where(a => a.EpisodeNumber == epnumber && a.EpisodeTypeEnum == epType)
+    public IReadOnlyList<SVR_AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeID, EpisodeType episodeType, int episodeNumber)
+        => GetByAnimeID(animeID)
+            .Where(a => a.EpisodeNumber == episodeNumber && a.EpisodeTypeEnum == episodeType)
             .ToList();
-    }
-
-    public AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 }

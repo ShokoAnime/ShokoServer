@@ -21,8 +21,8 @@ public static class ImageResolvers
         => string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.URLS.AniDB_Images_Domain), relativePath.Split(Path.DirectorySeparatorChar).LastOrDefault());
 
     public static IImageMetadata? GetImageMetadata(this AniDB_Character character, bool preferred = false)
-        => !string.IsNullOrEmpty(character.PicName)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Character, character.CharID, character.GetFullImagePath(), ResolveAnidbImageUrl(character.PicName))
+        => !string.IsNullOrEmpty(character.ImagePath)
+            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Character, character.CharacterID, character.GetFullImagePath(), ResolveAnidbImageUrl(character.ImagePath))
             {
                 IsEnabled = true,
                 IsPreferred = preferred,
@@ -50,60 +50,26 @@ public static class ImageResolvers
 
     public static string GetFullImagePath(this AniDB_Character character)
     {
-        if (string.IsNullOrEmpty(character.PicName))
-            return string.Empty;
-
-        return Path.Combine(ImageUtils.GetAniDBCharacterImagePath(character.CharID), character.PicName);
-    }
-
-    public static IImageMetadata? GetImageMetadata(this AniDB_Creator seiyuu, bool preferred = false)
-        => !string.IsNullOrEmpty(seiyuu.ImagePath)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Person, seiyuu.CreatorID, seiyuu.GetFullImagePath(), ResolveAnidbImageUrl(seiyuu.ImagePath))
-            {
-                IsEnabled = true,
-                IsPreferred = preferred,
-            }
-            : null;
-
-    public static string GetFullImagePath(this AniDB_Creator seiyuu)
-    {
-        if (string.IsNullOrEmpty(seiyuu.ImagePath))
-            return string.Empty;
-
-        return Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.CreatorID), seiyuu.ImagePath);
-    }
-
-    public static IImageMetadata? GetImageMetadata(this AnimeCharacter character, bool preferred = false)
-        => !string.IsNullOrEmpty(character.ImagePath)
-            ? new Image_Base(DataSourceEnum.Shoko, ImageEntityType.Character, character.CharacterID, character.GetFullImagePath(), ResolveAnidbImageUrl(character.ImagePath))
-            {
-                IsEnabled = true,
-                IsPreferred = preferred,
-            }
-            : null;
-
-    public static string GetFullImagePath(this AnimeCharacter character)
-    {
         if (string.IsNullOrEmpty(character.ImagePath))
             return string.Empty;
 
-        return Path.Combine(ImageUtils.GetBaseAniDBCharacterImagesPath(), character.ImagePath);
+        return Path.Combine(ImageUtils.GetAniDBCharacterImagePath(character.CharacterID), character.ImagePath);
     }
 
-    public static IImageMetadata? GetImageMetadata(this AnimeStaff staff, bool preferred = false)
-        => !string.IsNullOrEmpty(staff.ImagePath)
-            ? new Image_Base(DataSourceEnum.Shoko, ImageEntityType.Person, staff.StaffID, staff.GetFullImagePath(), ResolveAnidbImageUrl(staff.ImagePath))
+    public static IImageMetadata? GetImageMetadata(this AniDB_Creator creator, bool preferred = false)
+        => !string.IsNullOrEmpty(creator.ImagePath)
+            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Person, creator.CreatorID, creator.GetFullImagePath(), ResolveAnidbImageUrl(creator.ImagePath))
             {
                 IsEnabled = true,
                 IsPreferred = preferred,
             }
             : null;
 
-    public static string GetFullImagePath(this AnimeStaff staff)
+    public static string GetFullImagePath(this AniDB_Creator creator)
     {
-        if (string.IsNullOrEmpty(staff.ImagePath))
+        if (string.IsNullOrEmpty(creator.ImagePath))
             return string.Empty;
 
-        return Path.Combine(ImageUtils.GetBaseAniDBCreatorImagesPath(), staff.ImagePath);
+        return Path.Combine(ImageUtils.GetAniDBCreatorImagePath(creator.CreatorID), creator.ImagePath);
     }
 }

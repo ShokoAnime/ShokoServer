@@ -78,7 +78,7 @@ public class RenameFileService
 
         var videoLocal = place.VideoLocal ??
                          throw new NullReferenceException(nameof(place.VideoLocal));
-        var xrefs = videoLocal.EpisodeCrossRefs;
+        var xrefs = videoLocal.EpisodeCrossReferences;
         var episodes = xrefs
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()

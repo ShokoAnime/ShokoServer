@@ -100,7 +100,7 @@ public class DashboardController : BaseController
             .ToList();
         var duplicates = places
             .Where(a => !a.VideoLocal.IsVariation)
-            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.VideoLocal.Hash))
+            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEd2k(a.VideoLocal.Hash))
             .GroupBy(a => a.EpisodeID)
             .Count(a => a.Count() > 1);
         var percentDuplicates = places.Count == 0
@@ -494,7 +494,7 @@ public class DashboardController : BaseController
                 if (seriesDict.TryGetValue(episode.AnimeID, out var series))
                 {
                     var xref = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID).MinBy(xref => xref.Percentage);
-                    var file = xref != null ? RepoFactory.VideoLocal.GetByHash(xref.Hash) : null;
+                    var file = xref?.VideoLocal;
                     return new Dashboard.EpisodeDetails(episode, anime, series, file);
                 }
 

@@ -18,6 +18,7 @@ public class RepoFactory
     private readonly ICachedRepository[] _cachedRepositories;
 
     public static AniDB_Anime_CharacterRepository AniDB_Anime_Character;
+    public static AniDB_Anime_Character_CreatorRepository AniDB_Anime_Character_Creator;
     public static AniDB_Anime_PreferredImageRepository AniDB_Anime_PreferredImage;
     public static AniDB_Anime_RelationRepository AniDB_Anime_Relation;
     public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar;
@@ -26,7 +27,6 @@ public class RepoFactory
     public static AniDB_Anime_TitleRepository AniDB_Anime_Title;
     public static AniDB_AnimeRepository AniDB_Anime;
     public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate;
-    public static AniDB_Character_CreatorRepository AniDB_Character_Creator;
     public static AniDB_CharacterRepository AniDB_Character;
     public static AniDB_CreatorRepository AniDB_Creator;
     public static AniDB_Episode_PreferredImageRepository AniDB_Episode_PreferredImage;
@@ -40,14 +40,12 @@ public class RepoFactory
     public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup;
     public static AniDB_TagRepository AniDB_Tag;
     public static AniDB_VoteRepository AniDB_Vote;
-    public static AnimeCharacterRepository AnimeCharacter;
     public static AnimeEpisode_UserRepository AnimeEpisode_User;
     public static AnimeEpisodeRepository AnimeEpisode;
     public static AnimeGroup_UserRepository AnimeGroup_User;
     public static AnimeGroupRepository AnimeGroup;
     public static AnimeSeries_UserRepository AnimeSeries_User;
     public static AnimeSeriesRepository AnimeSeries;
-    public static AnimeStaffRepository AnimeStaff;
     public static AuthTokensRepository AuthTokens;
     public static BookmarkedAnimeRepository BookmarkedAnime;
     public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL;
@@ -55,7 +53,6 @@ public class RepoFactory
     public static CrossRef_AniDB_TMDB_MovieRepository CrossRef_AniDB_TMDB_Movie;
     public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show;
     public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2;
-    public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode;
     public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File;
@@ -104,6 +101,7 @@ public class RepoFactory
         ILogger<RepoFactory> logger,
         IEnumerable<ICachedRepository> repositories,
         AniDB_Anime_CharacterRepository anidbAnimeCharacter,
+        AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreator,
         AniDB_Anime_PreferredImageRepository anidbAnimePreferredImage,
         AniDB_Anime_RelationRepository anidbAnimeRelation,
         AniDB_Anime_SimilarRepository anidbAnimeSimilar,
@@ -112,7 +110,6 @@ public class RepoFactory
         AniDB_Anime_TitleRepository anidbAnimeTitle,
         AniDB_AnimeRepository anidbAnime,
         AniDB_AnimeUpdateRepository anidbAnimeUpdate,
-        AniDB_Character_CreatorRepository anidbCharacterCreator,
         AniDB_CharacterRepository anidbCharacter,
         AniDB_CreatorRepository anidbCreator,
         AniDB_Episode_PreferredImageRepository anidbEpisodePreferredImage,
@@ -126,14 +123,12 @@ public class RepoFactory
         AniDB_ReleaseGroupRepository anidbReleaseGroup,
         AniDB_TagRepository anidbTag,
         AniDB_VoteRepository anidbVote,
-        AnimeCharacterRepository animeCharacter,
         AnimeEpisode_UserRepository animeEpisodeUser,
         AnimeEpisodeRepository animeEpisode,
         AnimeGroup_UserRepository animeGroupUser,
         AnimeGroupRepository animeGroup,
         AnimeSeries_UserRepository animeSeriesUser,
         AnimeSeriesRepository animeSeries,
-        AnimeStaffRepository animeStaff,
         AuthTokensRepository authTokens,
         BookmarkedAnimeRepository bookmarkedAnime,
         CrossRef_AniDB_MALRepository crossRefAniDBMal,
@@ -141,7 +136,6 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_MovieRepository crossRefAniDBTmdbMovie,
         CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
         CrossRef_AniDB_TraktV2Repository crossRefAniDBTraktV2,
-        CrossRef_Anime_StaffRepository crossRefAnimeStaff,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
         CrossRef_Languages_AniDB_FileRepository crossRefLanguagesAniDBFile,
@@ -191,6 +185,7 @@ public class RepoFactory
         _cachedRepositories = repositories.ToArray();
         AniDB_Anime = anidbAnime;
         AniDB_Anime_Character = anidbAnimeCharacter;
+        AniDB_Anime_Character_Creator = anidbAnimeCharacterCreator;
         AniDB_Anime_PreferredImage = anidbAnimePreferredImage;
         AniDB_Anime_Relation = anidbAnimeRelation;
         AniDB_Anime_Similar = anidbAnimeSimilar;
@@ -199,7 +194,6 @@ public class RepoFactory
         AniDB_Anime_Title = anidbAnimeTitle;
         AniDB_AnimeUpdate = anidbAnimeUpdate;
         AniDB_Character = anidbCharacter;
-        AniDB_Character_Creator = anidbCharacterCreator;
         AniDB_Creator = anidbCreator;
         AniDB_Episode = anidbEpisode;
         AniDB_Episode_PreferredImage = anidbEpisodePreferredImage;
@@ -212,14 +206,12 @@ public class RepoFactory
         AniDB_ReleaseGroup = anidbReleaseGroup;
         AniDB_Tag = anidbTag;
         AniDB_Vote = anidbVote;
-        AnimeCharacter = animeCharacter;
         AnimeEpisode = animeEpisode;
         AnimeEpisode_User = animeEpisodeUser;
         AnimeGroup = animeGroup;
         AnimeGroup_User = animeGroupUser;
         AnimeSeries = animeSeries;
         AnimeSeries_User = animeSeriesUser;
-        AnimeStaff = animeStaff;
         AuthTokens = authTokens;
         BookmarkedAnime = bookmarkedAnime;
         CrossRef_AniDB_MAL = crossRefAniDBMal;
@@ -227,7 +219,6 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_Movie = crossRefAniDBTmdbMovie;
         CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
         CrossRef_AniDB_TraktV2 = crossRefAniDBTraktV2;
-        CrossRef_Anime_Staff = crossRefAnimeStaff;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
         CrossRef_Languages_AniDB_File = crossRefLanguagesAniDBFile;

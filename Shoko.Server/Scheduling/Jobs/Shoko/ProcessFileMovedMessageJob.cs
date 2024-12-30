@@ -43,7 +43,7 @@ public class ProcessFileMovedMessageJob : BaseJob
             return;
         }
 
-        var vlocal = RepoFactory.VideoLocal.GetByHash(file.Hash);
+        var vlocal = RepoFactory.VideoLocal.GetByEd2k(file.Hash);
         if (vlocal == null)
         {
             _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.Hash);

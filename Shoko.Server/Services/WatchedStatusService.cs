@@ -136,7 +136,7 @@ public class WatchedStatusService
 
         SVR_AnimeSeries ser;
         // get all files associated with this episode
-        var xrefs = _fileEpisodes.GetByHash(vl.Hash);
+        var xrefs = vl.EpisodeCrossReferences;
         var toUpdateSeries = new Dictionary<int, SVR_AnimeSeries>();
         if (watched)
         {

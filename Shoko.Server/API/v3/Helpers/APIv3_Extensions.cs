@@ -5,7 +5,7 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
-
+using Shoko.Server.Server;
 using ImageEntityType = Shoko.Plugin.Abstractions.Enums.ImageEntityType;
 using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
 
@@ -14,23 +14,23 @@ namespace Shoko.Server.API.v3.Helpers;
 
 public static class APIv3_Extensions
 {
-    public static Role.CreatorRoleType ToCreatorRole(this TMDB_Movie_Crew crew)
+    public static CreatorRoleType ToCreatorRole(this TMDB_Movie_Crew crew)
         => ToCreatorRole(crew.Department, crew.Job);
 
-    public static Role.CreatorRoleType ToCreatorRole(this TMDB_Show_Crew crew)
+    public static CreatorRoleType ToCreatorRole(this TMDB_Show_Crew crew)
         => ToCreatorRole(crew.Department, crew.Job);
 
-    public static Role.CreatorRoleType ToCreatorRole(this TMDB_Season_Crew crew)
+    public static CreatorRoleType ToCreatorRole(this TMDB_Season_Crew crew)
         => ToCreatorRole(crew.Department, crew.Job);
 
-    public static Role.CreatorRoleType ToCreatorRole(this TMDB_Episode_Crew crew)
+    public static CreatorRoleType ToCreatorRole(this TMDB_Episode_Crew crew)
         => ToCreatorRole(crew.Department, crew.Job);
 
-    private static Role.CreatorRoleType ToCreatorRole(string department, string job)
+    private static CreatorRoleType ToCreatorRole(string department, string job)
         => department switch
         {
             // TODO: Implement this.
-            _ => Role.CreatorRoleType.Staff,
+            _ => CreatorRoleType.Staff,
         };
 
     public static IEnumerable<IImageMetadata> InLanguage(this IEnumerable<IImageMetadata> imageList, IReadOnlySet<TitleLanguage>? language = null)

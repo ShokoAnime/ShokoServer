@@ -374,7 +374,7 @@ public class ActionController : BaseController
         index = 0;
         var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
         var unknownEpisodeDict = videos
-            .SelectMany(file => file.EpisodeCrossRefs)
+            .SelectMany(file => file.EpisodeCrossReferences)
             .Where(xref => xref.AnimeID is 0)
             .GroupBy(xref => xref.EpisodeID)
             .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
@@ -422,7 +422,7 @@ public class ActionController : BaseController
             .Select(episode => episode.EpisodeID)
             .ToHashSet();
         var missingAnimeSet = videos
-            .SelectMany(file => file.EpisodeCrossRefs)
+            .SelectMany(file => file.EpisodeCrossReferences)
             .Where(xref => xref.AnimeID > 0 && !queuedAnimeSet.Contains(xref.AnimeID) && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
             .Select(xref => xref.AnimeID)
             .ToHashSet();

@@ -1,39 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Collections;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
-using Shoko.Server.API;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
-using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
+public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Tag, int>(databaseFactory)
 {
-    private PocoIndex<int, AniDB_Tag, int> Tags;
-    private PocoIndex<int, AniDB_Tag, string> Names;
-    private PocoIndex<int, AniDB_Tag, string> SourceNames;
+    private PocoIndex<int, AniDB_Tag, int>? _tagIDs;
+
+    private PocoIndex<int, AniDB_Tag, string>? _names;
+
+    private PocoIndex<int, AniDB_Tag, string>? _sourceNames;
+
+    protected override int SelectKey(AniDB_Tag entity)
+        => entity.AniDB_TagID;
 
     public override void PopulateIndexes()
     {
-        Tags = new PocoIndex<int, AniDB_Tag, int>(Cache, a => a.TagID);
-        Names = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagName);
-        SourceNames = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagNameSource);
-    }
-
-    protected override int SelectKey(AniDB_Tag entity)
-    {
-        return entity.AniDB_TagID;
+        _tagIDs = new PocoIndex<int, AniDB_Tag, int>(Cache, a => a.TagID);
+        _names = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagName);
+        _sourceNames = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagNameSource);
     }
 
     public override void RegenerateDb()
     {
-        var tags = Cache.Values.Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`'))
+        var tags = Cache.Values
+            .Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`'))
             .ToList();
         foreach (var tag in tags)
         {
@@ -44,74 +40,25 @@ public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
         }
     }
 
-    public List<AniDB_Tag> GetByAnimeID(int animeID)
-    {
-        return RepoFactory.AniDB_Anime_Tag.GetByAnimeID(animeID)
-            .Select(a => GetByTagID(a.TagID))
-            .Where(a => a != null)
-            .ToList();
-    }
+    public AniDB_Tag? GetByTagID(int tagID)
+        => ReadLock(() => _tagIDs!.GetOne(tagID));
 
+    public IReadOnlyList<AniDB_Tag> GetByName(string name)
+        => ReadLock(() => _names!.GetMultiple(name));
 
-    public ILookup<int, AniDB_Tag> GetByAnimeIDs(int[] ids)
-    {
-        if (ids == null)
-        {
-            throw new ArgumentNullException(nameof(ids));
-        }
-
-        if (ids.Length == 0)
-        {
-            return EmptyLookup<int, AniDB_Tag>.Instance;
-        }
-
-        return RepoFactory.AniDB_Anime_Tag.GetByAnimeIDs(ids).SelectMany(a => a.ToList())
-            .ToLookup(t => t.AnimeID, t => GetByTagID(t.TagID));
-    }
-
-
-    public AniDB_Tag GetByTagID(int id)
-    {
-        return ReadLock(() => Tags.GetOne(id));
-    }
-
-    public List<AniDB_Tag> GetByName(string name)
-    {
-        return ReadLock(() => Names.GetMultiple(name));
-    }
-
-    public List<AniDB_Tag> GetBySourceName(string sourceName)
-    {
-        return ReadLock(() => SourceNames.GetMultiple(sourceName));
-    }
+    public IReadOnlyList<AniDB_Tag> GetBySourceName(string sourceName)
+        => ReadLock(() => _sourceNames!.GetMultiple(sourceName));
 
     /// <summary>
     /// Gets all the tags, but only if we have the anime locally
     /// </summary>
     /// <returns></returns>
-    public List<AniDB_Tag> GetAllForLocalSeries(bool useUser = false)
-    {
-        IEnumerable<SVR_AnimeSeries> series;
-        if (useUser)
-        {
-            var user = Utils.ServiceContainer.GetService<IHttpContextAccessor>()?.HttpContext?.GetUser();
-            series = RepoFactory.AnimeSeries.GetAll().Where(a => user?.AllowedSeries(a) ?? true);
-        }
-        else
-        {
-            series = RepoFactory.AnimeSeries.GetAll();
-        }
-
-        return series
+    public IReadOnlyList<AniDB_Tag> GetAllForLocalSeries()
+        => RepoFactory.AnimeSeries.GetAll()
             .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
-            .Where(a => a != null)
+            .WhereNotNull()
             .Select(a => GetByTagID(a.TagID))
-            .Where(a => a != null)
+            .WhereNotNull()
             .DistinctBy(a => a.TagID)
             .ToList();
-    }
-
-    public AniDB_TagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 }

@@ -57,7 +57,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // Trakt
-            foreach (var xref in anime.GetCrossRefTraktV2())
+            foreach (var xref in anime.TraktShowCrossReferences)
             {
                 result.CrossRef_AniDB_Trakt.Add(xref);
 
@@ -81,7 +81,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // MAL
-            var xrefMAL = anime.GetCrossRefMAL();
+            var xrefMAL = anime.MalCrossReferences;
             if (xrefMAL == null)
             {
                 result.CrossRef_AniDB_MAL = null;

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
@@ -64,4 +66,10 @@ public class AniDB_Creator
     public DateTime LastUpdatedAt { get; set; }
 
     #endregion
+
+    public IReadOnlyList<AniDB_Anime_Character_Creator> Characters
+        => RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID);
+
+    public IReadOnlyList<AniDB_Anime_Staff> Staff
+        => RepoFactory.AniDB_Anime_Staff.GetByCreatorID(CreatorID);
 }

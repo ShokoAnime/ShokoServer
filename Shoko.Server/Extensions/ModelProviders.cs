@@ -3,6 +3,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Trakt;
 using Shoko.Server.Providers.TraktTV.Contracts;
 
@@ -26,21 +27,21 @@ public static class ModelProviders
         var contract = new Metro_AniDB_Character
         {
             AniDB_CharacterID = character.AniDB_CharacterID,
-            CharID = character.CharID,
-            CharName = character.CharName,
-            CharKanjiName = character.CharKanjiName,
-            CharDescription = character.CharDescription,
-            CharType = charRel.CharType,
+            CharID = character.CharacterID,
+            CharName = character.Name,
+            CharKanjiName = character.OriginalName,
+            CharDescription = character.Description,
+            CharType = charRel.Appearance,
             ImageType = (int)CL_ImageEntityType.AniDB_Character,
             ImageID = character.AniDB_CharacterID
         };
-        var seiyuu = character.GetCreator();
-        if (seiyuu != null)
+        var creator = charRel.Creators is { Count: > 0 } ? charRel.Creators[0] : null;
+        if (creator != null)
         {
-            contract.SeiyuuID = seiyuu.AniDB_CreatorID;
-            contract.SeiyuuName = seiyuu.Name;
+            contract.SeiyuuID = creator.AniDB_CreatorID;
+            contract.SeiyuuName = creator.Name;
             contract.SeiyuuImageType = (int)CL_ImageEntityType.AniDB_Creator;
-            contract.SeiyuuImageID = seiyuu.CreatorID;
+            contract.SeiyuuImageID = creator.CreatorID;
         }
 
         return contract;

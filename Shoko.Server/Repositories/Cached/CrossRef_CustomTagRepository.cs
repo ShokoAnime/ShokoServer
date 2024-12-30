@@ -5,45 +5,34 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class CrossRef_CustomTagRepository : BaseCachedRepository<CrossRef_CustomTag, int>
+public class CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CrossRef_CustomTag, int>(databaseFactory)
 {
-    private PocoIndex<int, CrossRef_CustomTag, int> Tags;
-    private PocoIndex<int, CrossRef_CustomTag, int, int> Refs;
+    private PocoIndex<int, CrossRef_CustomTag, int>? _customTagIDs;
+    private PocoIndex<int, CrossRef_CustomTag, (int entityID, CustomTagCrossRefType entityType)>? _entityIDandType;
 
     protected override int SelectKey(CrossRef_CustomTag entity)
-    {
-        return entity.CrossRef_CustomTagID;
-    }
+        => entity.CrossRef_CustomTagID;
 
     public override void PopulateIndexes()
     {
-        Tags = new PocoIndex<int, CrossRef_CustomTag, int>(Cache, a => a.CustomTagID);
-        Refs = new PocoIndex<int, CrossRef_CustomTag, int, int>(Cache, a => a.CrossRefID, a => a.CrossRefType);
+        _customTagIDs = new PocoIndex<int, CrossRef_CustomTag, int>(Cache, a => a.CustomTagID);
+        _entityIDandType = new PocoIndex<int, CrossRef_CustomTag, (int entityID, CustomTagCrossRefType entityType)>(Cache, a => (a.CrossRefID, (CustomTagCrossRefType)a.CrossRefType));
     }
 
-    public override void RegenerateDb()
-    {
-    }
+    public IReadOnlyList<CrossRef_CustomTag> GetByCustomTagID(int customTagID)
+        => ReadLock(() => _customTagIDs!.GetMultiple(customTagID));
 
-    public List<CrossRef_CustomTag> GetByAnimeID(int id)
-    {
-        return ReadLock(() => Refs.GetMultiple(id, (int)CustomTagCrossRefType.Anime));
-    }
+    public IReadOnlyList<CrossRef_CustomTag> GetByEntityIDAndType(int entityID, CustomTagCrossRefType entityType)
+        => ReadLock(() => _entityIDandType!.GetMultiple((entityID, entityType)));
 
-    public List<CrossRef_CustomTag> GetByCustomTagID(int id)
-    {
-        return ReadLock(() => Tags.GetMultiple(id));
-    }
+    public IReadOnlyList<CrossRef_CustomTag> GetByAnimeID(int animeID)
+        => GetByEntityIDAndType(animeID, CustomTagCrossRefType.Anime);
 
-    public List<CrossRef_CustomTag> GetByUniqueID(int customTagID, int crossRefType, int crossRefID)
-    {
-        return ReadLock(() =>
-            Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList());
-    }
-
-    public CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
+    public IReadOnlyList<CrossRef_CustomTag> GetByUniqueID(int customTagID, CustomTagCrossRefType entityType, int entityID)
+        => GetByEntityIDAndType(entityID, entityType)
+            .Where(a => a.CustomTagID == customTagID)
+            .ToList();
 }

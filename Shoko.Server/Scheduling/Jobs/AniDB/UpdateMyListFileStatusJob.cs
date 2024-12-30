@@ -57,7 +57,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 
         var settings = _settingsProvider.GetSettings();
         // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-        var vid = RepoFactory.VideoLocal.GetByHash(Hash);
+        var vid = RepoFactory.VideoLocal.GetByEd2k(Hash);
         if (vid == null) return;
 
         if (vid.AniDBFile != null)
@@ -79,7 +79,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         else
         {
             // we have a manual link, so get the xrefs and add the episodes instead as generic files
-            var xrefs = vid.EpisodeCrossRefs;
+            var xrefs = vid.EpisodeCrossReferences;
             foreach (var episode in xrefs.Select(xref => xref.AniDBEpisode).Where(episode => episode != null))
             {
                 _logger.LogInformation("Updating Episode MyList Status: AnimeID: {AnimeID}, Episode Type: {Type}, Episode No: {EP}", episode.AnimeID,

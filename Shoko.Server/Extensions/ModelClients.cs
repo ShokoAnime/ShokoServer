@@ -413,12 +413,12 @@ public static class ModelClients
         => new()
         {
             AniDB_CharacterID = character.AniDB_CharacterID,
-            CharID = character.CharID,
-            PicName = character.PicName,
-            CreatorListRaw = character.CreatorListRaw ?? "",
-            CharName = character.CharName,
-            CharKanjiName = character.CharKanjiName,
-            CharDescription = character.CharDescription,
+            CharID = character.CharacterID,
+            PicName = character.ImagePath,
+            CreatorListRaw = string.Empty,
+            CharName = character.Name,
+            CharKanjiName = character.OriginalName,
+            CharDescription = character.Description,
             Seiyuu = character.GetCreator()?.ToClient(),
         };
 

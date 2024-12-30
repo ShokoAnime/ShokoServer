@@ -21,12 +21,14 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -877,7 +879,7 @@ public class Common : BaseController
                     para.notag == 1, 0, false, para.allpics != 0, para.pic, para.tagfilter);
                 serie.eps ??= new List<Episode>();
                 var episode = Episode.GenerateFromAnimeEpisode(HttpContext, ep, userID, 0);
-                var vls = ep.VideoLocals;
+                var vls = ep.VideoLocals.ToList();
                 if (vls.Count <= 0)
                 {
                     continue;
@@ -3097,26 +3099,20 @@ public class Common : BaseController
         }
 
         var roles = new List<Role>();
-        var xref_animestaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(series.AniDB_ID,
-            StaffRoleType.Seiyuu);
+        var xref_animestaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID);
         foreach (var xref in xref_animestaff)
         {
-            if (xref.RoleID == null)
-            {
-                continue;
-            }
-
-            var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
+            var character = RepoFactory.AniDB_Character.GetByID(xref.CharacterID);
             if (character == null)
-            {
                 continue;
-            }
 
-            var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
+            var staff = RepoFactory.AniDB_Creator.GetByID(xref.CreatorID);
             if (staff == null)
-            {
                 continue;
-            }
+
+            var xref2 = xref.CharacterCrossReference;
+            if (xref2 == null)
+                continue;
 
             var cdescription = character.Description;
             if (string.IsNullOrEmpty(cdescription))
@@ -3124,22 +3120,16 @@ public class Common : BaseController
                 cdescription = null;
             }
 
-            var sdescription = staff.Description;
-            if (string.IsNullOrEmpty(sdescription))
-            {
-                sdescription = null;
-            }
-
             var role = new Role
             {
                 character = character.Name,
-                character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.Shoko, xref.RoleID.Value),
+                character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.AniDB, xref.CharacterID),
                 character_description = cdescription,
                 staff = staff.Name,
-                staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.Shoko, xref.StaffID),
-                staff_description = sdescription,
-                role = xref.Role,
-                type = ((StaffRoleType)xref.RoleType).ToString()
+                staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.AniDB, xref.CreatorID),
+                staff_description = string.Empty,
+                role = xref2.AppearanceType.ToString().Replace("_", " "),
+                type = "Seiyuu",
             };
             roles.Add(role);
         }
@@ -3177,27 +3167,10 @@ public class Common : BaseController
     }
 
     private static int CompareXRef_Anime_StaffByImportance(
-        KeyValuePair<SVR_AnimeSeries, CrossRef_Anime_Staff> staff1,
-        KeyValuePair<SVR_AnimeSeries, CrossRef_Anime_Staff> staff2)
+        KeyValuePair<SVR_AnimeSeries, AniDB_Anime_Staff> staff1,
+        KeyValuePair<SVR_AnimeSeries, AniDB_Anime_Staff> staff2)
     {
-        var succeeded1 = Enum.TryParse(staff1.Value.Role?.Replace(" ", "_"), out CharacterAppearanceType type1);
-        var succeeded2 = Enum.TryParse(staff2.Value.Role?.Replace(" ", "_"), out CharacterAppearanceType type2);
-        if (!succeeded1 && !succeeded2)
-        {
-            return 0;
-        }
-
-        if (!succeeded1)
-        {
-            return 1;
-        }
-
-        if (!succeeded2)
-        {
-            return -1;
-        }
-
-        var result = ((int)type1).CompareTo((int)type2);
+        var result = ((int)staff1.Value.RoleType).CompareTo((int)staff2.Value.RoleType);
         if (result != 0)
         {
             return result;

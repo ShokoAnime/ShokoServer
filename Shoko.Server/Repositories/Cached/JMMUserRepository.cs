@@ -6,50 +6,33 @@ using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
+public class JMMUserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_JMMUser, int>(databaseFactory)
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
-
     protected override int SelectKey(SVR_JMMUser entity)
-    {
-        return entity.JMMUserID;
-    }
+        => entity.JMMUserID;
 
-    public override void PopulateIndexes()
-    {
-    }
+    public SVR_JMMUser? GetByUsername(string? username)
+        => !string.IsNullOrWhiteSpace(username)
+            ? ReadLock(() => Cache.Values.FirstOrDefault(user => string.Equals(user.Username, username, StringComparison.InvariantCultureIgnoreCase)))
+            : null;
 
-    public override void RegenerateDb()
-    {
-    }
+    public IReadOnlyList<SVR_JMMUser> GetAniDBUsers()
+        => ReadLock(() => Cache.Values.Where(a => a.IsAniDBUser == 1).ToList());
 
-    public SVR_JMMUser GetByUsername(string username)
-    {
-        if (string.IsNullOrWhiteSpace(username))
-            return null;
+    public IReadOnlyList<SVR_JMMUser> GetTraktUsers()
+        => ReadLock(() => Cache.Values.Where(a => a.IsTraktUser == 1).ToList());
 
-        return ReadLock(() => Cache.Values.FirstOrDefault(user => string.Equals(user.Username, username, StringComparison.InvariantCultureIgnoreCase)));
-    }
-
-    public List<SVR_JMMUser> GetAniDBUsers()
-    {
-        return ReadLock(() => Cache.Values.Where(a => a.IsAniDBUser == 1).ToList());
-    }
-
-    public List<SVR_JMMUser> GetTraktUsers()
-    {
-        return ReadLock(() => Cache.Values.Where(a => a.IsTraktUser == 1).ToList());
-    }
-
-    public SVR_JMMUser AuthenticateUser(string userName, string password)
+    public SVR_JMMUser? AuthenticateUser(string userName, string? password)
     {
         password ??= string.Empty;
         var hashedPassword = Digest.Hash(password);
         return ReadLock(() => Cache.Values.FirstOrDefault(a =>
             a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
-            a.Password.Equals(hashedPassword)));
+            a.Password.Equals(hashedPassword)
+        ));
     }
 
     public bool RemoveUser(int userID, bool skipValidation = false)
@@ -57,7 +40,7 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
         var user = GetByID(userID);
         if (!skipValidation)
         {
-            var allAdmins = GetAll().Where(a => a.IsAdminUser()).ToList();
+            var allAdmins = GetAll().Where(a => a.IsAdmin == 1).ToList();
             allAdmins.Remove(user);
             if (allAdmins.Count < 1)
             {
@@ -72,9 +55,5 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
 
         Delete(user);
         return true;
-    }
-
-    public JMMUserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

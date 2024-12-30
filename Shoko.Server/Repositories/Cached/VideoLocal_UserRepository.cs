@@ -3,47 +3,33 @@ using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class VideoLocal_UserRepository : BaseCachedRepository<SVR_VideoLocal_User, int>
+public class VideoLocal_UserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_VideoLocal_User, int>(databaseFactory)
 {
-    private PocoIndex<int, SVR_VideoLocal_User, int> VideoLocalIDs;
-    private PocoIndex<int, SVR_VideoLocal_User, int> Users;
-    private PocoIndex<int, SVR_VideoLocal_User, (int UserID, int VideoLocalID)> UsersVideoLocals;
+    private PocoIndex<int, SVR_VideoLocal_User, int>? _videoLocalIDs;
+
+    private PocoIndex<int, SVR_VideoLocal_User, int>? _userIDs;
+
+    private PocoIndex<int, SVR_VideoLocal_User, (int UserID, int VideoLocalID)>? _userVideoLocalIDs;
 
     protected override int SelectKey(SVR_VideoLocal_User entity)
-    {
-        return entity.VideoLocal_UserID;
-    }
+        => entity.VideoLocal_UserID;
 
     public override void PopulateIndexes()
     {
-        VideoLocalIDs = new PocoIndex<int, SVR_VideoLocal_User, int>(Cache, a => a.VideoLocalID);
-        Users = new PocoIndex<int, SVR_VideoLocal_User, int>(Cache, a => a.JMMUserID);
-        UsersVideoLocals =
-            new PocoIndex<int, SVR_VideoLocal_User, (int, int)>(Cache, a => (a.JMMUserID, a.VideoLocalID));
+        _videoLocalIDs = new PocoIndex<int, SVR_VideoLocal_User, int>(Cache, a => a.VideoLocalID);
+        _userIDs = new PocoIndex<int, SVR_VideoLocal_User, int>(Cache, a => a.JMMUserID);
+        _userVideoLocalIDs = new PocoIndex<int, SVR_VideoLocal_User, (int, int)>(Cache, a => (a.JMMUserID, a.VideoLocalID));
     }
 
-    public override void RegenerateDb()
-    {
-    }
+    public IReadOnlyList<SVR_VideoLocal_User> GetByVideoLocalID(int videoLocalID)
+        => ReadLock(() => _videoLocalIDs!.GetMultiple(videoLocalID));
 
-    public List<SVR_VideoLocal_User> GetByVideoLocalID(int vidid)
-    {
-        return ReadLock(() => VideoLocalIDs.GetMultiple(vidid));
-    }
+    public IReadOnlyList<SVR_VideoLocal_User> GetByUserID(int userID)
+        => ReadLock(() => _userIDs!.GetMultiple(userID));
 
-    public List<SVR_VideoLocal_User> GetByUserID(int userid)
-    {
-        return ReadLock(() => Users.GetMultiple(userid));
-    }
-
-    public SVR_VideoLocal_User GetByUserIDAndVideoLocalID(int userid, int vidid)
-    {
-        return ReadLock(() => UsersVideoLocals.GetOne((userid, vidid)));
-    }
-
-    public VideoLocal_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
+    public SVR_VideoLocal_User? GetByUserIDAndVideoLocalID(int userID, int videoLocalID)
+        => ReadLock(() => _userVideoLocalIDs!.GetOne((userID, videoLocalID)));
 }

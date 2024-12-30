@@ -332,7 +332,7 @@ public class FilterFactory
         }
         else
         {
-            var subFilters = existing.FilterPresetID != 0 ? RepoFactory.FilterPreset.GetByParentID(existing.FilterPresetID) : new();
+            var subFilters = existing.FilterPresetID != 0 ? RepoFactory.FilterPreset.GetByParentID(existing.FilterPresetID) : [];
             if (subFilters.Count > 0)
                 modelState?.AddModelError(nameof(filter.IsDirectory), "Cannot turn a directory filter with sub-filters into a normal filter without first removing the sub-filters");
         }

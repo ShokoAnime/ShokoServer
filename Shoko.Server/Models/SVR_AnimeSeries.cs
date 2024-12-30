@@ -310,7 +310,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #endregion
 
-    public List<SVR_VideoLocal> VideoLocals => RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
+    public IReadOnlyList<SVR_VideoLocal> VideoLocals => RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
 
     public IReadOnlyList<SVR_AnimeEpisode> AnimeEpisodes => RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
         .Where(episode => !episode.IsHidden)
@@ -444,7 +444,8 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #region Trakt
 
-    public List<CrossRef_AniDB_TraktV2> TraktShowCrossReferences => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
+    public IReadOnlyList<CrossRef_AniDB_TraktV2> TraktShowCrossReferences
+        => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
 
     public List<Trakt_Show> TraktShow
     {
@@ -467,7 +468,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #region MAL
 
-    public List<CrossRef_AniDB_MAL> MALCrossReferences
+    public IReadOnlyList<CrossRef_AniDB_MAL> MalCrossReferences
         => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
 
     #endregion

@@ -9,18 +9,44 @@ using Shoko.Server.Server;
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class TMDB_ImageRepository : BaseCachedRepository<TMDB_Image, int>
+public class TMDB_ImageRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<TMDB_Image, int>(databaseFactory)
 {
     private PocoIndex<int, TMDB_Image, int?>? _tmdbMovieIDs;
+
     private PocoIndex<int, TMDB_Image, int?>? _tmdbEpisodeIDs;
+
     private PocoIndex<int, TMDB_Image, int?>? _tmdbSeasonIDs;
+
     private PocoIndex<int, TMDB_Image, int?>? _tmdbShowIDs;
+
     private PocoIndex<int, TMDB_Image, int?>? _tmdbCollectionIDs;
+
     private PocoIndex<int, TMDB_Image, int?>? _tmdbNetworkIDs;
+
     private PocoIndex<int, TMDB_Image, int?>? _tmdbCompanyIDs;
+
     private PocoIndex<int, TMDB_Image, int?>? _tmdbPersonIDs;
+
     private PocoIndex<int, TMDB_Image, ImageEntityType>? _tmdbTypes;
+
     private PocoIndex<int, TMDB_Image, (string filePath, ImageEntityType type)>? _tmdbRemoteFileNames;
+
+    protected override int SelectKey(TMDB_Image entity)
+        => entity.TMDB_ImageID;
+
+    public override void PopulateIndexes()
+    {
+        _tmdbMovieIDs = new(Cache, a => a.TmdbMovieID);
+        _tmdbEpisodeIDs = new(Cache, a => a.TmdbEpisodeID);
+        _tmdbSeasonIDs = new(Cache, a => a.TmdbSeasonID);
+        _tmdbShowIDs = new(Cache, a => a.TmdbShowID);
+        _tmdbCollectionIDs = new(Cache, a => a.TmdbCollectionID);
+        _tmdbNetworkIDs = new(Cache, a => a.TmdbNetworkID);
+        _tmdbCompanyIDs = new(Cache, a => a.TmdbCompanyID);
+        _tmdbPersonIDs = new(Cache, a => a.TmdbPersonID);
+        _tmdbTypes = new(Cache, a => a.ImageType);
+        _tmdbRemoteFileNames = new(Cache, a => (a.RemoteFileName, a.ImageType));
+    }
 
     public IReadOnlyList<TMDB_Image> GetByTmdbMovieID(int? movieId)
         => movieId.HasValue ? ReadLock(() => _tmdbMovieIDs!.GetMultiple(movieId)) ?? [] : [];
@@ -99,44 +125,19 @@ public class TMDB_ImageRepository : BaseCachedRepository<TMDB_Image, int>
     {
         if (string.IsNullOrEmpty(fileName))
             return null;
+
         if (fileName.EndsWith(".svg"))
             fileName = fileName[..^4] + ".png";
+
         return ReadLock(() => _tmdbRemoteFileNames!.GetOne((fileName, type)));
     }
 
     public ILookup<int, TMDB_Image> GetByAnimeIDsAndType(int[] animeIds, ImageEntityType type)
-    {
-        return animeIds
+        => animeIds
             .SelectMany(animeId =>
                 RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(animeId).SelectMany(xref => GetByTmdbMovieIDAndType(xref.TmdbMovieID, type))
                 .Concat(RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(animeId).SelectMany(xref => GetByTmdbShowIDAndType(xref.TmdbShowID, type)))
                 .Select(image => (AnimeID: animeId, Image: image))
             )
             .ToLookup(a => a.AnimeID, a => a.Image);
-    }
-
-    protected override int SelectKey(TMDB_Image entity)
-        => entity.TMDB_ImageID;
-
-    public override void PopulateIndexes()
-    {
-        _tmdbMovieIDs = new(Cache, a => a.TmdbMovieID);
-        _tmdbEpisodeIDs = new(Cache, a => a.TmdbEpisodeID);
-        _tmdbSeasonIDs = new(Cache, a => a.TmdbSeasonID);
-        _tmdbShowIDs = new(Cache, a => a.TmdbShowID);
-        _tmdbCollectionIDs = new(Cache, a => a.TmdbCollectionID);
-        _tmdbNetworkIDs = new(Cache, a => a.TmdbNetworkID);
-        _tmdbCompanyIDs = new(Cache, a => a.TmdbCompanyID);
-        _tmdbPersonIDs = new(Cache, a => a.TmdbPersonID);
-        _tmdbTypes = new(Cache, a => a.ImageType);
-        _tmdbRemoteFileNames = new(Cache, a => (a.RemoteFileName, a.ImageType));
-    }
-
-    public override void RegenerateDb()
-    {
-    }
-
-    public TMDB_ImageRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 }

@@ -929,7 +929,7 @@ public class VideoLocal_PlaceService
                 {
                     if (RepoFactory.AniDB_File.GetByHash(v.Hash) is null)
                     {
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                        var xrefs = v.EpisodeCrossReferences;
                         foreach (var xref in xrefs)
                         {
                             if (xref.AnimeID is 0)
@@ -1023,7 +1023,7 @@ public class VideoLocal_PlaceService
                 var scheduler = await _schedulerFactory.GetScheduler();
                 if (_aniDBFile.GetByHash(v.Hash) is null)
                 {
-                    var xrefs = _crossRefFileEpisode.GetByHash(v.Hash);
+                    var xrefs = _crossRefFileEpisode.GetByEd2k(v.Hash);
                     foreach (var xref in xrefs)
                     {
                         if (xref.AnimeID is 0)

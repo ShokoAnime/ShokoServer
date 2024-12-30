@@ -18,8 +18,9 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int>
 {
-    private PocoIndex<int, SVR_AnimeEpisode, int>? Series;
-    private PocoIndex<int, SVR_AnimeEpisode, int>? EpisodeIDs;
+    private PocoIndex<int, SVR_AnimeEpisode, int>? _seriesIDs;
+
+    private PocoIndex<int, SVR_AnimeEpisode, int>? _anidbEpisodeIDs;
 
     public AnimeEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
@@ -35,19 +36,15 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
 
     public override void PopulateIndexes()
     {
-        Series = Cache.CreateIndex(a => a.AnimeSeriesID);
-        EpisodeIDs = Cache.CreateIndex(a => a.AniDB_EpisodeID);
+        _seriesIDs = Cache.CreateIndex(a => a.AnimeSeriesID);
+        _anidbEpisodeIDs = Cache.CreateIndex(a => a.AniDB_EpisodeID);
     }
 
-    public override void RegenerateDb() { }
+    public List<SVR_AnimeEpisode> GetBySeriesID(int seriesID)
+        => ReadLock(() => _seriesIDs!.GetMultiple(seriesID));
 
-    public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
-        => ReadLock(() => Series!.GetMultiple(seriesid));
-
-
-    public SVR_AnimeEpisode? GetByAniDBEpisodeID(int epid)
-        => ReadLock(() => EpisodeIDs!.GetOne(epid));
-
+    public SVR_AnimeEpisode? GetByAniDBEpisodeID(int episodeID)
+        => ReadLock(() => _anidbEpisodeIDs!.GetOne(episodeID));
 
     /// <summary>
     /// Get the AnimeEpisode
@@ -84,7 +81,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
         if (string.IsNullOrEmpty(hash))
             return [];
 
-        return RepoFactory.CrossRef_File_Episode.GetByHash(hash)
+        return RepoFactory.CrossRef_File_Episode.GetByEd2k(hash)
             .Select(a => GetByAniDBEpisodeID(a.EpisodeID))
             .WhereNotNull()
             .ToList();

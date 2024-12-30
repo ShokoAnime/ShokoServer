@@ -5,32 +5,26 @@ using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Helpers;
 
 public class WebUIFactory
 {
-    private readonly FilterFactory _filterFactory;
-
-    public WebUIFactory(FilterFactory filterFactory)
-    {
-        _filterFactory = filterFactory;
-    }
-
     public Models.Shoko.WebUI.WebUISeriesExtra GetWebUISeriesExtra(SVR_AnimeSeries series)
     {
         var anime = series.AniDB_Anime;
         var animeEpisodes = anime.AniDBEpisodes;
         var runtimeLength = GuessCorrectRuntimeLength(animeEpisodes);
-        var cast = Series.GetCast(anime.AnimeID, [Role.CreatorRoleType.Studio, Role.CreatorRoleType.Producer]);
+        var cast = Series.GetCast(anime.AnimeID, [CreatorRoleType.Studio, CreatorRoleType.Producer]);
         var season = GetFirstAiringSeason(anime);
 
         var result = new Models.Shoko.WebUI.WebUISeriesExtra
         {
             RuntimeLength = runtimeLength,
             FirstAirSeason = season,
-            Studios = cast.Where(role => role.RoleName == Role.CreatorRoleType.Studio).Select(role => role.Staff).ToList(),
-            Producers = cast.Where(role => role.RoleName == Role.CreatorRoleType.Producer).Select(role => role.Staff).ToList(),
+            Studios = cast.Where(role => role.RoleName == CreatorRoleType.Studio).Select(role => role.Staff).ToList(),
+            Producers = cast.Where(role => role.RoleName == CreatorRoleType.Producer).Select(role => role.Staff).ToList(),
             SourceMaterial = Series.GetTags(anime, TagFilter.Filter.Invert | TagFilter.Filter.Source, excludeDescriptions: true).FirstOrDefault()?.Name ?? "Original Work",
         };
         return result;

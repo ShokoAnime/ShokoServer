@@ -85,7 +85,7 @@ public class DiscoverFileJob : BaseJob
         var scheduler = await _schedulerFactory.GetScheduler();
 
         // if !shouldHash, then we definitely have a hash
-        var hasXrefs = vlocal.EpisodeCrossRefs.Any(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
+        var hasXrefs = vlocal.EpisodeCrossReferences.Any(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
         if (!shouldHash && hasXrefs && !vlocal.DateTimeImported.HasValue)
         {
             vlocal.DateTimeImported = DateTime.Now;
@@ -258,7 +258,7 @@ public class DiscoverFileJob : BaseJob
         var changed = false;
         if (!string.IsNullOrEmpty(v.Hash))
         {
-            var n = RepoFactory.VideoLocal.GetByHash(v.Hash);
+            var n = RepoFactory.VideoLocal.GetByEd2k(v.Hash);
             if (n != null)
             {
                 if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
@@ -285,7 +285,7 @@ public class DiscoverFileJob : BaseJob
 
         if (!string.IsNullOrEmpty(v.SHA1))
         {
-            var n = RepoFactory.VideoLocal.GetBySHA1(v.SHA1);
+            var n = RepoFactory.VideoLocal.GetBySha1(v.SHA1);
             if (n != null)
             {
                 if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
@@ -312,7 +312,7 @@ public class DiscoverFileJob : BaseJob
 
         if (!string.IsNullOrEmpty(v.MD5))
         {
-            var n = RepoFactory.VideoLocal.GetByMD5(v.MD5);
+            var n = RepoFactory.VideoLocal.GetByMd5(v.MD5);
             if (n != null)
             {
                 if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))

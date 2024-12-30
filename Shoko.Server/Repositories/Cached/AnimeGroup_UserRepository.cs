@@ -7,93 +7,82 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, int>
 {
-    private PocoIndex<int, AnimeGroup_User, int> Groups;
-    private PocoIndex<int, AnimeGroup_User, int> Users;
-    private PocoIndex<int, AnimeGroup_User, int, int> UsersGroups;
-    private Dictionary<int, ChangeTracker<int>> Changes = new();
+    private PocoIndex<int, AnimeGroup_User, int>? _groupIDs;
 
+    private PocoIndex<int, AnimeGroup_User, int>? _userIDs;
+
+    private PocoIndex<int, AnimeGroup_User, int, int>? _userGroupIDs;
+
+    private readonly Dictionary<int, ChangeTracker<int>> _changes = [];
 
     public AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         EndDeleteCallback = cr =>
         {
-            Changes.TryAdd(cr.JMMUserID, new ChangeTracker<int>());
-            Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
+            _changes.TryAdd(cr.JMMUserID, new());
+            _changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
         };
     }
 
     protected override int SelectKey(AnimeGroup_User entity)
-    {
-        return entity.AnimeGroup_UserID;
-    }
+        => entity.AnimeGroup_UserID;
 
     public override void PopulateIndexes()
     {
-        Groups = Cache.CreateIndex(a => a.AnimeGroupID);
-        Users = Cache.CreateIndex(a => a.JMMUserID);
-        UsersGroups = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeGroupID);
+        _groupIDs = Cache.CreateIndex(a => a.AnimeGroupID);
+        _userIDs = Cache.CreateIndex(a => a.JMMUserID);
+        _userGroupIDs = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeGroupID);
 
         foreach (var n in Cache.Values.Select(a => a.JMMUserID).Distinct())
         {
-            Changes[n] = new ChangeTracker<int>();
-            Changes[n].AddOrUpdateRange(Users.GetMultiple(n).Select(a => a.AnimeGroupID));
+            _changes[n] = new();
+            _changes[n].AddOrUpdateRange(_userIDs.GetMultiple(n).Select(a => a.AnimeGroupID));
         }
-    }
-
-    public override void RegenerateDb()
-    {
     }
 
     public override void Save(AnimeGroup_User obj)
     {
         base.Save(obj);
-        Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
-
-        Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
+        _changes.TryAdd(obj.JMMUserID, new());
+        _changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
     }
 
     /// <summary>
     /// Inserts a batch of <see cref="AnimeGroup_User"/> into the database.
     /// </summary>
     /// <remarks>
-    /// <para>This method should NOT be used for updating existing entities.</para>
-    /// <para>It is up to the caller of this method to manage transactions, etc.</para>
-    /// <para>Group Filters, etc. will not be updated by this method.</para>
+    /// This method should NOT be used for updating existing entities.
+    /// It is up to the caller of this method to manage transactions, etc.
+    /// Group Filters, etc. will not be updated by this method.
     /// </remarks>
     /// <param name="session">The NHibernate session.</param>
     /// <param name="groupUsers">The batch of <see cref="AnimeGroup_User"/> to insert into the database.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
     public async Task InsertBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(groupUsers);
 
-        if (groupUsers == null)
-        {
-            throw new ArgumentNullException(nameof(groupUsers));
-        }
-
-        using var trans = session.BeginTransaction();
+        using var transaction = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
             await session.InsertAsync(groupUser);
-
             UpdateCache(groupUser);
-            if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
+            if (!_changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
             {
-                changeTracker = new ChangeTracker<int>();
-                Changes[groupUser.JMMUserID] = changeTracker;
+                changeTracker = new();
+                _changes[groupUser.JMMUserID] = changeTracker;
             }
 
             changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
         }
-        await trans.CommitAsync();
+
+        await transaction.CommitAsync();
     }
 
     /// <summary>
@@ -108,31 +97,24 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
     public async Task UpdateBatch(ISessionWrapper session, IEnumerable<AnimeGroup_User> groupUsers)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(groupUsers);
 
-        if (groupUsers == null)
-        {
-            throw new ArgumentNullException(nameof(groupUsers));
-        }
-
-        using var trans = session.BeginTransaction();
+        using var transaction = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
             await session.UpdateAsync(groupUser);
             UpdateCache(groupUser);
-
-            if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
+            if (!_changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
             {
-                changeTracker = new ChangeTracker<int>();
-                Changes[groupUser.JMMUserID] = changeTracker;
+                changeTracker = new();
+                _changes[groupUser.JMMUserID] = changeTracker;
             }
 
             changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
         }
-        await trans.CommitAsync();
+
+        await transaction.CommitAsync();
     }
 
     /// <summary>
@@ -145,52 +127,40 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
     public async Task DeleteAll(ISessionWrapper session)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
+        ArgumentNullException.ThrowIfNull(session);
 
         // First, get all of the current user/groups so that we can inform the change tracker that they have been removed later
-        var usrGrpMap = GetAll().GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
+        var groupUsers = GetAll().GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
 
         // Then, actually delete the AnimeGroup_Users
         await Lock(async () => await session.CreateSQLQuery("DELETE FROM AnimeGroup_User WHERE AnimeGroup_UserID > 0").ExecuteUpdateAsync());
 
         // Now, update the change trackers with all removed records
-        foreach (var grp in usrGrpMap)
+        foreach (var groupUser in groupUsers)
         {
-            var jmmUserId = grp.Key;
-
-            if (!Changes.TryGetValue(jmmUserId, out var changeTracker))
+            var userId = groupUser.Key;
+            if (!_changes.TryGetValue(userId, out var changeTracker))
             {
-                changeTracker = new ChangeTracker<int>();
-                Changes[jmmUserId] = changeTracker;
+                changeTracker = new();
+                _changes[userId] = changeTracker;
             }
 
-            changeTracker.RemoveRange(grp);
+            changeTracker.RemoveRange(groupUser);
         }
 
         // Finally, we need to clear the cache so that it is in sync with the database
         ClearCache();
     }
 
-    public AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
-    {
-        return ReadLock(() => UsersGroups.GetOne(userid, groupid));
-    }
+    public AnimeGroup_User? GetByUserAndGroupID(int userID, int groupID)
+        => ReadLock(() => _userGroupIDs!.GetOne(userID, groupID));
 
-    public List<AnimeGroup_User> GetByUserID(int userid)
-    {
-        return ReadLock(() => Users.GetMultiple(userid));
-    }
+    public List<AnimeGroup_User> GetByUserID(int userID)
+        => ReadLock(() => _userIDs!.GetMultiple(userID));
 
-    public List<AnimeGroup_User> GetByGroupID(int groupid)
-    {
-        return ReadLock(() => Groups.GetMultiple(groupid));
-    }
+    public List<AnimeGroup_User> GetByGroupID(int groupID)
+        => ReadLock(() => _groupIDs!.GetMultiple(groupID));
 
-    public ChangeTracker<int> GetChangeTracker(int userid)
-    {
-        return ReadLock(() => Changes.TryGetValue(userid, out var change) ? change : new ChangeTracker<int>());
-    }
+    public ChangeTracker<int> GetChangeTracker(int userID)
+        => ReadLock(() => _changes.TryGetValue(userID, out var change) ? change : new());
 }

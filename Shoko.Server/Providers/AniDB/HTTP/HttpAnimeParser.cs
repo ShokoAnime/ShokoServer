@@ -601,6 +601,7 @@ public class HttpAnimeParser
 
         var charType = TryGetAttribute(node, "type");
         var charName = TryGetProperty(node, "name")?.Replace('`', '\'');
+        var charGender = TryGetProperty(node, "gender")?.Replace('`', '\'');
         var charDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
         var picName = TryGetProperty(node, "picture");
 
@@ -631,6 +632,7 @@ public class HttpAnimeParser
             CharacterName = charName,
             CharacterDescription = charDescription,
             PicName = picName,
+            Gender = charGender,
             Seiyuus = seiyuus
         };
     }

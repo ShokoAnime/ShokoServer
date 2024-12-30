@@ -198,7 +198,7 @@ public class GeneratedPlaylistService
                                     continue;
                                 }
                             }
-                            if ((fileSize > 0 ? _videoRepository.GetByHashAndSize(ed2kHash, fileSize) : _videoRepository.GetByHash(ed2kHash)) is not { } video0)
+                            if ((fileSize > 0 ? _videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : _videoRepository.GetByEd2k(ed2kHash)) is not { } video0)
                             {
                                 if (fileSize == 0)
                                     modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown hash \"{rawValue}\" at index {index} at offset {offset}");
@@ -342,7 +342,7 @@ public class GeneratedPlaylistService
         xrefs = xrefs
             .Where(xref => xref.ReleaseGroup == releaseGroupID)
             .ToList();
-        var videos = xrefs.Select(xref => _videoRepository.GetByHashAndSize(xref.ED2K, xref.FileSize))
+        var videos = xrefs.Select(xref => _videoRepository.GetByEd2kAndSize(xref.ED2K, xref.FileSize))
             .WhereNotNull()
             .ToList();
         yield return ([episode], videos);
@@ -402,7 +402,7 @@ public class GeneratedPlaylistService
         if (string.IsNullOrEmpty(apiKey))
         {
             var user = _context.GetUser();
-            apiKey = _authTokensRepository.CreateNewApikey(user, "playlist");
+            apiKey = _authTokensRepository.CreateNewApiKey(user, "playlist");
         }
         foreach (var (episodes, videos) in playlist)
         {

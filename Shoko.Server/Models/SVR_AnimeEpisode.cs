@@ -72,8 +72,8 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             var languageOrder = Languages.PreferredEpisodeNamingLanguages;
 
             // Lazy load AniDB titles if needed.
-            List<SVR_AniDB_Episode_Title>? anidbTitles = null;
-            List<SVR_AniDB_Episode_Title> GetAnidbTitles()
+            IReadOnlyList<SVR_AniDB_Episode_Title>? anidbTitles = null;
+            IReadOnlyList<SVR_AniDB_Episode_Title> GetAnidbTitles()
                 => anidbTitles ??= RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID);
 
             // Lazy load TMDB titles if needed.
@@ -199,10 +199,10 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     public SVR_AnimeSeries? AnimeSeries
         => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
 
-    public List<SVR_VideoLocal> VideoLocals
+    public IReadOnlyList<SVR_VideoLocal> VideoLocals
         => RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
 
-    public List<SVR_CrossRef_File_Episode> FileCrossReferences
+    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences
         => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
     #endregion

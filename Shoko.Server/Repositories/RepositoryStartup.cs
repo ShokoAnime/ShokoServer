@@ -56,11 +56,11 @@ public static class RepositoryStartup
 
         services.AddCachedRepository<AniDB_AnimeRepository>();
         services.AddCachedRepository<AniDB_Anime_CharacterRepository>();
+        services.AddCachedRepository<AniDB_Anime_Character_CreatorRepository>();
         services.AddCachedRepository<AniDB_Anime_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Anime_TagRepository>();
         services.AddCachedRepository<AniDB_Anime_TitleRepository>();
         services.AddCachedRepository<AniDB_CharacterRepository>();
-        services.AddCachedRepository<AniDB_Character_CreatorRepository>();
         services.AddCachedRepository<AniDB_EpisodeRepository>();
         services.AddCachedRepository<AniDB_Episode_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
@@ -69,21 +69,18 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
         services.AddCachedRepository<AniDB_VoteRepository>();
-        services.AddCachedRepository<AnimeCharacterRepository>();
         services.AddCachedRepository<AnimeEpisodeRepository>();
         services.AddCachedRepository<AnimeEpisode_UserRepository>();
         services.AddCachedRepository<AnimeGroupRepository>();
         services.AddCachedRepository<AnimeGroup_UserRepository>();
         services.AddCachedRepository<AnimeSeriesRepository>();
         services.AddCachedRepository<AnimeSeries_UserRepository>();
-        services.AddCachedRepository<AnimeStaffRepository>();
         services.AddCachedRepository<AuthTokensRepository>();
         services.AddCachedRepository<CrossRef_AniDB_MALRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TMDB_EpisodeRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TMDB_MovieRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TMDB_ShowRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TraktV2Repository>();
-        services.AddCachedRepository<CrossRef_Anime_StaffRepository>();
         services.AddCachedRepository<CrossRef_CustomTagRepository>();
         services.AddCachedRepository<CrossRef_File_EpisodeRepository>();
         services.AddCachedRepository<CrossRef_Languages_AniDB_FileRepository>();

@@ -203,7 +203,7 @@ public class WebUI
                 .Where(xref => episodes.ContainsKey(xref.EpisodeID))
                 .Select(xref =>
                 {
-                    var file = RepoFactory.VideoLocal.GetByHash(xref.Hash);
+                    var file = RepoFactory.VideoLocal.GetByEd2k(xref.Hash);
                     var location = file?.FirstValidPlace;
 
                     return (file, xref, location);

@@ -121,7 +121,7 @@ public class ManualLinkJob : BaseJob
     {
         if (!_settings.FileQualityFilterEnabled) return;
 
-        var videoLocals = _episode.VideoLocals;
+        var videoLocals = _episode.VideoLocals.ToList();
         if (videoLocals == null) return;
 
         videoLocals.Sort(FileQualityFilter.CompareTo);

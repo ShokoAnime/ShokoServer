@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 139;
+    public override int RequiredVersion { get; } = 140;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -556,20 +556,20 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(64, 1, "CREATE TABLE AnimeCharacter ( CharacterID INT IDENTITY(1,1) NOT NULL, AniDBID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, AlternateName NVARCHAR(MAX), Description NVARCHAR(MAX), ImagePath NVARCHAR(MAX) )"),
         new DatabaseCommand(64, 2, "CREATE TABLE AnimeStaff ( StaffID INT IDENTITY(1,1) NOT NULL, AniDBID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, AlternateName NVARCHAR(MAX), Description NVARCHAR(MAX), ImagePath NVARCHAR(MAX) )"),
         new DatabaseCommand(64, 3, "CREATE TABLE CrossRef_Anime_Staff ( CrossRef_Anime_StaffID INT IDENTITY(1,1) NOT NULL, AniDB_AnimeID INT NOT NULL, StaffID INT NOT NULL, Role NVARCHAR(MAX), RoleID INT, RoleType INT NOT NULL, Language NVARCHAR(MAX) NOT NULL )"),
-        new DatabaseCommand(64, 4, DatabaseFixes.PopulateCharactersAndStaff),
+        new DatabaseCommand(64, 4, DatabaseFixes.NoOperation),
         new DatabaseCommand(65, 1, "ALTER TABLE MovieDB_Movie ADD Rating INT NOT NULL DEFAULT(0)"),
         new DatabaseCommand(65, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
         new DatabaseCommand(66, 1, "ALTER TABLE AniDB_Episode ADD Description nvarchar(max) NOT NULL DEFAULT('')"),
-        new DatabaseCommand(66, 2, DatabaseFixes.FixCharactersWithGrave),
+        new DatabaseCommand(66, 2, DatabaseFixes.NoOperation),
         new DatabaseCommand(67, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
         new DatabaseCommand(68, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(68, 2, DatabaseFixes.UpdateAllStats),
-        new DatabaseCommand(69, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+        new DatabaseCommand(69, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(70, 1, "ALTER TABLE AniDB_Character ALTER COLUMN CharName nvarchar(max) NOT NULL"),
         new DatabaseCommand(71, 1, "CREATE TABLE AniDB_AnimeUpdate ( AniDB_AnimeUpdateID INT IDENTITY(1,1) NOT NULL, AnimeID INT NOT NULL, UpdatedAt datetime NOT NULL )"),
         new DatabaseCommand(71, 2, "CREATE UNIQUE INDEX UIX_AniDB_AnimeUpdate ON AniDB_AnimeUpdate(AnimeID)"),
         new DatabaseCommand(71, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
-        new DatabaseCommand(72, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+        new DatabaseCommand(72, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(73, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(74, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(75, 1, "DROP INDEX UIX_CrossRef_AniDB_MAL_Anime ON CrossRef_AniDB_MAL;"),
@@ -857,6 +857,19 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(139, 41, "CREATE UNIQUE INDEX UIX_TMDB_Season_TmdbSeasonID ON TMDB_Season(TmdbSeasonID);"),
         new DatabaseCommand(139, 42, "CREATE INDEX IX_TMDB_Season_TmdbShowID ON TMDB_Season(TmdbShowID);"),
         new DatabaseCommand(139, 43, "CREATE UNIQUE INDEX UIX_TMDB_Network_TmdbNetworkID ON TMDB_Network(TmdbNetworkID);"),
+        new DatabaseCommand(140, 01, "DROP TABLE IF EXISTS `AnimeStaff`;"),
+        new DatabaseCommand(140, 02, "DROP TABLE IF EXISTS `CrossRef_Anime_Staff`;"),
+        new DatabaseCommand(140, 03, "DROP TABLE IF EXISTS `AniDB_Character`;"),
+        new DatabaseCommand(140, 04, "DROP TABLE IF EXISTS `AniDB_Anime_Staff`;"),
+        new DatabaseCommand(140, 05, "DROP TABLE IF EXISTS `AniDB_Anime_Character`;"),
+        new DatabaseCommand(140, 06, "DROP TABLE IF EXISTS `AniDB_Character_Creator`;"),
+        // One character's name is 502 characters long, so 512 it is. Blame Gintama.
+        new DatabaseCommand(140, 07, "CREATE TABLE AniDB_Character (AniDB_CharacterID INT IDENTITY(1,1), CharacterID INT NOT NULL, Name NVARCHAR(512) NOT NULL, OriginalName NVARCHAR(512) NOT NULL, Description TEXT NOT NULL, ImagePath NVARCHAR(20) NOT NULL, Gender INT NOT NULL);"),
+        new DatabaseCommand(140, 08, "CREATE TABLE AniDB_Anime_Staff (AniDB_Anime_StaffID INT IDENTITY(1,1), AnimeID INT NOT NULL, CreatorID INT NOT NULL, Role NVARCHAR(64) NOT NULL, RoleType INT NOT NULL, Ordering INT NOT NULL);"),
+        new DatabaseCommand(140, 09, "CREATE TABLE AniDB_Anime_Character (AniDB_Anime_CharacterID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, Appearance NVARCHAR(20) NOT NULL, AppearanceType INT NOT NULL, Ordering INT NOT NULL);"),
+        new DatabaseCommand(140, 10, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, Ordering INT NOT NULL);"),
+        new DatabaseCommand(140, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
+        new DatabaseCommand(140, 12, DatabaseFixes.RecreateAnimeCharactersAndCreators),
     };
 
     private static void AlterImdbMovieIDType()

@@ -145,7 +145,7 @@ public partial class File
         Created = file.DateTimeCreated.ToUniversalTime();
         Updated = file.DateTimeUpdated.ToUniversalTime();
         if (withXRefs)
-            SeriesIDs = FileCrossReference.From(file.EpisodeCrossRefs);
+            SeriesIDs = FileCrossReference.From(file.EpisodeCrossReferences);
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
         {
@@ -369,8 +369,8 @@ public partial class File
 
         public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal file = null)
         {
-            // Get the file assosiated with the user entry.
-            file ??= existing.GetVideoLocal();
+            // Get the file associated with the user entry.
+            file ??= existing.VideoLocal;
 
             // Sync the watch date and aggregate the data up to the episode if needed.
             var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
@@ -581,7 +581,7 @@ public partial class File
         FileID = 16,
     }
 
-    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place Location, List<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User UserRecord), object> GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place Location, IReadOnlyList<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User UserRecord), object> GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
         criteria switch
         {
             FileSortCriteria.ImportFolderName => (tuple) => tuple.Location?.ImportFolder?.ImportFolderName ?? string.Empty,
@@ -603,7 +603,7 @@ public partial class File
             _ => null,
         };
 
-    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> enumerable, List<string> sortCriterias)
+    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> enumerable, List<string> sortCriterias)
     {
         var first = true;
         return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
@@ -622,7 +622,7 @@ public partial class File
             }
 
             // All other criterias in the list.
-            var ordered = current as IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)>;
+            var ordered = current as IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User)>;
             return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
         });
     }

@@ -80,9 +80,9 @@ public class GetAniDBImagesJob : BaseJob
         if (settings.AniDb.DownloadCharacters)
         {
             var characters = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                .Select(xref => RepoFactory.AniDB_Character.GetByCharID(xref.CharID))
-                .Where(a => !string.IsNullOrEmpty(a?.PicName))
-                .DistinctBy(a => a.CharID)
+                .Select(xref => RepoFactory.AniDB_Character.GetByCharacterID(xref.CharacterID))
+                .Where(a => !string.IsNullOrEmpty(a?.ImagePath))
+                .DistinctBy(a => a.CharacterID)
                 .ToList();
             if (characters.Count is not 0)
                 requests.AddRange(characters
@@ -90,7 +90,7 @@ public class GetAniDBImagesJob : BaseJob
                     .Select(c => new Action<DownloadAniDBImageJob>(a =>
                     {
                         a.ParentName = _title;
-                        a.ImageID = c.CharID;
+                        a.ImageID = c.CharacterID;
                         a.ImageType = ImageEntityType.Character;
                         a.ForceDownload = ForceDownload;
                     })));
@@ -102,8 +102,7 @@ public class GetAniDBImagesJob : BaseJob
         if (settings.AniDb.DownloadCreators)
         {
             // Get all voice-actors working on this anime.
-            var voiceActors = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                .SelectMany(xref => RepoFactory.AniDB_Character_Creator.GetByCharacterID(xref.CharID))
+            var voiceActors = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(AnimeID)
                 .Select(xref => RepoFactory.AniDB_Creator.GetByCreatorID(xref.CreatorID))
                 .Where(va => !string.IsNullOrEmpty(va?.ImagePath));
             // Get all staff members working on this anime.
@@ -111,8 +110,7 @@ public class GetAniDBImagesJob : BaseJob
                 .Select(xref => RepoFactory.AniDB_Creator.GetByCreatorID(xref.CreatorID))
                 .Where(staff => !string.IsNullOrEmpty(staff?.ImagePath));
             // Concatenate the streams into a single list.
-            var creators = voiceActors
-                .Concat(staffMembers)
+            var creators = voiceActors.Concat(staffMembers)
                 .DistinctBy(creator => creator.CreatorID)
                 .ToList();
 

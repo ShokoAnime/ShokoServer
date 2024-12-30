@@ -41,7 +41,7 @@ public class AddFileToMyListJob : BaseJob
 
     public override void PostInit()
     {
-        _videoLocal = RepoFactory.VideoLocal.GetByHash(Hash);
+        _videoLocal = RepoFactory.VideoLocal.GetByEd2k(Hash);
         if (_videoLocal == null) throw new JobExecutionException($"VideoLocal not Found: {Hash}");
     }
 
@@ -186,7 +186,7 @@ public class AddFileToMyListJob : BaseJob
         }
 
         // if we don't have xrefs, then no series or eps.
-        var series = _videoLocal.EpisodeCrossRefs.Select(a => a.AnimeID).Distinct().Except([0]).ToArray();
+        var series = _videoLocal.EpisodeCrossReferences.Select(a => a.AnimeID).Distinct().Except([0]).ToArray();
         if (series.Length <= 0)
         {
             return;

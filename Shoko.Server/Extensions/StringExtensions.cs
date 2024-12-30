@@ -8,29 +8,33 @@ namespace Shoko.Server.Extensions;
 
 public static class StringExtensions
 {
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second)
+    public static void Deconstruct<T>(this IEnumerable<T> enumerable, out T first, out T second)
     {
+        var list = enumerable is IReadOnlyList<T> readonlyList ? readonlyList : enumerable.ToList();
         first = list.Count > 0 ? list[0] : default;
         second = list.Count > 1 ? list[1] : default;
     }
 
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third)
+    public static void Deconstruct<T>(this IEnumerable<T> enumerable, out T first, out T second, out T third)
     {
+        var list = enumerable is IReadOnlyList<T> readonlyList ? readonlyList : enumerable.ToList();
         first = list.Count > 0 ? list[0] : default;
         second = list.Count > 1 ? list[1] : default;
         third = list.Count > 2 ? list[2] : default;
     }
 
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third, out T forth)
+    public static void Deconstruct<T>(this IEnumerable<T> enumerable, out T first, out T second, out T third, out T forth)
     {
+        var list = enumerable is IReadOnlyList<T> readonlyList ? readonlyList : enumerable.ToList();
         first = list.Count > 0 ? list[0] : default;
         second = list.Count > 1 ? list[1] : default;
         third = list.Count > 2 ? list[2] : default;
         forth = list.Count > 3 ? list[3] : default;
     }
 
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third, out T forth, out T fifth)
+    public static void Deconstruct<T>(this IEnumerable<T> enumerable, out T first, out T second, out T third, out T forth, out T fifth)
     {
+        var list = enumerable is IReadOnlyList<T> readonlyList ? readonlyList : enumerable.ToList();
         first = list.Count > 0 ? list[0] : default;
         second = list.Count > 1 ? list[1] : default;
         third = list.Count > 2 ? list[2] : default;

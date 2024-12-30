@@ -40,14 +40,15 @@ public class ImportFolder : BaseModel
 
     public ImportFolder(SVR_ImportFolder folder)
     {
-        var series = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID)
+        var places = folder.Places;
+        var series = places
             .Select(a => a?.VideoLocal?.Hash)
             .Where(a => !string.IsNullOrEmpty(a))
             .Distinct()
-            .SelectMany(RepoFactory.CrossRef_File_Episode.GetByHash)
+            .SelectMany(RepoFactory.CrossRef_File_Episode.GetByEd2k)
             .DistinctBy(a => a.AnimeID)
             .Count();
-        var size = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID)
+        var size = places
             .Select(a => a.VideoLocal)
             .WhereNotNull()
             .Sum(b => b.FileSize);

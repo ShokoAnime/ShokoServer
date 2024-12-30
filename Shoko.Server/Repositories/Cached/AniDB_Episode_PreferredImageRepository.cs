@@ -9,18 +9,9 @@ using Shoko.Server.Models.AniDB;
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AniDB_Episode_PreferredImageRepository : BaseCachedRepository<AniDB_Episode_PreferredImage, int>
+public class AniDB_Episode_PreferredImageRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Episode_PreferredImage, int>(databaseFactory)
 {
     private PocoIndex<int, AniDB_Episode_PreferredImage, int>? _episodeIDs;
-
-    public AniDB_Episode_PreferredImage? GetByAnidbEpisodeIDAndType(int episodeId, ImageEntityType imageType)
-        => GetByEpisodeID(episodeId).FirstOrDefault(a => a.ImageType == imageType);
-
-    public AniDB_Episode_PreferredImage? GetByAnidbEpisodeIDAndTypeAndSource(int episodeId, ImageEntityType imageType, DataSourceType imageSource)
-        => GetByEpisodeID(episodeId).FirstOrDefault(a => a.ImageType == imageType && a.ImageSource == imageSource);
-
-    public List<AniDB_Episode_PreferredImage> GetByEpisodeID(int episodeId)
-        => ReadLock(() => _episodeIDs!.GetMultiple(episodeId));
 
     protected override int SelectKey(AniDB_Episode_PreferredImage entity)
         => entity.AniDB_Episode_PreferredImageID;
@@ -30,10 +21,12 @@ public class AniDB_Episode_PreferredImageRepository : BaseCachedRepository<AniDB
         _episodeIDs = new(Cache, a => a.AnidbEpisodeID);
     }
 
-    public override void RegenerateDb()
-    {
-    }
+    public AniDB_Episode_PreferredImage? GetByAnidbEpisodeIDAndType(int episodeID, ImageEntityType imageType)
+        => GetByEpisodeID(episodeID).FirstOrDefault(a => a.ImageType == imageType);
 
-    public AniDB_Episode_PreferredImageRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    { }
+    public AniDB_Episode_PreferredImage? GetByAnidbEpisodeIDAndTypeAndSource(int episodeID, ImageEntityType imageType, DataSourceType imageSource)
+        => GetByEpisodeID(episodeID).FirstOrDefault(a => a.ImageType == imageType && a.ImageSource == imageSource);
+
+    public List<AniDB_Episode_PreferredImage> GetByEpisodeID(int episodeId)
+        => ReadLock(() => _episodeIDs!.GetMultiple(episodeId));
 }

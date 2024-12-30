@@ -32,6 +32,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.Trakt;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -703,12 +704,11 @@ public class SeriesController : BaseController
 
         return userDataQuery
             .OrderByDescending(userData => userData.LastUpdated)
-            .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
+            .Select(userData => userData.VideoLocal)
             .WhereNotNull()
-            .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage)
-                .FirstOrDefault())
+            .Select(file => file.EpisodeCrossReferences.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault())
             .WhereNotNull()
-            .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
+            .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
             .DistinctBy(episode => episode.AnimeSeriesID)
             .Select(episode => episode.AnimeSeries?.AniDB_Anime)
@@ -2198,7 +2198,8 @@ public class SeriesController : BaseController
                     ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
                         .Where(title => title != null && languages.Contains(title.Language))
                         .Select(title => title.Title)
-                        .Append(ep.Shoko.PreferredTitle)
+                        .Append(ep.Shoko?.PreferredTitle)
+                        .WhereNotDefault()
                         .Distinct()
                         .ToList(),
                     fuzzy
@@ -2685,7 +2686,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/Cast")]
     public ActionResult<List<Role>> GetSeriesCast([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Role.CreatorRoleType>? roleType = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<CreatorRoleType>? roleType = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)

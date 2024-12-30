@@ -48,7 +48,7 @@ public class AuthenticationController : BaseController
     public ActionResult<string> GenerateApikey([FromBody]string device)
     {
         if (string.IsNullOrWhiteSpace(device)) return BadRequest("device cannot be empty");
-        return RepoFactory.AuthTokens.CreateNewApikey(User, device);
+        return RepoFactory.AuthTokens.CreateNewApiKey(User, device);
     }
 
     /// <summary>

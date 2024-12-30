@@ -230,8 +230,8 @@ public class User
                 {
                     user.InvalidateHideCategoriesCache();
                     var tags = RestrictedTags
-                        .Select(tagID => RepoFactory.AniDB_Tag.GetByTagID(tagID))
-                        .Where(tag => tag != null)
+                        .Select(RepoFactory.AniDB_Tag.GetByTagID)
+                        .WhereNotNull()
                         .Select(tag => tag.TagName);
                     user.HideCategories = string.Join(',', tags);
                 }

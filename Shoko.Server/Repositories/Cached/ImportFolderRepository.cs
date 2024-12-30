@@ -5,36 +5,23 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int>
+public class ImportFolderRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_ImportFolder, int>(databaseFactory)
 {
-    public EventHandler ImportFolderSaved;
-
-    public ImportFolderRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
+    public event EventHandler? ImportFolderSaved;
 
     protected override int SelectKey(SVR_ImportFolder entity)
-    {
-        return entity.ImportFolderID;
-    }
+        => entity.ImportFolderID;
 
-    public override void PopulateIndexes()
-    {
-    }
-
-    public override void RegenerateDb()
-    {
-    }
-
-    public SVR_ImportFolder GetByImportLocation(string importloc)
+    public SVR_ImportFolder? GetByImportLocation(string importLocation)
     {
         return ReadLock(() => Cache.Values.FirstOrDefault(a =>
             a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
                 .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
                 .Equals(
-                    importloc?.Replace('\\', Path.DirectorySeparatorChar)
+                    importLocation?.Replace('\\', Path.DirectorySeparatorChar)
                         .Replace('/', Path.DirectorySeparatorChar)
                         .TrimEnd(Path.DirectorySeparatorChar),
                     StringComparison.InvariantCultureIgnoreCase) ?? false));
@@ -42,40 +29,26 @@ public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int
 
     public SVR_ImportFolder SaveImportFolder(ImportFolder folder)
     {
-        SVR_ImportFolder ns;
-        if (folder.ImportFolderID > 0)
-        {
-            // update
-            ns = GetByID(folder.ImportFolderID);
-            if (ns == null)
-            {
-                throw new Exception($"Could not find Import Folder ID: {folder.ImportFolderID}");
-            }
-        }
-        else
-        {
-            // create
-            ns = new SVR_ImportFolder();
-        }
+        var ns = (folder.ImportFolderID > 0 ? GetByID(folder.ImportFolderID) : new()) ??
+            throw new Exception($"Could not find Import Folder ID: {folder.ImportFolderID}");
 
         if (string.IsNullOrEmpty(folder.ImportFolderName))
-        {
             throw new Exception("Must specify an Import Folder name");
-        }
 
         if (string.IsNullOrEmpty(folder.ImportFolderLocation))
-        {
             throw new Exception("Must specify an Import Folder location");
-        }
 
         if (!Directory.Exists(folder.ImportFolderLocation))
-        {
             throw new Exception("Cannot find Import Folder location");
-        }
 
-        if (GetAll().ExceptBy([folder.ImportFolderID], iF => iF.ImportFolderID).Any(iF => folder.ImportFolderLocation.StartsWith(iF.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) || iF.ImportFolderLocation.StartsWith(folder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase)))
+        if (GetAll()
+            .ExceptBy([folder.ImportFolderID], iF => iF.ImportFolderID)
+            .Any(f =>
+                folder.ImportFolderLocation.StartsWith(f.ImportFolderLocation, StringComparison.OrdinalIgnoreCase) ||
+                f.ImportFolderLocation.StartsWith(folder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase)
+            )
+        )
             throw new Exception("Unable to nest an import folder within another import folder.");
-
 
         ns.ImportFolderName = folder.ImportFolderName;
         ns.ImportFolderLocation = folder.ImportFolderLocation;
@@ -91,15 +64,15 @@ public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int
         return ns;
     }
 
-    public (SVR_ImportFolder folder, string relativePath) GetFromFullPath(string fullPath)
+    public (SVR_ImportFolder? folder, string relativePath) GetFromFullPath(string fullPath)
     {
-        if (string.IsNullOrEmpty(fullPath)) return default;
-        var shares = GetAll();
+        if (string.IsNullOrEmpty(fullPath))
+            return default;
 
-        // TODO make sure that import folders are not sub folders of each other
-        foreach (var ifolder in shares)
+        var folders = GetAll();
+        foreach (var folder in folders)
         {
-            var importLocation = ifolder.ImportFolderLocation;
+            var importLocation = folder.ImportFolderLocation;
             var importLocationFull = importLocation.TrimEnd(Path.DirectorySeparatorChar);
 
             // add back the trailing backslashes
@@ -110,7 +83,7 @@ public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int
             {
                 var filePath = fullPath.Replace(importLocation, string.Empty);
                 filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
-                return (ifolder, filePath);
+                return (folder, filePath);
             }
         }
 

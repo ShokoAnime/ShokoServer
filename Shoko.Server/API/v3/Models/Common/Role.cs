@@ -3,7 +3,9 @@ using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Server;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
@@ -39,25 +41,39 @@ public class Role
     [Required]
     public string RoleDetails { get; set; } = string.Empty;
 
-    public Role(CrossRef_Anime_Staff xref, AnimeStaff staff, AnimeCharacter? character)
+    public Role(AniDB_Anime_Character xref, AniDB_Creator staff, AniDB_Character? character)
     {
         Character = character == null ? null : new()
         {
-            ID = character.AniDBID,
+            ID = character.CharacterID,
             Name = character.Name,
-            AlternateName = character.AlternateName,
-            Description = character.Description,
+            AlternateName = character.OriginalName ?? string.Empty,
+            Description = character.Description ?? string.Empty,
             Image = character.GetImageMetadata() is { } characterImage ? new Image(characterImage) : null,
         };
         Staff = new()
         {
-            ID = staff.AniDBID,
+            ID = staff.CreatorID,
             Name = staff.Name,
-            AlternateName = staff.AlternateName,
-            Description = staff.Description,
+            AlternateName = staff.OriginalName ?? string.Empty,
+            Description = string.Empty,
             Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
         };
-        RoleName = (CreatorRoleType)xref.RoleType;
+        RoleName = CreatorRoleType.Actor;
+        RoleDetails = xref.AppearanceType.ToString().Replace("_", " ");
+    }
+
+    public Role(AniDB_Anime_Staff xref, AniDB_Creator staff)
+    {
+        Staff = new()
+        {
+            ID = staff.CreatorID,
+            Name = staff.Name,
+            AlternateName = staff.OriginalName ?? string.Empty,
+            Description = string.Empty,
+            Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+        };
+        RoleName = xref.RoleType;
         RoleDetails = xref.Role;
     }
 
@@ -77,7 +93,7 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
@@ -97,7 +113,7 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
@@ -117,7 +133,7 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
@@ -137,7 +153,7 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
@@ -238,54 +254,5 @@ public class Role
         /// image object, usually a profile picture of sorts
         /// </summary>
         public Image? Image { get; set; }
-    }
-
-    [JsonConverter(typeof(StringEnumConverter))]
-    public enum CreatorRoleType
-    {
-        /// <summary>
-        /// Voice actor or voice actress.
-        /// </summary>
-        Seiyuu,
-
-        /// <summary>
-        /// This can be anything involved in writing the show.
-        /// </summary>
-        Staff,
-
-        /// <summary>
-        /// The studio responsible for publishing the show.
-        /// </summary>
-        Studio,
-
-        /// <summary>
-        /// The main producer(s) for the show.
-        /// </summary>
-        Producer,
-
-        /// <summary>
-        /// Direction.
-        /// </summary>
-        Director,
-
-        /// <summary>
-        /// Series Composition.
-        /// </summary>
-        SeriesComposer,
-
-        /// <summary>
-        /// Character Design.
-        /// </summary>
-        CharacterDesign,
-
-        /// <summary>
-        /// Music composer.
-        /// </summary>
-        Music,
-
-        /// <summary>
-        /// Responsible for the creation of the source work this show is detrived from.
-        /// </summary>
-        SourceWork,
     }
 }

@@ -5,37 +5,24 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AniDB_Episode_TitleRepository : BaseCachedRepository<SVR_AniDB_Episode_Title, int>
+public class AniDB_Episode_TitleRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_AniDB_Episode_Title, int>(databaseFactory)
 {
-    private PocoIndex<int, SVR_AniDB_Episode_Title, int> Episodes;
+    private PocoIndex<int, SVR_AniDB_Episode_Title, int>? _episodeIDs;
+
+    protected override int SelectKey(SVR_AniDB_Episode_Title entity)
+        => entity.AniDB_Episode_TitleID;
 
     public override void PopulateIndexes()
     {
-        Episodes = new PocoIndex<int, SVR_AniDB_Episode_Title, int>(Cache, a => a.AniDB_EpisodeID);
+        _episodeIDs = new PocoIndex<int, SVR_AniDB_Episode_Title, int>(Cache, a => a.AniDB_EpisodeID);
     }
 
-    protected override int SelectKey(SVR_AniDB_Episode_Title entity)
-    {
-        return entity.AniDB_Episode_TitleID;
-    }
+    public IReadOnlyList<SVR_AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int episodeID, TitleLanguage language)
+        => GetByEpisodeID(episodeID).Where(a => a.Language == language).ToList();
 
-    public override void RegenerateDb()
-    {
-    }
-
-    public List<SVR_AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int id, TitleLanguage language)
-    {
-        return GetByEpisodeID(id).Where(a => a.Language == language).ToList();
-    }
-
-    public List<SVR_AniDB_Episode_Title> GetByEpisodeID(int id)
-    {
-        return ReadLock(() => Episodes.GetMultiple(id));
-    }
-
-    public AniDB_Episode_TitleRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
+    public IReadOnlyList<SVR_AniDB_Episode_Title> GetByEpisodeID(int episodeID)
+        => ReadLock(() => _episodeIDs!.GetMultiple(episodeID));
 }

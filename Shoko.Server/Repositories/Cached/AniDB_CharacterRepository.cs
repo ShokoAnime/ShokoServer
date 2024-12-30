@@ -2,40 +2,27 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.AniDB;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AniDB_CharacterRepository : BaseCachedRepository<AniDB_Character, int>
+public class AniDB_CharacterRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Character, int>(databaseFactory)
 {
-    private PocoIndex<int, AniDB_Character, int> _charIDs;
+    private PocoIndex<int, AniDB_Character, int>? _characterIDs;
 
-    public AniDB_Character GetByCharID(int id)
-    {
-        return ReadLock(() => _charIDs.GetOne(id));
-    }
-
-    public List<AniDB_Character> GetCharactersForAnime(int animeID)
-    {
-        return ReadLock(() => RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID).Select(a => GetByCharID(a.CharID)).WhereNotNull().ToList());
-    }
-
-    public AniDB_CharacterRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
+    protected override int SelectKey(AniDB_Character entity)
+        => entity.AniDB_CharacterID;
 
     public override void PopulateIndexes()
     {
-        _charIDs = new PocoIndex<int, AniDB_Character, int>(Cache, a => a.CharID);
+        _characterIDs = new PocoIndex<int, AniDB_Character, int>(Cache, a => a.CharacterID);
     }
 
-    public override void RegenerateDb()
-    {
-    }
+    public AniDB_Character GetByCharacterID(int characterID)
+        => ReadLock(() => _characterIDs!.GetOne(characterID));
 
-    protected override int SelectKey(AniDB_Character entity)
-    {
-        return entity.AniDB_CharacterID;
-    }
+    public List<AniDB_Character> GetCharactersForAnime(int animeID)
+        => ReadLock(() => RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID).Select(xref => GetByCharacterID(xref.CharacterID)).WhereNotNull().ToList());
 }

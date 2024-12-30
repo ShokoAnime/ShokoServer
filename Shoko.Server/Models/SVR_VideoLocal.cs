@@ -76,8 +76,7 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     public MediaContainer? MediaInfo { get; set; }
 
-
-    public List<SVR_VideoLocal_Place> Places => VideoLocalID == 0 ? new List<SVR_VideoLocal_Place>() : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
+    public IReadOnlyList<SVR_VideoLocal_Place> Places => VideoLocalID is 0 ? [] : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
     public SVR_AniDB_File? AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
 
@@ -85,23 +84,30 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
     {
         get
         {
-            var anifile = AniDBFile;
-            if (anifile == null) return null;
+            if (AniDBFile is not { } anidbFile)
+                return null;
 
-            return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anifile.GroupID);
+            return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anidbFile.GroupID);
         }
     }
 
-    public List<SVR_AnimeEpisode> AnimeEpisodes => RepoFactory.AnimeEpisode.GetByHash(Hash);
+    public IReadOnlyList<SVR_AnimeEpisode> AnimeEpisodes
+        => RepoFactory.AnimeEpisode.GetByHash(Hash);
 
+    public IReadOnlyList<SVR_CrossRef_File_Episode> EpisodeCrossReferences =>
+        string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash);
 
-    public List<SVR_CrossRef_File_Episode> EpisodeCrossRefs =>
-        string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+    public SVR_VideoLocal_Place? FirstValidPlace
+        => Places
+            .Where(p => !string.IsNullOrEmpty(p?.FullServerPath))
+            .MinBy(a => a.ImportFolderType);
 
-    public SVR_VideoLocal_Place? FirstValidPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
-
-    public SVR_VideoLocal_Place? FirstResolvedPlace => Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
-        .FirstOrDefault(p => File.Exists(p.FullServerPath));
+    public SVR_VideoLocal_Place? FirstResolvedPlace
+        => Places
+            .Select(location => (location, importFolder: location.ImportFolder, fullPath: location.FullServerPath))
+            .Where(tuple => tuple.importFolder is not null && !string.IsNullOrEmpty(tuple.fullPath))
+            .OrderBy(a => a.importFolder!.ImportFolderType)
+            .FirstOrDefault(p => File.Exists(p.fullPath)).location;
 
     public override string ToString()
     {
@@ -163,16 +169,16 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     IMediaInfo? IVideo.MediaInfo => MediaInfo;
 
-    IReadOnlyList<IVideoCrossReference> IVideo.CrossReferences => EpisodeCrossRefs;
+    IReadOnlyList<IVideoCrossReference> IVideo.CrossReferences => EpisodeCrossReferences;
 
     IReadOnlyList<IShokoEpisode> IVideo.Episodes =>
-        EpisodeCrossRefs
+        EpisodeCrossReferences
             .Select(x => x.AnimeEpisode)
             .WhereNotNull()
             .ToArray();
 
     IReadOnlyList<IShokoSeries> IVideo.Series =>
-        EpisodeCrossRefs
+        EpisodeCrossReferences
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
             .WhereNotNull()
@@ -180,7 +186,7 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
             .ToArray();
 
     IReadOnlyList<IShokoGroup> IVideo.Groups =>
-        EpisodeCrossRefs
+        EpisodeCrossReferences
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
             .WhereNotNull()

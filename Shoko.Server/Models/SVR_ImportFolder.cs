@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;
 
@@ -87,6 +89,9 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
 
     public bool CanAcceptFile(IVideoFile file)
         => file is not null && (file.ImportFolderID == ImportFolderID || file.Size < AvailableFreeSpace);
+
+    public IReadOnlyList<SVR_VideoLocal_Place> Places
+        => RepoFactory.VideoLocalPlace.GetByImportFolder(ImportFolderID);
 
     #region IImportFolder Implementation
 

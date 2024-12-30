@@ -660,15 +660,16 @@ public class AnimeGroupService
     private GroupVotes GetVotes(SVR_AnimeGroup animeGroup)
     {
         var groupSeries = animeGroup.AllSeries;
-        var votesByAnime = RepoFactory.AniDB_Vote.GetByAnimeIDs(groupSeries.Select(a => a.AniDB_ID).ToList());
-
+        var votesByAnime = groupSeries
+            .Select(a => new { AnimeID = a.AniDB_ID, Vote = RepoFactory.AniDB_Vote.GetByAnimeID(a.AniDB_ID) })
+            .Where(a => a.Vote != null)
+            .ToDictionary(a => a.AnimeID, a => a.Vote);
         var allVoteTotal = 0m;
         var permVoteTotal = 0m;
         var tempVoteTotal = 0m;
         var allVoteCount = 0;
         var permVoteCount = 0;
         var tempVoteCount = 0;
-
         foreach (var series in groupSeries)
         {
             if (votesByAnime.TryGetValue(series.AniDB_ID, out var vote))

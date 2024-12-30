@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
@@ -35,7 +36,7 @@ public class TraktSummaryContainer
     {
         try
         {
-            crossRefTraktV2 = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
+            crossRefTraktV2 = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID).ToList();
         }
         catch (Exception ex)
         {

@@ -99,7 +99,7 @@ public class SyncAniDBMyListJob : BaseJob
                 var aniFile = RepoFactory.AniDB_File.GetByFileID(myItem!.FileID!.Value);
 
                 // the AniDB_File should never have a null hash, but just in case
-                var vl = aniFile?.Hash == null ? null : RepoFactory.VideoLocal.GetByHash(aniFile.Hash);
+                var vl = aniFile?.Hash == null ? null : RepoFactory.VideoLocal.GetByEd2k(aniFile.Hash);
 
                 if (vl != null)
                 {
@@ -179,7 +179,7 @@ public class SyncAniDBMyListJob : BaseJob
         }
     }
 
-    private async Task<int> ProcessStates(List<SVR_JMMUser> aniDBUsers, SVR_VideoLocal vl, ResponseMyList myitem,
+    private async Task<int> ProcessStates(IReadOnlyList<SVR_JMMUser> aniDBUsers, SVR_VideoLocal vl, ResponseMyList myitem,
         int modifiedItems, ISet<SVR_AnimeSeries> modifiedSeries)
     {
         // check watched states, read the states if needed, and update differences
