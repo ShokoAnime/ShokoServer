@@ -90,6 +90,7 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
     public bool CanAcceptFile(IVideoFile file)
         => file is not null && (file.ImportFolderID == ImportFolderID || file.Size < AvailableFreeSpace);
 
+    [JsonIgnore, XmlIgnore]
     public IReadOnlyList<SVR_VideoLocal_Place> Places
         => RepoFactory.VideoLocalPlace.GetByImportFolder(ImportFolderID);
 
