@@ -161,8 +161,10 @@ public class WebUI
             // By default, don't divide into groups.
             groupByCriteria ??= [];
             var now = DateTime.Now;
-            var crossRefs = RepoFactory.CrossRef_File_Episode
-                .GetByAnimeID(series.AniDB_ID);
+            var crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID)
+                .Select(xref => (xref, video: xref.VideoLocal!))
+                .Where(tuple => tuple.video is not null)
+                .ToList();
             // The episodes we want to look at. We filter it down to only normal and special episodes.
             var episodes = series.AllAnimeEpisodes
                 .Select(shoko =>
@@ -186,7 +188,7 @@ public class WebUI
                 .ToDictionary(episode => episode.ID);
             var anidbFiles = crossRefs
                 // We only check for the file if the source is anidb.
-                .Select(xref => (CrossRefSource)xref.CrossRefSource == CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHash(xref.Hash) : null)
+                .Select(tuple => (CrossRefSource)tuple.xref.CrossRefSource == CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHash(tuple.xref.Hash) : null)
                 .WhereNotNull()
                 // Multiple cross-references can be linked to the same anidb file.
                 .DistinctBy(anidbFile => anidbFile.Hash)
@@ -200,12 +202,11 @@ public class WebUI
                 .ToDictionary(releaseGroup => releaseGroup.GroupID);
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
             var filesWithXrefAndLocation = crossRefs
-                .Where(xref => episodes.ContainsKey(xref.EpisodeID))
-                .Select(xref =>
+                .Where(tuple => episodes.ContainsKey(tuple.xref.EpisodeID))
+                .Select(tuple =>
                 {
-                    var file = RepoFactory.VideoLocal.GetByEd2k(xref.Hash);
+                    var (xref, file) = tuple;
                     var location = file?.FirstValidPlace;
-
                     return (file, xref, location);
                 })
                 .Where(t => t.file?.MediaInfo != null && t.location != null)
