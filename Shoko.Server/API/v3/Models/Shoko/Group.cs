@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v3.Helpers;
@@ -65,6 +67,18 @@ public class Group : BaseModel
     /// </summary>
     public GroupSizes Sizes { get; set; }
 
+    /// <summary>
+    /// The time when the group was created.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Created { get; set; }
+
+    /// <summary>
+    /// The time when the group was last updated
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Updated { get; set; }
+
     #region Constructors
 
     public Group(SVR_AnimeGroup group, int userID = 0, bool randomizeImages = false)
@@ -86,6 +100,8 @@ public class Group : BaseModel
         Description = group.Description;
         Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
         Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
+        Created = group.DateTimeCreated.ToUniversalTime();
+        Updated = group.DateTimeUpdated.ToUniversalTime();
         HasCustomName = group.IsManuallyNamed == 1;
         HasCustomDescription = group.OverrideDescription == 1;
         Images = mainSeries == null ? new Images() : mainSeries.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);

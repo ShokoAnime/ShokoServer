@@ -83,6 +83,18 @@ public class Episode : BaseModel
     /// </summary>
     public Rating? UserRating { get; set; }
 
+    /// <summary>
+    /// The time when the episode was created.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Created { get; set; }
+
+    /// <summary>
+    /// The time when the episode was last updated,
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Updated { get; set; }
+
 #pragma warning disable IDE1006
     /// <summary>
     /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
@@ -163,6 +175,8 @@ public class Episode : BaseModel
         Name = episode.PreferredTitle;
         Description = episode.PreferredOverview;
         Size = files.Count;
+        Created = episode.DateTimeCreated.ToUniversalTime();
+        Updated = episode.DateTimeUpdated.ToUniversalTime();
 
         if (vote is not null)
         {
