@@ -162,7 +162,7 @@ public class PlexHelper
     {
         get
         {
-            if (isAuthenticated == true)
+            if (isAuthenticated is true)
             {
                 return isAuthenticated.GetValueOrDefault(false);
             }
