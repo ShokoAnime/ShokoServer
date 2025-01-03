@@ -167,7 +167,8 @@ public class PlexHelper
                 return isAuthenticated.GetValueOrDefault(false);
             }
 
-            if (string.IsNullOrEmpty(_user?.PlexToken))
+            // If key is not null, then we are trying to login. Plex token check should be skipped.
+            if (_key == null && string.IsNullOrEmpty(_user?.PlexToken))
             {
                 return false;
             }
