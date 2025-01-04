@@ -1,10 +1,10 @@
+#nullable enable
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Models.AniDB;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.AniDB;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Cached;
+namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_CreatorRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Creator, int>(databaseFactory)
 {

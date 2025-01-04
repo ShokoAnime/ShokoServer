@@ -9,7 +9,7 @@ using Shoko.Server.Models.AniDB;
 
 #pragma warning disable CS8618
 #nullable enable
-namespace Shoko.Server.Repositories.Cached;
+namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_ReleaseGroupRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_ReleaseGroup, int>(databaseFactory)
 {

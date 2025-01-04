@@ -12,6 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 
 namespace Shoko.Server.Services;
 

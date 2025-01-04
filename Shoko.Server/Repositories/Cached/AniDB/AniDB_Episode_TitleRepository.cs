@@ -1,12 +1,12 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Cached;
+namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Episode_TitleRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_AniDB_Episode_Title, int>(databaseFactory)
 {
