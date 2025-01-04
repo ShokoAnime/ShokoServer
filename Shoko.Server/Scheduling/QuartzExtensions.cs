@@ -12,9 +12,9 @@ namespace Shoko.Server.Scheduling;
 
 public static class QuartzExtensions
 {
-    public static readonly SemaphoreSlim SchedulerLock = new(1, 1);
+    public static readonly ReaderWriterLockSlim SchedulerLock = new(LockRecursionPolicy.SupportsRecursion);
 
-    public static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
     /// Queue a job of type T with the data map setter and generated identity
@@ -60,21 +60,30 @@ public static class QuartzExtensions
         var currentJobs = await scheduler.GetCurrentlyExecutingJobs(token);
         if (currentJobs.Any(a => Equals(a.JobDetail.Key, job.Key)))
         {
-            Logger.Trace("Skipped scheduling {JobName} because it is running.", job.Key);
+            _logger.Trace("Skipped scheduling {JobName} because it is running.", job.Key);
             return DateTimeOffset.Now;
         }
 
         var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
         if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
 
-        await SchedulerLock.WaitAsync(token).ConfigureAwait(true);
+        SchedulerLock.EnterUpgradeableReadLock();
         try
         {
             if (!await scheduler.CheckExists(job.Key, token))
             {
-                Logger.Trace("Scheduling {JobName} to run.", job.Key);
-                return await scheduler.ScheduleJob(job,
-                    triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token).ConfigureAwait(true);
+                SchedulerLock.EnterWriteLock();
+                try
+                {
+                    _logger.Trace("Scheduling {JobName} to run.", job.Key);
+                    return await scheduler.ScheduleJob(job,
+                        triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
+                        token).ConfigureAwait(true);
+                }
+                finally
+                {
+                    SchedulerLock.EnterWriteLock();
+                }
             }
 
             // get waiting triggers
@@ -84,20 +93,29 @@ public static class QuartzExtensions
             // we are not set to replace the job, then return the first scheduled time
             if (nextFire != default && !replaceExisting)
             {
-                Logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
+                _logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
                 return nextFire;
             }
 
-            // since we are replacing it, it will remove the triggers, as well
-            await scheduler.DeleteJob(job.Key, token);
+            SchedulerLock.EnterWriteLock();
+            try
+            {
+                // since we are replacing it, it will remove the triggers, as well
+                await scheduler.DeleteJob(job.Key, token);
 
-            Logger.Trace("Scheduling {JobName} (after removing previous job)", job.Key);
-            return await scheduler.ScheduleJob(job,
-                triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token).ConfigureAwait(true);
+                _logger.Trace("Scheduling {JobName} (after removing previous job)", job.Key);
+                return await scheduler.ScheduleJob(job,
+                    triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
+                    token).ConfigureAwait(true);
+            }
+            finally
+            {
+                SchedulerLock.ExitWriteLock();
+            }
         }
         finally
         {
-            SchedulerLock.Release();
+            SchedulerLock.ExitUpgradeableReadLock();
         }
     }
 

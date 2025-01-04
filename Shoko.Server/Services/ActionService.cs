@@ -121,21 +121,10 @@ public class ActionService
 
 
         // check that all the episode data is populated
-        foreach (var vl in RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)))
+        foreach (var vl in RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData())
         {
             // queue scan for files that are automatically linked but missing AniDB_File data
-            var aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
-            if (aniFile == null && vl.EpisodeCrossReferences.Any(a => a.CrossRefSource == (int)CrossRefSource.AniDB))
-                await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
-
-            if (aniFile == null) continue;
-
-            // the cross ref is created before the actually episode data is downloaded
-            // so lets check for that
-            var missingEpisodes = aniFile.EpisodeCrossReferences.Any(a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.EpisodeID) == null);
-
-            // this will then download the anime etc
-            if (missingEpisodes) await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
         }
     }
 
