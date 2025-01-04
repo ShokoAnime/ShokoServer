@@ -46,7 +46,7 @@ public static class QuartzStartup
         var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).UsingJobData(jobConfig).Build();
 
         // this is called when clearing the queue, so the lock is needed to prevent conflicts with StartJob and StartJobNow
-        await QuartzExtensions.SchedulerLock.WaitAsync();
+        QuartzExtensions.SchedulerLock.EnterUpgradeableReadLock();
         try
         {
             var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
@@ -54,8 +54,16 @@ public static class QuartzStartup
             var existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
             if (!exists && !existingTriggers.Any())
             {
-                await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
-                    triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
+                try
+                {
+                    QuartzExtensions.SchedulerLock.EnterWriteLock();
+                    await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
+                        triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
+                }
+                finally
+                {
+                    QuartzExtensions.SchedulerLock.ExitWriteLock();
+                }
             }
             else if (replace)
             {
@@ -74,7 +82,7 @@ public static class QuartzStartup
         }
         finally
         {
-            QuartzExtensions.SchedulerLock.Release();
+            QuartzExtensions.SchedulerLock.ExitUpgradeableReadLock();
         }
     }
 

@@ -531,6 +531,12 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (xref.AnimeID == 0)
             return false;
 
+        if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
+        {
+            var anidbFile = RepoFactory.AniDB_File.GetByHash(xref.Hash);
+            if (anidbFile == null) return false;
+        }
+
         var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
         if (episode?.AniDB_Episode == null)
             return false;

@@ -96,13 +96,7 @@ public class HashFileJob : BaseJob
         var duplicate = await ProcessDuplicates(vlocal, vlocalplace);
         if (duplicate)
         {
-            await scheduler.StartJobNow<ProcessFileJob>(
-                c =>
-                {
-                    c.VideoLocalID = vlocal.VideoLocalID;
-                    c.ForceAniDB = false;
-                }
-            );
+            await scheduler.StartJobNow<ProcessFileJob>(c => c.VideoLocalID = vlocal.VideoLocalID);
             return;
         }
 
