@@ -1,16 +1,15 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Cached;
+namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_FileRepository(ILogger<AniDB_FileRepository> logger, JobFactory jobFactory, DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_AniDB_File, int>(databaseFactory)
 {

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -9,7 +10,7 @@ namespace Shoko.TestData.Repositories;
 /// <summary>
 /// Mock AniDB_Anime Repository. Many methods will error, such as write operations
 /// </summary>
-public class AniDB_FileRepository : Server.Repositories.Cached.AniDB_FileRepository
+public class AniDB_FileRepository : Server.Repositories.Cached.AniDB.AniDB_FileRepository
 {
     public override void RegenerateDb()
     {
@@ -27,5 +28,5 @@ public class AniDB_FileRepository : Server.Repositories.Cached.AniDB_FileReposit
         Populate(null!, displayname);
     }
 
-    public AniDB_FileRepository(DatabaseFactory databaseFactory, JobFactory jobFactory) : base(databaseFactory, jobFactory) { }
+    public AniDB_FileRepository(ILogger<AniDB_FileRepository> logger, DatabaseFactory databaseFactory, JobFactory jobFactory) : base(logger, jobFactory, databaseFactory) { }
 }

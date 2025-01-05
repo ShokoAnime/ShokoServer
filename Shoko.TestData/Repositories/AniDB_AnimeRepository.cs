@@ -8,7 +8,7 @@ namespace Shoko.TestData.Repositories;
 /// <summary>
 /// Mock AniDB_Anime Repository. Many methods will error, such as write operations
 /// </summary>
-public class AniDB_AnimeRepository : Server.Repositories.Cached.AniDB_AnimeRepository
+public class AniDB_AnimeRepository : Server.Repositories.Cached.AniDB.AniDB_AnimeRepository
 {
     public override void RegenerateDb()
     {

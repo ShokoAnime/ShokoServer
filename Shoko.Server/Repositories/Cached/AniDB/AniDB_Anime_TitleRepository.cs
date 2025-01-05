@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
@@ -6,8 +7,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Cached;
+namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_AniDB_Anime_Title, int>(databaseFactory)
 {

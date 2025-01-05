@@ -4,7 +4,12 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Repositories.Direct.TMDB;
+using Shoko.Server.Repositories.Direct.TMDB.Optional;
+using Shoko.Server.Repositories.Direct.TMDB.Text;
 using Shoko.Server.Server;
 
 // ReSharper disable InconsistentNaming

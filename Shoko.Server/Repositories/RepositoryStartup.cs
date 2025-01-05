@@ -2,7 +2,12 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Repositories.Direct.TMDB;
+using Shoko.Server.Repositories.Direct.TMDB.Optional;
+using Shoko.Server.Repositories.Direct.TMDB.Text;
 
 namespace Shoko.Server.Repositories;
 
@@ -34,17 +39,13 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_CollectionRepository>();
         services.AddDirectRepository<TMDB_Company_EntityRepository>();
         services.AddDirectRepository<TMDB_CompanyRepository>();
-        services.AddDirectRepository<TMDB_EpisodeRepository>();
         services.AddDirectRepository<TMDB_Episode_CastRepository>();
         services.AddDirectRepository<TMDB_Episode_CrewRepository>();
         services.AddDirectRepository<TMDB_Movie_CastRepository>();
         services.AddDirectRepository<TMDB_Movie_CrewRepository>();
-        services.AddDirectRepository<TMDB_MovieRepository>();
         services.AddDirectRepository<TMDB_NetworkRepository>();
         services.AddDirectRepository<TMDB_OverviewRepository>();
         services.AddDirectRepository<TMDB_PersonRepository>();
-        services.AddDirectRepository<TMDB_SeasonRepository>();
-        services.AddDirectRepository<TMDB_ShowRepository>();
         services.AddDirectRepository<TMDB_Show_NetworkRepository>();
         services.AddDirectRepository<TMDB_TitleRepository>();
         services.AddDirectRepository<Trakt_EpisodeRepository>();
@@ -89,7 +90,11 @@ public static class RepositoryStartup
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();
+        services.AddCachedRepository<TMDB_EpisodeRepository>();
         services.AddCachedRepository<TMDB_ImageRepository>();
+        services.AddCachedRepository<TMDB_MovieRepository>();
+        services.AddCachedRepository<TMDB_SeasonRepository>();
+        services.AddCachedRepository<TMDB_ShowRepository>();
         services.AddCachedRepository<VideoLocalRepository>();
         services.AddCachedRepository<VideoLocal_PlaceRepository>();
         services.AddCachedRepository<VideoLocal_UserRepository>();

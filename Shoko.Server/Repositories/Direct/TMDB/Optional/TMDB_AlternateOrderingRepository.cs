@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Direct;
+namespace Shoko.Server.Repositories.Direct.TMDB.Optional;
 
 public class TMDB_AlternateOrderingRepository : BaseDirectRepository<TMDB_AlternateOrdering, int>
 {

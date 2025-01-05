@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -6,8 +7,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Cached;
+namespace Shoko.Server.Repositories.Cached.TMDB;
 
 public class TMDB_ImageRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<TMDB_Image, int>(databaseFactory)
 {

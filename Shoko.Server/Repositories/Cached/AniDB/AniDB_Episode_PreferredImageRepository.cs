@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -6,8 +7,7 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Cached;
+namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Episode_PreferredImageRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Episode_PreferredImage, int>(databaseFactory)
 {
