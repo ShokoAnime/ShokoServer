@@ -18,7 +18,7 @@ public class TMDB_EpisodeRepository : BaseCachedRepository<TMDB_Episode, int>
     {
         _showIDs = Cache.CreateIndex(a => a.TmdbShowID);
         _seasonIDs = Cache.CreateIndex(a => a.TmdbSeasonID);
-        _episodeIDs = Cache.CreateIndex(a => a.TMDB_EpisodeID);
+        _episodeIDs = Cache.CreateIndex(a => a.TmdbEpisodeID);
     }
 
     public IReadOnlyList<TMDB_Episode> GetByTmdbShowID(int showId)
