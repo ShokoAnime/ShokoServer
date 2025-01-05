@@ -173,7 +173,7 @@ jobs:
           - build_dir: '/net8.0-windows'
             build_type: 'Framework'
 
-    name: Build Tray Service ${{ matrix.build_type }} (Daily)
+    name: Build Tray Service — ${{ matrix.build_type }} (Daily)
 
     steps:
       - name: Checkout "${{ github.ref }}"
@@ -202,6 +202,50 @@ jobs:
         with:
           name: Shoko.TrayService_${{ matrix.build_type }}_win-x64
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
+
+  tray-service-installer:
+    runs-on: windows-latest
+
+    needs:
+      - current_info
+      - plugin-nuget
+
+    strategy:
+      matrix:
+        dotnet: [ '8.x' ]
+
+    name: Build Tray Service — Installer (Daily)
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+
+      - name: Replace Sentry DSN and other keys
+        shell: pwsh
+        run: |
+          .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
+          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Run dotnet publish
+        run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+
+      - name: Build Installer
+        run: iscc /O".\\" ".\\Installer\\ShokoServer.iss"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shoko.TrayService_Installer_win-x64
+          path: Shoko.Setup.exe
 
   docker-daily-build:
     runs-on: ubuntu-latest
@@ -318,6 +362,7 @@ jobs:
       - current_info
       - cli-daily
       - tray-service-daily
+      - tray-service-installer
       - docker-daily-push_manifest
 
     name: Add tag for pre-release
