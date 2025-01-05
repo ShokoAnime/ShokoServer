@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '6.x' ]
+        dotnet: [ '8.x' ]
 
     name: Publish Shoko.Plugin.Abstractions Nuget
 
