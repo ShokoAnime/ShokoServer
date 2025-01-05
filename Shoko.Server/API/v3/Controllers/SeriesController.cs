@@ -116,8 +116,8 @@ public class SeriesController : BaseController
     internal const string TmdbNotFoundForSeriesID = "No TMDB.Show entry for the given seriesID";
 
     internal const string TmdbForbiddenForUser = "Accessing TMDB.Show is not allowed for the current user";
-    
-    internal const string TraktShowNotFound = "No Trakt_Show entry for the given showID";
+
+    internal const string TraktShowNotFound = "No Trakt.Show entry for the given showID";
 
     #endregion
 
@@ -1800,7 +1800,7 @@ public class SeriesController : BaseController
     #endregion
 
     #endregion
-    
+
     #region Trakt
 
     /// <summary>
@@ -1833,17 +1833,17 @@ public class SeriesController : BaseController
         {
             return ValidationProblem(TraktShowNotFound);
         }
-        
+
         var scheduler = await _schedulerFactory.GetScheduler();
-        
-        foreach(var show in traktShows)
+
+        foreach (var show in traktShows)
         {
             await scheduler.StartJob<UpdateTraktShowJob>(c => c.TraktShowID = show.TraktID);
         }
-        
+
         return Ok();
     }
-    
+
     /// <summary>
     /// Queue a job for syncing series status to Trakt
     /// </summary>
@@ -1868,18 +1868,18 @@ public class SeriesController : BaseController
         {
             return InternalError(AnidbNotFoundForSeriesID);
         }
-        
+
         var traktShows = series.TraktShow;
         if (traktShows.Count == 0)
         {
             return ValidationProblem(TraktShowNotFound);
         }
-        
+
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = seriesID);
         return Ok();
     }
-    
+
     #endregion
 
     #endregion
