@@ -744,7 +744,35 @@ public class DatabaseFixes
     public static void RepairMissingTMDBPersons()
     {
         var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
-        service.RepairMissingPeople().ConfigureAwait(false).GetAwaiter().GetResult();
+        var missingIds = new HashSet<int>();
+        var updateCount = 0;
+        var skippedCount = 0;
+        var peopleIds = RepoFactory.TMDB_Person.GetAll().Select(person => person.TmdbPersonID).ToHashSet();
+        var str = ServerState.Instance.ServerStartingStatus;
+        foreach (var person in RepoFactory.TMDB_Episode_Cast.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+        foreach (var person in RepoFactory.TMDB_Episode_Crew.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+
+        foreach (var person in RepoFactory.TMDB_Movie_Cast.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+        foreach (var person in RepoFactory.TMDB_Movie_Crew.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+
+        ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {missingIds.Count}";
+        _logger.Debug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
+        foreach (var personId in missingIds)
+        {
+            var (_, updated) = service.UpdatePerson(personId, forceRefresh: true).ConfigureAwait(false).GetAwaiter().GetResult();
+            if (updated)
+                updateCount++;
+            else
+                skippedCount++;
+            ServerState.Instance.ServerStartingStatus = $"{str} - {updateCount + skippedCount} / {missingIds.Count}";
+        }
+
+        _logger.Info("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
+            missingIds.Count, updateCount, skippedCount);
     }
 
     public static void RecreateAnimeCharactersAndCreators()
