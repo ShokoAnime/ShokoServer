@@ -296,6 +296,7 @@ jobs:
       - name: Push pre-release tag
         uses: rickstaa/action-create-tag@v1
         with:
+          force_push_tag: true
           tag: ${{ needs.current_info.outputs.tag }}
           message: Shoko Server v${{ needs.current_info.outputs.version }} Pre-Release
 
