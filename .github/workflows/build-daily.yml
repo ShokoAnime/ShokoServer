@@ -66,11 +66,43 @@ jobs:
             const sha = context.sha.substring(0, 7);
             core.setOutput("sha", sha);
 
+  plugin-nuget:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '8.x' ]
+
+    name: Publish Shoko.Plugin.Abstractions Nuget
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Run dotnet build
+        run: dotnet build -c Release Shoko.Plugin.Abstractions
+
+      - name: Publish Shoko.Plugin.Abstractions Nuget
+        uses: brandedoutcast/publish-nuget@v2.5.2
+        with:
+          PROJECT_FILE_PATH: Shoko.Plugin.Abstractions/Shoko.Plugin.Abstractions.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          TAG_FORMAT: Shoko.Plugin.Abstractions-v*
+
   cli-daily:
     runs-on: ubuntu-latest
 
     needs:
       - current_info
+      - plugin-nuget
 
     strategy:
       matrix:
@@ -124,6 +156,7 @@ jobs:
 
     needs:
       - current_info
+      - plugin-nuget
 
     strategy:
       matrix:
@@ -173,6 +206,7 @@ jobs:
 
     needs:
       - current_info
+      - plugin-nuget
 
     strategy:
       fail-fast: false
