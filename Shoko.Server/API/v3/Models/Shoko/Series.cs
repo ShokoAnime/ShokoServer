@@ -16,6 +16,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Titles;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -171,8 +172,28 @@ public class Series : BaseModel
         if (includeDataFrom?.Contains(DataSource.TMDB) ?? false)
             TMDB = new()
             {
-                Movies = ser.TmdbMovies.Select(movie => new TmdbMovie(movie)),
-                Shows = ser.TmdbShows.Select(show => new TmdbShow(show, show.PreferredAlternateOrdering)),
+                Movies = tmdbMovieXRefs
+                    .Select(tmdbEpisodeXref =>
+                    {
+                        var movie = tmdbEpisodeXref.TmdbMovie;
+                        if (movie is not null && (TmdbMetadataService.Instance?.WaitForMovieUpdate(movie.TmdbMovieID) ?? false))
+                            movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                        return movie;
+                    })
+                    .WhereNotNull()
+                    .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
+                    .ToList(),
+                Shows = tmdbShowXRefs
+                    .Select(tmdbEpisodeXref =>
+                    {
+                        var show = tmdbEpisodeXref.TmdbShow;
+                        if (show is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(show.TmdbShowID) ?? false))
+                            show = RepoFactory.TMDB_Show.GetByTmdbShowID(show.TmdbShowID);
+                        return show;
+                    })
+                    .WhereNotNull()
+                    .Select(show => new TmdbShow(show, show.PreferredAlternateOrdering))
+                    .ToList(),
             };
     }
 

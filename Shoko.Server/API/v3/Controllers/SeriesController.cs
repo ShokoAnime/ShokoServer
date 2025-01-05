@@ -1031,7 +1031,13 @@ public class SeriesController : BaseController
 
         return series.TmdbMovieCrossReferences
             .DistinctBy(o => o.TmdbMovieID)
-            .Select(o => o.TmdbMovie)
+            .Select(xref =>
+            {
+                var movie = xref.TmdbMovie;
+                if (movie is not null && (TmdbMetadataService.Instance?.WaitForMovieUpdate(movie.TmdbMovieID) ?? false))
+                    movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                return movie;
+            })
             .WhereNotNull()
             .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
             .ToList();
@@ -1240,7 +1246,12 @@ public class SeriesController : BaseController
         return series.TmdbShowCrossReferences
             .Select(o => o.TmdbShow)
             .WhereNotNull()
-            .Select(o => new TmdbShow(o, o.PreferredAlternateOrdering, include?.CombineFlags(), language))
+            .Select(o =>
+            {
+                if (_tmdbMetadataService.WaitForShowUpdate(o.Id))
+                    o = RepoFactory.TMDB_Show.GetByTmdbShowID(o.Id) ?? o;
+                return new TmdbShow(o, o.PreferredAlternateOrdering, include?.CombineFlags(), language);
+            })
             .ToList();
     }
 
@@ -1772,7 +1783,13 @@ public class SeriesController : BaseController
             .Select(o => o.TmdbEpisode)
             .WhereNotNull()
             .DistinctBy(o => o.TmdbSeasonID)
-            .Select(o => o.TmdbSeason)
+            .Select(o =>
+            {
+                var season = o.TmdbSeason;
+                if (season is not null && _tmdbMetadataService.WaitForShowUpdate(season.TmdbShowID))
+                    season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(season.TmdbSeasonID);
+                return season;
+            })
             .WhereNotNull()
             .OrderBy(season => season.TmdbShowID)
             .ThenBy(season => season.SeasonNumber)

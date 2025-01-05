@@ -7,12 +7,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -195,7 +194,13 @@ public class Episode : BaseModel
             TMDB = new()
             {
                 Episodes = tmdbEpisodeXRefs
-                    .Select(tmdbEpisodeXref => tmdbEpisodeXref.TmdbEpisode)
+                    .Select(tmdbEpisodeXref =>
+                    {
+                        var episode = tmdbEpisodeXref.TmdbEpisode;
+                        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+                            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+                        return episode;
+                    })
                     .WhereNotNull()
                     .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
                     .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
@@ -210,7 +215,13 @@ public class Episode : BaseModel
                     ))
                     .ToList(),
                 Movies = tmdbMovieXRefs
-                    .Select(tmdbMovieXref => tmdbMovieXref.TmdbMovie)
+                    .Select(tmdbMovieXref =>
+                    {
+                        var movie = tmdbMovieXref.TmdbMovie;
+                        if (movie is not null && (TmdbMetadataService.Instance?.WaitForMovieUpdate(movie.TmdbMovieID) ?? false))
+                            movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                        return movie;
+                    })
                     .WhereNotNull()
                     .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
                     .ToList(),

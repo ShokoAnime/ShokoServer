@@ -412,6 +412,21 @@ public class TmdbMetadataService
     public bool IsMovieUpdating(int movieId)
         => IsEntityLocked(ForeignEntityType.Movie, movieId, "metadata");
 
+    public bool WaitForMovieUpdate(int movieId)
+        => WaitIfEntityLocked(ForeignEntityType.Movie, movieId, "metadata");
+
+    public Task<bool> WaitForMovieUpdateAsync(int movieId)
+        => WaitIfEntityLockedAsync(ForeignEntityType.Movie, movieId, "metadata");
+
+    public bool IsMovieCollectionUpdating(int collectionId)
+        => IsEntityLocked(ForeignEntityType.Collection, collectionId, "metadata");
+
+    public bool WaitForMovieCollectionUpdate(int collectionId)
+        => WaitIfEntityLocked(ForeignEntityType.Collection, collectionId, "metadata");
+
+    public Task<bool> WaitForMovieCollectionUpdateAsync(int collectionId)
+        => WaitIfEntityLockedAsync(ForeignEntityType.Collection, collectionId, "metadata");
+
     public async Task UpdateAllMovies(bool force, bool saveImages)
     {
         var allXRefs = _xrefAnidbTmdbMovies.GetAll();
@@ -975,6 +990,12 @@ public class TmdbMetadataService
 
     public bool IsShowUpdating(int showId)
         => IsEntityLocked(ForeignEntityType.Show, showId, "metadata");
+
+    public bool WaitForShowUpdate(int showId)
+        => WaitIfEntityLocked(ForeignEntityType.Show, showId, "metadata");
+
+    public Task<bool> WaitForShowUpdateAsync(int showId)
+        => WaitIfEntityLockedAsync(ForeignEntityType.Show, showId, "metadata");
 
     public async Task ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null)
     {
@@ -2491,6 +2512,33 @@ public class TmdbMetadataService
     #endregion
 
     #region Locking
+
+
+    private bool WaitIfEntityLocked(ForeignEntityType entityType, int id, string metadataKey)
+    {
+        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
+        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount == 0)
+            return false;
+
+        semaphore.Wait();
+        semaphore.Release();
+
+        return true;
+    }
+
+    private Task<bool> WaitIfEntityLockedAsync(ForeignEntityType entityType, int id, string metadataKey)
+    {
+        var startedAt = DateTime.Now;
+        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
+        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount == 0)
+            return Task.FromResult(false);
+
+        return semaphore.WaitAsync().ContinueWith(t =>
+        {
+            semaphore.Release();
+            return true;
+        });
+    }
 
     private bool IsEntityLocked(ForeignEntityType entityType, int id, string metadataKey)
     {

@@ -502,7 +502,13 @@ public class EpisodeController : BaseController
             return Forbid(EpisodeForbiddenForUser);
 
         return episode.TmdbMovieCrossReferences
-            .Select(xref => xref.TmdbMovie)
+            .Select(xref =>
+            {
+                var movie = xref.TmdbMovie;
+                if (movie is not null && _tmdbMetadataService.WaitForMovieUpdate(movie.TmdbMovieID))
+                    movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                return movie;
+            })
             .WhereNotNull()
             .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
             .ToList();
@@ -627,7 +633,13 @@ public class EpisodeController : BaseController
             return Forbid(EpisodeForbiddenForUser);
 
         return episode.TmdbEpisodeCrossReferences
-            .Select(xref => xref.TmdbEpisode)
+            .Select(xref =>
+            {
+                var episode = xref.TmdbEpisode;
+                if (episode is not null && _tmdbMetadataService.WaitForShowUpdate(episode.TmdbShowID))
+                    episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+                return episode;
+            })
             .WhereNotNull()
             .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
             .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
