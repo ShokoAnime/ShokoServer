@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Nito.AsyncEx;
 using NLog;
 using Quartz;
 using Shoko.Server.Scheduling.GenericJobBuilder;
@@ -12,7 +13,7 @@ namespace Shoko.Server.Scheduling;
 
 public static class QuartzExtensions
 {
-    public static readonly ReaderWriterLockSlim SchedulerLock = new(LockRecursionPolicy.SupportsRecursion);
+    public static readonly AsyncReaderWriterLock SchedulerLock = new();
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -54,7 +55,8 @@ public static class QuartzExtensions
     /// <param name="replaceExisting">Replace the queued trigger if it's still waiting to execute. Default false</param>
     /// <param name="token">The cancellation token</param>
     /// <returns></returns>
-    private static async Task<DateTimeOffset> StartJob(this IScheduler scheduler, IJobDetail job, IScheduleBuilder scheduleBuilder = null, int priority = 0, bool replaceExisting = false, CancellationToken token = default)
+    private static async Task<DateTimeOffset> StartJob(this IScheduler scheduler, IJobDetail job, IScheduleBuilder scheduleBuilder = null, int priority = 0,
+        bool replaceExisting = false, CancellationToken token = default)
     {
         // if it's running, then ignore
         var currentJobs = await scheduler.GetCurrentlyExecutingJobs(token);
@@ -67,56 +69,45 @@ public static class QuartzExtensions
         var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
         if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
 
-        SchedulerLock.EnterUpgradeableReadLock();
-        try
-        {
-            if (!await scheduler.CheckExists(job.Key, token))
-            {
-                SchedulerLock.EnterWriteLock();
-                try
-                {
-                    _logger.Trace("Scheduling {JobName} to run.", job.Key);
-                    return await scheduler.ScheduleJob(job,
-                        triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
-                        token).ConfigureAwait(true);
-                }
-                finally
-                {
-                    SchedulerLock.EnterWriteLock();
-                }
-            }
 
-            // get waiting triggers
+        bool exists;
+        using (var _ = await SchedulerLock.ReaderLockAsync(token))
+        {
+            exists = await scheduler.CheckExists(job.Key, token);
+        }
+
+        if (!exists)
+        {
+            using var _ = await SchedulerLock.WriterLockAsync(token);
+            _logger.Trace("Scheduling {JobName} to run.", job.Key);
+            return await scheduler.ScheduleJob(job,
+                triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
+                token).ConfigureAwait(true);
+        }
+
+        // get waiting triggers
+        if (!replaceExisting)
+        {
+            using var _ = await SchedulerLock.ReaderLockAsync(token);
             var nextFire = (await scheduler.GetTriggersOfJob(job.Key, token).ConfigureAwait(true)).Select(a => a.GetNextFireTimeUtc())
                 .Where(a => a != null).Select(a => a.Value).DefaultIfEmpty().Min();
 
             // we are not set to replace the job, then return the first scheduled time
-            if (nextFire != default && !replaceExisting)
+            if (nextFire != default)
             {
                 _logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
                 return nextFire;
             }
-
-            SchedulerLock.EnterWriteLock();
-            try
-            {
-                // since we are replacing it, it will remove the triggers, as well
-                await scheduler.DeleteJob(job.Key, token);
-
-                _logger.Trace("Scheduling {JobName} (after removing previous job)", job.Key);
-                return await scheduler.ScheduleJob(job,
-                    triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
-                    token).ConfigureAwait(true);
-            }
-            finally
-            {
-                SchedulerLock.ExitWriteLock();
-            }
         }
-        finally
-        {
-            SchedulerLock.ExitUpgradeableReadLock();
-        }
+
+        using var _lock = await SchedulerLock.WriterLockAsync(token);
+        // since we are replacing it, it will remove the triggers, as well
+        await scheduler.DeleteJob(job.Key, token);
+
+        _logger.Trace("Scheduling {JobName} (after removing previous job)", job.Key);
+        return await scheduler.ScheduleJob(job,
+            triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
+            token).ConfigureAwait(true);
     }
 
     /// <summary>

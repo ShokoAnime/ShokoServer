@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -38,51 +39,50 @@ public static class QuartzStartup
         // TODO the other schedule-based jobs that are on timers
     }
 
-    private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null, bool replace = false, bool keepSchedule = true) where T : class, IJob
+    private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null,
+        bool replace = false, bool keepSchedule = true) where T : class, IJob
     {
-        jobConfig ??= _ => {};
+        jobConfig ??= _ => { };
         triggerConfig ??= t => t;
         var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
         var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).UsingJobData(jobConfig).Build();
 
         // this is called when clearing the queue, so the lock is needed to prevent conflicts with StartJob and StartJobNow
-        QuartzExtensions.SchedulerLock.EnterUpgradeableReadLock();
-        try
-        {
-            var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
-            var exists = await scheduler.CheckExists(jobKey);
-            var existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
-            if (!exists && !existingTriggers.Any())
-            {
-                try
-                {
-                    QuartzExtensions.SchedulerLock.EnterWriteLock();
-                    await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
-                        triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
-                }
-                finally
-                {
-                    QuartzExtensions.SchedulerLock.ExitWriteLock();
-                }
-            }
-            else if (replace)
-            {
-                var trigger = triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group));
-                if (keepSchedule)
-                {
-                    var nextFireTime = (await scheduler.GetTriggersOfJob(jobKey)).Select(a => a.GetNextFireTimeUtc() ?? DateTimeOffset.MaxValue)
-                        .Where(a => a != DateTimeOffset.MaxValue).DefaultIfEmpty().Min();
-                    if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
-                }
 
+        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+
+        bool exists;
+        IReadOnlyCollection<ITrigger> existingTriggers;
+
+        using (var _ = await QuartzExtensions.SchedulerLock.ReaderLockAsync())
+        {
+            exists = await scheduler.CheckExists(jobKey);
+            existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
+        }
+
+        if (!exists && !existingTriggers.Any())
+        {
+            using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
+            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
+                triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
+        }
+        else if (replace)
+        {
+            var trigger = triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group));
+            if (keepSchedule)
+            {
+                using var _ = await QuartzExtensions.SchedulerLock.ReaderLockAsync();
+                var nextFireTime = (await scheduler.GetTriggersOfJob(jobKey)).Select(a => a.GetNextFireTimeUtc() ?? DateTimeOffset.MaxValue)
+                    .Where(a => a != DateTimeOffset.MaxValue).DefaultIfEmpty().Min();
+                if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
+            }
+
+            using (var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync())
+            {
                 // also nukes triggers
                 await scheduler.DeleteJob(jobKey);
                 await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithIdentity(jobKey).Build(), trigger.Build());
             }
-        }
-        finally
-        {
-            QuartzExtensions.SchedulerLock.ExitUpgradeableReadLock();
         }
     }
 

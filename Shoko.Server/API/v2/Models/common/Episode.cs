@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -106,7 +105,7 @@ public class Episode : BaseDirectory
         {
             TMDB_Image thumbnail = null;
             var tmdbEpisode = tmdbEpisodes[0];
-            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Thumbnail) is { } thumbnailImages && thumbnailImages.Count > 0)
+            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Thumbnail) is { Count: > 0 } thumbnailImages)
             {
                 thumbnail = thumbnailImages
                     .Where(image => image.ImageType == ImageEntityType.Thumbnail && image.IsLocalAvailable)
@@ -121,15 +120,15 @@ public class Episode : BaseDirectory
                     });
                 }
             }
-            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Backdrop) is { } backdropImages && backdropImages.Count > 0)
+            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Backdrop) is { Count: > 0 } backdropImages)
             {
                 var backdrop = backdropImages
                     .Where(image => image.ImageType == ImageEntityType.Backdrop && image.IsLocalAvailable)
                     .OrderByDescending(image => image.IsPreferred)
                     .FirstOrDefault();
+                backdrop ??= thumbnail;
                 if (backdrop is not null)
                 {
-                    backdrop ??= thumbnail;
                     ep.art.fanart.Add(new Art
                     {
                         index = 0,
