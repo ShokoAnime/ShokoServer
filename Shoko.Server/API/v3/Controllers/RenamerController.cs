@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Web;
 using Force.DeepCloner;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -208,7 +209,7 @@ public class RenamerController : BaseController
     [HttpGet("Config/{configName}/Renamer")]
     public ActionResult<ApiRenamer> GetRenamerFromConfig([FromRoute] string configName)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(configName);
+        var renamerConfig = _renamerConfigRepository.GetByName(HttpUtility.UrlDecode(configName));
         if (renamerConfig == null)
             return NotFound("Config not found");
         if (!_renameFileService.RenamersByType.TryGetValue(renamerConfig.Type, out var value))
@@ -225,7 +226,7 @@ public class RenamerController : BaseController
     [HttpGet("Config/{configName}")]
     public ActionResult<RenamerConfig> GetRenamerConfig([FromRoute] string configName)
     {
-        var config = _renamerConfigRepository.GetByName(configName);
+        var config = _renamerConfigRepository.GetByName(HttpUtility.UrlDecode(configName));
         if (config == null)
             return NotFound("Config not found");
 
@@ -280,7 +281,7 @@ public class RenamerController : BaseController
     [HttpPut("Config/{configName}")]
     public ActionResult<RenamerConfig> PutRenamerConfig([FromRoute] string configName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RenamerConfig body)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(configName);
+        var renamerConfig = _renamerConfigRepository.GetByName(HttpUtility.UrlDecode(configName));
         if (renamerConfig == null)
             return NotFound("Config not found");
 
@@ -366,7 +367,7 @@ public class RenamerController : BaseController
     [HttpPatch("Config/{configName}")]
     public ActionResult<RenamerConfig> PatchRenamer([FromRoute] string configName, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<RenamerConfig> patchDocument)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(configName);
+        var renamerConfig = _renamerConfigRepository.GetByName(HttpUtility.UrlDecode(configName));
         if (renamerConfig == null)
             return NotFound("Config not found.");
 
@@ -418,12 +419,12 @@ public class RenamerController : BaseController
     [HttpDelete("Config/{configName}")]
     public ActionResult DeleteRenamerConfig([FromRoute] string configName)
     {
-        var renamerConfig = _renamerConfigRepository.GetByName(configName);
+        var renamerConfig = _renamerConfigRepository.GetByName(HttpUtility.UrlDecode(configName));
         if (renamerConfig == null)
             return NotFound("Config not found");
 
         var settings = _settingsProvider.GetSettings();
-        if (settings.Plugins.Renamer.DefaultRenamer == configName)
+        if (settings.Plugins.Renamer.DefaultRenamer == HttpUtility.UrlDecode(configName))
             return ValidationProblem("Default renamer config cannot be deleted!");
 
         _renamerConfigRepository.Delete(renamerConfig);
@@ -499,7 +500,7 @@ public class RenamerController : BaseController
         bool? allowRelocationInsideDestination = null
     )
     {
-        var config = _renamerConfigRepository.GetByName(configName);
+        var config = _renamerConfigRepository.GetByName(HttpUtility.UrlDecode(configName));
         if (config is null)
             return NotFound("Config not found");
 
@@ -646,7 +647,7 @@ public class RenamerController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs, [FromQuery] bool deleteEmptyDirectories = true,
         [FromQuery] bool? move = null, [FromQuery] bool? rename = null, [FromQuery] bool? allowRelocationInsideDestination = null)
     {
-        var config = _renamerConfigRepository.GetByName(configName);
+        var config = _renamerConfigRepository.GetByName(HttpUtility.UrlDecode(configName));
         if (config is null)
             return NotFound("Config not found.");
 
