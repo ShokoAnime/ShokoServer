@@ -23,7 +23,12 @@ public class TMDB_EpisodeRepository : BaseCachedRepository<TMDB_Episode, int>
 
     public IReadOnlyList<TMDB_Episode> GetByTmdbShowID(int showId)
     {
-        return _showIDs.GetMultiple(showId).OrderBy(a => a.EpisodeNumber).ToList();
+        return _showIDs
+            .GetMultiple(showId)
+            .OrderBy(e => e.SeasonNumber == 0)
+            .ThenBy(e => e.SeasonNumber)
+            .ThenBy(e => e.EpisodeNumber)
+            .ToList();
     }
 
     public IReadOnlyList<TMDB_Episode> GetByTmdbSeasonID(int seasonId)
