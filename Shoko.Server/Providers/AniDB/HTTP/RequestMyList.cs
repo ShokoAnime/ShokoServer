@@ -25,6 +25,17 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
             var mylist = doc.Descendants("mylist");
             if (mylist == null)
             {
+                var error = doc.Descendants("error").FirstOrDefault();
+                if (error != null)
+                {
+                    var errorCode = (int)error.Attribute("value");
+                    if (errorCode == 330) // 'mylist empty'
+                    {
+                        Logger.LogTrace("Mylist is empty.");
+                        return Task.FromResult(new HttpResponse<List<ResponseMyList>> { Code = data.Code, Response = [] });
+                    }
+                }
+
                 throw new UnexpectedHttpResponseException("mylist tag not found", data.Code, data.Response);
             }
 
