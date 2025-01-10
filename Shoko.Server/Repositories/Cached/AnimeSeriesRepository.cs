@@ -348,20 +348,23 @@ SELECT DISTINCT
 FROM
     (
         SELECT
-            vlp.VideoLocal_Place_ID,
             vl.FileSize,
             vl.Hash
         FROM
             VideoLocal AS vl
-        INNER JOIN
-            VideoLocal_Place AS vlp
-            ON vlp.VideoLocalID = vl.VideoLocalID
         WHERE
+            VideoLocalID IN (
+                SELECT
+                    VideoLocalID
+                FROM
+                    VideoLocal_Place
+                GROUP BY
+                    VideoLocalID
+                HAVING
+                    COUNT(VideoLocal_Place_ID) > 1
+            )
+        AND
             vl.Hash != ''
-        GROUP BY
-            vl.VideoLocalID
-        HAVING
-            COUNT(vl.VideoLocalID) > 1
     ) AS vlp_selected
 INNER JOIN
     CrossRef_File_Episode ani

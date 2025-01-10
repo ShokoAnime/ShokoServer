@@ -132,25 +132,28 @@ SELECT
 FROM
     (
         SELECT
-            vlp.VideoLocal_Place_ID,
             vl.FileSize,
             vl.Hash
         FROM
             VideoLocal AS vl
-        INNER JOIN
-            VideoLocal_Place AS vlp
-            ON vlp.VideoLocalID = vl.VideoLocalID
         WHERE
+            VideoLocalID IN (
+                SELECT
+                    VideoLocalID
+                FROM
+                    VideoLocal_Place
+                GROUP BY
+                    VideoLocalID
+                HAVING
+                    COUNT(VideoLocal_Place_ID) > 1
+            )
+        AND
             vl.Hash != ''
-        GROUP BY
-            vl.VideoLocalID
-        HAVING
-            COUNT(vl.VideoLocalID) > 1
-    ) AS filtered_vlp
+    ) AS vlp_selected
 INNER JOIN
     CrossRef_File_Episode ani
-    ON filtered_vlp.Hash = ani.Hash
-       AND filtered_vlp.FileSize = ani.FileSize
+    ON vlp_selected.Hash = ani.Hash
+       AND vlp_selected.FileSize = ani.FileSize
 WHERE ani.AnimeID = :animeID
 GROUP BY
     ani.EpisodeID
@@ -162,25 +165,28 @@ SELECT
 FROM
     (
         SELECT
-            vlp.VideoLocal_Place_ID,
             vl.FileSize,
             vl.Hash
         FROM
             VideoLocal AS vl
-        INNER JOIN
-            VideoLocal_Place AS vlp
-            ON vlp.VideoLocalID = vl.VideoLocalID
         WHERE
+            VideoLocalID IN (
+                SELECT
+                    VideoLocalID
+                FROM
+                    VideoLocal_Place
+                GROUP BY
+                    VideoLocalID
+                HAVING
+                    COUNT(VideoLocal_Place_ID) > 1
+            )
+        AND
             vl.Hash != ''
-        GROUP BY
-            vl.VideoLocalID
-        HAVING
-            COUNT(vl.VideoLocalID) > 1
-    ) AS filtered_vlp
+    ) AS vlp_selected
 INNER JOIN
     CrossRef_File_Episode ani
-    ON filtered_vlp.Hash = ani.Hash
-       AND filtered_vlp.FileSize = ani.FileSize
+    ON vlp_selected.Hash = ani.Hash
+       AND vlp_selected.FileSize = ani.FileSize
 GROUP BY
     ani.EpisodeID
 ";
