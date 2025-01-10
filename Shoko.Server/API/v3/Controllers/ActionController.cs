@@ -465,7 +465,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> SyncMyList()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBMyListJob>();
+        await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true);
         return Ok();
     }
 
