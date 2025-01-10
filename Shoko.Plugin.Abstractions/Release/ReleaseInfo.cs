@@ -37,7 +37,7 @@ public class ReleaseInfo
     public string? OriginalFilename { get; set; }
 
     /// <summary>
-    /// Indicates that the release is censored or decensored. For most releases
+    /// Indicates that the release is censored or de-censored. For most releases
     /// this will be <c>null</c>.
     /// </summary>
     public bool? IsCensored { get; set; }
@@ -58,7 +58,12 @@ public class ReleaseInfo
     public ReleaseGroup? Group { get; set; }
 
     /// <summary>
-    /// Remote media inforation about the file, if available from the provider.
+    /// Override hashes for the file, if available from the provider.
+    /// </summary>
+    public ReleaseHashes? Hashes { get; set; }
+
+    /// <summary>
+    /// Remote media information about the file, if available from the provider.
     /// </summary>
     public ReleaseMediaInfo? MediaInfo { get; set; }
 
@@ -108,6 +113,7 @@ public class ReleaseInfo
         IsCensored = info.IsCensored;
         Source = info.Source;
         Group = info.Group is not null ? new(info.Group) : null;
+        Hashes = info.Hashes is not null ? new(info.Hashes) : null;
         MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
         CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
         ReleasedAt = info.ReleasedAt;

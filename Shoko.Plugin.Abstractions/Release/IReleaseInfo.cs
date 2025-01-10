@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.Release;
@@ -43,7 +44,7 @@ public interface IReleaseInfo
     string? OriginalFilename { get; }
 
     /// <summary>
-    /// Indicates that the release is censored or decensored. For most releases
+    /// Indicates that the release is censored or de-censored. For most releases
     /// this will be <c>null</c>.
     /// </summary>
     bool? IsCensored { get; }
@@ -64,7 +65,12 @@ public interface IReleaseInfo
     IReleaseGroup? Group { get; }
 
     /// <summary>
-    /// Remote media inforation about the file, if available from the provider.
+    /// Override hashes for the file, if available from the provider.
+    /// </summary>
+    IHashes? Hashes { get; }
+
+    /// <summary>
+    /// Remote media information about the file, if available from the provider.
     /// </summary>
     IReleaseMediaInfo? MediaInfo { get; }
 
