@@ -310,13 +310,30 @@ public class TMDB_Image : Image_Base, IImageMetadata
         };
 
     public IImageMetadata GetImageMetadata(bool preferred = false)
-        => new Image_Base(DataSourceEnum.TMDB, ImageType, ID, LocalPath, RemoteURL)
-        {
-            IsEnabled = IsEnabled,
-            IsPreferred = preferred,
-            _width = Width,
-            _height = Height,
-        };
+        => preferred == IsPreferred
+            ? this
+            : new TMDB_Image(RemoteFileName, ImageType)
+            {
+                IsEnabled = IsEnabled,
+                IsPreferred = preferred,
+                LanguageCode = LanguageCode,
+                ForeignType = ForeignType,
+                Height = Height,
+                Width = Width,
+                TMDB_ImageID = TMDB_ImageID,
+                TmdbCollectionID = TmdbCollectionID,
+                TmdbCompanyID = TmdbCompanyID,
+                TmdbEpisodeID = TmdbEpisodeID,
+                TmdbMovieID = TmdbMovieID,
+                TmdbNetworkID = TmdbNetworkID,
+                TmdbPersonID = TmdbPersonID,
+                TmdbSeasonID = TmdbSeasonID,
+                TmdbShowID = TmdbShowID,
+                UserRating = UserRating,
+                UserVotes = UserVotes,
+                _width = Width,
+                _height = Height,
+            };
 
     #endregion
 }
