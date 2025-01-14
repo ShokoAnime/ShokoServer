@@ -91,7 +91,10 @@ public class Group : BaseModel
         if (group.DefaultAnimeSeriesID != null)
             IDs.PreferredSeries = group.DefaultAnimeSeriesID.Value;
         if (mainSeries != null)
+        {
             IDs.MainSeries = mainSeries.AnimeSeriesID;
+            IDs.MainAnime = mainSeries.AniDB_ID;
+        }
         if (group.AnimeGroupParentID.HasValue)
             IDs.ParentGroup = group.AnimeGroupParentID.Value;
         IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
@@ -119,10 +122,15 @@ public class Group : BaseModel
         public int? PreferredSeries { get; set; }
 
         /// <summary>
-        /// The ID of the main series for the group.
+        /// The ID of the main Shoko series for the group.
         /// </summary>
         /// <value></value>
         public int MainSeries { get; set; }
+
+        /// <summary>
+        /// The ID of the main AniDB anime for the group.
+        /// </summary>
+        public int MainAnime { get; set; }
 
         /// <summary>
         /// The ID of the direct parent group, if it has one.
