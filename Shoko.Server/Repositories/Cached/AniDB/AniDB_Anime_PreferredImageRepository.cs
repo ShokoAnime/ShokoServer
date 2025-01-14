@@ -13,12 +13,15 @@ public class AniDB_Anime_PreferredImageRepository(DatabaseFactory databaseFactor
 {
     private PocoIndex<int, AniDB_Anime_PreferredImage, int>? _animeIDs;
 
+    private PocoIndex<int, AniDB_Anime_PreferredImage, (DataSourceType, ImageEntityType, int)>? _imageTypes;
+
     protected override int SelectKey(AniDB_Anime_PreferredImage entity)
         => entity.AniDB_Anime_PreferredImageID;
 
     public override void PopulateIndexes()
     {
         _animeIDs = new(Cache, a => a.AnidbAnimeID);
+        _imageTypes = new(Cache, a => (a.ImageSource, a.ImageType, a.ImageID));
     }
 
     public AniDB_Anime_PreferredImage? GetByAnidbAnimeIDAndType(int animeID, ImageEntityType imageType)
@@ -27,6 +30,9 @@ public class AniDB_Anime_PreferredImageRepository(DatabaseFactory databaseFactor
     public AniDB_Anime_PreferredImage? GetByAnidbAnimeIDAndTypeAndSource(int animeID, ImageEntityType imageType, DataSourceType imageSource)
         => GetByAnimeID(animeID).FirstOrDefault(a => a.ImageType == imageType && a.ImageSource == imageSource);
 
-    public List<AniDB_Anime_PreferredImage> GetByAnimeID(int animeID)
+    public IReadOnlyList<AniDB_Anime_PreferredImage> GetByAnimeID(int animeID)
         => ReadLock(() => _animeIDs!.GetMultiple(animeID));
+
+    public IReadOnlyList<AniDB_Anime_PreferredImage> GetByImageSourceAndTypeAndID(DataSourceType imageSource, ImageEntityType imageType, int imageID)
+        => ReadLock(() => _imageTypes!.GetMultiple((imageSource, imageType, imageID)));
 }

@@ -245,6 +245,14 @@ public class ImageUtils
                 return false;
         }
 
+        if (!value)
+        {
+            var animePreferredImages = RepoFactory.AniDB_Anime_PreferredImage.GetByImageSourceAndTypeAndID(dataSource, imageType, imageId);
+            RepoFactory.AniDB_Anime_PreferredImage.Delete(animePreferredImages);
+            var episodePreferredImages = RepoFactory.AniDB_Episode_PreferredImage.GetByImageSourceAndTypeAndID(dataSource, imageType, imageId);
+            RepoFactory.AniDB_Episode_PreferredImage.Delete(episodePreferredImages);
+        }
+
         var scheduler = _schedulerFactory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
         foreach (var animeID in animeIDs)
             scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).GetAwaiter().GetResult();
