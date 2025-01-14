@@ -781,7 +781,7 @@ public class AnimeCreator
         return xrefsToSave.Count > 0 || xrefsToDelete.Count > 0;
     }
 
-    public void CreateCharacters(List<ResponseCharacter> chars, SVR_AniDB_Anime anime)
+    public void CreateCharacters(List<ResponseCharacter> chars, SVR_AniDB_Anime anime, bool skipCreatorScheduling = false)
     {
         if (chars == null) return;
 
@@ -1056,10 +1056,11 @@ public class AnimeCreator
             _logger.LogError(ex, "Unable to save characters and creators for {MainTitle}", anime.MainTitle);
         }
 
-        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+        if (!skipCreatorScheduling)
+            ScheduleCreators(creatorsToSchedule, anime.MainTitle);
     }
 
-    public void CreateStaff(List<ResponseStaff> staffList, SVR_AniDB_Anime anime)
+    public void CreateStaff(List<ResponseStaff> staffList, SVR_AniDB_Anime anime, bool skipCreatorScheduling = false)
     {
         if (staffList == null) return;
 
@@ -1188,7 +1189,8 @@ public class AnimeCreator
             _logger.LogError(ex, "Unable to Save Staff for {MainTitle}", anime.MainTitle);
         }
 
-        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+        if (!skipCreatorScheduling)
+            ScheduleCreators(creatorsToSchedule, anime.MainTitle);
     }
 
     private async void ScheduleCreators(IEnumerable<int> creatorIDs, string mainTitle)

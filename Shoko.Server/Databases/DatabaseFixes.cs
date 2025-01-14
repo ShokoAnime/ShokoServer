@@ -841,9 +841,9 @@ public class DatabaseFixes
                 continue;
             }
 
-            animeCreator.CreateCharacters(response.Characters, anime);
+            animeCreator.CreateCharacters(response.Characters, anime, skipCreatorScheduling: true);
 
-            animeCreator.CreateStaff(response.Staff, anime);
+            animeCreator.CreateStaff(response.Staff, anime, skipCreatorScheduling: true);
 
             RepoFactory.AniDB_Anime.Save(anime);
         }
