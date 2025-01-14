@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 140;
+    public override int RequiredVersion { get; } = 141;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -870,6 +870,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(140, 10, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, Ordering INT NOT NULL);"),
         new DatabaseCommand(140, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
         new DatabaseCommand(140, 12, DatabaseFixes.RecreateAnimeCharactersAndCreators),
+        new DatabaseCommand(141, 01, "ALTER TABLE AniDB_Character ADD Type int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(141, 02, "ALTER TABLE AniDB_Character ADD LastUpdated datetime2 NOT NULL DEFAULT '1970-01-01 00:00:00';"),
+        new DatabaseCommand(141, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),
     };
 
     private static void AlterImdbMovieIDType()

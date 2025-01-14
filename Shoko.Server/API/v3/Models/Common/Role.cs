@@ -41,7 +41,7 @@ public class Role
     [Required]
     public string RoleDetails { get; set; } = string.Empty;
 
-    public Role(AniDB_Anime_Character xref, AniDB_Creator staff, AniDB_Character? character)
+    public Role(AniDB_Anime_Character xref, AniDB_Character character, AniDB_Creator? staff = null)
     {
         Character = character == null ? null : new()
         {
@@ -51,16 +51,27 @@ public class Role
             Description = character.Description ?? string.Empty,
             Image = character.GetImageMetadata() is { } characterImage ? new Image(characterImage) : null,
         };
-        Staff = new()
-        {
-            ID = staff.CreatorID,
-            Name = staff.Name,
-            AlternateName = staff.OriginalName ?? string.Empty,
-            Description = string.Empty,
-            Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
-        };
+        Staff = staff is not null
+            ? new()
+            {
+                ID = staff.CreatorID,
+                Name = staff.Name,
+                AlternateName = staff.OriginalName ?? string.Empty,
+                Description = string.Empty,
+                Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+            }
+            : new()
+            {
+                ID = 0,
+                Name = string.Empty,
+                AlternateName = string.Empty,
+                Description = string.Empty,
+                Image = null,
+            };
         RoleName = CreatorRoleType.Actor;
-        RoleDetails = xref.AppearanceType.ToString().Replace("_", " ");
+        RoleDetails = staff is not null
+            ? xref.AppearanceType.ToString().Replace("_", " ")
+            : "Appears In";
     }
 
     public Role(AniDB_Anime_Staff xref, AniDB_Creator staff)

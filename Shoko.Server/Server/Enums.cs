@@ -140,6 +140,7 @@ public enum CreatorRoleType
     SourceWork,
 }
 
+[JsonConverter(typeof(StringEnumConverter))]
 public enum CharacterAppearanceType
 {
     Unknown = 0,
@@ -147,4 +148,13 @@ public enum CharacterAppearanceType
     Minor_Character,
     Background_Character,
     Cameo
+}
+
+[JsonConverter(typeof(StringEnumConverter))]
+public enum CharacterType
+{
+    Unknown = 0,
+    Character = 1,
+    // ??? = 2,
+    Organization = 3,
 }

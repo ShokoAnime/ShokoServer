@@ -263,14 +263,14 @@ public class Series : BaseModel
             var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID);
             foreach (var xref in characterXrefs.OrderBy(x => x.Ordering))
             {
-                if (xref.Creators is not { Count: > 0 } creators)
-                    continue;
-
                 if (xref.Character is not { } character)
                     continue;
 
-                foreach (var creator in creators)
-                    roles.Add(new(xref, creator, character));
+                if (character.Type is CharacterType.Organization)
+                    roles.Add(new(xref, character));
+                else
+                    foreach (var creator in xref.Creators)
+                        roles.Add(new(xref, character, creator));
             }
         }
 

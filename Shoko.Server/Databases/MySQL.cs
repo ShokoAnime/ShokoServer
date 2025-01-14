@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 147;
+    public override int RequiredVersion { get; } = 148;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -921,6 +921,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(147, 10, "CREATE TABLE `AniDB_Anime_Character_Creator` (`AniDB_Anime_Character_CreatorID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `CharacterID` INT NOT NULL, `CreatorID` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`AniDB_Anime_Character_CreatorID`));"),
         new(147, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
         new(147, 12, DatabaseFixes.RecreateAnimeCharactersAndCreators),
+        new(148, 01, "ALTER TABLE `AniDB_Character` ADD `Type` int NOT NULL DEFAULT 0;"),
+        new(148, 02, "ALTER TABLE `AniDB_Character` ADD `LastUpdated` datetime NOT NULL DEFAULT '1970-01-01 00:00:00';"),
+        new(148, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

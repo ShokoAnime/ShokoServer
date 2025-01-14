@@ -815,13 +815,18 @@ public class AnimeCreator
             foreach (var (rawCharacter, _) in charLookup)
             {
                 var characterIndex = characterOrdering++;
-                if (rawCharacter.AnimeID != anime.AnimeID || rawCharacter.CharacterID <= 0 || string.IsNullOrEmpty(rawCharacter.CharacterType))
+                if (rawCharacter.AnimeID != anime.AnimeID || rawCharacter.CharacterID <= 0 || string.IsNullOrEmpty(rawCharacter.CharacterAppearanceType))
                     continue;
 
                 var gender = rawCharacter.Gender switch
                 {
                     null => PersonGender.Unknown,
                     _ => Enum.TryParse<PersonGender>(rawCharacter.Gender, true, out var result) ? result : PersonGender.Unknown
+                };
+                var characterType = rawCharacter.CharacterType switch
+                {
+                    null => CharacterType.Unknown,
+                    _ => Enum.TryParse<CharacterType>(rawCharacter.CharacterType, true, out var result) ? result : CharacterType.Unknown
                 };
                 var character = RepoFactory.AniDB_Character.GetByCharacterID(rawCharacter.CharacterID) ?? new()
                 {
@@ -837,9 +842,10 @@ public class AnimeCreator
                     character.Name = rawCharacter.CharacterName;
                     character.ImagePath = rawCharacter.PicName ?? string.Empty;
                     character.Gender = gender;
+                    character.Type = characterType;
                     charactersToSave.Add(character);
                 }
-                else
+                else if (rawCharacter.LastUpdated >= character.LastUpdated)
                 {
                     if (string.IsNullOrEmpty(rawCharacter?.CharacterName)) continue;
 
@@ -869,12 +875,26 @@ public class AnimeCreator
                         character.Gender = gender;
                         updated = true;
                     }
+                    if (character.Type != characterType)
+                    {
+                        character.Type = characterType;
+                        updated = true;
+                    }
+                    if (character.LastUpdated != rawCharacter.LastUpdated)
+                    {
+                        character.LastUpdated = rawCharacter.LastUpdated;
+                        updated = true;
+                    }
                     if (updated)
                         charactersToSave.Add(character);
                     charactersToKeep.Add(character.AniDB_CharacterID);
                 }
+                else
+                {
+                    charactersToKeep.Add(character.AniDB_CharacterID);
+                }
 
-                var appearance = rawCharacter.CharacterType;
+                var appearance = rawCharacter.CharacterAppearanceType;
                 var appearanceType = appearance switch
                 {
                     "main character in" => CharacterAppearanceType.Main_Character,

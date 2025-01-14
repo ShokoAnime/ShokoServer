@@ -1,7 +1,8 @@
+using System;
+using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Server;
 
 #nullable enable
-using Shoko.Server.Providers.TMDB;
-
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Character
@@ -21,6 +22,10 @@ public class AniDB_Character
     public string ImagePath { get; set; } = string.Empty;
 
     public PersonGender Gender { get; set; }
+
+    public CharacterType Type { get; set; }
+
+    public DateTime LastUpdated { get; set; }
 
     #endregion
 }

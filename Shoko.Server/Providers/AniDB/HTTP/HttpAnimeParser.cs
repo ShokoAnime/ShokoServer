@@ -599,11 +599,14 @@ public class HttpAnimeParser
             return null;
         }
 
-        var charType = TryGetAttribute(node, "type");
+        var characterType = TryGetProperty(node, "charactertype") ?? "Character";
+        var characterAppearanceType = TryGetAttribute(node, "type");
         var charName = TryGetProperty(node, "name")?.Replace('`', '\'');
         var charGender = TryGetProperty(node, "gender")?.Replace('`', '\'');
         var charDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
         var picName = TryGetProperty(node, "picture");
+        if (!DateTime.TryParse(TryGetAttribute(node, "update"), out var lastUpdated))
+            lastUpdated = DateTime.UnixEpoch;
 
         // parse seiyuus
         var seiyuus = new List<ResponseSeiyuu>();
@@ -628,12 +631,14 @@ public class HttpAnimeParser
         {
             AnimeID = animeID,
             CharacterID = charID,
-            CharacterType = charType,
+            CharacterAppearanceType = characterAppearanceType,
+            CharacterType = characterType,
             CharacterName = charName,
             CharacterDescription = charDescription,
             PicName = picName,
             Gender = charGender,
-            Seiyuus = seiyuus
+            Seiyuus = seiyuus,
+            LastUpdated = lastUpdated,
         };
     }
 
