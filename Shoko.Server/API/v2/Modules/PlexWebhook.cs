@@ -153,7 +153,7 @@ public class PlexWebhook : BaseController
         }
 
         var animeId = int.Parse(guid.Authority);
-        var series = int.Parse(guid.AbsolutePath.Split('/')[1]);
+        var season = int.Parse(guid.AbsolutePath.Split('/')[1]);
         var episodeNumber = int.Parse(guid.AbsolutePath.Split('/')[2]);
 
         //if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
@@ -166,7 +166,7 @@ public class PlexWebhook : BaseController
 
         EpisodeType episodeType;
         switch
-            (series) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
+            (season) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
         {
             case -4:
                 episodeType = EpisodeType.Parody;
@@ -194,19 +194,17 @@ public class PlexWebhook : BaseController
             return (null, anime); //right now no clean way to detect the episode. I could do by title.
         }
 
-
-        var animeEps = anime
-            .AnimeEpisodes.Where(a => a.EpisodeTypeEnum == episodeType && a.AniDB_Episode?.EpisodeNumber == episodeNumber).ToList();
-
-        //if only one possible match
-        if (animeEps.Count == 1) return (animeEps.First(), anime);
+        // If season is 1, assume Single Season Ordering or linked to season 1 on TMDB
+        // Barring edge cases, the anidb ordering should be the same as the TMDB ordering
+        if (season == 1)
+        {
+            var animeEp = anime.AnimeEpisodes.FirstOrDefault(a => a.EpisodeTypeEnum == episodeType && a.AniDB_Episode?.EpisodeNumber == episodeNumber);
+            if (animeEp != null) return (animeEp, anime);
+        }
 
         // Check for Tmdb matches
-        SVR_AnimeEpisode result;
-        if ((result = animeEps.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == series))) != null)
-        {
-            return (result, anime);
-        }
+        var result = anime.AnimeEpisodes.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == season && e.EpisodeNumber == episodeNumber));
+        if (result != null) return (result, anime);
 
         //catch all
         _logger.LogInformation($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multiple episodes linked, but no tmdb link.");
