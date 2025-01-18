@@ -289,6 +289,7 @@ namespace Shoko.Models.MediaInfo
             {"mpg4", "mpeg4"},
             {"on2 vp6", "vp6f"},
             {"sorenson h263", "flv"},
+            {"v_av1", "av1"},
             {"v_mpeg2", "mpeg2"},
             {"v_mpeg4/iso/asp", "mpeg4"},
             {"v_mpeg4/iso/avc", "h264"},
