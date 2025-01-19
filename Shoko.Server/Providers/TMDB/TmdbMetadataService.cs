@@ -2517,7 +2517,7 @@ public class TmdbMetadataService
     private bool WaitIfEntityLocked(ForeignEntityType entityType, int id, string metadataKey)
     {
         var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
-        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount == 0)
+        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount != 0)
             return false;
 
         semaphore.Wait();
@@ -2530,7 +2530,7 @@ public class TmdbMetadataService
     {
         var startedAt = DateTime.Now;
         var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
-        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount == 0)
+        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount != 0)
             return Task.FromResult(false);
 
         return semaphore.WaitAsync().ContinueWith(t =>
