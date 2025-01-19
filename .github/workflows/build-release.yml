@@ -108,7 +108,7 @@ jobs:
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0 .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
