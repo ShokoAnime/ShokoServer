@@ -96,6 +96,9 @@ public static class MediaInfo
 
     private static Process GetProcess(string processName, string filename)
     {
+        // use windows long file paths
+        if (!Utils.IsRunningOnLinuxOrMac() && filename.Length > 250 && !filename.StartsWith("\\\\?\\")) filename = "\\\\?\\" + filename;
+
         var pProcess = new Process
         {
             StartInfo =
