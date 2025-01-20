@@ -306,6 +306,7 @@ public class TmdbMetadataService
         _retryPolicy = Policy
             .Handle<RateLimitRejectedException>()
             .Or<HttpRequestException>()
+            .Or<GeneralHttpException>()
             .Or<RequestLimitExceededException>()
             .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, async (ex, ts, retryCount, ctx) =>
             {
@@ -336,6 +337,11 @@ public class TmdbMetadataService
                             goto default;
                         ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
                         break;
+                    }
+                    case GeneralHttpException ghEx:
+                    {
+                        _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
+                        goto default;
                     }
                     default:
                         throw ex;
