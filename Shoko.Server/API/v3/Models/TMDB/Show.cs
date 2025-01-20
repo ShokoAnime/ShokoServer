@@ -281,6 +281,7 @@ public class Show
         /// The alternate ordering type. Will not be set if the main ordering is
         /// used.
         /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore), JsonConverter(typeof(StringEnumConverter))]
         public AlternateOrderingType? OrderingType { get; init; }
 
         /// <summary>
