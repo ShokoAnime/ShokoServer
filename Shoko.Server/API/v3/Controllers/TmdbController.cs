@@ -1092,7 +1092,7 @@ public partial class TmdbController : BaseController
             return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
         var alternateOrdering = !string.IsNullOrWhiteSpace(alternateOrderingID) ? RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID) : null;
-        if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+        if (!string.IsNullOrWhiteSpace(alternateOrderingID) && (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID))
             return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
         var ordering = new List<TmdbShow.OrderingInformation>
