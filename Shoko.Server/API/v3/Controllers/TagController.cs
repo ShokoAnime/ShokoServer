@@ -29,6 +29,7 @@ public class TagController : BaseController
     /// <param name="filter">Tag filter.</param>
     /// <param name="excludeDescriptions">Exclude tag descriptions from response.</param>
     /// <param name="onlyVerified">Only show verified tags.</param>
+    /// <param name="includeCount">Include tag count in response.</param>
     /// <returns></returns>
     [HttpGet("AniDB")]
     public ActionResult<ListResult<Tag>> GetAllAnidbTags(
@@ -36,7 +37,8 @@ public class TagController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] TagFilter.Filter filter = 0,
         [FromQuery] bool excludeDescriptions = false,
-        [FromQuery] bool onlyVerified = true
+        [FromQuery] bool onlyVerified = true,
+        [FromQuery] bool includeCount = false
     )
     {
         var user = User;
@@ -52,7 +54,7 @@ public class TagController : BaseController
             .ProcessTags(filter, selectedTags)
             .Where(tag => user.IsAdmin == 1 || user.AllowedTag(tag))
             .OrderBy(tag => tag.TagName)
-            .ToListResult(tag => new Tag(tag, excludeDescriptions), page, pageSize);
+            .ToListResult(tag => new Tag(tag, excludeDescriptions, includeCount ? RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).Count : null), page, pageSize);
     }
 
     /// <summary>
@@ -60,9 +62,10 @@ public class TagController : BaseController
     /// </summary>
     /// <param name="tagID">Anidb Tag ID</param>
     /// <param name="excludeDescription">Exclude tag description from response.</param>
+    /// <param name="includeCount">Include tag count in response.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{tagID}")]
-    public ActionResult<Tag> GetAnidbTag([FromRoute] int tagID, [FromQuery] bool excludeDescription = false)
+    public ActionResult<Tag> GetAnidbTag([FromRoute] int tagID, [FromQuery] bool excludeDescription = false, [FromQuery] bool includeCount = false)
     {
         var tag = tagID <= 0 ? null : RepoFactory.AniDB_Tag.GetByTagID(tagID);
         if (tag == null)
@@ -72,7 +75,7 @@ public class TagController : BaseController
         if (user.IsAdmin != 1 && !user.AllowedTag(tag))
             return Forbid("Accessing Tag is not allowed for the current user");
 
-        return new Tag(tag, excludeDescription);
+        return new Tag(tag, excludeDescription, includeCount ? RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).Count : null);
     }
 
     /// <summary>
@@ -81,16 +84,18 @@ public class TagController : BaseController
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <param name="excludeDescriptions">Exclude tag descriptions from response.</param>
+    /// <param name="includeCount">Include tag count in response.</param>
     /// <returns></returns>
     [HttpGet("User")]
     public ActionResult<ListResult<Tag>> GetAllUserTags(
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool excludeDescriptions = false)
+        [FromQuery] bool excludeDescriptions = false,
+        [FromQuery] bool includeCount = false)
     {
         return RepoFactory.CustomTag.GetAll()
             .OrderBy(tag => tag.TagName)
-            .ToListResult(tag => new Tag(tag, excludeDescriptions), page, pageSize);
+            .ToListResult(tag => new Tag(tag, excludeDescriptions, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null), page, pageSize);
     }
 
     /// <summary>
@@ -117,15 +122,16 @@ public class TagController : BaseController
     /// </summary>
     /// <param name="tagID">User Tag ID</param>
     /// <param name="excludeDescription">Exclude tag description from response.</param>
+    /// <param name="includeCount">Include tag count in response.</param>
     /// <returns></returns>
     [HttpGet("User/{tagID}")]
-    public ActionResult<Tag> GetUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromQuery] bool excludeDescription = false)
+    public ActionResult<Tag> GetUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromQuery] bool excludeDescription = false, [FromQuery] bool includeCount = false)
     {
         var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
-        return new Tag(tag, excludeDescription);
+        return new Tag(tag, excludeDescription, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
     }
 
     /// <summary>

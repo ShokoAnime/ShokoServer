@@ -17,7 +17,7 @@ public class Tag
         Source = "Shoko";
     }
 
-    public Tag(CustomTag tag, bool excludeDescriptions = false)
+    public Tag(CustomTag tag, bool excludeDescriptions = false, int? size = null)
     {
         ID = tag.CustomTagID;
         Name = tag.TagName;
@@ -25,9 +25,10 @@ public class Tag
             Description = tag.TagDescription;
         Source = "User";
         IsSpoiler = false;
+        Size = size;
     }
 
-    public Tag(AniDB_Tag tag, bool excludeDescriptions = false)
+    public Tag(AniDB_Tag tag, bool excludeDescriptions = false, int? size = null)
     {
         ID = tag.TagID;
         ParentID = tag.ParentTagID;
@@ -37,6 +38,7 @@ public class Tag
         Source = "AniDB";
         IsVerified = tag.Verified;
         IsSpoiler = tag.GlobalSpoiler;
+        Size = size;
         LastUpdated = tag.LastUpdated.ToUniversalTime();
     }
 
@@ -90,6 +92,12 @@ public class Tag
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public int? Weight { get; set; }
+
+    /// <summary>
+    /// Number of series the tag appears on.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public int? Size { get; set; }
 
     /// <summary>
     /// When the tag info was last updated.

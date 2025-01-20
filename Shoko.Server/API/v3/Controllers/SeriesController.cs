@@ -2575,11 +2575,16 @@ public class SeriesController : BaseController
     /// <param name="excludeDescriptions"></param>
     /// <param name="orderByName">Order tags by name (and source) only. Don't use the tag weights for ordering.</param>
     /// <param name="onlyVerified">Only show verified tags.</param>
+    /// <param name="includeCount">Include a count of series with each tag.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags")]
-    public ActionResult<List<Tag>> GetSeriesTags([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] TagFilter.Filter filter = 0,
-        [FromQuery] bool excludeDescriptions = false, [FromQuery] bool orderByName = false,
-        [FromQuery] bool onlyVerified = true)
+    public ActionResult<List<Tag>> GetSeriesTags(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] TagFilter.Filter filter = 0,
+        [FromQuery] bool excludeDescriptions = false,
+        [FromQuery] bool orderByName = false,
+        [FromQuery] bool onlyVerified = true,
+        [FromQuery] bool includeCount = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -2598,7 +2603,7 @@ public class SeriesController : BaseController
             return new List<Tag>();
         }
 
-        return Series.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified);
+        return Series.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified, includeCount);
     }
 
     /// <summary>
@@ -2606,12 +2611,14 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <param name="excludeDescriptions">Exclude tag descriptions.</param>
+    /// <param name="includeCount">Include a count of series with each tag.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags/User")]
     public ActionResult<List<Tag>> GetSeriesUserTags(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery] bool excludeDescriptions = false)
-        => GetSeriesTags(seriesID, TagFilter.Filter.User | TagFilter.Filter.Invert, excludeDescriptions, true, true);
+        [FromQuery] bool excludeDescriptions = false,
+        [FromQuery] bool includeCount = false)
+        => GetSeriesTags(seriesID, TagFilter.Filter.User | TagFilter.Filter.Invert, excludeDescriptions: excludeDescriptions, orderByName: true, onlyVerified: true, includeCount: includeCount);
 
     /// <summary>
     /// Add user tags for Series with ID.

@@ -290,14 +290,20 @@ public class Series : BaseModel
         return roles;
     }
 
-    public static List<Tag> GetTags(SVR_AniDB_Anime anime, TagFilter.Filter filter, bool excludeDescriptions = false, bool orderByName = false, bool onlyVerified = true)
+    public static List<Tag> GetTags(
+        SVR_AniDB_Anime anime,
+        TagFilter.Filter filter,
+        bool excludeDescriptions = false,
+        bool orderByName = false,
+        bool onlyVerified = true,
+        bool includeCount = false)
     {
         // Only get the user tags if we don't exclude it (false == false), or if we invert the logic and want to include it (true == true).
         IEnumerable<Tag> userTags = new List<Tag>();
         if (filter.HasFlag(TagFilter.Filter.User) == filter.HasFlag(TagFilter.Filter.Invert))
         {
             userTags = RepoFactory.CustomTag.GetByAnimeID(anime.AnimeID)
-                .Select(tag => new Tag(tag, excludeDescriptions));
+                .Select(tag => new Tag(tag, excludeDescriptions, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null));
         }
 
         var selectedTags = anime.GetAniDBTags(onlyVerified)
@@ -310,7 +316,8 @@ public class Series : BaseModel
             .Select(tag =>
             {
                 var xref = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault(xref => xref.AnimeID == anime.AnimeID);
-                return new Tag(tag, excludeDescriptions) { Weight = xref?.Weight ?? 0, IsLocalSpoiler = xref?.LocalSpoiler };
+                int? count = includeCount ? RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).Count : null;
+                return new Tag(tag, excludeDescriptions, count) { Weight = xref?.Weight ?? 0, IsLocalSpoiler = xref?.LocalSpoiler };
             });
 
         if (orderByName)
