@@ -149,8 +149,10 @@ public class WebUI
     public class WebUISeriesFileSummary
     {
         public WebUISeriesFileSummary(
-            SVR_AnimeSeries series, HashSet<EpisodeType>? episodeTypes = null,
+            SVR_AnimeSeries series,
+            HashSet<EpisodeType>? episodeTypes = null,
             bool withEpisodeDetails = false,
+            bool withLocationDetails = false,
             bool showMissingFutureEpisodes = false,
             bool showMissingUnknownEpisodes = false,
             HashSet<FileSummaryGroupByCriteria>? groupByCriteria = null
@@ -203,14 +205,27 @@ public class WebUI
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
             var filesWithXrefAndLocation = crossRefs
                 .Where(tuple => episodes.ContainsKey(tuple.xref.EpisodeID))
-                .Select(tuple =>
+                .SelectMany(tuple =>
                 {
                     var (xref, file) = tuple;
-                    var location = file?.FirstValidPlace;
-                    return (file, xref, location);
+                    if (file.MediaInfo is null)
+                        return [];
+
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.MultipleLocations))
+                    {
+                        var locations = file.Places;
+                        if (locations.Count > 1)
+                            return file.Places
+                                .Select(location => (file, xref, location));
+
+                        return [];
+                    }
+
+                    if (file.FirstValidPlace is { } firstLocation)
+                        return [(file, xref, firstLocation)];
+
+                    return [];
                 })
-                .Where(t => t.file?.MediaInfo != null && t.location != null)
-                .Cast<(SVR_VideoLocal file, SVR_CrossRef_File_Episode xref, SVR_VideoLocal_Place location)>()
                 .ToList();
             var files = filesWithXrefAndLocation
                 .Select(tuple =>
@@ -241,6 +256,8 @@ public class WebUI
                         groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
                         groupByDetails.ImportFolder = $"{location.ImportFolder?.ImportFolderName ?? "N/A"} (ID: {location.ImportFolderID})";
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ED2K))
+                        groupByDetails.ED2K = $"{file.Hash}+{file.FileSize}";
 
                     // Video criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoCodecs))
@@ -304,8 +321,9 @@ public class WebUI
                         GroupBy = groupByDetails,
                         Episode = new EpisodeDetails
                         {
-                            FileID = file.VideoLocalID,
                             EpisodeID = episode.ID,
+                            FileID = file.VideoLocalID,
+                            Location = location,
                             Type = episode.Type,
                             Number = episode.Number,
                             Size = file.FileSize,
@@ -390,6 +408,7 @@ public class WebUI
                         FileLocation = details.FileLocation,
                         FileIsDeprecated = details.FileIsDeprecated,
                         ImportFolder = details.ImportFolder,
+                        ED2K = details.ED2K,
                         VideoCodecs = details.VideoCodecs,
                         VideoBitDepth = details.VideoBitDepth,
                         VideoResolution = details.VideoResolution,
@@ -404,11 +423,21 @@ public class WebUI
                         SubtitleLanguages = details.SubtitleLanguages == null ? null :
                             string.IsNullOrEmpty(details.SubtitleLanguages) ? [] : details.SubtitleLanguages.Split(", "),
                         SubtitleStreamCount = details.SubtitleStreamCount,
-                        Episodes = withEpisodeDetails ? list
-                            .OrderBy(ep => ep.Type)
-                            .ThenBy(ep => ep.Number)
-                            .ThenBy(ep => ep.ED2K)
-                            .ToList() : null,
+                        Episodes = withEpisodeDetails
+                            ? list
+                                .DistinctBy(ep => (ep.EpisodeID, ep.FileID))
+                                .OrderBy(ep => ep.Type)
+                                .ThenBy(ep => ep.Number)
+                                .ThenBy(ep => ep.ED2K)
+                                .ToList()
+                            : null,
+                        Locations = withLocationDetails
+                            ? list.Select(episode => new File.Location(episode.Location, false))
+                                .OrderBy(location => location.ImportFolderID)
+                                .ThenBy(location => location.FileID)
+                                .ThenBy(location => location.RelativePath)
+                                .ToList()
+                            : null,
                     };
                 })
                 .OrderBy(groupBy => groupBy.SortByCriteria)
@@ -446,6 +475,8 @@ public class WebUI
             VideoHasChapters = 8192,
             FileIsDeprecated = 16384,
             ImportFolder = 32768,
+            ED2K = 65536,
+            MultipleLocations = 131072,
         }
 
         /// <summary>
@@ -499,6 +530,12 @@ public class WebUI
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public string? ImportFolder { get; set; }
+
+            /// <summary>
+            /// The ED2K hash + file size of the file in this range.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string? ED2K { get; set; }
 
             /// <summary>
             /// The video codecs used in the files of this range (e.g., h264, h265, etc.).
@@ -588,6 +625,12 @@ public class WebUI
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public IEnumerable<EpisodeDetails>? Episodes { get; set; }
+
+            /// <summary>
+            /// File locations in the group
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public IEnumerable<File.Location>? Locations { get; set; }
         }
 
         /// <summary>
@@ -760,6 +803,8 @@ public class WebUI
 
             public string? ImportFolder { get; set; }
 
+            public string? ED2K { get; set; }
+
             public override bool Equals(object? obj)
             {
                 return Equals(obj as GroupByDetails);
@@ -770,14 +815,15 @@ public class WebUI
                 if (other == null)
                     return false;
                 return
-                    GroupName == other.GroupName &&
                     // GroupNameShort == other.GroupNameShort &&
+                    GroupName == other.GroupName &&
 
                     FileVersion == other.FileVersion &&
                     FileSource == other.FileSource &&
                     FileLocation == other.FileLocation &&
                     FileIsDeprecated == other.FileIsDeprecated &&
                     ImportFolder == other.ImportFolder &&
+                    ED2K == other.ED2K &&
 
                     VideoCodecs == other.VideoCodecs &&
                     VideoBitDepth == other.VideoBitDepth &&
@@ -796,35 +842,38 @@ public class WebUI
             }
 
             public override int GetHashCode()
-            {
-                var hash = 17;
-
-                hash = hash * 31 + (GroupName?.GetHashCode() ?? 0);
-                // hash = hash * 31 + (GroupNameShort?.GetHashCode() ?? 0);
-
-                hash = hash * 31 + FileVersion.GetHashCode();
-                hash = hash * 31 + FileSource.GetHashCode();
-                hash = hash * 31 + (FileLocation?.GetHashCode() ?? 0);
-                hash = hash * 31 + (FileIsDeprecated?.GetHashCode() ?? 0);
-                hash = hash * 31 + (ImportFolder?.GetHashCode() ?? 0);
-
-                hash = hash * 31 + (VideoCodecs?.GetHashCode() ?? 0);
-                hash = hash * 31 + VideoBitDepth.GetHashCode();
-                hash = hash * 31 + (VideoResolution?.GetHashCode() ?? 0);
-                // hash = hash * 31 + VideoWidth.GetHashCode();
-                // hash = hash * 31 + VideoHeight.GetHashCode();
-                hash = hash * 31 + (VideoHasChapters?.GetHashCode() ?? 0);
-
-                hash = hash * 31 + (AudioCodecs?.GetHashCode() ?? 0);
-                hash = hash * 31 + (AudioLanguages?.GetHashCode() ?? 0);
-                hash = hash * 31 + AudioStreamCount.GetHashCode();
-
-                hash = hash * 31 + (SubtitleCodecs?.GetHashCode() ?? 0);
-                hash = hash * 31 + (SubtitleLanguages?.GetHashCode() ?? 0);
-                hash = hash * 31 + SubtitleStreamCount.GetHashCode();
-
-                return hash;
-            }
+                => HashCode.Combine(
+                    HashCode.Combine(
+                        // GroupNameShort,
+                        GroupName
+                    ),
+                    HashCode.Combine(
+                        FileVersion,
+                        FileSource,
+                        FileLocation,
+                        FileIsDeprecated,
+                        ImportFolder,
+                        ED2K
+                    ),
+                    HashCode.Combine(
+                        VideoCodecs,
+                        VideoBitDepth,
+                        VideoResolution,
+                        // VideoWidth,
+                        // VideoHeight,
+                        VideoHasChapters
+                    ),
+                    HashCode.Combine(
+                        AudioCodecs,
+                        AudioLanguages,
+                        AudioStreamCount
+                    ),
+                    HashCode.Combine(
+                        SubtitleCodecs,
+                        SubtitleLanguages,
+                        SubtitleStreamCount
+                    )
+                );
         }
 
         public class EpisodeDetails
@@ -832,33 +881,36 @@ public class WebUI
             /// <summary>
             /// Shoko Episode ID.
             /// </summary>
-            public int EpisodeID { get; set; }
+            public required int EpisodeID { get; init; }
 
             /// <summary>
             /// Shoko File ID, if auto-linked.
             /// </summary>
-            public int? FileID { get; set; }
+            public required int FileID { get; init; }
+
+            [JsonIgnore]
+            public required SVR_VideoLocal_Place Location { get; init; }
 
             /// <summary>
             /// AniDB Episode Type.
             /// </summary>
             [JsonConverter(typeof(StringEnumConverter))]
-            public EpisodeType Type { get; set; }
+            public required EpisodeType Type { get; init; }
 
             /// <summary>
             /// AniDB Episode Number.
             /// </summary>
-            public int Number { get; set; }
+            public required int Number { get; init; }
 
             /// <summary>
             /// File Size.
             /// </summary>
-            public long Size { get; set; }
+            public required long Size { get; init; }
 
             /// <summary>
             /// ED2K File Hash.
             /// </summary>
-            public string ED2K { get; set; } = string.Empty;
+            public required string ED2K { get; init; }
         }
 
         public class FileSummaryOverview
