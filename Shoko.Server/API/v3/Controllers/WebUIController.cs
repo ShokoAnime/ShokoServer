@@ -467,7 +467,7 @@ public partial class WebUIController : BaseController
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
     /// <param name="force">Bypass the cache and search for a new version online.</param>
-    /// /// <returns></returns>
+    /// <returns></returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestVersion")]
