@@ -21,7 +21,6 @@ Shoko currently supports the following media players.
 - Plex via **ShokoMetadata** [Download](https://github.com/Cazzar/ShokoMetadata.bundle/releases/) | [Github Repo](https://github.com/Cazzar/ShokoMetadata.bundle)
 - Jellyfin via **Shokofin** [Download](https://github.com/ShokoAnime/Shokofin/releases/) | [Github Repo](https://github.com/ShokoAnime/Shokofin)
 - Kodi via **Nakamori** [Download](https://shokunin.monogatari.pl/projects/nakamori/nakamori-installation/) | [Github Repo](https://github.com/bigretromike/nakamori/)
-- MediaPortal via **My Anime 3** [Download](https://shokoanime.com/files/my-anime-3/My-Anime-3-3.7.3.mpe1) | [Github Repo](https://github.com/ShokoAnime/MyAnime3)
 
 Don't see your media player above? If you're a developer who wants to integrate Shoko with a new media player, join our 
 Discord, and we'll be more than happy to provide guidance and assistance. 
