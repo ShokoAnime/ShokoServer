@@ -255,7 +255,7 @@ public class WebUI
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
                         groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
-                        groupByDetails.ImportFolder = $"{location.ImportFolder?.ImportFolderName ?? "N/A"} (ID: {location.ImportFolderID})";
+                        groupByDetails.ImportFolder = location.ImportFolderID;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ED2K))
                         groupByDetails.ED2K = $"{file.Hash}+{file.FileSize}";
 
@@ -529,7 +529,7 @@ public class WebUI
             /// The import folder name of the files in this range.
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public string? ImportFolder { get; set; }
+            public int? ImportFolder { get; set; }
 
             /// <summary>
             /// The ED2K hash + file size of the file in this range.
@@ -801,7 +801,7 @@ public class WebUI
 
             public bool? FileIsDeprecated { get; set; }
 
-            public string? ImportFolder { get; set; }
+            public int? ImportFolder { get; set; }
 
             public string? ED2K { get; set; }
 
