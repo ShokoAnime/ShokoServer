@@ -578,7 +578,7 @@ public partial class WebUIController : BaseController
                 case ReleaseChannel.Dev:
                 {
                     var latestTags = WebUIHelper.DownloadApiResponse($"tags?per_page=100&page=1", WebUIHelper.ServerRepoName);
-                    var version = string.Empty;
+                    Version version = new("0.0.0.0");
                     var tagName = string.Empty;
                     var commitSha = string.Empty;
                     var regex = ServerReleaseVersionRegex();
@@ -587,14 +587,17 @@ public partial class WebUIController : BaseController
                         string localTagName = tagInfo.name;
                         if (regex.Match(localTagName) is { Success: true } regexResult)
                         {
-                            tagName = localTagName;
-                            commitSha = tagInfo.commit.sha;
-                            version = regexResult.Groups["version"].Value;
+                            Version localVersion;
                             if (regexResult.Groups["buildNumber"].Success)
-                                version += "." + regexResult.Groups["buildNumber"].Value;
+                                localVersion = new Version(regexResult.Groups["version"].Value + "." + regexResult.Groups["buildNumber"].Value);
                             else
-                                version += ".0";
-                            break;
+                                localVersion = new Version(regexResult.Groups["version"].Value + ".0");
+                            if (localVersion > version)
+                            {
+                                version = localVersion;
+                                tagName = localTagName;
+                                commitSha = tagInfo.commit.sha;
+                            }
                         }
                     }
 
@@ -627,7 +630,7 @@ public partial class WebUIController : BaseController
                     }
                     return _cache.Set(key, new ComponentVersion
                     {
-                        Version = version,
+                        Version = version.ToString(),
                         Commit = commitSha,
                         ReleaseChannel = ReleaseChannel.Dev,
                         ReleaseDate = releaseDate,
