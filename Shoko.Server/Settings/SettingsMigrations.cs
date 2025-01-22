@@ -12,7 +12,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 9;
+    public const int Version = 10;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
