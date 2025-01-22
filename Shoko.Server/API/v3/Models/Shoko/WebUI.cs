@@ -526,7 +526,7 @@ public class WebUI
             public bool? FileIsDeprecated { get; set; }
 
             /// <summary>
-            /// The import folder name of the files in this range.
+            /// The import folder ID of the files in this range.
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public int? ImportFolder { get; set; }
