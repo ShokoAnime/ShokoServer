@@ -45,17 +45,17 @@ public class AnimeCreator
 
 
 #pragma warning disable CS0618
-    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, Dictionary<SVR_AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, bool shouldUpdateFiles, Dictionary<SVR_AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
-        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, []);
+        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, false, []);
         var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
         try
         {
             // check if we updated in a lock
             var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, []);
+            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, false, []);
 
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
@@ -71,12 +71,12 @@ public class AnimeCreator
                 _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                                  "This is not an error on our end. It is AniDB's issue, " +
                                  "as they did not return either an ID or a title for the anime");
-                return (false, false, false, []);
+                return (false, false, false, false, []);
             }
 
             var taskTimer = Stopwatch.StartNew();
             var totalTimer = Stopwatch.StartNew();
-            var (updated, descriptionUpdated) = PopulateAnime(response.Anime, anime);
+            var (updated, descriptionUpdated, shouldUpdateFiles) = PopulateAnime(response.Anime, anime);
             RepoFactory.AniDB_Anime.Save(anime);
 
             taskTimer.Stop();
@@ -94,6 +94,7 @@ public class AnimeCreator
 
             var titlesUpdated = CreateTitles(response.Titles, anime);
             updated = updated || titlesUpdated;
+            shouldUpdateFiles = shouldUpdateFiles || titlesUpdated;
             taskTimer.Stop();
             _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -141,7 +142,7 @@ public class AnimeCreator
             _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
             _logger.LogTrace("------------------------------------------------");
 
-            return (updated, titlesUpdated, descriptionUpdated, updatedEpisodes);
+            return (updated, titlesUpdated, descriptionUpdated, shouldUpdateFiles, updatedEpisodes);
         }
         catch (Exception ex)
         {
@@ -156,10 +157,11 @@ public class AnimeCreator
     }
 #pragma warning restore CS0618
 
-    private static (bool animeUpdated, bool descriptionUpdated) PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
+    private static (bool animeUpdated, bool descriptionUpdated, bool shouldUpdateFiles) PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
     {
         var isUpdated = false;
         var descriptionUpdated = false;
+        var shouldUpdateFiles = false;
         var isNew = anime.AnimeID == 0 || anime.AniDB_AnimeID == 0;
         var description = animeInfo.Description ?? string.Empty;
         var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
@@ -167,6 +169,7 @@ public class AnimeCreator
         {
             anime.AirDate = animeInfo.AirDate;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.AllCinemaID != animeInfo.AllCinemaID)
@@ -179,12 +182,14 @@ public class AnimeCreator
         {
             anime.AnimeID = animeInfo.AnimeID;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.AnimeType != (int)animeInfo.AnimeType)
         {
             anime.AnimeType = (int)animeInfo.AnimeType;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.ANNID != animeInfo.ANNID)
@@ -203,6 +208,7 @@ public class AnimeCreator
         {
             anime.BeginYear = animeInfo.BeginYear;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.Description != description)
@@ -210,24 +216,28 @@ public class AnimeCreator
             anime.Description = description;
             isUpdated = true;
             descriptionUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.EndDate != animeInfo.EndDate)
         {
             anime.EndDate = animeInfo.EndDate;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.EndYear != animeInfo.EndYear)
         {
             anime.EndYear = animeInfo.EndYear;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.MainTitle != animeInfo.MainTitle)
         {
             anime.MainTitle = animeInfo.MainTitle;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.EpisodeCount != animeInfo.EpisodeCount)
@@ -252,6 +262,7 @@ public class AnimeCreator
         {
             anime.Picname = animeInfo.Picname;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.Rating != animeInfo.Rating)
@@ -264,6 +275,7 @@ public class AnimeCreator
         {
             anime.IsRestricted = animeInfo.IsRestricted;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.ReviewCount != animeInfo.ReviewCount)
@@ -310,7 +322,7 @@ public class AnimeCreator
 #pragma warning restore CS0618
         }
 
-        return (isUpdated, descriptionUpdated);
+        return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
 
     private async Task<(bool, Dictionary<SVR_AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
