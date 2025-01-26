@@ -2177,30 +2177,15 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
     private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
-        // TODO make this only dependent on PluginAbstractions
-
-        var xrefs = args.Episodes;
-        if (xrefs.Count == 0)
-        {
-            return (null, "No xrefs");
-        }
-
-        var xref = xrefs.FirstOrDefault();
-        if (xref == null)
-        {
-            return (null, "No xrefs");
-        }
-
-        // find the series associated with this episode
-        if (xref.Series is not SVR_AnimeSeries series)
-        {
-            return (null, "Series not Found");
-        }
-
+        var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
+        if (series is null)
+            return (null, "Series not found");
+        
+        
         // TODO move this into the RelocationService
         // sort the episodes by air date, so that we will move the file to the location of the latest episode
-        var allEps = series.AllAnimeEpisodes
-            .OrderByDescending(a => a.AniDB_Episode?.AirDate ?? 0)
+        var allEps = series.Episodes
+            .OrderByDescending(a => a.AirDate ?? DateTime.MinValue)
             .ToList();
 
         var skipDiskSpaceChecks = _settingsProvider.GetSettings().Import.SkipDiskSpaceChecks;
@@ -2208,29 +2193,21 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         {
             // check if this episode belongs to more than one anime
             // if it does, we will ignore it
-            var fileEpXrefs =
-                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
-            int? animeID = null;
-            var crossOver = false;
-            foreach (var fileEpXref in fileEpXrefs)
+            if (args.Series.Count > 1 && args.Series.Count(s => s.Episodes.Any(e => e.AnidbEpisodeID == ep.ID)) > 1)
+                continue;
+
+            foreach (var vid in ep.VideoList)
             {
-                if (!animeID.HasValue) animeID = fileEpXref.AnimeID;
-                else if (animeID.Value != fileEpXref.AnimeID) crossOver = true;
-            }
+                if (vid.Hashes.ED2K == args.File.Video.Hashes.ED2K) continue;
 
-            if (crossOver) continue;
-
-            foreach (var vid in ep.VideoLocals)
-            {
-                if (vid.Hash == args.File.Video.Hashes.ED2K) continue;
-
-                var place = vid.Places.FirstOrDefault(b =>
-                    b.ImportFolder?.IsDropSource == 0 &&
-                    !string.IsNullOrWhiteSpace(b.FilePath));
+                var place = vid.Locations.FirstOrDefault(b =>
+                    !b.ImportFolder.DropFolderType.HasFlag(DropFolderType.Source) &&
+                    !string.IsNullOrWhiteSpace(b.RelativePath));
                 if (place is null) continue;
 
-                IImportFolder placeFld = place.ImportFolder;
-                var placeRelativePath = Path.GetDirectoryName(place.FilePath);
+                var placeFld = place.ImportFolder;
+                var placeRelativePath = Path.GetDirectoryName(place.RelativePath);
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                 if (placeRelativePath is null || placeFld is null) continue;
 
                 // check space
