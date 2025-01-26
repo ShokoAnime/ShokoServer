@@ -77,6 +77,9 @@ public class TmdbImageService
     {
         var count = 0;
         var isLimitEnabled = maxCount > 0;
+        var validImages = images
+            .Select(a => a.FilePath)
+            .ToHashSet();
         if (languages.Count > 0)
             images = isLimitEnabled
                 ? images
@@ -117,6 +120,13 @@ public class TmdbImageService
                 continue;
             }
 
+            // Remove the relation to the image if it's not linked to the foreign entity anymore.
+            if (!validImages.Contains(image.RemoteFileName))
+            {
+                PurgeImage(image, foreignType, true);
+                continue;
+            }
+
             // Download image if the limit is disabled or if we're below the limit.
             var fileExists = File.Exists(path);
             if (!isLimitEnabled || count < maxCount)
@@ -134,22 +144,10 @@ public class TmdbImageService
                     c.ForceDownload = forceDownload;
                 });
             }
-            // TODO: check if the image is linked to any other entries, and keep it if the other entries are within the limit.
             // Else delete it from the local cache and database.
             else
             {
-                if (fileExists)
-                {
-                    try
-                    {
-                        File.Delete(path);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to delete image file: {Path}", path);
-                    }
-                }
-                _tmdbImages.Delete(image.TMDB_ImageID);
+                PurgeImage(image, foreignType, true);
             }
         }
     }
