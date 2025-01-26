@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Filters.Interfaces;
 
@@ -211,4 +212,24 @@ public interface IFilterable
     /// Relative File Paths
     /// </summary>
     IReadOnlySet<string> FilePaths { get; }
+
+    /// <summary>
+    /// Character IDs
+    /// </summary>
+    IReadOnlySet<string> CharacterIDs { get; }
+
+    /// <summary>
+    /// Character Appearance Types
+    /// </summary>
+    IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>> CharacterAppearances { get; }
+
+    /// <summary>
+    /// Creator IDs
+    /// </summary>
+    IReadOnlySet<string> CreatorIDs { get; }
+
+    /// <summary>
+    /// Creator Roles
+    /// </summary>
+    IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>> CreatorRoles { get; }
 }

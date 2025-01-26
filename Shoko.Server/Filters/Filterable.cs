@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Filters;
 
@@ -49,268 +50,300 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlySet<int>> _years;
     private readonly Lazy<IReadOnlySet<ImageEntityType>> _availableImageTypes;
     private readonly Lazy<IReadOnlySet<ImageEntityType>> _preferredImageTypes;
+    private readonly Lazy<IReadOnlySet<string>> _characterIDs;
+    private readonly Lazy<IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>>> _characterAppearances;
+    private readonly Lazy<IReadOnlySet<string>> _creatorIDs;
+    private readonly Lazy<IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>>> _creatorRoles;
 
     public string Name => _name.Value;
 
-    public Func<string> NameDelegate
+    public required Func<string> NameDelegate
     {
         init => _name = new Lazy<string>(value);
     }
 
     public IReadOnlySet<string> Names => _names.Value;
 
-    public Func<IReadOnlySet<string>> NamesDelegate
+    public required Func<IReadOnlySet<string>> NamesDelegate
     {
         init => _names = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> AniDBIDs => _aniDbIds.Value;
 
-    public Func<IReadOnlySet<string>> AniDBIDsDelegate
+    public required Func<IReadOnlySet<string>> AniDBIDsDelegate
     {
         init => _aniDbIds = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public string SortingName => _sortingName.Value;
 
-    public Func<string> SortingNameDelegate
+    public required Func<string> SortingNameDelegate
     {
         init => _sortingName = new Lazy<string>(value);
     }
 
     public int SeriesCount => _seriesCount.Value;
 
-    public Func<int> SeriesCountDelegate
+    public required Func<int> SeriesCountDelegate
     {
         init => _seriesCount = new Lazy<int>(value);
     }
 
     public int MissingEpisodes => _missingEpisodes.Value;
 
-    public Func<int> MissingEpisodesDelegate
+    public required Func<int> MissingEpisodesDelegate
     {
         init => _missingEpisodes = new Lazy<int>(value);
     }
 
     public int MissingEpisodesCollecting => _missingEpisodesCollecting.Value;
 
-    public Func<int> MissingEpisodesCollectingDelegate
+    public required Func<int> MissingEpisodesCollectingDelegate
     {
         init => _missingEpisodesCollecting = new Lazy<int>(value);
     }
 
     public int VideoFiles => _videoFiles.Value;
 
-    public Func<int> VideoFilesDelegate
+    public required Func<int> VideoFilesDelegate
     {
         init => _videoFiles = new Lazy<int>(value);
     }
 
     public IReadOnlySet<string> Tags => _tags.Value;
 
-    public Func<IReadOnlySet<string>> TagsDelegate
+    public required Func<IReadOnlySet<string>> TagsDelegate
     {
         init => _tags = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> CustomTags => _customTags.Value;
 
-    public Func<IReadOnlySet<string>> CustomTagsDelegate
+    public required Func<IReadOnlySet<string>> CustomTagsDelegate
     {
         init => _customTags = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<int> Years => _years.Value;
 
-    public Func<IReadOnlySet<int>> YearsDelegate
+    public required Func<IReadOnlySet<int>> YearsDelegate
     {
         init => _years = new Lazy<IReadOnlySet<int>>(value);
     }
 
     public IReadOnlySet<(int year, AnimeSeason season)> Seasons => _seasons.Value;
 
-    public Func<IReadOnlySet<(int year, AnimeSeason season)>> SeasonsDelegate
+    public required Func<IReadOnlySet<(int year, AnimeSeason season)>> SeasonsDelegate
     {
         init => _seasons = new Lazy<IReadOnlySet<(int year, AnimeSeason season)>>(value);
     }
 
     public IReadOnlySet<ImageEntityType> AvailableImageTypes => _availableImageTypes.Value;
 
-    public Func<IReadOnlySet<ImageEntityType>> AvailableImageTypesDelegate
+    public required Func<IReadOnlySet<ImageEntityType>> AvailableImageTypesDelegate
     {
         init => _availableImageTypes = new Lazy<IReadOnlySet<ImageEntityType>>(value);
     }
 
     public IReadOnlySet<ImageEntityType> PreferredImageTypes => _preferredImageTypes.Value;
 
-    public Func<IReadOnlySet<ImageEntityType>> PreferredImageTypesDelegate
+    public required Func<IReadOnlySet<ImageEntityType>> PreferredImageTypesDelegate
     {
         init => _preferredImageTypes = new Lazy<IReadOnlySet<ImageEntityType>>(value);
     }
 
+    public IReadOnlySet<string> CharacterIDs => _characterIDs.Value;
+
+    public required Func<IReadOnlySet<string>> CharacterIDsDelegate
+    {
+        init => _characterIDs = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>> CharacterAppearances => _characterAppearances.Value;
+
+    public required Func<IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>>> CharacterAppearancesDelegate
+    {
+        init => _characterAppearances = new Lazy<IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>>>(value);
+    }
+
+    public IReadOnlySet<string> CreatorIDs => _creatorIDs.Value;
+
+    public required Func<IReadOnlySet<string>> CreatorIDsDelegate
+    {
+        init => _creatorIDs = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>> CreatorRoles => _creatorRoles.Value;
+
+    public required Func<IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>>> CreatorRolesDelegate
+    {
+        init => _creatorRoles = new Lazy<IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>>>(value);
+    }
+
     public bool HasTmdbLink => _hasTmdbLink.Value;
 
-    public Func<bool> HasTmdbLinkDelegate
+    public required Func<bool> HasTmdbLinkDelegate
     {
         init => _hasTmdbLink = new Lazy<bool>(value);
     }
 
     public bool HasMissingTmdbLink => _hasMissingTmdbLink.Value;
 
-    public Func<bool> HasMissingTmdbLinkDelegate
+    public required Func<bool> HasMissingTmdbLinkDelegate
     {
         init => _hasMissingTmdbLink = new Lazy<bool>(value);
     }
 
     public int AutomaticTmdbEpisodeLinks => _automaticTmdbEpisodeLinks.Value;
 
-    public Func<int> AutomaticTmdbEpisodeLinksDelegate
+    public required Func<int> AutomaticTmdbEpisodeLinksDelegate
     {
         init => _automaticTmdbEpisodeLinks = new Lazy<int>(value);
     }
 
     public int UserVerifiedTmdbEpisodeLinks => _userVerifiedTmdbEpisodeLinks.Value;
 
-    public Func<int> UserVerifiedTmdbEpisodeLinksDelegate
+    public required Func<int> UserVerifiedTmdbEpisodeLinksDelegate
     {
         init => _userVerifiedTmdbEpisodeLinks = new Lazy<int>(value);
     }
 
     public bool HasTraktLink => _hasTraktLink.Value;
 
-    public Func<bool> HasTraktLinkDelegate
+    public required Func<bool> HasTraktLinkDelegate
     {
         init => _hasTraktLink = new Lazy<bool>(value);
     }
 
     public bool HasMissingTraktLink => _hasMissingTraktLink.Value;
 
-    public Func<bool> HasMissingTraktLinkDelegate
+    public required Func<bool> HasMissingTraktLinkDelegate
     {
         init => _hasMissingTraktLink = new Lazy<bool>(value);
     }
 
     public bool IsFinished => _isFinished.Value;
 
-    public Func<bool> IsFinishedDelegate
+    public required Func<bool> IsFinishedDelegate
     {
         init => _isFinished = new Lazy<bool>(value);
     }
 
     public DateTime? AirDate => _airDate.Value;
 
-    public Func<DateTime?> AirDateDelegate
+    public required Func<DateTime?> AirDateDelegate
     {
         init => _airDate = new Lazy<DateTime?>(value);
     }
 
     public DateTime? LastAirDate => _lastAirDate.Value;
 
-    public Func<DateTime?> LastAirDateDelegate
+    public required Func<DateTime?> LastAirDateDelegate
     {
         init => _lastAirDate = new Lazy<DateTime?>(value);
     }
 
     public DateTime AddedDate => _addedDate.Value;
 
-    public Func<DateTime> AddedDateDelegate
+    public required Func<DateTime> AddedDateDelegate
     {
         init => _addedDate = new Lazy<DateTime>(value);
     }
 
     public DateTime LastAddedDate => _lastAddedDate.Value;
 
-    public Func<DateTime> LastAddedDateDelegate
+    public required Func<DateTime> LastAddedDateDelegate
     {
         init => _lastAddedDate = new Lazy<DateTime>(value);
     }
 
     public int EpisodeCount => _episodeCount.Value;
 
-    public Func<int> EpisodeCountDelegate
+    public required Func<int> EpisodeCountDelegate
     {
         init => _episodeCount = new Lazy<int>(value);
     }
 
     public int TotalEpisodeCount => _totalEpisodeCount.Value;
 
-    public Func<int> TotalEpisodeCountDelegate
+    public required Func<int> TotalEpisodeCountDelegate
     {
         init => _totalEpisodeCount = new Lazy<int>(value);
     }
 
     public decimal LowestAniDBRating => _lowestAniDBRating.Value;
 
-    public Func<decimal> LowestAniDBRatingDelegate
+    public required Func<decimal> LowestAniDBRatingDelegate
     {
         init => _lowestAniDBRating = new Lazy<decimal>(value);
     }
 
     public decimal HighestAniDBRating => _highestAniDBRating.Value;
 
-    public Func<decimal> HighestAniDBRatingDelegate
+    public required Func<decimal> HighestAniDBRatingDelegate
     {
         init => _highestAniDBRating = new Lazy<decimal>(value);
     }
 
     public decimal AverageAniDBRating => _averageAniDBRating.Value;
 
-    public Func<decimal> AverageAniDBRatingDelegate
+    public required Func<decimal> AverageAniDBRatingDelegate
     {
         init => _averageAniDBRating = new Lazy<decimal>(value);
     }
 
     public IReadOnlySet<string> VideoSources => _videoSources.Value;
 
-    public Func<IReadOnlySet<string>> VideoSourcesDelegate
+    public required Func<IReadOnlySet<string>> VideoSourcesDelegate
     {
         init => _videoSources = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SharedVideoSources => _sharedVideoSources.Value;
 
-    public Func<IReadOnlySet<string>> SharedVideoSourcesDelegate
+    public required Func<IReadOnlySet<string>> SharedVideoSourcesDelegate
     {
         init => _sharedVideoSources = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> AnimeTypes => _animeTypes.Value;
 
-    public Func<IReadOnlySet<string>> AnimeTypesDelegate
+    public required Func<IReadOnlySet<string>> AnimeTypesDelegate
     {
         init => _animeTypes = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> AudioLanguages => _audioLanguages.Value;
 
-    public Func<IReadOnlySet<string>> AudioLanguagesDelegate
+    public required Func<IReadOnlySet<string>> AudioLanguagesDelegate
     {
         init => _audioLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SharedAudioLanguages => _sharedAudioLanguages.Value;
 
-    public Func<IReadOnlySet<string>> SharedAudioLanguagesDelegate
+    public required Func<IReadOnlySet<string>> SharedAudioLanguagesDelegate
     {
         init => _sharedAudioLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SubtitleLanguages => _subtitleLanguages.Value;
 
-    public Func<IReadOnlySet<string>> SubtitleLanguagesDelegate
+    public required Func<IReadOnlySet<string>> SubtitleLanguagesDelegate
     {
         init => _subtitleLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SharedSubtitleLanguages => _sharedSubtitleLanguages.Value;
 
-    public Func<IReadOnlySet<string>> SharedSubtitleLanguagesDelegate
+    public required Func<IReadOnlySet<string>> SharedSubtitleLanguagesDelegate
     {
         init => _sharedSubtitleLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> Resolutions => _resolutions.Value;
-    public Func<IReadOnlySet<string>> ResolutionsDelegate
+    public required Func<IReadOnlySet<string>> ResolutionsDelegate
     {
         init
         {
@@ -320,21 +353,21 @@ public class Filterable : IFilterable
 
     public IReadOnlySet<string> ImportFolderIDs => _importFolderIDs.Value;
 
-    public Func<IReadOnlySet<string>> ImportFolderIDsDelegate
+    public required Func<IReadOnlySet<string>> ImportFolderIDsDelegate
     {
         init => _importFolderIDs = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> ImportFolderNames => _importFolderNames.Value;
 
-    public Func<IReadOnlySet<string>> ImportFolderNamesDelegate
+    public required Func<IReadOnlySet<string>> ImportFolderNamesDelegate
     {
         init => _importFolderNames = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> FilePaths => _filePaths.Value;
 
-    public Func<IReadOnlySet<string>> FilePathsDelegate
+    public required Func<IReadOnlySet<string>> FilePathsDelegate
     {
         init => _filePaths = new Lazy<IReadOnlySet<string>>(value);
     }

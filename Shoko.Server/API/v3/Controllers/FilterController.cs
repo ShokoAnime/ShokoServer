@@ -142,6 +142,7 @@ public class FilterController : BaseController
                     IWithDateParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Date,
                     IWithNumberParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Number,
                     IWithStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
+                    IWithStringSetParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSet,
                     IWithTimeSpanParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.TimeSpan,
                     _ => null
                 };
