@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,7 +12,6 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
@@ -490,7 +489,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 return false;
             }
 
-            var width = GetVideoWidth(vid.VideoResolution);
+            var width = SplitVideoResolution(vid.VideoResolution).Width;
 
             var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -528,21 +527,6 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private static int GetVideoWidth(string videoResolution)
-    {
-        var videoWidth = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 0)
-            {
-                int.TryParse(dimensions[0], out videoWidth);
-            }
-        }
-
-        return videoWidth;
-    }
-
     private bool EvaluateTestU(string test, SVR_VideoLocal vid)
     {
         try
@@ -560,7 +544,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 return false;
             }
 
-            var height = GetVideoHeight(vid.VideoResolution);
+            var height = SplitVideoResolution(vid.VideoResolution).Height;
 
             var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -598,20 +582,6 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private static int GetVideoHeight(string videoResolution)
-    {
-        var videoHeight = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 1)
-            {
-                int.TryParse(dimensions[1], out videoHeight);
-            }
-        }
-
-        return videoHeight;
-    }
 
     private bool EvaluateTestR(string test, SVR_AniDB_File aniFile)
     {
@@ -1498,7 +1468,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         if (string.IsNullOrEmpty(ext)) return (false, "Unable to get the file's extension"); // fail if we get a blank extension, something went wrong.
 
         // finally add back the extension
-        return (true, Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}"));
+        return (true, $"{newFileName.Replace("`", "'")}{ext}".ReplaceInvalidPathCharacters());
     }
 
     private (bool, string) PerformActionOnFileName(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
@@ -2183,7 +2153,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         else
         {
-            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.PreferredTitle);
+            var groupName = group.PreferredTitle.ReplaceInvalidPathCharacters();
             path = Path.Combine(groupName, name);
         }
 
@@ -2281,7 +2251,24 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         var dstImportFolder = _relocationService.GetFirstDestinationWithSpace(args);
         return (dstImportFolder, dstImportFolder is null
             ? "Unable to resolve a destination"
-            : Utils.ReplaceInvalidFolderNameCharacters(series.PreferredTitle));
+            : series.PreferredTitle.ReplaceInvalidPathCharacters());
+    }
+
+    private static (int Width, int Height) SplitVideoResolution(string resolution)
+    {
+        var videoWidth = 0;
+        var videoHeight = 0;
+        if (resolution.Trim().Length > 0)
+        {
+            var dimensions = resolution.Split('x');
+            if (dimensions.Length > 1)
+            {
+                int.TryParse(dimensions[0], out videoWidth);
+                int.TryParse(dimensions[1], out videoHeight);
+            }
+        }
+
+        return (videoWidth, videoHeight);
     }
 
     public WebAOMSettings DefaultSettings => new()
