@@ -22,7 +22,7 @@ using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.API.WebUI;
+using Shoko.Server.API.FileProviders;
 using Shoko.Server.Plugin;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.FileProviders;
 
-namespace Shoko.Server.API.WebUI;
+namespace Shoko.Server.API.FileProviders;
 
 public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
 {
