@@ -27,9 +27,6 @@
     <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
     <Resource Include="db.ico" />
-    <Resource Include="Images\**\*.png" />
-    <Resource Include="Images\**\*.gif" />
-    <Resource Include="Images\db.ico" />
     <Resource Include="**\*.txt" />
     <Content Include="nlog.config" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="plugins\*.md" CopyToOutputDirectory="Always" />
