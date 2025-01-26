@@ -9,7 +9,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.API;
+namespace Shoko.Server.API.v0.Controllers;
 
 [ApiController]
 [Route("/api/auth")]
@@ -45,7 +45,7 @@ public class AuthenticationController : BaseController
     /// <returns>The new apikey</returns>
     [HttpPost("apikey")]
     [Authorize]
-    public ActionResult<string> GenerateApikey([FromBody]string device)
+    public ActionResult<string> GenerateApikey([FromBody] string device)
     {
         if (string.IsNullOrWhiteSpace(device)) return BadRequest("device cannot be empty");
         return RepoFactory.AuthTokens.CreateNewApiKey(User, device);
@@ -76,7 +76,7 @@ public class AuthenticationController : BaseController
     /// Change the password. Invalidates the current user's apikeys. Reauth after using this!
     /// </summary>
     /// <param name="newPassword"></param>
-    /// <param name="userID">Optionally, an admin can change another user's passowrd</param>
+    /// <param name="userID">Optionally, an admin can change another user's password</param>
     /// <returns></returns>
     [HttpPost("ChangePassword")]
     [Authorize]
@@ -105,7 +105,7 @@ public class AuthenticationController : BaseController
     ///</summary>
     ///<param name="apikey">The Apikey or device to delete.</param>
     [HttpDelete]
-    public ActionResult Delete([FromBody]string apikey)
+    public ActionResult Delete([FromBody] string apikey)
     {
         if (apikey == null) return BadRequest("Must provide an apikey or device name to delete");
         var token = RepoFactory.AuthTokens.GetAll().FirstOrDefault(a => a.UserID == User?.JMMUserID && apikey.EqualsInvariantIgnoreCase(a.DeviceName));

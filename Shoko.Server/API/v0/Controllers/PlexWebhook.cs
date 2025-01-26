@@ -16,7 +16,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Server;
-using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
@@ -32,7 +31,7 @@ using Shoko.Models.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 #endif
 
-namespace Shoko.Server.API.v2.Modules;
+namespace Shoko.Server.API.v0.Controllers;
 
 [ApiController]
 [Route("/plex")]
@@ -57,7 +56,7 @@ public class PlexWebhook : BaseController
     //The second one is to just make sure
     [HttpPost]
     [HttpPost("/plex.json")]
-    public async Task<ActionResult> WebhookPost([FromForm] [ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
+    public async Task<ActionResult> WebhookPost([FromForm, ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
     {
         /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
             new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
@@ -250,7 +249,7 @@ public class PlexWebhook : BaseController
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
-        return APIStatus.OK();
+        return Ok();
     }
 
     [Authorize("admin")]
@@ -258,7 +257,7 @@ public class PlexWebhook : BaseController
     public async Task<ActionResult> SyncAll()
     {
         await Utils.ShokoServer.SyncPlex();
-        return APIStatus.OK();
+        return Ok();
     }
 
     [Authorize("admin")]
@@ -268,12 +267,12 @@ public class PlexWebhook : BaseController
         var user = RepoFactory.JMMUser.GetByID(id);
         if (string.IsNullOrEmpty(user.PlexToken))
         {
-            return APIStatus.BadRequest("Invalid User ID");
+            return BadRequest("Invalid User ID");
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
-        return APIStatus.OK();
+        return Ok();
     }
 
     [Authorize]
@@ -283,7 +282,7 @@ public class PlexWebhook : BaseController
         var result = CallPlexHelper(h => h.GetDirectories());
 
         if (result.Length == 0)
-            return APIStatus.NotFound("No directories found please ensure server token is set and try again");
+            return NotFound("No directories found please ensure server token is set and try again");
 
         return result;
     }
@@ -291,23 +290,23 @@ public class PlexWebhook : BaseController
     [Authorize, HttpPost("libraries")]
     public ActionResult SetLibraries([FromBody] List<int> ids)
     {
-        return CallPlexHelper(h =>
+        return CallPlexHelper<ActionResult>(h =>
         {
             if (ids.Count == 0)
             {
-                SettingsProvider.GetSettings().Plex.Libraries = new ();
+                SettingsProvider.GetSettings().Plex.Libraries = [];
                 SettingsProvider.SaveSettings();
-                return APIStatus.OK();
+                return Ok();
             }
-            
+
             var dirs = h.GetDirectories();
             var selected = dirs.Where(d => ids.Contains(d.Key)).ToList();
             if (selected.Count == 0)
-                return APIStatus.BadRequest("No directories found please ensure server token is set and try again");
+                return BadRequest("No directories found please ensure server token is set and try again");
 
             SettingsProvider.GetSettings().Plex.Libraries = selected.Select(s => s.Key).ToList();
             SettingsProvider.SaveSettings();
-            return APIStatus.OK();
+            return Ok();
         });
     }
 
@@ -320,15 +319,15 @@ public class PlexWebhook : BaseController
     [HttpPost("server"), Authorize]
     public ActionResult SetServer([FromBody] string clientId)
     {
-        return CallPlexHelper(h =>
+        return CallPlexHelper<ActionResult>(h =>
         {
             var servers = h.GetPlexServers();
             var server = servers.FirstOrDefault(s => s.ClientIdentifier == clientId);
             if (server == null)
-                return APIStatus.BadRequest();
+                return BadRequest("Invalid Client ID");
 
             h.UseServer(server);
-            return APIStatus.OK();
+            return Ok();
         });
     }
 #if DEBUG
@@ -355,22 +354,22 @@ public class PlexWebhook : BaseController
     [DataContract]
     public class PlexEvent
     {
-        [Required] [DataMember(Name = "event")]
+        [Required, DataMember(Name = "event")]
         public string Event;
 
         [DataMember(Name = "user")] public bool User;
 
         [DataMember(Name = "owner")] public bool Owner;
 
-        [Required] [DataMember(Name = "Account")]
+        [Required, DataMember(Name = "Account")]
         public PlexAccount Account;
 
-        [Required] [DataMember(Name = "Server")]
+        [Required, DataMember(Name = "Server")]
         public PlexBasicInfo Server;
 
         [DataMember(Name = "Player")] public PlexPlayerInfo Player;
 
-        [DataMember(Name = "Metadata")] [Required]
+        [Required, DataMember(Name = "Metadata")]
         public PlexMetadata Metadata;
 
         [DataContract]
@@ -396,7 +395,7 @@ public class PlexWebhook : BaseController
         {
             [DataMember(Name = "local")] public bool Local;
 
-            [DataMember(Name = "publicAddress")] public string PublicAdress;
+            [DataMember(Name = "publicAddress")] public string PublicAddress;
         }
 
         [DataContract]
@@ -420,7 +419,7 @@ public class PlexWebhook : BaseController
 
             #region Item information
 
-            [Required] [DataMember(Name = "guid")] public string Guid;
+            [Required, DataMember(Name = "guid")] public string Guid;
 
             [DataMember(Name = "key")] public string Key;
 
@@ -458,7 +457,7 @@ public class PlexWebhook : BaseController
 
             #region Parent item information
 
-            [Required] [DataMember(Name = "parentGuid")]
+            [Required, DataMember(Name = "parentGuid")]
             public string ParentGuid;
 
             [DataMember(Name = "parentIndex")] public int ParentIndex;
@@ -471,7 +470,7 @@ public class PlexWebhook : BaseController
 
             #region Grand-parent item information
 
-            [Required] [DataMember(Name = "grandParentGuid")]
+            [Required, DataMember(Name = "grandParentGuid")]
             public string GrandParentGuid;
 
             [DataMember(Name = "grandParentTitle")]

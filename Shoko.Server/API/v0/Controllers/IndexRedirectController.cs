@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 
-namespace Shoko.Server.API.v2.Modules;
+namespace Shoko.Server.API.v0.Controllers;
 
 [Route("/")]
 [ApiVersionNeutral]
 [InitFriendly]
 [DatabaseBlockedExempt]
-public class Webui_Redirect : Controller
+public class IndexRedirectController : Controller
 {
     [HttpGet]
     public ActionResult Index()
