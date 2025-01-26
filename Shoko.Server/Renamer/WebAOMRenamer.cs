@@ -490,7 +490,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 return false;
             }
 
-            var width = Utils.GetVideoWidth(vid.VideoResolution);
+            var width = GetVideoWidth(vid.VideoResolution);
 
             var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -528,6 +528,21 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
+    private static int GetVideoWidth(string videoResolution)
+    {
+        var videoWidth = 0;
+        if (videoResolution.Trim().Length > 0)
+        {
+            var dimensions = videoResolution.Split('x');
+            if (dimensions.Length > 0)
+            {
+                int.TryParse(dimensions[0], out videoWidth);
+            }
+        }
+
+        return videoWidth;
+    }
+
     private bool EvaluateTestU(string test, SVR_VideoLocal vid)
     {
         try
@@ -545,7 +560,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 return false;
             }
 
-            var height = Utils.GetVideoHeight(vid.VideoResolution);
+            var height = GetVideoHeight(vid.VideoResolution);
 
             var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -583,6 +598,20 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
+    private static int GetVideoHeight(string videoResolution)
+    {
+        var videoHeight = 0;
+        if (videoResolution.Trim().Length > 0)
+        {
+            var dimensions = videoResolution.Split('x');
+            if (dimensions.Length > 1)
+            {
+                int.TryParse(dimensions[1], out videoHeight);
+            }
+        }
+
+        return videoHeight;
+    }
 
     private bool EvaluateTestR(string test, SVR_AniDB_File aniFile)
     {

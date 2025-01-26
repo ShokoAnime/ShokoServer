@@ -128,7 +128,7 @@ public static class Utils
         }
 
         LogProvider.SetLogProvider(new NLog.Extensions.Logging.NLogLoggerFactory());
-        
+
         LogManager.ReconfigExistingLoggers();
     }
 
@@ -313,36 +313,6 @@ public static class Utils
         readable = readable / 1024;
         // Return formatted number with suffix
         return readable.ToString("0.### ") + suffix;
-    }
-
-    public static int GetVideoWidth(string videoResolution)
-    {
-        var videoWidth = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 0)
-            {
-                int.TryParse(dimensions[0], out videoWidth);
-            }
-        }
-
-        return videoWidth;
-    }
-
-    public static int GetVideoHeight(string videoResolution)
-    {
-        var videoHeight = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 1)
-            {
-                int.TryParse(dimensions[1], out videoHeight);
-            }
-        }
-
-        return videoHeight;
     }
 
     public static int GetScheduledHours(ScheduledUpdateFrequency freq)
