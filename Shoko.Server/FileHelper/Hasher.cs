@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -74,49 +74,6 @@ public class Hasher
             Finalise.ModuleHandle = IntPtr.Zero;
         }
     }
-
-    #region DLL functions
-
-    [DllImport("hasher.dll", EntryPoint = "CalculateHashes_AsyncIO", CallingConvention = CallingConvention.Cdecl,
-        CharSet = CharSet.Unicode)]
-    private static extern int CalculateHashes_callback_dll(
-        [MarshalAs(UnmanagedType.LPWStr)] string szFileName,
-        [MarshalAs(UnmanagedType.LPArray)] byte[] hash,
-        [MarshalAs(UnmanagedType.FunctionPtr)] OnHashProgress lpHashProgressFunc,
-        [MarshalAs(UnmanagedType.Bool)] bool getCRC32,
-        [MarshalAs(UnmanagedType.Bool)] bool getMD5,
-        [MarshalAs(UnmanagedType.Bool)] bool getSHA1
-    );
-
-    // Calculates hash immediately (with progress)
-    protected static int CalculateHashes_dll(string strFileName, ref byte[] hash, OnHashProgress HashProgress,
-        bool getCRC32, bool getMD5, bool getSHA1)
-    {
-        logger.Trace("Using DLL to hash file: {0}", strFileName);
-        var pHashProgress = HashProgress;
-        var gcHashProgress = GCHandle.Alloc(pHashProgress); //to make sure the GC doesn't dispose the delegate
-
-        return CalculateHashes_callback_dll(strFileName, hash, pHashProgress, getCRC32, getMD5, getSHA1);
-    }
-
-
-    public static string HashToString(byte[] hash, int start, int length)
-    {
-        if (hash == null || hash.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        var hex = new StringBuilder(length * 2);
-        for (var x = start; x < start + length; x++)
-        {
-            hex.AppendFormat("{0:x2}", hash[x]);
-        }
-
-        return hex.ToString().ToUpper();
-    }
-
-    #endregion
 
     public static string GetVersion()
     {
