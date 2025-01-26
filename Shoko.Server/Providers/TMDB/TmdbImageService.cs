@@ -203,6 +203,7 @@ public class TmdbImageService
                     image.TmdbCollectionID = null;
                     break;
             }
+            _tmdbImages.Save(image);
         }
     }
 
