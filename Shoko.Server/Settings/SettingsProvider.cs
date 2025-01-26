@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -10,8 +9,9 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Utils;
-using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.FileHelper;
+using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Constants = Shoko.Server.Server.Constants;
@@ -367,7 +367,7 @@ public class SettingsProvider : ISettingsProvider
         try
         {
             var a = Assembly.GetEntryAssembly();
-            var serverVersion = new ComponentVersion { Version = Utils.GetApplicationVersion() };
+            var serverVersion = new WebUIUpdateService.ComponentVersion { Version = Utils.GetApplicationVersion() };
             var extraVersionDict = Utils.GetApplicationExtraVersion(a);
             if (extraVersionDict.TryGetValue("tag", out var tag))
                 serverVersion.Tag = tag;

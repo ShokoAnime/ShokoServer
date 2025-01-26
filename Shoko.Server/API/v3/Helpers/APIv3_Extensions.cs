@@ -6,6 +6,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using ImageEntityType = Shoko.Plugin.Abstractions.Enums.ImageEntityType;
 using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
 
@@ -31,6 +32,17 @@ public static class APIv3_Extensions
         {
             // TODO: Implement this.
             _ => CreatorRoleType.Staff,
+        };
+
+    public static ComponentVersion ToDto(this WebUIUpdateService.ComponentVersion componentVersion)
+        => new()
+        {
+            Commit = componentVersion.Commit,
+            Description = componentVersion.Description,
+            ReleaseChannel = componentVersion.ReleaseChannel,
+            ReleaseDate = componentVersion.ReleaseDate,
+            Tag = componentVersion.Tag,
+            Version = componentVersion.Version,
         };
 
     public static IEnumerable<IImageMetadata> InLanguage(this IEnumerable<IImageMetadata> imageList, IReadOnlySet<TitleLanguage>? language = null)

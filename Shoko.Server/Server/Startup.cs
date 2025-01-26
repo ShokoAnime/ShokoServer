@@ -71,6 +71,8 @@ public class Startup
             services.AddSingleton<VideoLocalService>();
             services.AddSingleton<VideoLocal_PlaceService>();
             services.AddSingleton<WatchedStatusService>();
+            services.AddSingleton<CssThemeService>();
+            services.AddSingleton<WebUIUpdateService>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();

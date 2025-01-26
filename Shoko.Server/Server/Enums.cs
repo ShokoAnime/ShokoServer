@@ -158,3 +158,12 @@ public enum CharacterType
     // ??? = 2,
     Organization = 3,
 }
+
+[JsonConverter(typeof(StringEnumConverter))]
+public enum ReleaseChannel
+{
+    Auto = 0,
+    Stable = 1,
+    Dev = 2,
+    Debug = 3,
+}

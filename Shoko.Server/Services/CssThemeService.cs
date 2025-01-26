@@ -15,9 +15,9 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
 #nullable enable
-namespace Shoko.Server.API.WebUI;
+namespace Shoko.Server.Services;
 
-public static partial class WebUIThemeProvider
+public partial class CssThemeService
 {
     [GeneratedRegex(@"^\s*(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+)(?:\.(?<revision>\d+))?)?)?\s*$", RegexOptions.ECMAScript | RegexOptions.Compiled)]
     private static partial Regex VersionRegex();
@@ -29,11 +29,11 @@ public static partial class WebUIThemeProvider
 
     private static readonly ISet<string> _allowedCssMime = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "text/css", "text/plain" };
 
-    private static DateTime? _nextRefreshAfter = null;
+    private DateTime? _nextRefreshAfter = null;
 
-    private static Dictionary<string, ThemeDefinition>? _themeDict = null;
+    private Dictionary<string, ThemeDefinition>? _themeDict = null;
 
-    private static Dictionary<string, ThemeDefinition> RefreshThemes(bool forceRefresh = false)
+    private Dictionary<string, ThemeDefinition> RefreshThemes(bool forceRefresh = false)
     {
         if (_themeDict == null || forceRefresh || DateTime.UtcNow > _nextRefreshAfter)
         {
@@ -48,7 +48,7 @@ public static partial class WebUIThemeProvider
     /// </summary>
     /// <param name="forceRefresh"></param>
     /// <returns></returns>
-    public static IEnumerable<ThemeDefinition> GetThemes(bool forceRefresh = false)
+    public IEnumerable<ThemeDefinition> GetThemes(bool forceRefresh = false)
     {
         return RefreshThemes(forceRefresh).Values;
     }
@@ -59,7 +59,7 @@ public static partial class WebUIThemeProvider
     /// <param name="themeId">The id of the theme to get.</param>
     /// <param name="forceRefresh">Forcefully refresh the theme dict. before checking for the theme.</param>
     /// <returns></returns>
-    public static ThemeDefinition? GetTheme(string themeId, bool forceRefresh)
+    public ThemeDefinition? GetTheme(string themeId, bool forceRefresh)
     {
         return RefreshThemes(forceRefresh).TryGetValue(themeId, out var themeDefinition) ? themeDefinition : null;
     }
@@ -69,7 +69,7 @@ public static partial class WebUIThemeProvider
     /// </summary>
     /// <param name="theme">The theme to remove.</param>
     /// <returns>A boolean indicating the success status of the operation.</returns>
-    public static bool RemoveTheme(ThemeDefinition theme)
+    public bool RemoveTheme(ThemeDefinition theme)
     {
         var jsonFilePath = Path.Combine(Utils.ApplicationPath, "themes", theme.JsonFileName);
         var cssFilePath = Path.Combine(Utils.ApplicationPath, "themes", theme.CssFileName);
@@ -91,7 +91,7 @@ public static partial class WebUIThemeProvider
     /// <param name="theme">The theme to update.</param>
     /// <param name="preview">Flag indicating whether to enable preview mode.</param>
     /// <returns>The updated theme metadata.</returns>
-    public static async Task<ThemeDefinition> UpdateThemeOnline(ThemeDefinition theme, bool preview = false)
+    public async Task<ThemeDefinition> UpdateThemeOnline(ThemeDefinition theme, bool preview = false)
     {
         // Return the local theme if we don't have an update url.
         if (string.IsNullOrEmpty(theme.UpdateUrl))
@@ -176,7 +176,7 @@ public static partial class WebUIThemeProvider
     /// <param name="url">The URL leading to where the theme lives online.</param>
     /// <param name="preview">Flag indicating whether to enable preview mode.</param>
     /// <returns>The new or updated theme metadata.</returns>
-    public static async Task<ThemeDefinition> InstallThemeFromUrl(string url, bool preview = false)
+    public async Task<ThemeDefinition> InstallThemeFromUrl(string url, bool preview = false)
     {
         if (!(Uri.TryCreate(url, UriKind.Absolute, out var updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
             throw new ValidationException("Invalid repository URL.");
@@ -218,7 +218,7 @@ public static partial class WebUIThemeProvider
         return await InstallOrUpdateThemeFromJson(content, fileName, preview);
     }
 
-    public static async Task<ThemeDefinition> InstallOrUpdateThemeFromJson(string? content, string fileName, bool preview = false)
+    public async Task<ThemeDefinition> InstallOrUpdateThemeFromJson(string? content, string fileName, bool preview = false)
     {
         fileName = Path.GetFileNameWithoutExtension(fileName);
         if (string.IsNullOrEmpty(fileName) || !FileNameRegex().IsMatch(fileName))
@@ -280,7 +280,7 @@ public static partial class WebUIThemeProvider
         return theme;
     }
 
-    public static async Task<ThemeDefinition> CreateOrUpdateThemeFromCss(string content, string fileName, bool preview = false)
+    public async Task<ThemeDefinition> CreateOrUpdateThemeFromCss(string content, string fileName, bool preview = false)
     {
         if (string.IsNullOrEmpty(fileName) || !FileNameRegex().IsMatch(fileName))
             throw new ValidationException("Invalid theme file name.");
@@ -301,7 +301,7 @@ public static partial class WebUIThemeProvider
         return theme;
     }
 
-    private static async Task SaveTheme(ThemeDefinition theme)
+    private async Task SaveTheme(ThemeDefinition theme)
     {
         var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
         if (!Directory.Exists(dirPath))
@@ -608,7 +608,4 @@ public static partial class WebUIThemeProvider
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(segment => segment[0..1].ToUpperInvariant() + segment[1..].ToLowerInvariant())
         );
-
-    public static string ToCSS(this IEnumerable<ThemeDefinition> list)
-        => list.Select(theme => theme.ToCSS()).Join("");
 }

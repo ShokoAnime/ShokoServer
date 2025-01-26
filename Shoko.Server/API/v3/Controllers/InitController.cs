@@ -9,10 +9,10 @@ using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.WebUI;
 using Shoko.Server.Databases;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -81,7 +81,7 @@ public class InitController : BaseController
             Version = mediaInfoFileInfo.Exists ? FileVersionInfo.GetVersionInfo(mediaInfoFileInfo.FullName).FileVersion : null,
         };
 
-        var webuiVersion = WebUIHelper.LoadWebUIVersionInfo();
+        var webuiVersion = WebUIUpdateService.LoadWebUIVersionInfo();
         if (webuiVersion != null)
         {
             versionSet.WebUI = new()

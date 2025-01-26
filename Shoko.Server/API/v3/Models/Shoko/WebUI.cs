@@ -9,16 +9,16 @@ using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.WebUI;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class WebUI
 {
-    public class WebUITheme(WebUIThemeProvider.ThemeDefinition definition, bool withCSS = false)
+    public class WebUITheme(CssThemeService.ThemeDefinition definition, bool withCSS = false)
     {
         /// <summary>
         /// The theme id is inferred from the filename of the theme definition file.

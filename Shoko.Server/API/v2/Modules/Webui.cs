@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.API.WebUI;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -18,7 +18,7 @@ namespace Shoko.Server.API.v2.Modules;
 [ApiVersion("2.0")]
 [InitFriendly]
 [DatabaseBlockedExempt]
-public class Webui : BaseController
+public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService updateService) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Download and install latest stable version of WebUI
@@ -32,14 +32,14 @@ public class Webui : BaseController
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);
-            var token = "install-web-ui"; 
+            var token = "install-web-ui";
             if (!index.Contains(token))
             {
                 return Unauthorized("If trying to update, use api/webui/update");
             }
         }
 
-        WebUIHelper.GetUrlAndUpdate(WebUILatestStableVersion().version);
+        updateService.GetUrlAndUpdate(WebUILatestStableVersion().version);
         return Redirect("/webui/index.html");
     }
 
@@ -50,7 +50,7 @@ public class Webui : BaseController
     [HttpGet("update/stable")]
     public ActionResult WebUIStableUpdate()
     {
-        WebUIHelper.GetUrlAndUpdate(WebUILatestStableVersion().version);
+        updateService.GetUrlAndUpdate(WebUILatestStableVersion().version);
         return Ok();
     }
 
@@ -61,7 +61,7 @@ public class Webui : BaseController
     [HttpGet("update/unstable")]
     public ActionResult WebUIUnstableUpdate()
     {
-        WebUIHelper.GetUrlAndUpdate(WebUILatestUnstableVersion().version);
+        updateService.GetUrlAndUpdate(WebUILatestUnstableVersion().version);
         return Ok();
     }
 
@@ -73,7 +73,7 @@ public class Webui : BaseController
     [HttpGet("latest")]
     public ComponentVersion WebUILatestStableVersion()
     {
-        var version = new ComponentVersion { version = WebUIHelper.WebUIGetLatestVersion(true) };
+        var version = new ComponentVersion { version = updateService.WebUIGetLatestVersion(true) };
 
         return version;
     }
@@ -86,24 +86,24 @@ public class Webui : BaseController
     public ComponentVersion WebUILatestUnstableVersion()
     {
         var version = new ComponentVersion();
-        version.version = WebUIHelper.WebUIGetLatestVersion(false);
+        version.version = updateService.WebUIGetLatestVersion(false);
 
         return version;
     }
 
     /// <summary>
-    /// Read json file that is converted into string from .config file of jmmserver
+    /// Read json file that is converted into string from .config file of Shoko.
     /// </summary>
     /// <returns></returns>
     [HttpGet("config")]
     public ActionResult<WebUI_Settings> GetWebUIConfig()
     {
-        var setings = HttpContext.RequestServices.GetRequiredService<ISettingsProvider>().GetSettings();
-        if (!string.IsNullOrEmpty(setings.WebUI_Settings))
+        var settings = HttpContext.RequestServices.GetRequiredService<ISettingsProvider>().GetSettings();
+        if (!string.IsNullOrEmpty(settings.WebUI_Settings))
         {
             try
             {
-                return JsonConvert.DeserializeObject<WebUI_Settings>(setings.WebUI_Settings);
+                return JsonConvert.DeserializeObject<WebUI_Settings>(settings.WebUI_Settings);
             }
             catch
             {
@@ -115,11 +115,11 @@ public class Webui : BaseController
     }
 
     /// <summary>
-    /// Save webui settings as json converted into string inside .config file of jmmserver
+    /// Save webui settings as json converted into string inside .config file of Shoko.
     /// </summary>
     /// <returns></returns>
     [HttpPost("config")]
-    public object SetWebUIConfig(WebUI_Settings webuiSettings)
+    public ActionResult SetWebUIConfig(WebUI_Settings webuiSettings)
     {
         if (webuiSettings.Valid())
         {
@@ -138,29 +138,5 @@ public class Webui : BaseController
         }
 
         return new APIMessage(400, "Config is not a Valid.");
-    }
-
-    /// <summary>
-    /// List all available themes to use inside webui
-    /// </summary>
-    /// <returns>List&lt;OSFile&gt; with 'name' of css files</returns>
-    private object GetWebUIThemes()
-    {
-        var files = new List<OSFile>();
-        if (Directory.Exists(Path.Combine("webui", "tweak")))
-        {
-            var dir_info = new DirectoryInfo(Path.Combine("webui", "tweak"));
-            foreach (var info in dir_info.GetFiles("*.css"))
-            {
-                var file = new OSFile { name = info.Name };
-                files.Add(file);
-            }
-        }
-
-        return files;
-    }
-
-    public Webui(ISettingsProvider settingsProvider) : base(settingsProvider)
-    {
     }
 }
