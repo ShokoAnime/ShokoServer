@@ -2,6 +2,7 @@ using System;
 using System.Timers;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
 namespace Shoko.Server.Providers.AniDB;
 
 public abstract class ConnectionHandler
@@ -13,18 +14,19 @@ public abstract class ConnectionHandler
     public abstract string Type { get; }
     protected abstract UpdateType BanEnum { get; }
 
-    public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
-    private AniDBStateUpdate _currentState;
+    public event EventHandler<AniDBStateUpdate>? AniDBStateUpdate;
+
+    private AniDBStateUpdate? _currentState;
 
     public AniDBStateUpdate State
     {
-        get => _currentState;
+        get => _currentState ??= new AniDBStateUpdate { Value = false, UpdateType = BanEnum, UpdateTime = DateTime.Now };
         set
         {
-            if (value != _currentState)
+            if (value is not null && value != _currentState)
             {
                 _currentState = value;
-                UpdateState(_currentState);
+                UpdateState(_currentState!);
             }
         }
     }
@@ -80,7 +82,8 @@ public abstract class ConnectionHandler
         RateLimiter = rateLimiter;
         _banResetTimer = new Timer
         {
-            AutoReset = false, Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
+            AutoReset = false,
+            Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
         };
         _banResetTimer.Elapsed += BanResetTimerElapsed;
         _backoffTimer = new Timer { AutoReset = false };
@@ -93,7 +96,7 @@ public abstract class ConnectionHandler
         _backoffTimer.Elapsed -= ResetBackoffTimer;
     }
 
-    private void BanResetTimerElapsed(object sender, ElapsedEventArgs e)
+    private void BanResetTimerElapsed(object? sender, ElapsedEventArgs e)
     {
         Logger.LogInformation("AniDB {Type} ban ({BanTimerResetLength}h) is over", Type, BanTimerResetLength);
         IsBanned = false;
@@ -116,7 +119,7 @@ public abstract class ConnectionHandler
             });
     }
 
-    protected void ResetBackoffTimer(object sender, ElapsedEventArgs args)
+    protected void ResetBackoffTimer(object? sender, ElapsedEventArgs args)
     {
         // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
         BackoffSecs = null;

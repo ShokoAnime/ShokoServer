@@ -40,8 +40,8 @@ public class AniDBEmitter : BaseEmitter, IDisposable
     {
         return new List<AniDBStatusUpdateSignalRModel>
         {
-            new(UpdateType.UDPBan, UDPHandler.IsBanned, UDPHandler.BanTime ?? DateTime.Now, (int)TimeSpan.FromHours(UDPHandler.BanTimerResetLength).TotalSeconds),
-            new(UpdateType.HTTPBan, HttpHandler.IsBanned, HttpHandler.BanTime ?? DateTime.Now, (int)TimeSpan.FromHours(HttpHandler.BanTimerResetLength).TotalSeconds),
+            new(UDPHandler.State),
+            new(HttpHandler.State),
         };
     }
 }

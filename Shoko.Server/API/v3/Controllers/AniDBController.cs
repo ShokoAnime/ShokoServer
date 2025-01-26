@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
@@ -8,8 +10,8 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
@@ -20,10 +22,29 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class AniDBController : BaseController
+public class AniDBController(
+    ISettingsProvider settingsProvider,
+    IUDPConnectionHandler udpHandler,
+    IHttpConnectionHandler httpHandler,
+    AniDB_ReleaseGroupRepository anidbReleaseGroups,
+    AniDB_CreatorRepository anidbCreators
+) : BaseController(settingsProvider)
 {
-    public AniDBController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    /// <summary>
+    /// Get the AniDB ban status for the UDP and HTTP connections.
+    /// </summary>
+    /// <returns>
+    /// A dictionary with two entries, one for the UDP connection and one for the HTTP connection,
+    /// where the key is the name of the connection and the value is the current ban status.
+    /// </returns>
+    [HttpGet("BanStatus")]
+    public Dictionary<string, AnidbBannedStatus> GetBanStatus()
     {
+        return new Dictionary<string, AnidbBannedStatus>
+        {
+            { "UDP", new AnidbBannedStatus(udpHandler.State) },
+            { "HTTP", new AnidbBannedStatus(httpHandler.State) },
+        };
     }
 
     /// <summary>
@@ -41,11 +62,11 @@ public class AniDBController : BaseController
     {
         return includeMissing switch
         {
-            IncludeOnlyFilter.False => RepoFactory.AniDB_ReleaseGroup.GetUsedReleaseGroups()
+            IncludeOnlyFilter.False => anidbReleaseGroups.GetUsedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            IncludeOnlyFilter.Only => RepoFactory.AniDB_ReleaseGroup.GetUnusedReleaseGroups()
+            IncludeOnlyFilter.Only => anidbReleaseGroups.GetUnusedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            _ => RepoFactory.AniDB_ReleaseGroup.GetAll()
+            _ => anidbReleaseGroups.GetAll()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
         };
     }
@@ -58,7 +79,7 @@ public class AniDBController : BaseController
     [HttpGet("ReleaseGroup/{id}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
     {
-        var group = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(id);
+        var group = anidbReleaseGroups.GetByGroupID(id);
         if (group == null)
             return NotFound();
         return new ReleaseGroup(group);
@@ -74,7 +95,7 @@ public class AniDBController : BaseController
     public ActionResult<ListResult<Creator>> GetCreators([FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        return RepoFactory.AniDB_Creator.GetAll()
+        return anidbCreators.GetAll()
             .ToListResult(c => new Creator(c), page, pageSize);
     }
 
@@ -86,7 +107,7 @@ public class AniDBController : BaseController
     [HttpGet("Creator/{id}")]
     public ActionResult<Creator> GetCreator(int id)
     {
-        var creator = RepoFactory.AniDB_Creator.GetByCreatorID(id);
+        var creator = anidbCreators.GetByCreatorID(id);
         if (creator == null)
             return NotFound();
 
@@ -101,7 +122,7 @@ public class AniDBController : BaseController
     [HttpGet("Creator/Name/{name}")]
     public ActionResult<Creator> GetCreator(string name)
     {
-        var creator = RepoFactory.AniDB_Creator.GetByName(name);
+        var creator = anidbCreators.GetByName(name);
         if (creator == null)
             return NotFound();
 
