@@ -2251,11 +2251,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             if (crossOver) continue;
 
             var settings = _settingsProvider.GetSettings();
-            foreach (var vid in ep.VideoLocals.Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
+            foreach (var vid in ep.VideoLocals)
             {
                 if (vid.Hash == args.File.Video.Hashes.ED2K) continue;
 
-                var place = vid.Places.FirstOrDefault();
+                var place = vid.Places.FirstOrDefault(b =>
+                    b.ImportFolder?.IsDropSource == 0 &&
+                    !string.IsNullOrWhiteSpace(b.FilePath));
                 var thisFileName = place?.FilePath;
                 if (thisFileName == null) continue;
 
