@@ -57,52 +57,12 @@ public class ServerState : INotifyPropertyChangedExt
         }
     }
 
-    private bool newVersionAvailable = false;
-
-    public bool NewVersionAvailable
-    {
-        get => newVersionAvailable;
-        set => this.SetField(() => newVersionAvailable, value);
-    }
-
-    private string newVersionNumber = string.Empty;
-
-    public string NewVersionNumber
-    {
-        get => newVersionNumber;
-        set => this.SetField(() => newVersionNumber, value);
-    }
-
-    private string newVersionDownloadLink = string.Empty;
-
-    public string NewVersionDownloadLink
-    {
-        get => newVersionDownloadLink;
-        set => this.SetField(() => newVersionDownloadLink, value);
-    }
-
     private string applicationVersion = string.Empty;
 
     public string ApplicationVersion
     {
         get => applicationVersion;
         set => this.SetField(() => applicationVersion, value);
-    }
-
-    private string applicationVersionExtra = string.Empty;
-
-    public string ApplicationVersionExtra
-    {
-        get => applicationVersionExtra;
-        set => this.SetField(() => applicationVersionExtra, value);
-    }
-
-    private string applicationVersionLatest = string.Empty;
-
-    public string ApplicationVersionLatest
-    {
-        get => applicationVersionLatest;
-        set => this.SetField(() => applicationVersionLatest, value);
     }
 
     private bool startupFailed = false;
