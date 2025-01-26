@@ -246,7 +246,7 @@ public static class APIExtensions
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #endif
-        // Create web ui directory and add the bootstrapper.
+        // Create web ui directory and add the boot-strapper.
         var webUIDir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
         if (!webUIDir.Exists)
         {
@@ -280,9 +280,10 @@ public static class APIExtensions
 
         app.UseSwagger(c =>
         {
-            c.PreSerializeFilters.Add((swaggerDoc, _) => {
+            c.PreSerializeFilters.Add((swaggerDoc, _) =>
+            {
                 var version = double.Parse(swaggerDoc.Info.Version);
-                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version:0}/"});
+                swaggerDoc.Servers.Add(new() { Url = $"/api/v{version:0}/" });
 
                 var basepathInt = $"/api/v{version:0}/";
                 var basepathDecimal = $"/api/v{version:0.0}/";
@@ -292,10 +293,7 @@ public static class APIExtensions
                     if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
                     {
                         path.Value.Servers.Clear();
-                        path.Value.Servers.Add(new OpenApiServer
-                        {
-                            Url = "/"
-                        });
+                        path.Value.Servers.Add(new() { Url = "/" });
                     }
 
                     paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
