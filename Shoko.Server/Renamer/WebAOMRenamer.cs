@@ -2208,7 +2208,6 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
         // TODO make this only dependent on PluginAbstractions
-        var destFolder = _relocationService.GetFirstDestinationWithSpace(args);
 
         var xrefs = args.Episodes;
         if (xrefs.Count == 0)
@@ -2234,6 +2233,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             .OrderByDescending(a => a.AniDB_Episode?.AirDate ?? 0)
             .ToList();
 
+        var skipDiskSpaceChecks = _settingsProvider.GetSettings().Import.SkipDiskSpaceChecks;
         foreach (var ep in allEps)
         {
             // check if this episode belongs to more than one anime
@@ -2250,7 +2250,6 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             if (crossOver) continue;
 
-            var settings = _settingsProvider.GetSettings();
             foreach (var vid in ep.VideoLocals)
             {
                 if (vid.Hash == args.File.Video.Hashes.ED2K) continue;
@@ -2258,36 +2257,31 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 var place = vid.Places.FirstOrDefault(b =>
                     b.ImportFolder?.IsDropSource == 0 &&
                     !string.IsNullOrWhiteSpace(b.FilePath));
-                var thisFileName = place?.FilePath;
-                if (thisFileName == null) continue;
+                if (place is null) continue;
 
-                var folderName = Path.GetDirectoryName(thisFileName);
-
-                var dstImportFolder = place.ImportFolder;
-                if (dstImportFolder == null) continue;
+                IImportFolder placeFld = place.ImportFolder;
+                var placeRelativePath = Path.GetDirectoryName(place.FilePath);
+                if (placeRelativePath is null || placeFld is null) continue;
 
                 // check space
-                if (!settings.Import.SkipDiskSpaceChecks && !_relocationService.ImportFolderHasSpace(dstImportFolder, args.File))
+                if (!skipDiskSpaceChecks && !_relocationService.ImportFolderHasSpace(placeFld, args.File))
                     continue;
 
-                if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName!))) continue;
+                var dstPath = Path.Combine(placeFld.Path, placeRelativePath);
+                if (!Directory.Exists(dstPath)) continue;
 
                 // ensure we aren't moving to the current directory
-                if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
+                if (dstPath.Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
                     continue;
 
-                destFolder = place.ImportFolder;
-
-                return (destFolder, folderName);
+                return (placeFld, placeRelativePath);
             }
         }
 
-        if (destFolder == null)
-        {
-            return (null, "Unable to resolve a destination");
-        }
-
-        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.PreferredTitle));
+        var dstImportFolder = _relocationService.GetFirstDestinationWithSpace(args);
+        return (dstImportFolder, dstImportFolder is null
+            ? "Unable to resolve a destination"
+            : Utils.ReplaceInvalidFolderNameCharacters(series.PreferredTitle));
     }
 
     public WebAOMSettings DefaultSettings => new()
