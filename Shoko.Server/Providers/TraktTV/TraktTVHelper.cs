@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using NHibernate;
 using Quartz;
 using Shoko.Commons.Extensions;
@@ -252,7 +253,7 @@ public class TraktTVHelper
             }
 
             var token = new TraktV2RefreshToken { refresh_token = settings.TraktTv.RefreshToken };
-            var json = JSONHelper.Serialize(token);
+            var json = JsonConvert.SerializeObject(token);
             var headers = new Dictionary<string, string>();
 
             var retData = string.Empty;
@@ -328,7 +329,7 @@ public class TraktTVHelper
         try
         {
             var obj = new TraktAuthDeviceCode();
-            var json = JSONHelper.Serialize(obj);
+            var json = JsonConvert.SerializeObject(obj);
             var headers = new Dictionary<string, string>();
 
             var retData = string.Empty;
@@ -372,7 +373,7 @@ public class TraktTVHelper
         {
             var pollInterval = TimeSpan.FromSeconds(deviceCode.Interval);
             var obj = new TraktAuthDeviceCodePoll { DeviceCode = deviceCode.DeviceCode };
-            var json = JSONHelper.Serialize(obj);
+            var json = JsonConvert.SerializeObject(obj);
             var headers = new Dictionary<string, string>();
             while (true)
             {
@@ -909,13 +910,13 @@ public class TraktTVHelper
                 var sync = new TraktV2SyncCollectionEpisodesByNumber(slug, season,
                     epNumber,
                     epDate);
-                json = JSONHelper.Serialize(sync);
+                json = JsonConvert.SerializeObject(sync);
             }
             else
             {
                 var sync = new TraktV2SyncWatchedEpisodesByNumber(slug, season,
                     epNumber, epDate);
-                json = JSONHelper.Serialize(sync);
+                json = JsonConvert.SerializeObject(sync);
             }
 
 
@@ -996,13 +997,13 @@ public class TraktTVHelper
                     case ScrobblePlayingType.episode:
                         var showE = new TraktV2ScrobbleEpisode();
                         showE.Init(progress, traktID, slugID, season, epNumber);
-                        json = JSONHelper.Serialize(showE);
+                        json = JsonConvert.SerializeObject(showE);
                         break;
 
                     //do we have any movies that work?
                     case ScrobblePlayingType.movie:
                         var showM = new TraktV2ScrobbleMovie();
-                        json = JSONHelper.Serialize(showM);
+                        json = JsonConvert.SerializeObject(showM);
                         showM.Init(progress, slugID, traktID.ToString());
                         break;
                 }
@@ -1661,7 +1662,7 @@ public class TraktTVHelper
 
             if (syncCollectionAdd.shows is { Count: > 0 })
             {
-                json = JSONHelper.Serialize(syncCollectionAdd);
+                json = JsonConvert.SerializeObject(syncCollectionAdd);
                 url = TraktURIs.SyncCollectionAdd;
                 retData = string.Empty;
                 TraktTVRateLimiter.Instance.EnsureRate();
@@ -1670,7 +1671,7 @@ public class TraktTVHelper
 
             if (syncCollectionRemove.shows is { Count: > 0 })
             {
-                json = JSONHelper.Serialize(syncCollectionRemove);
+                json = JsonConvert.SerializeObject(syncCollectionRemove);
                 url = TraktURIs.SyncCollectionRemove;
                 retData = string.Empty;
                 TraktTVRateLimiter.Instance.EnsureRate();
@@ -1679,7 +1680,7 @@ public class TraktTVHelper
 
             if (syncHistoryAdd.shows is { Count: > 0 })
             {
-                json = JSONHelper.Serialize(syncHistoryAdd);
+                json = JsonConvert.SerializeObject(syncHistoryAdd);
                 url = TraktURIs.SyncHistoryAdd;
                 retData = string.Empty;
                 TraktTVRateLimiter.Instance.EnsureRate();
@@ -1688,7 +1689,7 @@ public class TraktTVHelper
 
             if (syncHistoryRemove.shows is { Count: > 0 })
             {
-                json = JSONHelper.Serialize(syncHistoryRemove);
+                json = JsonConvert.SerializeObject(syncHistoryRemove);
                 url = TraktURIs.SyncHistoryRemove;
                 retData = string.Empty;
                 TraktTVRateLimiter.Instance.EnsureRate();
