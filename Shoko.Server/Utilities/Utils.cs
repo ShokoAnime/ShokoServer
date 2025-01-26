@@ -1,25 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Security.Principal;
 using System.Text;
-using System.Text.RegularExpressions;
-using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using NLog.Config;
 using NLog.Filters;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using Quartz.Logging;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.SignalR.NLog;
-using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
@@ -412,6 +407,16 @@ public static class Utils
 
             return false;
         }
+    }
+
+    public static bool IsVideo(string fileName)
+    {
+        var videoExtensions = SettingsProvider.GetSettings().Import.VideoExtensions
+            .Select(ext => ext.Trim().ToUpper())
+            .WhereNotDefault()
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+        return videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", string.Empty).Trim());
     }
 
     public static bool IsLinux

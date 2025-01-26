@@ -33,10 +33,11 @@ public abstract class MD4 : HashAlgorithm
 
 public class MD4Managed : MD4
 {
-    private uint[] state;
-    private byte[] buffer;
-    private uint[] count;
-    private uint[] x;
+    private readonly uint[] _state;
+    private readonly byte[] _buffer;
+    private readonly uint[] _count;
+    private readonly uint[] _x;
+    private readonly byte[] _digest;
 
     private const int S11 = 3;
     private const int S12 = 7;
@@ -51,48 +52,46 @@ public class MD4Managed : MD4
     private const int S33 = 11;
     private const int S34 = 15;
 
-    private byte[] digest;
-
     //--- constructor -----------------------------------------------------------
 
     public MD4Managed()
     {
         // we allocate the context memory
-        state = new uint[4];
-        count = new uint[2];
-        buffer = new byte[64];
-        digest = new byte[16];
+        _state = new uint[4];
+        _count = new uint[2];
+        _buffer = new byte[64];
+        _digest = new byte[16];
         // temporary buffer in MD4Transform that we don't want to keep allocate on each iteration
-        x = new uint[16];
+        _x = new uint[16];
         // the initialize our context
         Initialize();
     }
 
     public override void Initialize()
     {
-        count[0] = 0;
-        count[1] = 0;
-        state[0] = 0x67452301;
-        state[1] = 0xefcdab89;
-        state[2] = 0x98badcfe;
-        state[3] = 0x10325476;
+        _count[0] = 0;
+        _count[1] = 0;
+        _state[0] = 0x67452301;
+        _state[1] = 0xefcdab89;
+        _state[2] = 0x98badcfe;
+        _state[3] = 0x10325476;
         // Zeroize sensitive information
-        Array.Clear(buffer, 0, 64);
-        Array.Clear(x, 0, 16);
+        Array.Clear(_buffer, 0, 64);
+        Array.Clear(_x, 0, 16);
     }
 
     protected override void HashCore(byte[] array, int ibStart, int cbSize)
     {
         /* Compute number of bytes mod 64 */
-        var index = (int)((count[0] >> 3) & 0x3F);
+        var index = (int)((_count[0] >> 3) & 0x3F);
         /* Update number of bits */
-        count[0] += (uint)(cbSize << 3);
-        if (count[0] < cbSize << 3)
+        _count[0] += (uint)(cbSize << 3);
+        if (_count[0] < cbSize << 3)
         {
-            count[1]++;
+            _count[1]++;
         }
 
-        count[1] += (uint)(cbSize >> 29);
+        _count[1] += (uint)(cbSize >> 29);
 
         var partLen = 64 - index;
         var i = 0;
@@ -100,13 +99,13 @@ public class MD4Managed : MD4
         if (cbSize >= partLen)
         {
             //MD4_memcpy((POINTER)&context->buffer[index], (POINTER)input, partLen);
-            Buffer.BlockCopy(array, ibStart, buffer, index, partLen);
-            MD4Transform(state, buffer, 0);
+            Buffer.BlockCopy(array, ibStart, _buffer, index, partLen);
+            MD4Transform(_state, _buffer, 0);
 
             for (i = partLen; i + 63 < cbSize; i += 64)
             {
                 // MD4Transform (context->state, &input[i]);
-                MD4Transform(state, array, i);
+                MD4Transform(_state, array, i);
             }
 
             index = 0;
@@ -114,17 +113,17 @@ public class MD4Managed : MD4
 
         /* Buffer remaining input */
         //MD4_memcpy ((POINTER)&context->buffer[index], (POINTER)&input[i], inputLen-i);
-        Buffer.BlockCopy(array, ibStart + i, buffer, index, cbSize - i);
+        Buffer.BlockCopy(array, ibStart + i, _buffer, index, cbSize - i);
     }
 
     protected override byte[] HashFinal()
     {
         /* Save number of bits */
         var bits = new byte[8];
-        Encode(bits, count);
+        Encode(bits, _count);
 
         /* Pad out to 56 mod 64. */
-        var index = (count[0] >> 3) & 0x3f;
+        var index = (_count[0] >> 3) & 0x3f;
         var padLen = (int)(index < 56 ? 56 - index : 120 - index);
         HashCore(Padding(padLen), 0, padLen);
 
@@ -132,12 +131,12 @@ public class MD4Managed : MD4
         HashCore(bits, 0, 8);
 
         /* Store state in digest */
-        Encode(digest, state);
+        Encode(_digest, _state);
 
         // Zeroize sensitive information.
         Initialize();
 
-        return digest;
+        return _digest;
     }
 
     //--- private methods ---------------------------------------------------
@@ -225,60 +224,60 @@ public class MD4Managed : MD4
         var c = state[2];
         var d = state[3];
 
-        Decode(x, block, index);
+        Decode(_x, block, index);
 
         /* Round 1 */
-        FF(ref a, b, c, d, x[0], S11); /* 1 */
-        FF(ref d, a, b, c, x[1], S12); /* 2 */
-        FF(ref c, d, a, b, x[2], S13); /* 3 */
-        FF(ref b, c, d, a, x[3], S14); /* 4 */
-        FF(ref a, b, c, d, x[4], S11); /* 5 */
-        FF(ref d, a, b, c, x[5], S12); /* 6 */
-        FF(ref c, d, a, b, x[6], S13); /* 7 */
-        FF(ref b, c, d, a, x[7], S14); /* 8 */
-        FF(ref a, b, c, d, x[8], S11); /* 9 */
-        FF(ref d, a, b, c, x[9], S12); /* 10 */
-        FF(ref c, d, a, b, x[10], S13); /* 11 */
-        FF(ref b, c, d, a, x[11], S14); /* 12 */
-        FF(ref a, b, c, d, x[12], S11); /* 13 */
-        FF(ref d, a, b, c, x[13], S12); /* 14 */
-        FF(ref c, d, a, b, x[14], S13); /* 15 */
-        FF(ref b, c, d, a, x[15], S14); /* 16 */
+        FF(ref a, b, c, d, _x[0], S11); /* 1 */
+        FF(ref d, a, b, c, _x[1], S12); /* 2 */
+        FF(ref c, d, a, b, _x[2], S13); /* 3 */
+        FF(ref b, c, d, a, _x[3], S14); /* 4 */
+        FF(ref a, b, c, d, _x[4], S11); /* 5 */
+        FF(ref d, a, b, c, _x[5], S12); /* 6 */
+        FF(ref c, d, a, b, _x[6], S13); /* 7 */
+        FF(ref b, c, d, a, _x[7], S14); /* 8 */
+        FF(ref a, b, c, d, _x[8], S11); /* 9 */
+        FF(ref d, a, b, c, _x[9], S12); /* 10 */
+        FF(ref c, d, a, b, _x[10], S13); /* 11 */
+        FF(ref b, c, d, a, _x[11], S14); /* 12 */
+        FF(ref a, b, c, d, _x[12], S11); /* 13 */
+        FF(ref d, a, b, c, _x[13], S12); /* 14 */
+        FF(ref c, d, a, b, _x[14], S13); /* 15 */
+        FF(ref b, c, d, a, _x[15], S14); /* 16 */
 
         /* Round 2 */
-        GG(ref a, b, c, d, x[0], S21); /* 17 */
-        GG(ref d, a, b, c, x[4], S22); /* 18 */
-        GG(ref c, d, a, b, x[8], S23); /* 19 */
-        GG(ref b, c, d, a, x[12], S24); /* 20 */
-        GG(ref a, b, c, d, x[1], S21); /* 21 */
-        GG(ref d, a, b, c, x[5], S22); /* 22 */
-        GG(ref c, d, a, b, x[9], S23); /* 23 */
-        GG(ref b, c, d, a, x[13], S24); /* 24 */
-        GG(ref a, b, c, d, x[2], S21); /* 25 */
-        GG(ref d, a, b, c, x[6], S22); /* 26 */
-        GG(ref c, d, a, b, x[10], S23); /* 27 */
-        GG(ref b, c, d, a, x[14], S24); /* 28 */
-        GG(ref a, b, c, d, x[3], S21); /* 29 */
-        GG(ref d, a, b, c, x[7], S22); /* 30 */
-        GG(ref c, d, a, b, x[11], S23); /* 31 */
-        GG(ref b, c, d, a, x[15], S24); /* 32 */
+        GG(ref a, b, c, d, _x[0], S21); /* 17 */
+        GG(ref d, a, b, c, _x[4], S22); /* 18 */
+        GG(ref c, d, a, b, _x[8], S23); /* 19 */
+        GG(ref b, c, d, a, _x[12], S24); /* 20 */
+        GG(ref a, b, c, d, _x[1], S21); /* 21 */
+        GG(ref d, a, b, c, _x[5], S22); /* 22 */
+        GG(ref c, d, a, b, _x[9], S23); /* 23 */
+        GG(ref b, c, d, a, _x[13], S24); /* 24 */
+        GG(ref a, b, c, d, _x[2], S21); /* 25 */
+        GG(ref d, a, b, c, _x[6], S22); /* 26 */
+        GG(ref c, d, a, b, _x[10], S23); /* 27 */
+        GG(ref b, c, d, a, _x[14], S24); /* 28 */
+        GG(ref a, b, c, d, _x[3], S21); /* 29 */
+        GG(ref d, a, b, c, _x[7], S22); /* 30 */
+        GG(ref c, d, a, b, _x[11], S23); /* 31 */
+        GG(ref b, c, d, a, _x[15], S24); /* 32 */
 
-        HH(ref a, b, c, d, x[0], S31); /* 33 */
-        HH(ref d, a, b, c, x[8], S32); /* 34 */
-        HH(ref c, d, a, b, x[4], S33); /* 35 */
-        HH(ref b, c, d, a, x[12], S34); /* 36 */
-        HH(ref a, b, c, d, x[2], S31); /* 37 */
-        HH(ref d, a, b, c, x[10], S32); /* 38 */
-        HH(ref c, d, a, b, x[6], S33); /* 39 */
-        HH(ref b, c, d, a, x[14], S34); /* 40 */
-        HH(ref a, b, c, d, x[1], S31); /* 41 */
-        HH(ref d, a, b, c, x[9], S32); /* 42 */
-        HH(ref c, d, a, b, x[5], S33); /* 43 */
-        HH(ref b, c, d, a, x[13], S34); /* 44 */
-        HH(ref a, b, c, d, x[3], S31); /* 45 */
-        HH(ref d, a, b, c, x[11], S32); /* 46 */
-        HH(ref c, d, a, b, x[7], S33); /* 47 */
-        HH(ref b, c, d, a, x[15], S34); /* 48 */
+        HH(ref a, b, c, d, _x[0], S31); /* 33 */
+        HH(ref d, a, b, c, _x[8], S32); /* 34 */
+        HH(ref c, d, a, b, _x[4], S33); /* 35 */
+        HH(ref b, c, d, a, _x[12], S34); /* 36 */
+        HH(ref a, b, c, d, _x[2], S31); /* 37 */
+        HH(ref d, a, b, c, _x[10], S32); /* 38 */
+        HH(ref c, d, a, b, _x[6], S33); /* 39 */
+        HH(ref b, c, d, a, _x[14], S34); /* 40 */
+        HH(ref a, b, c, d, _x[1], S31); /* 41 */
+        HH(ref d, a, b, c, _x[9], S32); /* 42 */
+        HH(ref c, d, a, b, _x[5], S33); /* 43 */
+        HH(ref b, c, d, a, _x[13], S34); /* 44 */
+        HH(ref a, b, c, d, _x[3], S31); /* 45 */
+        HH(ref d, a, b, c, _x[11], S32); /* 46 */
+        HH(ref c, d, a, b, _x[7], S33); /* 47 */
+        HH(ref b, c, d, a, _x[15], S34); /* 48 */
 
         state[0] += a;
         state[1] += b;

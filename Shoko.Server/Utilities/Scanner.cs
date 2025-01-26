@@ -233,8 +233,7 @@ public class Scanner : INotifyPropertyChangedExt
                         }
                         else
                         {
-                            var hashes =
-                                FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
+                            var hashes = Hasher.CalculateHashes(sf.FullName, OnHashProgress, false, false, false);
                             if (string.IsNullOrEmpty(hashes.ED2K))
                             {
                                 sf.Status = (int)ScanFileStatus.ErrorMissingHash;

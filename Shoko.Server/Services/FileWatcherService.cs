@@ -5,11 +5,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Server.FileHelper;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
 
 namespace Shoko.Server.Services;
@@ -57,7 +57,7 @@ public class FileWatcherService
                         share.ImportFolderLocation);
                     continue;
                 }
-                
+
                 _logger.LogInformation("Watching ImportFolder: {ImportFolderName} || {ImportFolderLocation}", share.ImportFolderName, share.ImportFolderLocation);
 
                 if (!Directory.Exists(share.ImportFolderLocation)) continue;
@@ -89,7 +89,7 @@ public class FileWatcherService
     private void FileAdded(object sender, string path)
     {
         if (!File.Exists(path)) return;
-        if (!FileHashHelper.IsVideo(path)) return;
+        if (!Utils.IsVideo(path)) return;
 
         _logger.LogInformation("Found file {Path}", path);
         var tup = _importFolder.GetFromFullPath(path);

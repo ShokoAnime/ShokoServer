@@ -14,7 +14,6 @@ using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
@@ -176,7 +175,7 @@ public class ActionService
                 filesFound++;
                 _logger.LogTrace("Processing File {Count}/{Total} --- {Filename}", i, fileList.Count, fileName);
 
-                if (!FileHashHelper.IsVideo(fileName)) continue;
+                if (!Utils.IsVideo(fileName)) continue;
 
                 videosFound++;
 
@@ -231,7 +230,7 @@ public class ActionService
             filesFound++;
             _logger.LogTrace("Processing File {Count}/{Total} --- {Name}", i, fileList.Count, fileName);
 
-            if (!FileHashHelper.IsVideo(fileName)) continue;
+            if (!Utils.IsVideo(fileName)) continue;
             videosFound++;
 
             await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
@@ -313,7 +312,7 @@ public class ActionService
             filesFound++;
             _logger.LogTrace("Processing File {Count}/{Total} --- {Name}", i, fileList.Count, fileName);
 
-            if (!FileHashHelper.IsVideo(fileName)) continue;
+            if (!Utils.IsVideo(fileName)) continue;
             videosFound++;
 
             var (folder, relativePath) = _importFolders.GetFromFullPath(fileName);

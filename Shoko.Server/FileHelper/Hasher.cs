@@ -1,15 +1,15 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Utilities;
 using Exception = System.Exception;
 
+#nullable enable
 namespace Shoko.Server.FileHelper;
 
 public class Hasher
@@ -36,7 +36,7 @@ public class Hasher
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool FreeLibrary(IntPtr hModule);
 
-    private static readonly Destructor Finalise = new(); //static Destructor hack
+    private static readonly Destructor Finalize = new(); //static Destructor hack
 
     internal sealed class Destructor : IDisposable
     {
@@ -58,35 +58,43 @@ public class Hasher
 
     static Hasher()
     {
-        var fullexepath = Assembly.GetEntryAssembly().Location;
+        if (Utils.IsLinux)
+        {
+            Finalize.ModuleHandle = IntPtr.Zero;
+            return;
+        }
+
+        var dllPath = Assembly.GetEntryAssembly()?.Location;
         try
         {
-            if (fullexepath != null)
+            if (dllPath != null)
             {
-                var fi = new FileInfo(fullexepath);
-                fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "librhash.dll");
-                Finalise.ModuleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
+                var fi = new FileInfo(dllPath);
+                dllPath = Path.Combine(fi.Directory!.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
+                Finalize.ModuleHandle = LoadLibraryEx(dllPath, IntPtr.Zero, 0);
             }
         }
         catch (Exception)
         {
-            Finalise.ModuleHandle = IntPtr.Zero;
+            Finalize.ModuleHandle = IntPtr.Zero;
         }
     }
 
-    public static string GetVersion()
+    public static string? GetVersion()
     {
+        if (Utils.IsLinux)
+            return null;
+
         try
         {
-            var fullHasherexepath = Assembly.GetEntryAssembly().Location;
-            var fi = new FileInfo(fullHasherexepath);
-            fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
+            var dllPath = Assembly.GetEntryAssembly()!.Location;
+            var fi = new FileInfo(dllPath);
+            dllPath = Path.Combine(fi.Directory!.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
 
-            if (!File.Exists(fullHasherexepath)) return null;
+            if (!File.Exists(dllPath)) return null;
 
-            var fvi = FileVersionInfo.GetVersionInfo(fullHasherexepath);
-            return $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({fullHasherexepath})";
+            var fvi = FileVersionInfo.GetVersionInfo(dllPath);
+            return $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({dllPath})";
         }
         catch
         {
@@ -96,13 +104,11 @@ public class Hasher
 
     public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
     {
-        var rhash = new Hashes();
-        if (Finalise.ModuleHandle == IntPtr.Zero && !Utils.IsLinux)
-            return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
+        var hashes = new Hashes();
+        if (Finalize.ModuleHandle == IntPtr.Zero && !Utils.IsLinux)
+            return CalculateHashesSlow(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
 
-        var hash = new byte[56];
         var gotHash = false;
-        var rval = -1;
         try
         {
             var filename = strPath;
@@ -114,160 +120,98 @@ public class Hasher
             }
 
             var (e2Dk, crc32, md5, sha1) = NativeHasher.GetHash(filename, getCRC32, getMD5, getSHA1);
-            rhash.ED2K = e2Dk;
-            if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
-            if (getCRC32) rhash.CRC32 = crc32;
-            if (getMD5) rhash.MD5 = md5;
-            if (getSHA1) rhash.SHA1 = sha1;
+            hashes.ED2K = e2Dk;
+            if (!string.IsNullOrEmpty(hashes.ED2K))
+                gotHash = true;
+            if (getCRC32)
+                hashes.CRC32 = crc32;
+            if (getMD5)
+                hashes.MD5 = md5;
+            if (getSHA1)
+                hashes.SHA1 = sha1;
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
         }
 
-        if (gotHash) return rhash;
+        if (gotHash)
+            return hashes;
 
-        logger.Error("Error using DLL to get hash (Functon returned {0}), trying C# code instead: {0}", rval,
-            strPath);
+        logger.Error("Error using DLL to get hash, trying C# code instead: {0}", strPath);
 
-        return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
+        return CalculateHashesSlow(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
     }
 
-    public static Hashes CalculateHashes_here(string strPath, OnHashProgress onHashProgress, bool getCRC32,
-        bool getMD5,
-        bool getSHA1)
+    private const int ChunkSize = 9728000;
+
+    private static Hashes CalculateHashesSlow(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
     {
-        var getED2k = true;
-        logger.Trace("Using C# code to has file: {0}", strPath);
-
-        FileStream fs;
-        var rhash = new Hashes();
-        var fi = new FileInfo(strPath);
-        fs = fi.OpenRead();
-        var lChunkSize = 9728000;
-
-        var nBytes = fs.Length;
-
-        var nBytesRemaining = fs.Length;
-        var nBytesToRead = 0;
-
-        var nBlocks = nBytes / lChunkSize;
-        var nRemainder = nBytes % lChunkSize; //mod
-        if (nRemainder > 0)
-        {
-            nBlocks++;
-        }
-
-        var baED2KHash = new byte[16 * nBlocks];
-
-        if (nBytes > lChunkSize)
-        {
-            nBytesToRead = lChunkSize;
-        }
-        else
-        {
-            nBytesToRead = (int)nBytesRemaining;
-        }
+        logger.Trace("Using C# code to hash file: {0}", strPath);
 
         onHashProgress?.Invoke(strPath, 0);
 
+        var hashes = new Hashes();
+        var stream = File.OpenRead(strPath);
         var md4 = MD4.Create();
-        var md5 = MD5.Create();
-        var sha1 = SHA1.Create();
-        var crc32 = new Crc32();
+        var md5 = getMD5 ? MD5.Create() : null;
+        var sha1 = getSHA1 ? SHA1.Create() : null;
+        var crc32 = getCRC32 ? new Crc32() : null;
+        var totalBytes = stream.Length;
+        var numberOfBlocks = (int)Math.DivRem(totalBytes, ChunkSize, out var remainder);
+        if (remainder > 0)
+            numberOfBlocks++;
 
-        var ByteArray = new byte[nBytesToRead];
-
-        long iOffSet = 0;
-        long iChunkCount = 0;
-        while (nBytesRemaining > 0)
+        var bytesRemaining = stream.Length;
+        var bytesToRead = totalBytes > ChunkSize
+            ? ChunkSize
+            : (int)bytesRemaining;
+        var ed2kHash = new byte[16 * numberOfBlocks];
+        var workBuffer = new byte[bytesToRead];
+        var byteOffset = 0L;
+        var chunkCount = 0L;
+        while (bytesRemaining > 0)
         {
-            iChunkCount++;
+            chunkCount++;
 
-            //logger.Trace("Hashing Chunk: " + iChunkCount.ToString());
+            logger.Trace("Hashing Chunk: " + chunkCount.ToString());
 
-            var nBytesRead = fs.Read(ByteArray, 0, nBytesToRead);
+            var bytesRead = stream.Read(workBuffer, 0, bytesToRead);
+            var md4Hash = md4.ComputeHash(workBuffer, 0, bytesRead);
+            var chunkOffset = (int)((chunkCount - 1) * 16);
+            for (var index = 0; index < 16; index++)
+                ed2kHash[chunkOffset + index] = md4Hash[index];
 
-            if (getED2k)
-            {
-                var baHash = md4.ComputeHash(ByteArray, 0, nBytesRead);
-                var j = (int)((iChunkCount - 1) * 16);
-                for (var i = 0; i < 16; i++)
-                {
-                    baED2KHash[j + i] = baHash[i];
-                }
-            }
+            md5?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
+            sha1?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
+            crc32?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
 
-            if (getMD5)
-            {
-                md5.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
-            }
-
-            if (getSHA1)
-            {
-                sha1.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
-            }
-
-            if (getCRC32)
-            {
-                crc32.TransformBlock(ByteArray, 0, nBytesRead, ByteArray, 0);
-            }
-
-            var percentComplete = (int)(iChunkCount / (float)nBlocks * 100);
+            var percentComplete = (int)(chunkCount / (float)numberOfBlocks * 100);
             onHashProgress?.Invoke(strPath, percentComplete);
 
-            iOffSet += lChunkSize;
-            nBytesRemaining = nBytes - iOffSet;
-            if (nBytesRemaining < lChunkSize)
-            {
-                nBytesToRead = (int)nBytesRemaining;
-            }
+            byteOffset += ChunkSize;
+            bytesRemaining = totalBytes - byteOffset;
+            if (bytesRemaining < ChunkSize)
+                bytesToRead = (int)bytesRemaining;
         }
 
-        if (getMD5)
-        {
-            md5.TransformFinalBlock(ByteArray, 0, 0);
-        }
+        md5?.TransformFinalBlock(workBuffer, 0, 0);
+        sha1?.TransformFinalBlock(workBuffer, 0, 0);
+        crc32?.TransformFinalBlock(workBuffer, 0, 0);
 
-        if (getSHA1)
-        {
-            sha1.TransformFinalBlock(ByteArray, 0, 0);
-        }
-
-        if (getCRC32)
-        {
-            crc32.TransformFinalBlock(ByteArray, 0, 0);
-        }
-
-
-        fs.Close();
+        stream.Close();
 
         onHashProgress?.Invoke(strPath, 100);
 
-        if (getED2k)
-        {
-            //byte[] baHashFinal = md4.ComputeHash(baED2KHash);
-            //rhash.ed2k = BitConverter.ToString(baHashFinal).Replace("-", string.Empty).ToUpper();
-            rhash.ED2K = nBlocks > 1
-                ? BitConverter.ToString(md4.ComputeHash(baED2KHash)).Replace("-", string.Empty).ToUpper()
-                : BitConverter.ToString(baED2KHash).Replace("-", string.Empty).ToUpper();
-        }
-
-        if (getCRC32)
-        {
-            rhash.CRC32 = BitConverter.ToString(crc32.Hash).Replace("-", string.Empty).ToUpper();
-        }
-
-        if (getMD5)
-        {
-            rhash.MD5 = BitConverter.ToString(md5.Hash).Replace("-", string.Empty).ToUpper();
-        }
-
-        if (getSHA1)
-        {
-            rhash.SHA1 = BitConverter.ToString(sha1.Hash).Replace("-", string.Empty).ToUpper();
-        }
-
-        return rhash;
+        hashes.ED2K = numberOfBlocks > 1
+            ? BitConverter.ToString(md4.ComputeHash(ed2kHash)).Replace("-", string.Empty).ToUpper()
+            : BitConverter.ToString(ed2kHash).Replace("-", string.Empty).ToUpper();
+        if (crc32 is not null)
+            hashes.CRC32 = BitConverter.ToString(crc32.Hash!).Replace("-", string.Empty).ToUpper();
+        if (md5 is not null)
+            hashes.MD5 = BitConverter.ToString(md5.Hash!).Replace("-", string.Empty).ToUpper();
+        if (sha1 is not null)
+            hashes.SHA1 = BitConverter.ToString(sha1.Hash!).Replace("-", string.Empty).ToUpper();
+        return hashes;
     }
 }
