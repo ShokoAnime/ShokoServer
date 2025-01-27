@@ -924,6 +924,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(148, 01, "ALTER TABLE `AniDB_Character` ADD `Type` int NOT NULL DEFAULT 0;"),
         new(148, 02, "ALTER TABLE `AniDB_Character` ADD `LastUpdated` datetime NOT NULL DEFAULT '1970-01-01 00:00:00';"),
         new(148, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),
+        new(149, 1, MySQLFixUTF8MB4)
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -1441,6 +1442,48 @@ public class MySQL : BaseDatabase<MySqlConnection>
             "FROM information_schema.COLUMNS " +
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name != 'utf8mb4_unicode_ci'";
+
+        using (var conn = new MySqlConnection(
+                   $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
+        {
+            var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            conn.Open();
+            var rows = mySQL.ExecuteReader(conn, sql);
+            if (rows.Count > 0)
+            {
+                foreach (object[] row in rows)
+                {
+                    var alter = "";
+                    switch (row[3].ToString().ToLowerInvariant())
+                    {
+                        case "text":
+                        case "mediumtext":
+                        case "tinytext":
+                        case "longtext":
+                            alter =
+                                $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]} CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                            break;
+
+                        default:
+                            alter =
+                                $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]}({row[4]}) CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                            break;
+                    }
+
+                    mySQL.ExecuteCommand(conn, alter);
+                }
+            }
+        }
+    }
+
+    private static void MySQLFixUTF8MB4()
+    {
+        var settings = Utils.SettingsProvider.GetSettings();
+        var sql =
+            "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
+            "FROM information_schema.COLUMNS " +
+            $"WHERE table_schema = '{settings.Database.Schema}' " +
+            "AND collation_name = 'utf8_general_ci'";
 
         using (var conn = new MySqlConnection(
                    $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
