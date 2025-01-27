@@ -2191,12 +2191,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         var skipDiskSpaceChecks = _settingsProvider.GetSettings().Import.SkipDiskSpaceChecks;
         foreach (var ep in allEps)
         {
+            var videoList = ep.VideoList;
             // check if this episode belongs to more than one anime
             // if it does, we will ignore it
-            if (args.Series.Count > 1 && args.Series.Count(s => s.Episodes.Any(e => e.AnidbEpisodeID == ep.ID)) > 1)
+            if (videoList.SelectMany(v => v.Series).DistinctBy(s => s.AnidbAnimeID).Count() > 1)
                 continue;
 
-            foreach (var vid in ep.VideoList)
+            foreach (var vid in videoList)
             {
                 if (vid.Hashes.ED2K == args.File.Video.Hashes.ED2K) continue;
 
