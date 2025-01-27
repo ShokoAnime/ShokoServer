@@ -924,7 +924,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(148, 01, "ALTER TABLE `AniDB_Character` ADD `Type` int NOT NULL DEFAULT 0;"),
         new(148, 02, "ALTER TABLE `AniDB_Character` ADD `LastUpdated` datetime NOT NULL DEFAULT '1970-01-01 00:00:00';"),
         new(148, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),
-        new(149, 1, MySQLFixUTF8MB4)
+        new(149, 1, MySQLFixUTF8MB4),
+        new(149, 2, SetDefaultCollationToUTF8MB4),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -1476,45 +1477,56 @@ public class MySQL : BaseDatabase<MySqlConnection>
         }
     }
 
-    private static void MySQLFixUTF8MB4()
+    private static Tuple<bool, string> MySQLFixUTF8MB4(object connection)
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var sql =
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
             $"WHERE table_schema = '{settings.Database.Schema}' " +
-            "AND collation_name = 'utf8_general_ci'";
+            "AND collation_name IN ('utf8_general_ci', 'utf8mb3_general_ci')";
 
-        using (var conn = new MySqlConnection(
-                   $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
+        var conn = (MySqlConnection)connection;
+        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        conn.Open();
+        var rows = mySQL.ExecuteReader(conn, sql);
+        if (rows.Count > 0)
         {
-            var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-            conn.Open();
-            var rows = mySQL.ExecuteReader(conn, sql);
-            if (rows.Count > 0)
+            foreach (object[] row in rows)
             {
-                foreach (object[] row in rows)
+                var alter = "";
+                switch (row[3].ToString().ToLowerInvariant())
                 {
-                    var alter = "";
-                    switch (row[3].ToString().ToLowerInvariant())
-                    {
-                        case "text":
-                        case "mediumtext":
-                        case "tinytext":
-                        case "longtext":
-                            alter =
-                                $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]} CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
-                            break;
+                    case "text":
+                    case "mediumtext":
+                    case "tinytext":
+                    case "longtext":
+                        alter =
+                            $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]} CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                        break;
 
-                        default:
-                            alter =
-                                $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]}({row[4]}) CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
-                            break;
-                    }
-
-                    mySQL.ExecuteCommand(conn, alter);
+                    default:
+                        alter =
+                            $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]}({row[4]}) CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                        break;
                 }
+
+                mySQL.ExecuteCommand(conn, alter);
             }
         }
+        return new Tuple<bool, string>(true, null);
+    }
+
+    private static Tuple<bool, string> SetDefaultCollationToUTF8MB4(object connection)
+    {
+        var settings = Utils.SettingsProvider.GetSettings();
+
+        var conn = (MySqlConnection)connection;
+        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        conn.Open();
+
+        mySQL.Execute(conn, $"ALTER DATABASE {settings.Database.Schema} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+        
+        return new Tuple<bool, string>(true, null);
     }
 }
