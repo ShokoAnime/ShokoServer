@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 148;
+    public override int RequiredVersion { get; } = 149;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
