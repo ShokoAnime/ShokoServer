@@ -35,4 +35,58 @@ public class RelocationService : IRelocationService
     {
         return folder.ID == file.ImportFolderID || folder.AvailableFreeSpace >= file.Size;
     }
+
+    public (IImportFolder ImportFolder, string RelativePath)? GetExistingSeriesLocationWithSpace(RelocationEventArgs args)
+    {
+        var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
+        if (series is null)
+            return null;
+
+        // sort the episodes by air date, so that we will move the file to the location of the latest episode
+        var allEps = series.Episodes
+            .OrderByDescending(a => a.AirDate ?? DateTime.MinValue)
+            .ToList();
+
+        var skipDiskSpaceChecks = _settingsProvider.GetSettings().Import.SkipDiskSpaceChecks;
+        foreach (var ep in allEps)
+        {
+            var videoList = ep.VideoList;
+            // check if this episode belongs to more than one anime
+            // if it does, we will ignore it
+            if (videoList.SelectMany(v => v.Series).DistinctBy(s => s.AnidbAnimeID).Count() > 1)
+                continue;
+
+            foreach (var vid in videoList)
+            {
+                if (vid.Hashes.ED2K == args.File.Video.Hashes.ED2K) continue;
+
+                var place = vid.Locations.FirstOrDefault(b =>
+                    // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+                    b.ImportFolder is not null &&
+                    !b.ImportFolder.DropFolderType.HasFlag(DropFolderType.Source) &&
+                    !string.IsNullOrWhiteSpace(b.RelativePath));
+                if (place is null) continue;
+
+                var placeFld = place.ImportFolder;
+                var placeRelativePath = Path.GetDirectoryName(place.RelativePath);
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+                if (placeRelativePath is null) continue;
+
+                // check space
+                if (!skipDiskSpaceChecks && !ImportFolderHasSpace(placeFld, args.File))
+                    continue;
+
+                var dstPath = Path.Combine(placeFld.Path, placeRelativePath);
+                if (!Directory.Exists(dstPath)) continue;
+
+                // ensure we aren't moving to the current directory
+                if (dstPath.Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
+                    continue;
+
+                return (placeFld, placeRelativePath);
+            }
+        }
+
+        return null;
+    }
 }

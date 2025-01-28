@@ -2177,59 +2177,18 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
     private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
-        var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
-        if (series is null)
-            return (null, "Series not found");
-        
-        
-        // TODO move this into the RelocationService
-        // sort the episodes by air date, so that we will move the file to the location of the latest episode
-        var allEps = series.Episodes
-            .OrderByDescending(a => a.AirDate ?? DateTime.MinValue)
-            .ToList();
+        if (_relocationService.GetExistingSeriesLocationWithSpace(args) is { } existingSeriesLocation)
+            return existingSeriesLocation;
 
-        var skipDiskSpaceChecks = _settingsProvider.GetSettings().Import.SkipDiskSpaceChecks;
-        foreach (var ep in allEps)
+        if (_relocationService.GetFirstDestinationWithSpace(args) is { } firstDestinationWithSpace)
         {
-            var videoList = ep.VideoList;
-            // check if this episode belongs to more than one anime
-            // if it does, we will ignore it
-            if (videoList.SelectMany(v => v.Series).DistinctBy(s => s.AnidbAnimeID).Count() > 1)
-                continue;
-
-            foreach (var vid in videoList)
-            {
-                if (vid.Hashes.ED2K == args.File.Video.Hashes.ED2K) continue;
-
-                var place = vid.Locations.FirstOrDefault(b =>
-                    !b.ImportFolder.DropFolderType.HasFlag(DropFolderType.Source) &&
-                    !string.IsNullOrWhiteSpace(b.RelativePath));
-                if (place is null) continue;
-
-                var placeFld = place.ImportFolder;
-                var placeRelativePath = Path.GetDirectoryName(place.RelativePath);
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (placeRelativePath is null || placeFld is null) continue;
-
-                // check space
-                if (!skipDiskSpaceChecks && !_relocationService.ImportFolderHasSpace(placeFld, args.File))
-                    continue;
-
-                var dstPath = Path.Combine(placeFld.Path, placeRelativePath);
-                if (!Directory.Exists(dstPath)) continue;
-
-                // ensure we aren't moving to the current directory
-                if (dstPath.Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
-                    continue;
-
-                return (placeFld, placeRelativePath);
-            }
+            var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
+            if (series is null)
+                return (null, "Series not found");
+            return (firstDestinationWithSpace, series.PreferredTitle.ReplaceInvalidPathCharacters());
         }
 
-        var dstImportFolder = _relocationService.GetFirstDestinationWithSpace(args);
-        return (dstImportFolder, dstImportFolder is null
-            ? "Unable to resolve a destination"
-            : series.PreferredTitle.ReplaceInvalidPathCharacters());
+        return (null, "Unable to resolve a destination");
     }
 
     private static (int Width, int Height) SplitVideoResolution(string resolution)
