@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,7 +13,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
-using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.Renamer;
 
@@ -22,13 +21,11 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 {
     private const string RENAMER_ID = "WebAOM";
     private readonly ILogger<WebAOMRenamer> _logger;
-    private readonly ISettingsProvider _settingsProvider;
     private readonly IRelocationService _relocationService;
 
-    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, ISettingsProvider settingsProviderProvider, IRelocationService relocationService)
+    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, IRelocationService relocationService)
     {
         _logger = logger;
-        _settingsProvider = settingsProviderProvider;
         _relocationService = relocationService;
     }
 
