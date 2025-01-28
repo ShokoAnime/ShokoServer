@@ -68,22 +68,19 @@ public class RelocationService : IRelocationService
                 if (place is null) continue;
 
                 var placeFld = place.ImportFolder;
-                var placeRelativePath = Path.GetDirectoryName(place.RelativePath);
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (placeRelativePath is null) continue;
 
                 // check space
                 if (!skipDiskSpaceChecks && !ImportFolderHasSpace(placeFld, args.File))
                     continue;
 
-                var dstPath = Path.Combine(placeFld.Path, placeRelativePath);
-                if (!Directory.Exists(dstPath)) continue;
-
+                var placeDir = Path.GetDirectoryName(place.Path);
+                if (placeDir is null)
+                    continue;
                 // ensure we aren't moving to the current directory
-                if (dstPath.Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
+                if (placeDir.Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
                     continue;
 
-                return (placeFld, placeRelativePath);
+                return (placeFld, Path.GetRelativePath(placeFld.Path, placeDir));
             }
         }
 
