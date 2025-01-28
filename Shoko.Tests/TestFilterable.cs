@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
+using Shoko.Server.Server;
 
 namespace Shoko.Tests;
 
@@ -49,4 +50,8 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> ImportFolderIDs { get; init; }
     public IReadOnlySet<string> ImportFolderNames { get; init; }
     public IReadOnlySet<string> FilePaths { get; init; }
+    public IReadOnlySet<string> CharacterIDs { get; init; }
+    public IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>> CharacterAppearances { get; init; }
+    public IReadOnlySet<string> CreatorIDs { get; init; }
+    public IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>> CreatorRoles { get; init; }
 }

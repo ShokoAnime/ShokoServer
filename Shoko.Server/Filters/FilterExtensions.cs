@@ -65,8 +65,8 @@ public static class FilterExtensions
                 series.GetPreferredImageTypes(),
             CharacterAppearancesDelegate = () =>
                 RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID)
-                    .GroupBy(a => a.Appearance)
-                    .ToDictionary(a => a.Key, a => a.Select(b => b.CharacterID.ToString()).ToHashSet()) as IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>>,
+                    .GroupBy(a => a.AppearanceType)
+                    .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CharacterID.ToString()).ToHashSet()),
             CharacterIDsDelegate = () =>
                 RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID)
                     .Select(a => a.CharacterID.ToString())
@@ -79,7 +79,7 @@ public static class FilterExtensions
                 RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => (a.RoleType, a.CreatorID))
                     .Concat(RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID).Select(a => (RoleType: CreatorRoleType.Actor, a.CreatorID)))
                     .GroupBy(a => a.RoleType)
-                    .ToDictionary(a => a.Key, a => a.Select(b => b.CreatorID.ToString()).ToHashSet()) as IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>>,
+                    .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
                 series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
             HasMissingTmdbLinkDelegate = () =>
@@ -238,10 +238,10 @@ public static class FilterExtensions
                     .ToHashSet(),
             CharacterAppearancesDelegate = () =>
                 series.SelectMany(ser => RepoFactory.AniDB_Anime_Character.GetByAnimeID(ser.AniDB_ID))
-                    .DistinctBy(a => (a.Appearance, a.CharacterID))
-                    .Select(a => (a.Appearance, a.CharacterID))
-                    .GroupBy(a => a.Appearance)
-                    .ToDictionary(a => a.Key, a => a.Select(b => b.CharacterID.ToString()).ToHashSet()) as IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>>,
+                    .DistinctBy(a => (a.AppearanceType, a.CharacterID))
+                    .Select(a => (a.AppearanceType, a.CharacterID))
+                    .GroupBy(a => a.AppearanceType)
+                    .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CharacterID.ToString()).ToHashSet()),
             CreatorIDsDelegate = () =>
                 series.SelectMany(ser => RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(ser.AniDB_ID))
                     .Select(a => a.CreatorID.ToString())
@@ -257,7 +257,7 @@ public static class FilterExtensions
                             .Select(a => (RoleType: CreatorRoleType.Actor, a.CreatorID)))
                     )
                     .GroupBy(a => a.RoleType)
-                    .ToDictionary(a => a.Key, a => a.Select(b => b.CreatorID.ToString()).ToHashSet()) as IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>>,
+                    .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
                 series.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0),
             HasMissingTmdbLinkDelegate = () =>

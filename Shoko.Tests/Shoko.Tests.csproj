@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Shoko.Server\Shoko.Server.csproj" />
+    <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
   </ItemGroup>
 
 </Project>
