@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Client;
-using Shoko.Models.MediaInfo;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;

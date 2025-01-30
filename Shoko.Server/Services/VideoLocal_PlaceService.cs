@@ -11,7 +11,6 @@ using Polly;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;

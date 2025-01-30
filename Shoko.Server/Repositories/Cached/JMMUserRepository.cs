@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NLog;
-using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 

@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Newtonsoft.Json;
-using Shoko.Models.Enums;
 
 namespace Shoko.Server.Settings;
 

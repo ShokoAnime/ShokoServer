@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server.API.v3.Models.Common;

@@ -1,7 +1,6 @@
 ﻿using System;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Trakt;

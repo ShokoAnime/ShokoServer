@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.MediaInfo;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 
 #nullable enable

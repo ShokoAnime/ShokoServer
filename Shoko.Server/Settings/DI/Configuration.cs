@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings.DI;

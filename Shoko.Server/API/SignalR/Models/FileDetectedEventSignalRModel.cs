@@ -1,4 +1,3 @@
-using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Events;
 
 #nullable enable

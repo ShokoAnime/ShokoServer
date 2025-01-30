@@ -2,7 +2,6 @@
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Mappings;
 

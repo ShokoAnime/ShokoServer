@@ -1,7 +1,5 @@
-using System;
 using System.IO;
 using System.Linq;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Events;

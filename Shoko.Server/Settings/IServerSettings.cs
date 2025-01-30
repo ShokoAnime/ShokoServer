@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Shoko.Models;
-using Shoko.Models.Enums;
 
 namespace Shoko.Server.Settings;
 

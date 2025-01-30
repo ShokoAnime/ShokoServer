@@ -8,7 +8,6 @@ using NHibernate;
 using NHibernate.Engine;
 using System.Globalization;
 using System.Collections;
-using NHibernate.Mapping;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Extensions;

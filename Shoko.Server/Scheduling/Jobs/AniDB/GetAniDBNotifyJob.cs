@@ -9,7 +9,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 

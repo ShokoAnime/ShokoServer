@@ -1,11 +1,7 @@
 using System;
 using System.Linq;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Shoko.Server.API;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Filters.Info;
 

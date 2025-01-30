@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;

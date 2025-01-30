@@ -3,7 +3,6 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Repositories.NHibernate;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;

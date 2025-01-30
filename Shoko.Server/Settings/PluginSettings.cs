@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Shoko.Plugin.Abstractions;
 
 namespace Shoko.Server.Settings;
 

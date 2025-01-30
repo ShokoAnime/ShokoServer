@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using NHibernate;
+﻿using NHibernate;
 
 namespace Shoko.Server.Databases;
 
