@@ -3,28 +3,28 @@ using System;
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 /// <summary>
-/// The rules that this Import Folder should adhere to. A folder that is both a Source and Destination cares not how files are moved in or out of it.
+/// How an <see cref="IImportFolder"/> is used in the rename/move system.
 /// </summary>
 [Flags]
 public enum DropFolderType
 {
     /// <summary>
-    /// None.
+    /// Excluded from use in the rename/move system.
     /// </summary>
     Excluded = 0,
 
     /// <summary>
-    /// Source.
+    /// A drop source in the rename/move system.
     /// </summary>
     Source = 1,
 
     /// <summary>
-    /// Destination.
+    /// A drop destination in the rename/move system.
     /// </summary>
     Destination = 2,
 
     /// <summary>
-    /// Both Source and Destination.
+    /// A drop source and destination in the rename/move system.
     /// </summary>
     Both = Source | Destination,
 }
