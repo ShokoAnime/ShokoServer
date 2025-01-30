@@ -16,7 +16,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Season Database Model.
 /// </summary>
-public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
+public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
 {
     #region Properties
 
@@ -290,7 +290,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
 
     #endregion
 
-    #region IEntityMetadata
+    #region IEntityMetadata Implementation
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Season;
 
@@ -303,6 +303,14 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     string? IEntityMetadata.OriginalLanguageCode => null;
 
     DateOnly? IEntityMetadata.ReleasedAt => null;
+
+    #endregion
+
+    #region IMetadata Implementation
+
+    int IMetadata<int>.ID => TmdbSeasonID;
+
+    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
 
     #endregion
 }

@@ -462,6 +462,14 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     #endregion
 
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+
+    #endregion
+
     #region IEpisode
 
     int IEpisode.SeriesID => TmdbShowID;

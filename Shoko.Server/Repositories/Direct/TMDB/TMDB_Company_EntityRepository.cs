@@ -23,6 +23,19 @@ public class TMDB_Company_EntityRepository : BaseDirectRepository<TMDB_Company_E
         });
     }
 
+    public IReadOnlyList<TMDB_Company_Entity> GetByTmdbEntityTypeAndCompanyID(ForeignEntityType entityType, int companyId)
+    {
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+            return session
+                .Query<TMDB_Company_Entity>()
+                .Where(a => a.TmdbCompanyID == companyId && a.TmdbEntityType == entityType)
+                .OrderBy(xref => xref.ReleasedAt ?? DateOnly.MaxValue)
+                .ToList();
+        });
+    }
+
     public IReadOnlyList<TMDB_Company_Entity> GetByTmdbEntityTypeAndID(ForeignEntityType entityType, int entityId)
     {
         return Lock(() =>

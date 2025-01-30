@@ -1,3 +1,5 @@
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -19,6 +21,9 @@ public class TMDB_Season_Crew : TMDB_Crew
     /// </summary>
     public int TmdbSeasonID { get; set; }
 
+    /// <inheritdoc/>
+    public override int TmdbParentID => TmdbSeasonID;
+
     /// <summary>
     /// Number of episodes within this season the crew member have worked on.
     /// </summary>
@@ -27,6 +32,13 @@ public class TMDB_Season_Crew : TMDB_Crew
     #endregion
 
     #region Methods
+
+    public TMDB_Season? GetTmdbSeason() =>
+        RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID);
+
+    public override IMetadata<int>? GetTmdbParent() =>
+        GetTmdbSeason();
+
 
     #endregion
 }

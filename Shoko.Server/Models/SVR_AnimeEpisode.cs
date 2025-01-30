@@ -6,7 +6,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
-using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
@@ -307,6 +306,40 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => (this as IShokoEpisode).LinkedEpisodes.SelectMany(ep => ep.Descriptions).ToList() is { Count: > 0 } titles
         ? titles
         : [new() { Source = DataSourceEnum.AniDB, Language = TitleLanguage.English, LanguageCode = "en", Value = string.Empty }];
+
+    #endregion
+
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast
+    {
+        get
+        {
+            var list = new List<ICast>();
+            if (AniDB_Episode is IEpisode anidbEpisode)
+                list.AddRange(anidbEpisode.Cast);
+            foreach (var movie in TmdbMovies)
+                list.AddRange(movie.Cast);
+            foreach (var episode in TmdbEpisodes)
+                list.AddRange(episode.Cast);
+            return list;
+        }
+    }
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew
+    {
+        get
+        {
+            var list = new List<ICrew>();
+            if (AniDB_Episode is IEpisode anidbEpisode)
+                list.AddRange(anidbEpisode.Crew);
+            foreach (var movie in TmdbMovies)
+                list.AddRange(movie.Crew);
+            foreach (var episode in TmdbEpisodes)
+                list.AddRange(episode.Crew);
+            return list;
+        }
+    }
 
     #endregion
 

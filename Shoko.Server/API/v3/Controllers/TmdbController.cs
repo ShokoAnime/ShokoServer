@@ -326,7 +326,7 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.GetTmdbCompanies()
+        return movie.TmdbCompanies
             .Select(company => new Studio(company))
             .ToList();
     }

@@ -397,6 +397,60 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #endregion
 
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+        .SelectMany(xref =>
+        {
+            // We don't want organizations or borked cross-references to show up.
+            var character = xref.Character;
+            if (character is not { Type: not Server.CharacterType.Organization })
+                return [];
+
+            // If a role don't have a creator then we still want it to show up.
+            var creatorXrefs = xref.CreatorCrossReferences;
+            if (creatorXrefs is { Count: 0 })
+                return [new AniDB_Cast(xref, character, null, () => this)];
+
+            return creatorXrefs
+                .Select(x => new AniDB_Cast(xref, character, x.CreatorID, () => this));
+        })
+        .ToList();
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AnimeID)
+        .Select(xref =>
+        {
+            // Hide studio and actor roles from crew members. Actors should show up as cast, and studios as studios.
+            if (xref is { RoleType: Server.CreatorRoleType.Studio or Server.CreatorRoleType.Actor })
+                return null;
+
+            return new AniDB_Crew(xref, () => this);
+        })
+        .WhereNotNull()
+        .ToList();
+
+    #endregion
+
+    #region IWithStudios Implementation
+
+    IReadOnlyList<IStudio> IWithStudios.Studios => RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AnimeID)
+        .Select(xref =>
+        {
+            // We only want the studio roles to mapped as studios.
+            if (xref is { RoleType: not Server.CreatorRoleType.Studio })
+                return null;
+
+            // Hide broken cross-references and non-companies.
+            if (xref.Creator is not { Type: Providers.AniDB.CreatorType.Company } creator)
+                return null;
+
+            return new AniDB_Studio(xref, creator, this);
+        })
+        .WhereNotNull()
+        .ToList();
+
+    #endregion
+
     #region ISeries Implementation
 
     AnimeType ISeries.Type => AbstractAnimeType;

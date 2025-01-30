@@ -1,17 +1,22 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Server;
+
+using ImageEntityType = Shoko.Plugin.Abstractions.Enums.ImageEntityType;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -120,6 +125,31 @@ public class GetAniDBCreatorJob : BaseJob
                 c.ImageID = creator.CreatorID;
             });
         }
+
+        var rolesToUpdate = new List<AniDB_Anime_Staff>();
+        var roles = RepoFactory.AniDB_Anime_Staff.GetByCreatorID(creator.CreatorID);
+        foreach (var role in roles)
+        {
+            var roleType = role.Role switch
+            {
+                "Animation Work" when creator.Type is CreatorType.Company => CreatorRoleType.Studio,
+                "Work" when creator.Type is CreatorType.Company => CreatorRoleType.Studio,
+                "Original Work" => CreatorRoleType.SourceWork,
+                "Music" => CreatorRoleType.Music,
+                "Character Design" => CreatorRoleType.CharacterDesign,
+                "Direction" => CreatorRoleType.Director,
+                "Series Composition" => CreatorRoleType.SeriesComposer,
+                "Chief Animation Direction" => CreatorRoleType.Producer,
+                _ => CreatorRoleType.Staff
+            };
+            if (role.RoleType != roleType)
+            {
+                role.RoleType = roleType;
+                rolesToUpdate.Add(role);
+            }
+        }
+
+        RepoFactory.AniDB_Anime_Staff.Save(rolesToUpdate);
     }
 
     public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory)

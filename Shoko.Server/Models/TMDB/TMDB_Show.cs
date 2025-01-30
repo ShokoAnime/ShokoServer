@@ -391,6 +391,16 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             .ToList();
 
     /// <summary>
+    /// Get all TMDB studios linked to the show.
+    /// </summary>
+    /// <returns>All TMDB studios linked to the show.</returns>
+    public IReadOnlyList<TMDB_Studio<TMDB_Show>> TmdbStudios =>
+        TmdbCompanyCrossReferences
+            .Select(xref => xref.GetTmdbCompany() is { } company ? new TMDB_Studio<TMDB_Show>(company, this) : null)
+            .WhereNotNull()
+            .ToList();
+
+    /// <summary>
     /// Get all TMDB network cross-references linked to the show.
     /// </summary>
     /// <returns>All TMDB network cross-references linked to the show.</returns>
@@ -430,7 +440,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 };
             })
             .OrderBy(crew => crew.Ordering)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
 
     /// <summary>
@@ -456,8 +466,8 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 };
             })
             .OrderBy(crew => crew.Department)
-            .OrderBy(crew => crew.Job)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.Job)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
 
     /// <summary>
@@ -579,6 +589,20 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
 
     IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+
+    #endregion
+
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+
+    #endregion
+
+    #region IWithStudios Implementation
+
+    IReadOnlyList<IStudio> IWithStudios.Studios => TmdbStudios;
 
     #endregion
 

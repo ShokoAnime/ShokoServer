@@ -16,7 +16,7 @@ public interface IMetadata
 /// <summary>
 /// Base metadata interface with an ID.
 /// </summary>
-public interface IMetadata<TId> : IMetadata where TId : struct
+public interface IMetadata<TId> : IMetadata
 {
     /// <summary>
     /// The ID of the metadata.

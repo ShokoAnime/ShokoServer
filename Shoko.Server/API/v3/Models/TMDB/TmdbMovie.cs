@@ -205,7 +205,7 @@ public class TmdbMovie
                 .Select(contentRating => new ContentRating(contentRating))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Studios))
-            Studios = movie.GetTmdbCompanies()
+            Studios = movie.TmdbCompanies
                 .Select(company => new Studio(company))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))

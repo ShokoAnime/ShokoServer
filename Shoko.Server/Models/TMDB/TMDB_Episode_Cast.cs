@@ -1,3 +1,5 @@
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -5,7 +7,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// Cast member for an episode.
 /// </summary>
-public class TMDB_Episode_Cast : TMDB_Cast
+public class TMDB_Episode_Cast : TMDB_Cast, ICast<IEpisode>
 {
     #region Properties
 
@@ -29,6 +31,9 @@ public class TMDB_Episode_Cast : TMDB_Cast
     /// </summary>
     public int TmdbEpisodeID { get; set; }
 
+    /// <inheritdoc />
+    public override int TmdbParentID => TmdbEpisodeID;
+
     /// <summary>
     /// Indicates the role is not a recurring role within the season.
     /// </summary>
@@ -37,6 +42,18 @@ public class TMDB_Episode_Cast : TMDB_Cast
     #endregion
 
     #region Methods
+
+    public TMDB_Episode? GetTmdbEpisode() =>
+        RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+
+    public override IMetadata<int>? GetTmdbParent() =>
+        GetTmdbEpisode();
+
+    #endregion
+
+    #region ICast Implementation
+
+    IEpisode? ICast<IEpisode>.ParentOfType => GetTmdbEpisode();
 
     #endregion
 }

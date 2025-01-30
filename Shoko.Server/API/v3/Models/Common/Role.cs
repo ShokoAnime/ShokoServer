@@ -1,11 +1,10 @@
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Shoko.Models.Server;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
@@ -93,7 +92,8 @@ public class Role
 
     public Role(TMDB_Movie_Cast cast)
     {
-        var person = cast.GetTmdbPerson();
+        var person = cast.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
         var personImages = person.GetImages();
         Character = new()
         {
@@ -113,7 +113,8 @@ public class Role
 
     public Role(TMDB_Show_Cast cast)
     {
-        var person = cast.GetTmdbPerson();
+        var person = cast.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
         var personImages = person.GetImages();
         Character = new()
         {
@@ -133,7 +134,8 @@ public class Role
 
     public Role(TMDB_Season_Cast cast)
     {
-        var person = cast.GetTmdbPerson();
+        var person = cast.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
         var personImages = person.GetImages();
         Character = new()
         {
@@ -153,7 +155,8 @@ public class Role
 
     public Role(TMDB_Episode_Cast cast)
     {
-        var person = cast.GetTmdbPerson();
+        var person = cast.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
         var personImages = person.GetImages();
         Character = new()
         {
@@ -173,10 +176,12 @@ public class Role
 
     public Role(TMDB_Movie_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
@@ -188,7 +193,8 @@ public class Role
 
     public Role(TMDB_Show_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {
@@ -204,7 +210,8 @@ public class Role
 
     public Role(TMDB_Season_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {
@@ -220,7 +227,8 @@ public class Role
 
     public Role(TMDB_Episode_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {

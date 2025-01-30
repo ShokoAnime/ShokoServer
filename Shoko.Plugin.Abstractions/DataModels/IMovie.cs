@@ -7,7 +7,7 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 /// <summary>
 /// Movie metadata.
 /// </summary>
-public interface IMovie : IWithTitles, IWithDescriptions, IWithImages, IMetadata<int>
+public interface IMovie : IWithTitles, IWithDescriptions, IWithImages, IWithCastAndCrew, IWithStudios, IMetadata<int>
 {
     /// <summary>
     /// The shoko series ID, if we have any.

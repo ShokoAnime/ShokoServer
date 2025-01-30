@@ -271,6 +271,7 @@ public enum CreatorType
     Person = 1,
     Company = 2,
     Collaboration = 3,
+    Other = 4,
 }
 
 /// <summary>

@@ -392,9 +392,19 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Get all TMDB companies linked to the movie.
     /// </summary>
     /// <returns>All TMDB companies linked to the movie.</returns>
-    public IReadOnlyList<TMDB_Company> GetTmdbCompanies() =>
+    public IReadOnlyList<TMDB_Company> TmdbCompanies =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany())
+            .WhereNotNull()
+            .ToList();
+
+    /// <summary>
+    /// Get all TMDB studios linked to the movie.
+    /// </summary>
+    /// <returns>All TMDB studios linked to the movie.</returns>
+    public IReadOnlyList<TMDB_Studio<TMDB_Movie>> TmdbStudios =>
+        TmdbCompanyCrossReferences
+            .Select(xref => xref.GetTmdbCompany() is { } company ? new TMDB_Studio<TMDB_Movie>(company, this) : null)
             .WhereNotNull()
             .ToList();
 
@@ -504,6 +514,20 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
 
     IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+
+    #endregion
+
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+
+    #endregion
+
+    #region IWithStudios Implementation
+
+    IReadOnlyList<IStudio> IWithStudios.Studios => TmdbStudios;
 
     #endregion
 

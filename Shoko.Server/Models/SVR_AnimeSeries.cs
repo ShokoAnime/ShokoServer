@@ -603,7 +603,56 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #endregion
 
-    #region IWithImages Implementation
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast
+    {
+        get
+        {
+            var list = new List<ICast>();
+            if (AniDB_Anime is ISeries anidbAnime)
+                list.AddRange(anidbAnime.Cast);
+            foreach (var movie in TmdbMovies)
+                list.AddRange(movie.Cast);
+            foreach (var show in TmdbShows)
+                list.AddRange(show.Cast);
+            return list;
+        }
+    }
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew
+    {
+        get
+        {
+            var list = new List<ICrew>();
+            if (AniDB_Anime is ISeries anidbAnime)
+                list.AddRange(anidbAnime.Crew);
+            foreach (var movie in TmdbMovies)
+                list.AddRange(movie.Crew);
+            foreach (var show in TmdbShows)
+                list.AddRange(show.Crew);
+            return list;
+        }
+    }
+
+    #endregion
+
+    #region IWithStudios Implementation
+
+    IReadOnlyList<IStudio> IWithStudios.Studios
+    {
+        get
+        {
+            var list = new List<IStudio>();
+            if (AniDB_Anime is ISeries anidbAnime)
+                list.AddRange(anidbAnime.Studios);
+            foreach (var movie in TmdbMovies)
+                list.AddRange(movie.TmdbStudios);
+            foreach (var show in TmdbShows)
+                list.AddRange(show.TmdbStudios);
+            return list;
+        }
+    }
 
     #endregion
 

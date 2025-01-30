@@ -1,4 +1,3 @@
-using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 #nullable enable
