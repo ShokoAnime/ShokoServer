@@ -14,14 +14,14 @@ public class TMDBSettings
     /// <summary>
     /// Automagically link AniDB anime to TMDB shows and movies.
     /// </summary>
-    public bool AutoLink { get; set; } = false;
+    public bool AutoLink { get; set; } = true;
 
     /// <summary>
     /// Automagically link restricted AniDB anime to TMDB shows and movies.
     /// <see cref="AutoLink"/> also needs to be set for this setting to take
     /// effect.
     /// </summary>
-    public bool AutoLinkRestricted { get; set; } = false;
+    public bool AutoLinkRestricted { get; set; } = true;
 
     /// <summary>
     /// Determines whether to consider existing cross-reference links to other
