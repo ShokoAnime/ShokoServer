@@ -720,7 +720,7 @@ public partial class TmdbController : BaseController
 
     [HttpGet("Movie/Collection")]
     public ActionResult<ListResult<TmdbMovie.Collection>> GetMovieCollections(
-        [FromRoute] string search,
+        [FromQuery] string search,
         [FromQuery] bool fuzzy = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.Collection.IncludeDetails>? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
