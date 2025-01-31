@@ -499,7 +499,6 @@ public class FileController : BaseController
     /// Returns a file stream for the specified file ID.
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
-    /// <param name="filename">Can use this to select a specific place (if the name is different). This is mostly used as a hint for players</param>
     /// <param name="streamPositionScrobbling">If this is enabled, then the file is marked as watched when the stream reaches the end.
     /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
     /// The read-ahead buffer on the player would determine the required percentage to scrobble.</param>
@@ -507,9 +506,26 @@ public class FileController : BaseController
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream")]
     [HttpHead("{fileID}/Stream")]
+    public ActionResult GetFileStream([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool streamPositionScrobbling = false)
+        => GetFileStreamInternal(fileID, null, streamPositionScrobbling);
+
+    /// <summary>
+    /// Returns a file stream for the specified file ID.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="filename">Can use this to select a specific place (if the name is different). This is mostly used as a hint for players</param>
+    /// <param name="streamPositionScrobbling">If this is enabled, then the file is marked as watched when the stream reaches the end.
+    /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
+    /// The read-ahead buffer on the player would determine the required percentage to scrobble.</param>
+    /// <returns>A file stream for the specified file.</returns>
+    [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
     [HttpHead("{fileID}/StreamDirectory/{filename}")]
-    public ActionResult GetFileStream([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
+    public ActionResult GetFileStreamWithDirectory([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
+        => GetFileStreamInternal(fileID, filename, streamPositionScrobbling);
+
+    [NonAction]
+    public ActionResult GetFileStreamInternal(int fileID, string filename = null, bool streamPositionScrobbling = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
