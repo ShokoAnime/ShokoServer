@@ -1,26 +1,31 @@
-using System;
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Release;
 
 /// <summary>
 /// Release info with provider name and creation date attached.
 /// </summary>
-internal class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
+public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 {
-    /// <inheritdoc />
-    public string ProviderID { get; set; } = string.Empty;
-
     /// <inheritdoc />
     public ReleaseInfoWithProvider() { }
 
     /// <inheritdoc />
-    public ReleaseInfoWithProvider(ReleaseInfoWithProvider other) : base(other)
+    public ReleaseInfoWithProvider(ReleaseInfo releaseInfo, string providerID) : base(releaseInfo)
     {
-        ProviderID = other.ProviderID;
+        if (!string.IsNullOrEmpty(ProviderID))
+            ProviderID = providerID;
     }
 
+    /// <inheritdoc />
+    public ReleaseInfoWithProvider(IReleaseInfo releaseInfo) : base(releaseInfo) { }
+
     #region IReleaseInfo Implementation
+
+    string IReleaseInfo.ProviderID => ProviderID ?? string.Empty;
+
+    IHashes? IReleaseInfo.Hashes => Hashes;
 
     IReleaseGroup? IReleaseInfo.Group => Group;
 
