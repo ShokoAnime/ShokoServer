@@ -25,16 +25,17 @@ public interface IReleaseInfo
     /// An absolute URI for where to find the information, if available from the provider.
     /// Can be a http://, https:// or file:// URI.
     /// </summary>
-    public string? ProviderURI { get; set; }
+    string? ReleaseURI { get; }
 
     /// <summary>
-    /// Release revision number. Will be increased each time the <see cref="Group"/> releases a new version for the same release.
+    /// Release revision number. Might be increased each time the
+    /// <see cref="Group"/> releases a new version for the same release.
     /// The value is not guaranteed to be unique.
     /// </summary>
     int Revision { get; }
 
     /// <summary>
-    /// A comment about the release info.
+    /// Comment about the release info, if available from the provider.
     /// </summary>
     string? Comment { get; }
 
