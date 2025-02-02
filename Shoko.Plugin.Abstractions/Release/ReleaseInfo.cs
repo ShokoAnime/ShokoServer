@@ -15,10 +15,13 @@ public class ReleaseInfo
     /// </summary>
     public string? ID { get; set; }
 
+    /// <inheritdoc />
+    public string? ProviderID { get; set; }
+
     /// <summary>
     /// An URL for where to find the information online, if available from the provider.
     /// </summary>
-    public string? ProviderURI { get; set; }
+    public string? ReleaseURI { get; set; }
 
     /// <summary>
     /// Release revision number. Will be increased each time the <see cref="Group"/> releases a new version for the same release.
@@ -91,12 +94,33 @@ public class ReleaseInfo
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// Constructs a new <see cref="ReleaseInfo"/> instance from a
-    /// <see cref="IReleaseInfo"/>.
+    /// Constructs a new <see cref="ReleaseInfo"/> instance.
     /// </summary>
     public ReleaseInfo()
     {
         CreatedAt = DateTime.Now;
+    }
+
+    /// <summary>
+    /// Constructs a new <see cref="ReleaseInfo"/> instance from a
+    /// <see cref="ReleaseInfo"/>.
+    /// </summary>
+    /// <param name="info">The <see cref="IReleaseInfo"/> to construct from.</param>
+    public ReleaseInfo(ReleaseInfo info)
+    {
+        ID = info.ID;
+        Revision = info.Revision;
+        Comment = info.Comment;
+        OriginalFilename = info.OriginalFilename;
+        IsCensored = info.IsCensored;
+        Source = info.Source;
+        Group = info.Group is not null ? new(info.Group) : null;
+        Hashes = info.Hashes is not null ? new(info.Hashes) : null;
+        MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
+        CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
+        ReleasedAt = info.ReleasedAt;
+        LastUpdatedAt = info.LastUpdatedAt;
+        CreatedAt = info.CreatedAt;
     }
 
     /// <summary>
@@ -107,6 +131,7 @@ public class ReleaseInfo
     public ReleaseInfo(IReleaseInfo info)
     {
         ID = info.ID;
+        ProviderID = info.ProviderID;
         Revision = info.Revision;
         Comment = info.Comment;
         OriginalFilename = info.OriginalFilename;

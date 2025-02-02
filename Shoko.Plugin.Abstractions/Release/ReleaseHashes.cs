@@ -1,4 +1,5 @@
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.Release;
 
@@ -18,6 +19,17 @@ public class ReleaseHashes : IHashes
 
     /// <inheritdoc/>
     public string? SHA1 { get; set; }
+
+    /// <inheritdoc/>
+    public string? this[HashAlgorithmName algorithm]
+        => algorithm switch
+        {
+            HashAlgorithmName.ED2K => ED2K,
+            HashAlgorithmName.MD5 => MD5,
+            HashAlgorithmName.SHA1 => SHA1,
+            HashAlgorithmName.CRC32 => CRC,
+            _ => null,
+        };
 
     /// <summary>
     /// Creates a new instance of <see cref="ReleaseHashes"/>.

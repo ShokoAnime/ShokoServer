@@ -73,6 +73,7 @@ public class Startup
             services.AddSingleton<IApplicationPaths>(ApplicationPaths.Instance);
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, AbstractVideoService>();
+            services.AddSingleton<IVideoReleaseService, AbstractVideoReleaseService>();
             services.AddSingleton<IUserService, AbstractUserService>();
             services.AddSingleton<IUserDataService, AbstractUserDataService>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
