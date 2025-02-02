@@ -1,4 +1,3 @@
-using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.Release;
 
@@ -8,10 +7,10 @@ namespace Shoko.Plugin.Abstractions.Release;
 public class ReleaseGroup : IReleaseGroup
 {
     /// <inheritdoc />
-    public int ID { get; set; }
+    public string ID { get; set; } = string.Empty;
 
     /// <inheritdoc />
-    public DataSourceEnum Source { get; set; }
+    public string ProviderID { get; set; } = string.Empty;
 
     /// <inheritdoc />
     public string? Name { get; set; }
@@ -26,7 +25,7 @@ public class ReleaseGroup : IReleaseGroup
     public ReleaseGroup(IReleaseGroup group)
     {
         ID = group.ID;
-        Source = group.Source;
+        ProviderID = group.ProviderID;
         Name = group.Name;
         ShortName = group.ShortName;
     }

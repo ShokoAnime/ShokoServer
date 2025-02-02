@@ -62,6 +62,7 @@ public class RepoFactory
     public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File;
     public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File;
     public static CustomTagRepository CustomTag;
+    public static DatabaseReleaseInfoRepository DatabaseReleaseInfo;
     public static FileNameHashRepository FileNameHash;
     public static FilterPresetRepository FilterPreset;
     public static IgnoreAnimeRepository IgnoreAnime;
@@ -146,6 +147,7 @@ public class RepoFactory
         CrossRef_Languages_AniDB_FileRepository crossRefLanguagesAniDBFile,
         CrossRef_Subtitles_AniDB_FileRepository crossRefSubtitlesAniDBFile,
         CustomTagRepository customTag,
+        DatabaseReleaseInfoRepository databaseReleaseInfo,
         FileNameHashRepository fileNameHash,
         FilterPresetRepository filterPreset,
         IgnoreAnimeRepository ignoreAnime,
@@ -230,6 +232,7 @@ public class RepoFactory
         CrossRef_Languages_AniDB_File = crossRefLanguagesAniDBFile;
         CrossRef_Subtitles_AniDB_File = crossRefSubtitlesAniDBFile;
         CustomTag = customTag;
+        DatabaseReleaseInfo = databaseReleaseInfo;
         FileNameHash = fileNameHash;
         FilterPreset = filterPreset;
         IgnoreAnime = ignoreAnime;
