@@ -18,11 +18,6 @@ public interface IReleaseVideoCrossReference
     int? AnidbAnimeID { get; }
 
     /// <summary>
-    /// Ordering position for multi-video releases.
-    /// </summary>
-    int Order { get; }
-
-    /// <summary>
     /// Where in the <see cref="AnidbEpisodeID"/> the video starts covering in 
     /// the range [0, 100], but must be less than <see cref="PercentageEnd"/>.
     /// </summary>
