@@ -87,6 +87,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<CrossRef_Languages_AniDB_FileRepository>();
         services.AddCachedRepository<CrossRef_Subtitles_AniDB_FileRepository>();
         services.AddCachedRepository<CustomTagRepository>();
+        services.AddCachedRepository<DatabaseReleaseInfoRepository>();
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();

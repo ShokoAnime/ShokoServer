@@ -29,8 +29,8 @@ public class ReleaseMediaInfo : IReleaseMediaInfo
     /// from.</param>
     public ReleaseMediaInfo(IReleaseMediaInfo info)
     {
-        AudioLanguages = new List<TitleLanguage>(info.AudioLanguages);
-        SubtitleLanguages = new List<TitleLanguage>(info.SubtitleLanguages);
+        AudioLanguages = [.. info.AudioLanguages];
+        SubtitleLanguages = [.. info.SubtitleLanguages];
     }
 
     #region IReleaseMediaInfo implementation
