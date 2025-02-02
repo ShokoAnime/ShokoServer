@@ -13,11 +13,11 @@ public class ReleaseInfoProviderInfo
     /// <summary>
     /// Whether or not the provider is enabled for automatic usage.
     /// </summary>
-    public required bool Enabled { get; init; }
+    public required bool Enabled { get; set; }
 
     /// <summary>
     /// The priority of the provider during automatic usage.
     /// </summary>
-    public required int Priority { get; init; }
+    public required int Priority { get; set; }
 }
 
