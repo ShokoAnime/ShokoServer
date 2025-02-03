@@ -12,9 +12,7 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
-using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.Renamer;
 
@@ -23,13 +21,11 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 {
     private const string RENAMER_ID = "WebAOM";
     private readonly ILogger<WebAOMRenamer> _logger;
-    private readonly ISettingsProvider _settingsProvider;
     private readonly IRelocationService _relocationService;
 
-    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, ISettingsProvider settingsProviderProvider, IRelocationService relocationService)
+    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, IRelocationService relocationService)
     {
         _logger = logger;
-        _settingsProvider = settingsProviderProvider;
         _relocationService = relocationService;
     }
 
@@ -490,7 +486,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 return false;
             }
 
-            var width = GetVideoWidth(vid.VideoResolution);
+            var width = SplitVideoResolution(vid.VideoResolution).Width;
 
             var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -528,21 +524,6 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private static int GetVideoWidth(string videoResolution)
-    {
-        var videoWidth = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 0)
-            {
-                int.TryParse(dimensions[0], out videoWidth);
-            }
-        }
-
-        return videoWidth;
-    }
-
     private bool EvaluateTestU(string test, SVR_VideoLocal vid)
     {
         try
@@ -560,7 +541,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 return false;
             }
 
-            var height = GetVideoHeight(vid.VideoResolution);
+            var height = SplitVideoResolution(vid.VideoResolution).Height;
 
             var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -598,20 +579,6 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private static int GetVideoHeight(string videoResolution)
-    {
-        var videoHeight = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 1)
-            {
-                int.TryParse(dimensions[1], out videoHeight);
-            }
-        }
-
-        return videoHeight;
-    }
 
     private bool EvaluateTestR(string test, SVR_AniDB_File aniFile)
     {
@@ -1498,7 +1465,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         if (string.IsNullOrEmpty(ext)) return (false, "Unable to get the file's extension"); // fail if we get a blank extension, something went wrong.
 
         // finally add back the extension
-        return (true, Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}"));
+        return (true, $"{newFileName.Replace("`", "'")}{ext}".ReplaceInvalidPathCharacters());
     }
 
     private (bool, string) PerformActionOnFileName(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
@@ -2183,7 +2150,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         else
         {
-            var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.PreferredTitle);
+            var groupName = group.PreferredTitle.ReplaceInvalidPathCharacters();
             path = Path.Combine(groupName, name);
         }
 
@@ -2207,85 +2174,35 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
     private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
-        // TODO make this only dependent on PluginAbstractions
-        var destFolder = _relocationService.GetFirstDestinationWithSpace(args);
+        if (_relocationService.GetExistingSeriesLocationWithSpace(args) is { } existingSeriesLocation)
+            return existingSeriesLocation;
 
-        var xrefs = args.Episodes;
-        if (xrefs.Count == 0)
+        if (_relocationService.GetFirstDestinationWithSpace(args) is { } firstDestinationWithSpace)
         {
-            return (null, "No xrefs");
+            var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
+            if (series is null)
+                return (null, "Series not found");
+            return (firstDestinationWithSpace, series.PreferredTitle.ReplaceInvalidPathCharacters());
         }
 
-        var xref = xrefs.FirstOrDefault();
-        if (xref == null)
-        {
-            return (null, "No xrefs");
-        }
+        return (null, "Unable to resolve a destination");
+    }
 
-        // find the series associated with this episode
-        if (xref.Series is not SVR_AnimeSeries series)
+    private static (int Width, int Height) SplitVideoResolution(string resolution)
+    {
+        var videoWidth = 0;
+        var videoHeight = 0;
+        if (resolution.Trim().Length > 0)
         {
-            return (null, "Series not Found");
-        }
-
-        // TODO move this into the RelocationService
-        // sort the episodes by air date, so that we will move the file to the location of the latest episode
-        var allEps = series.AllAnimeEpisodes
-            .OrderByDescending(a => a.AniDB_Episode?.AirDate ?? 0)
-            .ToList();
-
-        foreach (var ep in allEps)
-        {
-            // check if this episode belongs to more than one anime
-            // if it does, we will ignore it
-            var fileEpXrefs =
-                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
-            int? animeID = null;
-            var crossOver = false;
-            foreach (var fileEpXref in fileEpXrefs)
+            var dimensions = resolution.Split('x');
+            if (dimensions.Length > 1)
             {
-                if (!animeID.HasValue) animeID = fileEpXref.AnimeID;
-                else if (animeID.Value != fileEpXref.AnimeID) crossOver = true;
-            }
-
-            if (crossOver) continue;
-
-            var settings = _settingsProvider.GetSettings();
-            foreach (var vid in ep.VideoLocals.Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
-            {
-                if (vid.Hash == args.File.Video.Hashes.ED2K) continue;
-
-                var place = vid.Places.FirstOrDefault();
-                var thisFileName = place?.FilePath;
-                if (thisFileName == null) continue;
-
-                var folderName = Path.GetDirectoryName(thisFileName);
-
-                var dstImportFolder = place.ImportFolder;
-                if (dstImportFolder == null) continue;
-
-                // check space
-                if (!settings.Import.SkipDiskSpaceChecks && !_relocationService.ImportFolderHasSpace(dstImportFolder, args.File))
-                    continue;
-
-                if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName!))) continue;
-
-                // ensure we aren't moving to the current directory
-                if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(Path.GetDirectoryName(args.File.Path), StringComparison.InvariantCultureIgnoreCase))
-                    continue;
-
-                destFolder = place.ImportFolder;
-
-                return (destFolder, folderName);
+                int.TryParse(dimensions[0], out videoWidth);
+                int.TryParse(dimensions[1], out videoHeight);
             }
         }
 
-        if (destFolder == null)
-        {
-            return (null, "Unable to resolve a destination");
-        }
-
-        return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.PreferredTitle));
+        return (videoWidth, videoHeight);
     }
 
     public WebAOMSettings DefaultSettings => new()
