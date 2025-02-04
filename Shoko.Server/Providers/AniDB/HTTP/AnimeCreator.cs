@@ -119,12 +119,12 @@ public class AnimeCreator
             _logger.LogTrace("CreateResources in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            CreateRelations(response.Relations);
+            CreateRelations(response.Relations, anime.AnimeID);
             taskTimer.Stop();
             _logger.LogTrace("CreateRelations in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            CreateSimilarAnime(response.Similar);
+            CreateSimilarAnime(response.Similar, anime.AnimeID);
             taskTimer.Stop();
             _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -1426,24 +1426,24 @@ public class AnimeCreator
         RepoFactory.CrossRef_AniDB_MAL.Save(malLinks);
     }
 
-    private static void CreateRelations(List<ResponseRelation> rels)
+    private static void CreateRelations(List<ResponseRelation> relations, int animeID)
     {
-        if (rels == null) return;
-
-        var relsToSave = new List<SVR_AniDB_Anime_Relation>();
-        foreach (var rawrel in rels)
+        var existingRelations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeID)
+            .ToLookup(a => a.RelatedAnimeID);
+        var toSkip = new HashSet<int>();
+        var toSave = new List<SVR_AniDB_Anime_Relation>();
+        foreach (var raw in relations ?? [])
         {
-            if ((rawrel?.AnimeID ?? 0) <= 0 || rawrel.RelatedAnimeID <= 0)
-            {
+            if (raw.AnimeID != animeID || raw.RelatedAnimeID <= 0)
                 continue;
-            }
 
-            var animeRel =
-                RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(rawrel.AnimeID,
-                    rawrel.RelatedAnimeID) ?? new SVR_AniDB_Anime_Relation();
-            animeRel.AnimeID = rawrel.AnimeID;
-            animeRel.RelatedAnimeID = rawrel.RelatedAnimeID;
-            animeRel.RelationType = rawrel.RelationType switch
+            var relation = existingRelations.Contains(raw.RelatedAnimeID) ? existingRelations[raw.RelatedAnimeID].FirstOrDefault() : new();
+            if (relation.AniDB_Anime_RelationID is not 0)
+                toSkip.Add(relation.AniDB_Anime_RelationID);
+
+            relation.AnimeID = raw.AnimeID;
+            relation.RelatedAnimeID = raw.RelatedAnimeID;
+            relation.RelationType = raw.RelationType switch
             {
                 RelationType.Prequel => "prequel",
                 RelationType.Sequel => "sequel",
@@ -1458,36 +1458,46 @@ public class AnimeCreator
                 RelationType.SharedCharacters => "character",
                 _ => "other"
             };
-            relsToSave.Add(animeRel);
+            toSave.Add(relation);
         }
 
-        RepoFactory.AniDB_Anime_Relation.Save(relsToSave);
+        var toRemove = existingRelations
+            .SelectMany(l => l)
+            .ExceptBy(toSkip, r => r.AniDB_Anime_RelationID)
+            .ToList();
+        RepoFactory.AniDB_Anime_Relation.Delete(toRemove);
+        RepoFactory.AniDB_Anime_Relation.Save(toSave);
     }
 
-    private static void CreateSimilarAnime(List<ResponseSimilar> sims)
+    private static void CreateSimilarAnime(List<ResponseSimilar> similarList, int animeID)
     {
-        if (sims == null) return;
+        if (similarList == null) return;
 
-        var recsToSave = new List<AniDB_Anime_Similar>();
-
-        foreach (var rawsim in sims)
+        var existingSimilar = RepoFactory.AniDB_Anime_Similar.GetByAnimeID(animeID)
+            .ToLookup(a => a.SimilarAnimeID);
+        var toKeep = new HashSet<int>();
+        var toSave = new List<AniDB_Anime_Similar>();
+        foreach (var raw in similarList)
         {
-            var animeSim =
-                RepoFactory.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(rawsim.AnimeID, rawsim.SimilarAnimeID) ??
-                new AniDB_Anime_Similar();
-
-            if (rawsim.AnimeID <= 0 || rawsim.Approval < 0 || rawsim.SimilarAnimeID <= 0 || rawsim.Total < 0)
-            {
+            if (raw.AnimeID != animeID || raw.Approval < 0 || raw.SimilarAnimeID <= 0 || raw.Total < 0)
                 continue;
-            }
 
-            animeSim.AnimeID = rawsim.AnimeID;
-            animeSim.Approval = rawsim.Approval;
-            animeSim.Total = rawsim.Total;
-            animeSim.SimilarAnimeID = rawsim.SimilarAnimeID;
-            recsToSave.Add(animeSim);
+            var similar = existingSimilar.Contains(raw.SimilarAnimeID) ? existingSimilar[raw.SimilarAnimeID].FirstOrDefault() : new();
+            if (similar.AniDB_Anime_SimilarID is not 0)
+                toKeep.Add(similar.AniDB_Anime_SimilarID);
+
+            similar.AnimeID = raw.AnimeID;
+            similar.Approval = raw.Approval;
+            similar.Total = raw.Total;
+            similar.SimilarAnimeID = raw.SimilarAnimeID;
+            toSave.Add(similar);
         }
 
-        RepoFactory.AniDB_Anime_Similar.Save(recsToSave);
+        var toRemove = existingSimilar
+            .SelectMany(l => l)
+            .ExceptBy(toKeep, s => s.AniDB_Anime_SimilarID)
+            .ToList();
+        RepoFactory.AniDB_Anime_Similar.Delete(toRemove);
+        RepoFactory.AniDB_Anime_Similar.Save(toSave);
     }
 }
