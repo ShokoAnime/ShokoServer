@@ -34,6 +34,8 @@ public class DatabaseSettings
 
     public string Host { get; set; } = string.Empty;
 
+    public string OverrideConnectionString { get; set; } = string.Empty;
+
     [JsonIgnore]
     public int Port
     {

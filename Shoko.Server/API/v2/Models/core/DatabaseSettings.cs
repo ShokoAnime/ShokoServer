@@ -5,6 +5,8 @@ public class DatabaseSettings
     // case invariant, no spaces representation of db type
     public string db_type { get; set; }
 
+    public string override_connection_string { get; set; }
+
     public string sqlserver_databaseserver { get; set; }
 
     public string sqlserver_databasename { get; set; }

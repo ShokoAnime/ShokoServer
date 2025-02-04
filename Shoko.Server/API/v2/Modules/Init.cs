@@ -339,7 +339,8 @@ public class Init : BaseController
             sqlserver_databasename = _settings.Database.Schema,
             sqlserver_databaseserver = _settings.Database.Host,
             sqlserver_password = _settings.Database.Password,
-            sqlserver_username = _settings.Database.Username
+            sqlserver_username = _settings.Database.Username,
+            override_connection_string = _settings.Database.OverrideConnectionString
         };
 
         return settings;
@@ -374,6 +375,7 @@ public class Init : BaseController
             _settings.Database.Password = settings.mysql_password;
             _settings.Database.Schema = settings.mysql_schemaname;
             _settings.Database.Username = settings.mysql_username;
+            _settings.Database.OverrideConnectionString = settings.override_connection_string;
             return APIStatus.OK();
         }
         if (dbtype == Constants.DatabaseType.SqlServer)
@@ -394,6 +396,7 @@ public class Init : BaseController
             _settings.Database.Schema = settings.sqlserver_databasename;
             _settings.Database.Username = settings.sqlserver_username;
             _settings.Database.Password = settings.sqlserver_password;
+            _settings.Database.OverrideConnectionString = settings.override_connection_string;
             return APIStatus.OK();
         }
         if (dbtype == Constants.DatabaseType.Sqlite)
@@ -401,6 +404,7 @@ public class Init : BaseController
             _settings.Database.Type = dbtype;
             if (!string.IsNullOrEmpty(settings.sqlite_databasefile))
                 _settings.Database.SQLite_DatabaseFile = settings.sqlite_databasefile;
+            _settings.Database.OverrideConnectionString = settings.override_connection_string;
             return APIStatus.OK();
         }
         return APIStatus.BadRequest("An invalid setting was passed");

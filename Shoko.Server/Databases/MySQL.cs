@@ -1162,8 +1162,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
     public static void DropMALIndex()
     {
-        MySQL mysql = new();
-        using MySqlConnection conn = new(mysql.GetConnectionString());
+        using MySqlConnection conn = new(ConnectionString);
         conn.Open();
         var query =
             @"SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_NAME = 'CrossRef_AniDB_MAL' AND INDEX_NAME = 'UIX_CrossRef_AniDB_MAL_MALID';";
@@ -1182,8 +1181,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
     public static void DropAniDBUniqueIndex()
     {
-        MySQL mysql = new();
-        using MySqlConnection conn = new(mysql.GetConnectionString());
+        using MySqlConnection conn = new(ConnectionString);
         conn.Open();
         var query =
             @"SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_NAME = 'AniDB_File' AND INDEX_NAME = 'UIX_AniDB_File_FileID';";
@@ -1279,14 +1277,28 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
     public override string GetConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
-        return
-            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600;Allow User Variables=true";
+        return ConnectionString;
+    }
+
+    private static string ConnectionString
+    {
+        get
+        {
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
+                return settings.Database.OverrideConnectionString;
+            return
+                $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600;Allow User Variables=true";
+        }
     }
 
     public override string GetTestConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
+        // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
+        if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
+            return settings.Database.OverrideConnectionString;
+
         return
             $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database=information_schema;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
@@ -1306,14 +1318,22 @@ public class MySQL : BaseDatabase<MySqlConnection>
     public override ISessionFactory CreateSessionFactory()
     {
         var settings = Utils.SettingsProvider.GetSettings();
+
+        var connectionConfig = MySQLConfiguration.Standard
+            .Driver<MySqlConnectorDriver>();
+
+        if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
+            connectionConfig = connectionConfig.ConnectionString(settings.Database.OverrideConnectionString);
+        else
+            connectionConfig = connectionConfig.ConnectionString(x => x.Database(settings.Database.Schema)
+                .Server(settings.Database.Hostname)
+                .Port(settings.Database.Port)
+                .Username(settings.Database.Username)
+                .Password(settings.Database.Password));
+            
+        
         return Fluently.Configure()
-            .Database(MySQLConfiguration.Standard
-                .ConnectionString(x => x.Database(settings.Database.Schema)
-                    .Server(settings.Database.Hostname)
-                    .Port(settings.Database.Port)
-                    .Username(settings.Database.Username)
-                    .Password(settings.Database.Password))
-                .Driver<MySqlConnectorDriver>())
+            .Database(connectionConfig)
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
@@ -1357,17 +1377,10 @@ public class MySQL : BaseDatabase<MySqlConnection>
         var settings = Utils.SettingsProvider.GetSettings();
         try
         {
-            if (DatabaseAlreadyExists())
-            {
-                return;
-            }
+            if (DatabaseAlreadyExists()) return;
 
-            var connStr =
-                $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password}";
-            Logger.Trace(connStr);
-            var sql =
-                $"CREATE DATABASE {settings.Database.Schema} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
-            Logger.Trace(sql);
+            var connStr = GetTestConnectionString();
+            var sql = $"CREATE DATABASE {settings.Database.Schema} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
 
             using var conn = new MySqlConnection(connStr);
             conn.Open();
@@ -1444,8 +1457,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name != 'utf8mb4_unicode_ci'";
 
-        using (var conn = new MySqlConnection(
-                   $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
+        using (var conn = new MySqlConnection(ConnectionString))
         {
             var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
             conn.Open();

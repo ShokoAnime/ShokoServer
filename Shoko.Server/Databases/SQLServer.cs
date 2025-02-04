@@ -72,12 +72,17 @@ public class SQLServer : BaseDatabase<SqlConnection>
     public override string GetTestConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
+        // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
+        if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
+            return settings.Database.OverrideConnectionString;
         return $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog=master;user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
     }
 
     public override string GetConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
+        if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
+            return settings.Database.OverrideConnectionString;
         return
             $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
     }
