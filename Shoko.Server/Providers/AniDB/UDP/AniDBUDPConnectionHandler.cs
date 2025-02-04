@@ -227,43 +227,65 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     /// <returns></returns>
     public async Task<string> Send(string command, bool needsUnicode = true)
     {
-        // Steps:
-        // 1. Check Ban state and throw if Banned
-        // 2. Check Login State and Login if needed
-        // 3. Actually Call AniDB
-
-        // Check Ban State
-        // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
-        if (IsBanned)
+        try
         {
-            throw new AniDBBannedException
+            await _socketHandlerLock.WaitAsync();
+            // Steps:
+            // 1. Check Ban state and throw if Banned
+            // 2. Check Login State and Login if needed
+            // 3. Actually Call AniDB
+
+            // Check Ban State
+            // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
+            if (IsBanned)
             {
-                BanType = UpdateType.UDPBan,
-                BanExpires = BanTime?.AddHours(BanTimerResetLength)
-            };
-        }
-        // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
-        // It wasn't handled before, and it's not caused serious problems
+                throw new AniDBBannedException
+                {
+                    BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                };
+            }
+            // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
+            // It wasn't handled before, and it's not caused serious problems
 
-        // login doesn't use this method, so this check won't interfere with it
-        // if we got here, and it's invalid session, then it already failed to re-log
-        if (IsInvalidSession)
+            // login doesn't use this method, so this check won't interfere with it
+            // if we got here, and it's invalid session, then it already failed to re-log
+            if (IsInvalidSession)
+            {
+                throw new NotLoggedInException();
+            }
+
+            // Check Login State
+            if (!await Login())
+            {
+                throw new LoginFailedException();
+            }
+
+            // Actually Call AniDB
+            return await SendInternal(command, needsUnicode);
+        }
+        finally
         {
-            throw new NotLoggedInException();
+            _socketHandlerLock.Release();
         }
-
-        // Check Login State
-        if (!await Login())
-        {
-            throw new LoginFailedException();
-        }
-
-        // Actually Call AniDB
-        return await SendDirectly(command, needsUnicode);
     }
 
-    public Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false)
+    public async Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false)
     {
+        try
+        {
+            await _socketHandlerLock.WaitAsync();
+            return await SendInternal(command, needsUnicode, isPing);
+        }
+        finally
+        {
+            _socketHandlerLock.Release();
+        }
+    }
+
+    private async Task<string> SendInternal(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false)
+    {
+        ObjectDisposedException.ThrowIf(_socketHandler is not { IsConnected: true }, "The connection was closed by shoko");
+
         try
         {
             // we want to reset the logout timer anyway
@@ -272,25 +294,6 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 _pingTimer?.Stop();
                 _logoutTimer?.Stop();
             }
-
-            return SendInternal(command, needsUnicode, isPing);
-        }
-        finally
-        {
-            if (!isLogout && !isPing)
-            {
-                _pingTimer?.Start();
-                _logoutTimer?.Start();
-            }
-        }
-    }
-
-    private async Task<string> SendInternal(string command, bool needsUnicode = true, bool isPing = false)
-    {
-        try
-        {
-            await _socketHandlerLock.WaitAsync();
-            ObjectDisposedException.ThrowIf(_socketHandler is not { IsConnected: true }, "The connection was closed by shoko");
 
             // 1. Call AniDB
             // 2. Decode the response, converting Unicode and decompressing, as needed
@@ -325,8 +328,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                     IsBanned = true;
                     throw new AniDBBannedException
                     {
-                        BanType = UpdateType.UDPBan,
-                        BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                        BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
                     };
                 }
 
@@ -350,7 +352,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
         finally
         {
-            _socketHandlerLock.Release();
+            if (!isLogout && !isPing)
+            {
+                _pingTimer?.Start();
+                _logoutTimer?.Start();
+            }
         }
     }
 
