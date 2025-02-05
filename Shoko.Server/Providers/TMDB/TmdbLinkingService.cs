@@ -30,6 +30,14 @@ namespace Shoko.Server.Providers.TMDB;
 
 public class TmdbLinkingService
 {
+    private static readonly Dictionary<char, char> _characterReplacementDict = new()
+    {
+        { '’', '\'' },
+        { '”', '"' },
+        { '‘', '\'' },
+        { '“', '"' },
+    };
+
     private readonly ILogger<TmdbLinkingService> _logger;
 
     private readonly ISchedulerFactory _schedulerFactory;
@@ -828,7 +836,7 @@ public class TmdbLinkingService
             .ThenBy(result => result.episode.EpisodeNumber)
             .ToList();
         var titleSearchResults = !string.IsNullOrEmpty(anidbTitle) ? tmdbEpisodes
-            .Search(anidbTitle, episode => [episode.EnglishTitle], true)
+            .Search(anidbTitle, episode => [ReplaceTitle(episode.EnglishTitle)], true)
             .OrderBy(result => result)
             .ToList() : [];
 
@@ -888,6 +896,9 @@ public class TmdbLinkingService
 
         return 0;
     }
+
+    private static string ReplaceTitle(string title) =>
+        _characterReplacementDict.Aggregate(title, (current, kv) => current.Replace(kv.Key, kv.Value));
 
     #endregion
 }
