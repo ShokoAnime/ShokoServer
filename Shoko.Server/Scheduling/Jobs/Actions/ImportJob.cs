@@ -35,6 +35,8 @@ public class ImportJob : BaseJob
 
         // Check for previously ignored files
         _service.CheckForPreviouslyIgnored();
+
+        await _service.ScheduleMissingAnidbAnimeForFiles();
     }
 
     public ImportJob(ActionService service)

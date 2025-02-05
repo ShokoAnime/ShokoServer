@@ -345,99 +345,11 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("DownloadMissingAniDBAnimeData")]
-    public async Task<ActionResult> UpdateMissingAnidbXml()
+    public ActionResult UpdateMissingAnidbXml()
     {
-        // Check existing anime.
-        var index = 0;
-        var queuedAnimeSet = new HashSet<int>();
-        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
-            .Select(a => a.AnimeID)
-            .OrderBy(a => a)
-            .ToHashSet();
-        _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files…", localAnimeSet.Count);
-        foreach (var animeID in localAnimeSet)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
+        Task.Run(_actionService.DownloadMissingAnidbAnimeXmls);
+        Task.Run(_actionService.ScheduleMissingAnidbAnimeForFiles);
 
-            var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-            var rawXml = await xmlUtils.LoadAnimeHTTPFromFile(animeID);
-
-            if (rawXml != null)
-                continue;
-
-            await _seriesService.QueueAniDBRefresh(animeID, true, false, false, skipTmdbUpdate: true);
-            queuedAnimeSet.Add(animeID);
-        }
-
-        // Attempt to fix cross-references with incomplete data.
-        index = 0;
-        var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
-        var unknownEpisodeDict = videos
-            .SelectMany(file => file.EpisodeCrossReferences)
-            .Where(xref => xref.AnimeID is 0)
-            .GroupBy(xref => xref.EpisodeID)
-            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
-        _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime…", unknownEpisodeDict.Count);
-        foreach (var (episodeId, xrefs) in unknownEpisodeDict)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
-
-            var episode = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeId);
-            if (episode is not null)
-            {
-                foreach (var xref in xrefs)
-                {
-                    xref.AnimeID = episode.AnimeID;
-                }
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
-                continue;
-            }
-            int? epAnimeID = null;
-            var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
-            try
-            {
-                var epResponse = epRequest.Send();
-                epAnimeID = epResponse.Response?.AnimeID;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
-            }
-
-            if (epAnimeID is not null)
-            {
-                foreach (var xref in xrefs)
-                {
-                    xref.AnimeID = epAnimeID.Value;
-                }
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
-            }
-        }
-
-        // Queue missing anime needed by existing files.
-        index = 0;
-        var localEpisodeSet = RepoFactory.AniDB_Episode.GetAll()
-            .Select(episode => episode.EpisodeID)
-            .ToHashSet();
-        var missingAnimeSet = videos
-            .SelectMany(file => file.EpisodeCrossReferences)
-            .Where(xref => xref.AnimeID > 0 && !queuedAnimeSet.Contains(xref.AnimeID) && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
-            .Select(xref => xref.AnimeID)
-            .ToHashSet();
-        var settings = SettingsProvider.GetSettings();
-        _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
-        foreach (var animeID in missingAnimeSet)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
-
-            await _seriesService.QueueAniDBRefresh(animeID, false, settings.AniDb.DownloadRelatedAnime, true);
-            queuedAnimeSet.Add(animeID);
-        }
-
-        _logger.LogInformation("Queued {QueuedAnimeCount} anime for an online refresh", queuedAnimeSet.Count);
         return Ok();
     }
 

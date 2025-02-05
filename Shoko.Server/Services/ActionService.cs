@@ -15,6 +15,9 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -35,32 +38,41 @@ public class ActionService
 {
     private readonly ILogger<ActionService> _logger;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IRequestFactory _requestFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_PlaceService _placeService;
     private readonly TmdbMetadataService _tmdbService;
+    private readonly AnimeSeriesService _seriesService;
     private readonly TraktTVHelper _traktHelper;
     private readonly ImportFolderRepository _importFolders;
     private readonly DatabaseFactory _databaseFactory;
+    private readonly HttpXmlUtils _xmlUtils;
 
     public ActionService(
         ILogger<ActionService> logger,
         ISchedulerFactory schedulerFactory,
+        IRequestFactory requestFactory,
         ISettingsProvider settingsProvider,
         VideoLocal_PlaceService placeService,
-        TraktTVHelper traktHelper,
         TmdbMetadataService tmdbService,
+        AnimeSeriesService seriesService,
+        TraktTVHelper traktHelper,
         ImportFolderRepository importFolders,
-        DatabaseFactory databaseFactory
+        DatabaseFactory databaseFactory,
+        HttpXmlUtils xmlUtils
     )
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
+        _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
         _placeService = placeService;
-        _traktHelper = traktHelper;
         _tmdbService = tmdbService;
+        _seriesService = seriesService;
+        _traktHelper = traktHelper;
         _importFolders = importFolders;
         _databaseFactory = databaseFactory;
+        _xmlUtils = xmlUtils;
     }
 
     public async Task RunImport_IntegrityCheck()
@@ -1084,6 +1096,101 @@ public class ActionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in CheckForPreviouslyIgnored: {Ex}", ex);
+        }
+    }
+
+    public async Task DownloadMissingAnidbAnimeXmls()
+    {
+        // Check existing anime.
+        var index = 0;
+        var queuedAnimeSet = new HashSet<int>();
+        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
+            .Select(a => a.AnimeID)
+            .OrderBy(a => a)
+            .ToHashSet();
+        _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files…", localAnimeSet.Count);
+        foreach (var animeID in localAnimeSet)
+        {
+            if (++index % 10 == 1 || index == localAnimeSet.Count)
+                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
+
+            var rawXml = await _xmlUtils.LoadAnimeHTTPFromFile(animeID);
+            if (rawXml != null)
+                continue;
+
+            _logger.LogDebug("Found anime {AnimeID} with missing XML", animeID);
+            await _seriesService.QueueAniDBRefresh(animeID, true, false, false, skipTmdbUpdate: true);
+            queuedAnimeSet.Add(animeID);
+        }
+    }
+
+    public async Task ScheduleMissingAnidbAnimeForFiles()
+    {
+        // Attempt to fix cross-references with incomplete data.
+        var index = 0;
+        var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
+        var unknownEpisodeDict = videos
+            .SelectMany(file => file.EpisodeCrossReferences)
+            .Where(xref => xref.AnimeID is 0)
+            .GroupBy(xref => xref.EpisodeID)
+            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
+        _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime…", unknownEpisodeDict.Count);
+        foreach (var (episodeId, xrefs) in unknownEpisodeDict)
+        {
+            if (++index % 10 == 1)
+                _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
+
+            var episode = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeId);
+            if (episode is not null)
+            {
+                foreach (var xref in xrefs)
+                    xref.AnimeID = episode.AnimeID;
+                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+                continue;
+            }
+
+            int? epAnimeID = null;
+            var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
+            try
+            {
+                var epResponse = epRequest.Send();
+                epAnimeID = epResponse.Response?.AnimeID;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
+            }
+
+            if (epAnimeID is not null)
+            {
+                foreach (var xref in xrefs)
+                    xref.AnimeID = epAnimeID.Value;
+                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+            }
+        }
+
+        // Queue missing anime needed by existing files.
+        index = 0;
+        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
+            .Select(a => a.AnimeID)
+            .OrderBy(a => a)
+            .ToHashSet();
+        var localEpisodeSet = RepoFactory.AniDB_Episode.GetAll()
+            .Select(episode => episode.EpisodeID)
+            .ToHashSet();
+        var missingAnimeSet = videos
+            .SelectMany(file => file.EpisodeCrossReferences)
+            .Where(xref => xref.AnimeID > 0 && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
+            .Select(xref => xref.AnimeID)
+            .ToHashSet();
+        var settings = _settingsProvider.GetSettings();
+        _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
+        foreach (var animeID in missingAnimeSet)
+        {
+            if (++index % 10 == 1 || index == missingAnimeSet.Count)
+                _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
+
+            await _seriesService.QueueAniDBRefresh(animeID, false, settings.AniDb.DownloadRelatedAnime, true);
         }
     }
 
