@@ -629,7 +629,7 @@ public class AnimeCreator
 
         var allTitles = string.Empty;
         var existingTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
-        var keySelector = new Func<SVR_AniDB_Anime_Title, string>(t => $"{t.TitleType},{t.LanguageCode},{t.Title}");
+        var keySelector = new Func<SVR_AniDB_Anime_Title, string>(t => $"{t.TitleType},{t.Language},{t.Title}");
         var existingTitleDict = existingTitles.DistinctBy(keySelector).ToDictionary(keySelector);
         var titlesToKeep = new HashSet<int>();
         var titlesToSave = new Dictionary<string, SVR_AniDB_Anime_Title>();
@@ -642,6 +642,9 @@ public class AnimeCreator
             if (existingTitleDict.TryGetValue(key, out var title))
             {
                 titlesToKeep.Add(title.AniDB_Anime_TitleID);
+                if (allTitles.Length > 0)
+                    allTitles += "|";
+                allTitles += rawtitle.Title;
                 continue;
             }
 
