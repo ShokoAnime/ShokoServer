@@ -14,7 +14,7 @@ public class MissingTmdbLinkExpression : FilterExpression<bool>
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.HasMissingTmdbLink;
+        return !filterable.HasTmdbLink;
     }
 
     protected bool Equals(MissingTmdbLinkExpression other)

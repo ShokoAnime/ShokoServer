@@ -132,9 +132,6 @@ public class DashboardController : BaseController
 
     private static bool MissingTMDBLink(SVR_AnimeSeries ser)
     {
-        if (ser.IsTMDBAutoMatchingDisabled)
-            return false;
-
         var tmdbMovieLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
         var tmdbShowLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
         return tmdbMovieLinkMissing && tmdbShowLinkMissing;

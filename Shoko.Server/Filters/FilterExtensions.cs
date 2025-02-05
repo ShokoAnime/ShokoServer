@@ -82,8 +82,8 @@ public static class FilterExtensions
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
                 series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
-            HasMissingTmdbLinkDelegate = () =>
-                HasMissingTmdbLink(series),
+            HasTmdbAutoLinkingDisabledDelegate = () =>
+                series.IsTMDBAutoMatchingDisabled,
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
                 series.TmdbMovieCrossReferences.Count(xref => xref.Source is not CrossRefSource.User),
@@ -92,8 +92,8 @@ public static class FilterExtensions
                 series.TmdbMovieCrossReferences.Count(xref => xref.Source is CrossRefSource.User),
             HasTraktLinkDelegate = () =>
                 series.TraktShowCrossReferences.Count is > 0,
-            HasMissingTraktLinkDelegate = () =>
-                HasMissingTraktLink(series),
+            HasTraktAutoLinkingDisabledDelegate = () =>
+                series.IsTraktAutoMatchingDisabled,
             IsFinishedDelegate = () =>
                 series.AniDB_Anime?.EndDate is { } endDate && endDate < DateTime.Now,
             LastAirDateDelegate = () =>
@@ -177,12 +177,6 @@ public static class FilterExtensions
         return filterable;
     }
 
-    private static bool HasMissingTmdbLink(SVR_AnimeSeries series)
-        => !series.IsTMDBAutoMatchingDisabled && series.TmdbShowCrossReferences.Count is 0 && series.TmdbMovieCrossReferences.Count is 0;
-
-    private static bool HasMissingTraktLink(SVR_AnimeSeries series)
-        => !series.IsTraktAutoMatchingDisabled && series.TraktShowCrossReferences.Count is 0;
-
     #endregion
 
     #region Group
@@ -260,8 +254,8 @@ public static class FilterExtensions
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
                 series.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0),
-            HasMissingTmdbLinkDelegate = () =>
-                series.Any(HasMissingTmdbLink),
+            HasTmdbAutoLinkingDisabledDelegate = () =>
+                series.Any(a => a.IsTMDBAutoMatchingDisabled),
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.Sum(a =>
                     a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
@@ -274,8 +268,8 @@ public static class FilterExtensions
                 ),
             HasTraktLinkDelegate = () =>
                 series.Any(a => a.TraktShowCrossReferences.Count is > 0),
-            HasMissingTraktLinkDelegate = () =>
-                series.Any(HasMissingTraktLink),
+            HasTraktAutoLinkingDisabledDelegate = () =>
+                series.Any(a => a.IsTraktAutoMatchingDisabled),
             IsFinishedDelegate = () =>
                 series.All(a => a.EndDate is not null && a.EndDate <= DateTime.Today),
             AddedDateDelegate = () =>

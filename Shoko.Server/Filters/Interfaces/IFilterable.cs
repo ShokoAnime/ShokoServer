@@ -84,9 +84,9 @@ public interface IFilterable
     bool HasTmdbLink { get; }
 
     /// <summary>
-    /// Missing at least one TMDB Link
+    /// Has automatic TMDB linking disabled.
     /// </summary>
-    bool HasMissingTmdbLink { get; }
+    bool HasTmdbAutoLinkingDisabled { get; }
 
     /// <summary>
     /// Number of automatic TMDB episode links.
@@ -104,9 +104,9 @@ public interface IFilterable
     bool HasTraktLink { get; }
 
     /// <summary>
-    /// Missing at least one Trakt Link
+    /// Has automatic Trakt linking disabled.
     /// </summary>
-    bool HasMissingTraktLink { get; }
+    bool HasTraktAutoLinkingDisabled { get; }
 
     /// <summary>
     /// Has Finished airing

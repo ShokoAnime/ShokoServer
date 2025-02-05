@@ -16,8 +16,8 @@ public class Filterable : IFilterable
     private readonly Lazy<decimal> _averageAniDBRating;
     private readonly Lazy<IReadOnlySet<string>> _customTags;
     private readonly Lazy<int> _episodeCount;
-    private readonly Lazy<bool> _hasMissingTmdbLink;
-    private readonly Lazy<bool> _hasMissingTraktLink;
+    private readonly Lazy<bool> _hasTmdbAutoLinkingDisabled;
+    private readonly Lazy<bool> _hasTraktAutoLinkingDisabled;
     private readonly Lazy<bool> _hasTmdbLink;
     private readonly Lazy<int> _automaticTmdbEpisodeLinks;
     private readonly Lazy<int> _userVerifiedTmdbEpisodeLinks;
@@ -188,11 +188,11 @@ public class Filterable : IFilterable
         init => _hasTmdbLink = new Lazy<bool>(value);
     }
 
-    public bool HasMissingTmdbLink => _hasMissingTmdbLink.Value;
+    public bool HasTmdbAutoLinkingDisabled => _hasTmdbAutoLinkingDisabled.Value;
 
-    public required Func<bool> HasMissingTmdbLinkDelegate
+    public required Func<bool> HasTmdbAutoLinkingDisabledDelegate
     {
-        init => _hasMissingTmdbLink = new Lazy<bool>(value);
+        init => _hasTmdbAutoLinkingDisabled = new Lazy<bool>(value);
     }
 
     public int AutomaticTmdbEpisodeLinks => _automaticTmdbEpisodeLinks.Value;
@@ -216,11 +216,11 @@ public class Filterable : IFilterable
         init => _hasTraktLink = new Lazy<bool>(value);
     }
 
-    public bool HasMissingTraktLink => _hasMissingTraktLink.Value;
+    public bool HasTraktAutoLinkingDisabled => _hasTraktAutoLinkingDisabled.Value;
 
-    public required Func<bool> HasMissingTraktLinkDelegate
+    public required Func<bool> HasTraktAutoLinkingDisabledDelegate
     {
-        init => _hasMissingTraktLink = new Lazy<bool>(value);
+        init => _hasTraktAutoLinkingDisabled = new Lazy<bool>(value);
     }
 
     public bool IsFinished => _isFinished.Value;
