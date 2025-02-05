@@ -38,6 +38,16 @@ public class TmdbLinkingService
         { '“', '"' },
     };
 
+    private static readonly HashSet<string> _titlesToSearch = new(StringComparer.InvariantCultureIgnoreCase)
+    {
+        "OAD",
+        "OVA",
+        "Short Movie",
+        "Special",
+        "TV Special",
+        "Web"
+    };
+
     private readonly ILogger<TmdbLinkingService> _logger;
 
     private readonly ISchedulerFactory _schedulerFactory;
@@ -809,8 +819,7 @@ public class TmdbLinkingService
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.SarahJessicaParker);
 
         // Fix up the title for the first/single episode of a few anime types.
-        var titlesToSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "OAD", "OVA", "Short Movie", "Special", "TV Special", "Web" };
-        if (!string.IsNullOrEmpty(anidbTitle) && titlesToSearch.Contains(anidbTitle))
+        if (!string.IsNullOrEmpty(anidbTitle) && _titlesToSearch.Contains(anidbTitle))
         {
             var englishAnimeTitle = anime.Titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == TitleLanguage.English)?.Title;
             if (englishAnimeTitle is not null)
