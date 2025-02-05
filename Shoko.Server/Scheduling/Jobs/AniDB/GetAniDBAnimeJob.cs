@@ -50,6 +50,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     public bool DownloadRelations { get; set; }
     public int RelDepth { get; set; }
     public bool CreateSeriesEntry { get; set; }
+    public bool SkipTmdbUpdate { get; set; }
 
     public override void PostInit()
     {
@@ -125,6 +126,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                         c.CacheOnly = false;
                         c.ForceRefresh = true;
                         c.CreateSeriesEntry = CreateSeriesEntry;
+                        c.SkipTmdbUpdate = SkipTmdbUpdate;
                     }).ConfigureAwait(false);
                 }
                 throw;
@@ -227,15 +229,15 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
             foreach (var video in videos)
                 await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
-
-            if (isNew || animeEpisodeChanges.Count > 0)
-                foreach (var xref in anime.TmdbShowCrossReferences)
-                    await scheduler.StartJob<UpdateTmdbShowJob>(job =>
-                    {
-                        job.TmdbShowID = xref.TmdbShowID;
-                        job.DownloadImages = true;
-                    }).ConfigureAwait(false);
         }
+
+        if (!SkipTmdbUpdate)
+            foreach (var xref in anime.TmdbShowCrossReferences)
+                await scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                {
+                    job.TmdbShowID = xref.TmdbShowID;
+                    job.DownloadImages = true;
+                }).ConfigureAwait(false);
 
         await ProcessRelations(response).ConfigureAwait(false);
 
@@ -289,6 +291,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                     c.CacheOnly = false;
                     c.ForceRefresh = true;
                     c.CreateSeriesEntry = CreateSeriesEntry;
+                    c.SkipTmdbUpdate = SkipTmdbUpdate;
                 }).ConfigureAwait(false);
                 throw;
             }
@@ -334,6 +337,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 c.CacheOnly = false;
                 c.ForceRefresh = true;
                 c.CreateSeriesEntry = CreateSeriesEntry;
+                c.SkipTmdbUpdate = SkipTmdbUpdate;
             }).ConfigureAwait(false);
         }
         return (false, null);
@@ -407,6 +411,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 c.CacheOnly = !ForceRefresh && CacheOnly;
                 c.ForceRefresh = ForceRefresh;
                 c.CreateSeriesEntry = CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
+                c.SkipTmdbUpdate = SkipTmdbUpdate;
             }).ConfigureAwait(false);
         }
     }

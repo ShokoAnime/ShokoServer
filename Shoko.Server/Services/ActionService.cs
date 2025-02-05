@@ -548,6 +548,7 @@ public class ActionService
                 c.ForceRefresh = true;
                 c.CacheOnly = false;
                 c.DownloadRelations = settings.AniDb.DownloadRelatedAnime;
+                c.SkipTmdbUpdate = true;
             });
         }
     }

@@ -72,7 +72,7 @@ public class AnimeSeriesService
     }
 
     public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
-        bool cacheOnly = false)
+        bool cacheOnly = false, bool skipTmdbUpdate = false)
     {
         if (animeID == 0) return false;
         if (immediate)
@@ -84,6 +84,7 @@ public class AnimeSeriesService
                 c.ForceRefresh = force;
                 c.CacheOnly = !force && cacheOnly;
                 c.CreateSeriesEntry = createSeriesEntry;
+                c.SkipTmdbUpdate = skipTmdbUpdate;
             });
 
             try
@@ -104,6 +105,7 @@ public class AnimeSeriesService
             c.ForceRefresh = force;
             c.CacheOnly = !force && cacheOnly;
             c.CreateSeriesEntry = createSeriesEntry;
+            c.SkipTmdbUpdate = skipTmdbUpdate;
         });
         return false;
     }

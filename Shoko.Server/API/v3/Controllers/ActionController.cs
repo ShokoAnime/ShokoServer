@@ -366,7 +366,7 @@ public class ActionController : BaseController
             if (rawXml != null)
                 continue;
 
-            await _seriesService.QueueAniDBRefresh(animeID, true, false, false);
+            await _seriesService.QueueAniDBRefresh(animeID, true, false, false, skipTmdbUpdate: true);
             queuedAnimeSet.Add(animeID);
         }
 
@@ -426,13 +426,14 @@ public class ActionController : BaseController
             .Where(xref => xref.AnimeID > 0 && !queuedAnimeSet.Contains(xref.AnimeID) && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
             .Select(xref => xref.AnimeID)
             .ToHashSet();
+        var settings = SettingsProvider.GetSettings();
         _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
         foreach (var animeID in missingAnimeSet)
         {
             if (++index % 10 == 1)
                 _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
 
-            await _seriesService.QueueAniDBRefresh(animeID, false, true, true);
+            await _seriesService.QueueAniDBRefresh(animeID, false, settings.AniDb.DownloadRelatedAnime, true);
             queuedAnimeSet.Add(animeID);
         }
 

@@ -198,6 +198,7 @@ public class DatabaseFixes
                     c.DownloadRelations = false;
                     c.AnimeID = animeID;
                     c.CreateSeriesEntry = false;
+                    c.SkipTmdbUpdate = true;
                 });
                 command.Process().GetAwaiter().GetResult();
             }
@@ -815,6 +816,7 @@ public class DatabaseFixes
                     c.DownloadRelations = false;
                     c.CreateSeriesEntry = false;
                     c.RelDepth = 0;
+                    c.SkipTmdbUpdate = true;
                 }).ConfigureAwait(false).GetAwaiter().GetResult();
                 continue;
             }
@@ -836,6 +838,7 @@ public class DatabaseFixes
                     c.DownloadRelations = false;
                     c.CreateSeriesEntry = false;
                     c.RelDepth = 0;
+                    c.SkipTmdbUpdate = true;
                 }).ConfigureAwait(false).GetAwaiter().GetResult();
                 continue;
             }
