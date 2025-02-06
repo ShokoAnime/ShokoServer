@@ -59,6 +59,7 @@ public class Role
                 AlternateName = staff.OriginalName ?? string.Empty,
                 Description = string.Empty,
                 Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+                Type = staff.Type.ToString(),
             }
             : new()
             {
@@ -67,6 +68,7 @@ public class Role
                 AlternateName = string.Empty,
                 Description = string.Empty,
                 Image = null,
+                Type = "Unknown",
             };
         RoleName = CreatorRoleType.Actor;
         RoleDetails = staff is not null
@@ -83,6 +85,7 @@ public class Role
             AlternateName = staff.OriginalName ?? string.Empty,
             Description = string.Empty,
             Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+            Type = staff.Type.ToString(),
         };
         RoleName = xref.RoleType;
         RoleDetails = xref.Role;
@@ -241,6 +244,12 @@ public class Role
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public int? ID { get; set; }
+
+        /// <summary>
+        /// AniDB creator type, if the person object is an AniDB creator.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Type { get; set; }
 
         /// <summary>
         /// Main Name, romanized if needed
