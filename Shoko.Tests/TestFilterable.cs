@@ -24,10 +24,12 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; }
     public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; }
     public bool HasTmdbLink { get; init; }
+    public bool HasTmdbAutoLinkingDisabled { get; init; }
     public bool HasMissingTmdbLink { get; init; }
     public int AutomaticTmdbEpisodeLinks { get; init; }
     public int UserVerifiedTmdbEpisodeLinks { get; init; }
     public bool HasTraktLink { get; init; }
+    public bool HasTraktAutoLinkingDisabled { get; init; }
     public bool HasMissingTraktLink { get; init; }
     public bool IsFinished { get; init; }
     public DateTime? AirDate { get; init; }

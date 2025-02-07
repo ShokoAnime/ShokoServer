@@ -21,11 +21,11 @@ using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.FileProviders;
 using Shoko.Server.Plugin;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using File = System.IO.File;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
@@ -116,11 +116,24 @@ public static class APIExtensions
 
                 options.AddPlugins();
 
-                options.SchemaFilter<EnumSchemaFilter<EpisodeType>>();
-                options.SchemaFilter<EnumSchemaFilter<SeriesType>>();
+                var v3Enums = typeof(APIExtensions).Assembly.GetTypes().Where(a =>
+                {
+                    if (!a.IsEnum) return false;
+                    return a.FullName?.StartsWith("Shoko.Server.API.v3", StringComparison.InvariantCultureIgnoreCase) ?? false;
+                });
+                foreach (var type in v3Enums)
+                {
+                    var descriptorType = typeof(EnumSchemaFilter<>).MakeGenericType(type);
+                    options.RequestBodyFilterDescriptors.Add(new FilterDescriptor
+                    {
+                        Type = descriptorType,
+                        Arguments = []
+                    });
+                }
+
+                // these are in Plugin Abstractions
                 options.SchemaFilter<EnumSchemaFilter<RenamerSettingType>>();
                 options.SchemaFilter<EnumSchemaFilter<CodeLanguage>>();
-                options.SchemaFilter<EnumSchemaFilter<Filter.FilterExpressionHelp.FilterExpressionParameterType>>();
 
                 options.CustomSchemaIds(GetTypeName);
             });

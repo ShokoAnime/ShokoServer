@@ -218,6 +218,7 @@ public class Filter : BaseModel
         /// Dates are in yyyy-MM-dd format<br/>
         /// TimeSpans are in d:HH:mm:ss.ffff format (f is milliseconds)
         /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum FilterExpressionParameterType
         {
             Expression,

@@ -893,6 +893,7 @@ public class Series : BaseModel
     }
 }
 
+[JsonConverter(typeof(StringEnumConverter))]
 public enum SeriesType
 {
     /// <summary>

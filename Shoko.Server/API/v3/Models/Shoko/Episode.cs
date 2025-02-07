@@ -388,6 +388,7 @@ public class Episode : BaseModel
     }
 }
 
+[JsonConverter(typeof(StringEnumConverter))]
 public enum EpisodeType
 {
     /// <summary>

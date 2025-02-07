@@ -560,6 +560,7 @@ public partial class File
         }
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum FileSortCriteria
     {
         None = 0,

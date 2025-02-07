@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
@@ -96,6 +98,7 @@ public class ImportFolder : BaseModel
 }
 
 [Flags]
+[JsonConverter(typeof(StringEnumConverter))]
 public enum DropFolderType
 {
     None = 0,
