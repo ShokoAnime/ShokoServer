@@ -43,6 +43,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     int IVideoFile.VideoID => VideoLocalID;
 
+    bool IVideoFile.IsAvailable => File.Exists(FullServerPath);
+
     IVideo IVideoFile.Video => VideoLocal
         ?? throw new NullReferenceException("Unable to get the associated IVideo for the IVideoFile with ID " + VideoLocal_Place_ID);
 
