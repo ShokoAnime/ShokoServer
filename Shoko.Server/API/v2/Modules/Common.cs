@@ -287,7 +287,7 @@ public class Common : BaseController
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
             return Ok();
@@ -317,7 +317,7 @@ public class Common : BaseController
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
             }
@@ -349,7 +349,7 @@ public class Common : BaseController
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
             }

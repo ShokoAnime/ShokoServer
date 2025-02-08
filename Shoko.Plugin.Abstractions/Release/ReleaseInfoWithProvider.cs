@@ -9,7 +9,10 @@ namespace Shoko.Plugin.Abstractions.Release;
 public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 {
     /// <inheritdoc />
-    public ReleaseInfoWithProvider() { }
+    public ReleaseInfoWithProvider(string providerID) : base()
+    {
+        ProviderID = providerID;
+    }
 
     /// <inheritdoc />
     public ReleaseInfoWithProvider(ReleaseInfo releaseInfo, string providerID) : base(releaseInfo)

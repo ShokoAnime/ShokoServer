@@ -670,7 +670,7 @@ public class DatabaseFixes
             {
                 c.VideoLocalID = video.VideoLocalID;
                 c.SkipMyList = true;
-                c.ForceAniDB = true;
+                c.ForceRecheck = true;
             }).GetAwaiter().GetResult();
         }
 

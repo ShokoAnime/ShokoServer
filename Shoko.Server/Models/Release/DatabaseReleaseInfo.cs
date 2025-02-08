@@ -12,7 +12,7 @@ using Shoko.Server.Extensions;
 
 namespace Shoko.Server.Models.Release;
 
-public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IHashes
+public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IHashes, IEquatable<DatabaseReleaseInfo>
 {
     public DatabaseReleaseInfo() { }
 
@@ -205,6 +205,57 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
     }
 
     IHashes? IReleaseInfo.Hashes => string.IsNullOrEmpty(Hashes) ? null : this;
+
+    public static bool operator ==(DatabaseReleaseInfo? left, DatabaseReleaseInfo? right)
+        => left is null ? right is null : left.Equals(right);
+
+    public static bool operator !=(DatabaseReleaseInfo? left, DatabaseReleaseInfo? right)
+        => !(left == right);
+
+    public bool Equals(DatabaseReleaseInfo? other)
+    {
+        if (other is null)
+            return false;
+
+        if (ReferenceEquals(this, other))
+            return true;
+
+        return GetHashCode() != other.GetHashCode();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as DatabaseReleaseInfo);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(
+            HashCode.Combine(
+                ED2K,
+                ID,
+                ProviderID,
+                ReleaseURI,
+                Revision,
+                Comment,
+                OriginalFilename
+            ),
+            HashCode.Combine(
+                GroupID,
+                GroupProviderID,
+                GroupName,
+                GroupShortName
+            ),
+            HashCode.Combine(
+                IsCensored,
+                IsCorrupted,
+                Source,
+                Hashes,
+                AudioLanguages,
+                SubtitleLanguages
+            )
+        );
+    }
 
     #endregion
 }

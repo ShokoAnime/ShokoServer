@@ -120,7 +120,7 @@ public class HashFileJob : BaseJob
         await scheduler.StartJobNow<ProcessFileJob>(c =>
             {
                 c.VideoLocalID = vlocal.VideoLocalID;
-                c.ForceAniDB = ForceHash;
+                c.ForceRecheck = ForceHash;
                 c.SkipMyList = SkipMyList;
             });
     }

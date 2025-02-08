@@ -23,6 +23,11 @@ public interface IVideoFile
     int ImportFolderID { get; }
 
     /// <summary>
+    /// True if the file currently exists on disk and is usable by Shoko.
+    /// </summary>
+    bool IsAvailable { get; }
+
+    /// <summary>
     /// The file name.
     /// </summary>
     string FileName { get; }

@@ -795,7 +795,7 @@ public partial class ShokoServiceImplementation
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 ).GetAwaiter().GetResult();
             }
@@ -821,7 +821,7 @@ public partial class ShokoServiceImplementation
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 ).GetAwaiter().GetResult();
             }
