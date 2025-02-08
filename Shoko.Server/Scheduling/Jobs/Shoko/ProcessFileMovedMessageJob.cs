@@ -55,7 +55,7 @@ public class ProcessFileMovedMessageJob : BaseJob
             c =>
             {
                 c.VideoLocalID = vlocal.VideoLocalID;
-                c.ForceAniDB = true;
+                c.ForceRecheck = true;
             }
         ).ContinueWith(t =>
         {
