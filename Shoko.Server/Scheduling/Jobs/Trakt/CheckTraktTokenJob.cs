@@ -38,7 +38,7 @@ public class CheckTraktTokenJob : BaseJob
             var expirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
 
             // Check if the token needs refreshing
-            if (ForceRefresh || DateTime.Now.Add(TimeSpan.FromDays(45)) >= expirationDate)
+            if (ForceRefresh || DateTime.Now.Add(TimeSpan.FromHours(6)) >= expirationDate)
             {
                 if (_traktHelper.RefreshAuthToken())
                 {
