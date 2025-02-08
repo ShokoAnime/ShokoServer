@@ -94,7 +94,7 @@ public class ActionService(
                 c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         }
@@ -980,7 +980,7 @@ public class ActionService(
             await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         }

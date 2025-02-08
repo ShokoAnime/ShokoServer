@@ -492,14 +492,14 @@ public class FileController : BaseController
             await scheduler.StartJobNow<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         else
             await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         return Ok();
@@ -913,14 +913,14 @@ public class FileController : BaseController
             await scheduler.StartJobNow<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         else
             await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         return Ok();
@@ -1323,7 +1323,7 @@ public class FileController : BaseController
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.EpisodeID = episode.AnimeEpisodeID;
-                    c.Percentage = (int)Math.Round(1D / files.Count * 100);
+                    c.Percentage = (int)Math.Floor(1D / files.Count * 100);
                 }
             );
         }
