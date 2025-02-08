@@ -9,12 +9,11 @@ using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Repositories;
 
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
-using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
-using SeriesType = Shoko.Server.API.v3.Models.Shoko.SeriesType;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Helpers;
@@ -194,21 +193,6 @@ public static class ModelHelper
             .ToList();
         return allXrefs;
     }
-
-    public static SeriesType ToAniDBSeriesType(this int animeType)
-        => ToAniDBSeriesType((AniDBAnimeType)animeType);
-
-    public static SeriesType ToAniDBSeriesType(this AniDBAnimeType animeType)
-        => animeType switch
-        {
-            AniDBAnimeType.TVSeries => SeriesType.TV,
-            AniDBAnimeType.Movie => SeriesType.Movie,
-            AniDBAnimeType.OVA => SeriesType.OVA,
-            AniDBAnimeType.TVSpecial => SeriesType.TVSpecial,
-            AniDBAnimeType.Web => SeriesType.Web,
-            AniDBAnimeType.Other => SeriesType.Other,
-            _ => SeriesType.Unknown,
-        };
 
     public static (int, EpisodeType?, string?) GetEpisodeNumberAndTypeFromInput(string input)
     {
@@ -478,27 +462,24 @@ public static class ModelHelper
         foreach (var series in seriesList)
         {
             var anime = series.AniDB_Anime;
-            switch (anime?.AnimeType.ToAniDBSeriesType())
+            switch (anime?.AbstractAnimeType)
             {
-                case SeriesType.Unknown:
-                    sizes.SeriesTypes.Unknown++;
-                    break;
-                case SeriesType.Other:
+                case AnimeType.Other:
                     sizes.SeriesTypes.Other++;
                     break;
-                case SeriesType.TV:
+                case AnimeType.TVSeries:
                     sizes.SeriesTypes.TV++;
                     break;
-                case SeriesType.TVSpecial:
+                case AnimeType.TVSpecial:
                     sizes.SeriesTypes.TVSpecial++;
                     break;
-                case SeriesType.Web:
+                case AnimeType.Web:
                     sizes.SeriesTypes.Web++;
                     break;
-                case SeriesType.Movie:
+                case AnimeType.Movie:
                     sizes.SeriesTypes.Movie++;
                     break;
-                case SeriesType.OVA:
+                case AnimeType.OVA:
                     sizes.SeriesTypes.OVA++;
                     break;
             }

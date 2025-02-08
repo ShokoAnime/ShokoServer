@@ -15,7 +15,7 @@ namespace Shoko.Server.API.v3.Models.TMDB;
 /// <summary>
 /// APIv3 The Movie DataBase (TMDB) Season Data Transfer Object (DTO).
 /// </summary>
-public class Season
+public class TmdbSeason
 {
     /// <summary>
     /// TMDB Season ID.
@@ -106,7 +106,7 @@ public class Season
     /// </summary>
     public DateTime LastUpdatedAt { get; init; }
 
-    public Season(TMDB_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public TmdbSeason(TMDB_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
         var preferredOverview = season.GetPreferredOverview();
@@ -142,7 +142,7 @@ public class Season
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
     }
 
-    public Season(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null)
+    public TmdbSeason(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null)
     {
         var include = includeDetails ?? default;
 

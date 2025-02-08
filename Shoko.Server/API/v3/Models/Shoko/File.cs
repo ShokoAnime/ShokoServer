@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
@@ -47,7 +46,7 @@ public partial class File
     /// The calculated hashes of the file
     /// </summary>
     /// <returns></returns>
-    public Hashes Hashes { get; set; }
+    public HashesDict Hashes { get; set; }
 
     /// <summary>
     /// All of the Locations that this file exists in
@@ -133,7 +132,7 @@ public partial class File
         ID = file.VideoLocalID;
         Size = file.FileSize;
         IsVariation = file.IsVariation;
-        Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
+        Hashes = new() { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
         Resolution = mediaInfo?.VideoStream?.Resolution;
         Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
@@ -245,6 +244,35 @@ public partial class File
         }
 
     }
+
+    /// <summary>
+    /// Stores all of the hashes for the file.
+    /// </summary>
+    public class HashesDict
+    {
+        /// <summary>
+        /// ED2K is AniDB's base hash.
+        /// </summary>
+        public required string ED2K { get; set; }
+
+        /// <summary>
+        /// SHA1 is not used internally, but it is effortless to calculate with
+        /// the others.
+        /// </summary>
+        public string? SHA1 { get; set; }
+
+        /// <summary>
+        /// CRC. It's got plenty of uses, but the big one is checking for file
+        /// corruption.
+        /// </summary>
+        public string? CRC32 { get; set; }
+
+        /// <summary>
+        /// MD5 might be useful for clients, but it's not used internally.
+        /// </summary>
+        public string? MD5 { get; set; }
+    }
+
 #nullable disable
 
     /// <summary>

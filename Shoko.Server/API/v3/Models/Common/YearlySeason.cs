@@ -1,10 +1,17 @@
 using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server.API.v3.Models.Common;
 
-public record YearlySeason(int Year, AnimeSeason AnimeSeason) : IComparable<YearlySeason>
+public record YearlySeason(int year, AnimeSeason animeSeason) : IComparable<YearlySeason>
 {
+    public int Year { get; } = year;
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public AnimeSeason AnimeSeason { get; } = animeSeason;
+
     public int CompareTo(YearlySeason other)
     {
         if (ReferenceEquals(this, other))

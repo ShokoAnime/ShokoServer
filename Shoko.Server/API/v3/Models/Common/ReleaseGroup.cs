@@ -1,8 +1,7 @@
 
 using Shoko.Server.Models.AniDB;
 
-namespace Shoko.Server.API.v3.Models.Shoko;
-
+namespace Shoko.Server.API.v3.Models.Common;
 
 public class ReleaseGroup
 {

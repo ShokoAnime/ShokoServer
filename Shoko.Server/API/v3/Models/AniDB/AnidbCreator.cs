@@ -12,7 +12,7 @@ namespace Shoko.Server.API.v3.Models.AniDB;
 /// <summary>
 /// AniDB Creator APIv3 Data Transfer Object (DTO).
 /// </summary>
-public class Creator
+public class AnidbCreator
 {
     /// <summary>
     /// The global ID of the creator.
@@ -65,7 +65,7 @@ public class Creator
     /// </summary>
     public Image? Image { get; set; }
 
-    public Creator(AniDB_Creator creator)
+    public AnidbCreator(AniDB_Creator creator)
     {
         ID = creator.CreatorID;
         Name = creator.Name;

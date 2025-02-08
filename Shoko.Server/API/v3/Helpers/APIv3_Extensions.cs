@@ -7,6 +7,11 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
+
+using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
+using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
+using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 using ImageEntityType = Shoko.Plugin.Abstractions.Enums.ImageEntityType;
 using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
 
@@ -32,6 +37,31 @@ public static class APIv3_Extensions
         {
             // TODO: Implement this.
             _ => CreatorRoleType.Staff,
+        };
+
+    public static AnimeType ToV3Dto(this AbstractAnimeType animeType)
+        => animeType switch
+        {
+            AbstractAnimeType.TVSeries => AnimeType.TV,
+            AbstractAnimeType.Movie => AnimeType.Movie,
+            AbstractAnimeType.OVA => AnimeType.OVA,
+            AbstractAnimeType.TVSpecial => AnimeType.TVSpecial,
+            AbstractAnimeType.Web => AnimeType.Web,
+            AbstractAnimeType.Other => AnimeType.Other,
+            _ => AnimeType.Unknown,
+        };
+
+
+    internal static EpisodeType ToV3Dto(this AbstractEpisodeType episodeType)
+        => episodeType switch
+        {
+            AbstractEpisodeType.Episode => EpisodeType.Normal,
+            AbstractEpisodeType.Special => EpisodeType.Special,
+            AbstractEpisodeType.Parody => EpisodeType.Parody,
+            AbstractEpisodeType.Credits => EpisodeType.ThemeSong,
+            AbstractEpisodeType.Trailer => EpisodeType.Trailer,
+            AbstractEpisodeType.Other => EpisodeType.Other,
+            _ => EpisodeType.Unknown,
         };
 
     public static ComponentVersion ToDto(this WebUIUpdateService.ComponentVersion componentVersion)

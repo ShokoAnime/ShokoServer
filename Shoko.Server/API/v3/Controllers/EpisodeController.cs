@@ -14,8 +14,10 @@ using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
@@ -23,10 +25,7 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
-using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
-using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
+using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -151,7 +150,7 @@ public class EpisodeController : BaseController
                 // Filter by episode type, if specified
                 if (type != null && type.Count > 0)
                 {
-                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)anidb.EpisodeType);
+                    var mappedType = anidb.AbstractEpisodeType.ToV3Dto();
                     if (!type.Contains(mappedType))
                         return false;
                 }
@@ -219,7 +218,7 @@ public class EpisodeController : BaseController
     }
 
     /// <summary>
-    /// Get all <see cref="Episode.AniDB"/>s. Admins only.
+    /// Get all <see cref="AnidbEpisode"/>s. Admins only.
     /// </summary>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
@@ -227,7 +226,7 @@ public class EpisodeController : BaseController
     /// <returns></returns>
     [HttpGet("AniDB")]
     [Authorize("admin")]
-    public ActionResult<ListResult<Episode.AniDB>> GetAllAniDBEpisodes(
+    public ActionResult<ListResult<AnidbEpisode>> GetAllAniDBEpisodes(
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null)
@@ -254,7 +253,7 @@ public class EpisodeController : BaseController
                 // Filter by episode type, if specified
                 if (type != null && type.Count > 0)
                 {
-                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)episode.EpisodeType);
+                    var mappedType = episode.AbstractEpisodeType.ToV3Dto();
                     if (!type.Contains(mappedType))
                         return false;
                 }
@@ -264,7 +263,7 @@ public class EpisodeController : BaseController
             .OrderBy(episode => episode.AnimeID)
             .ThenBy(episode => episode.EpisodeType)
             .ThenBy(episode => episode.EpisodeNumber)
-            .ToListResult(episode => new Episode.AniDB(episode), page, pageSize);
+            .ToListResult(episode => new AnidbEpisode(episode), page, pageSize);
     }
 
     #region Shoko
@@ -381,12 +380,12 @@ public class EpisodeController : BaseController
     #region AniDB
 
     /// <summary>
-    /// Get the <see cref="Episode.AniDB"/> entry for the given <paramref name="episodeID"/>.
+    /// Get the <see cref="AnidbEpisode"/> entry for the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{episodeID}/AniDB")]
-    public ActionResult<Episode.AniDB> GetEpisodeAnidbByEpisodeID([FromRoute, Range(1, int.MaxValue)] int episodeID)
+    public ActionResult<AnidbEpisode> GetEpisodeAnidbByEpisodeID([FromRoute, Range(1, int.MaxValue)] int episodeID)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -396,22 +395,22 @@ public class EpisodeController : BaseController
         if (anidb == null)
             return InternalError(AnidbNotFoundForEpisodeID);
 
-        return new Episode.AniDB(anidb);
+        return new AnidbEpisode(anidb);
     }
 
     /// <summary>
-    /// Get the <see cref="Episode.AniDB"/> entry for the given <paramref name="anidbEpisodeID"/>.
+    /// Get the <see cref="AnidbEpisode"/> entry for the given <paramref name="anidbEpisodeID"/>.
     /// </summary>
     /// <param name="anidbEpisodeID">AniDB Episode ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}")]
-    public ActionResult<Episode.AniDB> GetEpisodeAnidbByAnidbEpisodeID([FromRoute] int anidbEpisodeID)
+    public ActionResult<AnidbEpisode> GetEpisodeAnidbByAnidbEpisodeID([FromRoute] int anidbEpisodeID)
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
             return NotFound(AnidbNotFoundForAnidbEpisodeID);
 
-        return new Episode.AniDB(anidb);
+        return new AnidbEpisode(anidb);
     }
 
     /// <summary>

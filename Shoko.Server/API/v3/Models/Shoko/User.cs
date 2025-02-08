@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -35,7 +34,7 @@ public class User
     /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
     /// </summary>
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-    public List<CommunitySites> CommunitySites { get; set; }
+    public List<CommunitySite> CommunitySites { get; set; }
 
     /// <summary>
     /// Restricted tags. Any group/series containing any of these tags will be
@@ -59,21 +58,13 @@ public class User
         ID = user.JMMUserID;
         Username = user.Username;
         IsAdmin = user.IsAdmin == 1;
-        CommunitySites = new List<CommunitySites>();
+        CommunitySites = [];
         if (user.IsAniDBUser == 1)
-        {
-            CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.AniDB);
-        }
-
+            CommunitySites.Add(CommunitySite.AniDB);
         if (user.IsTraktUser == 1)
-        {
-            CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Trakt);
-        }
-
+            CommunitySites.Add(CommunitySite.Trakt);
         if (!string.IsNullOrEmpty(user.PlexToken))
-        {
-            CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Plex);
-        }
+            CommunitySites.Add(CommunitySite.Plex);
 
         RestrictedTags = user.GetHideCategories()
             .Select(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault()!)
@@ -131,7 +122,7 @@ public class User
             /// The updated list of services that the user can use. The viewer
             /// must have admin access to change these.
             /// </summary>
-            public List<CommunitySites>? CommunitySites { get; set; }
+            public List<CommunitySite>? CommunitySites { get; set; }
 
             /// <summary>
             /// The updated restricted tags for the user. The viewer must have
@@ -238,8 +229,8 @@ public class User
                 // Update the community sites for the user.
                 if (CommunitySites != null)
                 {
-                    user.IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0;
-                    user.IsAniDBUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.AniDB) ? 1 : 0;
+                    user.IsTraktUser = CommunitySites.Contains(CommunitySite.Trakt) ? 1 : 0;
+                    user.IsAniDBUser = CommunitySites.Contains(CommunitySite.AniDB) ? 1 : 0;
                 }
 
                 if (PlexUsernames != null)

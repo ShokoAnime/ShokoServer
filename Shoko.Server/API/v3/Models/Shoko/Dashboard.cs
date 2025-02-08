@@ -3,6 +3,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -125,9 +127,9 @@ public static class Dashboard
     /// <summary>
     /// Episode details for displaying on the dashboard.
     /// </summary>
-    public class EpisodeDetails
+    public class Episode
     {
-        public EpisodeDetails(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null,
+        public Episode(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null,
             SVR_VideoLocal file = null, SVR_VideoLocal_User userRecord = null)
         {
             IDs = new EpisodeDetailsIDs()
@@ -142,7 +144,7 @@ public static class Dashboard
             };
             Title = episode.PreferredTitle.Title;
             Number = episode.EpisodeNumber;
-            Type = Episode.MapAniDBEpisodeType(episode.GetEpisodeTypeEnum());
+            Type = episode.AbstractEpisodeType.ToV3Dto();
             AirDate = episode.GetAirDateAsDate();
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
             ResumePosition = userRecord?.ResumePositionTimeSpan;
@@ -212,7 +214,7 @@ public static class Dashboard
     public class EpisodeDetailsIDs : IDs
     {
         /// <summary>
-        /// The related <see cref="Episode.AniDB"/> id for the entry.
+        /// The related <see cref="AnidbEpisode"/> id for the entry.
         /// </summary>
         public new int ID { get; set; }
 
@@ -228,7 +230,7 @@ public static class Dashboard
         public int? ShokoFile { get; set; }
 
         /// <summary>
-        /// The related Shoko <see cref="Episode"/> id if the episode is
+        /// The related Shoko <see cref="Shoko.Episode"/> id if the episode is
         /// available locally.
         /// </summary>
         public int? ShokoEpisode { get; set; }

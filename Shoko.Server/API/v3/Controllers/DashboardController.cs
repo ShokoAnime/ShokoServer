@@ -197,14 +197,14 @@ public class DashboardController : BaseController
     }
 
     /// <summary>
-    /// Get a list of recently added <see cref="Dashboard.EpisodeDetails"/>.
+    /// Get a list of recently added <see cref="Dashboard.Episode"/>.
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("RecentlyAddedEpisodes")]
-    public ListResult<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes(
+    public ListResult<Dashboard.Episode> GetRecentlyAddedEpisodes(
         [FromQuery, Range(0, 1000)] int pageSize = 30,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False
@@ -294,7 +294,7 @@ public class DashboardController : BaseController
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("ContinueWatchingEpisodes")]
-    public ListResult<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes(
+    public ListResult<Dashboard.Episode> GetContinueWatchingEpisodes(
         [FromQuery, Range(0, 100)] int pageSize = 20,
         [FromQuery, Range(0, int.MaxValue)] int page = 0,
         [FromQuery] bool includeSpecials = true,
@@ -341,7 +341,7 @@ public class DashboardController : BaseController
     /// search if we determine the user is "re-watching" the series.</param>
     /// <returns></returns>
     [HttpGet("NextUpEpisodes")]
-    public ListResult<Dashboard.EpisodeDetails> GetNextUpEpisodes(
+    public ListResult<Dashboard.Episode> GetNextUpEpisodes(
         [FromQuery, Range(0, 100)] int pageSize = 20,
         [FromQuery, Range(0, int.MaxValue)] int page = 0,
         [FromQuery] bool onlyUnwatched = true,
@@ -391,7 +391,7 @@ public class DashboardController : BaseController
     }
 
     [NonAction]
-    public Dashboard.EpisodeDetails GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode,
+    public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode,
         SVR_AnimeSeries series, SVR_AniDB_Anime anime = null, SVR_VideoLocal file = null)
     {
         SVR_VideoLocal_User userRecord;
@@ -411,7 +411,7 @@ public class DashboardController : BaseController
                 .FirstOrDefault();
         }
 
-        return new Dashboard.EpisodeDetails(animeEpisode, anime, series, file, userRecord);
+        return new Dashboard.Episode(animeEpisode, anime, series, file, userRecord);
     }
 
     /// <summary>
@@ -422,7 +422,7 @@ public class DashboardController : BaseController
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("AniDBCalendar")]
-    public List<Dashboard.EpisodeDetails> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7,
+    public List<Dashboard.Episode> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7,
         [FromQuery] bool showAll = false, [FromQuery] bool includeRestricted = false)
         => GetCalendarEpisodes(
             DateOnly.FromDateTime(DateTime.Today),
@@ -440,7 +440,7 @@ public class DashboardController : BaseController
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("CalendarEpisodes")]
-    public List<Dashboard.EpisodeDetails> GetCalendarEpisodes(
+    public List<Dashboard.Episode> GetCalendarEpisodes(
         [FromQuery] DateOnly startDate = default,
         [FromQuery] DateOnly endDate = default,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
@@ -491,10 +491,10 @@ public class DashboardController : BaseController
                 {
                     var xref = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID).MinBy(xref => xref.Percentage);
                     var file = xref?.VideoLocal;
-                    return new Dashboard.EpisodeDetails(episode, anime, series, file);
+                    return new Dashboard.Episode(episode, anime, series, file);
                 }
 
-                return new Dashboard.EpisodeDetails(episode, anime);
+                return new Dashboard.Episode(episode, anime);
             })
             .ToList();
     }

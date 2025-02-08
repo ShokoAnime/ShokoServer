@@ -106,7 +106,7 @@ public class FilterController : BaseController
     /// <param name="groups">Optional. The Expression groups to return</param>
     [HttpGet("Expressions")]
     public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions([FromQuery] Filter.FilterExpressionHelp.FilterExpressionParameterType[] types = null,
-        [FromQuery] FilterExpressionGroup[] groups = null)
+        [FromQuery] Filter.FilterExpressionHelp.FilterExpressionGroup[] groups = null)
     {
         types ??= [];
         groups ??= [];
@@ -164,7 +164,7 @@ public class FilterController : BaseController
                 {
                     Expression = a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
                     Name = expression.Name,
-                    Group = expression.Group,
+                    Group = (Filter.FilterExpressionHelp.FilterExpressionGroup)expression.Group,
                     Description = expression.HelpDescription,
                     PossibleParameters = expression.HelpPossibleParameters,
                     PossibleSecondParameters = expression.HelpPossibleSecondParameters,

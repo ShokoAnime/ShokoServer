@@ -14,7 +14,7 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
@@ -22,7 +22,9 @@ using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.FileProviders;
+using Shoko.Server.Extensions;
 using Shoko.Server.Plugin;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -116,24 +118,32 @@ public static class APIExtensions
 
                 options.AddPlugins();
 
-                var v3Enums = typeof(APIExtensions).Assembly.GetTypes().Where(a =>
-                {
-                    if (!a.IsEnum) return false;
-                    return a.FullName?.StartsWith("Shoko.Server.API.v3", StringComparison.InvariantCultureIgnoreCase) ?? false;
-                });
+                var v3Enums = typeof(APIExtensions).Assembly.GetTypes()
+                    .Concat(typeof(TitleLanguage).Assembly.GetTypes())
+                    .Where(a => a.IsEnum)
+                    .Where(a =>
+                        (a.FullName?.StartsWith("Shoko.Server.API.v3.", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                        (a.FullName?.StartsWith("Shoko.Plugin.Abstractions.", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                        (a.FullName?.StartsWith("Shoko.Server.Providers.", StringComparison.InvariantCultureIgnoreCase) ?? false)
+                    )
+                    .Concat([
+                        typeof(DayOfWeek),
+                        typeof(DriveType),
+                        typeof(ReleaseChannel),
+                        typeof(CreatorRoleType),
+                        typeof(Shoko.Models.Enums.AnimeSeason),
+                        typeof(Shoko.Models.Enums.DataSourceType),
+                    ])
+                    .ToList();
                 foreach (var type in v3Enums)
                 {
                     var descriptorType = typeof(EnumSchemaFilter<>).MakeGenericType(type);
-                    options.RequestBodyFilterDescriptors.Add(new FilterDescriptor
+                    options.SchemaFilterDescriptors.Add(new FilterDescriptor
                     {
                         Type = descriptorType,
                         Arguments = []
                     });
                 }
-
-                // these are in Plugin Abstractions
-                options.SchemaFilter<EnumSchemaFilter<RenamerSettingType>>();
-                options.SchemaFilter<EnumSchemaFilter<CodeLanguage>>();
 
                 options.CustomSchemaIds(GetTypeName);
             });
@@ -204,17 +214,99 @@ public static class APIExtensions
         return services;
     }
 
-    private static string GetTypeName(Type type)
-    {
-        if (type.IsGenericType)
-            return GetGenericTypeName(type);
+    private static string GetTypeName(Type type) =>
+        GetTypeName(type.ToString()!.Replace("+", "."));
 
-        return string.Join(".", type.FullName.Replace("+", ".").Replace("`1", "").Split(".").TakeLast(2));
+    private static string GetTypeName(string fullName)
+    {
+        if (!fullName.Contains('`'))
+            return ConvertTypeName(fullName);
+
+        var firstPart = fullName[..fullName.IndexOf('`')];
+        var secondPart = fullName[(fullName.IndexOf('`') + 3)..^1];
+        return ConvertTypeName(firstPart) + "<" + GetTypeName(secondPart) + ">";
     }
 
-    private static string GetGenericTypeName(Type genericType)
+    private static string ConvertTypeName(string fullName)
     {
-        return genericType.Name.Replace("+", ".").Replace("`1", "") + "[" + string.Join(",", genericType.GetGenericArguments().Select(GetTypeName)) + "]";
+        string title;
+        if (fullName.StartsWith("System.Collections.Generic."))
+            title = fullName.Split('.').Skip(3).Join('.');
+        else if (fullName.StartsWith("System.") || fullName.StartsWith("Microsoft."))
+            title = "Core." + fullName.Split('.').Skip(1).Join('.');
+
+        // APIv0 (API independent plugin abstraction) schemas
+        else if (fullName.StartsWith("Shoko.Plugin.Abstractions."))
+            title = fullName
+                .Replace("Shoko.Plugin.Abstractions.", "APIv0.Abstraction.")
+                .Replace("TitleLanguage", "LanguageName")
+                .Replace("DataModels.", "")
+                .Replace("Enums.", "");
+
+        // APIv0 (API independent plex webhook) schemas
+        else if (fullName.StartsWith("Shoko.Models.Plex."))
+            title = fullName.Replace("Shoko.Models.Plex.", "APIv0.Plex.");
+
+        // APIv0 (API independent settings) schemas
+        else if (fullName.StartsWith("Shoko.Server.Settings."))
+            title = fullName
+                .Replace("Shoko.Server.Settings.", "APIv0.Settings.");
+        else if (fullName.StartsWith("Shoko.Models.FileQualityPreferences"))
+            title = fullName
+                .Replace("Shoko.Models.FileQualityPreferences", "APIv0.Settings.FileQualityPreferences");
+        else if (fullName.StartsWith("Shoko.Models.Enums."))
+            title = fullName
+                .Replace("Shoko.Models.Enums.", "APIv0.Settings.");
+
+        // APIv0 (API independent) schemas
+        else if (fullName is "Shoko.Server.TagFilter.Filter")
+            title = "APIv0.Shared.TagFilter";
+        else if (fullName is "Shoko.Models.Enums.AnimeSeason")
+            title = "APIv0.Shared.AnimeSeason";
+        else if (fullName.StartsWith("Shoko.Server.Server."))
+            title = fullName
+                .Replace("Shoko.Server.Server.", "APIv0.Shared.")
+                .Replace("Enums.", "");
+        else if (fullName.StartsWith("Shoko.Common."))
+            title = fullName
+                .Replace("Shoko.Common.", "APIv0.Shared.")
+                .Replace("Enums.", "");
+        else if (fullName.StartsWith("Shoko.Server.Providers."))
+            title = fullName
+                .Replace("Shoko.Server.Providers.", "APIv0.")
+                .Replace("AniDB", "Anidb")
+                .Replace("TMDB", "Tmdb")
+                .Replace("Anidb.Anidb", "Anidb.")
+                .Replace("Tmdb.Tmdb", "Tmdb.");
+        else if (fullName.StartsWith("Shoko.Server.API.v0.Controllers."))
+            title = fullName
+                .Replace("Shoko.Server.API.v0.Controllers.", "APIv0.")
+                .Replace("Controller", "");
+        else if (fullName.StartsWith("Shoko.Server.API.v0.Models."))
+            title = fullName
+                .Replace("Shoko.Server.API.v0.Models.", "APIv0.");
+
+        // APIv3 schemas
+        else if (fullName.StartsWith("Shoko.Server.API.v3.Controllers."))
+            title = fullName
+                .Replace("Shoko.Server.API.v3.Controllers.", "APIv3.")
+                .Replace("Controller", "");
+        else if (fullName.StartsWith("Shoko.Server.API.v3.Models."))
+            title = fullName
+                .Replace("Shoko.Server.API.v3.Models.", "APIv3.")
+                .Replace("Common.", "")
+                .Replace("Input.", "")
+                .Replace("AniDB", "Anidb")
+                .Replace("TMDB", "Tmdb")
+                .Replace("Anidb.Anidb", "Anidb.")
+                .Replace("Tmdb.Tmdb", "Tmdb.")
+                .Replace("Image.Image", "Image");
+
+        // All else exposed in APIv3 (mostly from the settings object), in addition to anything in APIv1 & APIv2.
+        else
+            title = string.Join(".", fullName.Replace("+", ".").Replace("`1", "").Split(".").TakeLast(2));
+
+        return title;
     }
 
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)

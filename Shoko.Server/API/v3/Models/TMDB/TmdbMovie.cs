@@ -17,7 +17,7 @@ namespace Shoko.Server.API.v3.Models.TMDB;
 /// <summary>
 /// APIv3 The Movie DataBase (TMDB) Movie Data Transfer Object (DTO).
 /// </summary>
-public class Movie
+public class TmdbMovie
 {
     /// <summary>
     /// TMDB Movie ID.
@@ -170,7 +170,7 @@ public class Movie
     /// </summary>
     public DateTime LastUpdatedAt { get; init; }
 
-    public Movie(TMDB_Movie movie, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public TmdbMovie(TMDB_Movie movie, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
         var preferredTitle = movie.GetPreferredTitle();

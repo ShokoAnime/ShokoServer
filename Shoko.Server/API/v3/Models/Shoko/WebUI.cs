@@ -5,13 +5,16 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
+
+using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -88,7 +91,7 @@ public class WebUI
         /// </summary>
         [Required]
         [JsonConverter(typeof(StringEnumConverter))]
-        public SeriesType Type { get; set; }
+        public AnimeType Type { get; set; }
 
         /// <summary>
         /// The overall rating from AniDB.
@@ -172,7 +175,7 @@ public class WebUI
                 .Select(shoko =>
                 {
                     var anidb = shoko.AniDB_Episode!;
-                    var type = Episode.MapAniDBEpisodeType(anidb.GetEpisodeTypeEnum());
+                    var type = anidb.AbstractEpisodeType.ToV3Dto();
                     var airDate = anidb.GetAirDateAsDate();
                     return new
                     {
@@ -446,7 +449,7 @@ public class WebUI
                 .Where(episode => !presentEpisodes.Contains(episode.ID) && !episode.IsHidden && (episode.AirDate.HasValue ? (showMissingFutureEpisodes || episode.AirDate.Value < now) : showMissingUnknownEpisodes))
                 .OrderBy(episode => episode.Type)
                 .ThenBy(episode => episode.Number)
-                .Select(episode => new Episode.AniDB(episode.AniDB))
+                .Select(episode => new AnidbEpisode(episode.AniDB))
                 .ToList();
         }
 
@@ -454,7 +457,7 @@ public class WebUI
 
         public List<EpisodeGroupSummary> Groups { get; set; }
 
-        public List<Episode.AniDB> MissingEpisodes { get; set; }
+        public List<AnidbEpisode> MissingEpisodes { get; set; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public enum FileSummaryGroupByCriteria

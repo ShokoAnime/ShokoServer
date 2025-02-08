@@ -90,11 +90,11 @@ public class AniDBController(
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("Creator")]
-    public ActionResult<ListResult<Creator>> GetCreators([FromQuery, Range(0, 1000)] int pageSize = 20,
+    public ActionResult<ListResult<AnidbCreator>> GetCreators([FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         return anidbCreators.GetAll()
-            .ToListResult(c => new Creator(c), page, pageSize);
+            .ToListResult(c => new AnidbCreator(c), page, pageSize);
     }
 
     /// <summary>
@@ -103,13 +103,13 @@ public class AniDBController(
     /// <param name="id">The creator id.</param>
     /// <returns></returns>
     [HttpGet("Creator/{id}")]
-    public ActionResult<Creator> GetCreator(int id)
+    public ActionResult<AnidbCreator> GetCreator(int id)
     {
         var creator = anidbCreators.GetByCreatorID(id);
         if (creator == null)
             return NotFound();
 
-        return new Creator(creator);
+        return new AnidbCreator(creator);
     }
 
     /// <summary>
@@ -118,12 +118,12 @@ public class AniDBController(
     /// <param name="name">The creator name.</param>
     /// <returns></returns>
     [HttpGet("Creator/Name/{name}")]
-    public ActionResult<Creator> GetCreator(string name)
+    public ActionResult<AnidbCreator> GetCreator(string name)
     {
         var creator = anidbCreators.GetByName(name);
         if (creator == null)
             return NotFound();
 
-        return new Creator(creator);
+        return new AnidbCreator(creator);
     }
 }

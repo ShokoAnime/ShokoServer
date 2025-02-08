@@ -20,6 +20,7 @@ using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB.Input;
@@ -37,14 +38,9 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
-using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
-using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
-using TmdbSearch = Shoko.Server.API.v3.Models.TMDB.Search;
-using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
-using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
+using Shoko.Server.API.v3.Models.TMDB;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -107,11 +103,11 @@ public class SeriesController : BaseController
 
     internal const string SeriesForbiddenForUser = "Accessing Series is not allowed for the current user";
 
-    internal const string AnidbNotFoundForSeriesID = "No Series.AniDB entry for the given seriesID";
+    internal const string AnidbNotFoundForSeriesID = "No AnidbAnime entry for the given seriesID";
 
-    internal const string AnidbNotFoundForAnidbID = "No Series.AniDB entry for the given anidbID";
+    internal const string AnidbNotFoundForAnidbID = "No AnidbAnime entry for the given anidbID";
 
-    internal const string AnidbForbiddenForUser = "Accessing Series.AniDB is not allowed for the current user";
+    internal const string AnidbForbiddenForUser = "Accessing AnidbAnime is not allowed for the current user";
 
     internal const string TmdbNotFoundForSeriesID = "No TMDB.Show entry for the given seriesID";
 
@@ -422,14 +418,14 @@ public class SeriesController : BaseController
     #region AniDB
 
     /// <summary>
-    /// Get a paginated list of all <see cref="Series.AniDB"/> available to the current <see cref="User"/>.
+    /// Get a paginated list of all <see cref="AnidbAnime"/> available to the current <see cref="User"/>.
     /// </summary>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <param name="startsWith">Search only for anime with a main title that start with the given query.</param>
     /// <returns></returns>
     [HttpGet("AniDB")]
-    public ActionResult<ListResult<Series.AniDB>> GetAllAnime([FromQuery, Range(0, 100)] int pageSize = 50,
+    public ActionResult<ListResult<AnidbAnime>> GetAllAnime([FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
     {
         startsWith = startsWith.ToLowerInvariant();
@@ -447,7 +443,7 @@ public class SeriesController : BaseController
                 return user.AllowedAnime(anime);
             })
             .OrderBy(a => a.animeTitle)
-            .ToListResult(tuple => new Series.AniDB(tuple.anime), page, pageSize);
+            .ToListResult(tuple => new AnidbAnime(tuple.anime), page, pageSize);
     }
 
     /// <summary>
@@ -476,7 +472,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB")]
-    public ActionResult<Series.AniDB> GetSeriesAnidbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    public ActionResult<AnidbAnime> GetSeriesAnidbBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -495,16 +491,16 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return new Series.AniDB(anidb, series);
+        return new AnidbAnime(anidb, series);
     }
 
     /// <summary>
-    /// Get all similar <see cref="Series.AniDB"/> entries for the <paramref name="seriesID"/>.
+    /// Get all similar <see cref="AnidbAnime"/> entries for the <paramref name="seriesID"/>.
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB/Similar")]
-    public ActionResult<List<Series.AniDB>> GetAnidbSimilarBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    public ActionResult<List<AnidbAnime>> GetAnidbSimilarBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -524,17 +520,17 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidb.AnimeID)
-            .Select(similar => new Series.AniDB(similar))
+            .Select(similar => new AnidbAnime(similar))
             .ToList();
     }
 
     /// <summary>
-    /// Get all similar <see cref="Series.AniDB"/> entries for the <paramref name="seriesID"/>.
+    /// Get all similar <see cref="AnidbAnime"/> entries for the <paramref name="seriesID"/>.
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB/Related")]
-    public ActionResult<List<Series.AniDB>> GetAnidbRelatedBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    public ActionResult<List<AnidbAnime>> GetAnidbRelatedBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -559,7 +555,7 @@ public class SeriesController : BaseController
             .OrderBy(a => a.BaseID)
             .ThenBy(a => a.RelatedID)
             .ThenBy(a => a.RelationType)
-            .Select(relation => new Series.AniDB(relation))
+            .Select(relation => new AnidbAnime(relation))
             .ToList();
     }
 
@@ -612,7 +608,7 @@ public class SeriesController : BaseController
     /// <param name="approval">Minimum approval percentage for similar anime.</param>
     /// <returns></returns>
     [HttpGet("AniDB/RecommendedForYou")]
-    public ActionResult<ListResult<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
+    public ActionResult<ListResult<AnidbAnimeRecommendedForYou>> GetAnimeRecommendedForYou(
         [FromQuery, Range(0, 100)] int pageSize = 30,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showAll = false,
@@ -664,7 +660,7 @@ public class SeriesController : BaseController
             {
                 var (anime, series) = unwatchedAnimeDict[similarTo.Key];
                 var similarToCount = similarTo.Count();
-                return new Series.AniDBRecommendedForYou(new Series.AniDB(anime, series), similarToCount);
+                return new AnidbAnimeRecommendedForYou(new AnidbAnime(anime, series), similarToCount);
             })
             .OrderByDescending(e => e.SimilarTo)
             .ToListResult(page, pageSize);
@@ -760,7 +756,7 @@ public class SeriesController : BaseController
     /// <param name="anidbID">AniDB ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}")]
-    public ActionResult<Series.AniDB> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
+    public ActionResult<AnidbAnime> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
     {
         var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidb == null)
@@ -773,16 +769,16 @@ public class SeriesController : BaseController
             return Forbid(AnidbForbiddenForUser);
         }
 
-        return new Series.AniDB(anidb);
+        return new AnidbAnime(anidb);
     }
 
     /// <summary>
-    /// Get all similar <see cref="Series.AniDB"/> entries for the <paramref name="anidbID"/>.
+    /// Get all similar <see cref="AnidbAnime"/> entries for the <paramref name="anidbID"/>.
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Similar")]
-    public ActionResult<List<Series.AniDB>> GetAnidbSimilarByAnidbID([FromRoute] int anidbID)
+    public ActionResult<List<AnidbAnime>> GetAnidbSimilarByAnidbID([FromRoute] int anidbID)
     {
         var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidb == null)
@@ -796,17 +792,17 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidbID)
-            .Select(similar => new Series.AniDB(similar))
+            .Select(similar => new AnidbAnime(similar))
             .ToList();
     }
 
     /// <summary>
-    /// Get all related <see cref="Series.AniDB"/> entries for the <paramref name="anidbID"/>.
+    /// Get all related <see cref="AnidbAnime"/> entries for the <paramref name="anidbID"/>.
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Related")]
-    public ActionResult<List<Series.AniDB>> GetAnidbRelatedByAnidbID([FromRoute] int anidbID)
+    public ActionResult<List<AnidbAnime>> GetAnidbRelatedByAnidbID([FromRoute] int anidbID)
     {
         var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidb == null)
@@ -820,7 +816,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidbID)
-            .Select(relation => new Series.AniDB(relation))
+            .Select(relation => new AnidbAnime(relation))
             .ToList();
     }
 
@@ -964,7 +960,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <returns>Void.</returns>
     [HttpGet("{seriesID}/TMDB/Action/AutoSearch")]
-    public async Task<ActionResult<List<TmdbSearch.AutoMatchResult>>> PreviewAutoMatchTMDBMoviesBySeriesID(
+    public async Task<ActionResult<List<Search.AutoMatchResult>>> PreviewAutoMatchTMDBMoviesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
@@ -977,11 +973,11 @@ public class SeriesController : BaseController
 
         var anime = series.AniDB_Anime;
         if (anime is null)
-            return InternalError($"Unable to get Series.AniDB with ID {series.AniDB_ID} for Series with ID {series.AnimeSeriesID}!");
+            return InternalError($"Unable to get AnidbAnime with ID {series.AniDB_ID} for Series with ID {series.AnimeSeriesID}!");
 
         var results = await _tmdbSearchService.SearchForAutoMatch(anime);
 
-        return results.Select(r => new TmdbSearch.AutoMatchResult(r)).ToList();
+        return results.Select(r => new Search.AutoMatchResult(r)).ToList();
     }
 
     /// <summary>
@@ -2025,7 +2021,7 @@ public class SeriesController : BaseController
                 // Filter by episode type, if specified
                 if (type != null && type.Count > 0)
                 {
-                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)anidb.EpisodeType);
+                    var mappedType = anidb.AbstractEpisodeType.ToV3Dto();
                     if (!type.Contains(mappedType))
                         return false;
                 }
@@ -2103,7 +2099,7 @@ public class SeriesController : BaseController
     }
 
     /// <summary>
-    /// Get the <see cref="Episode.AniDB"/>s for the <see cref="Series.AniDB"/> with <paramref name="anidbID"/>.
+    /// Get the <see cref="AnidbEpisode"/>s for the <see cref="AnidbAnime"/> with <paramref name="anidbID"/>.
     /// </summary>
     /// <remarks>
     /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
@@ -2120,7 +2116,7 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("AniDB/{anidbID}/Episode")]
-    public ActionResult<ListResult<Episode.AniDB>> GetAniDBEpisodes(
+    public ActionResult<ListResult<AnidbEpisode>> GetAniDBEpisodes(
         [FromRoute] int anidbID,
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
@@ -2167,7 +2163,7 @@ public class SeriesController : BaseController
                 // Filter by episode type, if specified
                 if (type != null && type.Count > 0)
                 {
-                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)anidb.EpisodeType);
+                    var mappedType = anidb.AbstractEpisodeType.ToV3Dto();
                     if (!type.Contains(mappedType))
                         return false;
                 }
@@ -2224,14 +2220,14 @@ public class SeriesController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new Episode.AniDB(a.Result.AniDB), page, pageSize);
+                .ToListResult(a => new AnidbEpisode(a.Result.AniDB), page, pageSize);
         }
 
         // Order the episodes since we're not using the search ordering.
         return episodes
             .OrderBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            .ToListResult(a => new Episode.AniDB(a.AniDB), page, pageSize);
+            .ToListResult(a => new AnidbEpisode(a.AniDB), page, pageSize);
     }
 
     /// <summary>
@@ -2812,7 +2808,7 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("AniDB/Search")]
-    public ActionResult<ListResult<Series.AniDB>> AnidbSearchQuery([FromQuery] string query,
+    public ActionResult<ListResult<AnidbAnime>> AnidbSearchQuery([FromQuery] string query,
         [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true, [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
@@ -2830,14 +2826,14 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Obsolete("Use the other endpoint instead.")]
     [HttpGet("AniDB/Search/{query}")]
-    public ActionResult<ListResult<Series.AniDB>> AnidbSearchPath([FromRoute] string query,
+    public ActionResult<ListResult<AnidbAnime>> AnidbSearchPath([FromRoute] string query,
         [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true, [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
         => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, pageSize, page);
 
     [NonAction]
-    internal ListResult<Series.AniDB> AnidbSearchInternal(string query, bool fuzzy = true, bool? local = null,
+    internal ListResult<AnidbAnime> AnidbSearchInternal(string query, bool fuzzy = true, bool? local = null,
         bool includeTitles = true, int pageSize = 50, int page = 1)
     {
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
@@ -2869,7 +2865,7 @@ public class SeriesController : BaseController
                     if (local.HasValue && series is null == local.Value)
                         return null;
 
-                    return new Series.AniDB(result, series, includeTitles);
+                    return new AnidbAnime(result, series, includeTitles);
                 })
                 .WhereNotNull()
                 .ToListResult(page, pageSize);
@@ -2882,7 +2878,7 @@ public class SeriesController : BaseController
                 if (local.HasValue && series is null == local.Value)
                     return null;
 
-                return new Series.AniDB(result, series, includeTitles);
+                return new AnidbAnime(result, series, includeTitles);
             })
             .WhereNotNull()
             .ToListResult(page, pageSize);

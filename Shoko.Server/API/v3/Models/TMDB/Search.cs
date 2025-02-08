@@ -14,6 +14,9 @@ using RemoteShow = TMDbLib.Objects.TvShows.TvShow;
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
 
+/// <summary>
+/// APIv3 The Movie DataBase (TMDB) Search Data Transfer Objects (DTOs).
+/// </summary>
 public static class Search
 {
     /// <summary>

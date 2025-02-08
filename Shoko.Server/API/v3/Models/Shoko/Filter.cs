@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Filters;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -128,6 +127,7 @@ public class Filter : BaseModel
         /// The group that this filter expression belongs to. This can help with filtering the expression types
         /// </summary>
         [Required]
+        [JsonConverter(typeof(StringEnumConverter))]
         public FilterExpressionGroup Group { get; init; }
 
         /// <summary>
@@ -211,6 +211,15 @@ public class Filter : BaseModel
         public bool ShouldSerializePossibleParameterPairs()
         {
             return PossibleParameterPairs?.Length > 0;
+        }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum FilterExpressionGroup
+        {
+            Info,
+            Logic,
+            Function,
+            Selector
         }
 
         /// <summary>

@@ -531,7 +531,7 @@ public class TreeController : BaseController
             .Where(a => user.AllowedSeries(a))
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
-            .OrderBy(a => a._AniDB?.AirDate ?? DateTime.MaxValue)
+            .OrderBy(a => a.AniDB?.AirDate ?? DateOnly.MaxValue)
             .ToList();
     }
 

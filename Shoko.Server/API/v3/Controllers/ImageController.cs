@@ -3,17 +3,17 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
+using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -160,7 +160,7 @@ public class ImageController : BaseController
     public ActionResult<Image> GetRandomImageMetadataForType(
         [FromRoute] Image.ImageType imageType,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<SeriesType>? seriesType = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? seriesType = null,
         [FromQuery, Range(0, 100)] int maxAttempts = 5
     )
     {
@@ -195,7 +195,7 @@ public class ImageController : BaseController
                     continue;
             }
 
-            if (seriesType is not null && !seriesType.Contains(anime.GetAnimeTypeEnum().ToAniDBSeriesType()))
+            if (seriesType is not null && !seriesType.Contains(anime.AbstractAnimeType.ToV3Dto()))
                 continue;
 
             image.Series = new(series.AnimeSeriesID, series.PreferredTitle);

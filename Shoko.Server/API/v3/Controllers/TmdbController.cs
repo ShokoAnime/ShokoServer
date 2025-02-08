@@ -19,8 +19,10 @@ using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
@@ -30,16 +32,12 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using InternalEpisodeType = Shoko.Models.Enums.EpisodeType;
 using MatchRating = Shoko.Models.Enums.MatchRating;
-using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
-using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
-using TmdbSearch = Shoko.Server.API.v3.Models.TMDB.Search;
-using TmdbSeason = Shoko.Server.API.v3.Models.TMDB.Season;
-using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -414,7 +412,7 @@ public partial class TmdbController : BaseController
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}/AniDB/Anime")]
-    public ActionResult<List<Series.AniDB>> GetAniDBAnimeByTmdbMovieID(
+    public ActionResult<List<AnidbAnime>> GetAniDBAnimeByTmdbMovieID(
         [FromRoute] int movieID
     )
     {
@@ -425,7 +423,7 @@ public partial class TmdbController : BaseController
         return movie.CrossReferences
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
-            .Select(anime => new Series.AniDB(anime))
+            .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
 
@@ -435,7 +433,7 @@ public partial class TmdbController : BaseController
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}/AniDB/Episode")]
-    public ActionResult<List<Episode.AniDB>> GetAniDBEpisodesByTmdbMovieID(
+    public ActionResult<List<AnidbEpisode>> GetAniDBEpisodesByTmdbMovieID(
         [FromRoute] int movieID
     )
     {
@@ -446,7 +444,7 @@ public partial class TmdbController : BaseController
         return movie.CrossReferences
             .Select(xref => xref.AnidbEpisode)
             .WhereNotNull()
-            .Select(episode => new Episode.AniDB(episode))
+            .Select(episode => new AnidbEpisode(episode))
             .ToList();
     }
 
@@ -616,7 +614,7 @@ public partial class TmdbController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Movie/Online/Search")]
-    public ListResult<TmdbSearch.RemoteSearchMovie> SearchOnlineForTmdbMovies(
+    public ListResult<Search.RemoteSearchMovie> SearchOnlineForTmdbMovies(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
@@ -629,7 +627,7 @@ public partial class TmdbController : BaseController
             .GetAwaiter()
             .GetResult();
 
-        return new ListResult<TmdbSearch.RemoteSearchMovie>(totalMovies, pageView.Select(a => new TmdbSearch.RemoteSearchMovie(a)));
+        return new ListResult<Search.RemoteSearchMovie>(totalMovies, pageView.Select(a => new Search.RemoteSearchMovie(a)));
     }
 
     /// <summary>
@@ -640,11 +638,11 @@ public partial class TmdbController : BaseController
     /// </remarks>
     /// <param name="body">Body containing the IDs of the movies to search for.</param>
     /// <returns>
-    /// A list of <see cref="TmdbSearch.RemoteSearchMovie"/> containing the search results.
+    /// A list of <see cref="Search.RemoteSearchMovie"/> containing the search results.
     /// The order of the returned movies is determined by the order of the IDs in <paramref name="body"/>.
     /// </returns>
     [HttpPost("Movie/Online/Bulk")]
-    public async Task<ActionResult<List<TmdbSearch.RemoteSearchMovie>>> SearchBulkForTmdbMovies(
+    public async Task<ActionResult<List<Search.RemoteSearchMovie>>> SearchBulkForTmdbMovies(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkSearchBody body
     )
     {
@@ -654,7 +652,7 @@ public partial class TmdbController : BaseController
         var movieDict = uniqueIds
             .Select(id => id <= 0 ? null : RepoFactory.TMDB_Movie.GetByTmdbMovieID(id))
             .WhereNotNull()
-            .Select(movie => new TmdbSearch.RemoteSearchMovie(movie))
+            .Select(movie => new Search.RemoteSearchMovie(movie))
             .ToDictionary(movie => movie.ID);
         foreach (var id in uniqueIds.Except(movieDict.Keys))
         {
@@ -662,7 +660,7 @@ public partial class TmdbController : BaseController
             if (movie is null)
                 continue;
 
-            movieDict[movie.Id] = new TmdbSearch.RemoteSearchMovie(movie);
+            movieDict[movie.Id] = new Search.RemoteSearchMovie(movie);
         }
 
         var unknownMovies = uniqueIds.Except(movieDict.Keys).ToList();
@@ -689,17 +687,17 @@ public partial class TmdbController : BaseController
     /// If the movie is not found on TMDB, returns 404.
     /// </returns>
     [HttpGet("Movie/Online/{movieID}")]
-    public async Task<ActionResult<TmdbSearch.RemoteSearchMovie>> SearchOnlineForTmdbMovieByMovieID(
+    public async Task<ActionResult<Search.RemoteSearchMovie>> SearchOnlineForTmdbMovieByMovieID(
         [FromRoute] int movieID
     )
     {
         if (RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID) is { } localMovie)
-            return new TmdbSearch.RemoteSearchMovie(localMovie);
+            return new Search.RemoteSearchMovie(localMovie);
 
         if (await _tmdbMetadataService.UseClient(c => c.GetMovieAsync(movieID), $"Get movie {movieID}") is not { } remoteMovie)
             return NotFound("Movie not found on TMDB.");
 
-        return new TmdbSearch.RemoteSearchMovie(remoteMovie);
+        return new Search.RemoteSearchMovie(remoteMovie);
     }
 
     #endregion
@@ -1521,7 +1519,7 @@ public partial class TmdbController : BaseController
     /// <param name="showID">TMDB Show ID.</param>
     /// <returns></returns>
     [HttpGet("Show/{showID}/AniDB/Anime")]
-    public ActionResult<List<Series.AniDB>> GetAnidbAnimeByTmdbShowID(
+    public ActionResult<List<AnidbAnime>> GetAnidbAnimeByTmdbShowID(
         [FromRoute] int showID
     )
     {
@@ -1534,7 +1532,7 @@ public partial class TmdbController : BaseController
         return show.CrossReferences
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
-            .Select(anime => new Series.AniDB(anime))
+            .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
 
@@ -1680,7 +1678,7 @@ public partial class TmdbController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Show/Online/Search")]
-    public ListResult<TmdbSearch.RemoteSearchShow> SearchOnlineForTmdbShows(
+    public ListResult<Search.RemoteSearchShow> SearchOnlineForTmdbShows(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
@@ -1693,7 +1691,7 @@ public partial class TmdbController : BaseController
             .GetAwaiter()
             .GetResult();
 
-        return new ListResult<TmdbSearch.RemoteSearchShow>(totalShows, pageView.Select(a => new TmdbSearch.RemoteSearchShow(a)));
+        return new ListResult<Search.RemoteSearchShow>(totalShows, pageView.Select(a => new Search.RemoteSearchShow(a)));
     }
 
     /// <summary>
@@ -1704,11 +1702,11 @@ public partial class TmdbController : BaseController
     /// </remarks>
     /// <param name="body">Body containing the IDs of the shows to search for.</param>
     /// <returns>
-    /// A list of <see cref="TmdbSearch.RemoteSearchShow"/> containing the search results.
+    /// A list of <see cref="Search.RemoteSearchShow"/> containing the search results.
     /// The order of the returned shows is determined by the order of the IDs in <paramref name="body"/>.
     /// </returns>
     [HttpPost("Show/Online/Bulk")]
-    public async Task<ActionResult<List<TmdbSearch.RemoteSearchShow>>> SearchBulkForTmdbShows(
+    public async Task<ActionResult<List<Search.RemoteSearchShow>>> SearchBulkForTmdbShows(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkSearchBody body
     )
     {
@@ -1718,7 +1716,7 @@ public partial class TmdbController : BaseController
         var showDict = uniqueIds
             .Select(id => id <= 0 ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(id))
             .WhereNotNull()
-            .Select(show => new TmdbSearch.RemoteSearchShow(show))
+            .Select(show => new Search.RemoteSearchShow(show))
             .ToDictionary(show => show.ID);
         foreach (var id in uniqueIds.Except(showDict.Keys))
         {
@@ -1726,7 +1724,7 @@ public partial class TmdbController : BaseController
             if (show is null)
                 continue;
 
-            showDict[show.Id] = new TmdbSearch.RemoteSearchShow(show);
+            showDict[show.Id] = new Search.RemoteSearchShow(show);
         }
 
         var unknownShows = uniqueIds.Except(showDict.Keys).ToList();
@@ -1753,17 +1751,17 @@ public partial class TmdbController : BaseController
     /// If the show is not found on TMDB, returns 404.
     /// </returns>
     [HttpGet("Show/Online/{showID}")]
-    public async Task<ActionResult<TmdbSearch.RemoteSearchShow>> SearchOnlineForTmdbShowByShowID(
+    public async Task<ActionResult<Search.RemoteSearchShow>> SearchOnlineForTmdbShowByShowID(
         [FromRoute] int showID
     )
     {
         if (RepoFactory.TMDB_Show.GetByTmdbShowID(showID) is { } localShow)
-            return new TmdbSearch.RemoteSearchShow(localShow);
+            return new Search.RemoteSearchShow(localShow);
 
         if (await _tmdbMetadataService.UseClient(c => c.GetTvShowAsync(showID), $"Get show {showID}") is not { } remoteShow)
             return NotFound("Show not found on TMDB.");
 
-        return new TmdbSearch.RemoteSearchShow(remoteShow);
+        return new Search.RemoteSearchShow(remoteShow);
     }
 
     #endregion
@@ -2060,7 +2058,7 @@ public partial class TmdbController : BaseController
     #region Cross-Source Linked Entries
 
     [HttpGet("Season/{seasonID}/AniDB/Anime")]
-    public ActionResult<List<Series.AniDB>> GetAniDBAnimeBySeasonID(
+    public ActionResult<List<AnidbAnime>> GetAniDBAnimeBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID
     )
     {
@@ -2079,7 +2077,7 @@ public partial class TmdbController : BaseController
                 .DistinctBy(xref => xref.AnidbAnimeID)
                 .Select(xref => xref.AnidbAnime)
                 .WhereNotNull()
-                .Select(anime => new Series.AniDB(anime))
+                .Select(anime => new AnidbAnime(anime))
                 .ToList();
         }
 
@@ -2095,7 +2093,7 @@ public partial class TmdbController : BaseController
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
-            .Select(anime => new Series.AniDB(anime))
+            .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
 
@@ -2494,7 +2492,7 @@ public partial class TmdbController : BaseController
     #region Cross-Source Linked Entries
 
     [HttpGet("Episode/{episodeID}/AniDB/Anime")]
-    public ActionResult<List<Series.AniDB>> GetAniDBAnimeByEpisodeID(
+    public ActionResult<List<AnidbAnime>> GetAniDBAnimeByEpisodeID(
         [FromRoute] int episodeID
     )
     {
@@ -2506,12 +2504,12 @@ public partial class TmdbController : BaseController
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
-            .Select(anime => new Series.AniDB(anime))
+            .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
 
     [HttpGet("Episode/{episodeID}/Anidb/Episode")]
-    public ActionResult<List<Episode.AniDB>> GetAniDBEpisodeByEpisodeID(
+    public ActionResult<List<AnidbEpisode>> GetAniDBEpisodeByEpisodeID(
         [FromRoute] int episodeID
     )
     {
@@ -2523,7 +2521,7 @@ public partial class TmdbController : BaseController
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbEpisode)
             .WhereNotNull()
-            .Select(anidbEpisode => new Episode.AniDB(anidbEpisode))
+            .Select(anidbEpisode => new AnidbEpisode(anidbEpisode))
             .ToList();
     }
 
@@ -2619,15 +2617,15 @@ public partial class TmdbController : BaseController
 
     private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeType,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
 
-    private string MapAnimeType(AnimeType? type) =>
+    private string MapAnimeType(AbstractAnimeType? type) =>
         type switch
         {
-            AnimeType.Movie => "MV",
-            AnimeType.OVA => "VA",
-            AnimeType.TVSeries => "TV",
-            AnimeType.TVSpecial => "SP",
-            AnimeType.Web => "WB",
-            AnimeType.Other => "OT",
+            AbstractAnimeType.Movie => "MV",
+            AbstractAnimeType.OVA => "VA",
+            AbstractAnimeType.TVSeries => "TV",
+            AbstractAnimeType.TVSpecial => "SP",
+            AbstractAnimeType.Web => "WB",
+            AbstractAnimeType.Other => "OT",
             _ => "??",
         };
 
@@ -2684,7 +2682,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType((AnimeType?)anime?.AnimeType)} ``{animeTitle}`` (a{xref.AnidbAnimeID}) {episodeNumber} ``{episodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{movieTitle}`` (m{xref.TmdbMovieID})",
+                        $"# AniDB: {MapAnimeType(anime?.AbstractAnimeType)} ``{animeTitle}`` (a{xref.AnidbAnimeID}) {episodeNumber} ``{episodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{movieTitle}`` (m{xref.TmdbMovieID})",
                         entry,
                     ];
                 })
@@ -2757,7 +2755,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType((AnimeType?)anidbAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
+                        $"# AniDB: {MapAnimeType(anidbAnime?.AbstractAnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
                         entry,
                     ];
                 })

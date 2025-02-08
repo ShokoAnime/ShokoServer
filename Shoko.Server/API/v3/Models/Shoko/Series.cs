@@ -3,30 +3,23 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
+using AniDBVoteType = Shoko.Models.Enums.AniDBVoteType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
-using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
-using TmdbShow = Shoko.Server.API.v3.Models.TMDB.Show;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -36,10 +29,6 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 /// </summary>
 public class Series : BaseModel
 {
-    private static AniDBTitleHelper? _titleHelper = null;
-
-    private static AniDBTitleHelper TitleHelper
-        => _titleHelper ??= Utils.ServiceContainer.GetService<AniDBTitleHelper>()!;
 
     /// <summary>
     /// The relevant IDs for the series, Shoko Internal, AniDB, etc
@@ -71,8 +60,8 @@ public class Series : BaseModel
     /// The inferred days of the week this series airs on.
     /// </summary>
     /// <remarks>
-    /// Will only be set for series of type <see cref="SeriesType.TV"/> and
-    /// <see cref="SeriesType.Web"/>.
+    /// Will only be set for series of type <see cref="AnimeType.TV"/> and
+    /// <see cref="AnimeType.Web"/>.
     /// </remarks>
     /// <value>Each weekday</value>
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
@@ -100,14 +89,12 @@ public class Series : BaseModel
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Updated { get; set; }
 
-#pragma warning disable IDE1006
     /// <summary>
     /// The <see cref="Series.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
     /// </summary>
-    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
-    public AniDB? _AniDB { get; set; }
-#pragma warning restore IDE1006
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public AnidbAnime? AniDB { get; set; }
 
     /// <summary>
     /// The <see cref="TmdbData"/> entries, if <see cref="DataSource.TMDB"/>
@@ -120,7 +107,7 @@ public class Series : BaseModel
     {
         var anime = ser.AniDB_Anime ??
             throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for AnimeSeries {ser.AnimeSeriesID}");
-        var animeType = (AniDBAnimeType)anime.AnimeType;
+        var animeType = anime.AbstractAnimeType.ToV3Dto();
         var allEpisodes = ser.AllAnimeEpisodes;
         var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
                    RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
@@ -154,7 +141,7 @@ public class Series : BaseModel
         HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
         Description = ser.PreferredOverview;
         Images = ser.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
-        AirsOn = animeType == AniDBAnimeType.TVSeries || animeType == AniDBAnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
+        AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
         Sizes = sizes;
         Created = ser.DateTimeCreated.ToUniversalTime();
         Updated = ser.DateTimeUpdated.ToUniversalTime();
@@ -168,7 +155,7 @@ public class Series : BaseModel
                 Source = "User"
             };
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
-            _AniDB = new(anime, ser);
+            AniDB = new(anime, ser);
         if (includeDataFrom?.Contains(DataSource.TMDB) ?? false)
             TMDB = new()
             {
@@ -407,201 +394,6 @@ public class Series : BaseModel
         // /// </summary>
         // [Required]
         // public bool Kitsu { get; set; }
-    }
-
-    /// <summary>
-    /// Basic anidb data across all anidb types.
-    /// </summary>
-    public class AniDB
-    {
-        /// <summary>
-        /// AniDB ID
-        /// </summary>
-        public int ID { get; set; }
-
-        /// <summary>
-        /// <see cref="Series"/> ID if the series is available locally.
-        /// </summary>
-        /// <value></value>
-        public int? ShokoID { get; set; }
-
-        /// <summary>
-        /// Series type. Series, OVA, Movie, etc
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public SeriesType Type { get; set; }
-
-        /// <summary>
-        /// Main Title, usually matches x-jat
-        /// </summary>
-        public string Title { get; set; }
-
-        /// <summary>
-        /// There should always be at least one of these, the <see cref="Title"/>.
-        /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public List<Title>? Titles { get; set; }
-
-        /// <summary>
-        /// Description.
-        /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? Description { get; set; }
-
-        /// <summary>
-        /// Indicates when the AniDB anime first started airing, if it's known. In the 'yyyy-MM-dd' format, or null.
-        /// </summary>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? AirDate { get; set; }
-
-        /// <summary>
-        /// Indicates when the AniDB anime stopped airing. It will be null if it's still airing or haven't aired yet. In the 'yyyy-MM-dd' format, or null.
-        /// </summary>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? EndDate { get; set; }
-
-        /// <summary>
-        /// Restricted content. Mainly porn.
-        /// </summary>
-        public bool Restricted { get; set; }
-
-        /// <summary>
-        /// The preferred poster for the anime.
-        /// </summary>
-        public Image? Poster { get; set; }
-
-        /// <summary>
-        /// Number of <see cref="EpisodeType.Normal"/> episodes contained within the series if it's known.
-        /// </summary>
-        public int? EpisodeCount { get; set; }
-
-        /// <summary>
-        /// The average rating for the anime.
-        /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Rating? Rating { get; set; }
-
-        /// <summary>
-        /// User approval rate for the similar submission. Only available for similar.
-        /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Rating? UserApproval { get; set; }
-
-        /// <summary>
-        /// Relation type. Only available for relations.
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public RelationType? Relation { get; set; }
-
-
-        private AniDB(int animeId, bool includeTitles, SVR_AnimeSeries? series = null, SVR_AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
-        {
-            ID = animeId;
-            if ((anime ??= (series is not null ? series.AniDB_Anime : RepoFactory.AniDB_Anime.GetByAnimeID(animeId))) is not null)
-            {
-                ArgumentNullException.ThrowIfNull(anime);
-                series ??= RepoFactory.AnimeSeries.GetByAnimeID(animeId);
-                var seriesTitle = series?.PreferredTitle ?? anime.PreferredTitle;
-                ShokoID = series?.AnimeSeriesID;
-                Type = anime.AnimeType.ToAniDBSeriesType();
-                Title = seriesTitle;
-                Titles = includeTitles
-                    ? anime.Titles.Select(title => new Title(title, anime.MainTitle, seriesTitle)).ToList()
-                    : null;
-                Description = anime.Description;
-                Restricted = anime.IsRestricted;
-                Poster = new Image(anime.PreferredOrDefaultPoster);
-                EpisodeCount = anime.EpisodeCountNormal;
-                Rating = new Rating
-                {
-                    Source = "AniDB",
-                    Value = anime.Rating,
-                    MaxValue = 1000,
-                    Votes = anime.VoteCount,
-                };
-                UserApproval = null;
-                Relation = null;
-                AirDate = anime.AirDate;
-                EndDate = anime.EndDate;
-            }
-            else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is not null)
-            {
-                Type = SeriesType.Unknown;
-                Title = result.PreferredTitle;
-                Titles = includeTitles
-                    ? result.Titles.Select(
-                        title => new Title(title, result.MainTitle, Title)
-                        {
-                            Language = title.LanguageCode,
-                            Name = title.Title,
-                            Type = title.TitleType,
-                            Default = string.Equals(title.Title, Title),
-                            Source = "AniDB"
-                        }
-                    ).ToList()
-                    : null;
-                Description = null;
-                Poster = new Image(animeId, ImageEntityType.Poster, DataSourceType.AniDB);
-            }
-            else
-            {
-                Type = SeriesType.Unknown;
-                Title = string.Empty;
-                Titles = includeTitles ? [] : null;
-                Poster = new Image(animeId, ImageEntityType.Poster, DataSourceType.AniDB);
-            }
-        }
-
-        public AniDB(SVR_AniDB_Anime anime, SVR_AnimeSeries? series = null, bool includeTitles = true)
-            : this(anime.AnimeID, includeTitles, series, anime) { }
-
-        public AniDB(ResponseAniDBTitles.Anime result, SVR_AnimeSeries? series = null, bool includeTitles = true)
-            : this(result.AnimeID, includeTitles, series) { }
-
-        public AniDB(IRelatedMetadata relation, SVR_AnimeSeries? series = null, bool includeTitles = true)
-            : this(relation.RelatedID, includeTitles, series)
-        {
-            Relation = relation.RelationType;
-            // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
-            if (Type == SeriesType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID) is not null)
-                Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
-        }
-
-        public AniDB(AniDB_Anime_Similar similar, SVR_AnimeSeries? series = null, bool includeTitles = true)
-            : this(similar.SimilarAnimeID, includeTitles, series)
-        {
-            UserApproval = new()
-            {
-                Value = new Vote(similar.Approval, similar.Total).GetRating(100),
-                MaxValue = 100,
-                Votes = similar.Total,
-                Source = "AniDB",
-                Type = "User Approval"
-            };
-        }
-    }
-
-    /// <summary>
-    /// The result entries for the "Recommended For You" algorithm.
-    /// </summary>
-    public class AniDBRecommendedForYou
-    {
-        /// <summary>
-        /// The recommended AniDB entry.
-        /// </summary>
-        public AniDB Anime { get; init; }
-
-        /// <summary>
-        /// Number of similar anime that resulted in this recommendation.
-        /// </summary>
-        public int SimilarTo { get; init; }
-
-        public AniDBRecommendedForYou(AniDB anime, int similarCount)
-        {
-            Anime = anime;
-            SimilarTo = similarCount;
-        }
     }
 
     public class SeriesIDs : IDs
@@ -891,45 +683,6 @@ public class Series : BaseModel
             EpisodeCount = episodeCount;
         }
     }
-}
-
-[JsonConverter(typeof(StringEnumConverter))]
-public enum SeriesType
-{
-    /// <summary>
-    /// The series type is unknown.
-    /// </summary>
-    Unknown = 0,
-
-    /// <summary>
-    /// A catch-all type for future extensions when a provider can't use a current episode type, but knows what the future type should be.
-    /// </summary>
-    Other = 1,
-
-    /// <summary>
-    /// Standard TV series.
-    /// </summary>
-    TV = 2,
-
-    /// <summary>
-    /// TV special.
-    /// </summary>
-    TVSpecial = 3,
-
-    /// <summary>
-    /// Web series.
-    /// </summary>
-    Web = 4,
-
-    /// <summary>
-    /// All movies, regardless of source (e.g. web or theater)
-    /// </summary>
-    Movie = 5,
-
-    /// <summary>
-    /// Original Video Animations, AKA standalone releases that don't air on TV or the web.
-    /// </summary>
-    OVA = 6
 }
 
 /// <summary>

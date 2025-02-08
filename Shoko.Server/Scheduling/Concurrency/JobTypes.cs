@@ -15,6 +15,8 @@ public struct JobTypes
     public JobTypes() : this(Array.Empty<Type>(), new Dictionary<Type, int>(), Array.Empty<Type[]>()) { }
 
     public IEnumerable<Type> TypesToExclude { get; init; }
+
     public IDictionary<Type, int> TypesToLimit { get; init; }
+
     public IEnumerable<IEnumerable<Type>> AvailableConcurrencyGroups { get; init; }
 }

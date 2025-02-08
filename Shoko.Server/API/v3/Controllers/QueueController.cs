@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -174,5 +175,16 @@ public class QueueController : BaseController
         return _queueHandler.GetAcquisitionFilterResults();
     }
 
-    public record DebugStats(Queue Queue, JobTypes TypeFilters, Dictionary<string, string[]> AcquisitionFilters);
+    public class DebugStats(Queue queue, JobTypes typeFilters, Dictionary<string, string[]> acquisitionFilters)
+    {
+        public Queue Queue { get; init; } = queue;
+
+        public IEnumerable<Type> TypesToExclude { get; init; } = typeFilters.TypesToExclude;
+
+        public IDictionary<Type, int> TypesToLimit { get; init; } = typeFilters.TypesToLimit;
+
+        public IEnumerable<IEnumerable<Type>> AvailableConcurrencyGroups { get; init; } = typeFilters.AvailableConcurrencyGroups;
+
+        public Dictionary<string, string[]> AcquisitionFilters { get; init; } = acquisitionFilters;
+    }
 }

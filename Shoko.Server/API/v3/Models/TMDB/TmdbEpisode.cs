@@ -20,7 +20,7 @@ namespace Shoko.Server.API.v3.Models.TMDB;
 /// <summary>
 /// APIv3 The Movie DataBase (TMDB) Episode Data Transfer Object (DTO).
 /// </summary>
-public class Episode
+public class TmdbEpisode
 {
     /// <summary>
     /// TMDB Episode ID.
@@ -142,11 +142,11 @@ public class Episode
     /// </summary>
     public DateTime LastUpdatedAt { get; init; }
 
-    public Episode(TMDB_Show show, TMDB_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
+    public TmdbEpisode(TMDB_Show show, TMDB_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
         this(show, episode, null, includeDetails, language)
     { }
 
-    public Episode(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public TmdbEpisode(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
         var preferredOverview = episode.GetPreferredOverview();

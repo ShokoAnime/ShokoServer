@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v0.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -119,6 +119,4 @@ public class AuthenticationController : BaseController
     {
         _logger = logger;
     }
-
-    public record ApikeyResult(int UserID, string Username, string Device);
 }
