@@ -476,64 +476,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpDelete("File/Association/{videoLocalID}/{animeEpisodeID}")]
     public string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID)
     {
-        try
-        {
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid is null)
-            {
-                return "Could not find video record";
-            }
-
-            if (string.IsNullOrEmpty(vid.Hash)) //this shouldn't happen
-            {
-                return "Could not dissociate a cloud file without hash, hash it locally first";
-            }
-
-            int? animeSeriesID = null;
-            foreach (var ep in vid.AnimeEpisodes)
-            {
-                if (ep.AniDB_EpisodeID != animeEpisodeID)
-                {
-                    continue;
-                }
-
-                animeSeriesID = ep.AnimeSeriesID;
-                var xref = vid.EpisodeCrossReferences.FirstOrDefault(x => x.EpisodeID == ep.AniDB_EpisodeID);
-                if (xref != null)
-                {
-                    if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                    {
-                        return "Cannot remove associations created from AniDB data";
-                    }
-
-                    RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
-                }
-            }
-
-            if (vid.DateTimeImported.HasValue)
-            {
-                // Reset the import date.
-                vid.DateTimeImported = null;
-                RepoFactory.VideoLocal.Save(vid);
-            }
-
-            if (animeSeriesID.HasValue)
-            {
-                var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID.Value);
-                if (ser != null)
-                {
-                    seriesService.QueueUpdateStats(ser).GetAwaiter().GetResult();
-                }
-            }
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-            return ex.Message;
-        }
+        return "All file association/deassociation actions are deprecated in APIv1";
     }
 
     [HttpPost("File/Status/{videoLocalID}/{isIgnored}")]
@@ -580,64 +523,10 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
     }
 
-    [NonAction]
-    private static void RemoveXRefsForFile(int videoLocalID)
-    {
-        var vlocal = RepoFactory.VideoLocal.GetByID(videoLocalID);
-        var fileEps = RepoFactory.CrossRef_File_Episode.GetByEd2k(vlocal.Hash);
-
-        foreach (var fileEp in fileEps)
-        {
-            RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
-        }
-
-        if (vlocal.DateTimeImported.HasValue)
-        {
-            // Reset the import date.
-            vlocal.DateTimeImported = null;
-            RepoFactory.VideoLocal.Save(vlocal);
-        }
-    }
-
     [HttpPost("File/Association/{videoLocalID}/{animeEpisodeID}")]
     public string AssociateSingleFile(int videoLocalID, int animeEpisodeID)
     {
-        try
-        {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid is null)
-            {
-                return "Could not find video record";
-            }
-
-            if (string.IsNullOrEmpty(vid.Hash))
-            {
-                return "Could not associate a cloud file without hash, hash it locally first";
-            }
-
-            var ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);
-            if (ep is null)
-            {
-                return "Could not find episode record";
-            }
-
-            RemoveXRefsForFile(videoLocalID);
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJob<ManualLinkJob>(
-                c =>
-                {
-                    c.VideoLocalID = videoLocalID;
-                    c.EpisodeID = animeEpisodeID;
-                }
-            ).GetAwaiter().GetResult();
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-        }
-
-        return string.Empty;
+        return "All file association/deassociation actions are deprecated in APIv1";
     }
 
     [HttpPost("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}")]
@@ -645,157 +534,14 @@ public partial class ShokoServiceImplementation : IShokoServer
         int startingEpisodeNumber,
         int endEpisodeNumber)
     {
-        try
-        {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid is null)
-            {
-                return "Could not find video record";
-            }
-
-            if (vid.Hash is null)
-            {
-                return "Could not associate a cloud file without hash, hash it locally first";
-            }
-
-            var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (ser is null)
-            {
-                return "Could not find anime series record";
-            }
-
-            RemoveXRefsForFile(videoLocalID);
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-
-            for (var i = startingEpisodeNumber; i <= endEpisodeNumber; i++)
-            {
-                var aniep = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i)[0];
-                if (aniep is null)
-                {
-                    return "Could not find the AniDB episode record";
-                }
-
-                var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
-                if (ep is null)
-                {
-                    return "Could not find episode record";
-                }
-
-                scheduler.StartJob<ManualLinkJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = videoLocalID;
-                        c.EpisodeID = ep.AnimeEpisodeID;
-                    }
-                ).GetAwaiter().GetResult();
-            }
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-        }
-
-        return string.Empty;
+        return "All file association/deassociation actions are deprecated in APIv1";
     }
 
     [HttpPost("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}")]
     public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, string startingEpisodeNumber,
         bool singleEpisode)
     {
-        try
-        {
-            startingEpisodeNumber ??= "1";
-            var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-            if (ser is null)
-            {
-                return "Could not find anime series record";
-            }
-
-            var typeEnum = EpisodeType.Episode;
-            if (!int.TryParse(startingEpisodeNumber, out var epNumber))
-            {
-                var type = startingEpisodeNumber[0];
-                var text = startingEpisodeNumber.Substring(1);
-                if (int.TryParse(text, out var epNum))
-                {
-                    switch (type)
-                    {
-                        case 'S':
-                            typeEnum = EpisodeType.Special;
-                            break;
-                        case 'C':
-                            typeEnum = EpisodeType.Credits;
-                            break;
-                        case 'T':
-                            typeEnum = EpisodeType.Trailer;
-                            break;
-                        case 'P':
-                            typeEnum = EpisodeType.Parody;
-                            break;
-                        case 'O':
-                            typeEnum = EpisodeType.Other;
-                            break;
-                    }
-
-                    epNumber = epNum;
-                }
-            }
-
-            var total = epNumber + videoLocalIDs.Count - 1;
-
-            foreach (var videoLocalID in videoLocalIDs)
-            {
-                var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-                if (vid is null)
-                {
-                    return "Could not find video local record";
-                }
-
-                if (vid.Hash is null)
-                {
-                    return "Could not associate a cloud file without hash, hash it locally first";
-                }
-
-                var anieps =
-                    RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(ser.AniDB_ID, typeEnum, epNumber);
-                if (anieps.Count == 0)
-                {
-                    return "Could not find the AniDB episode record";
-                }
-
-                var aniep = anieps[0];
-
-                var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
-                if (ep is null)
-                {
-                    return "Could not find episode record";
-                }
-
-                RemoveXRefsForFile(videoLocalID);
-                var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-                scheduler.StartJob<ManualLinkJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = videoLocalID;
-                        c.EpisodeID = ep.AnimeEpisodeID;
-                        if (singleEpisode) c.Percentage = (int)Math.Round(1D / total * 100);
-                    }
-                ).GetAwaiter().GetResult();
-
-                if (!singleEpisode)
-                {
-                    epNumber++;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-        }
-
-        return string.Empty;
+        return "All file association/deassociation actions are deprecated in APIv1";
     }
 
     [HttpPost("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}")]
@@ -862,7 +608,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             ).GetAwaiter().GetResult();
         }
