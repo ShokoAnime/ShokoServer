@@ -2313,14 +2313,14 @@ public class SeriesController : BaseController
                 await scheduler.StartJobNow<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
             else
                 await scheduler.StartJob<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
         }
