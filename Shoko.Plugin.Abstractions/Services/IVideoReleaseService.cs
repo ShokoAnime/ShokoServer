@@ -121,6 +121,9 @@ public interface IVideoReleaseService
     /// <param name="release">
     ///   The release details to save.
     /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///   Release does not have at least one cross reference or have invalid cross references.
+    /// </exception>
     /// <returns>
     ///   The saved release.
     /// </returns>
@@ -140,6 +143,9 @@ public interface IVideoReleaseService
     /// <param name="providerName">
     ///   Optional. Set the name of the provider.
     /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///   Release does not have at least one cross reference or have invalid cross references.
+    /// </exception>
     /// <returns>
     ///   The saved release.
     /// </returns>
