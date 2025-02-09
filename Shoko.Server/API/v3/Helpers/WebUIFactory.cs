@@ -72,10 +72,10 @@ public class WebUIFactory
             Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
         };
         if (anime.AirDate is { } airDate && airDate != DateTime.MinValue)
-            result.AirDate = airDate;
+            result.AirDate = DateOnly.FromDateTime(airDate);
 
         if (anime.EndDate is { } endDate && endDate != DateTime.MinValue)
-            result.EndDate = endDate;
+            result.EndDate = DateOnly.FromDateTime(endDate);
 
         result.Tags = Series.GetTags(anime, filter, excludeDescriptions: true, orderByName)
             .Take(tagLimit)

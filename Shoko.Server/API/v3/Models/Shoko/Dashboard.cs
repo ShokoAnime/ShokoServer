@@ -2,7 +2,6 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
-using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
@@ -145,7 +144,7 @@ public static class Dashboard
             Title = episode.PreferredTitle.Title;
             Number = episode.EpisodeNumber;
             Type = episode.AbstractEpisodeType.ToV3Dto();
-            AirDate = episode.GetAirDateAsDate();
+            AirDate = episode.GetAirDateAsDate() is { } airDate ? DateOnly.FromDateTime(airDate) : null;
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
             ResumePosition = userRecord?.ResumePositionTimeSpan;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
@@ -178,8 +177,7 @@ public static class Dashboard
         /// Air Date.
         /// </summary>
         /// <value></value>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? AirDate { get; set; }
+        public DateOnly? AirDate { get; set; }
 
         /// <summary>
         /// The duration of the episode.

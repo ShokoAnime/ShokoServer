@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -285,9 +284,9 @@ public partial class File
             ID = anidb.FileID;
             Source = ParseFileSource(anidb.File_Source);
             ReleaseGroup = new ReleaseGroup(anidb.ReleaseGroup);
-            ReleaseDate = anidb.File_ReleaseDate == 0
-                ? null
-                : Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate);
+            ReleaseDate = Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate) is { } releaseDate
+                ? DateOnly.FromDateTime(releaseDate)
+                : null;
             Version = anidb.FileVersion;
             IsDeprecated = anidb.IsDeprecated;
             IsCensored = anidb.IsCensored ?? false;
@@ -318,8 +317,7 @@ public partial class File
         /// <summary>
         /// The file's release date. This is probably not filled in
         /// </summary>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? ReleaseDate { get; set; }
+        public DateOnly? ReleaseDate { get; set; }
 
         /// <summary>
         /// The file's version, Usually 1, sometimes more when there are edits released later
