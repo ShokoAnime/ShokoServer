@@ -224,7 +224,7 @@ public static class APIExtensions
 
         var firstPart = fullName[..fullName.IndexOf('`')];
         var secondPart = fullName[(fullName.IndexOf('`') + 3)..^1];
-        return ConvertTypeName(firstPart) + "<" + GetTypeName(secondPart) + ">";
+        return ConvertTypeName(firstPart) + "_" + GetTypeName(secondPart) + "_";
     }
 
     private static string ConvertTypeName(string fullName)
@@ -233,7 +233,7 @@ public static class APIExtensions
         if (fullName.StartsWith("System.Collections.Generic."))
             title = fullName.Split('.').Skip(3).Join('.');
         else if (fullName.StartsWith("System.") || fullName.StartsWith("Microsoft."))
-            title = "Core." + fullName.Split('.').Skip(1).Join('.');
+            title = fullName.Split('.').Skip(1).Join('.');
 
         // APIv0 (API independent plugin abstraction) schemas
         else if (fullName.StartsWith("Shoko.Plugin.Abstractions."))
