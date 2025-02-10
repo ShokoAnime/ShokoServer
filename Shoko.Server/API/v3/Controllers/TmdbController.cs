@@ -1100,8 +1100,8 @@ public partial class TmdbController : BaseController
         foreach (var altOrder in show.TmdbAlternateOrdering)
             ordering.Add(new(show, altOrder, alternateOrdering));
         return ordering
-            .OrderByDescending(o => o.InUse)
-            .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
+            .OrderByDescending(o => o.IsDefault)
+            .ThenBy(o => o.OrderingType)
             .ThenBy(o => o.OrderingName)
             .ToList();
     }
@@ -2312,8 +2312,8 @@ public partial class TmdbController : BaseController
             ordering.Add(new(show, altOrderEp, alternateOrderingEpisode));
 
         return ordering
-            .OrderByDescending(o => o.InUse)
-            .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
+            .OrderByDescending(o => o.IsDefault)
+            .ThenBy(o => o.OrderingType)
             .ThenBy(o => o.OrderingName)
             .ToList();
     }

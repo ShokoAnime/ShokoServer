@@ -247,8 +247,8 @@ public class TmdbShow
             foreach (var altOrder in show.TmdbAlternateOrdering)
                 ordering.Add(new(show, altOrder, alternateOrdering));
             Ordering = ordering
-                .OrderByDescending(o => o.InUse)
-                .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
+                .OrderByDescending(o => o.IsDefault)
+                .ThenBy(o => o.OrderingType)
                 .ThenBy(o => o.OrderingName)
                 .ToList();
         }

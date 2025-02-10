@@ -209,8 +209,8 @@ public class TmdbEpisode
             foreach (var altOrderEp in episode.TmdbAlternateOrderingEpisodes)
                 ordering.Add(new(show, altOrderEp, alternateOrderingEpisode));
             Ordering = ordering
-                .OrderByDescending(o => o.InUse)
-                .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
+                .OrderByDescending(o => o.IsDefault)
+                .ThenBy(o => o.OrderingType)
                 .ThenBy(o => o.OrderingName)
                 .ToList();
         }
