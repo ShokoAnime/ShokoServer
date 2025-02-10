@@ -9,6 +9,7 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
@@ -19,7 +20,6 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -69,7 +69,7 @@ public class AddFileToMyListJob : BaseJob
         // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
         // if the file is already on the user's list
 
-        var isManualLink = _videoLocal.AniDBFile == null;
+        var isManualLink = _videoLocal.ReleaseInfo is not { } releaseInfo || !(releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false);
 
         // mark the video file as watched
         var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
