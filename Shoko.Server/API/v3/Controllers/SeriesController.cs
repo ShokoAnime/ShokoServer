@@ -2362,6 +2362,35 @@ public class SeriesController : BaseController
         return Ok();
     }
 
+    /// <summary>
+    /// Relocate all files for a series.
+    /// </summary>
+    /// <param name="seriesID">Series ID.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/File/Relocate")]
+    public async Task<ActionResult> RelocateSeriesFiles([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        foreach (var file in series.VideoLocals)
+        {
+            await scheduler.StartJob<RenameMoveFileJob>(c =>
+                {
+                    c.VideoLocalID = file.VideoLocalID;
+                }
+            );
+        }
+
+        return Ok();
+    }
+
     #endregion
 
     #region Vote
