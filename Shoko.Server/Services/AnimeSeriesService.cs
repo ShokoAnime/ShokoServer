@@ -535,24 +535,16 @@ public class AnimeSeriesService
         var epGroupReleasedList = new EpisodeList(animeType);
         var daysofweekcounter = new Dictionary<DayOfWeek, int>();
 
-        var userReleaseGroups = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(
-            a =>
-            {
-                var vls = a.VideoLocals;
-                if (!vls.Any())
-                {
-                    return Array.Empty<int>();
-                }
-
-                var aniFiles = vls.Select(b => b.AniDBFile).Where(b => b != null).ToList();
-                if (!aniFiles.Any())
-                {
-                    return Array.Empty<int>();
-                }
-
-                return aniFiles.Select(b => b.GroupID);
-            }
-        ).Distinct().ToList();
+        var userReleaseGroups = eps
+            .Where(a => a.EpisodeTypeEnum == EpisodeType.Episode)
+            .SelectMany(a => a.VideoLocals
+                .Select(b => b.ReleaseGroup)
+                .WhereNotNull()
+                .Where(b => b.ProviderID is "AniDB" && int.TryParse(b.ID, out var groupID) && groupID > 0)
+                .Select(b => int.Parse(b.ID))
+            )
+            .Distinct()
+            .ToList();
 
         var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
                 a.VideoLocals.Select(b => new
