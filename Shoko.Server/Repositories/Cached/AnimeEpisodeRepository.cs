@@ -237,22 +237,12 @@ GROUP BY
                 .ToList();
             var localReleaseGroups = allEpisodes
                 .Where(tuple => tuple.anidbEpisode.EpisodeTypeEnum == EpisodeType.Episode)
-                .SelectMany(a =>
-                {
-                    var videos = a.videos;
-                    if (videos.Count is 0)
-                        return [];
-
-                    var aniFiles = videos
-                        .Select(b => b.AniDBFile)
-                        .WhereNotNull()
-                        .ToList();
-                    if (aniFiles.Count is 0)
-                        return [];
-
-                    return aniFiles
-                        .Select(b => b.GroupID);
-                })
+                .SelectMany(a => a.videos
+                    .Select(b => b.ReleaseGroup)
+                    .WhereNotNull()
+                    .Where(b => b.ProviderID is "AniDB" && int.TryParse(b.ID, out var groupID) && groupID > 0)
+                    .Select(b => int.Parse(b.ID))
+                )
                 .ToHashSet();
             foreach (var (episode, anidbEpisode, videos) in allEpisodes)
             {

@@ -21,6 +21,7 @@ public enum FileNonDefaultIncludeType
     XRefs,
     AbsolutePaths,
     ImportLimbo,
+    ReleaseInfo,
 }
 
 [JsonConverter(typeof(StringEnumConverter))]

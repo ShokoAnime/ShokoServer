@@ -337,8 +337,8 @@ public class ActionController : BaseController
 
         var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
-            .Select(file => (Video: file, AniDB: file.AniDBFile))
-            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
+            .Select(file => (Video: file, AniDB: file.ReleaseInfo))
+            .Where(tuple => tuple.AniDB is { ProviderID: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
             .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
@@ -434,17 +434,15 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Update AniDB Files with missing file info, including with missing release
-    /// groups and/or with out-of-date internal data versions.
+    /// Update AniDB Releases with missing group info, including with missing release
+    /// groups.
     /// </summary>
-    /// <param name="missingInfo">Update files with missing release group info</param>
-    /// <param name="outOfDate">Update files with and out-of-date internal version.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateMissingAniDBFileInfo")]
-    public async Task<ActionResult> UpdateMissingAniDBFileInfo([FromQuery] bool missingInfo = true, [FromQuery] bool outOfDate = false)
+    public async Task<ActionResult> UpdateMissingAniDBFileInfo()
     {
-        await _actionService.UpdateAniDBFileData(missingInfo, outOfDate, false);
+        await _actionService.UpdateAnidbReleaseInfo();
         return Ok();
     }
 
