@@ -25,6 +25,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -33,6 +34,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool includeReleaseInfo = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
@@ -48,7 +50,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
                 var dto = new Episode(HttpContext, episode, includeDataFrom);
                 dto.Size = duplicateFiles.Count;
                 dto.Files = duplicateFiles
-                    .Select(tuple => new Models.Shoko.File(HttpContext, tuple.file, includeXRefs, includeDataFrom, includeMediaInfo, true))
+                    .Select(tuple => new File(HttpContext, tuple.file, includeXRefs, includeReleaseInfo, includeMediaInfo, true))
                     .ToList();
                 return dto;
             }, page, pageSize);
@@ -106,6 +108,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -115,6 +118,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool includeReleaseInfo = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
@@ -137,7 +141,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
                 var dto = new Episode(HttpContext, episode, includeDataFrom);
                 dto.Size = duplicateFiles.Count;
                 dto.Files = duplicateFiles
-                    .Select(tuple => new Models.Shoko.File(HttpContext, tuple.file, includeXRefs, includeDataFrom, includeMediaInfo, true))
+                    .Select(tuple => new File(HttpContext, tuple.file, includeXRefs, includeReleaseInfo, includeMediaInfo, true))
                     .ToList();
                 return dto;
             }, page, pageSize);

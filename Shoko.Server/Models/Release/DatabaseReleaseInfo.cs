@@ -75,15 +75,32 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
 
     public bool IsCorrupted { get; set; }
 
+    public bool? IsChaptered { get; set; }
+
     public ReleaseSource Source { get; set; }
+
+    public string LegacySource => Source switch
+    {
+        ReleaseSource.TV => "tv",
+        ReleaseSource.Web => "www",
+        ReleaseSource.DVD => "dvd",
+        ReleaseSource.BluRay => "bluray",
+        ReleaseSource.VHS => "vhs",
+        ReleaseSource.Camera => "camcorder",
+        ReleaseSource.VCD => "vcd",
+        ReleaseSource.LaserDisc => "ld",
+        _ => "unk",
+    };
 
     public string EmbeddedCrossReferences { get; set; } = string.Empty;
 
     public DateOnly? ReleasedAt { get; set; }
 
-    public DateTime? LastUpdatedAt { get; set; }
+    public DateTime LastUpdatedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    long? IReleaseInfo.FileSize => FileSize;
 
     public IReadOnlyList<IReleaseVideoCrossReference> CrossReferences
     {
@@ -109,15 +126,20 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
 
     public string? GroupShortName { get; set; }
 
-    IReleaseGroup? IReleaseInfo.Group => !string.IsNullOrEmpty(GroupID) && !string.IsNullOrEmpty(GroupProviderID) ? this : null;
+    public bool Equals(IReleaseGroup? other)
+        => other is not null &&
+            string.Equals(GroupID, other.ID) &&
+            string.Equals(GroupProviderID, other.ProviderID);
+
+    IReleaseGroup? IReleaseInfo.Group => !string.IsNullOrEmpty(GroupID) && !string.IsNullOrEmpty(GroupProviderID) && !string.IsNullOrEmpty(GroupName) && !string.IsNullOrEmpty(GroupShortName) ? this : null;
 
     string IReleaseGroup.ID => GroupID ?? string.Empty;
 
     string IReleaseGroup.ProviderID => GroupProviderID ?? string.Empty;
 
-    string? IReleaseGroup.Name => GroupName;
+    string IReleaseGroup.Name => GroupName ?? string.Empty;
 
-    string? IReleaseGroup.ShortName => GroupShortName;
+    string IReleaseGroup.ShortName => GroupShortName ?? string.Empty;
 
     #endregion
 
@@ -238,7 +260,8 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
                 ReleaseURI,
                 Revision,
                 Comment,
-                OriginalFilename
+                OriginalFilename,
+                ReleasedAt
             ),
             HashCode.Combine(
                 GroupID,
@@ -249,10 +272,12 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
             HashCode.Combine(
                 IsCensored,
                 IsCorrupted,
+                IsChaptered,
                 Source,
                 Hashes,
                 AudioLanguages,
-                SubtitleLanguages
+                SubtitleLanguages,
+                FileSize
             )
         );
     }

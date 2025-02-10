@@ -19,9 +19,9 @@ public class VideoLocal_UserRepository(DatabaseFactory databaseFactory) : BaseCa
 
     public override void PopulateIndexes()
     {
-        _videoLocalIDs = new PocoIndex<int, SVR_VideoLocal_User, int>(Cache, a => a.VideoLocalID);
-        _userIDs = new PocoIndex<int, SVR_VideoLocal_User, int>(Cache, a => a.JMMUserID);
-        _userVideoLocalIDs = new PocoIndex<int, SVR_VideoLocal_User, (int, int)>(Cache, a => (a.JMMUserID, a.VideoLocalID));
+        _videoLocalIDs = Cache.CreateIndex(a => a.VideoLocalID);
+        _userIDs = Cache.CreateIndex(a => a.JMMUserID);
+        _userVideoLocalIDs = Cache.CreateIndex(a => (a.JMMUserID, a.VideoLocalID));
     }
 
     public IReadOnlyList<SVR_VideoLocal_User> GetByVideoLocalID(int videoLocalID)

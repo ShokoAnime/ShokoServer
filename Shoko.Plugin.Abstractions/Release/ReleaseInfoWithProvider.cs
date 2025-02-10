@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
 
@@ -28,6 +29,8 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 
     string IReleaseInfo.ProviderID => ProviderID ?? string.Empty;
 
+    long? IReleaseInfo.FileSize => FileSize;
+
     IHashes? IReleaseInfo.Hashes => Hashes;
 
     IReleaseGroup? IReleaseInfo.Group => Group;
@@ -35,6 +38,8 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
     IReleaseMediaInfo? IReleaseInfo.MediaInfo => MediaInfo;
 
     IReadOnlyList<IReleaseVideoCrossReference> IReleaseInfo.CrossReferences => CrossReferences;
+
+    DateTime IReleaseInfo.LastUpdatedAt => LastUpdatedAt ??= DateTime.Now;
 
     #endregion
 }

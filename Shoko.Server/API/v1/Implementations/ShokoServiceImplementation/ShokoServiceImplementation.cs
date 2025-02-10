@@ -12,6 +12,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Extensions;
@@ -675,7 +676,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.AniDB_File.GetAll().Select(a => a.File_Source).Distinct().OrderBy(a => a).ToList();
+            return RepoFactory.DatabaseReleaseInfo.GetAll()
+                .Select(a => a.LegacySource)
+                .WhereNotDefault()
+                .Distinct()
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -689,8 +695,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_Languages_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
-                .OrderBy(a => a).ToList();
+            return RepoFactory.DatabaseReleaseInfo.GetAll()
+                .SelectMany(a => a.AudioLanguages ?? [])
+                .Distinct()
+                .Select(a => a.GetString())
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -704,8 +714,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_Subtitles_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
-                .OrderBy(a => a).ToList();
+            return RepoFactory.DatabaseReleaseInfo.GetAll()
+                .SelectMany(a => a.SubtitleLanguages ?? [])
+                .Distinct()
+                .Select(a => a.GetString())
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -1206,15 +1220,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 foreach (var h in hashes)
                 {
                     var vid = vids.First(a => a.Hash == h);
-                    AniDB_File anifile = vid.AniDBFile;
-                    if (anifile != null)
+                    if (vid.ReleaseGroup is { ProviderID: "AniDB" } group && int.TryParse(group.ID, out var groupId))
                     {
-                        if (!userReleaseGroups.ContainsKey(anifile.GroupID))
-                        {
-                            userReleaseGroups[anifile.GroupID] = 0;
-                        }
+                        if (!userReleaseGroups.ContainsKey(groupId))
+                            userReleaseGroups[groupId] = 0;
 
-                        userReleaseGroups[anifile.GroupID] = userReleaseGroups[anifile.GroupID] + 1;
+                        userReleaseGroups[groupId] = userReleaseGroups[groupId] + 1;
                     }
                 }
             }
