@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -60,7 +61,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         var vid = RepoFactory.VideoLocal.GetByEd2k(Hash);
         if (vid == null) return;
 
-        if (vid.AniDBFile != null)
+        if (vid.ReleaseInfo is { } releaseInfo && (releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
         {
             _logger.LogInformation("Updating File MyList Status: {Hash}|{Size}", vid.Hash, vid.FileSize);
             var request = _requestFactory.Create<RequestUpdateFile>(
