@@ -12,9 +12,6 @@ public class ReleaseVideoCrossReference : IReleaseVideoCrossReference
     /// <inheritdoc />
     public int? AnidbAnimeID { get; set; }
 
-    /// <inheritdoc />
-    public int Order { get; set; }
-
     /// <summary>
     /// Where in the <see cref="AnidbEpisodeID"/> the video starts covering.
     /// If null, then the video starts at the beginning of the episode.
@@ -44,7 +41,6 @@ public class ReleaseVideoCrossReference : IReleaseVideoCrossReference
     {
         AnidbEpisodeID = reference.AnidbEpisodeID;
         AnidbAnimeID = reference.AnidbAnimeID;
-        Order = reference.Order;
         PercentageStart = reference.PercentageStart;
         PercentageEnd = reference.PercentageEnd;
     }

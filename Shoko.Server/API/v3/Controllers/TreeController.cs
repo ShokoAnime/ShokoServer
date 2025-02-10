@@ -40,15 +40,13 @@ public class TreeController : BaseController
     /// <param name="page">The page index.</param>
     /// <param name="folderPath">Filter the list to only contain files starting with the given parent folder path.</param>
     /// <param name="include">Include items that are not included by default</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("ImportFolder/{folderID}/File")]
     public ActionResult<ListResult<File>> GetFilesInImportFolder([FromRoute, Range(1, int.MaxValue)] int folderID,
         [FromQuery, Range(0, 10000)] int pageSize = 200,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] string folderPath = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
         include ??= [];
 
@@ -84,7 +82,7 @@ public class TreeController : BaseController
             .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
             .WhereNotNull()
             .OrderBy(file => file.DateTimeCreated)
-            .ToListResult(file => new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+            .ToListResult(file => new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
     }
 

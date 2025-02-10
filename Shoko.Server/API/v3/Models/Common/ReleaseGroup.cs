@@ -1,6 +1,6 @@
+using Shoko.Plugin.Abstractions.Release;
 
-using Shoko.Server.Models.AniDB;
-
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 public class ReleaseGroup
@@ -8,17 +8,17 @@ public class ReleaseGroup
     /// <summary>
     /// AniDB release group ID (69)
     /// /// </summary>
-    public int ID { get; set; }
+    public string ID { get; set; }
 
     /// <summary>
     /// The Release Group's Name (Unlimited Translation Works)
     /// </summary>
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     /// <summary>
     /// The Release Group's Name (UTW)
     /// </summary>
-    public string ShortName { get; set; }
+    public string? ShortName { get; set; }
 
     /// <summary>
     /// Source. Anidb, User, etc.
@@ -26,11 +26,17 @@ public class ReleaseGroup
     /// <value></value>
     public string Source { get; set; }
 
-    public ReleaseGroup(AniDB_ReleaseGroup group)
+    public ReleaseGroup()
     {
-        ID = group.GroupID;
-        Name = group.GroupName;
-        ShortName = group.GroupNameShort;
-        Source = "AniDB";
+        ID = "0";
+        Source = "Unknown";
+    }
+
+    public ReleaseGroup(IReleaseGroup group)
+    {
+        ID = group.ID;
+        Name = group.Name;
+        ShortName = group.ShortName;
+        Source = group.ProviderID;
     }
 }

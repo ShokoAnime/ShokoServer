@@ -21,9 +21,9 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
 
     public override void PopulateIndexes()
     {
-        _tagIDs = new PocoIndex<int, AniDB_Tag, int>(Cache, a => a.TagID);
-        _names = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagName);
-        _sourceNames = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagNameSource);
+        _tagIDs = Cache.CreateIndex(a => a.TagID);
+        _names = Cache.CreateIndex(a => a.TagName);
+        _sourceNames = Cache.CreateIndex(a => a.TagNameSource);
     }
 
     public override void RegenerateDb()

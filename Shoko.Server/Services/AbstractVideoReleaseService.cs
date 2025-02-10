@@ -20,6 +20,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
@@ -170,23 +171,36 @@ public class AbstractVideoReleaseService(
         if (!CheckCrossReferences(video, releaseInfo, out var legacyXrefs))
             throw new InvalidOperationException($"Release have {release.CrossReferences.Count - legacyXrefs.Count} invalid cross reference(s).");
 
+        var missingGroupId = CheckReleaseGroup(releaseInfo);
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
         {
             // If the new release info is **EXACTLY** the same as the existing one, then just return the existing one.
             if (existingRelease == releaseInfo)
+            {
+                existingRelease.LastUpdatedAt = DateTime.Now;
+                releaseInfoRepository.Save(existingRelease);
                 return existingRelease;
+            }
 
             await ClearReleaseForVideo(video, existingRelease);
         }
 
+        releaseInfo.LastUpdatedAt = DateTime.Now;
         releaseInfoRepository.Save(releaseInfo);
         xrefRepository.Save(legacyXrefs);
 
-        // Mark the video as imported.
-        if (video is SVR_VideoLocal videoLocal)
+        // Mark the video as imported if needed.
+        if (video is SVR_VideoLocal videoLocal && videoLocal.DateTimeImported is null)
         {
             videoLocal.DateTimeImported = DateTime.Now;
             videoRepository.Save(videoLocal);
+        }
+
+        // Schedule the release group to be fetched if needed.
+        if (missingGroupId is not null)
+        {
+            var scheduler = await schedulerFactory.GetScheduler();
+            await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
         }
 
         await ScheduleAnimeForRelease(legacyXrefs);
@@ -235,7 +249,7 @@ public class AbstractVideoReleaseService(
         {
             // The percentage range cannot be 0.
             if (xref.PercentageEnd == xref.PercentageStart)
-                break;
+                continue;
 
             // Reverse the percentage range if it is backwards.
             if (xref.PercentageEnd < xref.PercentageStart)
@@ -246,6 +260,9 @@ public class AbstractVideoReleaseService(
                 xref.PercentageEnd = 100;
             if (xref.PercentageStart < 0)
                 xref.PercentageStart = 0;
+
+            if (xref.AnidbEpisodeID is <= 0)
+                continue;
 
             // The provider doesn't know which anime the episode belongs to, so try to fix that.
             var animeID = xref.AnidbAnimeID;
@@ -302,6 +319,94 @@ public class AbstractVideoReleaseService(
         return true;
     }
 
+    private int? CheckReleaseGroup(DatabaseReleaseInfo releaseInfo)
+    {
+        if (string.IsNullOrEmpty(releaseInfo.GroupID) || string.IsNullOrEmpty(releaseInfo.GroupProviderID))
+        {
+            releaseInfo.GroupID = null;
+            releaseInfo.GroupProviderID = null;
+            releaseInfo.GroupName = null;
+            releaseInfo.GroupShortName = null;
+            return null;
+        }
+
+        if (
+            !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(releaseInfo.GroupName) &&
+            !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(releaseInfo.GroupShortName) &&
+            !string.IsNullOrEmpty(releaseInfo.GroupName) &&
+            !string.IsNullOrEmpty(releaseInfo.GroupShortName)
+        )
+            return null;
+
+        // If we have an existing release from the group with valid names, use that.
+        var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID, releaseInfo.GroupProviderID)
+            .Where(rI => !string.IsNullOrEmpty(rI.GroupName) && !string.IsNullOrEmpty(rI.GroupShortName))
+            .OrderByDescending(rI => rI.LastUpdatedAt)
+            .ToList();
+        if (existingReleasesForGroup.Count > 0)
+        {
+            releaseInfo.GroupName = existingReleasesForGroup[0].GroupName;
+            releaseInfo.GroupShortName = existingReleasesForGroup[0].GroupShortName;
+            return null;
+        }
+
+        // Remove the group info if it's not from AniDB and doesn't have a valid name/short name.
+        if (releaseInfo.GroupProviderID is not "AniDB" || !int.TryParse(releaseInfo.GroupID, out var groupID) || groupID <= 0)
+        {
+            releaseInfo.GroupID = null;
+            releaseInfo.GroupProviderID = null;
+            releaseInfo.GroupName = null;
+            releaseInfo.GroupShortName = null;
+            return null;
+        }
+
+        // Otherwise try to fetch group info from AniDB.
+        try
+        {
+            var response = requestFactory
+                .Create<RequestReleaseGroup>(r => r.ReleaseGroupID = groupID)
+                .Send();
+            if (response.Response is not null)
+            {
+                if (
+                    !string.IsNullOrEmpty(response.Response.Name) &&
+                    !string.IsNullOrEmpty(response.Response.ShortName) &&
+                    !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(response.Response.Name) &&
+                    !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(response.Response.ShortName)
+                )
+                {
+                    releaseInfo.GroupName = response.Response.Name;
+                    releaseInfo.GroupShortName = response.Response.ShortName;
+                    return null;
+                }
+                else
+                {
+                    releaseInfo.GroupID = null;
+                    releaseInfo.GroupProviderID = null;
+                    releaseInfo.GroupName = null;
+                    releaseInfo.GroupShortName = null;
+                }
+            }
+            else
+            {
+                releaseInfo.GroupID = null;
+                releaseInfo.GroupProviderID = null;
+                releaseInfo.GroupName = null;
+                releaseInfo.GroupShortName = null;
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not get IReleaseGroup info from AniDB for {GroupID}!", groupID);
+
+            releaseInfo.GroupName = null;
+            releaseInfo.GroupShortName = null;
+
+            return groupID;
+        }
+    }
+
     private async Task ScheduleAnimeForRelease(IReadOnlyList<IVideoCrossReference> xrefs)
     {
         var animeIDs = xrefs
@@ -350,6 +455,10 @@ public class AbstractVideoReleaseService(
                     c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
                     c.CreateSeriesEntry = true;
                 }).ConfigureAwait(false);
+            }
+            else
+            {
+                await scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
             }
 
             var tmdbShowXrefs = crossRefAnidbTmdbRepository.GetByAnidbAnimeID(animeID);

@@ -65,8 +65,6 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_EpisodeRepository>();
         services.AddCachedRepository<AniDB_Episode_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
-        services.AddCachedRepository<AniDB_FileRepository>();
-        services.AddCachedRepository<AniDB_ReleaseGroupRepository>();
         services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
         services.AddCachedRepository<AniDB_VoteRepository>();
@@ -84,8 +82,6 @@ public static class RepositoryStartup
         services.AddCachedRepository<CrossRef_AniDB_TraktV2Repository>();
         services.AddCachedRepository<CrossRef_CustomTagRepository>();
         services.AddCachedRepository<CrossRef_File_EpisodeRepository>();
-        services.AddCachedRepository<CrossRef_Languages_AniDB_FileRepository>();
-        services.AddCachedRepository<CrossRef_Subtitles_AniDB_FileRepository>();
         services.AddCachedRepository<CustomTagRepository>();
         services.AddCachedRepository<DatabaseReleaseInfoRepository>();
         services.AddCachedRepository<FilterPresetRepository>();

@@ -8,17 +8,17 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Release;
-using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
 
-public class AnidbReleaseProvider(IRequestFactory requestFactory, IMetadataService metadataService) : IReleaseInfoProvider
+public class AnidbReleaseProvider(IRequestFactory requestFactory) : IReleaseInfoProvider
 {
+    public const string ReleasePrefix = "https://anidb.net/file/";
+
     public string Name => "AniDB";
 
     public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
@@ -45,7 +45,7 @@ public class AnidbReleaseProvider(IRequestFactory requestFactory, IMetadataServi
         {
             ID = releaseId,
             ProviderID = Name,
-            ReleaseURI = $"https://anidb.net/file/{anidbFile.FileID}",
+            ReleaseURI = $"{ReleasePrefix}{anidbFile.FileID}",
             Revision = anidbFile.Version,
             Comment = anidbFile.Description,
             OriginalFilename = anidbFile.Filename,
@@ -72,8 +72,8 @@ public class AnidbReleaseProvider(IRequestFactory requestFactory, IMetadataServi
             {
                 ID = anidbFile.GroupID?.ToString() ?? string.Empty,
                 ProviderID = Name,
-                Name = string.IsNullOrEmpty(anidbFile.GroupName) ? null : anidbFile.GroupName,
-                ShortName = string.IsNullOrEmpty(anidbFile.GroupShortName) ? null : anidbFile.GroupShortName,
+                Name = string.IsNullOrEmpty(anidbFile.GroupName) ? string.Empty : anidbFile.GroupName,
+                ShortName = string.IsNullOrEmpty(anidbFile.GroupShortName) ? string.Empty : anidbFile.GroupShortName,
             },
             MediaInfo = new()
             {

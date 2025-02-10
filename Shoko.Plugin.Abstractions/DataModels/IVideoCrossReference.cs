@@ -6,8 +6,13 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 /// <summary>
 /// Video cross-reference.
 /// </summary>
-public interface IVideoCrossReference : IMetadata, IReleaseVideoCrossReference
+public interface IVideoCrossReference : IReleaseVideoCrossReference
 {
+    /// <summary>
+    /// Source source of the cross-reference.
+    /// </summary>
+    public string Source { get; }
+
     /// <summary>
     /// ED2K hash used for video identification.
     /// </summary>
@@ -29,6 +34,12 @@ public interface IVideoCrossReference : IMetadata, IReleaseVideoCrossReference
     /// not available yet.
     /// </summary>
     new int AnidbAnimeID { get; }
+
+    /// <summary>
+    /// Cross-reference percentage range, if the video covers less than 100%
+    /// of the episode, then this field tells roughly how much it covers.
+    /// </summary>
+    int Percentage { get; }
 
     /// <summary>
     /// The local video, if available.

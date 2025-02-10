@@ -18,8 +18,8 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public override void PopulateIndexes()
     {
-        _tokens = new PocoIndex<int, AuthTokens, string>(Cache, a => a.Token);
-        _userIDs = new PocoIndex<int, AuthTokens, int>(Cache, a => a.UserID);
+        _tokens = Cache.CreateIndex(a => a.Token);
+        _userIDs = Cache.CreateIndex(a => a.UserID);
     }
 
     public AuthTokens GetByToken(string token)

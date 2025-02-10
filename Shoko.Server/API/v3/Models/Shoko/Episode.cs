@@ -119,7 +119,7 @@ public class Episode : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs>? CrossReferences { get; set; }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false, bool includeReleaseInfo = false)
     {
         includeDataFrom ??= [];
         var userID = context.GetUser()?.JMMUserID ?? 0;
@@ -225,7 +225,7 @@ public class Episode : BaseModel
             };
         if (includeFiles)
             Files = files
-                .Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
+                .Select(f => new File(context, f, false, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
                 .ToList();
         if (withXRefs)
             CrossReferences = FileCrossReference.From(episode.FileCrossReferences).FirstOrDefault()?.EpisodeIDs ?? [];

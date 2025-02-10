@@ -9,10 +9,10 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 
 namespace Shoko.Server.Services;
 
@@ -20,21 +20,15 @@ public class AnimeGroupService
 {
     private readonly ILogger<AnimeGroupService> _logger;
     private readonly AnimeGroup_UserRepository _groupUsers;
-    private readonly CrossRef_Languages_AniDB_FileRepository _languages;
-    private readonly CrossRef_Subtitles_AniDB_FileRepository _subtitles;
-    private readonly CrossRef_File_EpisodeRepository _fileEpisodes;
-    private readonly AniDB_FileRepository _files;
+    private readonly DatabaseReleaseInfoRepository _databaseReleaseInfo;
     private readonly AnimeGroupRepository _groups;
     private readonly AnimeSeries_UserRepository _seriesUsers;
 
-    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, CrossRef_Languages_AniDB_FileRepository languages, CrossRef_Subtitles_AniDB_FileRepository subtitles, CrossRef_File_EpisodeRepository fileEpisodes, AniDB_FileRepository files, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers)
+    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, DatabaseReleaseInfoRepository databaseReleaseInfo, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers)
     {
         _groupUsers = groupUsers;
         _logger = logger;
-        _languages = languages;
-        _subtitles = subtitles;
-        _fileEpisodes = fileEpisodes;
-        _files = files;
+        _databaseReleaseInfo = databaseReleaseInfo;
         _groups = groups;
         _seriesUsers = seriesUsers;
     }
@@ -409,8 +403,10 @@ public class AnimeGroupService
         var isCurrentlyAiring = false;
         var videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         var traktXrefByAnime = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allIDs);
-        var allVidQualByGroup = allSeriesForGroup.SelectMany(a => _fileEpisodes.GetByAnimeID(a.AniDB_ID)).Select(a => _files.GetByHash(a.Hash)?.File_Source)
-            .WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        var allVidQualByGroup = allSeriesForGroup
+            .SelectMany(a => _databaseReleaseInfo.GetByAnidbAnimeID(a.AniDB_ID))
+            .Select(a => a.LegacySource)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         var tmdbShowXrefByAnime = allIDs
             .Select(RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID)
             .Where(a => a is { Count: > 0 })
@@ -481,21 +477,21 @@ public class AnimeGroupService
                 // Handle mutliple files of the same quality for one episode
                 foreach (var vid in epVids)
                 {
-                    var anifile = vid.AniDBFile;
+                    var anifile = vid.ReleaseInfo;
 
                     if (anifile == null)
                     {
                         continue;
                     }
 
-                    if (!qualityAddedSoFar.Contains(anifile.File_Source))
+                    if (!qualityAddedSoFar.Contains(anifile.LegacySource))
                     {
-                        vidQualEpCounts.TryGetValue(anifile.File_Source, out var srcCount);
-                        vidQualEpCounts[anifile.File_Source] =
+                        vidQualEpCounts.TryGetValue(anifile.LegacySource, out var srcCount);
+                        vidQualEpCounts[anifile.LegacySource] =
                             srcCount +
                             1; // If the file source wasn't originally in the dictionary, then it will be set to 1
 
-                        qualityAddedSoFar.Add(anifile.File_Source);
+                        qualityAddedSoFar.Add(anifile.LegacySource);
                     }
                 }
             }
@@ -648,8 +644,18 @@ public class AnimeGroupService
         contract.Stat_EndDate = groupEndDate;
         contract.Stat_SeriesCreatedDate = seriesCreatedDate;
         contract.Stat_AniDBRating = animeGroup.AniDBRating;
-        contract.Stat_AudioLanguages = _languages.GetLanguagesForGroup(animeGroup);
-        contract.Stat_SubtitleLanguages = _subtitles.GetLanguagesForGroup(animeGroup);
+        contract.Stat_AudioLanguages = animeGroup.AllSeries
+            .Select(a => a.AniDB_Anime)
+            .WhereNotNull()
+            .SelectMany(a => RepoFactory.DatabaseReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
+            .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_SubtitleLanguages = animeGroup.AllSeries
+            .Select(a => a.AniDB_Anime)
+            .WhereNotNull()
+            .SelectMany(a => RepoFactory.DatabaseReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
+            .SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? [])
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate;
         contract.Stat_UserVoteOverall = votes?.AllVotes;
         contract.Stat_UserVotePermanent = votes?.PermanentVotes;

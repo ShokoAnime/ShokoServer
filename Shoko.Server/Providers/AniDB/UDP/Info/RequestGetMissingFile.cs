@@ -221,9 +221,6 @@ public class RequestGetMissingFile : UDPRequest<ResponseGetFile>
                     // sub languages
                     var slangs = parts[11].Split(new[] { '\'' }, StringSplitOptions.RemoveEmptyEntries).Where(lang => lang != "none").ToList();
 
-                    // mylist
-                    var myList = ParseMyList(parts);
-
                     return new UDPResponse<ResponseGetFile>
                     {
                         Code = code,
@@ -245,7 +242,6 @@ public class RequestGetMissingFile : UDPRequest<ResponseGetFile>
                             OtherEpisodes = otherXrefs,
                             AudioLanguages = alangs,
                             SubtitleLanguages = slangs,
-                            MyList = myList
                         }
                     };
                 }
@@ -297,47 +293,6 @@ public class RequestGetMissingFile : UDPRequest<ResponseGetFile>
             "svcd" => GetFile_Source.SVCD,
             "ld" => GetFile_Source.LaserDisc,
             _ => GetFile_Source.Unknown
-        };
-    }
-
-    private ResponseGetFile.MyListInfo ParseMyList(IReadOnlyList<string> parts)
-    {
-        if (!int.TryParse(parts[4], out var myListID) || myListID == 0) return null;
-
-        if (!int.TryParse(parts[14], out var mylistState))
-        {
-            Logger.LogWarning("Could not parse MyList info for file. MyList_State failed binding: {Value}", parts[14]);
-            mylistState = (int)MyList_State.Unknown;
-        }
-
-        if (!int.TryParse(parts[15], out var mylistFileState))
-        {
-            Logger.LogWarning("Could not parse MyList info for file. MyList_FileState failed binding: {Value}",
-                parts[15]);
-            mylistFileState = (int)MyList_FileState.Other;
-        }
-
-        DateTime? viewDate = null;
-        if (int.TryParse(parts[16], out var viewCount))
-        {
-            if (long.TryParse(parts[17], out var viewTime))
-            {
-                // they store in seconds to save space
-                viewDate = DateTime.UnixEpoch.AddMilliseconds(viewTime * 1000L);
-            }
-        }
-        else
-        {
-            viewCount = 0;
-        }
-
-        return new ResponseGetFile.MyListInfo
-        {
-            MyListID = myListID,
-            State = (MyList_State)mylistState,
-            FileState = (MyList_FileState)mylistFileState,
-            ViewCount = viewCount,
-            ViewDate = viewDate
         };
     }
 

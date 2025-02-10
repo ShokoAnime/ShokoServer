@@ -55,7 +55,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), AnimeID);
+        _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupStatusJob), AnimeID);
 
         if (AnimeID == 0) return;
         // only get group status if we have an associated series

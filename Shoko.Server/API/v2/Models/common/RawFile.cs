@@ -131,12 +131,11 @@ public class RawFile : BaseDirectory
         updated = vl.DateTimeUpdated;
         duration = vl.Duration;
 
-        var releaseGroup = vl.ReleaseGroup;
-        if (releaseGroup != null)
+        if (vl.ReleaseGroup is { ProviderID: "AniDB " } releaseGroup)
         {
-            group_full = releaseGroup.GroupName;
-            group_short = releaseGroup.GroupNameShort;
-            group_id = releaseGroup.AniDB_ReleaseGroupID;
+            group_full = releaseGroup.Name;
+            group_short = releaseGroup.ShortName;
+            group_id = int.Parse(releaseGroup.ID);
         }
 
         size = vl.FileSize;

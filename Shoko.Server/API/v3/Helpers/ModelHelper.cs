@@ -297,14 +297,14 @@ public static class ModelHelper
                 if (!fileSet.Add(file.VideoLocalID))
                     continue;
 
-                var anidbFile = file.AniDBFile;
+                var anidbFile = file.ReleaseInfo;
                 if (anidbFile == null)
                 {
                     sizes.FileSources.Unknown++;
                     continue;
                 }
 
-                switch (File.ParseFileSource(anidbFile.File_Source))
+                switch (File.ParseFileSource(anidbFile.Source))
                 {
                     case FileSource.Unknown:
                         sizes.FileSources.Unknown++;
@@ -565,7 +565,16 @@ public static class ModelHelper
 
         // Skip and limit.
         return enumerable.ToListResult(
-            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
-                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
+            tuple => new File(
+                tuple.UserRecord,
+                tuple.Video,
+                include.Contains(FileNonDefaultIncludeType.XRefs),
+                include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+                include.Contains(FileNonDefaultIncludeType.MediaInfo),
+                include.Contains(FileNonDefaultIncludeType.AbsolutePaths)
+            ),
+            page,
+            pageSize
+        );
     }
 }

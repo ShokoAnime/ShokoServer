@@ -37,9 +37,9 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
 
     public override void PopulateIndexes()
     {
-        _videoLocalIDs = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.VideoLocalID);
-        _importFolderIDs = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.ImportFolderID);
-        _paths = new PocoIndex<int, SVR_VideoLocal_Place, string>(Cache, a => a.FilePath);
+        _videoLocalIDs = Cache.CreateIndex(a => a.VideoLocalID);
+        _importFolderIDs = Cache.CreateIndex(a => a.ImportFolderID);
+        _paths = Cache.CreateIndex(a => a.FilePath);
     }
 
     public override void RegenerateDb()

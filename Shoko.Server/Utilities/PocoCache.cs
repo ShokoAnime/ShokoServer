@@ -34,10 +34,13 @@ namespace NutzCode.InMemoryIndex;
 public class PocoCache<T, S> where S : class
 {
     private readonly Dictionary<T, S> _dict;
+
     private readonly Func<S, T> _func;
-    private readonly List<IPocoCacheObserver<T, S>> _observers = new();
+
+    private readonly List<IPocoCacheObserver<T, S>> _observers = [];
 
     public Dictionary<T, S>.KeyCollection Keys => _dict.Keys;
+
     public Dictionary<T, S>.ValueCollection Values => _dict.Values;
 
     public PocoIndex<T, S, U> CreateIndex<U>(Func<S, U> func1)
@@ -45,14 +48,9 @@ public class PocoCache<T, S> where S : class
         return new PocoIndex<T, S, U>(this, func1);
     }
 
-    public PocoIndex<T, S, N, U> CreateIndex<N, U>(Func<S, N> func1, Func<S, U> func2)
+    public PocoIndex<T, S, U> CreateIndex<U>(Func<S, IEnumerable<U>> func1)
     {
-        return new PocoIndex<T, S, N, U>(this, func1, func2);
-    }
-
-    public PocoIndex<T, S, N, R, U> CreateIndex<N, R, U>(Func<S, N> func1, Func<S, R> func2, Func<S, U> func3)
-    {
-        return new PocoIndex<T, S, N, R, U>(this, func1, func2, func3);
+        return new PocoIndex<T, S, U>(this, func1);
     }
 
     public PocoCache(IEnumerable<S> objectList, Func<S, T> keyFunc)
@@ -116,23 +114,28 @@ public interface IPocoCacheObserver<in TKey, in TEntity> where TEntity : class
     void Clear();
 }
 
-public class PocoIndex<T, S, U> : IPocoCacheObserver<T, S>
-    where S : class
+public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TEntity>
+    where TEntity : class
 {
-    private static readonly List<S> EmptyList = new ();
-    private readonly PocoCache<T, S> _cache;
-    private readonly BiDictionaryOneToMany<T, U> _dict;
-    private readonly Func<S, U> _func;
+    private static readonly List<TEntity> _emptyList = [];
 
-    internal PocoIndex(PocoCache<T, S> cache, Func<S, U> func1)
+    private readonly PocoCache<TKey, TEntity> _cache;
+
+    private readonly BiDictionaryManyToMany<TKey, TInverseKey> _dict;
+
+    private readonly Func<TEntity, IEnumerable<TInverseKey>> _func;
+
+    internal PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, TInverseKey> func) : this(cache, a => [func(a)]) { }
+
+    internal PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, IEnumerable<TInverseKey>> func)
     {
         _cache = cache;
-        _dict = new BiDictionaryOneToMany<T, U>(_cache.Keys.ToDictionary(a => a, a => func1(_cache.Get(a))));
-        _func = func1;
+        _dict = new BiDictionaryManyToMany<TKey, TInverseKey>(_cache.Keys.ToDictionary(a => a, a => func(_cache.Get(a)).ToHashSet()));
+        _func = func;
         cache.AddChain(this);
     }
 
-    public S GetOne(U key)
+    public TEntity GetOne(TInverseKey key)
     {
         if (_cache == null || !_dict.TryGetInverse(key, out var results))
             return null;
@@ -140,266 +143,42 @@ public class PocoIndex<T, S, U> : IPocoCacheObserver<T, S>
         return results.Count == 0 ? null : _cache.Get(results.FirstOrDefault());
     }
 
-    public List<S> GetMultiple(U key)
+    public List<TEntity> GetMultiple(TInverseKey key)
     {
         if (_cache == null || !_dict.TryGetInverse(key, out var results))
-            return EmptyList;
+            return _emptyList;
 
         return results.Select(a => _cache.Get(a)).ToList();
     }
 
-    void IPocoCacheObserver<T, S>.Update(T key, S obj)
+    void IPocoCacheObserver<TKey, TEntity>.Update(TKey key, TEntity obj)
     {
-        _dict[key] = _func(obj);
+        _dict[key] = _func(obj).ToHashSet();
     }
 
-    void IPocoCacheObserver<T, S>.Remove(T key)
+    void IPocoCacheObserver<TKey, TEntity>.Remove(TKey key)
     {
         _dict.Remove(key);
     }
 
-    void IPocoCacheObserver<T, S>.Clear()
+    void IPocoCacheObserver<TKey, TEntity>.Clear()
     {
         _dict.Clear();
     }
 }
 
-public class PocoIndex<T, S, N, U> where S : class
+public class BiDictionaryManyToMany<TKey, TInverseKey>
 {
-    private readonly PocoIndex<T, S, Tuple<N, U>> _index;
+    private readonly Dictionary<TKey, HashSet<TInverseKey>> _direct = [];
 
-    internal PocoIndex(PocoCache<T, S> cache, Func<S, N> func1, Func<S, U> func2)
-    {
-        _index = new PocoIndex<T, S, Tuple<N, U>>(cache, a => new Tuple<N, U>(func1(a), func2(a)));
-    }
+    private readonly Dictionary<TInverseKey, HashSet<TKey>> _inverse = [];
 
-    public S GetOne(N key1, U key2)
-    {
-        var key = new Tuple<N, U>(key1, key2);
-        return _index.GetOne(key);
-    }
+    public BiDictionaryManyToMany() { }
 
-    public List<S> GetMultiple(N key1, U key2)
-    {
-        var key = new Tuple<N, U>(key1, key2);
-        return _index.GetMultiple(key);
-    }
-}
-
-public class PocoIndex<T, S, N, R, U> where S : class
-{
-    private readonly PocoIndex<T, S, Tuple<N, R, U>> _index;
-
-    internal PocoIndex(PocoCache<T, S> cache, Func<S, N> func1, Func<S, R> func2, Func<S, U> func3)
-    {
-        _index = new PocoIndex<T, S, Tuple<N, R, U>>(cache,
-            a => new Tuple<N, R, U>(func1(a), func2(a), func3(a)));
-    }
-
-    public S GetOne(N key1, R key2, U key3)
-    {
-        var key = new Tuple<N, R, U>(key1, key2, key3);
-        return _index.GetOne(key);
-    }
-
-    public List<S> GetMultiple(N key1, R key2, U key3)
-    {
-        var key = new Tuple<N, R, U>(key1, key2, key3);
-        return _index.GetMultiple(key);
-    }
-}
-
-public class BiDictionaryOneToOne<T, S>
-{
-    private readonly Dictionary<T, S> _direct = new();
-    private readonly Dictionary<S, T> _inverse = new();
-
-    public BiDictionaryOneToOne()
-    {
-    }
-
-    public BiDictionaryOneToOne(Dictionary<T, S> input)
+    public BiDictionaryManyToMany(Dictionary<TKey, HashSet<TInverseKey>> input)
     {
         _direct = input;
-        _inverse = _direct.ToDictionary(a => a.Value, a => a.Key);
-    }
-
-    public S this[T key]
-    {
-        get => _direct[key];
-        set
-        {
-            if (_direct.TryGetValue(key, out var oldValue))
-            {
-                if (oldValue.Equals(value)) return;
-                if (_inverse.ContainsKey(oldValue)) _inverse.Remove(oldValue);
-            }
-
-            _inverse.TryAdd(value, key);
-            _direct[key] = value;
-        }
-    }
-
-
-    public T FindInverse(S k)
-    {
-        return _inverse[k];
-    }
-
-    public bool ContainsKey(T key)
-    {
-        return _direct.ContainsKey(key);
-    }
-
-    public bool ContainsInverseKey(S key)
-    {
-        return _inverse.ContainsKey(key);
-    }
-
-    public void Remove(T value)
-    {
-        if (!_direct.TryGetValue(value, out var oldValue)) return;
-        _inverse.Remove(oldValue);
-        _direct.Remove(value);
-    }
-
-    public void Clear()
-    {
-        _direct.Clear();
-        _inverse.Clear();
-    }
-}
-
-public class BiDictionaryOneToMany<T, S>
-{
-    private readonly Dictionary<T, S> _direct = new();
-    private readonly Dictionary<S, HashSet<T>> _inverse = new();
-
-    private readonly bool _valueIsNullable;
-
-    private HashSet<T> _inverseNullValueSet;
-
-    public BiDictionaryOneToMany()
-    {
-        _valueIsNullable = Nullable.GetUnderlyingType(typeof(S)) != null;
-    }
-
-    public BiDictionaryOneToMany(Dictionary<T, S> input)
-    {
-        _valueIsNullable = Nullable.GetUnderlyingType(typeof(S)) != null;
-        _direct = input;
-        if (_valueIsNullable)
-        {
-            var hashSet = input.Where(a => a.Value == null).Select(a => a.Key).ToHashSet();
-            // Only set the hash-set if the input contained a null value. See `ContainsInverseKey` at L348 as to why.
-            if (hashSet.Count > 0)
-            {
-                _inverseNullValueSet = hashSet;
-            }
-
-            _inverse = input.Where(a => a.Value != null).GroupBy(a => a.Value)
-                .ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
-        }
-        else
-        {
-            _inverse = input.GroupBy(a => a.Value).ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
-        }
-    }
-
-    public S this[T key]
-    {
-        get => _direct[key];
-        set
-        {
-            if (_direct.TryGetValue(key, out var oldValue))
-            {
-                if (oldValue.Equals(value))
-                {
-                    return;
-                }
-
-                if (_valueIsNullable && oldValue is null)
-                    _inverseNullValueSet?.Remove(key);
-                else if (_inverse.TryGetValue(oldValue, out var inverseValue) && inverseValue.Contains(key))
-                    inverseValue.Remove(key);
-            }
-
-            if (_valueIsNullable && value is null)
-            {
-                _inverseNullValueSet ??= [];
-                _inverseNullValueSet.Add(key);
-            }
-            else
-            {
-                if (_inverse.TryGetValue(value, out var set))
-                    set.Add(key);
-                else
-                    _inverse.Add(value, [key]);
-            }
-
-            _direct[key] = value;
-        }
-    }
-
-    public bool ContainsKey(T key)
-    {
-        return _direct.ContainsKey(key);
-    }
-
-    public bool ContainsInverseKey(S key)
-    {
-        return _valueIsNullable && key == null ? _inverseNullValueSet != null : _inverse.ContainsKey(key);
-    }
-
-    public bool TryGetValue(T key, out S value) => _direct.TryGetValue(key, out value);
-    public bool TryGetInverse(S key, out HashSet<T> value) => _inverse.TryGetValue(key, out value);
-
-    public HashSet<T> FindInverse(S key)
-    {
-        if (_valueIsNullable && key == null)
-        {
-            return _inverseNullValueSet ?? new HashSet<T>();
-        }
-
-        return _inverse.TryGetValue(key, out var value) ? value : new HashSet<T>();
-    }
-
-    public void Remove(T key)
-    {
-        if (!_direct.TryGetValue(key, out var oldValue)) return;
-        if (_valueIsNullable && oldValue == null)
-        {
-            if (_inverseNullValueSet != null && _inverseNullValueSet.Contains(key)) _inverseNullValueSet.Remove(key);
-        }
-        else
-        {
-            if (_inverse.TryGetValue(oldValue, out var inverseValue) && inverseValue.Contains(key)) inverseValue.Remove(key);
-        }
-
-        _direct.Remove(key);
-    }
-
-    public void Clear()
-    {
-        _direct.Clear();
-        _inverse.Clear();
-        _inverseNullValueSet = null;
-    }
-}
-
-public class BiDictionaryManyToMany<T, S>
-{
-    private readonly Dictionary<T, HashSet<S>> _direct = new();
-    private readonly Dictionary<S, HashSet<T>> _inverse = new();
-
-    public BiDictionaryManyToMany()
-    {
-    }
-
-    public BiDictionaryManyToMany(Dictionary<T, HashSet<S>> input)
-    {
-        _direct = input;
-        _inverse = new Dictionary<S, HashSet<T>>();
+        _inverse = [];
         foreach (var t in input.Keys)
         {
             foreach (var s in input[t])
@@ -407,12 +186,12 @@ public class BiDictionaryManyToMany<T, S>
                 if (_inverse.TryGetValue(s, out var inverseValue))
                     inverseValue.Add(t);
                 else
-                    _inverse.Add(s, new HashSet<T> { t });
+                    _inverse.Add(s, [t]);
             }
         }
     }
 
-    public HashSet<S> this[T key]
+    public HashSet<TInverseKey> this[TKey key]
     {
         get => _direct[key];
         set
@@ -434,29 +213,35 @@ public class BiDictionaryManyToMany<T, S>
                 if (_inverse.TryGetValue(s, out var inverseValue))
                     inverseValue.Add(key);
                 else
-                    _inverse.Add(s, new HashSet<T> { key });
+                    _inverse.Add(s, [key]);
             }
 
-            _direct[key] = value;
+            _direct[key] = value is HashSet<TInverseKey> set ? set : [.. value];
         }
     }
 
-    public bool ContainsKey(T key)
+    public bool ContainsKey(TKey key)
     {
         return _direct.ContainsKey(key);
     }
 
-    public bool ContainsInverseKey(S key)
+    public bool ContainsInverseKey(TInverseKey key)
     {
         return _inverse.ContainsKey(key);
     }
 
-    public HashSet<T> FindInverse(S k)
+    public bool TryGetValue(TKey key, out HashSet<TInverseKey> value) =>
+        _direct.TryGetValue(key, out value);
+
+    public bool TryGetInverse(TInverseKey key, out HashSet<TKey> value) =>
+        _inverse.TryGetValue(key, out value);
+
+    public HashSet<TKey> FindInverse(TInverseKey k)
     {
-        return _inverse.TryGetValue(k, out var value) ? value : new HashSet<T>();
+        return _inverse.TryGetValue(k, out var value) ? value : [];
     }
 
-    public void Remove(T key)
+    public void Remove(TKey key)
     {
         if (!_direct.TryGetValue(key, out var oldValue)) return;
 

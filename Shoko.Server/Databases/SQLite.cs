@@ -653,7 +653,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(95, 1, "UPDATE VideoLocal SET DateTimeImported = DateTimeCreated WHERE EXISTS(SELECT Hash FROM CrossRef_File_Episode xref WHERE xref.Hash = VideoLocal.Hash)"),
         new(96, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INTEGER PRIMARY KEY AUTOINCREMENT, FileSize INTEGER NOT NULL, Hash TEXT NOT NULL, HasResponse INTEGER NOT NULL, UpdatedAt timestamp NOT NULL )"),
         new(96, 2, "CREATE INDEX IX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
-        new(96, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new(96, 3, DatabaseFixes.NoOperation),
         new(97, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
         new(97, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
         new(97, 3, "ALTER TABLE AniDB_Anime ADD VNDBID INT NULL"),

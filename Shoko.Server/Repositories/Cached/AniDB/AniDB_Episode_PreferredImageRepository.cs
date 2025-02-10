@@ -20,8 +20,8 @@ public class AniDB_Episode_PreferredImageRepository(DatabaseFactory databaseFact
 
     public override void PopulateIndexes()
     {
-        _episodeIDs = new(Cache, a => a.AnidbEpisodeID);
-        _imageTypes = new(Cache, a => (a.ImageSource, a.ImageType, a.ImageID));
+        _episodeIDs = Cache.CreateIndex(a => a.AnidbEpisodeID);
+        _imageTypes = Cache.CreateIndex(a => (a.ImageSource, a.ImageType, a.ImageID));
     }
 
     public AniDB_Episode_PreferredImage? GetByAnidbEpisodeIDAndType(int episodeID, ImageEntityType imageType)

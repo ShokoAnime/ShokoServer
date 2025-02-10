@@ -12,7 +12,6 @@ using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
 
-using AniDB_ReleaseGroup = Shoko.Server.Models.AniDB.AniDB_ReleaseGroup;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
 #pragma warning disable CS0618
@@ -44,8 +43,6 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
     #endregion
 
     public int MyListID { get; set; }
-
-    public bool IsManualLink => AniDBFile == null;
 
     /// <summary>
     /// Playback duration in milliseconds.
@@ -81,9 +78,6 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     public IReadOnlyList<SVR_VideoLocal_Place> Places =>
         VideoLocalID is 0 ? [] : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
-
-    public SVR_AniDB_File? AniDBFile =>
-        RepoFactory.AniDB_File.GetByHash(Hash);
 
     public DatabaseReleaseInfo? ReleaseInfo =>
         string.IsNullOrEmpty(Hash) ? null : RepoFactory.DatabaseReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);

@@ -48,10 +48,10 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<SVR_CrossRef
 
     public override void PopulateIndexes()
     {
-        _ed2k = new PocoIndex<int, SVR_CrossRef_File_Episode, string>(Cache, a => a.Hash);
-        _anidbAnimeIDs = new PocoIndex<int, SVR_CrossRef_File_Episode, int>(Cache, a => a.AnimeID);
-        _anidbEpisodeIDs = new PocoIndex<int, SVR_CrossRef_File_Episode, int>(Cache, a => a.EpisodeID);
-        _fileNames = new PocoIndex<int, SVR_CrossRef_File_Episode, (string FileName, long FileSize)>(Cache, a => (a.FileName, a.FileSize));
+        _ed2k = Cache.CreateIndex(a => a.Hash);
+        _anidbAnimeIDs = Cache.CreateIndex(a => a.AnimeID);
+        _anidbEpisodeIDs = Cache.CreateIndex(a => a.EpisodeID);
+        _fileNames = Cache.CreateIndex(a => (a.FileName, a.FileSize));
     }
 
     public IReadOnlyList<SVR_CrossRef_File_Episode> GetByEd2k(string ed2k)

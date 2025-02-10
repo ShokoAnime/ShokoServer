@@ -62,11 +62,11 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             l.FileName ??= string.Empty;
         }
 
-        _ed2k = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.Hash);
-        _sha1 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.SHA1);
-        _md5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
-        _crc32 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.CRC32);
-        _ignored = new PocoIndex<int, SVR_VideoLocal, bool>(Cache, a => a.IsIgnored);
+        _ed2k = Cache.CreateIndex(a => a.Hash);
+        _sha1 = Cache.CreateIndex(a => a.SHA1);
+        _md5 = Cache.CreateIndex(a => a.MD5);
+        _crc32 = Cache.CreateIndex(a => a.CRC32);
+        _ignored = Cache.CreateIndex(a => a.IsIgnored);
     }
 
     public override void RegenerateDb()
@@ -435,12 +435,6 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 .Take(maxResults)
                 .ToList();
 
-    public IReadOnlyList<SVR_VideoLocal> GetByInternalVersion(int internalVersion)
-        => RepoFactory.AniDB_File.GetByInternalVersion(internalVersion)
-            .Select(a => GetByEd2k(a.Hash))
-            .WhereNotNull()
-            .ToList();
-
     /// <summary>
     /// returns all the VideoLocal records associate with an AniDB_Anime Record
     /// </summary>
@@ -514,11 +508,8 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (xref.AnimeID == 0)
             return false;
 
-        if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-        {
-            var anidbFile = RepoFactory.AniDB_File.GetByHash(xref.Hash);
-            if (anidbFile == null) return false;
-        }
+        if (xref.ReleaseInfo is null)
+            return false;
 
         var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
         if (episode?.AniDB_Episode == null)

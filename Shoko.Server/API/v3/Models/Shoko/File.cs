@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -110,11 +111,11 @@ public partial class File
     public File() { }
 
     /// <summary>
-    /// The <see cref="File.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// The <see cref="File.Release"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
     /// </summary>
-    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
-    public AniDB _AniDB { get; set; }
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public ReleaseInfo Release { get; set; }
 
     /// <summary>
     /// The <see cref="MediaInfo"/>, if to-be included in the response data.
@@ -122,11 +123,11 @@ public partial class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo MediaInfo { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
-        this(RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths)
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
+        this(RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths)
     { }
 
-    public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
         var mediaInfo = file.MediaInfo as IMediaInfo;
         ID = file.VideoLocalID;
@@ -146,12 +147,8 @@ public partial class File
         if (withXRefs)
             SeriesIDs = FileCrossReference.From(file.EpisodeCrossReferences);
 
-        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
-        {
-            var anidbFile = file.AniDBFile;
-            if (anidbFile != null)
-                _AniDB = new AniDB(anidbFile);
-        }
+        if (includeReleaseInfo && file.ReleaseInfo is { } releaseInfo)
+            Release = new(releaseInfo);
 
         if (includeMediaInfo && mediaInfo is not null)
             MediaInfo = new MediaInfo(file, mediaInfo);
@@ -274,105 +271,6 @@ public partial class File
     }
 
 #nullable disable
-
-    /// <summary>
-    /// AniDB_File info
-    /// </summary>
-    public class AniDB
-    {
-        public AniDB(SVR_AniDB_File anidb)
-        {
-            ID = anidb.FileID;
-            Source = ParseFileSource(anidb.File_Source);
-            ReleaseGroup = new ReleaseGroup(anidb.ReleaseGroup);
-            ReleaseDate = AniDBExtensions.GetAniDBDateAsDate(anidb.File_ReleaseDate) is { } releaseDate
-                ? DateOnly.FromDateTime(releaseDate)
-                : null;
-            Version = anidb.FileVersion;
-            IsDeprecated = anidb.IsDeprecated;
-            IsCensored = anidb.IsCensored ?? false;
-            Chaptered = anidb.IsChaptered;
-            OriginalFileName = anidb.FileName;
-            FileSize = anidb.FileSize;
-            Description = anidb.File_Description;
-            Updated = anidb.DateTimeUpdated.ToUniversalTime();
-            AudioLanguages = anidb.Languages.Select(a => a.LanguageName).ToList();
-            SubLanguages = anidb.Subtitles.Select(a => a.LanguageName).ToList();
-        }
-
-        /// <summary>
-        /// The AniDB File ID
-        /// </summary>
-        public int ID { get; set; }
-
-        /// <summary>
-        /// Blu-ray, DVD, LD, TV, etc
-        /// </summary>
-        public FileSource Source { get; set; }
-
-        /// <summary>
-        /// The Release Group. This is usually set, but sometimes is set as "raw/unknown"
-        /// </summary>
-        public ReleaseGroup ReleaseGroup { get; set; }
-
-        /// <summary>
-        /// The file's release date. This is probably not filled in
-        /// </summary>
-        public DateOnly? ReleaseDate { get; set; }
-
-        /// <summary>
-        /// The file's version, Usually 1, sometimes more when there are edits released later
-        /// </summary>
-        public int Version { get; set; }
-
-        /// <summary>
-        /// Is the file marked as deprecated. Generally, yes if there's a V2, and this isn't it
-        /// </summary>
-        public bool IsDeprecated { get; set; }
-
-        /// <summary>
-        /// Mostly applicable to hentai, but on occasion a TV release is censored enough to earn this.
-        /// </summary>
-        public bool? IsCensored { get; set; }
-
-        /// <summary>
-        /// The original FileName. Useful for when you obtained from a shady source or when you renamed it without thinking. 
-        /// </summary>
-        public string OriginalFileName { get; set; }
-
-        /// <summary>
-        /// The reported FileSize. If you got this far and it doesn't match, something very odd has occurred
-        /// </summary>
-        public long FileSize { get; set; }
-
-        /// <summary>
-        /// Any comments that were added to the file, such as something wrong with it.
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
-        /// The audio languages
-        /// </summary>
-        public List<string> AudioLanguages { get; set; }
-
-        /// <summary>
-        /// Sub languages
-        /// </summary>
-        public List<string> SubLanguages { get; set; }
-
-        /// <summary>
-        /// Does the file have chapters. This may be wrong, since it was only added in AVDump2 (a more recent version at that)
-        /// </summary>
-        public bool Chaptered { get; set; }
-
-        /// <summary>
-        /// When we last got data on this file
-        /// </summary>
-        [JsonConverter(typeof(IsoDateTimeConverter))]
-        public DateTime Updated { get; set; }
-
-    }
-
     /// <summary>
     /// User stats for the file.
     /// </summary>
@@ -693,33 +591,20 @@ public partial class File
         return (sortCriteria, isInverted);
     }
 
-    public static FileSource ParseFileSource(string source)
-    {
-        if (string.IsNullOrEmpty(source))
+    public static FileSource ParseFileSource(ReleaseSource? source)
+        => source switch
         {
-            return FileSource.Unknown;
-        }
-
-        return source.Replace("-", "").ToLower() switch
-        {
-            "tv" => FileSource.TV,
-            "dtv" => FileSource.TV,
-            "hdtv" => FileSource.TV,
-            "dvd" => FileSource.DVD,
-            "hkdvd" => FileSource.DVD,
-            "hddvd" => FileSource.DVD,
-            "bluray" => FileSource.BluRay,
-            "www" => FileSource.Web,
-            "web" => FileSource.Web,
-            "vhs" => FileSource.VHS,
-            "vcd" => FileSource.VCD,
-            "svcd" => FileSource.VCD,
-            "ld" => FileSource.LaserDisc,
-            "laserdisc" => FileSource.LaserDisc,
-            "camcorder" => FileSource.Camera,
-            _ => FileSource.Unknown
+            ReleaseSource.TV => FileSource.TV,
+            ReleaseSource.DVD => FileSource.DVD,
+            ReleaseSource.BluRay => FileSource.BluRay,
+            ReleaseSource.Web => FileSource.Web,
+            ReleaseSource.VHS => FileSource.VHS,
+            ReleaseSource.VCD => FileSource.VCD,
+            ReleaseSource.LaserDisc => FileSource.LaserDisc,
+            ReleaseSource.Camera => FileSource.Camera,
+            ReleaseSource.Other => FileSource.Other,
+            _ => FileSource.Unknown,
         };
-    }
 
     /// <summary>
     /// AVDump info for the file.

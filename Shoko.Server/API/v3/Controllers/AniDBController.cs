@@ -3,14 +3,17 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
+
+using ReleaseGroup = Shoko.Server.API.v3.Models.Common.ReleaseGroup;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -24,7 +27,7 @@ public class AniDBController(
     ISettingsProvider settingsProvider,
     IUDPConnectionHandler udpHandler,
     IHttpConnectionHandler httpHandler,
-    AniDB_ReleaseGroupRepository anidbReleaseGroups,
+    DatabaseReleaseInfoRepository databaseReleaseInfos,
     AniDB_CreatorRepository anidbCreators
 ) : BaseController(settingsProvider)
 {
@@ -60,11 +63,11 @@ public class AniDBController(
     {
         return includeMissing switch
         {
-            IncludeOnlyFilter.False => anidbReleaseGroups.GetUsedReleaseGroups()
+            IncludeOnlyFilter.False => databaseReleaseInfos.GetUsedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            IncludeOnlyFilter.Only => anidbReleaseGroups.GetUnusedReleaseGroups()
+            IncludeOnlyFilter.Only => databaseReleaseInfos.GetUnusedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            _ => anidbReleaseGroups.GetAll()
+            _ => databaseReleaseInfos.GetReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
         };
     }
@@ -77,10 +80,10 @@ public class AniDBController(
     [HttpGet("ReleaseGroup/{id}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
     {
-        var group = anidbReleaseGroups.GetByGroupID(id);
-        if (group == null)
+        if (databaseReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not IReleaseInfo { Group.ProviderID: "AniDB" } releaseInfo)
             return NotFound();
-        return new ReleaseGroup(group);
+
+        return new ReleaseGroup(releaseInfo.Group);
     }
 
     /// <summary>

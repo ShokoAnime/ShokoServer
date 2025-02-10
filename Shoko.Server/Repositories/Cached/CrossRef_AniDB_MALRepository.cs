@@ -18,8 +18,8 @@ public class CrossRef_AniDB_MALRepository(DatabaseFactory databaseFactory) : Bas
 
     public override void PopulateIndexes()
     {
-        _malIDs = new PocoIndex<int, CrossRef_AniDB_MAL, int>(Cache, a => a.MALID);
-        _animeIDs = new PocoIndex<int, CrossRef_AniDB_MAL, int>(Cache, a => a.AnimeID);
+        _malIDs = Cache.CreateIndex(a => a.MALID);
+        _animeIDs = Cache.CreateIndex(a => a.AnimeID);
     }
 
     public IReadOnlyList<CrossRef_AniDB_MAL> GetByAnimeID(int animeID)

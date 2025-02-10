@@ -22,8 +22,8 @@ public interface IReleaseInfo
     string ProviderID { get; }
 
     /// <summary>
-    /// An absolute URI for where to find the information, if available from the provider.
-    /// Can be a http://, https:// or file:// URI.
+    /// An absolute URI for where to find the information, if available from the
+    /// provider. Can be a http://, https:// or file:// URI.
     /// </summary>
     string? ReleaseURI { get; }
 
@@ -35,12 +35,18 @@ public interface IReleaseInfo
     int Revision { get; }
 
     /// <summary>
+    /// File size in bytes, if available from the provider.
+    /// </summary>
+    long? FileSize { get; }
+
+    /// <summary>
     /// Comment about the release info, if available from the provider.
     /// </summary>
     string? Comment { get; }
 
     /// <summary>
-    /// The original name of the file, if it's known by the release info provider.
+    /// The original name of the file, if it's known by the release info
+    /// provider.
     /// </summary>
     string? OriginalFilename { get; }
 
@@ -49,6 +55,12 @@ public interface IReleaseInfo
     /// this will be <c>null</c>.
     /// </summary>
     bool? IsCensored { get; }
+
+    /// <summary>
+    /// Indicates that the release is chaptered, if it's known by the release
+    /// info provider.
+    /// </summary>
+    bool? IsChaptered { get; }
 
     /// <summary>
     /// Indicates that the released file is corrupted.
@@ -88,13 +100,15 @@ public interface IReleaseInfo
     DateOnly? ReleasedAt { get; }
 
     /// <summary>
-    /// When the release information was last updated by the provider. Can be
-    /// <c>null</c> if not applicable.
+    /// When the release information was last updated by the provider or
+    /// locally. Up to the provider to decide how to set this, but it should
+    /// always be set.
     /// </summary>
-    DateTime? LastUpdatedAt { get; }
+    DateTime LastUpdatedAt { get; }
 
     /// <summary>
-    /// When the release information was locally saved in Shoko for the first time.
+    /// When the release information was locally saved in Shoko for the first
+    /// time.
     /// </summary>
     DateTime CreatedAt { get; }
 }

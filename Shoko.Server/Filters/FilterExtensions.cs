@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.Extensions;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
@@ -121,22 +122,22 @@ public static class FilterExtensions
                     ? new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { ((AnimeType)anime.AnimeType).ToString() }
                     : [],
             VideoSourcesDelegate = () =>
-                series.VideoLocals.Select(a => a.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet(),
+                series.VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
             SharedVideoSourcesDelegate = () =>
-                series.VideoLocals.Select(b => b.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet() is { Count: > 0 } sources ? sources : [],
+                series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: > 0 } sources ? sources : [],
             AudioLanguagesDelegate = () => series.VideoLocals
-                .Select(a => a.AniDBFile)
+                .Select(a => a.ReleaseInfo)
                 .WhereNotNull()
-                .SelectMany(a => a.Languages.Select(b => b.LanguageName))
+                .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
                 .ToHashSet(StringComparer.InvariantCultureIgnoreCase),
             SharedAudioLanguagesDelegate = () =>
-                series.VideoLocals.Select(b => b.AniDBFile).WhereNotNull().Select(a => a.Languages.Select(b => b.LanguageName)).ToList() is { Count: > 0 } audioNames
+                series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.AudioLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } audioNames
                     ? audioNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             SubtitleLanguagesDelegate = () =>
-                series.VideoLocals.Select(a => a.AniDBFile).WhereNotNull().SelectMany(a => a.Subtitles.Select(b => b.LanguageName)).ToHashSet(StringComparer.InvariantCultureIgnoreCase),
+                series.VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToHashSet(StringComparer.InvariantCultureIgnoreCase),
             SharedSubtitleLanguagesDelegate = () =>
-                series.VideoLocals.Select(b => b.AniDBFile).WhereNotNull().Select(a => a.Subtitles.Select(b => b.LanguageName)).ToList() is { Count: > 0 } subtitleNames
+                series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } subtitleNames
                     ? subtitleNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             ResolutionsDelegate = () =>
@@ -297,19 +298,19 @@ public static class FilterExtensions
             AnimeTypesDelegate = () =>
                 new HashSet<string>(anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
             VideoSourcesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals).Select(a => a.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet(),
+                series.SelectMany(a => a.VideoLocals).Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
             SharedVideoSourcesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals).Select(b => b.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet() is { Count: > 0 } sources ? sources : [],
+                series.SelectMany(a => a.VideoLocals).Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: > 0 } sources ? sources : [],
             AudioLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().SelectMany(a => a.Languages.Select(b => b.LanguageName)).ToHashSet(),
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? []).ToHashSet(),
             SharedAudioLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().Select(a => a.Languages.Select(b => b.LanguageName)).ToList() is { Count: > 0 } audioLanguageNames
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().Select(a => a.AudioLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } audioLanguageNames
                     ? audioLanguageNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             SubtitleLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().SelectMany(a => a.Subtitles.Select(b => b.LanguageName)).ToHashSet(),
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToHashSet(),
             SharedSubtitleLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().Select(a => a.Subtitles.Select(b => b.LanguageName)).ToList() is { Count: > 0 } subtitleLanguageNames
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().Select(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } subtitleLanguageNames
                     ? subtitleLanguageNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             ResolutionsDelegate = () =>

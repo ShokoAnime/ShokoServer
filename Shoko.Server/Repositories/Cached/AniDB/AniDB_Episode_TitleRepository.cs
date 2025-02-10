@@ -17,7 +17,7 @@ public class AniDB_Episode_TitleRepository(DatabaseFactory databaseFactory) : Ba
 
     public override void PopulateIndexes()
     {
-        _episodeIDs = new PocoIndex<int, SVR_AniDB_Episode_Title, int>(Cache, a => a.AniDB_EpisodeID);
+        _episodeIDs = Cache.CreateIndex(a => a.AniDB_EpisodeID);
     }
 
     public IReadOnlyList<SVR_AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int episodeID, TitleLanguage language)

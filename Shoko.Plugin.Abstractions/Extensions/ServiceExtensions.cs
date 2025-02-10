@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.Abstractions.Extensions;

@@ -21,8 +21,8 @@ public class AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCach
 
     public override void PopulateIndexes()
     {
-        _episodesIDs = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.EpisodeID);
-        _animeIDs = new PocoIndex<int, SVR_AniDB_Episode, int>(Cache, a => a.AnimeID);
+        _episodesIDs = Cache.CreateIndex(a => a.EpisodeID);
+        _animeIDs = Cache.CreateIndex(a => a.AnimeID);
     }
 
     public SVR_AniDB_Episode? GetByEpisodeID(int episodeID)

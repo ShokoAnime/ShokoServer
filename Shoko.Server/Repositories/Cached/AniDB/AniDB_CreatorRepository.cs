@@ -15,7 +15,7 @@ public class AniDB_CreatorRepository(DatabaseFactory databaseFactory) : BaseCach
 
     public override void PopulateIndexes()
     {
-        _creatorIDs = new PocoIndex<int, AniDB_Creator, int>(Cache, a => a.CreatorID);
+        _creatorIDs = Cache.CreateIndex(a => a.CreatorID);
     }
 
     public AniDB_Creator? GetByCreatorID(int creatorID)

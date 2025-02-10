@@ -365,7 +365,6 @@ public class GeneratedPlaylistService
         }
 
         var seriesOrder = crossReferences
-            .OrderBy(xref => xref.Order)
             .Select(xref => xref.AnidbAnimeID)
             .Distinct()
             .ToArray();

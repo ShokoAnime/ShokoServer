@@ -19,7 +19,7 @@ public class CrossRef_AniDB_TraktV2Repository(DatabaseFactory databaseFactory) :
 
     public override void PopulateIndexes()
     {
-        _animeIDs = new PocoIndex<int, CrossRef_AniDB_TraktV2, int>(Cache, a => a.AnimeID);
+        _animeIDs = Cache.CreateIndex(a => a.AnimeID);
     }
 
     public IReadOnlyList<CrossRef_AniDB_TraktV2> GetByAnimeID(int id)

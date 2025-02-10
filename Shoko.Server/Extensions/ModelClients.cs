@@ -5,6 +5,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
@@ -498,20 +499,20 @@ public static class ModelClients
                 StringComparer.InvariantCultureIgnoreCase)
         };
 
-    public static CL_AniDB_ReleaseGroup? ToClient(this AniDB_ReleaseGroup? group)
+    public static CL_AniDB_ReleaseGroup? ToClient(this IReleaseGroup? group)
         => group is null ? null : new CL_AniDB_ReleaseGroup
         {
-            AniDB_ReleaseGroupID = group.AniDB_ReleaseGroupID,
-            AnimeCount = group.AnimeCount,
-            FileCount = group.FileCount,
-            GroupID = group.GroupID,
-            GroupName = group.GroupName,
-            GroupNameShort = group.GroupNameShort,
-            IRCChannel = group.IRCChannel,
-            IRCServer = group.IRCServer,
-            Picname = group.Picname,
-            Rating = group.Rating,
-            URL = group.URL,
-            Votes = group.Votes,
+            AniDB_ReleaseGroupID = 0,
+            AnimeCount = 0,
+            FileCount = 0,
+            GroupID = int.TryParse(group.ID, out var id) ? id : 0,
+            GroupName = group.Name,
+            GroupNameShort = group.ShortName,
+            IRCChannel = null,
+            IRCServer = null,
+            Picname = null,
+            Rating = 0,
+            URL = null,
+            Votes = 0,
         };
 }

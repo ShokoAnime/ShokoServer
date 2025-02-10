@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -36,17 +37,17 @@ public class ProcessFileMovedMessageJob : BaseJob
             throw new Exception("Could not parse file ID from message title");
         }
 
-        var file = RepoFactory.AniDB_File.GetByFileID(fileId);
+        var file = RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
         if (file == null)
         {
             _logger.LogWarning("Could not find file with AniDB ID: {ID}", fileId);
             return;
         }
 
-        var vlocal = RepoFactory.VideoLocal.GetByEd2k(file.Hash);
+        var vlocal = RepoFactory.VideoLocal.GetByEd2k(file.ED2K);
         if (vlocal == null)
         {
-            _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.Hash);
+            _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.ED2K);
             return;
         }
 
