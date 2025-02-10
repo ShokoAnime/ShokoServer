@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.MediaInfo;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
@@ -12,8 +13,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
-
-using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -188,20 +187,13 @@ public class WebUI
                 // Show everything if no types are provided, otherwise filter to the given types.
                 .Where(episode => episodeTypes.Count == 0 || episodeTypes.Contains(episode.Type))
                 .ToDictionary(episode => episode.ID);
-            var anidbFiles = crossRefs
-                // We only check for the file if the source is anidb.
-                .Select(tuple => (CrossRefSource)tuple.xref.CrossRefSource == CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHash(tuple.xref.Hash) : null)
+            var releases = RepoFactory.DatabaseReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+                .ToDictionary(release => (release.ED2K, release.FileSize), release => (IReleaseInfo)release);
+            var releaseGroups = releases.Values
+                .Select(r => r.Group)
                 .WhereNotNull()
-                // Multiple cross-references can be linked to the same anidb file.
-                .DistinctBy(anidbFile => anidbFile.Hash)
-                .ToDictionary(anidbFile => anidbFile.Hash);
-            var releaseGroups = anidbFiles.Values
-                .Select(anidbFile => anidbFile.GroupID)
-                .Distinct()
-                .Where(groupID => groupID != 0)
-                .Select(RepoFactory.AniDB_ReleaseGroup.GetByGroupID)
-                .WhereNotNull()
-                .ToDictionary(releaseGroup => releaseGroup.GroupID);
+                .DistinctBy(r => (r.ID, r.ProviderID))
+                .ToDictionary(releaseGroup => (releaseGroup.ID, releaseGroup.ProviderID));
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
             var filesWithXrefAndLocation = crossRefs
                 .Where(tuple => episodes.ContainsKey(tuple.xref.EpisodeID))
@@ -233,27 +225,26 @@ public class WebUI
                     var (file, xref, location) = tuple;
                     var media = new MediaInfo(file, file.MediaInfo!);
                     var episode = episodes[xref.EpisodeID];
-                    var isAutoLinked = (CrossRefSource)xref.CrossRefSource == CrossRefSource.AniDB;
-                    var anidbFile = isAutoLinked && anidbFiles.TryGetValue(xref.Hash, out var aniFi) ? aniFi : null;
-                    var releaseGroup = anidbFile != null && anidbFile.GroupID != 0 && releaseGroups.TryGetValue(anidbFile.GroupID, out var reGr) ? reGr : null;
+                    var releaseInfo = releases.TryGetValue((xref.Hash, xref.FileSize), out var release) ? release : null;
+                    var releaseGroup = releaseInfo?.Group;
                     var groupByDetails = new GroupByDetails();
 
                     // Release group criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.GroupName))
                     {
-                        groupByDetails.GroupName = isAutoLinked ? releaseGroup?.GroupName ?? "Unknown" : "None";
-                        groupByDetails.GroupNameShort = isAutoLinked ? releaseGroup?.GroupNameShort ?? "Unk" : "-";
+                        groupByDetails.GroupName = releaseGroup?.Name ?? (releaseGroup is { ProviderID: "AniDB" } ? "Unknown" : "None");
+                        groupByDetails.GroupNameShort = releaseGroup?.ShortName ?? (releaseGroup is { ProviderID: "AniDB" } ? "Unk" : "-");
                     }
 
                     // File criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileVersion))
-                        groupByDetails.FileVersion = isAutoLinked ? anidbFile?.FileVersion ?? 1 : 1;
+                        groupByDetails.FileVersion = release?.Revision ?? 1;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
-                        groupByDetails.FileSource = File.ParseFileSource(anidbFile?.File_Source);
+                        groupByDetails.FileSource = File.ParseFileSource(release?.Source);
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
                         groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
-                        groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
+                        groupByDetails.FileIsDeprecated = release?.IsCorrupted ?? false;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
                         groupByDetails.ImportFolder = location.ImportFolderID;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ED2K))
@@ -341,7 +332,7 @@ public class WebUI
             {
                 TotalFileSize = files.Sum(fileWrapper => fileWrapper.Episode.Size),
                 ReleaseGroups = releaseGroups.Values
-                    .Select(group => group.GroupNameShort ?? group.GroupName)
+                    .Select(group => group.ShortName ?? group.Name)
                     .WhereNotNull()
                     .Distinct()
                     .ToList(),
@@ -349,8 +340,8 @@ public class WebUI
                     .Select(t =>
                     {
                         var episodeType = episodes[t.xref.EpisodeID].Type;
-                        var fileSource = t.xref.CrossRefSource == (int)CrossRefSource.AniDB && anidbFiles.TryGetValue(t.xref.Hash, out var anidbFile)
-                            ? File.ParseFileSource(anidbFile.File_Source) : FileSource.Unknown;
+                        var fileSource = releases.TryGetValue((t.xref.Hash, t.xref.FileSize), out var release)
+                            ? File.ParseFileSource(release?.Source) : FileSource.Unknown;
 
                         return (episodeType, fileSource);
                     })

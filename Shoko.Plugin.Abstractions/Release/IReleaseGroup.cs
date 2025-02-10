@@ -1,10 +1,12 @@
 
+using System;
+
 namespace Shoko.Plugin.Abstractions.Release;
 
 /// <summary>
 /// Release group.
 /// </summary>
-public interface IReleaseGroup
+public interface IReleaseGroup : IEquatable<IReleaseGroup>
 {
     /// <summary>
     /// The id of the release group.
@@ -19,10 +21,10 @@ public interface IReleaseGroup
     /// <summary>
     /// The name of the release group, if available.
     /// </summary>
-    string? Name { get; }
+    string Name { get; }
 
     /// <summary>
     /// The short name of the release group, if available.
     /// </summary>
-    string? ShortName { get; }
+    string ShortName { get; }
 }
