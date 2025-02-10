@@ -17,7 +17,7 @@ public class AniDB_CharacterRepository(DatabaseFactory databaseFactory) : BaseCa
 
     public override void PopulateIndexes()
     {
-        _characterIDs = new PocoIndex<int, AniDB_Character, int>(Cache, a => a.CharacterID);
+        _characterIDs = Cache.CreateIndex(a => a.CharacterID);
     }
 
     public AniDB_Character GetByCharacterID(int characterID)

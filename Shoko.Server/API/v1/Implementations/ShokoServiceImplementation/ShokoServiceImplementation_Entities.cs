@@ -549,7 +549,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return _actionService.UpdateAniDBFileData(missingInfo, outOfDate, countOnly).Result;
+            return _actionService.UpdateAnidbReleaseInfo(countOnly).Result;
         }
         catch (Exception ex)
         {
@@ -570,11 +570,11 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<GetAniDBFileJob>(
+            scheduler.StartJobNow<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             ).GetAwaiter().GetResult();
         }
@@ -1141,15 +1141,12 @@ public partial class ShokoServiceImplementation : IShokoServer
                 foreach (var s in hashes)
                 {
                     var vid = vids.First(a => a.Hash == s);
-                    AniDB_File anifile = vid.AniDBFile;
-                    if (anifile != null)
+                    if (vid.ReleaseGroup is { ProviderID: "AniDB" } group && int.TryParse(group.ID, out var groupId))
                     {
-                        if (!userReleaseGroups.ContainsKey(anifile.GroupID))
-                        {
-                            userReleaseGroups[anifile.GroupID] = 0;
-                        }
+                        if (!userReleaseGroups.ContainsKey(groupId))
+                            userReleaseGroups[groupId] = 0;
 
-                        userReleaseGroups[anifile.GroupID] = userReleaseGroups[anifile.GroupID] + 1;
+                        userReleaseGroups[groupId] = userReleaseGroups[groupId] + 1;
                     }
                 }
             }
