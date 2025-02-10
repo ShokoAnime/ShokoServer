@@ -16,6 +16,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
@@ -506,7 +507,7 @@ public class AnimeCreator
         var shokoEpisodesToRemove = new List<SVR_AnimeEpisode>();
         var shokoEpisodesToSave = new List<SVR_AnimeEpisode>();
         var shokoSeriesDict = new Dictionary<int, SVR_AnimeSeries>();
-        var anidbFilesToRemove = new List<SVR_AniDB_File>();
+        var databaseReleasesToRemove = new List<DatabaseReleaseInfo>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
         var videosToRefetch = new List<SVR_VideoLocal>();
         var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
@@ -543,15 +544,11 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .Where(video => video != null)
                 .ToList();
-            var anidbFiles = xrefs
-                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
-                .ToList();
+            var databaseReleases = RepoFactory.DatabaseReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            anidbFilesToRemove.AddRange(anidbFiles);
+            databaseReleasesToRemove.AddRange(databaseReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
         shokoSeriesDict.Clear();
@@ -569,19 +566,15 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .Where(video => video != null)
                 .ToList();
-            var anidbFiles = xrefs
-                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
-                .ToList();
+            var databaseReleases = RepoFactory.DatabaseReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            anidbFilesToRemove.AddRange(anidbFiles);
+            databaseReleasesToRemove.AddRange(databaseReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
 
-        RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
+        RepoFactory.DatabaseReleaseInfo.Delete(databaseReleasesToRemove.DistinctBy(a => a.DatabaseReleaseInfoID).ToList());
         RepoFactory.AniDB_Episode.Save(epsToSave);
         RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);

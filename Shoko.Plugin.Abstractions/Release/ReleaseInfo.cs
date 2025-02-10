@@ -30,6 +30,11 @@ public class ReleaseInfo
     public int Revision { get; set; }
 
     /// <summary>
+    /// File size in bytes, if available from the provider.
+    /// </summary>
+    public long? FileSize { get; set; }
+
+    /// <summary>
     /// A comment about the release info.
     /// </summary>
     public string? Comment { get; set; }
@@ -49,6 +54,12 @@ public class ReleaseInfo
     /// Indicates that the released file is corrupted.
     /// </summary>
     public bool IsCorrupted { get; set; }
+
+    /// <summary>
+    /// Indicates that the release is chaptered, if it's known by the release
+    /// info provider.
+    /// </summary>
+    public bool? IsChaptered { get; set; }
 
     /// <summary>
     /// The source of the release. What the video file was created from.

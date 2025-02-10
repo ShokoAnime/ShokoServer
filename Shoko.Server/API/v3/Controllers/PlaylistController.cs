@@ -40,6 +40,7 @@ public class PlaylistController : BaseController
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Generate")]
@@ -48,6 +49,7 @@ public class PlaylistController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool includeReleaseInfo = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
     )
     {
@@ -60,7 +62,7 @@ public class PlaylistController : BaseController
                     .Select(episode => new Episode(HttpContext, (episode as SVR_AnimeEpisode)!, includeDataFrom, withXRefs: includeXRefs))
                     .ToList(),
                 tuple.videos
-                    .Select(video => new File(HttpContext, (video as SVR_VideoLocal)!, withXRefs: includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
+                    .Select(video => new File(HttpContext, (video as SVR_VideoLocal)!, withXRefs: includeXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
                     .ToList()
             ))
             .ToList();

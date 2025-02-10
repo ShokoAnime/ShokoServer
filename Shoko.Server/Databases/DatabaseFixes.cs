@@ -11,13 +11,13 @@ using Newtonsoft.Json;
 using NHibernate;
 using NLog;
 using Quartz;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.TMDB;
@@ -221,30 +221,6 @@ public class DatabaseFixes
             .ToList();
 
         RepoFactory.AniDB_AnimeUpdate.Save(updates);
-    }
-
-    public static void MigrateAniDB_FileUpdates()
-    {
-        var updates = RepoFactory.AniDB_File.GetAll()
-            .Select(file => new AniDB_FileUpdate
-            {
-                FileSize = file.FileSize,
-                Hash = file.Hash,
-                HasResponse = true,
-                UpdatedAt = file.DateTimeUpdated,
-            })
-            .ToList();
-
-        updates.AddRange(RepoFactory.CrossRef_File_Episode.GetAll().Where(a => RepoFactory.AniDB_File.GetByHash(a.Hash) == null)
-            .Select(a => (xref: a, vl: RepoFactory.VideoLocal.GetByEd2k(a.Hash))).Where(a => a.vl != null).Select(a => new AniDB_FileUpdate
-            {
-                FileSize = a.xref.FileSize,
-                Hash = a.xref.Hash,
-                HasResponse = false,
-                UpdatedAt = a.vl.DateTimeCreated,
-            }));
-
-        RepoFactory.AniDB_FileUpdate.Save(updates);
     }
 
     public static void PopulateTagWeight()
@@ -637,7 +613,7 @@ public class DatabaseFixes
 
         // Remove any existing links to the episodes that will be removed.
         _logger.Trace($"Checking {shokoEpisodesToRemove.Count} orphaned shoko episodes before deletion.");
-        var anidbFilesToRemove = new List<SVR_AniDB_File>();
+        var databaseReleasesToRemove = new List<DatabaseReleaseInfo>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
         var videosToRefetch = new List<SVR_VideoLocal>();
         var tmdbXrefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
@@ -648,15 +624,11 @@ public class DatabaseFixes
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .Where(video => video != null)
                 .ToList();
-            var anidbFiles = xrefs
-                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
-                .ToList();
+            var databaseReleases = RepoFactory.DatabaseReleaseInfo.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
             var tmdbXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            anidbFilesToRemove.AddRange(anidbFiles);
+            databaseReleasesToRemove.AddRange(databaseReleases);
             tmdbXrefsToRemove.AddRange(tmdbXrefs);
         }
 
@@ -677,8 +649,8 @@ public class DatabaseFixes
         _logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
 
-        _logger.Trace($"Deleting {anidbFilesToRemove.Count} orphaned anidb files.");
-        RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
+        _logger.Trace($"Deleting {databaseReleasesToRemove.Count} orphaned releases.");
+        RepoFactory.DatabaseReleaseInfo.Delete(databaseReleasesToRemove);
 
         _logger.Trace($"Deleting {tmdbXrefsToRemove.Count} orphaned tmdb xrefs.");
         RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXrefsToRemove);

@@ -36,6 +36,7 @@ public class ActionService(
     ISchedulerFactory _schedulerFactory,
     IRequestFactory _requestFactory,
     ISettingsProvider _settingsProvider,
+    VideoLocalService _videoService,
     VideoLocal_PlaceService _placeService,
     TmdbMetadataService _tmdbService,
     AnimeSeriesService _seriesService,
@@ -618,39 +619,7 @@ public class ActionService(
                 .DistinctBy(a => a.AnimeSeriesID));
 
             if (removeMyList)
-            {
-                if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
-                {
-                    var xrefs = v.EpisodeCrossReferences;
-                    foreach (var xref in xrefs)
-                    {
-                        if (xref.AnimeID is 0)
-                            continue;
-
-                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep == null)
-                        {
-                            continue;
-                        }
-
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.AnimeID = xref.AnimeID;
-                            c.EpisodeType = ep.EpisodeTypeEnum;
-                            c.EpisodeNumber = ep.EpisodeNumber;
-                        });
-                    }
-                }
-                else
-                {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.Hash = v.Hash;
-                            c.FileSize = v.FileSize;
-                        }
-                    );
-                }
-            }
+                await _videoService.ScheduleRemovalFromMyList(v);
 
             BaseRepository.Lock(session, v, (s, vl) =>
             {
@@ -731,57 +700,50 @@ public class ActionService(
         await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task<int> UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)
+    public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var vidsToUpdate = new HashSet<int>();
-        var groupsToUpdate = new HashSet<int>();
-        if (outOfDate)
-        {
-            var files = RepoFactory.VideoLocal.GetByInternalVersion(1);
+        var incorrectGroups = RepoFactory.DatabaseReleaseInfo.GetAll()
+            .Where(r =>
+                !string.IsNullOrEmpty(r.GroupID) &&
+                r.GroupProviderID is "AniDB" &&
+                int.TryParse(r.GroupID, out var groupID) && (
+                    string.IsNullOrEmpty(r.GroupName) ||
+                    string.IsNullOrEmpty(r.GroupShortName)
+                )
+            )
+            .DistinctBy(a => a.GroupID)
+            .Select(a => int.Parse(a.GroupID))
+            .ToHashSet();
+        var missingFiles = RepoFactory.DatabaseReleaseInfo.GetAll()
+            .Where(r => r.ProviderID is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupProviderID is not "AniDB"))
+            .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
+            .WhereNotNull()
+            .Select(a => a.VideoLocalID)
+            .ToList();
 
-            foreach (var file in files)
+        if (!countOnly)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+
+            _logger.LogInformation("Queuing {Count} GetFile commands", missingFiles.Count);
+            foreach (var id in missingFiles)
             {
-                vidsToUpdate.Add(file.VideoLocalID);
-            }
-        }
-
-        if (missingInfo)
-        {
-            var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll().Select(group => group.GroupID).ToHashSet();
-            var missingGroups = RepoFactory.AniDB_File.GetAll().Select(a => a.GroupID).Where(a => a != 0 && !anidbReleaseGroupIDs.Contains(a)).ToList();
-            groupsToUpdate.UnionWith(missingGroups);
-
-            var missingFiles = RepoFactory.AniDB_File.GetAll()
-                .Where(a => a.GroupID == 0)
-                .Select(a => RepoFactory.VideoLocal.GetByEd2k(a.Hash))
-                .Where(f => f != null)
-                .Select(a => a.VideoLocalID)
-                .ToList();
-            vidsToUpdate.UnionWith(missingFiles);
-        }
-
-        if (!dryRun)
-        {
-            _logger.LogInformation("Queuing {Count} GetFile commands", vidsToUpdate.Count);
-            foreach (var id in vidsToUpdate)
-            {
-                await scheduler.StartJob<GetAniDBFileJob>(c =>
+                await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = id;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 });
             }
 
-            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", groupsToUpdate.Count);
-            foreach (var a in groupsToUpdate)
+            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
+            foreach (var a in incorrectGroups)
             {
                 await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
             }
         }
 
-        return vidsToUpdate.Count;
+        return missingFiles.Count;
     }
 
     public async Task CheckForUnreadNotifications(bool ignoreSchedule)

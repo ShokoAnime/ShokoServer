@@ -19,10 +19,9 @@ using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services.Ogg;
 using Shoko.Server.Utilities;
 
@@ -39,16 +38,25 @@ public class VideoLocal_PlaceService
     private readonly DatabaseFactory _databaseFactory;
     private readonly FileWatcherService _fileWatcherService;
     private readonly RenameFileService _renameFileService;
-    private readonly AniDB_FileRepository _aniDBFile;
-    private readonly AniDB_EpisodeRepository _aniDBEpisode;
-    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
+    private readonly VideoLocalService _videoLocalService;
+    private readonly RenamerConfigRepository _renamerConfig;
+    private readonly FileNameHashRepository _fileNameHash;
     private readonly VideoLocalRepository _videoLocal;
     private readonly VideoLocal_PlaceRepository _videoLocalPlace;
 
-    public VideoLocal_PlaceService(ILogger<VideoLocal_PlaceService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory,
-        FileWatcherService fileWatcherService, VideoLocalRepository videoLocal, VideoLocal_PlaceRepository videoLocalPlace,
-        CrossRef_File_EpisodeRepository crossRefFileEpisode, AniDB_FileRepository aniDBFile, AniDB_EpisodeRepository aniDBEpisode,
-        DatabaseFactory databaseFactory, RenameFileService renameFileService)
+    public VideoLocal_PlaceService(
+        ILogger<VideoLocal_PlaceService> logger,
+        ISettingsProvider settingsProvider,
+        ISchedulerFactory schedulerFactory,
+        FileWatcherService fileWatcherService,
+        VideoLocalRepository videoLocal,
+        VideoLocal_PlaceRepository videoLocalPlace,
+        RenamerConfigRepository renamerConfig,
+        FileNameHashRepository fileNameHash,
+        DatabaseFactory databaseFactory,
+        RenameFileService renameFileService,
+        VideoLocalService videoLocalService
+    )
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
@@ -56,11 +64,11 @@ public class VideoLocal_PlaceService
         _fileWatcherService = fileWatcherService;
         _videoLocal = videoLocal;
         _videoLocalPlace = videoLocalPlace;
-        _crossRefFileEpisode = crossRefFileEpisode;
-        _aniDBFile = aniDBFile;
-        _aniDBEpisode = aniDBEpisode;
+        _renamerConfig = renamerConfig;
+        _fileNameHash = fileNameHash;
         _databaseFactory = databaseFactory;
         _renameFileService = renameFileService;
+        _videoLocalService = videoLocalService;
     }
 
     #region Relocation (Move & Rename)
@@ -233,7 +241,7 @@ public class VideoLocal_PlaceService
         }
 
         var sourceFile = new FileInfo(oldFullPath);
-        var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath, request.ImportFolder.ID);
+        var destVideoLocalPlace = _videoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath, request.ImportFolder.ID);
         if (File.Exists(newFullPath))
         {
             // A file with the same name exists at the destination.
@@ -263,32 +271,31 @@ public class VideoLocal_PlaceService
 
             // Not a dupe, don't delete it
             _logger.LogTrace("A different file already exists at the new location, checking it for version and group");
-            var destinationExistingAniDBFile = destVideoLocal.AniDBFile;
-            if (destinationExistingAniDBFile is null)
+            if (destVideoLocal.ReleaseInfo is not { } destinationExistingReleaseInfo)
             {
-                _logger.LogWarning("The existing file at the new location does not have AniDB info. Not moving.");
+                _logger.LogWarning("The existing file at the new location does not have release info. Not moving.");
                 return new()
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = "The existing file at the new location does not have AniDB info. Not moving.",
+                    ErrorMessage = "The existing file at the new location does not have release info. Not moving.",
                 };
             }
 
-            var aniDBFile = video.AniDBFile;
-            if (aniDBFile is null)
+            if (video.ReleaseInfo is not { } releaseInfo)
             {
-                _logger.LogWarning("The file does not have AniDB info. Not moving.");
+                _logger.LogWarning("The file does not have release info. Not moving.");
                 return new()
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = "The file does not have AniDB info. Not moving.",
+                    ErrorMessage = "The file does not have release info. Not moving.",
                 };
             }
 
-            if (destinationExistingAniDBFile.GroupID == aniDBFile.GroupID &&
-                destinationExistingAniDBFile.FileVersion < aniDBFile.FileVersion)
+            if (destinationExistingReleaseInfo.GroupID == releaseInfo.GroupID &&
+                destinationExistingReleaseInfo.GroupProviderID == releaseInfo.GroupProviderID &&
+                destinationExistingReleaseInfo.Revision < releaseInfo.Revision)
             {
                 // This is a V2 replacing a V1 with the same name.
                 // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
@@ -323,7 +330,7 @@ public class VideoLocal_PlaceService
 
                 place.ImportFolderID = request.ImportFolder.ID;
                 place.FilePath = newRelativePath;
-                RepoFactory.VideoLocalPlace.Save(place);
+                _videoLocalPlace.Save(place);
 
                 if (request.DeleteEmptyDirectories)
                 {
@@ -373,7 +380,7 @@ public class VideoLocal_PlaceService
 
             place.ImportFolderID = request.ImportFolder.ID;
             place.FilePath = newRelativePath;
-            RepoFactory.VideoLocalPlace.Save(place);
+            _videoLocalPlace.Save(place);
 
             if (request.DeleteEmptyDirectories)
             {
@@ -392,14 +399,14 @@ public class VideoLocal_PlaceService
         if (renamed)
         {
             // Add a new or update an existing lookup entry.
-            var existingEntries = RepoFactory.FileNameHash.GetByHash(video.Hash);
+            var existingEntries = _fileNameHash.GetByHash(video.Hash);
             if (!existingEntries.Any(a => a.FileName.Equals(newFileName)))
             {
-                var hash = RepoFactory.FileNameHash.GetByFileNameAndSize(newFileName, video.FileSize).FirstOrDefault() ??
+                var hash = _fileNameHash.GetByFileNameAndSize(newFileName, video.FileSize).FirstOrDefault() ??
                     new() { FileName = newFileName, FileSize = video.FileSize };
                 hash.DateTimeUpdated = DateTime.Now;
                 hash.Hash = video.Hash;
-                RepoFactory.FileNameHash.Save(hash);
+                _fileNameHash.Save(hash);
             }
         }
 
@@ -443,7 +450,7 @@ public class VideoLocal_PlaceService
             Rename = settings.Plugins.Renamer.RenameOnImport,
             DeleteEmptyDirectories = settings.Plugins.Renamer.MoveOnImport,
             AllowRelocationInsideDestination = settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport,
-            Renamer = RepoFactory.RenamerConfig.GetByName(settings.Plugins.Renamer.DefaultRenamer),
+            Renamer = _renamerConfig.GetByName(settings.Plugins.Renamer.DefaultRenamer),
         };
 
         if (request is { Preview: true, Renamer: null })
@@ -911,38 +918,7 @@ public class VideoLocal_PlaceService
             if (v?.Places?.Count <= 1)
             {
                 if (updateMyListStatus)
-                {
-                    if (RepoFactory.AniDB_File.GetByHash(v.Hash) is null)
-                    {
-                        var xrefs = v.EpisodeCrossReferences;
-                        foreach (var xref in xrefs)
-                        {
-                            if (xref.AnimeID is 0)
-                                continue;
-
-                            var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                            if (ep is null)
-                                continue;
-
-                            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                                {
-                                    c.AnimeID = xref.AnimeID;
-                                    c.EpisodeType = ep.EpisodeTypeEnum;
-                                    c.EpisodeNumber = ep.EpisodeNumber;
-                                }
-                            );
-                        }
-                    }
-                    else
-                    {
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                            {
-                                c.Hash = v.Hash;
-                                c.FileSize = v.FileSize;
-                            }
-                        );
-                    }
-                }
+                    await _videoLocalService.ScheduleRemovalFromMyList(v);
 
                 try
                 {
@@ -956,7 +932,7 @@ public class VideoLocal_PlaceService
                 BaseRepository.Lock(session, s =>
                 {
                     using var transaction = s.BeginTransaction();
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
+                    _videoLocalPlace.DeleteWithOpenTransaction(s, place);
 
                     seriesToUpdate.AddRange(
                         v
@@ -1004,38 +980,7 @@ public class VideoLocal_PlaceService
         if (v?.Places?.Count <= 1)
         {
             if (updateMyListStatus)
-            {
-                var scheduler = await _schedulerFactory.GetScheduler();
-                if (_aniDBFile.GetByHash(v.Hash) is null)
-                {
-                    var xrefs = _crossRefFileEpisode.GetByEd2k(v.Hash);
-                    foreach (var xref in xrefs)
-                    {
-                        if (xref.AnimeID is 0)
-                            continue;
-
-                        var ep = _aniDBEpisode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep is null)
-                            continue;
-
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.AnimeID = xref.AnimeID;
-                            c.EpisodeType = ep.EpisodeTypeEnum;
-                            c.EpisodeNumber = ep.EpisodeNumber;
-                        });
-                    }
-                }
-                else
-                {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.Hash = v.Hash;
-                            c.FileSize = v.FileSize;
-                        }
-                    );
-                }
-            }
+                await _videoLocalService.ScheduleRemovalFromMyList(v);
 
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
             eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.AnimeSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
