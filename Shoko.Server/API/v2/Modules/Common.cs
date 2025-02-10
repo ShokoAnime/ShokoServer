@@ -22,6 +22,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -794,10 +795,10 @@ public class Common : BaseController
         JMMUser user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
-            .ToDictionary(a => a, a => a.AniDBFile);
+            .ToDictionary(a => a, a => a.ReleaseInfo);
         return allVideos.Keys.Select(vid => new { vid, anidb = allVideos[vid] })
-            .Where(tuple => tuple.anidb != null)
-            .Where(tuple => !tuple.anidb.IsDeprecated)
+            .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            .Where(tuple => !tuple.anidb.IsCorrupted)
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
@@ -813,8 +814,9 @@ public class Common : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             return BadRequest("Missing AVDump API key");
 
-        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
-            .ToDictionary(a => a, a => a.AniDBFile);
+        var allVideos = RepoFactory.VideoLocal.GetAll()
+            .Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
+            .ToDictionary(a => a, a => a.ReleaseInfo);
         var logger = LogManager.GetCurrentClassLogger();
 
         var list = allVideos.Keys
@@ -823,8 +825,8 @@ public class Common : BaseController
                 vid,
                 anidb = allVideos[vid],
             })
-            .Where(tuple => tuple.anidb != null)
-            .Where(tuple => !tuple.anidb.IsDeprecated)
+            .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            .Where(tuple => !tuple.anidb.IsCorrupted)
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(_tuple => new
             {
@@ -852,7 +854,7 @@ public class Common : BaseController
         JMMUser user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
-            .Where(a => !a.IsEmpty() && a.AniDBFile != null && a.AniDBFile.IsDeprecated).ToList();
+            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderID: "AniDB", IsCorrupted: true }).ToList();
         return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
 

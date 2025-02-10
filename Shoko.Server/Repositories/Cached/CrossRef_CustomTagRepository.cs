@@ -18,8 +18,8 @@ public class CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : Bas
 
     public override void PopulateIndexes()
     {
-        _customTagIDs = new PocoIndex<int, CrossRef_CustomTag, int>(Cache, a => a.CustomTagID);
-        _entityIDandType = new PocoIndex<int, CrossRef_CustomTag, (int entityID, CustomTagCrossRefType entityType)>(Cache, a => (a.CrossRefID, (CustomTagCrossRefType)a.CrossRefType));
+        _customTagIDs = Cache.CreateIndex(a => a.CustomTagID);
+        _entityIDandType = Cache.CreateIndex(a => (a.CrossRefID, (CustomTagCrossRefType)a.CrossRefType));
     }
 
     public IReadOnlyList<CrossRef_CustomTag> GetByCustomTagID(int customTagID)

@@ -14,9 +14,11 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -27,6 +29,8 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
@@ -79,8 +83,12 @@ public class SyncAniDBMyListJob : BaseJob
 
         // Add missing files on AniDB
         // these patterns have been tested
-        var onlineFiles = response.Response.Where(a => a.FileID is not null and not 0).ToLookup(a => a.FileID.Value);
-        var localFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
+        var onlineFiles = response.Response
+            .Where(a => a.FileID is not null and not 0)
+            .ToLookup(a => a.FileID!.Value);
+        var localFiles = RepoFactory.DatabaseReleaseInfo.GetAll()
+            .Where(r => !string.IsNullOrEmpty(r.ReleaseURI) && r.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            .ToLookup(a => a.ED2K);
 
         var missingFiles = await AddMissingFiles(localFiles, onlineFiles);
 
@@ -98,10 +106,10 @@ public class SyncAniDBMyListJob : BaseJob
                 if (myItem.ViewedAt.HasValue) watchedItems++;
 
                 // the null is checked in the collection
-                var aniFile = RepoFactory.AniDB_File.GetByFileID(myItem!.FileID!.Value);
+                var aniFile = RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
 
                 // the AniDB_File should never have a null hash, but just in case
-                var vl = aniFile?.Hash == null ? null : RepoFactory.VideoLocal.GetByEd2k(aniFile.Hash);
+                var vl = aniFile?.ED2K is null ? null : RepoFactory.VideoLocal.GetByEd2k(aniFile.ED2K);
 
                 if (vl != null)
                 {
@@ -120,7 +128,7 @@ public class SyncAniDBMyListJob : BaseJob
                 // If it's local only, then we don't update. The rest update in one way or another
                 if (_settings.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
                     continue;
-                filesToRemove.Add(myItem.FileID.Value);
+                filesToRemove.Add(myItem.FileID!.Value);
             }
             catch (Exception ex)
             {
@@ -188,8 +196,9 @@ public class SyncAniDBMyListJob : BaseJob
         // aggregate and assume if one AniDB User has watched it, it should be marked
         // if multiple have, then take the latest
         // compare the states and update if needed
-        var localWatchedDate = aniDBUsers.Select(a => _vlUsers.GetByUserIDAndVideoLocalID(a.JMMUserID, video.VideoLocalID)).Where(a => a?.WatchedDate != null)
-            .Max(a => a.WatchedDate);
+        var localWatchedDate = aniDBUsers.Select(a => _vlUsers.GetByUserIDAndVideoLocalID(a.JMMUserID, video.VideoLocalID))
+            .Where(a => a?.WatchedDate != null)
+            .Max(a => a!.WatchedDate);
         if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
             localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
 
@@ -290,7 +299,7 @@ public class SyncAniDBMyListJob : BaseJob
         return true;
     }
 
-    private async Task<int> AddMissingFiles(ILookup<string, SVR_AniDB_File> localFiles,
+    private async Task<int> AddMissingFiles(ILookup<string, DatabaseReleaseInfo> localFiles,
         ILookup<int, ResponseMyList> onlineFiles)
     {
         if (!_settings.AniDb.MyList_AddFiles) return 0;
@@ -318,15 +327,14 @@ public class SyncAniDBMyListJob : BaseJob
         return missingFiles;
     }
 
-    private static bool TryGetFileID(ILookup<string, SVR_AniDB_File> localFiles, string hash, out int fileID)
+    private static bool TryGetFileID(ILookup<string, DatabaseReleaseInfo> localFiles, string hash, out int fileID)
     {
         fileID = 0;
         if (!localFiles.Contains(hash)) return false;
         var file = localFiles[hash].FirstOrDefault();
         if (file == null) return false;
-        if (file.FileID == 0) return false;
-        fileID = file.FileID;
-        return true;
+        if (!int.TryParse(file.ReleaseURI![AnidbReleaseProvider.ReleasePrefix.Length..], out fileID)) return false;
+        return fileID != 0;
     }
 
     public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
