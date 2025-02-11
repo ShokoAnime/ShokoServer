@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 132;
+    public override int RequiredVersion => 133;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -857,6 +857,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(132, 10, "ALTER TABLE TMDB_Image DROP COLUMN ForeignType;"),
         new(132, 11, "ALTER TABLE TMDB_Image DROP COLUMN ImageType;"),
         new(132, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new(133, 01, "ALTER TABLE TMDB_Season ADD COLUMN PosterPath TEXT NULL DEFAULT NULL;"),
+        new(133, 02, "ALTER TABLE TMDB_Episode ADD COLUMN ThumbnailPath TEXT NULL DEFAULT NULL;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

@@ -85,6 +85,7 @@ public static class APIv3_Extensions
         IReadOnlySet<TitleLanguage>? language = null,
         IImageMetadata? preferredPoster = null,
         IImageMetadata? preferredBackdrop = null,
+        IImageMetadata? preferredThumbnail = null,
         bool includeDisabled = false,
         bool includeThumbnails = false,
         bool preferredImages = false,
@@ -121,7 +122,9 @@ public static class APIv3_Extensions
                     images.Logos.Add(new(image));
                     break;
                 case ImageEntityType.Thumbnail when includeThumbnails:
-                    images.Thumbnails!.Add(new(image));
+                    if (image.IsEnabled && preferredThumbnail is not null && preferredThumbnail.Equals(image))
+                        preferredOverride = true;
+                    images.Thumbnails!.Add(new(image, preferredOverride));
                     break;
                 default:
                     break;

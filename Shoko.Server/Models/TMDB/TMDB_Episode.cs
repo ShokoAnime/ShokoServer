@@ -60,6 +60,11 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     public int? TvdbEpisodeID { get; set; }
 
     /// <summary>
+    /// The default thumbnail path. Used to determine the default thumbnail for the episode.
+    /// </summary>
+    public string ThumbnailPath { get; set; } = string.Empty;
+
+    /// <summary>
     /// The english title of the episode, used as a fallback for when no title
     /// is available in the preferred language.
     /// </summary>
@@ -168,6 +173,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         {
             UpdateProperty(TmdbSeasonID, season.Id!.Value, v => TmdbSeasonID = v),
             UpdateProperty(TmdbShowID, show.Id, v => TmdbShowID = v),
+            UpdateProperty(ThumbnailPath, episode.StillPath, v => ThumbnailPath = v),
             // If the translations aren't provided and we have an English title, then don't update it.
             UpdateProperty(EnglishTitle, translations is null && !string.IsNullOrEmpty(EnglishTitle) ? EnglishTitle : !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : episode.Name, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : episode.Overview, v => EnglishOverview = v),
@@ -284,6 +290,8 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID);
 
+    public TMDB_Image? DefaultThumbnail => RepoFactory.TMDB_Image.GetByRemoteFileName(ThumbnailPath)?.GetImageMetadata(true, ImageEntityType.Thumbnail);
+
     /// <summary>
     /// Get all images for the episode, or all images for the given
     /// <paramref name="entityType"/> provided for the episode.
@@ -292,9 +300,17 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// containing the images of the given entity type.</param>
     /// <returns>A read-only list of images that are linked to the episode.
     /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) =>
+        (
+            entityType.HasValue
+                ? RepoFactory.TMDB_Image_Entity.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
+                : RepoFactory.TMDB_Image_Entity.GetByTmdbEpisodeID(TmdbEpisodeID)
+        )
+            .OrderBy(i => i.ImageType)
+            .ThenBy(i => i.Ordering)
+            .Select(i => i.GetTmdbImage())
+            .WhereNotNull()
+            .ToList();
 
     /// <summary>
     /// Get all images for the episode, or all images for the given

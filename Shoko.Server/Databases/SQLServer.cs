@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 142;
+    public override int RequiredVersion { get; } = 143;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -890,6 +890,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(142, 10, "ALTER TABLE TMDB_Image DROP COLUMN ForeignType;"),
         new DatabaseCommand(142, 11, "ALTER TABLE TMDB_Image DROP COLUMN ImageType;"),
         new DatabaseCommand(142, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new DatabaseCommand(143, 01, "ALTER TABLE TMDB_Season ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
+        new DatabaseCommand(143, 02, "ALTER TABLE TMDB_Episode ADD ThumbnailPath NVARCHAR(64) NULL DEFAULT NULL;"),
     };
 
     private static void AlterImdbMovieIDType()

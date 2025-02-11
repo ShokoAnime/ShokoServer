@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentNHibernate.Data;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;
@@ -36,12 +38,15 @@ public class TmdbImageService
 
     private readonly AniDB_Anime_PreferredImageRepository _preferredImages;
 
+    private readonly AniDB_Episode_PreferredImageRepository _preferredEpisodeImages;
+
     public TmdbImageService(
         ILogger<TmdbImageService> logger,
         ISchedulerFactory schedulerFactory,
         TMDB_ImageRepository tmdbImages,
         TMDB_Image_EntityRepository tmdbImageEntities,
-        AniDB_Anime_PreferredImageRepository preferredImages
+        AniDB_Anime_PreferredImageRepository preferredImages,
+        AniDB_Episode_PreferredImageRepository preferredEpisodeImages
     )
     {
         _logger = logger;
@@ -49,6 +54,7 @@ public class TmdbImageService
         _tmdbImages = tmdbImages;
         _tmdbImageEntities = tmdbImageEntities;
         _preferredImages = preferredImages;
+        _preferredEpisodeImages = preferredEpisodeImages;
     }
 
     #region Image
@@ -73,84 +79,84 @@ public class TmdbImageService
         });
     }
 
-    public async Task DownloadImagesByType(DateOnly? releasedAt, IReadOnlyList<ImageData> images, ImageEntityType type, ForeignEntityType foreignType, int foreignId, int maxCount, List<TitleLanguage> languages, bool forceDownload = false)
+    public async Task DownloadImagesByType(
+        string? defaultForType,
+        DateOnly? releasedAt,
+        IReadOnlyList<ImageData> images,
+        ImageEntityType imageType,
+        ForeignEntityType foreignType,
+        int foreignId,
+        int maxCount,
+        List<TitleLanguage> languages,
+        bool forceDownload = false
+    )
     {
         var count = 0;
         var isLimitEnabled = maxCount > 0;
-        var validImages = images
-            .Select(a => a.FilePath)
-            .ToHashSet();
-        if (languages.Count > 0)
-            images = isLimitEnabled
-                ? images
-                    .Select(image => (Image: image, Language: (image.Iso_639_1 ?? string.Empty).GetTitleLanguage()))
-                    .Where(x => languages.Contains(x.Language))
-                    .OrderBy(x => languages.IndexOf(x.Language))
-                    .Select(x => x.Image)
-                    .ToList()
-                : images
-                    .Where(x => languages.Contains((x.Iso_639_1 ?? string.Empty).GetTitleLanguage()))
-                    .ToList();
+        var validImages = images.Select(a => a.FilePath).ToHashSet();
+        var visitedImages = new HashSet<string>();
+        images = images
+            .Select(image => (Image: image, Language: (image.Iso_639_1 ?? string.Empty).GetTitleLanguage()))
+            .Where(x => languages.Count == 0 || languages.Contains(x.Language))
+            .OrderByDescending(x => x.Image.FilePath.Equals(defaultForType))
+            .ThenBy(x => languages.IndexOf(x.Language))
+            .Select(x => x.Image)
+            .ToList();
         foreach (var imageData in images)
         {
             if (isLimitEnabled && count >= maxCount)
                 break;
 
-            count++;
-            var image = _tmdbImages.GetByRemoteFileName(imageData.FilePath) ?? new(imageData.FilePath, type);
+            var image = _tmdbImages.GetByRemoteFileName(imageData.FilePath) ?? new(imageData.FilePath, imageType);
             var updated = image.Populate(imageData);
             if (updated)
                 _tmdbImages.Save(image);
 
-            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, type, imageData.FilePath) ?? new(imageData.FilePath, type, foreignType, foreignId);
-            updated = imageEntity.Populate(count, releasedAt);
+            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, imageData.FilePath) ?? new(imageData.FilePath, imageType, foreignType, foreignId);
+            updated = imageEntity.Populate(count++, releasedAt);
             if (updated)
                 _tmdbImageEntities.Save(imageEntity);
         }
 
-        count = 0;
         var scheduler = await _schedulerFactory.GetScheduler();
-        var storedImages = _tmdbImages.GetByForeignIDAndType(foreignId, foreignType, type);
-        if (languages.Count > 0 && isLimitEnabled)
-            storedImages = storedImages
-                .OrderBy(x => languages.IndexOf(x.Language) is var index && index >= 0 ? index : int.MaxValue)
-                .ToList();
-        foreach (var image in storedImages)
+        var storedImages = _tmdbImageEntities.GetByForeignIDAndType(foreignId, foreignType, imageType)
+            .Select(e => (Image: e.GetTmdbImage(), Entity: e));
+        storedImages = storedImages
+            .OrderByDescending(x => x.Entity.RemoteFileName.Equals(defaultForType))
+            .ThenBy(x => x.Image is null ? int.MinValue : languages.IndexOf(x.Image.Language) is var index && index >= 0 ? index : int.MaxValue)
+            .ThenBy(x => x.Entity.Ordering)
+            .ToList();
+        foreach (var (image, entity) in storedImages)
         {
-            // Clean up invalid entries.
+            if (image is null)
+            {
+                _tmdbImageEntities.Delete(entity);
+                continue;
+            }
+
+            if (visitedImages.Contains(image.RemoteFileName))
+                continue;
+
             var path = image.LocalPath;
-            if (string.IsNullOrEmpty(path))
+            if (string.IsNullOrEmpty(path) || !validImages.Contains(image.RemoteFileName) || (isLimitEnabled && count >= maxCount))
             {
-                RemoveImageFromEntity(image, type, foreignType, foreignId);
+                RemoveImageFromEntity(image, foreignType, foreignId, imageType);
                 continue;
             }
 
-            // Remove the relation to the image if it's not linked to the foreign entity anymore.
-            if (!validImages.Contains(image.RemoteFileName))
-            {
-                RemoveImageFromEntity(image, type, foreignType, foreignId);
-                continue;
-            }
+            var updated = entity.Populate(count++, releasedAt);
+            if (updated)
+                _tmdbImageEntities.Save(entity);
 
-            // Delete it from the local cache and database if we've reached the limit.
-            if (isLimitEnabled && count >= maxCount)
-            {
-                RemoveImageFromEntity(image, type, foreignType, foreignId);
-                continue;
-            }
-
-            // Skip downloading if it already exists and we're not forcing it.
             if (!forceDownload && File.Exists(path))
                 continue;
 
-            // Otherwise scheduled the image to be downloaded.
             await scheduler.StartJob<DownloadTmdbImageJob>(c =>
             {
                 c.ImageID = image.TMDB_ImageID;
                 c.ImageType = image.ImageType;
                 c.ForceDownload = forceDownload;
             });
-            count++;
         }
     }
 
@@ -170,7 +176,7 @@ public class TmdbImageService
         );
 
         foreach (var image in toRemove)
-            RemoveImageFromEntity(image, null, ForeignEntityType.None, 0);
+            RemoveImageFromEntity(image);
     }
 
     public void PurgeImages(ForeignEntityType foreignType, int foreignId)
@@ -183,10 +189,10 @@ public class TmdbImageService
             foreignType.ToString().ToLowerInvariant(),
             foreignId);
         foreach (var image in imagesToRemove)
-            RemoveImageFromEntity(image, null, foreignType, foreignId);
+            RemoveImageFromEntity(image, foreignType, foreignId);
     }
 
-    private void RemoveImageFromEntity(TMDB_Image image, ImageEntityType? imageType, ForeignEntityType? foreignType, int? foreignId)
+    private void RemoveImageFromEntity(TMDB_Image image, ForeignEntityType? foreignType = null, int? foreignId = null, ImageEntityType? imageType = null)
     {
         if (foreignType.HasValue && foreignId.HasValue)
         {
@@ -194,15 +200,25 @@ public class TmdbImageService
                 .Where(x => !imageType.HasValue || x.ImageType == imageType.Value)
                 .ToList();
             _tmdbImageEntities.Delete(entity);
-            if (_tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName).Count > 0)
-                return;
         }
+
+        if (_tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName).Count > 0)
+            return;
 
         // Only delete the image metadata and/or file if all references were removed.
         if (!string.IsNullOrEmpty(image.LocalPath) && File.Exists(image.LocalPath))
             File.Delete(image.LocalPath);
 
         _tmdbImages.Delete(image.TMDB_ImageID);
+
+        foreach (var iT in Enum.GetValues<ImageEntityType>())
+        {
+            var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+            var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+            _preferredImages.Delete(preferredAnimeImages);
+            _preferredEpisodeImages.Delete(preferredEpisodeImages);
+        }
+
     }
 
     public void ResetPreferredImage(int anidbAnimeId, ForeignEntityType foreignType, int foreignId)

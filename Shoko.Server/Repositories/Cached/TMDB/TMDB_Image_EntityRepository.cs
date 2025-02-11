@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
@@ -90,13 +91,24 @@ public class TMDB_Image_EntityRepository(DatabaseFactory databaseFactory) : Base
         => ReadLock(() => _byEntityType!.GetMultiple(entityType)) ?? [];
 
     public IReadOnlyList<TMDB_Image_Entity> GetByForeignID(int? entityId, ForeignEntityType entityType)
-        => entityId.HasValue ? ReadLock(() => _byEntityTypeAndEntityID!.GetMultiple((entityType, entityId.Value))) ?? [] : [];
+        => entityId.HasValue
+            ? (ReadLock(() => _byEntityTypeAndEntityID!.GetMultiple((entityType, entityId.Value))) ?? [])
+                .OrderBy(a => a.ImageType)
+                .ThenBy(a => a.Ordering)
+                .ToList()
+            : [];
 
     public IReadOnlyList<TMDB_Image_Entity> GetByForeignIDAndType(int? entityId, ForeignEntityType entityType, ImageEntityType imageType)
-        => entityId.HasValue ? ReadLock(() => _byEntityTypeAndImageTypeAndEntityID!.GetMultiple((entityType, imageType, entityId.Value))) ?? [] : [];
+        => entityId.HasValue
+            ? (ReadLock(() => _byEntityTypeAndImageTypeAndEntityID!.GetMultiple((entityType, imageType, entityId.Value))) ?? [])
+                .OrderBy(a => a.Ordering)
+                .ToList()
+            : [];
 
     public TMDB_Image_Entity? GetByForeignIDAndTypeAndRemoteFileName(int? entityId, ForeignEntityType entityType, ImageEntityType imageType, string remoteFileName)
-        => entityId.HasValue ? ReadLock(() => _byEntityTypeAndImageTypeAndEntityIDAndRemoteFileName!.GetOne((entityType, imageType, entityId.Value, remoteFileName))) : null;
+        => entityId.HasValue
+            ? ReadLock(() => _byEntityTypeAndImageTypeAndEntityIDAndRemoteFileName!.GetOne((entityType, imageType, entityId.Value, remoteFileName)))
+            : null;
 
     public IReadOnlyList<TMDB_Image_Entity> GetByRemoteFileName(string fileName)
         => !string.IsNullOrEmpty(fileName)

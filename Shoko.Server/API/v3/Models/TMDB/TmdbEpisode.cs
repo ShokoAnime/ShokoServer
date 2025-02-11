@@ -191,7 +191,7 @@ public class TmdbEpisode
         if (include.HasFlag(IncludeDetails.Images))
             Images = episode.GetImages()
                 .InLanguage(language)
-                .ToDto(includeThumbnails: true);
+                .ToDto(includeThumbnails: true, preferredThumbnail: episode.DefaultThumbnail);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = episode.Cast
                 .Select(cast => new Role(cast))
