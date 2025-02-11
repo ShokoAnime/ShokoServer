@@ -138,16 +138,17 @@ public class TagController : BaseController
     /// </summary>
     /// <param name="tagID">User Tag ID.</param>
     /// <param name="body">Details about what to update for the existing tag.</param>
+    /// <param name="includeCount">Include tag count in response.</param>
     /// <returns>The updated user tag, or an error action result.</returns>
     [HttpPut("User/{tagID}")]
     [Authorize("admin")]
-    public ActionResult<Tag> EditUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Tag.Input.CreateOrUpdateCustomTagBody body)
+    public ActionResult<Tag> EditUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Tag.Input.CreateOrUpdateCustomTagBody body, [FromQuery] bool includeCount = false)
     {
         var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
-        var result = body.MergeWithExisting(tag, ModelState);
+        var result = body.MergeWithExisting(tag, ModelState, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -160,10 +161,11 @@ public class TagController : BaseController
     /// <param name="tagID">User Tag ID.</param>
     /// <param name="patchDocument">The JSON patch document containing the
     /// details about what to update for the existing tag.</param>
+    /// <param name="includeCount">Include tag count in response.</param>
     /// <returns>The updated user tag, or an error action result.</returns>
     [HttpPatch("User/{tagID}")]
     [Authorize("admin")]
-    public ActionResult<Tag> PatchUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<Tag.Input.CreateOrUpdateCustomTagBody> patchDocument)
+    public ActionResult<Tag> PatchUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<Tag.Input.CreateOrUpdateCustomTagBody> patchDocument, [FromQuery] bool includeCount = false)
     {
         var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
@@ -173,7 +175,7 @@ public class TagController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var result = body.MergeWithExisting(tag, ModelState);
+        var result = body.MergeWithExisting(tag, ModelState, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 

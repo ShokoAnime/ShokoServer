@@ -131,7 +131,7 @@ public class Tag
             /// </summary>
             public string? Description { get; set; } = null;
 
-            public Tag? MergeWithExisting(CustomTag tag, ModelStateDictionary modelState)
+            public Tag? MergeWithExisting(CustomTag tag, ModelStateDictionary modelState, int? size = null)
             {
                 if (!string.IsNullOrEmpty(Name?.Trim()))
                 {
@@ -159,7 +159,7 @@ public class Tag
                 if (updated)
                     RepoFactory.CustomTag.Save(tag);
 
-                return new(tag);
+                return new(tag, excludeDescription: false, size);
             }
         }
     }
