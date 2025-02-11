@@ -17,23 +17,23 @@ public class Tag
         Source = "Shoko";
     }
 
-    public Tag(CustomTag tag, bool excludeDescriptions = false, int? size = null)
+    public Tag(CustomTag tag, bool excludeDescription = false, int? size = null)
     {
         ID = tag.CustomTagID;
         Name = tag.TagName;
-        if (!excludeDescriptions)
+        if (!excludeDescription)
             Description = tag.TagDescription;
         Source = "User";
         IsSpoiler = false;
         Size = size;
     }
 
-    public Tag(AniDB_Tag tag, bool excludeDescriptions = false, int? size = null)
+    public Tag(AniDB_Tag tag, bool excludeDescription = false, int? size = null)
     {
         ID = tag.TagID;
         ParentID = tag.ParentTagID;
         Name = tag.TagName;
-        if (!excludeDescriptions)
+        if (!excludeDescription)
             Description = tag.TagDescription;
         Source = "AniDB";
         IsVerified = tag.Verified;

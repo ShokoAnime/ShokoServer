@@ -121,17 +121,16 @@ public class TagController : BaseController
     /// Get an user tag by it's <paramref name="tagID"/>.
     /// </summary>
     /// <param name="tagID">User Tag ID</param>
-    /// <param name="excludeDescription">Exclude tag description from response.</param>
     /// <param name="includeCount">Include tag count in response.</param>
     /// <returns></returns>
     [HttpGet("User/{tagID}")]
-    public ActionResult<Tag> GetUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromQuery] bool excludeDescription = false, [FromQuery] bool includeCount = false)
+    public ActionResult<Tag> GetUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromQuery] bool includeCount = false)
     {
         var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
-        return new Tag(tag, excludeDescription, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
+        return new Tag(tag, excludeDescription: false, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
     }
 
     /// <summary>
