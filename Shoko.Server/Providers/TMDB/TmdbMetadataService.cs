@@ -96,7 +96,8 @@ public class TmdbMetadataService
 
                 try
                 {
-                    var config = instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result;
+                    var config = instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result ??
+                        throw new HttpRequestException(HttpRequestError.ConnectionError, "Failed to get API configuration");
                     return _imageServerUrl = config.Images.SecureBaseUrl;
                 }
                 catch (Exception ex)
@@ -202,7 +203,7 @@ public class TmdbMetadataService
     /// <param name="func">The function to execute with the TMDb client.</param>
     /// <param name="displayName">The name of the function to display in the logs.</param>
     /// <returns>A task that will complete with the result of the function, after applying the rate limiting and retry policies.</returns>
-    public async Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func, string? displayName)
+    public async Task<T?> UseClient<T>(Func<TMDbClient, Task<T>> func, string? displayName)
     {
         displayName ??= func.Method.Name;
         var now = DateTime.Now;
@@ -404,6 +405,9 @@ public class TmdbMetadataService
                 return _movieGenres;
 
             var genres = await UseClient(c => c.GetMovieGenresAsync(), "Get Movie Genres").ConfigureAwait(false);
+            if (genres is null)
+                return new Dictionary<int, string>();
+
             _movieGenres = genres.ToDictionary(x => x.Id, x => x.Name);
             return _movieGenres;
         }
@@ -778,6 +782,9 @@ public class TmdbMetadataService
             return;
 
         var images = await UseClient(c => c.GetMovieImagesAsync(movieId), $"Get images for movie {movieId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var releasedAt = _tmdbMovies.GetByTmdbMovieID(movieId)?.ReleasedAt;
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
@@ -964,6 +971,9 @@ public class TmdbMetadataService
                 return _tvShowGenres;
 
             var genres = await UseClient(c => c.GetTvGenresAsync(), "Get TV Show Genres").ConfigureAwait(false);
+            if (genres is null)
+                return new Dictionary<int, string>();
+
             _tvShowGenres = genres.ToDictionary(x => x.Id, x => x.Name);
             return _tvShowGenres;
         }
@@ -1680,6 +1690,9 @@ public class TmdbMetadataService
         _logger.LogDebug("Downloading images for show. (Show={ShowId})", showId);
 
         var images = await UseClient(c => c.GetTvShowImagesAsync(showId), $"Get images for show {showId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var languages = GetLanguages(mainLanguage);
         var releasedAt = _tmdbShows.GetByTmdbShowID(showId)?.FirstAiredAt;
         if (settings.TMDB.AutoDownloadPosters)
@@ -1699,6 +1712,9 @@ public class TmdbMetadataService
         _logger.LogDebug("Downloading images for season {SeasonNumber}. (Show={ShowId}, Season={SeasonId})", seasonNumber, showId, seasonId);
 
         var images = await UseClient(c => c.GetTvSeasonImagesAsync(showId, seasonNumber), $"Get images for season {seasonNumber} in show {showId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var languages = GetLanguages(mainLanguage);
         var releasedAt = _tmdbEpisodes.GetByTmdbSeasonID(seasonId)
             .Select(o => o.AiredAt)
@@ -1716,6 +1732,9 @@ public class TmdbMetadataService
         _logger.LogDebug("Downloading images for episode {EpisodeNumber} in season {SeasonNumber}. (Show={ShowId}, Episode={EpisodeId})", episodeNumber, seasonNumber, showId, episodeId);
 
         var images = await UseClient(c => c.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber), $"Get images for episode {episodeNumber} in season {seasonNumber} in show {showId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var languages = GetLanguages(mainLanguage);
         var releasedAt = _tmdbEpisodes.GetByTmdbEpisodeID(episodeId)?.AiredAt;
         await _imageService.DownloadImagesByType(releasedAt, images.Stills, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoThumbnails, languages, forceDownload);
