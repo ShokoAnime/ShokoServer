@@ -43,7 +43,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     {
         EmptyBuffer();
 
-        if (token.IsCancellationRequested) return [0];
+        if (token.IsCancellationRequested) throw new TaskCanceledException();
         using CancellationTokenSource sendCts = new(SendTimeoutMs);
         await _aniDBSocket.SendToAsync(payload, SocketFlags.None, _remoteIpEndPoint, sendCts.Token);
 
