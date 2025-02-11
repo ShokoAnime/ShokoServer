@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 141;
+    public override int RequiredVersion { get; } = 142;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -878,6 +878,18 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(141, 01, "ALTER TABLE AniDB_Character ADD Type int NOT NULL DEFAULT 0;"),
         new DatabaseCommand(141, 02, "ALTER TABLE AniDB_Character ADD LastUpdated datetime2 NOT NULL DEFAULT '1970-01-01 00:00:00';"),
         new DatabaseCommand(141, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),
+        new DatabaseCommand(142, 01, "CREATE TABLE TMDB_Image_Entity (TMDB_Image_EntityID INT IDENTITY(1,1), TmdbEntityID INT NULL, TmdbEntityType INT NOT NULL, ImageType INT NOT NULL, RemoteFileName NVARCHAR(128) NOT NULL, Ordering INT NOT NULL, ReleasedAt DATE NULL);"),
+        new DatabaseCommand(142, 02, "ALTER TABLE TMDB_Image DROP COLUMN TmdbMovieID;"),
+        new DatabaseCommand(142, 03, "ALTER TABLE TMDB_Image DROP COLUMN TmdbEpisodeID;"),
+        new DatabaseCommand(142, 04, "ALTER TABLE TMDB_Image DROP COLUMN TmdbSeasonID;"),
+        new DatabaseCommand(142, 05, "ALTER TABLE TMDB_Image DROP COLUMN TmdbShowID;"),
+        new DatabaseCommand(142, 06, "ALTER TABLE TMDB_Image DROP COLUMN TmdbCollectionID;"),
+        new DatabaseCommand(142, 07, "ALTER TABLE TMDB_Image DROP COLUMN TmdbNetworkID;"),
+        new DatabaseCommand(142, 08, "ALTER TABLE TMDB_Image DROP COLUMN TmdbCompanyID;"),
+        new DatabaseCommand(142, 09, "ALTER TABLE TMDB_Image DROP COLUMN TmdbPersonID;"),
+        new DatabaseCommand(142, 10, "ALTER TABLE TMDB_Image DROP COLUMN ForeignType;"),
+        new DatabaseCommand(142, 11, "ALTER TABLE TMDB_Image DROP COLUMN ImageType;"),
+        new DatabaseCommand(142, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
     };
 
     private static void AlterImdbMovieIDType()

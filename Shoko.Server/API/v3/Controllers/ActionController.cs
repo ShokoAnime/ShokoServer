@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -38,23 +32,31 @@ public class ActionController : BaseController
     private readonly ActionService _actionService;
     private readonly AnimeGroupService _groupService;
     private readonly TraktTVHelper _traktHelper;
-    private readonly TmdbMetadataService _tmdbService;
+    private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbLinkingService _tmdbLinkingService;
+    private readonly TmdbImageService _tmdbImageService;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IRequestFactory _requestFactory;
-    private readonly AnimeSeriesService _seriesService;
 
-    public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, TmdbMetadataService tmdbService, TmdbLinkingService tmdbLinkingService, ISchedulerFactory schedulerFactory,
-        IRequestFactory requestFactory, ISettingsProvider settingsProvider, ActionService actionService, AnimeSeriesService seriesService, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
+    public ActionController(
+        ILogger<ActionController> logger,
+        TraktTVHelper traktHelper,
+        TmdbMetadataService tmdbMetadataService,
+        TmdbLinkingService tmdbLinkingService,
+        TmdbImageService tmdbImageService,
+        ISchedulerFactory schedulerFactory,
+        ISettingsProvider settingsProvider,
+        ActionService actionService,
+        AnimeGroupCreator groupCreator,
+        AnimeGroupService groupService
+    ) : base(settingsProvider)
     {
         _logger = logger;
         _traktHelper = traktHelper;
-        _tmdbService = tmdbService;
+        _tmdbMetadataService = tmdbMetadataService;
         _tmdbLinkingService = tmdbLinkingService;
+        _tmdbImageService = tmdbImageService;
         _schedulerFactory = schedulerFactory;
-        _requestFactory = requestFactory;
         _actionService = actionService;
-        _seriesService = seriesService;
         _groupCreator = groupCreator;
         _groupService = groupService;
     }
@@ -155,7 +157,7 @@ public class ActionController : BaseController
     [HttpGet("SearchForTmdbMatches")]
     public ActionResult SearchForTmdbMatches()
     {
-        Task.Factory.StartNew(() => _tmdbService.ScanForMatches());
+        Task.Factory.StartNew(() => _tmdbMetadataService.ScanForMatches());
         return Ok();
     }
 
@@ -166,7 +168,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllTmdbMovies")]
     public ActionResult UpdateAllTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
+        Task.Factory.StartNew(() => _tmdbMetadataService.UpdateAllMovies(true, true));
         return Ok();
     }
 
@@ -178,7 +180,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbMovies")]
     public ActionResult PurgeAllUnusedTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedMovies());
+        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllUnusedMovies());
         return Ok();
     }
 
@@ -190,7 +192,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllTmdbMovieCollections")]
     public ActionResult PurgeAllTmdbMovieCollections()
     {
-        Task.Factory.StartNew(() => _tmdbService.PurgeAllMovieCollections());
+        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllMovieCollections());
         return Ok();
     }
 
@@ -201,7 +203,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllTmdbShows")]
     public ActionResult UpdateAllTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbService.UpdateAllShows(true, true));
+        Task.Factory.StartNew(() => _tmdbMetadataService.UpdateAllShows(true, true));
         return Ok();
     }
 
@@ -211,7 +213,19 @@ public class ActionController : BaseController
     [HttpGet("DownloadMissingTmdbPeople")]
     public ActionResult DownloadMissingTmdbPeople()
     {
-        Task.Factory.StartNew(() => _tmdbService.RepairMissingPeople());
+        Task.Factory.StartNew(() => _tmdbMetadataService.RepairMissingPeople());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all unused TMDB Images that are not linked to anything.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUnusedTmdbImages")]
+    public ActionResult PurgeAllUnusedTmdbImages()
+    {
+        Task.Factory.StartNew(() => _tmdbImageService.PurgeAllUnusedImages());
         return Ok();
     }
 
@@ -223,7 +237,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbShows")]
     public ActionResult PurgeAllUnusedTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedShows());
+        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllUnusedShows());
         return Ok();
     }
 
@@ -235,7 +249,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
-        Task.Factory.StartNew(() => _tmdbService.PurgeAllShowEpisodeGroups());
+        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllShowEpisodeGroups());
         return Ok();
     }
 
@@ -250,12 +264,13 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllTmdbLinks")]
     public ActionResult PurgeAllTmdbLinks([FromQuery] bool removeShowLinks = true, [FromQuery] bool removeMovieLinks = true, [FromQuery] bool? resetAutoLinkingState = null)
     {
-        if (removeShowLinks || removeMovieLinks)
-            Task.Factory.StartNew(() => _tmdbLinkingService.RemoveAllLinks(removeShowLinks, removeMovieLinks));
-
-        if (resetAutoLinkingState.HasValue)
-            Task.Factory.StartNew(() => _tmdbLinkingService.ResetAutoLinkingState(resetAutoLinkingState.Value));
-
+        Task.Run(() =>
+        {
+            if (removeShowLinks || removeMovieLinks)
+                _tmdbLinkingService.RemoveAllLinks(removeShowLinks, removeMovieLinks);
+            if (resetAutoLinkingState.HasValue)
+                _tmdbLinkingService.ResetAutoLinkingState(resetAutoLinkingState.Value);
+        });
         return Ok();
     }
 

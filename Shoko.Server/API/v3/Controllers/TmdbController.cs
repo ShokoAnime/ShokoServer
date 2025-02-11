@@ -196,16 +196,12 @@ public partial class TmdbController : BaseController
     /// Remove the local copy of the metadata for a TMDB movie.
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
-    /// <param name="removeImageFiles">Also remove images related to the show.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("Movie/{movieID}")]
-    public async Task<ActionResult> RemoveTmdbMovieByMovieID(
-        [FromRoute] int movieID,
-        [FromQuery] bool removeImageFiles = true
-    )
+    public async Task<ActionResult> RemoveTmdbMovieByMovieID([FromRoute] int movieID)
     {
-        await _tmdbMetadataService.SchedulePurgeOfMovie(movieID, removeImageFiles);
+        await _tmdbMetadataService.SchedulePurgeOfMovie(movieID);
 
         return NoContent();
     }
@@ -1008,16 +1004,12 @@ public partial class TmdbController : BaseController
     /// Remove the local copy of the metadata for a TMDB show.
     /// </summary>
     /// <param name="showID">TMDB Movie ID.</param>
-    /// <param name="removeImageFiles">Also remove images related to the show.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("Show/{showID}")]
-    public async Task<ActionResult> RemoveTmdbShowByShowID(
-        [FromRoute] int showID,
-        [FromQuery] bool removeImageFiles = true
-    )
+    public async Task<ActionResult> RemoveTmdbShowByShowID([FromRoute] int showID)
     {
-        await _tmdbMetadataService.SchedulePurgeOfShow(showID, removeImageFiles);
+        await _tmdbMetadataService.SchedulePurgeOfShow(showID);
 
         return NoContent();
     }

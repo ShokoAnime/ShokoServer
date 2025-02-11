@@ -183,7 +183,7 @@ public class TmdbLinkingService
         _xrefAnidbTmdbMovies.Save(xref);
     }
 
-    public async Task RemoveMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool purge = false)
     {
         var xref = _xrefAnidbTmdbMovies.GetByAnidbEpisodeAndTmdbMovieIDs(anidbEpisodeId, tmdbMovieId);
         if (xref == null)
@@ -196,10 +196,10 @@ public class TmdbLinkingService
             _animeSeries.Save(series, false, true, false);
         }
 
-        await RemoveMovieLink(xref, removeImageFiles, purge);
+        await RemoveMovieLink(xref, purge);
     }
 
-    public async Task RemoveAllMovieLinksForAnime(int anidbAnimeId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveAllMovieLinksForAnime(int anidbAnimeId, bool purge = false)
     {
         var xrefs = _xrefAnidbTmdbMovies.GetByAnidbAnimeID(anidbAnimeId);
         _logger.LogInformation("Removing {Count} TMDB movie links for AniDB anime. (AnimeID={AnimeID})", xrefs.Count, anidbAnimeId);
@@ -214,10 +214,10 @@ public class TmdbLinkingService
         }
 
         foreach (var xref in xrefs)
-            await RemoveMovieLink(xref, removeImageFiles, purge);
+            await RemoveMovieLink(xref, purge);
     }
 
-    public async Task RemoveAllMovieLinksForEpisode(int anidbEpisodeId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveAllMovieLinksForEpisode(int anidbEpisodeId, bool purge = false)
     {
         var xrefs = _xrefAnidbTmdbMovies.GetByAnidbEpisodeID(anidbEpisodeId);
         _logger.LogInformation("Removing {Count} TMDB movie links for AniDB episode. (EpisodeID={EpisodeID})", xrefs.Count, anidbEpisodeId);
@@ -232,7 +232,7 @@ public class TmdbLinkingService
         }
 
         foreach (var xref in xrefs)
-            await RemoveMovieLink(xref, removeImageFiles, purge);
+            await RemoveMovieLink(xref, purge);
     }
 
     public async Task RemoveAllMovieLinksForMovie(int tmdbMovieId)
@@ -243,10 +243,10 @@ public class TmdbLinkingService
             return;
 
         foreach (var xref in xrefs)
-            await RemoveMovieLink(xref, false, false);
+            await RemoveMovieLink(xref, false);
     }
 
-    private async Task RemoveMovieLink(CrossRef_AniDB_TMDB_Movie xref, bool removeImageFiles = true, bool purge = false)
+    private async Task RemoveMovieLink(CrossRef_AniDB_TMDB_Movie xref, bool purge = false)
     {
         _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Movie, xref.TmdbMovieID);
 
@@ -257,7 +257,6 @@ public class TmdbLinkingService
             await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbMovieJob>(c =>
             {
                 c.TmdbMovieID = xref.TmdbMovieID;
-                c.RemoveImageFiles = removeImageFiles;
             });
     }
 
@@ -280,7 +279,7 @@ public class TmdbLinkingService
         await Task.Run(() => MatchAnidbToTmdbEpisodes(anidbAnimeId, tmdbShowId, null, true, true));
     }
 
-    public async Task RemoveShowLink(int anidbAnimeId, int tmdbShowId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveShowLink(int anidbAnimeId, int tmdbShowId, bool purge = false)
     {
         var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId);
         if (xref == null)
@@ -294,10 +293,10 @@ public class TmdbLinkingService
             _animeSeries.Save(series, false, true, false);
         }
 
-        await RemoveShowLink(xref, removeImageFiles, purge);
+        await RemoveShowLink(xref, purge);
     }
 
-    public async Task RemoveAllShowLinksForAnime(int animeId, bool purge = false, bool removeImageFiles = true)
+    public async Task RemoveAllShowLinksForAnime(int animeId, bool purge = false)
     {
         var xrefs = _xrefAnidbTmdbShows.GetByAnidbAnimeID(animeId);
         _logger.LogInformation("Removing {Count} TMDB show links for AniDB anime. (AnimeID={AnimeID})", xrefs.Count, animeId);
@@ -313,7 +312,7 @@ public class TmdbLinkingService
         }
 
         foreach (var xref in xrefs)
-            await RemoveShowLink(xref, removeImageFiles, purge);
+            await RemoveShowLink(xref, purge);
     }
 
     public async Task RemoveAllShowLinksForShow(int showId)
@@ -323,10 +322,10 @@ public class TmdbLinkingService
             return;
 
         foreach (var xref in xrefs)
-            await RemoveShowLink(xref, false, false);
+            await RemoveShowLink(xref, false);
     }
 
-    private async Task RemoveShowLink(CrossRef_AniDB_TMDB_Show xref, bool removeImageFiles = true, bool purge = false)
+    private async Task RemoveShowLink(CrossRef_AniDB_TMDB_Show xref, bool purge = false)
     {
         _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Show, xref.TmdbShowID);
 
@@ -344,7 +343,6 @@ public class TmdbLinkingService
             await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbShowJob>(c =>
             {
                 c.TmdbShowID = xref.TmdbShowID;
-                c.RemoveImageFiles = removeImageFiles;
             });
     }
 

@@ -9,10 +9,10 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Utilities;
@@ -175,29 +175,29 @@ public class ImageUtils
                 return null;
 
             case DataSourceEnum.TMDB:
-                var tmdbImage = metadata as TMDB_Image ?? RepoFactory.TMDB_Image.GetByID(metadata.ID);
-                if (tmdbImage is null || !(tmdbImage.TmdbMovieID.HasValue || tmdbImage.TmdbShowID.HasValue))
+            {
+                if (RepoFactory.TMDB_Image.GetByID(metadata.ID) is not { } tmdbImage || RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(tmdbImage.RemoteFileName) is not { Count: > 0 } entities)
                     return null;
 
-                if (tmdbImage.TmdbMovieID.HasValue)
+                foreach (var entity in entities.OrderBy(e => e.TmdbEntityType).ThenBy(e => e.ReleasedAt).ThenBy(e => e.TMDB_Image_EntityID))
                 {
-                    var movieXref = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(tmdbImage.TmdbMovieID.Value) is { Count: > 0 } movieXrefs ? movieXrefs[0] : null;
-                    if (movieXref == null)
-                        return null;
-
-                    return RepoFactory.AnimeSeries.GetByAnimeID(movieXref.AnidbAnimeID);
-                }
-
-                if (tmdbImage.TmdbShowID.HasValue)
-                {
-                    var showXref = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(tmdbImage.TmdbShowID.Value) is { Count: > 0 } showXrefs ? showXrefs[0] : null;
-                    if (showXref == null)
-                        return null;
-
-                    return RepoFactory.AnimeSeries.GetByAnimeID(showXref.AnidbAnimeID);
+                    switch (entity.TmdbEntityType)
+                    {
+                        case ForeignEntityType.Movie:
+                            var movieXref = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(entity.TmdbEntityID) is { Count: > 0 } movieXrefs ? movieXrefs[0] : null;
+                            if (movieXref == null)
+                                return null;
+                            return RepoFactory.AnimeSeries.GetByAnimeID(movieXref.AnidbAnimeID);
+                        case ForeignEntityType.Show:
+                            var showXref = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(entity.TmdbEntityID) is { Count: > 0 } showXrefs ? showXrefs[0] : null;
+                            if (showXref == null)
+                                return null;
+                            return RepoFactory.AnimeSeries.GetByAnimeID(showXref.AnidbAnimeID);
+                    }
                 }
 
                 return null;
+            }
 
             default:
                 return null;
@@ -233,12 +233,22 @@ public class ImageUtils
 
                 tmdbImage.IsEnabled = value;
                 RepoFactory.TMDB_Image.Save(tmdbImage);
-                if (tmdbImage.TmdbShowID.HasValue)
-                    foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(tmdbImage.TmdbShowID.Value))
-                        animeIDs.Add(xref.AnidbAnimeID);
-                if (tmdbImage.TmdbMovieID.HasValue)
-                    foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(tmdbImage.TmdbMovieID.Value))
-                        animeIDs.Add(xref.AnidbAnimeID);
+
+                var entities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(tmdbImage.RemoteFileName);
+                foreach (var entity in entities)
+                    switch (entity.TmdbEntityType)
+                    {
+                        case ForeignEntityType.Show:
+                            foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(entity.TmdbEntityID))
+                                animeIDs.Add(xref.AnidbAnimeID);
+                            break;
+                        case ForeignEntityType.Movie:
+                            foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(entity.TmdbEntityID))
+                                animeIDs.Add(xref.AnidbAnimeID);
+                            break;
+                        default:
+                            break;
+                    }
                 break;
 
             default:

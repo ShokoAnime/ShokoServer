@@ -349,9 +349,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID);
 
-    public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(PosterPath, ImageEntityType.Poster);
+    public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
 
-    public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(BackdropPath, ImageEntityType.Backdrop);
+    public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileName(BackdropPath)?.GetImageMetadata(true, ImageEntityType.Backdrop);
 
     /// <summary>
     /// Get all images for the movie, or all images for the given

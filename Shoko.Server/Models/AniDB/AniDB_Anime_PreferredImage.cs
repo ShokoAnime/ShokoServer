@@ -34,7 +34,7 @@ public class AniDB_Anime_PreferredImage
         return ImageSource switch
         {
             DataSourceType.AniDB when ImageType is ImageEntityType.Poster => RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID) is { } anime ? anime.GetImageMetadata(true) : null,
-            DataSourceType.TMDB => RepoFactory.TMDB_Image.GetByID(ImageID)?.GetImageMetadata(true),
+            DataSourceType.TMDB => RepoFactory.TMDB_Image.GetByID(ImageID)?.GetImageMetadata(true, ImageType),
             _ => null,
         };
     }

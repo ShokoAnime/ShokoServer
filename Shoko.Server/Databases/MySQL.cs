@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 149;
+    public override int RequiredVersion { get; } = 150;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -926,6 +926,18 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(148, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),
         new(149, 1, MySQLFixUTF8MB4),
         new(149, 2, SetDefaultCollationToUTF8MB4),
+        new(150, 01, "CREATE TABLE `TMDB_Image_Entity` (`TMDB_Image_EntityID` INT NOT NULL AUTO_INCREMENT, `TmdbEntityID` INT NULL, `TmdbEntityType` INT NOT NULL, `ImageType` INT NOT NULL, `RemoteFileName` VARCHAR(128) NOT NULL, `Ordering` INT NOT NULL, `ReleasedAt` DATE NULL, PRIMARY KEY (`TMDB_Image_EntityID`));"),
+        new(150, 02, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbMovieID`;"),
+        new(150, 03, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbEpisodeID`;"),
+        new(150, 04, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbSeasonID`;"),
+        new(150, 05, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbShowID`;"),
+        new(150, 06, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbCollectionID`;"),
+        new(150, 07, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbNetworkID`;"),
+        new(150, 08, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbCompanyID`;"),
+        new(150, 09, "ALTER TABLE `TMDB_Image` DROP COLUMN `TmdbPersonID`;"),
+        new(150, 10, "ALTER TABLE `TMDB_Image` DROP COLUMN `ForeignType`;"),
+        new(150, 11, "ALTER TABLE `TMDB_Image` DROP COLUMN `ImageType`;"),
+        new(150, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

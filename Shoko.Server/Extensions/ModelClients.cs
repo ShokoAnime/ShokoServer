@@ -206,7 +206,7 @@ public static class ModelClients
             ImageSize = "original",
             ImageType = "backdrop",
             ImageWidth = image.Width,
-            MovieId = image.TmdbMovieID ?? 0,
+            MovieId = 0,
             URL = image.RemoteFileName,
         };
 
@@ -220,7 +220,7 @@ public static class ModelClients
             ImageSize = "original",
             ImageType = "poster",
             ImageWidth = image.Width,
-            MovieId = image.TmdbMovieID ?? 0,
+            MovieId = 0,
             URL = image.RemoteFileName,
         };
 

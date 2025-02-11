@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -31,18 +32,22 @@ public class TmdbImageService
 
     private readonly TMDB_ImageRepository _tmdbImages;
 
+    private readonly TMDB_Image_EntityRepository _tmdbImageEntities;
+
     private readonly AniDB_Anime_PreferredImageRepository _preferredImages;
 
     public TmdbImageService(
         ILogger<TmdbImageService> logger,
         ISchedulerFactory schedulerFactory,
         TMDB_ImageRepository tmdbImages,
+        TMDB_Image_EntityRepository tmdbImageEntities,
         AniDB_Anime_PreferredImageRepository preferredImages
     )
     {
         _logger = logger;
         _schedulerFactory = schedulerFactory;
         _tmdbImages = tmdbImages;
+        _tmdbImageEntities = tmdbImageEntities;
         _preferredImages = preferredImages;
     }
 
@@ -50,8 +55,7 @@ public class TmdbImageService
 
     public async Task DownloadImageByType(string filePath, ImageEntityType type, ForeignEntityType foreignType, int foreignId, bool forceDownload = false)
     {
-        var image = _tmdbImages.GetByRemoteFileNameAndType(filePath, type) ?? new(filePath, type);
-        image.Populate(foreignType, foreignId);
+        var image = _tmdbImages.GetByRemoteFileName(filePath) ?? new(filePath);
         if (string.IsNullOrEmpty(image.LocalPath))
             return;
 
@@ -69,7 +73,7 @@ public class TmdbImageService
         });
     }
 
-    public async Task DownloadImagesByType(IReadOnlyList<ImageData> images, ImageEntityType type, ForeignEntityType foreignType, int foreignId, int maxCount, List<TitleLanguage> languages, bool forceDownload = false)
+    public async Task DownloadImagesByType(DateOnly? releasedAt, IReadOnlyList<ImageData> images, ImageEntityType type, ForeignEntityType foreignType, int foreignId, int maxCount, List<TitleLanguage> languages, bool forceDownload = false)
     {
         var count = 0;
         var isLimitEnabled = maxCount > 0;
@@ -93,10 +97,15 @@ public class TmdbImageService
                 break;
 
             count++;
-            var image = _tmdbImages.GetByRemoteFileNameAndType(imageData.FilePath, type) ?? new(imageData.FilePath, type);
-            var updated = image.Populate(imageData, foreignType, foreignId);
+            var image = _tmdbImages.GetByRemoteFileName(imageData.FilePath) ?? new(imageData.FilePath, type);
+            var updated = image.Populate(imageData);
             if (updated)
                 _tmdbImages.Save(image);
+
+            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, type, imageData.FilePath) ?? new(imageData.FilePath, type, foreignType, foreignId);
+            updated = imageEntity.Populate(count, releasedAt);
+            if (updated)
+                _tmdbImageEntities.Save(imageEntity);
         }
 
         count = 0;
@@ -112,43 +121,59 @@ public class TmdbImageService
             var path = image.LocalPath;
             if (string.IsNullOrEmpty(path))
             {
-                _tmdbImages.Delete(image.TMDB_ImageID);
+                RemoveImageFromEntity(image, type, foreignType, foreignId);
                 continue;
             }
 
             // Remove the relation to the image if it's not linked to the foreign entity anymore.
             if (!validImages.Contains(image.RemoteFileName))
             {
-                PurgeImage(image, foreignType, true);
+                RemoveImageFromEntity(image, type, foreignType, foreignId);
                 continue;
             }
 
-            // Download image if the limit is disabled or if we're below the limit.
-            var fileExists = File.Exists(path);
-            if (!isLimitEnabled || count < maxCount)
+            // Delete it from the local cache and database if we've reached the limit.
+            if (isLimitEnabled && count >= maxCount)
             {
-                // Skip downloading if it already exists and we're not forcing it.
-                count++;
-                if (fileExists && !forceDownload)
-                    continue;
+                RemoveImageFromEntity(image, type, foreignType, foreignId);
+                continue;
+            }
 
-                // Otherwise scheduled the image to be downloaded.
-                await scheduler.StartJob<DownloadTmdbImageJob>(c =>
-                {
-                    c.ImageID = image.TMDB_ImageID;
-                    c.ImageType = image.ImageType;
-                    c.ForceDownload = forceDownload;
-                });
-            }
-            // Else delete it from the local cache and database.
-            else
+            // Skip downloading if it already exists and we're not forcing it.
+            if (!forceDownload && File.Exists(path))
+                continue;
+
+            // Otherwise scheduled the image to be downloaded.
+            await scheduler.StartJob<DownloadTmdbImageJob>(c =>
             {
-                PurgeImage(image, foreignType, true);
-            }
+                c.ImageID = image.TMDB_ImageID;
+                c.ImageType = image.ImageType;
+                c.ForceDownload = forceDownload;
+            });
+            count++;
         }
     }
 
-    public void PurgeImages(ForeignEntityType foreignType, int foreignId, bool removeImageFiles)
+    public void PurgeAllUnusedImages()
+    {
+        var toRemove = new List<TMDB_Image>();
+        foreach (var image in _tmdbImages.GetAll())
+        {
+            var references = _tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName);
+            if (references.Count == 0)
+                toRemove.Add(image);
+        }
+
+        _logger.LogDebug(
+            "Removing {count} unused images",
+            toRemove.Count
+        );
+
+        foreach (var image in toRemove)
+            RemoveImageFromEntity(image, null, ForeignEntityType.None, 0);
+    }
+
+    public void PurgeImages(ForeignEntityType foreignType, int foreignId)
     {
         var imagesToRemove = _tmdbImages.GetByForeignID(foreignId, foreignType);
 
@@ -158,49 +183,26 @@ public class TmdbImageService
             foreignType.ToString().ToLowerInvariant(),
             foreignId);
         foreach (var image in imagesToRemove)
-            PurgeImage(image, foreignType, removeImageFiles);
+            RemoveImageFromEntity(image, null, foreignType, foreignId);
     }
 
-    public void PurgeImage(TMDB_Image image, ForeignEntityType foreignType, bool removeFile)
+    private void RemoveImageFromEntity(TMDB_Image image, ImageEntityType? imageType, ForeignEntityType? foreignType, int? foreignId)
     {
-        // Skip the operation if th flag is not set.
-        if (!image.ForeignType.HasFlag(foreignType))
-            return;
-
-        // Disable the flag.
-        image.ForeignType &= ~foreignType;
+        if (foreignType.HasValue && foreignId.HasValue)
+        {
+            var entity = _tmdbImageEntities.GetByForeignID(foreignId.Value, foreignType.Value)
+                .Where(x => !imageType.HasValue || x.ImageType == imageType.Value)
+                .ToList();
+            _tmdbImageEntities.Delete(entity);
+            if (_tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName).Count > 0)
+                return;
+        }
 
         // Only delete the image metadata and/or file if all references were removed.
-        if (image.ForeignType is ForeignEntityType.None)
-        {
-            if (removeFile && !string.IsNullOrEmpty(image.LocalPath) && File.Exists(image.LocalPath))
-                File.Delete(image.LocalPath);
+        if (!string.IsNullOrEmpty(image.LocalPath) && File.Exists(image.LocalPath))
+            File.Delete(image.LocalPath);
 
-            _tmdbImages.Delete(image.TMDB_ImageID);
-        }
-        // Remove the ID since we're keeping the metadata a little bit longer.
-        else
-        {
-            switch (foreignType)
-            {
-                case ForeignEntityType.Movie:
-                    image.TmdbMovieID = null;
-                    break;
-                case ForeignEntityType.Episode:
-                    image.TmdbEpisodeID = null;
-                    break;
-                case ForeignEntityType.Season:
-                    image.TmdbSeasonID = null;
-                    break;
-                case ForeignEntityType.Show:
-                    image.TmdbShowID = null;
-                    break;
-                case ForeignEntityType.Collection:
-                    image.TmdbCollectionID = null;
-                    break;
-            }
-            _tmdbImages.Save(image);
-        }
+        _tmdbImages.Delete(image.TMDB_ImageID);
     }
 
     public void ResetPreferredImage(int anidbAnimeId, ForeignEntityType foreignType, int foreignId)
@@ -216,7 +218,7 @@ public class TmdbImageService
                     _logger.LogTrace("Removing preferred image for anime {AnimeId} because the preferred image could not be found.", anidbAnimeId);
                     _preferredImages.Delete(defaultImage);
                 }
-                else if (image.ForeignType.HasFlag(foreignType) && image.GetForeignID(foreignType) == foreignId)
+                else if (_tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, defaultImage.ImageType, image.RemoteFileName) is { })
                 {
                     _logger.LogTrace("Removing preferred image for anime {AnimeId} because it belongs to now TMDB {Type} {Id}", anidbAnimeId, foreignType.ToString(), foreignId);
                     _preferredImages.Delete(defaultImage);

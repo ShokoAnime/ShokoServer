@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Collections;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 
@@ -34,12 +32,4 @@ public class CrossRef_AniDB_TMDB_ShowRepository(DatabaseFactory databaseFactory)
 
     public CrossRef_AniDB_TMDB_Show? GetByAnidbAnimeAndTmdbShowIDs(int anidbId, int tmdbId)
         => ReadLock(() => _pairedIDs!.GetOne((anidbId, tmdbId)));
-
-    public ILookup<int, CrossRef_AniDB_TMDB_Show> GetByAnimeIDsAndType(IReadOnlyCollection<int> animeIds)
-    {
-        if (animeIds == null || animeIds?.Count == 0)
-            return EmptyLookup<int, CrossRef_AniDB_TMDB_Show>.Instance;
-
-        return Lock(() => animeIds!.SelectMany(animeId => _anidbAnimeIDs!.GetMultiple(animeId)).ToLookup(xref => xref.AnidbAnimeID));
-    }
 }

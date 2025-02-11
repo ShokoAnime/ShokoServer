@@ -84,6 +84,7 @@ public class RepoFactory
     public static TMDB_Episode_CrewRepository TMDB_Episode_Crew;
     public static TMDB_EpisodeRepository TMDB_Episode;
     public static TMDB_ImageRepository TMDB_Image;
+    public static TMDB_Image_EntityRepository TMDB_Image_Entity;
     public static TMDB_Movie_CastRepository TMDB_Movie_Cast;
     public static TMDB_Movie_CrewRepository TMDB_Movie_Crew;
     public static TMDB_MovieRepository TMDB_Movie;
@@ -170,6 +171,7 @@ public class RepoFactory
         TMDB_Episode_CrewRepository tmdbEpisodeCrew,
         TMDB_EpisodeRepository tmdbEpisode,
         TMDB_ImageRepository tmdbImage,
+        TMDB_Image_EntityRepository tmdbImageEntity,
         TMDB_Movie_CastRepository tmdbMovieCast,
         TMDB_Movie_CrewRepository tmdbMovieCrew,
         TMDB_MovieRepository tmdbMovie,
@@ -250,6 +252,7 @@ public class RepoFactory
         TMDB_Episode_Cast = tmdbEpisodeCast;
         TMDB_Episode_Crew = tmdbEpisodeCrew;
         TMDB_Image = tmdbImage;
+        TMDB_Image_Entity = tmdbImageEntity;
         TMDB_Movie = tmdbMovie;
         TMDB_Movie_Cast = tmdbMovieCast;
         TMDB_Movie_Crew = tmdbMovieCrew;

@@ -21,8 +21,6 @@ public class PurgeTmdbShowJob : BaseJob
 
     public virtual int TmdbShowID { get; set; }
 
-    public virtual bool RemoveImageFiles { get; set; } = true;
-
     public virtual string? ShowTitle { get; set; }
 
     public override void PostInit()
@@ -48,7 +46,7 @@ public class PurgeTmdbShowJob : BaseJob
     public override async Task Process()
     {
         _logger.LogInformation("Processing PurgeTmdbShowJob: {TmdbShowId}", TmdbShowID);
-        await _tmdbService.PurgeShow(TmdbShowID, RemoveImageFiles).ConfigureAwait(false);
+        await _tmdbService.PurgeShow(TmdbShowID).ConfigureAwait(false);
     }
 
     public PurgeTmdbShowJob(TmdbMetadataService tmdbService)

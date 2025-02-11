@@ -853,4 +853,46 @@ public class DatabaseFixes
 
         _logger.Info($"Done recreating characters and creator relations for {animeList.Count} anidb anime entries.");
     }
+
+    public static void ScheduleTmdbImageUpdates()
+    {
+        var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+        var tmdbMovies = RepoFactory.TMDB_Movie.GetAll();
+        var tmdbShows = RepoFactory.TMDB_Show.GetAll();
+        var movies = tmdbMovies.Count;
+        var shows = tmdbShows.Count;
+        var str = ServerState.Instance.ServerStartingStatus;
+        ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {movies} movies - 0 / {shows} shows";
+        _logger.Info($"Scheduling tmdb image updates for {movies} tmdb movies and {shows} tmdb shows...");
+
+        var count = 0;
+        foreach (var tmdbMovie in tmdbMovies)
+        {
+            if (++count % 10 == 0 || count == movies)
+            {
+                _logger.Info($"Scheduling tmdb image updates for tmdb movies... ({count}/{movies})");
+                ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {movies} movies - 0 / {shows} shows";
+            }
+
+            tmdbMetadataService.ScheduleDownloadAllMovieImages(tmdbMovie.Id)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        count = 0;
+        foreach (var tmdbShow in tmdbShows)
+        {
+            if (++count % 10 == 0 || count == shows)
+            {
+                _logger.Info($"Scheduling tmdb image updates for tmdb shows... ({count}/{shows})");
+                ServerState.Instance.ServerStartingStatus = $"{str} - {movies} / {movies} movies - {count} / {shows} shows";
+            }
+
+            tmdbMetadataService.ScheduleDownloadAllShowImages(tmdbShow.Id)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        _logger.Info($"Done scheduling tmdb image updates for {movies} tmdb movies and {shows} tmdb shows.");
+    }
 }

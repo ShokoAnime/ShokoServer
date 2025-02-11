@@ -400,46 +400,61 @@ public class ActionService
             if (!File.Exists(path))
                 continue;
 
-            if (image.TmdbMovieID.HasValue)
-                if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
-                    countsForMovies[image.TmdbMovieID.Value] += 1;
-                else
-                    countsForMovies[image.TmdbMovieID.Value] = 1;
-            if (image.TmdbEpisodeID.HasValue)
-                if (countForEpisodes.ContainsKey(image.TmdbEpisodeID.Value))
-                    countForEpisodes[image.TmdbEpisodeID.Value] += 1;
-                else
-                    countForEpisodes[image.TmdbEpisodeID.Value] = 1;
-            if (image.TmdbSeasonID.HasValue)
-                if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
-                    countForSeasons[image.TmdbSeasonID.Value] += 1;
-                else
-                    countForSeasons[image.TmdbSeasonID.Value] = 1;
-            if (image.TmdbShowID.HasValue)
-                if (countForShows.ContainsKey(image.TmdbShowID.Value))
-                    countForShows[image.TmdbShowID.Value] += 1;
-                else
-                    countForShows[image.TmdbShowID.Value] = 1;
-            if (image.TmdbCollectionID.HasValue)
-                if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
-                    countForCollections[image.TmdbCollectionID.Value] += 1;
-                else
-                    countForCollections[image.TmdbCollectionID.Value] = 1;
-            if (image.TmdbNetworkID.HasValue)
-                if (countForNetworks.ContainsKey(image.TmdbNetworkID.Value))
-                    countForNetworks[image.TmdbNetworkID.Value] += 1;
-                else
-                    countForNetworks[image.TmdbNetworkID.Value] = 1;
-            if (image.TmdbCompanyID.HasValue)
-                if (countForCompanies.ContainsKey(image.TmdbCompanyID.Value))
-                    countForCompanies[image.TmdbCompanyID.Value] += 1;
-                else
-                    countForCompanies[image.TmdbCompanyID.Value] = 1;
-            if (image.TmdbPersonID.HasValue)
-                if (countForPersons.ContainsKey(image.TmdbPersonID.Value))
-                    countForPersons[image.TmdbPersonID.Value] += 1;
-                else
-                    countForPersons[image.TmdbPersonID.Value] = 1;
+            var entities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(image.RemoteFileName)
+                .Where(x => x.ImageType == type)
+                .ToList();
+            foreach (var entity in entities)
+                switch (entity.TmdbEntityType)
+                {
+                    case ForeignEntityType.Movie:
+                        if (countsForMovies.ContainsKey(entity.TmdbEntityID))
+                            countsForMovies[entity.TmdbEntityID] += 1;
+                        else
+                            countsForMovies[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Episode:
+                        if (countForEpisodes.ContainsKey(entity.TmdbEntityID))
+                            countForEpisodes[entity.TmdbEntityID] += 1;
+                        else
+                            countForEpisodes[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Season:
+                        if (countForSeasons.ContainsKey(entity.TmdbEntityID))
+                            countForSeasons[entity.TmdbEntityID] += 1;
+                        else
+                            countForSeasons[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Show:
+                        if (countForShows.ContainsKey(entity.TmdbEntityID))
+                            countForShows[entity.TmdbEntityID] += 1;
+                        else
+                            countForShows[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Collection:
+                        if (countForCollections.ContainsKey(entity.TmdbEntityID))
+                            countForCollections[entity.TmdbEntityID] += 1;
+                        else
+                            countForCollections[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Network:
+                        if (countForNetworks.ContainsKey(entity.TmdbEntityID))
+                            countForNetworks[entity.TmdbEntityID] += 1;
+                        else
+                            countForNetworks[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Company:
+                        if (countForCompanies.ContainsKey(entity.TmdbEntityID))
+                            countForCompanies[entity.TmdbEntityID] += 1;
+                        else
+                            countForCompanies[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Person:
+                        if (countForPersons.ContainsKey(entity.TmdbEntityID))
+                            countForPersons[entity.TmdbEntityID] += 1;
+                        else
+                            countForPersons[entity.TmdbEntityID] = 1;
+                        break;
+                }
         }
 
         var scheduler = await schedulerFactory.GetScheduler();
@@ -451,26 +466,47 @@ public class ActionService
 
             // Check if we should download the image or not.
             var limitEnabled = maxCount > 0;
-            var shouldDownload = !limitEnabled;
-            if (limitEnabled)
-            {
-                if (countsForMovies.TryGetValue(image.TmdbMovieID ?? 0, out var count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForEpisodes.TryGetValue(image.TmdbEpisodeID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForSeasons.TryGetValue(image.TmdbSeasonID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForShows.TryGetValue(image.TmdbShowID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForCollections.TryGetValue(image.TmdbCollectionID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForNetworks.TryGetValue(image.TmdbNetworkID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForCompanies.TryGetValue(image.TmdbCompanyID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForPersons.TryGetValue(image.TmdbPersonID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-            }
+            var entities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(image.RemoteFileName)
+                .Where(x => x.ImageType == type)
+                .ToList();
+            var shouldDownload = !limitEnabled && entities.Count > 0;
+            if (limitEnabled && entities.Count > 0)
+                foreach (var entity in entities)
+                    switch (entity.TmdbEntityType)
+                    {
+                        case ForeignEntityType.Movie:
+                            if (countsForMovies.ContainsKey(entity.TmdbEntityID) && countsForMovies[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Episode:
+                            if (countForEpisodes.ContainsKey(entity.TmdbEntityID) && countForEpisodes[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Season:
+                            if (countForSeasons.ContainsKey(entity.TmdbEntityID) && countForSeasons[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Show:
+                            if (countForShows.ContainsKey(entity.TmdbEntityID) && countForShows[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Collection:
+                            if (countForCollections.ContainsKey(entity.TmdbEntityID) && countForCollections[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Network:
+                            if (countForNetworks.ContainsKey(entity.TmdbEntityID) && countForNetworks[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Company:
+                            if (countForCompanies.ContainsKey(entity.TmdbEntityID) && countForCompanies[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Person:
+                            if (countForPersons.ContainsKey(entity.TmdbEntityID) && countForPersons[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                    }
 
             if (shouldDownload)
             {
@@ -480,26 +516,58 @@ public class ActionService
                     c.ImageType = image.ImageType;
                 });
 
-                if (image.TmdbMovieID.HasValue)
-                    if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
-                        countsForMovies[image.TmdbMovieID.Value] += 1;
-                    else
-                        countsForMovies[image.TmdbMovieID.Value] = 1;
-                if (image.TmdbSeasonID.HasValue)
-                    if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
-                        countForSeasons[image.TmdbSeasonID.Value] += 1;
-                    else
-                        countForSeasons[image.TmdbSeasonID.Value] = 1;
-                if (image.TmdbShowID.HasValue)
-                    if (countForShows.ContainsKey(image.TmdbShowID.Value))
-                        countForShows[image.TmdbShowID.Value] += 1;
-                    else
-                        countForShows[image.TmdbShowID.Value] = 1;
-                if (image.TmdbCollectionID.HasValue)
-                    if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
-                        countForCollections[image.TmdbCollectionID.Value] += 1;
-                    else
-                        countForCollections[image.TmdbCollectionID.Value] = 1;
+                foreach (var entity in entities)
+                    switch (entity.TmdbEntityType)
+                    {
+                        case ForeignEntityType.Movie:
+                            if (countsForMovies.ContainsKey(entity.TmdbEntityID))
+                                countsForMovies[entity.TmdbEntityID] += 1;
+                            else
+                                countsForMovies[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Episode:
+                            if (countForEpisodes.ContainsKey(entity.TmdbEntityID))
+                                countForEpisodes[entity.TmdbEntityID] += 1;
+                            else
+                                countForEpisodes[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Season:
+                            if (countForSeasons.ContainsKey(entity.TmdbEntityID))
+                                countForSeasons[entity.TmdbEntityID] += 1;
+                            else
+                                countForSeasons[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Show:
+                            if (countForShows.ContainsKey(entity.TmdbEntityID))
+                                countForShows[entity.TmdbEntityID] += 1;
+                            else
+                                countForShows[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Collection:
+                            if (countForCollections.ContainsKey(entity.TmdbEntityID))
+                                countForCollections[entity.TmdbEntityID] += 1;
+                            else
+                                countForCollections[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Network:
+                            if (countForNetworks.ContainsKey(entity.TmdbEntityID))
+                                countForNetworks[entity.TmdbEntityID] += 1;
+                            else
+                                countForNetworks[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Company:
+                            if (countForCompanies.ContainsKey(entity.TmdbEntityID))
+                                countForCompanies[entity.TmdbEntityID] += 1;
+                            else
+                                countForCompanies[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Person:
+                            if (countForPersons.ContainsKey(entity.TmdbEntityID))
+                                countForPersons[entity.TmdbEntityID] += 1;
+                            else
+                                countForPersons[entity.TmdbEntityID] = 1;
+                            break;
+                    }
             }
         }
     }

@@ -92,6 +92,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<JMMUserRepository>();
         services.AddCachedRepository<TMDB_EpisodeRepository>();
         services.AddCachedRepository<TMDB_ImageRepository>();
+        services.AddCachedRepository<TMDB_Image_EntityRepository>();
         services.AddCachedRepository<TMDB_MovieRepository>();
         services.AddCachedRepository<TMDB_SeasonRepository>();
         services.AddCachedRepository<TMDB_ShowRepository>();

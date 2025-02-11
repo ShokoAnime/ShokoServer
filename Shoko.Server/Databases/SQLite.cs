@@ -28,7 +28,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 131;
+    public override int RequiredVersion => 132;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -845,6 +845,18 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(131, 01, "ALTER TABLE AniDB_Character ADD COLUMN Type INTEGER NOT NULL DEFAULT 0;"),
         new(131, 02, "ALTER TABLE AniDB_Character ADD COLUMN LastUpdated DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00';"),
         new(131, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),
+        new(132, 01, "CREATE TABLE TMDB_Image_Entity (TMDB_Image_EntityID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbEntityID INTEGER NULL, TmdbEntityType INTEGER NOT NULL, ImageType INTEGER NOT NULL, RemoteFileName TEXT NOT NULL, Ordering INTEGER NOT NULL, ReleasedAt DATE NULL);"),
+        new(132, 02, "ALTER TABLE TMDB_Image DROP COLUMN TmdbMovieID;"),
+        new(132, 03, "ALTER TABLE TMDB_Image DROP COLUMN TmdbEpisodeID;"),
+        new(132, 04, "ALTER TABLE TMDB_Image DROP COLUMN TmdbSeasonID;"),
+        new(132, 05, "ALTER TABLE TMDB_Image DROP COLUMN TmdbShowID;"),
+        new(132, 06, "ALTER TABLE TMDB_Image DROP COLUMN TmdbCollectionID;"),
+        new(132, 07, "ALTER TABLE TMDB_Image DROP COLUMN TmdbNetworkID;"),
+        new(132, 08, "ALTER TABLE TMDB_Image DROP COLUMN TmdbCompanyID;"),
+        new(132, 09, "ALTER TABLE TMDB_Image DROP COLUMN TmdbPersonID;"),
+        new(132, 10, "ALTER TABLE TMDB_Image DROP COLUMN ForeignType;"),
+        new(132, 11, "ALTER TABLE TMDB_Image DROP COLUMN ImageType;"),
+        new(132, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
