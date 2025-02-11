@@ -113,6 +113,7 @@ public class DebugController : BaseController
     {
         try
         {
+            var token = HttpContext.RequestAborted;
             _logger.LogDebug("Got command {Command}", request.Command);
             if (request.NeedAuth)
             {
@@ -122,8 +123,8 @@ public class DebugController : BaseController
             }
 
             var fullResponse = request.Unsafe ?
-                await _udpHandler.SendDirectly(request.Command, isPing: request.IsPing, isLogout: request.IsLogout) :
-                await _udpHandler.Send(request.Command);
+                await _udpHandler.SendDirectly(request.Command, isPing: request.IsPing, isLogout: request.IsLogout, token: token) :
+                await _udpHandler.Send(request.Command, token: token);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
                 fullResponse.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

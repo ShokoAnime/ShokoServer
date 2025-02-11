@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Shoko.Server.Providers.AniDB.Interfaces;
@@ -22,7 +23,7 @@ public interface IUDPConnectionHandler : IConnectionHandler
     Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
     Task<bool> TestLogin(string username, string password);
 
-    Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false);
+    Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false, CancellationToken token = new());
 
-    Task<string> Send(string command, bool needsUnicode = true);
+    Task<string> Send(string command, bool needsUnicode = true, CancellationToken token = new());
 }

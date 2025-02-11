@@ -177,7 +177,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             _socketHandlerLock.Wait();
             try
             {
-                if (_socketHandler == null || _socketHandler.IsLocked || !_socketHandler.IsConnected) return;
+                if (_socketHandler is not { IsConnected: true }) return;
             }
             finally
             {
@@ -208,7 +208,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         try
         {
             if (!_isLoggedOn) return;
-            if (_socketHandler == null || _socketHandler.IsLocked || !_socketHandler.IsConnected) return;
+            if (_socketHandler is not { IsConnected: true }) return;
             if (IsBanned || BackoffSecs.HasValue) return;
 
             ForceLogout();
@@ -224,12 +224,13 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     /// </summary>
     /// <param name="command">The request to be made (AUTH user=baka&amp;pass....)</param>
     /// <param name="needsUnicode">Only for Login, specify whether to ask for UTF16</param>
+    /// <param name="token"></param>
     /// <returns></returns>
-    public async Task<string> Send(string command, bool needsUnicode = true)
+    public async Task<string> Send(string command, bool needsUnicode = true, CancellationToken token = new())
     {
         try
         {
-            await _socketHandlerLock.WaitAsync();
+            await _socketHandlerLock.WaitAsync(token);
             // Steps:
             // 1. Check Ban state and throw if Banned
             // 2. Check Login State and Login if needed
@@ -261,7 +262,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             }
 
             // Actually Call AniDB
-            return await SendInternal(command, needsUnicode);
+            return await SendInternal(command, needsUnicode, token: token);
         }
         finally
         {
@@ -269,12 +270,12 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
     }
 
-    public async Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false)
+    public async Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false, CancellationToken token = new())
     {
         try
         {
-            await _socketHandlerLock.WaitAsync();
-            return await SendInternal(command, needsUnicode, isPing);
+            await _socketHandlerLock.WaitAsync(token);
+            return await SendInternal(command, needsUnicode, isPing, token: token);
         }
         finally
         {
@@ -282,7 +283,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
     }
 
-    private async Task<string> SendInternal(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false)
+    private async Task<string> SendInternal(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false, CancellationToken token = new())
     {
         ObjectDisposedException.ThrowIf(_socketHandler is not { IsConnected: true }, "The connection was closed by shoko");
 
@@ -304,7 +305,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             var timeoutPolicy = Policy
                 .Handle<SocketException>(e => e is { SocketErrorCode: SocketError.TimedOut })
                 .Or<OperationCanceledException>()
-                .RetryAsync(async (_, _) =>
+                // retry once
+                .RetryAsync(1, async (_, _) =>
                 {
                     Logger.LogWarning("AniDB request timed out. Checking Network and trying again");
                     await _connectivityService.CheckAvailability();
@@ -320,7 +322,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
                 var start = DateTime.Now;
                 Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", MaskLog(command));
-                var byReceivedAdd = await _socketHandler.Send(sendByteAdd);
+                var byReceivedAdd = await _socketHandler.Send(sendByteAdd, token);
+                if (token.IsCancellationRequested) throw new TaskCanceledException();
 
                 if (byReceivedAdd.All(a => a == 0))
                 {
