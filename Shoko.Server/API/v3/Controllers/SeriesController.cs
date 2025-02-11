@@ -2381,6 +2381,10 @@ public class SeriesController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
+            var filePath = file.FirstResolvedPlace?.FullServerPath;
+            if (string.IsNullOrEmpty(filePath))
+                continue;
+
             await scheduler.StartJob<RenameMoveFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
