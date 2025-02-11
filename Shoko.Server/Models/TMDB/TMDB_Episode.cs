@@ -300,17 +300,9 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// containing the images of the given entity type.</param>
     /// <returns>A read-only list of images that are linked to the episode.
     /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) =>
-        (
-            entityType.HasValue
-                ? RepoFactory.TMDB_Image_Entity.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-                : RepoFactory.TMDB_Image_Entity.GetByTmdbEpisodeID(TmdbEpisodeID)
-        )
-            .OrderBy(i => i.ImageType)
-            .ThenBy(i => i.Ordering)
-            .Select(i => i.GetTmdbImage())
-            .WhereNotNull()
-            .ToList();
+    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
+        ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
+        : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     /// <summary>
     /// Get all images for the episode, or all images for the given
