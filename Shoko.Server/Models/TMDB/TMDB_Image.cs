@@ -42,7 +42,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
     /// Relative path to the image stored locally.
     /// </summary>
     public string? RelativePath
-        => string.IsNullOrEmpty(RemoteFileName) ? null : Path.Join("TMDB", ImageType.ToString(), RemoteImageName);
+        => string.IsNullOrEmpty(RemoteFileName) ? null : Path.Join("TMDB", RemoteFileName[1..3], RemoteImageName);
 
     /// <inheritdoc/>
     public override string? LocalPath
@@ -73,6 +73,9 @@ public class TMDB_Image : Image_Base, IImageMetadata
     public TMDB_Image(string filePath, ImageEntityType type = ImageEntityType.None) : base(DataSourceEnum.TMDB, type, 0)
     {
         RemoteFileName = filePath?.Trim() ?? string.Empty;
+        if (!string.IsNullOrEmpty(RemoteFileName) && RemoteFileName[0] != '/')
+            RemoteFileName = '/' + RemoteFileName;
+
         IsEnabled = true;
     }
 

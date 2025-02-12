@@ -13,6 +13,7 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
@@ -894,5 +895,57 @@ public class DatabaseFixes
         }
 
         _logger.Info($"Done scheduling tmdb image updates for {movies} tmdb movies and {shows} tmdb shows.");
+    }
+
+    public static void MoveTmdbImagesOnDisc()
+    {
+        var imageDir = Path.Join(ImageUtils.GetBaseImagesPath(), "TMDB");
+        if (!Directory.Exists(imageDir))
+            return;
+
+        var str = ServerState.Instance.ServerStartingStatus;
+        var imageTypes = Enum.GetValues<ImageEntityType>();
+        var total = 0;
+        foreach (var imageType in imageTypes)
+        {
+            var imageTypeDir = Path.Join(imageDir, imageType.ToString());
+            if (!Directory.Exists(imageTypeDir))
+                continue;
+
+            var count = 0;
+            var files = Directory.GetFiles(imageTypeDir);
+            if (files.Length == 0)
+                continue;
+
+            ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {files.Length} {imageType} images";
+            _logger.Info($"Moving TMDb {imageType} images on disc: {files.Length}");
+            total += files.Length;
+            foreach (var file in files)
+            {
+                if (++count % 10 == 0 || count == files.Length)
+                {
+                    _logger.Info($"Moving TMDb {imageType} images on disc... ({count}/{files.Length})");
+                    ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {files.Length} {imageType} images";
+                }
+
+                var fileName = Path.GetFileName(file);
+                var folderName = fileName[..2];
+                var newFile = Path.Combine(imageDir, folderName, fileName);
+                if (File.Exists(newFile))
+                {
+                    File.Delete(file);
+                    continue;
+                }
+
+                Directory.CreateDirectory(Path.Combine(imageDir, folderName));
+
+                File.Move(file, newFile);
+            }
+
+            Directory.Delete(imageTypeDir);
+        }
+
+        _logger.Info($"Moved {total} TMDb images on disc.");
+        ServerState.Instance.ServerStartingStatus = $"{str} - Moved {total} images";
     }
 }

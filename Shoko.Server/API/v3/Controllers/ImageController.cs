@@ -42,7 +42,7 @@ public class ImageController : BaseController
         // Unrecognized combination of source, type and/or value.
         var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None)
+        if (dataSource == DataSourceType.None)
             return NotFound(ImageNotFound);
 
         // User avatars are stored in the database.
