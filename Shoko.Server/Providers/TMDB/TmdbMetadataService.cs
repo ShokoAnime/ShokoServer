@@ -74,7 +74,7 @@ public class TmdbMetadataService
 
     private static readonly object _imageServerUrlLockObj = new();
 
-    public static string? ImageServerUrl
+    public static string ImageServerUrl
     {
         get
         {
@@ -92,7 +92,7 @@ public class TmdbMetadataService
                 // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available, otherwise abort.
                 var instance = Instance;
                 if (instance is null)
-                    return null;
+                    throw new InvalidOperationException("TmdbMetadataService not initialized yet.");
 
                 try
                 {
@@ -2203,7 +2203,7 @@ public class TmdbMetadataService
 
         var settings = _settingsProvider.GetSettings();
         if (!string.IsNullOrEmpty(company.LogoPath) && settings.TMDB.AutoDownloadStudioImages)
-            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Logo, ForeignEntityType.Company, company.Id);
+            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Art, ForeignEntityType.Company, company.Id);
     }
 
     private void PurgeCompany(int companyId)

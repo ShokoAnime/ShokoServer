@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,7 @@ public class ImageUtils
     private static ISchedulerFactory _schedulerFactory
         => __schedulerFactory ??= Utils.ServiceContainer.GetService<ISchedulerFactory>()!;
 
+    [return: NotNullIfNotNull(nameof(relativePath))]
     public static string? ResolvePath(string? relativePath)
     {
         if (string.IsNullOrEmpty(relativePath))

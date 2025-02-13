@@ -35,17 +35,17 @@ public class TMDB_Image : Image_Base, IImageMetadata
     private string RemoteImageName => RemoteFileName.EndsWith(".svg") ? RemoteFileName[..^4] + ".png" : RemoteFileName;
 
     /// <inheritdoc/>
-    public override string? RemoteURL
-        => string.IsNullOrEmpty(RemoteFileName) || string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl) ? null : $"{TmdbMetadataService.ImageServerUrl}original{RemoteImageName}";
+    public override string RemoteURL
+        => $"{TmdbMetadataService.ImageServerUrl}original{RemoteImageName}";
 
     /// <summary>
     /// Relative path to the image stored locally.
     /// </summary>
-    public string? RelativePath
-        => string.IsNullOrEmpty(RemoteFileName) ? null : Path.Join("TMDB", RemoteFileName[1..3], RemoteImageName);
+    public string RelativePath
+        => Path.Join("TMDB", RemoteFileName[1..3], RemoteImageName);
 
     /// <inheritdoc/>
-    public override string? LocalPath
+    public override string LocalPath
         => ImageUtils.ResolvePath(RelativePath);
 
     /// <summary>
