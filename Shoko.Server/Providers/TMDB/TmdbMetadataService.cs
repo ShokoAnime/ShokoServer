@@ -1728,7 +1728,8 @@ public class TmdbMetadataService
         var releasedAt = _tmdbEpisodes.GetByTmdbSeasonID(seasonId)
             .Select(o => o.AiredAt)
             .WhereNotNull()
-            .Min();
+            .Order()
+            .FirstOrDefault();
         await _imageService.DownloadImagesByType(season.PosterPath, releasedAt, images.Posters, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
     }
 
