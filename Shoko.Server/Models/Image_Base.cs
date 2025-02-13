@@ -96,7 +96,7 @@ public class Image_Base : IImageMetadata
             if (!string.IsNullOrEmpty(LocalPath))
                 return _contentType = MimeMapping.MimeUtility.GetMimeMapping(LocalPath);
 
-            return _contentType = MimeMapping.MimeUtility.UnknownMimeType;
+            return MimeMapping.MimeUtility.UnknownMimeType;
         }
     }
 
