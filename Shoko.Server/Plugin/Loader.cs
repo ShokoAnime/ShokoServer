@@ -124,6 +124,13 @@ public static class Loader
             s_logger.Trace("Loaded IPlugin implementation: {0}", pluginType.Name);
             _pluginTypes.Add(pluginType);
 
+            // Compat. for plugins targeting <4.2.0-beta2 using the previously undocumented (except in source code) ConfigureServices method.
+            if (pluginType.GetMethod("ConfigureServices", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy) is { } mtd)
+            {
+                s_logger.Trace("Registering plugin service: {0}", pluginType.Name);
+                mtd.Invoke(null, [serviceCollection]);
+            }
+
             var registrationImpl = pluginTypes
                 .Where(a => a.GetInterfaces().Contains(typeof(IPluginServiceRegistration)))
                 .ToList();
