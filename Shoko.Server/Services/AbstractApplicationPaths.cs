@@ -1,6 +1,7 @@
 
 using System.IO;
 using System.Reflection;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.Utilities;
 
 #nullable enable

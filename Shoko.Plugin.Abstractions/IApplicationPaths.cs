@@ -1,3 +1,6 @@
+
+namespace Shoko.Plugin.Abstractions;
+
 /// <summary>
 /// Interface IApplicationPaths.
 /// </summary>
