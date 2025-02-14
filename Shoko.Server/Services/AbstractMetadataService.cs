@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
@@ -139,7 +140,7 @@ public class AbstractMetadataService : IMetadataService
     }
 
     /// <inheritdoc />
-    public IQueryable<IEpisode> GetAllEpisodesForProvider(IMetadataService.ProviderName providerName)
+    public IEnumerable<IEpisode> GetAllEpisodesForProvider(IMetadataService.ProviderName providerName)
         => providerName switch
         {
             IMetadataService.ProviderName.Shoko => _episodeRepository.GetAll().AsQueryable(),
@@ -149,7 +150,7 @@ public class AbstractMetadataService : IMetadataService
         };
 
     /// <inheritdoc />
-    public IQueryable<IMovie> GetAllMoviesForProvider(IMetadataService.ProviderName providerName)
+    public IEnumerable<IMovie> GetAllMoviesForProvider(IMetadataService.ProviderName providerName)
         => providerName switch
         {
             IMetadataService.ProviderName.TMDB => _tmdbMovieRepository.GetAll().AsQueryable(),
@@ -157,7 +158,7 @@ public class AbstractMetadataService : IMetadataService
         };
 
     /// <inheritdoc />
-    public IQueryable<ISeries> GetAllSeriesForProvider(IMetadataService.ProviderName providerName)
+    public IEnumerable<ISeries> GetAllSeriesForProvider(IMetadataService.ProviderName providerName)
         => providerName switch
         {
             IMetadataService.ProviderName.Shoko => _seriesRepository.GetAll().AsQueryable(),
@@ -167,15 +168,15 @@ public class AbstractMetadataService : IMetadataService
         };
 
     /// <inheritdoc />
-    public IQueryable<IShokoEpisode> GetAllShokoEpisodes()
+    public IEnumerable<IShokoEpisode> GetAllShokoEpisodes()
         => _episodeRepository.GetAll().AsQueryable();
 
     /// <inheritdoc />
-    public IQueryable<IShokoGroup> GetAllShokoGroups()
+    public IEnumerable<IShokoGroup> GetAllShokoGroups()
         => _groupRepository.GetAll().AsQueryable();
 
     /// <inheritdoc />
-    public IQueryable<IShokoSeries> GetAllShokoSeries()
+    public IEnumerable<IShokoSeries> GetAllShokoSeries()
         => _seriesRepository.GetAll().AsQueryable();
 
     /// <inheritdoc />

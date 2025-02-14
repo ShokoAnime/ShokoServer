@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Events;
@@ -34,7 +34,7 @@ public interface IMetadataService
     /// </summary>
     /// <param name="providerName">The name of the provider.</param>
     /// <returns>A collection of episodes if found, otherwise an empty collection.</returns>
-    IQueryable<IEpisode> GetAllEpisodesForProvider(ProviderName providerName);
+    IEnumerable<IEpisode> GetAllEpisodesForProvider(ProviderName providerName);
 
     /// <summary>
     /// Looks up an episode by its provider ID.
@@ -48,7 +48,7 @@ public interface IMetadataService
     /// Looks up all shoko episodes as a queryable list.
     /// </summary>
     /// <returns>A collection of episodes if found, otherwise an empty collection.</returns>
-    IQueryable<IShokoEpisode> GetAllShokoEpisodes();
+    IEnumerable<IShokoEpisode> GetAllShokoEpisodes();
 
     /// <summary>
     /// Looks up a shoko episode by its ID.
@@ -88,7 +88,7 @@ public interface IMetadataService
     /// </summary>
     /// <param name="providerName">The name of the provider.</param>
     /// <returns>A collection of movies if found, otherwise an empty collection.</returns>
-    IQueryable<IMovie> GetAllMoviesForProvider(ProviderName providerName);
+    IEnumerable<IMovie> GetAllMoviesForProvider(ProviderName providerName);
 
     /// <summary>
     /// Looks up a movie by its provider ID.
@@ -122,7 +122,7 @@ public interface IMetadataService
     /// </summary>
     /// <param name="providerName">The name of the provider.</param>
     /// <returns>A collection of series if found, otherwise an empty collection.</returns>
-    IQueryable<ISeries> GetAllSeriesForProvider(ProviderName providerName);
+    IEnumerable<ISeries> GetAllSeriesForProvider(ProviderName providerName);
 
     /// <summary>
     /// Looks up a series by its provider ID.
@@ -136,7 +136,7 @@ public interface IMetadataService
     /// Looks up all shoko series as a queryable list.
     /// </summary>
     /// <returns>A collection of series if found, otherwise an empty collection.</returns>
-    IQueryable<IShokoSeries> GetAllShokoSeries();
+    IEnumerable<IShokoSeries> GetAllShokoSeries();
 
     /// <summary>
     /// Looks up a shoko series by its ID.
@@ -160,7 +160,7 @@ public interface IMetadataService
     /// Looks up all shoko groups as a queryable list.
     /// </summary>
     /// <returns>A collection of groups if found, otherwise an empty collection.</returns>
-    IQueryable<IShokoGroup> GetAllShokoGroups();
+    IEnumerable<IShokoGroup> GetAllShokoGroups();
 
     /// <summary>
     /// Looks up a shoko group by its ID.

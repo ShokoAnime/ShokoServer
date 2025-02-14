@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
@@ -65,7 +65,7 @@ public interface IVideoService
     /// Gets all video files as a queryable list.
     /// </summary>
     /// <returns>All video files.</returns>
-    IQueryable<IVideoFile> GetAllVideoFiles();
+    IEnumerable<IVideoFile> GetAllVideoFiles();
 
     /// <summary>
     /// Looks up a video file by its ID.
@@ -97,7 +97,7 @@ public interface IVideoService
     /// Gets all videos as a queryable list.
     /// </summary>
     /// <returns>A queryable list of videos.</returns>
-    IQueryable<IVideo> GetAllVideos();
+    IEnumerable<IVideo> GetAllVideos();
 
     /// <summary>
     /// Looks up a video by its ID.

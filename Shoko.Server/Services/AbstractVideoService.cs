@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
@@ -104,7 +105,7 @@ public class AbstractVideoService : IVideoService
     }
 
     /// <inheritdoc/>
-    public IQueryable<IVideoFile> GetAllVideoFiles()
+    public IEnumerable<IVideoFile> GetAllVideoFiles()
         => _placeRepository.GetAll().AsQueryable();
 
     /// <inheritdoc/>
@@ -133,7 +134,7 @@ public class AbstractVideoService : IVideoService
     }
 
     /// <inheritdoc/>
-    public IQueryable<IVideo> GetAllVideos()
+    public IEnumerable<IVideo> GetAllVideos()
         => _videoLocalRepository.GetAll().AsQueryable();
 
     /// <inheritdoc/>

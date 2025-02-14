@@ -1,4 +1,4 @@
-using System.Linq;
+using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.Services;
@@ -12,7 +12,7 @@ public interface IUserService
     /// Get all users as a queryable list.
     /// </summary>
     /// <returns>The users.</returns>
-    IQueryable<IShokoUser> GetUsers();
+    IEnumerable<IShokoUser> GetUsers();
 
     /// <summary>
     /// Get a user by ID.
