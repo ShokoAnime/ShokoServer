@@ -920,7 +920,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(147, 09, "CREATE TABLE `AniDB_Anime_Character` (`AniDB_Anime_CharacterID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `CharacterID` INT NOT NULL, `Appearance` VARCHAR(20) CHARACTER SET UTF8 NOT NULL, `AppearanceType` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`AniDB_Anime_CharacterID`));"),
         new(147, 10, "CREATE TABLE `AniDB_Anime_Character_Creator` (`AniDB_Anime_Character_CreatorID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `CharacterID` INT NOT NULL, `CreatorID` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`AniDB_Anime_Character_CreatorID`));"),
         new(147, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
-        new(147, 12, DatabaseFixes.RecreateAnimeCharactersAndCreators),
+        new(147, 12, DatabaseFixes.NoOperation),
         new(148, 01, "ALTER TABLE `AniDB_Character` ADD `Type` int NOT NULL DEFAULT 0;"),
         new(148, 02, "ALTER TABLE `AniDB_Character` ADD `LastUpdated` datetime NOT NULL DEFAULT '1970-01-01 00:00:00';"),
         new(148, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),

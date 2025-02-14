@@ -841,7 +841,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(130, 09, "CREATE TABLE AniDB_Anime_Character (AniDB_Anime_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CharacterID INTEGER NOT NULL, Appearance TEXT NOT NULL, AppearanceType INTEGER NOT NULL, Ordering INTEGER NOT NULL);"),
         new(130, 10, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CharacterID INTEGER NOT NULL, CreatorID INTEGER NOT NULL, Ordering INTEGER NOT NULL);"),
         new(130, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
-        new(130, 12, DatabaseFixes.RecreateAnimeCharactersAndCreators),
+        new(130, 12, DatabaseFixes.NoOperation),
         new(131, 01, "ALTER TABLE AniDB_Character ADD COLUMN Type INTEGER NOT NULL DEFAULT 0;"),
         new(131, 02, "ALTER TABLE AniDB_Character ADD COLUMN LastUpdated DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00';"),
         new(131, 03, DatabaseFixes.RecreateAnimeCharactersAndCreators),

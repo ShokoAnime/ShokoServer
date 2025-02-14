@@ -778,16 +778,8 @@ public class DatabaseFixes
             missingIds.Count, updateCount, skippedCount);
     }
 
-    private static bool _ranRecreateAnimeCharactersAndCreators = false;
-
     public static void RecreateAnimeCharactersAndCreators()
     {
-        // Hack to prevent running the migration twice in the same lifecycle,
-        // since it is scheduled to run for two migrations one after another,
-        // but if we run them back to back then we only need to run it once.
-        if (_ranRecreateAnimeCharactersAndCreators) return;
-        _ranRecreateAnimeCharactersAndCreators = true;
-
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
         var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
