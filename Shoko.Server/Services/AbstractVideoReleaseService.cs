@@ -194,6 +194,16 @@ public class AbstractVideoReleaseService(
         {
             videoLocal.DateTimeImported = DateTime.Now;
             videoRepository.Save(videoLocal);
+
+            var scheduler = await schedulerFactory.GetScheduler();
+            if (_settings.AniDb.MyList_AddFiles)
+            {
+                await scheduler.StartJob<AddFileToMyListJob>(c =>
+                {
+                    c.Hash = video.Hashes.ED2K;
+                    c.ReadStates = true;
+                }).ConfigureAwait(false);
+            }
         }
 
         // Schedule the release group to be fetched if needed.
