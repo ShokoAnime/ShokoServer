@@ -26,7 +26,7 @@ public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCached
             anime.ResetPreferredTitle();
     }
 
-    public SVR_AniDB_Anime GetByAnimeID(int animeID)
+    public SVR_AniDB_Anime? GetByAnimeID(int animeID)
         => ReadLock(() => _animeIDs!.GetOne(animeID));
 
     public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
