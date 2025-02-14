@@ -47,57 +47,52 @@ public class Filter : Filters
             evaluatedResults = evaluator.EvaluateFilter(gf, uid).ToList();
         }
 
-        if (evaluatedResults.Count != 0)
+        if (evaluatedResults.Count == 0)
         {
-            filter.size = evaluatedResults.Count;
+            filter.viewed = 0;
+            filter.url = APIV2Helper.ConstructFilterIdUrl(ctx, filter.id);
 
-            // Populate Random Art
+            return filter;
+        }
 
-            List<SVR_AnimeSeries>? arts = null;
-            var seriesList = evaluatedResults.SelectMany(a => a).Select(RepoFactory.AnimeSeries.GetByID).WhereNotNull().ToList();
-            var groupsList = evaluatedResults.Select(r => RepoFactory.AnimeGroup.GetByID(r.Key)).WhereNotNull().ToList();
-            if (pic == 1)
+        filter.size = evaluatedResults.Count;
+
+        // Populate Random Art
+        List<SVR_AnimeSeries>? arts = null;
+        var seriesList = evaluatedResults.SelectMany(a => a).Select(RepoFactory.AnimeSeries.GetByID).WhereNotNull().ToList();
+        var groupsList = evaluatedResults.Select(r => RepoFactory.AnimeGroup.GetByID(r.Key)).Where(a => a is { AnimeGroupParentID: null }).ToList();
+        if (pic == 1)
+        {
+            arts = seriesList.Where(SeriesHasArt).ToList();
+
+            if (arts.Count == 0) arts = seriesList;
+        }
+
+        if (arts?.Count > 0)
+        {
+            var rand = new Random();
+            var anime = arts[rand.Next(arts.Count)];
+            var backdrops = anime.GetImages(ImageEntityType.Backdrop);
+            if (backdrops.Count > 0)
             {
-                arts = seriesList.Where(SeriesHasArt).ToList();
-
-                if (arts.Count == 0)
+                var backdrop = backdrops[rand.Next(backdrops.Count)];
+                filter.art.fanart.Add(new Art
                 {
-                    arts = seriesList;
-                }
-            }
-
-            if (arts?.Count > 0)
-            {
-                var rand = new Random();
-                var anime = arts[rand.Next(arts.Count)];
-                var backdrops = anime.GetImages(ImageEntityType.Backdrop);
-                if (backdrops.Count > 0)
-                {
-                    var backdrop = backdrops[rand.Next(backdrops.Count)];
-                    filter.art.fanart.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
-                    });
-                }
-
-                filter.art.thumb.Add(new Art
-                {
-                    index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Poster, DataSourceEnum.AniDB, anime.AniDB_ID),
+                    index = 0, url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
                 });
             }
 
-            if (level > 0)
+            filter.art.thumb.Add(new Art
             {
-                groups.AddRange(groupsList.Select(ag => Group.GenerateFromAnimeGroup(ctx, ag, uid, noCast, noTag, level - 1, all, filter.id, allPic, pic, tagFilter, evaluatedResults?.FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList())));
-            }
-
-            if (groups.Count > 0)
-            {
-                filter.groups = groups;
-            }
+                index = 0, url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Poster, DataSourceEnum.AniDB, anime.AniDB_ID),
+            });
         }
+
+        if (level > 0)
+            groups.AddRange(groupsList.Select(ag => Group.GenerateFromAnimeGroup(ctx, ag, uid, noCast, noTag, level - 1, all, filter.id, allPic, pic, tagFilter,
+                evaluatedResults?.FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList())));
+
+        if (groups.Count > 0) filter.groups = groups;
 
         filter.viewed = 0;
         filter.url = APIV2Helper.ConstructFilterIdUrl(ctx, filter.id);

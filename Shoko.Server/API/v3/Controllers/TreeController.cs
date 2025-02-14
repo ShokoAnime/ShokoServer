@@ -175,10 +175,9 @@ public class TreeController : BaseController
             if (!results.Any()) return new ListResult<Group>();
 
             groups = results
-                .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key)?.TopLevelAnimeGroup)
-                .WhereNotNull()
-                .DistinctBy(group => group.AnimeGroupID)
-                .Where(group => includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
+                .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
+                .Where(group => group is { AnimeGroupParentID: null } &&
+                                (includeEmpty || group.AllSeries.Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0))));
         }
 
         if (orderByName)

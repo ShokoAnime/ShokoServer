@@ -59,7 +59,8 @@ public class FilterFactory
 
         filter.Size = filter.IsDirectory
             ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count
-            : _evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count();
+            // Only count top level groups
+            : _evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count(a => RepoFactory.AnimeGroup.GetByID(a.Key)?.AnimeGroupParentID == null);
         return filter;
     }
 
