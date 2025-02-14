@@ -533,6 +533,10 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #region IMovie
 
+    bool IMovie.Restricted => IsRestricted;
+
+    bool IMovie.Video => IsVideo;
+
     IReadOnlyList<int> IMovie.ShokoEpisodeIDs => CrossReferences
         .Select(xref => xref.AnimeEpisode?.AnimeEpisodeID)
         .WhereNotNull()

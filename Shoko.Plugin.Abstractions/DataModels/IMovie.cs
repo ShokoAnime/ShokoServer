@@ -25,6 +25,16 @@ public interface IMovie : IWithTitles, IWithDescriptions, IWithImages, IWithCast
     DateTime? ReleaseDate { get; }
 
     /// <summary>
+    /// Indicates it's restricted for non-adult viewers. 😉
+    /// </summary>
+    bool Restricted { get; }
+
+    /// <summary>
+    /// Indicates that the entry is a standalone video, and not a movie.
+    /// </summary>
+    bool Video { get; }
+
+    /// <summary>
     /// Overall user rating for the show, normalized on a scale of 1-10.
     /// </summary>
     double Rating { get; }
