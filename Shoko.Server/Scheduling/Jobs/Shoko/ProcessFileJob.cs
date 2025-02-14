@@ -106,8 +106,11 @@ public class ProcessFileJob : BaseJob
         }
 
         // Rename and/or move the physical file(s) if needed.
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = _vlocal.VideoLocalID).ConfigureAwait(false);
+        if (_settings.Plugins.Renamer.RelocateOnImport)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+            await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = _vlocal.VideoLocalID).ConfigureAwait(false);
+        }
     }
 
     private async Task<SVR_AniDB_File> ProcessFile_AniDB()

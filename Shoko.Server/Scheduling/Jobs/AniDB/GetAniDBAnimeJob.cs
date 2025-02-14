@@ -192,7 +192,9 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             ShokoEventHandler.Instance.OnSeriesUpdated(series, seriesIsNew ? UpdateReason.Added : UpdateReason.Updated, seriesEpisodeChanges);
 
         // Re-schedule the videos to move/rename as required if something changed.
-        if (isNew || shouldUpdateFiles || animeEpisodeChanges.Count > 0 || seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0)
+        if (_settings.Plugins.Renamer.RelocateOnImport && (
+            isNew || shouldUpdateFiles || animeEpisodeChanges.Count > 0 || seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0
+        ))
         {
             var videos = new List<SVR_VideoLocal>();
             if (isNew || seriesIsNew || shouldUpdateFiles || seriesUpdated)

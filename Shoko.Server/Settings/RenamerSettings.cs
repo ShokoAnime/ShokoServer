@@ -1,10 +1,18 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Shoko.Server.Settings;
 
 public class RenamerSettings
 {
     public Dictionary<string, bool> EnabledRenamers { get; set; } = [];
+
+    /// <summary>
+    /// Indicates that we can relocate a video file on import, and after metadata
+    /// updates when the metadata related to the file may have changed.
+    /// </summary>
+    [JsonIgnore]
+    public bool RelocateOnImport => MoveOnImport || RenameOnImport;
 
     /// <summary>
     /// Indicates that we can rename a video file on import, and after metadata

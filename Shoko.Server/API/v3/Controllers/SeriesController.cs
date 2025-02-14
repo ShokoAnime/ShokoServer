@@ -2379,6 +2379,10 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
+        var settings = SettingsProvider.GetSettings();
+        if (!settings.Plugins.Renamer.RelocateOnImport)
+            return Ok();
+
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
