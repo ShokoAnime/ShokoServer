@@ -62,6 +62,11 @@ public interface IVideoService
     event EventHandler<FileMovedEventArgs> VideoFileMoved;
 
     /// <summary>
+    /// Dispatched when a video file has been moved or renamed.
+    /// </summary>
+    event EventHandler<FileMovedEventArgs> VideoFileRelocated;
+
+    /// <summary>
     /// Gets all video files as a queryable list.
     /// </summary>
     /// <returns>All video files.</returns>
