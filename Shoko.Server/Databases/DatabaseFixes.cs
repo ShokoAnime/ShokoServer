@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -903,36 +905,94 @@ public class DatabaseFixes
         if (!Directory.Exists(imageDir))
             return;
 
-        var str = ServerState.Instance.ServerStartingStatus;
-        var imageTypes = Enum.GetValues<ImageEntityType>();
         var total = 0;
+        var skipped = 0;
+        var str = ServerState.Instance.ServerStartingStatus;
+        var folders = Directory.GetDirectories(imageDir)
+            .Where(a => a[(imageDir.Length + 1)..].Length == 2)
+            .ToArray();
+        if (folders.Length > 0 && folders.Any(a => Directory.GetFiles(a).Any(b => Path.GetFileNameWithoutExtension(b).Length != 32)))
+        {
+            var folderCount = 0;
+            foreach (var folder in folders)
+            {
+                folderCount++;
+                var files = Directory.GetFiles(folder)
+                    .Where(a => Path.GetFileNameWithoutExtension(a).Length != 32)
+                    .ToArray();
+                if (files.Length == 0)
+                    continue;
+
+                var count = 0;
+
+                total += files.Length;
+                _logger.Info($"Moving TMDb images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
+                ServerState.Instance.ServerStartingStatus = $"{str} - {folderCount} / {folders.Length} folders - 0 / {files.Length} images - {total} total, {skipped} skipped";
+                foreach (var file in files)
+                {
+                    if (++count % 10 == 0 || count == files.Length)
+                    {
+                        _logger.Info($"Moving TMDb images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
+                        ServerState.Instance.ServerStartingStatus = $"{str} - {folderCount} / {folders.Length} folders - {count} / {files.Length} images - {total} total, {skipped} skipped";
+                    }
+
+                    var fileExt = Path.GetExtension(file);
+                    var fileName = Path.GetFileNameWithoutExtension(file);
+                    var hashedFileName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(fileName))).ToLower();
+                    var folderName = hashedFileName[..2];
+                    var newFile = Path.Combine(imageDir, folderName, hashedFileName + fileExt);
+                    if (File.Exists(newFile))
+                    {
+                        skipped++;
+                        File.Delete(file);
+                        continue;
+                    }
+
+                    Directory.CreateDirectory(Path.Combine(imageDir, folderName));
+
+                    File.Move(file, newFile);
+                }
+            }
+
+            foreach (var folder in folders)
+            {
+                if (!Directory.EnumerateFiles(folder).Any())
+                    Directory.Delete(folder, false);
+            }
+        }
+
+        var imageTypes = Enum.GetValues<ImageEntityType>();
         foreach (var imageType in imageTypes)
         {
             var imageTypeDir = Path.Join(imageDir, imageType.ToString());
             if (!Directory.Exists(imageTypeDir))
                 continue;
 
-            var count = 0;
             var files = Directory.GetFiles(imageTypeDir);
             if (files.Length == 0)
                 continue;
 
-            ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {files.Length} {imageType} images";
-            _logger.Info($"Moving TMDb {imageType} images on disc: {files.Length}");
+            var count = 0;
+
             total += files.Length;
+            _logger.Info($"Moving TMDb {imageType} images on disc: 0/{files.Length}");
+            ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {files.Length} {imageType} images";
             foreach (var file in files)
             {
                 if (++count % 10 == 0 || count == files.Length)
                 {
-                    _logger.Info($"Moving TMDb {imageType} images on disc... ({count}/{files.Length})");
+                    _logger.Info($"Moving TMDb {imageType} images on disc: {count}/{files.Length}");
                     ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {files.Length} {imageType} images";
                 }
 
-                var fileName = Path.GetFileName(file);
-                var folderName = fileName[..2];
-                var newFile = Path.Combine(imageDir, folderName, fileName);
+                var fileExt = Path.GetExtension(file);
+                var fileName = Path.GetFileNameWithoutExtension(file);
+                var hashedFileName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(fileName))).ToLower();
+                var folderName = hashedFileName[..2];
+                var newFile = Path.Combine(imageDir, folderName, hashedFileName + fileExt);
                 if (File.Exists(newFile))
                 {
+                    skipped++;
                     File.Delete(file);
                     continue;
                 }
@@ -945,7 +1005,6 @@ public class DatabaseFixes
             Directory.Delete(imageTypeDir);
         }
 
-        _logger.Info($"Moved {total} TMDb images on disc.");
-        ServerState.Instance.ServerStartingStatus = $"{str} - Moved {total} images";
+        _logger.Info($"Moved {total} TMDb images on disc. Skipped {skipped} images.");
     }
 }

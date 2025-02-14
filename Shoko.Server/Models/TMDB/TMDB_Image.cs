@@ -1,4 +1,7 @@
+using System;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Providers.TMDB;
@@ -29,20 +32,43 @@ public class TMDB_Image : Image_Base, IImageMetadata
     /// </summary>
     public int TMDB_ImageID { get; set; }
 
-    /// <inheritdoc/>
-    public string RemoteFileName { get; set; } = string.Empty;
+    private string _remoteFileName = string.Empty;
 
-    private string RemoteImageName => RemoteFileName.EndsWith(".svg") ? RemoteFileName[..^4] + ".png" : RemoteFileName;
+    /// <inheritdoc/>
+    public string RemoteFileName
+    {
+        get => _remoteFileName;
+        set
+        {
+            _remoteFileName = value;
+            _relativePath = null;
+        }
+    }
+
+    private string RemoteImageName => _remoteFileName.EndsWith(".svg") ? _remoteFileName[..^4] + ".png" : _remoteFileName;
 
     /// <inheritdoc/>
     public override string RemoteURL
         => $"{TmdbMetadataService.ImageServerUrl}original{RemoteImageName}";
 
+    private string? _relativePath = null;
+
     /// <summary>
     /// Relative path to the image stored locally.
     /// </summary>
     public string RelativePath
-        => Path.Join("TMDB", RemoteFileName[1..3], RemoteImageName);
+    {
+        get
+        {
+            if (_relativePath is not null)
+                return _relativePath;
+
+            var fileExt = Path.GetExtension(RemoteImageName);
+            var fileName = Path.GetFileNameWithoutExtension(_remoteFileName);
+            var hashedFileName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(fileName))).ToLower();
+            return _relativePath = Path.Combine("TMDB", hashedFileName[..2], hashedFileName + fileExt);
+        }
+    }
 
     /// <inheritdoc/>
     public override string LocalPath
@@ -72,9 +98,9 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     public TMDB_Image(string filePath, ImageEntityType type = ImageEntityType.None) : base(DataSourceEnum.TMDB, type, 0)
     {
-        RemoteFileName = filePath?.Trim() ?? string.Empty;
-        if (!string.IsNullOrEmpty(RemoteFileName) && RemoteFileName[0] != '/')
-            RemoteFileName = '/' + RemoteFileName;
+        _remoteFileName = filePath;
+        if (!string.IsNullOrEmpty(_remoteFileName) && _remoteFileName[0] != '/')
+            _remoteFileName = '/' + _remoteFileName;
 
         IsEnabled = true;
     }

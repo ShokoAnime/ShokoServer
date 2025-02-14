@@ -940,7 +940,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(150, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
         new(151, 01, "ALTER TABLE `TMDB_Season` ADD COLUMN `PosterPath` VARCHAR(64) NULL DEFAULT NULL;"),
         new(151, 02, "ALTER TABLE `TMDB_Episode` ADD COLUMN `ThumbnailPath` VARCHAR(64) NULL DEFAULT NULL;"),
-        new(152, 01, DatabaseFixes.MoveTmdbImagesOnDisc),
+        new(152, 01, DatabaseFixes.NoOperation),
+        new(152, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

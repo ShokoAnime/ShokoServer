@@ -892,7 +892,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(142, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
         new DatabaseCommand(143, 01, "ALTER TABLE TMDB_Season ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new DatabaseCommand(143, 02, "ALTER TABLE TMDB_Episode ADD ThumbnailPath NVARCHAR(64) NULL DEFAULT NULL;"),
-        new DatabaseCommand(144, 01, DatabaseFixes.MoveTmdbImagesOnDisc),
+        new DatabaseCommand(144, 01, DatabaseFixes.NoOperation),
+        new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
     };
 
     private static void AlterImdbMovieIDType()

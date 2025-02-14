@@ -859,7 +859,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(132, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
         new(133, 01, "ALTER TABLE TMDB_Season ADD COLUMN PosterPath TEXT NULL DEFAULT NULL;"),
         new(133, 02, "ALTER TABLE TMDB_Episode ADD COLUMN ThumbnailPath TEXT NULL DEFAULT NULL;"),
-        new(134, 01, DatabaseFixes.MoveTmdbImagesOnDisc),
+        new(134, 01, DatabaseFixes.NoOperation),
+        new(134, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
