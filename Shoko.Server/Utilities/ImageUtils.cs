@@ -27,89 +27,32 @@ public class ImageUtils
 
     [return: NotNullIfNotNull(nameof(relativePath))]
     public static string? ResolvePath(string? relativePath)
-    {
-        if (string.IsNullOrEmpty(relativePath))
-            return null;
-
-        var filePath = Path.Join(Path.TrimEndingDirectorySeparator(GetBaseImagesPath()), relativePath);
-        var dirPath = Path.GetDirectoryName(filePath);
-        if (!string.IsNullOrEmpty(dirPath) && !Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return filePath;
-    }
+        => !string.IsNullOrEmpty(relativePath)
+            ? Path.Join(Path.TrimEndingDirectorySeparator(GetBaseImagesPath()), relativePath)
+            : null;
 
     public static string GetBaseImagesPath()
-    {
-        var settings = Utils.SettingsProvider?.GetSettings();
-        var baseDirPath = !string.IsNullOrEmpty(settings?.ImagesPath) ?
-            Path.Combine(Utils.ApplicationPath, settings.ImagesPath) : Utils.DefaultImagePath;
-        if (!Directory.Exists(baseDirPath))
-            Directory.CreateDirectory(baseDirPath);
-
-        return baseDirPath;
-    }
+        => Utils.SettingsProvider?.GetSettings()?.ImagesPath is { Length: > 0 } imagePath
+            ? Path.Combine(Utils.ApplicationPath, imagePath)
+            : Utils.DefaultImagePath;
 
     public static string GetBaseAniDBImagesPath()
-    {
-        var dirPath = Path.Combine(GetBaseImagesPath(), "AniDB");
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
+        => Path.Join(GetBaseImagesPath(), "AniDB");
 
     public static string GetBaseAniDBCharacterImagesPath()
-    {
-        var dirPath = Path.Combine(GetBaseImagesPath(), "AniDB_Char");
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
+        => Path.Join(GetBaseImagesPath(), "AniDB_Char");
 
     public static string GetBaseAniDBCreatorImagesPath()
-    {
-        var dirPath = Path.Combine(GetBaseImagesPath(), "AniDB_Creator");
+        => Path.Join(GetBaseImagesPath(), "AniDB_Creator");
 
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
-
-    public static string GetAniDBCharacterImagePath(int charID)
-    {
-        var sid = charID.ToString();
-        var subFolder = sid.Length == 1 ? sid : sid[..2];
-        var dirPath = Path.Combine(GetBaseAniDBCharacterImagesPath(), subFolder);
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
+    public static string GetAniDBCharacterImagePath(int characterID)
+        => Path.Join(GetBaseAniDBCharacterImagesPath(), characterID.ToString() is { Length: > 2 } sid ? sid[..2] : characterID.ToString());
 
     public static string GetAniDBCreatorImagePath(int creatorID)
-    {
-        var sid = creatorID.ToString();
-        var subFolder = sid.Length == 1 ? sid : sid[..2];
-        var dirPath = Path.Combine(GetBaseAniDBCreatorImagesPath(), subFolder);
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
+        => Path.Join(GetBaseAniDBCreatorImagesPath(), creatorID.ToString() is { Length: > 2 } sid ? sid[..2] : creatorID.ToString());
 
     public static string GetAniDBImagePath(int animeID)
-    {
-        var sid = animeID.ToString();
-        var subFolder = sid.Length == 1 ? sid : sid[..2];
-        var dirPath = Path.Combine(GetBaseAniDBImagesPath(), subFolder);
-        if (!Directory.Exists(dirPath))
-            Directory.CreateDirectory(dirPath);
-
-        return dirPath;
-    }
+        => Path.Join(GetBaseAniDBImagesPath(), animeID.ToString() is { Length: > 2 } sid ? sid[..2] : animeID.ToString());
 
     public static IImageMetadata? GetImageMetadata(CL_ImageEntityType imageEntityType, int imageId)
         => GetImageMetadata(imageEntityType.ToServerSource(), imageEntityType.ToServerType(), imageId);
@@ -135,8 +78,7 @@ public class ImageUtils
         => GetRandomImageID(imageType.ToServerSource(), imageType.ToServerType());
 
     public static IImageMetadata? GetRandomImageID(DataSourceType dataSource, ImageEntityType imageType)
-    {
-        return dataSource switch
+        => dataSource switch
         {
             DataSourceType.AniDB => imageType switch
             {
@@ -161,21 +103,17 @@ public class ImageUtils
                 .GetRandomElement(),
             _ => null,
         };
-    }
 
     public static SVR_AnimeSeries? GetFirstSeriesForImage(IImageMetadata metadata)
     {
         switch (metadata.Source)
         {
             case DataSourceEnum.AniDB:
-                switch (metadata.ImageType)
+                return metadata.ImageType switch
                 {
-                    case ImageEntityType.Poster:
-                        return RepoFactory.AnimeSeries.GetByAnimeID(metadata.ID);
-                }
-
-                return null;
-
+                    ImageEntityType.Poster => RepoFactory.AnimeSeries.GetByAnimeID(metadata.ID),
+                    _ => null,
+                };
             case DataSourceEnum.TMDB:
             {
                 if (RepoFactory.TMDB_Image.GetByID(metadata.ID) is not { } tmdbImage || RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(tmdbImage.RemoteFileName) is not { Count: > 0 } entities)

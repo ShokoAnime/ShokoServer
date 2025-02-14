@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using JetBrains.Annotations;
-using Newtonsoft.Json;
 using Shoko.Models;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings;
 
@@ -13,19 +11,8 @@ public class ServerSettings : IServerSettings
     [UsedImplicitly]
     public int SettingsVersion { get; set; } = SettingsMigrations.Version;
 
-    [JsonIgnore]
-    private string _imagesPath;
-
     /// <inheritdoc />
-    public string ImagesPath
-    {
-        get => _imagesPath;
-        set
-        {
-            _imagesPath = value;
-            ImageUtils.GetBaseImagesPath();
-        }
-    }
+    public string ImagesPath { get; set; }
 
     [Range(1, 65535, ErrorMessage = "Server Port must be between 1 and 65535")]
     public ushort ServerPort { get; set; } = 8111;
