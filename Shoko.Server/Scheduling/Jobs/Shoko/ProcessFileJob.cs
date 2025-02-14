@@ -78,7 +78,6 @@ public class ProcessFileJob : BaseJob
         var releaseInfo = await GetReleaseInfo().ConfigureAwait(false);
 
         // Check if an AniDB file is now available and if the cross-references changed.
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         var newXRefs = _vlocal.EpisodeCrossReferences
             .Select(xref => xref.ToString())
             .Join(',');
@@ -89,16 +88,6 @@ public class ProcessFileJob : BaseJob
             // Set/update the import date
             _vlocal.DateTimeImported = DateTime.Now;
             RepoFactory.VideoLocal.Save(_vlocal);
-
-            // Add this file to the users list
-            if (_settings.AniDb.MyList_AddFiles && !SkipMyList && _vlocal.MyListID <= 0)
-            {
-                await scheduler.StartJob<AddFileToMyListJob>(c =>
-                {
-                    c.Hash = _vlocal.Hash;
-                    c.ReadStates = true;
-                }).ConfigureAwait(false);
-            }
 
             // Dispatch the on file matched event.
             ShokoEventHandler.Instance.OnFileMatched(_vlocal.FirstValidPlace!, _vlocal);
@@ -114,7 +103,10 @@ public class ProcessFileJob : BaseJob
 
         // Rename and/or move the physical file(s) if needed.
         if (_settings.Plugins.Renamer.RelocateOnImport)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
             await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = _vlocal.VideoLocalID).ConfigureAwait(false);
+        }
     }
 
     private async Task<IReleaseInfo?> GetReleaseInfo()

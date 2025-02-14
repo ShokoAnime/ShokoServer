@@ -106,13 +106,12 @@ public class ManualLinkJob : BaseJob
         // Dispatch the on file matched event.
         ShokoEventHandler.Instance.OnFileMatched(_vlocal.FirstValidPlace, _vlocal);
 
-        var scheduler = await _schedulerFactory.GetScheduler();
-        if (_settings.AniDb.MyList_AddFiles)
-            await scheduler.StartJob<AddFileToMyListJob>(job => job.Hash = _vlocal.Hash);
-
         // Rename and/or move the physical file(s) if needed.
         if (_settings.Plugins.Renamer.RelocateOnImport)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
             await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = _vlocal.VideoLocalID);
+        }
     }
 #pragma warning restore CS0618
 
