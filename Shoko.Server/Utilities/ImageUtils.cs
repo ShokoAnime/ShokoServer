@@ -46,13 +46,13 @@ public class ImageUtils
         => Path.Join(GetBaseImagesPath(), "AniDB_Creator");
 
     public static string GetAniDBCharacterImagePath(int characterID)
-        => Path.Join(GetBaseAniDBCharacterImagesPath(), characterID.ToString() is { Length: > 2 } sid ? sid[..2] : characterID.ToString());
+        => Path.Join(GetBaseAniDBCharacterImagesPath(), characterID.ToString() is { Length: > 1 } sid ? sid[..2] : characterID.ToString());
 
     public static string GetAniDBCreatorImagePath(int creatorID)
-        => Path.Join(GetBaseAniDBCreatorImagesPath(), creatorID.ToString() is { Length: > 2 } sid ? sid[..2] : creatorID.ToString());
+        => Path.Join(GetBaseAniDBCreatorImagesPath(), creatorID.ToString() is { Length: > 1 } sid ? sid[..2] : creatorID.ToString());
 
     public static string GetAniDBImagePath(int animeID)
-        => Path.Join(GetBaseAniDBImagesPath(), animeID.ToString() is { Length: > 2 } sid ? sid[..2] : animeID.ToString());
+        => Path.Join(GetBaseAniDBImagesPath(), animeID.ToString() is { Length: > 1 } sid ? sid[..2] : animeID.ToString());
 
     public static IImageMetadata? GetImageMetadata(CL_ImageEntityType imageEntityType, int imageId)
         => GetImageMetadata(imageEntityType.ToServerSource(), imageEntityType.ToServerType(), imageId);
