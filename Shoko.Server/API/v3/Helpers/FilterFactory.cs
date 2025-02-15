@@ -35,7 +35,7 @@ public class FilterFactory
             .ToDictionary(a => a.Name.TrimEnd("SortingSelector"));
     }
 
-    public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false)
+    public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false, bool includeEmpty = false)
     {
         var user = _context.GetUser();
         var filter = new Filter
@@ -60,7 +60,12 @@ public class FilterFactory
         filter.Size = filter.IsDirectory
             ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count
             // Only count top level groups
-            : _evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count(a => RepoFactory.AnimeGroup.GetByID(a.Key)?.AnimeGroupParentID == null);
+            : _evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count(a =>
+            {
+                var group = RepoFactory.AnimeGroup.GetByID(a.Key);
+                return group is { AnimeGroupParentID: null } && (includeEmpty || group.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
+            });
         return filter;
     }
 

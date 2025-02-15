@@ -39,13 +39,14 @@ public class FilterController : BaseController
     /// Get all <see cref="Filter"/>s except the live filter.
     /// </summary>
     /// <param name="includeEmpty">Include empty filters.</param>
+    /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <param name="showHidden">Show hidden filters.</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false,
+    public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeEmptyGroups = false,
         [FromQuery] bool showHidden = false, [FromQuery, Range(0, 100)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
     {
@@ -65,7 +66,7 @@ public class FilterController : BaseController
             })
             .Select(a => a.Key)
             .OrderBy(filter => filter.Name)
-            .ToListResult(filter => _factory.GetFilter(filter, withConditions), page, pageSize);
+            .ToListResult(filter => _factory.GetFilter(filter, withConditions, includeEmptyGroups), page, pageSize);
     }
 
     /// <summary>
@@ -214,15 +215,16 @@ public class FilterController : BaseController
     /// </summary>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
+    /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <returns>The filter</returns>
     [HttpGet("{filterID}")]
-    public ActionResult<Filter> GetFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool withConditions = false)
+    public ActionResult<Filter> GetFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = false)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
         if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        return _factory.GetFilter(filterPreset, withConditions);
+        return _factory.GetFilter(filterPreset, withConditions, includeEmptyGroups);
     }
 
     /// <summary>

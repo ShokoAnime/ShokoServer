@@ -37,9 +37,11 @@ public class ReverseTreeController : BaseController
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="topLevel">Always get the top-level <see cref="Filter"/></param>
+    /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
+    /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Parent")]
-    public ActionResult<Filter> GetParentFromFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool topLevel = false)
+    public ActionResult<Filter> GetParentFromFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool topLevel = false, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = false)
     {
         var filter = RepoFactory.FilterPreset.GetByID(filterID);
         if (filter == null)
@@ -58,7 +60,7 @@ public class ReverseTreeController : BaseController
             return InternalError("No parent Filter entry for the given filterID");
         }
 
-        return _filterFactory.GetFilter(parentGroup);
+        return _filterFactory.GetFilter(parentGroup, withConditions, includeEmptyGroups);
     }
 
     /// <summary>
