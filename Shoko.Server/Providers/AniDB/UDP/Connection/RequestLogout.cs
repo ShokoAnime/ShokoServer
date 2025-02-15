@@ -21,7 +21,7 @@ public class RequestLogout : UDPRequest<Void>
         }
 
         PreExecute(Handler.SessionID);
-        var rawResponse = Handler.SendDirectly(Command, isLogout: true).Result;
+        var rawResponse = Handler.SendDirectly(Command, isLogout: true);
         var response = ParseResponse(rawResponse);
         var parsedResponse = ParseResponse(response);
         return parsedResponse;

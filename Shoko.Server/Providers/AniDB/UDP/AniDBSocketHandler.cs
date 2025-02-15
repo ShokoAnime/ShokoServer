@@ -32,7 +32,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         _clientPort = clientPort;
     }
 
-    public async Task<byte[]> Send(byte[] payload, CancellationToken token)
+    public async Task<byte[]> Send(byte[] payload, CancellationToken token = new())
     {
         if (!IsConnected) return [0];
         // this doesn't need to be bigger than 1400, but meh, better safe than sorry

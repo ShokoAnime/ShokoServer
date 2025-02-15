@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Events;
@@ -15,8 +14,7 @@ namespace Shoko.Server.Providers.AniDB;
 public abstract class AniDBRateLimiter
 {
     private readonly ILogger _logger;
-
-    private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly object _lock = new();
 
     private readonly object _settingsLock = new();
 
@@ -140,9 +138,9 @@ public abstract class AniDBRateLimiter
         _logger.LogTrace("Rate is reset. Active time was {Time} ms", elapsedTime);
     }
 
-    public async Task<T> EnsureRateAsync<T>(Func<Task<T>> action, bool forceShortDelay = false)
+    public T EnsureRate<T>(Func<T> action, bool forceShortDelay = false)
     {
-        await _lock.WaitAsync();
+        lock (_lock)
         try
         {
             var delay = _requestWatch.ElapsedMilliseconds;
@@ -153,22 +151,21 @@ public abstract class AniDBRateLimiter
             {
                 _logger.LogTrace("Time since last request is {Delay} ms, not throttling", delay);
                 _logger.LogTrace("Sending AniDB command");
-                return await action();
+                return action();
             }
 
             // add 50ms for good measure
             var waitTime = currentDelay - (int)delay + 50;
 
-            _logger.LogTrace("Time since last request is {Delay} ms, throttling for {Time}", delay, waitTime);
-            await Task.Delay(waitTime);
+            _logger.LogTrace("Time since last request is {Delay} ms, throttling for {Time}ms", delay, waitTime);
+            Thread.Sleep(waitTime);
 
             _logger.LogTrace("Sending AniDB command");
-            return await action();
+            return action();
         }
         finally
         {
             _requestWatch.Restart();
-            _lock.Release();
         }
     }
 }

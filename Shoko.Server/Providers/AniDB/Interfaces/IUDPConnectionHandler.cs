@@ -1,6 +1,4 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Shoko.Server.Providers.AniDB.Interfaces;
 
@@ -13,17 +11,17 @@ public interface IUDPConnectionHandler : IConnectionHandler
     event EventHandler LoginFailed;
     bool SetCredentials(string username, string password);
     bool ValidAniDBCredentials(string user, string pass);
-    Task<bool> Login();
+    bool Login();
     void ForceLogout();
     void ClearSession();
-    Task CloseConnections();
-    Task ForceReconnection();
+    void CloseConnections();
+    void ForceReconnection();
     void StartBackoffTimer(int time, string message);
-    Task<bool> Init();
-    Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
-    Task<bool> TestLogin(string username, string password);
+    bool Init();
+    bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
+    bool TestLogin(string username, string password);
 
-    Task<string> SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false, CancellationToken token = new());
+    string SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false);
 
-    Task<string> Send(string command, bool needsUnicode = true, CancellationToken token = new());
+    string Send(string command, bool needsUnicode = true);
 }

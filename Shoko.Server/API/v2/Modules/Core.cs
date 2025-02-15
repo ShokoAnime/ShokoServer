@@ -206,13 +206,13 @@ public class Core : BaseController
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
-        await handler.CloseConnections();
+        handler.CloseConnections();
 
-        await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,
             _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
 
-        if (await handler.Login())
+        if (handler.Login())
         {
             handler.ForceLogout();
             return APIStatus.OK();

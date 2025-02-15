@@ -34,13 +34,13 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
     public virtual UDPResponse<T> Send()
     {
         Command = BaseCommand.Trim();
-        if (string.IsNullOrEmpty(Handler.SessionID) && !Handler.Login().Result)
+        if (string.IsNullOrEmpty(Handler.SessionID) && !Handler.Login())
         {
             throw new NotLoggedInException();
         }
 
         PreExecute(Handler.SessionID);
-        var rawResponse = Handler.Send(Command).Result;
+        var rawResponse = Handler.Send(Command);
         var response = ParseResponse(rawResponse);
         var parsedResponse = ParseResponse(response);
         PostExecute(Handler.SessionID, parsedResponse);

@@ -35,14 +35,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         _httpClient.BaseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
     }
 
-    public async Task<HttpResponse<string>> GetHttp(string url)
-    {
-        var response = await GetHttpDirectly(url);
-
-        return response;
-    }
-
-    public async Task<HttpResponse<string>> GetHttpDirectly(string url)
+    public HttpResponse<string> GetHttp(string url)
     {
         if (IsBanned)
         {
@@ -53,12 +46,12 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             };
         }
 
-        var response = await RateLimiter.EnsureRateAsync(async () =>
+        var response = RateLimiter.EnsureRate(() =>
         {
-            using var response = await _httpClient.GetAsync(url);
+            using var response = _httpClient.GetAsync(url).Result;
             response.EnsureSuccessStatusCode();
 
-            var output = await response.Content.ReadAsStringAsync();
+            var output = response.Content.ReadAsStringAsync().Result;
 
             if (CheckForBan(output))
             {

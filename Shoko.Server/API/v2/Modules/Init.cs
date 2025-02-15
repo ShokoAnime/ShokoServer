@@ -278,15 +278,15 @@ public class Init : BaseController
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
-        await handler.CloseConnections();
+        handler.CloseConnections();
 
         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
-        await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,
             _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
 
-        if (!await handler.Login()) return APIStatus.BadRequest("Failed to log in");
+        if (!handler.Login()) return APIStatus.BadRequest("Failed to log in");
         handler.ForceLogout();
 
         return APIStatus.OK();

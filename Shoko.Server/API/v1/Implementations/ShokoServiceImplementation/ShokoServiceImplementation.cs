@@ -649,7 +649,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
 
             log += "Login..." + Environment.NewLine;
-            if (handler.Login().Result)
+            if (handler.Login())
             {
                 log += "Login Success!" + Environment.NewLine;
                 log += "Logout..." + Environment.NewLine;

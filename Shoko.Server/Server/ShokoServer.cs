@@ -110,7 +110,7 @@ public class ShokoServer
         ShokoEventHandler.Instance.OnStarting();
 
         // for log readability, this will simply init the singleton
-        Task.Run(async () => await Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>().Init());
+        Task.Run(() => Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>().Init());
         Task.Run(() => Utils.ServiceContainer.GetRequiredService<RenameFileService>().AllRenamers);
         return true;
     }

@@ -109,7 +109,7 @@ public class DebugController : BaseController
     /// <param name="request">The AniDB UDP Request to make.</param>
     /// <returns>An AniDB UDP Response.</returns>
     [HttpPost("AniDB/UDP/Call")]
-    public async Task<AnidbUdpResponse> CallAniDB([FromBody] AnidbUdpRequest request)
+    public AnidbUdpResponse CallAniDB([FromBody] AnidbUdpRequest request)
     {
         try
         {
@@ -117,14 +117,14 @@ public class DebugController : BaseController
             _logger.LogDebug("Got command {Command}", request.Command);
             if (request.NeedAuth)
             {
-                if (string.IsNullOrEmpty(_udpHandler.SessionID) && !await _udpHandler.Login())
+                if (string.IsNullOrEmpty(_udpHandler.SessionID) && !_udpHandler.Login())
                     return new() { Code = UDPReturnCode.NOT_LOGGED_IN };
                 request.Payload.Add("s", _udpHandler.SessionID);
             }
 
             var fullResponse = request.Unsafe ?
-                await _udpHandler.SendDirectly(request.Command, isPing: request.IsPing, isLogout: request.IsLogout, token: token) :
-                await _udpHandler.Send(request.Command, token: token);
+                _udpHandler.SendDirectly(request.Command, isPing: request.IsPing, isLogout: request.IsLogout) :
+                _udpHandler.Send(request.Command);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
                 fullResponse.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

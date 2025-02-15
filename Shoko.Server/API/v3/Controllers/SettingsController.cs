@@ -70,7 +70,7 @@ public class SettingsController : BaseController
     /// <param name="credentials">POST the body as a <see cref="Credentials"/> object</param>
     /// <returns></returns>
     [HttpPost("AniDB/TestLogin")]
-    public async Task<ActionResult> TestAniDB([FromBody] Credentials credentials)
+    public ActionResult TestAniDB([FromBody] Credentials credentials)
     {
         _logger.LogInformation("Testing AniDB Login and Connection");
         if (string.IsNullOrWhiteSpace(credentials.Username))
@@ -87,10 +87,10 @@ public class SettingsController : BaseController
 
         var settings = SettingsProvider.GetSettings();
         if (!_udpHandler.IsAlive)
-            await _udpHandler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
+            _udpHandler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
         else _udpHandler.ForceLogout();
 
-        if (!await _udpHandler.TestLogin(credentials.Username, credentials.Password))
+        if (!_udpHandler.TestLogin(credentials.Username, credentials.Password))
         {
             _logger.LogInformation("Failed AniDB Login and Connection");
             return ValidationProblem("Failed to log in.", "Connection");
