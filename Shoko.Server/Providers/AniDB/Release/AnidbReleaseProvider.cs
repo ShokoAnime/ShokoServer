@@ -4,18 +4,20 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
 
-public class AnidbReleaseProvider(IRequestFactory requestFactory) : IReleaseInfoProvider
+public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory) : IReleaseInfoProvider
 {
     public const string ReleasePrefix = "https://anidb.net/file/";
 
@@ -32,13 +34,26 @@ public class AnidbReleaseProvider(IRequestFactory requestFactory) : IReleaseInfo
         if (string.IsNullOrEmpty(hash) || hash.Length != 32 || !long.TryParse(fileSize, out var size))
             return null;
 
-        var response = await Task.Run(() => requestFactory.Create<RequestGetFile>(request =>
-            {
-                request.Hash = hash;
-                request.Size = size;
-            }
-        ).Send());
-        if (response?.Response is not { } anidbFile)
+        ResponseGetFile? anidbFile = null;
+        try
+        {
+            var response = await Task.Run(() => requestFactory.Create<RequestGetFile>(request =>
+                {
+                    request.Hash = hash;
+                    request.Size = size;
+                }
+            ).Send());
+            anidbFile = response?.Response;
+        }
+        catch (NotLoggedInException ex)
+        {
+            logger.LogError(ex, "Is AniDB UDP Banned.");
+        }
+        catch (AniDBBannedException ex)
+        {
+            logger.LogError(ex, "Is AniDB UDP Banned.");
+        }
+        if (anidbFile is null)
             return null;
 
         var releaseInfo = new ReleaseInfoWithProvider(Name)

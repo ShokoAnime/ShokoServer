@@ -29,7 +29,7 @@ public class VideoLocalService
 
     private readonly ISchedulerFactory _schedulerFactory;
 
-    private readonly DatabaseReleaseInfoRepository _databaseReleaseInfo;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfo;
 
     private readonly AniDB_EpisodeRepository _aniDBEpisode;
 
@@ -37,12 +37,12 @@ public class VideoLocalService
 
     private readonly ILogger<VideoLocalService> _logger;
 
-    public VideoLocalService(VideoLocal_UserRepository vlUsers, ISchedulerFactory schedulerFactory, ILogger<VideoLocalService> logger, DatabaseReleaseInfoRepository databaseReleaseInfo, AniDB_EpisodeRepository aniDBEpisode)
+    public VideoLocalService(VideoLocal_UserRepository vlUsers, ISchedulerFactory schedulerFactory, ILogger<VideoLocalService> logger, StoredReleaseInfoRepository storedReleaseInfo, AniDB_EpisodeRepository aniDBEpisode)
     {
         _vlUsers = vlUsers;
         _schedulerFactory = schedulerFactory;
         _logger = logger;
-        _databaseReleaseInfo = databaseReleaseInfo;
+        _storedReleaseInfo = storedReleaseInfo;
         _aniDBEpisode = aniDBEpisode;
     }
 
@@ -115,7 +115,7 @@ public class VideoLocalService
     public async Task ScheduleRemovalFromMyList(SVR_VideoLocal video)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        if (_databaseReleaseInfo.GetByEd2kAndFileSize(video.Hash, video.FileSize) is { ReleaseURI: not null } releaseInfo && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+        if (_storedReleaseInfo.GetByEd2kAndFileSize(video.Hash, video.FileSize) is { ReleaseURI: not null } releaseInfo && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
         {
             await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                 {
@@ -163,7 +163,7 @@ public class VideoLocalService
         {
             Percentage = xrefs[0].Percentage,
             EpisodeOrder = xrefs[0].EpisodeOrder,
-            CrossRefSource = xrefs[0].CrossRefSource,
+            CrossRefSource = 0,
             AnimeEpisodeID = xrefs[0].EpisodeID,
             VideoLocal_FileName = vl.FileName,
             VideoLocal_Hash = vl.Hash,
