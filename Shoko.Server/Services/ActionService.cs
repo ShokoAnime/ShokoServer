@@ -86,7 +86,7 @@ public class ActionService(
         {
             if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+                var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                 if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                     continue;
             }
@@ -703,7 +703,7 @@ public class ActionService(
     public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
-        var incorrectGroups = RepoFactory.DatabaseReleaseInfo.GetAll()
+        var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
             .Where(r =>
                 !string.IsNullOrEmpty(r.GroupID) &&
                 r.GroupProviderID is "AniDB" &&
@@ -715,7 +715,7 @@ public class ActionService(
             .DistinctBy(a => a.GroupID)
             .Select(a => int.Parse(a.GroupID))
             .ToHashSet();
-        var missingFiles = RepoFactory.DatabaseReleaseInfo.GetAll()
+        var missingFiles = RepoFactory.StoredReleaseInfo.GetAll()
             .Where(r => r.ProviderID is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupProviderID is not "AniDB"))
             .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
             .WhereNotNull()
@@ -934,7 +934,7 @@ public class ActionService(
         {
             if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+                var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                 if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                     continue;
             }

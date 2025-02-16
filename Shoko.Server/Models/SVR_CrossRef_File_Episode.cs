@@ -23,7 +23,7 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
 
     public SVR_AnimeSeries? AnimeSeries => AnimeID is 0 ? null : RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
 
-    public DatabaseReleaseInfo? ReleaseInfo => RepoFactory.DatabaseReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);
+    public StoredReleaseInfo? ReleaseInfo => RepoFactory.StoredReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);
 
     private (int? LastKnownPercentage, (int Start, int End) Range) _percentageRangeCalculated = (null, (0, 0));
 
