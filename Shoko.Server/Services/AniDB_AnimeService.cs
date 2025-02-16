@@ -17,15 +17,15 @@ public class AniDB_AnimeService
 {
     private readonly AniDB_Anime_TitleRepository _titles;
     private readonly AniDB_TagRepository _aniDBTags;
-    private readonly DatabaseReleaseInfoRepository _databaseReleaseInfo;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfo;
     private readonly VideoLocalRepository _videoLocals;
     private readonly AniDB_CharacterRepository _characters;
 
-    public AniDB_AnimeService(AniDB_Anime_TitleRepository titles, AniDB_TagRepository aniDBTags, DatabaseReleaseInfoRepository databaseReleaseInfo, VideoLocalRepository videoLocals, AniDB_CharacterRepository characters)
+    public AniDB_AnimeService(AniDB_Anime_TitleRepository titles, AniDB_TagRepository aniDBTags, StoredReleaseInfoRepository storedReleaseInfo, VideoLocalRepository videoLocals, AniDB_CharacterRepository characters)
     {
         _titles = titles;
         _aniDBTags = aniDBTags;
-        _databaseReleaseInfo = databaseReleaseInfo;
+        _storedReleaseInfo = storedReleaseInfo;
         _videoLocals = videoLocals;
         _characters = characters;
     }
@@ -89,10 +89,10 @@ public class AniDB_AnimeService
 
         cl.UserVote = anime.UserVote;
 
-        cl.Stat_AudioLanguages = _databaseReleaseInfo.GetByAnidbAnimeID(anime.AnimeID)
+        cl.Stat_AudioLanguages = _storedReleaseInfo.GetByAnidbAnimeID(anime.AnimeID)
             .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        cl.Stat_SubtitleLanguages = _databaseReleaseInfo.GetByAnidbAnimeID(anime.AnimeID)
+        cl.Stat_SubtitleLanguages = _storedReleaseInfo.GetByAnidbAnimeID(anime.AnimeID)
             .SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? [])
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         cl.Stat_AllVideoQuality =

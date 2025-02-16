@@ -9,16 +9,16 @@ using Shoko.Server.Models.Release;
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class DatabaseReleaseInfoRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<DatabaseReleaseInfo, int>(databaseFactory)
+public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredReleaseInfo, int>(databaseFactory)
 {
-    private PocoIndex<int, DatabaseReleaseInfo, string>? _ed2k;
-    private PocoIndex<int, DatabaseReleaseInfo, (string groupId, string providerId)>? _groupIDs;
-    private PocoIndex<int, DatabaseReleaseInfo, string?>? _releaseURIs;
-    private PocoIndex<int, DatabaseReleaseInfo, int>? _anidbEpisodeIDs;
-    private PocoIndex<int, DatabaseReleaseInfo, int>? _anidbAnimeIDs;
+    private PocoIndex<int, StoredReleaseInfo, string>? _ed2k;
+    private PocoIndex<int, StoredReleaseInfo, (string groupId, string providerId)>? _groupIDs;
+    private PocoIndex<int, StoredReleaseInfo, string?>? _releaseURIs;
+    private PocoIndex<int, StoredReleaseInfo, int>? _anidbEpisodeIDs;
+    private PocoIndex<int, StoredReleaseInfo, int>? _anidbAnimeIDs;
 
-    protected override int SelectKey(DatabaseReleaseInfo entity)
-        => entity.DatabaseReleaseInfoID;
+    protected override int SelectKey(StoredReleaseInfo entity)
+        => entity.StoredReleaseInfoID;
 
     public override void PopulateIndexes()
     {
@@ -29,30 +29,30 @@ public class DatabaseReleaseInfoRepository(DatabaseFactory databaseFactory) : Ba
         _anidbAnimeIDs = Cache.CreateIndex(a => a.CrossReferences.Select(b => b.AnidbAnimeID).Distinct().WhereNotDefault());
     }
 
-    public IReadOnlyList<DatabaseReleaseInfo> GetByEd2k(string ed2k)
+    public IReadOnlyList<StoredReleaseInfo> GetByEd2k(string ed2k)
         => !string.IsNullOrWhiteSpace(ed2k)
             ? ReadLock(() => _ed2k!.GetMultiple(ed2k))
             : [];
 
-    public DatabaseReleaseInfo? GetByEd2kAndFileSize(string ed2k, long fileSize)
+    public StoredReleaseInfo? GetByEd2kAndFileSize(string ed2k, long fileSize)
         => GetByEd2k(ed2k).FirstOrDefault(a => a.FileSize == fileSize);
 
-    public IReadOnlyList<DatabaseReleaseInfo> GetByGroupAndProviderIDs(string groupId, string providerId)
+    public IReadOnlyList<StoredReleaseInfo> GetByGroupAndProviderIDs(string groupId, string providerId)
         => !string.IsNullOrEmpty(groupId) && !string.IsNullOrEmpty(providerId)
             ? ReadLock(() => _groupIDs!.GetMultiple((groupId, providerId)))
             : [];
 
-    public DatabaseReleaseInfo? GetByReleaseURI(string? releaseUri)
+    public StoredReleaseInfo? GetByReleaseURI(string? releaseUri)
         => !string.IsNullOrEmpty(releaseUri)
             ? ReadLock(() => _releaseURIs!.GetOne(releaseUri))
             : null;
 
-    public IReadOnlyList<DatabaseReleaseInfo> GetByAnidbEpisodeID(int episodeId)
+    public IReadOnlyList<StoredReleaseInfo> GetByAnidbEpisodeID(int episodeId)
         => episodeId > 0
             ? ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeId))
             : [];
 
-    public IReadOnlyList<DatabaseReleaseInfo> GetByAnidbAnimeID(int animeId)
+    public IReadOnlyList<StoredReleaseInfo> GetByAnidbAnimeID(int animeId)
         => animeId > 0
             ? ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeId))
             : [];
