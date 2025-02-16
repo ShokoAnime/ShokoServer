@@ -789,7 +789,7 @@ public class FileController : BaseController
             ResumePosition = resumePosition.HasValue
                 ? TimeSpan.FromTicks(playbackPositionTicks)
                 : (watched.HasValue ? TimeSpan.Zero : null),
-            LastPlayedAt = !watched.HasValue
+            LastPlayedAt = watched.HasValue
                 ? (watched.Value ? now : null)
                 : userData?.LastPlayedAt,
             LastUpdatedAt = now,
