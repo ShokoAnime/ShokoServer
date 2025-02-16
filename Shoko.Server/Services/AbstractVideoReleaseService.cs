@@ -275,16 +275,13 @@ public class AbstractVideoReleaseService(
         return releaseInfo;
     }
 
-    public async Task<bool> ClearReleaseForVideo(IVideo video)
+    public async Task ClearReleaseForVideo(IVideo video)
     {
-        var existingRelease = releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
-        if (existingRelease is null)
-            return true;
-
-        return await ClearReleaseForVideo(video, existingRelease);
+        if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
+            await ClearReleaseForVideo(video, existingRelease);
     }
 
-    private Task<bool> ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo)
+    private async Task ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo)
     {
         if (video is SVR_VideoLocal videoLocal)
         {
@@ -297,9 +294,9 @@ public class AbstractVideoReleaseService(
 
         releaseInfoRepository.Delete(releaseInfo);
 
-        VideoReleaseDeleted?.Invoke(null, new(video, releaseInfo));
+        await ScheduleAnimeForRelease(xrefs);
 
-        return Task.FromResult(true);
+        VideoReleaseDeleted?.Invoke(null, new(video, releaseInfo));
     }
 
     private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
