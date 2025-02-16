@@ -1150,52 +1150,20 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Unlink all the episodes if no body is given, or only the specified episodes from the file.
+    /// Unlink all the episodes from the file.
     /// </summary>
     /// <param name="fileID">The file id.</param>
-    /// <param name="body">Optional. The body.</param>
     /// <returns></returns>
     [HttpDelete("{fileID}/Link")]
-    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
+    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
 
-        // Validate that the cross-references are allowed to be removed.
-        var all = body == null;
-        var episodeIdSet = body?.EpisodeIDs?.ToHashSet() ?? [];
-        var seriesIDs = new HashSet<int>();
-        var episodeList = file.AnimeEpisodes
-            .Where(episode => all || episodeIdSet.Contains(episode.AniDB_EpisodeID))
-            .Select(episode => (Episode: episode, XRef: file.EpisodeCrossReferences.FirstOrDefault(x => x.EpisodeID == episode.AniDB_EpisodeID)))
-            .Where(obj => obj.XRef != null)
-            .ToList();
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+        if (_videoReleaseService.GetCurrentReleaseForVideo(video) is null)
+            return ValidationProblem("The file is not linked to any episodes.");
 
-        // Remove the cross-references, and take note of the series ids that
-        // needs to be updated later.
-        foreach (var (episode, xref) in episodeList)
-        {
-            seriesIDs.Add(episode.AnimeSeriesID);
-            RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
-        }
-
-        // Reset the import date.
-        if (file.DateTimeImported.HasValue)
-        {
-            file.DateTimeImported = null;
-            RepoFactory.VideoLocal.Save(file);
-        }
-
-        // Update any series affected by this unlinking.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var seriesID in seriesIDs)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
-        }
+        await _videoReleaseService.ClearReleaseForVideo(video);
 
         return Ok();
     }
