@@ -22,7 +22,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
         services.AddDirectRepository<AniDB_Anime_SimilarRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
-        services.AddDirectRepository<AniDB_FileUpdateRepository>();
         services.AddDirectRepository<AniDB_GroupStatusRepository>();
         services.AddDirectRepository<BookmarkedAnimeRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
@@ -83,7 +82,8 @@ public static class RepositoryStartup
         services.AddCachedRepository<CrossRef_CustomTagRepository>();
         services.AddCachedRepository<CrossRef_File_EpisodeRepository>();
         services.AddCachedRepository<CustomTagRepository>();
-        services.AddCachedRepository<DatabaseReleaseInfoRepository>();
+        services.AddCachedRepository<StoredReleaseInfoRepository>();
+        services.AddCachedRepository<StoredReleaseInfo_MatchAttemptRepository>();
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();

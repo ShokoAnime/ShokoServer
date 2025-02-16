@@ -27,7 +27,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 135;
+    public override int RequiredVersion => 136;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -862,6 +862,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(134, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(135, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(135, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
+        new(136, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INTEGER PRIMARY KEY AUTOINCREMENT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, ID INTEGER, ProviderID TEXT NOT NULL, ReleaseURI TEXT, Revision INTEGER NOT NULL, Comment TEXT, OriginalFilename TEXT, IsCensored INTEGER, IsCorrupted INTEGER NOT NULL, Source INTEGER NOT NULL, GroupID INTEGER, GroupProviderID INTEGER, GroupName TEXT, GroupShortName TEXT, Hashes TEXT, AudioLanguages TEXT, SubtitleLanguages TEXT, CrossReferences TEXT NOT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME NOT NULL, CreatedAt DATETIME NOT NULL);"),
+        new(136, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INTEGER PRIMARY KEY AUTOINCREMENT, AttemptProviderIDs TEXT NOT NULL, ProviderID INTEGER NOT NULL, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, AttemptStartedAt DATETIME NOT NULL, AttemptEndedAt DATETIME NOT NULL);"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
