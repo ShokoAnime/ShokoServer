@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -45,7 +46,7 @@ public class AnimeCreator
 
 
 #pragma warning disable CS0618
-    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, bool shouldUpdateFiles, Dictionary<SVR_AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, bool shouldUpdateFiles, Dictionary<IEpisode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
         if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, false, []);
@@ -325,7 +326,7 @@ public class AnimeCreator
         return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
 
-    private async Task<(bool, Dictionary<SVR_AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task<(bool, Dictionary<IEpisode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
             return (false, []);
@@ -353,7 +354,7 @@ public class AnimeCreator
         var epsToSave = new List<SVR_AniDB_Episode>();
         var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
         var titlesToSave = new List<SVR_AniDB_Episode_Title>();
-        var episodeEventsToEmit = new Dictionary<SVR_AniDB_Episode, UpdateReason>();
+        var episodeEventsToEmit = new Dictionary<IEpisode, UpdateReason>();
 
         foreach (var rawEpisode in rawEpisodeList)
         {
@@ -507,7 +508,7 @@ public class AnimeCreator
         var shokoEpisodesToRemove = new List<SVR_AnimeEpisode>();
         var shokoEpisodesToSave = new List<SVR_AnimeEpisode>();
         var shokoSeriesDict = new Dictionary<int, SVR_AnimeSeries>();
-        var databaseReleasesToRemove = new List<DatabaseReleaseInfo>();
+        var storedReleasesToRemove = new List<StoredReleaseInfo>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
         var videosToRefetch = new List<SVR_VideoLocal>();
         var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
@@ -544,11 +545,11 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .Where(video => video != null)
                 .ToList();
-            var databaseReleases = RepoFactory.DatabaseReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
+            var storedReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            databaseReleasesToRemove.AddRange(databaseReleases);
+            storedReleasesToRemove.AddRange(storedReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
         shokoSeriesDict.Clear();
@@ -566,15 +567,15 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .Where(video => video != null)
                 .ToList();
-            var databaseReleases = RepoFactory.DatabaseReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
+            var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            databaseReleasesToRemove.AddRange(databaseReleases);
+            storedReleasesToRemove.AddRange(databaseReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
 
-        RepoFactory.DatabaseReleaseInfo.Delete(databaseReleasesToRemove.DistinctBy(a => a.DatabaseReleaseInfoID).ToList());
+        RepoFactory.StoredReleaseInfo.Delete(storedReleasesToRemove.DistinctBy(a => a.StoredReleaseInfoID).ToList());
         RepoFactory.AniDB_Episode.Save(epsToSave);
         RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);

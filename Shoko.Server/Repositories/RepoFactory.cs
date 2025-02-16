@@ -36,7 +36,6 @@ public class RepoFactory
     public static AniDB_Episode_PreferredImageRepository AniDB_Episode_PreferredImage;
     public static AniDB_Episode_TitleRepository AniDB_Episode_Title;
     public static AniDB_EpisodeRepository AniDB_Episode;
-    public static AniDB_FileUpdateRepository AniDB_FileUpdate;
     public static AniDB_GroupStatusRepository AniDB_GroupStatus;
     public static AniDB_MessageRepository AniDB_Message;
     public static AniDB_NotifyQueueRepository AniDB_NotifyQueue;
@@ -58,7 +57,6 @@ public class RepoFactory
     public static CrossRef_CustomTagRepository CrossRef_CustomTag;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode;
     public static CustomTagRepository CustomTag;
-    public static DatabaseReleaseInfoRepository DatabaseReleaseInfo;
     public static FileNameHashRepository FileNameHash;
     public static FilterPresetRepository FilterPreset;
     public static IgnoreAnimeRepository IgnoreAnime;
@@ -69,6 +67,8 @@ public class RepoFactory
     public static ScanFileRepository ScanFile;
     public static ScanRepository Scan;
     public static ScheduledUpdateRepository ScheduledUpdate;
+    public static StoredReleaseInfoRepository StoredReleaseInfo;
+    public static StoredReleaseInfo_MatchAttemptRepository StoredReleaseInfo_MatchAttempt;
     public static TMDB_AlternateOrdering_EpisodeRepository TMDB_AlternateOrdering_Episode;
     public static TMDB_AlternateOrdering_SeasonRepository TMDB_AlternateOrdering_Season;
     public static TMDB_AlternateOrderingRepository TMDB_AlternateOrdering;
@@ -117,7 +117,6 @@ public class RepoFactory
         AniDB_Episode_PreferredImageRepository anidbEpisodePreferredImage,
         AniDB_Episode_TitleRepository anidbEpisodeTitle,
         AniDB_EpisodeRepository anidbEpisode,
-        AniDB_FileUpdateRepository anidbFileUpdate,
         AniDB_GroupStatusRepository anidbGroupStatus,
         AniDB_MessageRepository anidbMessage,
         AniDB_NotifyQueueRepository anidbNotifyQueue,
@@ -139,7 +138,6 @@ public class RepoFactory
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
         CustomTagRepository customTag,
-        DatabaseReleaseInfoRepository databaseReleaseInfo,
         FileNameHashRepository fileNameHash,
         FilterPresetRepository filterPreset,
         IgnoreAnimeRepository ignoreAnime,
@@ -150,9 +148,8 @@ public class RepoFactory
         ScanFileRepository scanFile,
         ScanRepository scan,
         ScheduledUpdateRepository scheduledUpdate,
-        Trakt_EpisodeRepository traktEpisode,
-        Trakt_SeasonRepository traktSeason,
-        Trakt_ShowRepository traktShow,
+        StoredReleaseInfoRepository storedReleaseInfo,
+        StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempt,
         TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisode,
         TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeason,
         TMDB_AlternateOrderingRepository tmdbAlternateOrdering,
@@ -163,8 +160,8 @@ public class RepoFactory
         TMDB_Episode_CastRepository tmdbEpisodeCast,
         TMDB_Episode_CrewRepository tmdbEpisodeCrew,
         TMDB_EpisodeRepository tmdbEpisode,
-        TMDB_ImageRepository tmdbImage,
         TMDB_Image_EntityRepository tmdbImageEntity,
+        TMDB_ImageRepository tmdbImage,
         TMDB_Movie_CastRepository tmdbMovieCast,
         TMDB_Movie_CrewRepository tmdbMovieCrew,
         TMDB_MovieRepository tmdbMovie,
@@ -175,6 +172,9 @@ public class RepoFactory
         TMDB_Show_NetworkRepository tmdbShowNetwork,
         TMDB_ShowRepository tmdbShow,
         TMDB_TitleRepository tmdbTitle,
+        Trakt_EpisodeRepository traktEpisode,
+        Trakt_SeasonRepository traktSeason,
+        Trakt_ShowRepository traktShow,
         VersionsRepository versions,
         VideoLocal_PlaceRepository videoLocalPlace,
         VideoLocal_UserRepository videoLocalUser,
@@ -198,7 +198,6 @@ public class RepoFactory
         AniDB_Episode = anidbEpisode;
         AniDB_Episode_PreferredImage = anidbEpisodePreferredImage;
         AniDB_Episode_Title = anidbEpisodeTitle;
-        AniDB_FileUpdate = anidbFileUpdate;
         AniDB_GroupStatus = anidbGroupStatus;
         AniDB_Message = anidbMessage;
         AniDB_NotifyQueue = anidbNotifyQueue;
@@ -220,7 +219,6 @@ public class RepoFactory
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
         CustomTag = customTag;
-        DatabaseReleaseInfo = databaseReleaseInfo;
         FileNameHash = fileNameHash;
         FilterPreset = filterPreset;
         IgnoreAnime = ignoreAnime;
@@ -231,6 +229,8 @@ public class RepoFactory
         Scan = scan;
         ScanFile = scanFile;
         ScheduledUpdate = scheduledUpdate;
+        StoredReleaseInfo = storedReleaseInfo;
+        StoredReleaseInfo_MatchAttempt = storedReleaseInfoMatchAttempt;
         TMDB_AlternateOrdering = tmdbAlternateOrdering;
         TMDB_AlternateOrdering_Episode = tmdbAlternateOrderingEpisode;
         TMDB_AlternateOrdering_Season = tmdbAlternateOrderingSeason;

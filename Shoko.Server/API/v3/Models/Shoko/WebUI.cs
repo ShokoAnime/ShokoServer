@@ -187,7 +187,7 @@ public class WebUI
                 // Show everything if no types are provided, otherwise filter to the given types.
                 .Where(episode => episodeTypes.Count == 0 || episodeTypes.Contains(episode.Type))
                 .ToDictionary(episode => episode.ID);
-            var releases = RepoFactory.DatabaseReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+            var releases = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
                 .ToDictionary(release => (release.ED2K, release.FileSize), release => (IReleaseInfo)release);
             var releaseGroups = releases.Values
                 .Select(r => r.Group)

@@ -27,7 +27,7 @@ public class AniDBController(
     ISettingsProvider settingsProvider,
     IUDPConnectionHandler udpHandler,
     IHttpConnectionHandler httpHandler,
-    DatabaseReleaseInfoRepository databaseReleaseInfos,
+    StoredReleaseInfoRepository storedReleaseInfos,
     AniDB_CreatorRepository anidbCreators
 ) : BaseController(settingsProvider)
 {
@@ -63,11 +63,11 @@ public class AniDBController(
     {
         return includeMissing switch
         {
-            IncludeOnlyFilter.False => databaseReleaseInfos.GetUsedReleaseGroups()
+            IncludeOnlyFilter.False => storedReleaseInfos.GetUsedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            IncludeOnlyFilter.Only => databaseReleaseInfos.GetUnusedReleaseGroups()
+            IncludeOnlyFilter.Only => storedReleaseInfos.GetUnusedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            _ => databaseReleaseInfos.GetReleaseGroups()
+            _ => storedReleaseInfos.GetReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
         };
     }
@@ -80,7 +80,7 @@ public class AniDBController(
     [HttpGet("ReleaseGroup/{id}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
     {
-        if (databaseReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not IReleaseInfo { Group.ProviderID: "AniDB" } releaseInfo)
+        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not IReleaseInfo { Group.ProviderID: "AniDB" } releaseInfo)
             return NotFound();
 
         return new ReleaseGroup(releaseInfo.Group);

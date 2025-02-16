@@ -86,7 +86,7 @@ public class SyncAniDBMyListJob : BaseJob
         var onlineFiles = response.Response
             .Where(a => a.FileID is not null and not 0)
             .ToLookup(a => a.FileID!.Value);
-        var localFiles = RepoFactory.DatabaseReleaseInfo.GetAll()
+        var localFiles = RepoFactory.StoredReleaseInfo.GetAll()
             .Where(r => !string.IsNullOrEmpty(r.ReleaseURI) && r.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
             .ToLookup(a => a.ED2K);
 
@@ -106,7 +106,7 @@ public class SyncAniDBMyListJob : BaseJob
                 if (myItem.ViewedAt.HasValue) watchedItems++;
 
                 // the null is checked in the collection
-                var aniFile = RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
+                var aniFile = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
 
                 // the AniDB_File should never have a null hash, but just in case
                 var vl = aniFile?.ED2K is null ? null : RepoFactory.VideoLocal.GetByEd2k(aniFile.ED2K);
@@ -299,7 +299,7 @@ public class SyncAniDBMyListJob : BaseJob
         return true;
     }
 
-    private async Task<int> AddMissingFiles(ILookup<string, DatabaseReleaseInfo> localFiles,
+    private async Task<int> AddMissingFiles(ILookup<string, StoredReleaseInfo> localFiles,
         ILookup<int, ResponseMyList> onlineFiles)
     {
         if (!_settings.AniDb.MyList_AddFiles) return 0;
@@ -327,7 +327,7 @@ public class SyncAniDBMyListJob : BaseJob
         return missingFiles;
     }
 
-    private static bool TryGetFileID(ILookup<string, DatabaseReleaseInfo> localFiles, string hash, out int fileID)
+    private static bool TryGetFileID(ILookup<string, StoredReleaseInfo> localFiles, string hash, out int fileID)
     {
         fileID = 0;
         if (!localFiles.Contains(hash)) return false;

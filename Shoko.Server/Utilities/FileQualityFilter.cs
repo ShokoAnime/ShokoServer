@@ -132,12 +132,12 @@ public static class FileQualityFilter
         };
     }
 
-    private static bool CheckChaptered(DatabaseReleaseInfo anidbFile, IMediaInfo media)
+    private static bool CheckChaptered(StoredReleaseInfo anidbFile, IMediaInfo media)
     {
         return anidbFile?.IsChaptered ?? media?.Chapters.Any() ?? false;
     }
 
-    private static bool CheckDeprecated(DatabaseReleaseInfo aniFile)
+    private static bool CheckDeprecated(StoredReleaseInfo aniFile)
     {
         return !(aniFile?.IsCorrupted ?? false);
     }
@@ -173,7 +173,7 @@ public static class FileQualityFilter
         };
     }
 
-    private static bool CheckSource(DatabaseReleaseInfo aniFile)
+    private static bool CheckSource(StoredReleaseInfo aniFile)
     {
         if (IsNullOrUnknown(aniFile))
         {
@@ -195,7 +195,7 @@ public static class FileQualityFilter
         };
     }
 
-    private static bool CheckSubGroup(DatabaseReleaseInfo aniFile)
+    private static bool CheckSubGroup(StoredReleaseInfo aniFile)
     {
         if (IsNullOrUnknown(aniFile))
         {
@@ -342,7 +342,7 @@ public static class FileQualityFilter
         return oldStreamCount.CompareTo(newStreamCount);
     }
 
-    private static int CompareChapterTo(IMediaInfo newMedia, DatabaseReleaseInfo newFile, IMediaInfo oldMedia, DatabaseReleaseInfo oldFile)
+    private static int CompareChapterTo(IMediaInfo newMedia, StoredReleaseInfo newFile, IMediaInfo oldMedia, StoredReleaseInfo oldFile)
     {
         var newIsChaptered = newFile?.IsChaptered ?? newMedia?.Chapters.Any() ?? false;
         var oldIsChaptered = oldFile?.IsChaptered ?? oldMedia?.Chapters.Any() ?? false;
@@ -372,7 +372,7 @@ public static class FileQualityFilter
         return newIndex.CompareTo(oldIndex);
     }
 
-    private static int CompareSourceTo(DatabaseReleaseInfo newFile, DatabaseReleaseInfo oldFile)
+    private static int CompareSourceTo(StoredReleaseInfo newFile, StoredReleaseInfo oldFile)
     {
         var newAnidbFileIsNullOrUnknown = IsNullOrUnknown(newFile);
         var oldAnidbFileIsNullOrUnknown = IsNullOrUnknown(oldFile);
@@ -402,7 +402,7 @@ public static class FileQualityFilter
         return newIndex.CompareTo(oldIndex);
     }
 
-    private static int CompareSubGroupTo(DatabaseReleaseInfo newFile, DatabaseReleaseInfo oldFile)
+    private static int CompareSubGroupTo(StoredReleaseInfo newFile, StoredReleaseInfo oldFile)
     {
         var newAnidbFileIsNullOrUnknown = IsNullOrUnknown(newFile);
         var oldAnidbFileIsNullOrUnknown = IsNullOrUnknown(oldFile);
@@ -441,7 +441,7 @@ public static class FileQualityFilter
         return oldStreamCount.CompareTo(newStreamCount);
     }
 
-    private static int CompareVersionTo(DatabaseReleaseInfo newFile, DatabaseReleaseInfo oldFile, IMediaInfo newMedia, IMediaInfo oldMedia)
+    private static int CompareVersionTo(StoredReleaseInfo newFile, StoredReleaseInfo oldFile, IMediaInfo newMedia, IMediaInfo oldMedia)
     {
         var newAnidbFileIsNullOrUnknown = IsNullOrUnknown(newFile);
         var oldAnidbFileIsNullOrUnknown = IsNullOrUnknown(oldFile);
@@ -519,7 +519,7 @@ public static class FileQualityFilter
 
     #region Information from Models (Operations that aren't simple)
 
-    private static bool IsNullOrUnknown([NotNullWhen(false)][MaybeNullWhen(true)] DatabaseReleaseInfo file)
+    private static bool IsNullOrUnknown([NotNullWhen(false)][MaybeNullWhen(true)] StoredReleaseInfo file)
     {
         // Check file.
         if (file is null ||

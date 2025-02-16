@@ -126,7 +126,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("ReleaseGroups")]
     public List<string> GetAllReleaseGroups()
     {
-        return RepoFactory.DatabaseReleaseInfo.GetUsedReleaseGroups().Select(r => r.Name).ToList();
+        return RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups().Select(r => r.Name).ToList();
     }
 
     [HttpGet("File/DeleteMultipleFilesWithPreferences/{userID}")]
@@ -573,20 +573,17 @@ public partial class ShokoServiceImplementation
                     // let's check if the file on AniDB actually exists in the user's local collection
                     var hash = string.Empty;
 
-                    var anifile = myitem.FileID == null ? null : RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myitem.FileID}");
+                    var anifile = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myitem.FileID}");
                     if (anifile != null)
                         hash = anifile.ED2K;
                     else
                     {
                         // look for manually linked files
-                        var xrefs = myitem.EpisodeID == null ? null : RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
+                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
                         foreach (var xref in xrefs)
                         {
-                            if (xref.CrossRefSource != (int)CrossRefSource.AniDB)
-                            {
-                                hash = xref.Hash;
-                                break;
-                            }
+                            hash = xref.Hash;
+                            break;
                         }
                     }
 
@@ -752,19 +749,7 @@ public partial class ShokoServiceImplementation
     [NonAction]
     public List<CL_VideoLocal> GetManuallyLinkedFiles(int userID)
     {
-        var contracts = new List<CL_VideoLocal>();
-        try
-        {
-            foreach (var vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
-            {
-                contracts.Add(_videoLocalService.GetV1Contract(vid, userID));
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-        }
-        return contracts;
+        return [];
     }
 
     [HttpGet("File/Unrecognised/{userID}")]
@@ -809,30 +794,7 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpGet("File/Rescan/ManuallyLinked")]
-    public void RescanManuallyLinkedFiles()
-    {
-        try
-        {
-            // files which have been hashed, but don't have an associated episode
-            var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
-
-            var scheduler = _schedulerFactory.GetScheduler().Result;
-            foreach (var vl in files.Where(a => !string.IsNullOrEmpty(a.Hash)))
-            {
-                scheduler.StartJob<ProcessFileJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceRecheck = true;
-                    }
-                ).GetAwaiter().GetResult();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.Message);
-        }
-    }
+    public void RescanManuallyLinkedFiles() { }
 
     [HttpGet("File/Duplicated")]
     public List<CL_DuplicateFile> GetAllDuplicateFiles()
@@ -915,21 +877,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("File/ManuallyLinked/{userID}")]
     public List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID)
     {
-        var manualFiles = new List<CL_VideoLocal>();
-        try
-        {
-            foreach (var vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
-            {
-                manualFiles.Add(_videoLocalService.GetV1Contract(vid, userID));
-            }
-
-            return manualFiles;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-            return manualFiles;
-        }
+        return [];
     }
 
     [HttpGet("Episode/ForMultipleFiles/{userID}/{onlyFinishedSeries}/{ignoreVariations}")]

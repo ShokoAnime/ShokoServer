@@ -613,7 +613,7 @@ public class DatabaseFixes
 
         // Remove any existing links to the episodes that will be removed.
         _logger.Trace($"Checking {shokoEpisodesToRemove.Count} orphaned shoko episodes before deletion.");
-        var databaseReleasesToRemove = new List<DatabaseReleaseInfo>();
+        var databaseReleasesToRemove = new List<StoredReleaseInfo>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
         var videosToRefetch = new List<SVR_VideoLocal>();
         var tmdbXrefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
@@ -624,7 +624,7 @@ public class DatabaseFixes
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .Where(video => video != null)
                 .ToList();
-            var databaseReleases = RepoFactory.DatabaseReleaseInfo.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
+            var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
             var tmdbXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
@@ -650,7 +650,7 @@ public class DatabaseFixes
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
 
         _logger.Trace($"Deleting {databaseReleasesToRemove.Count} orphaned releases.");
-        RepoFactory.DatabaseReleaseInfo.Delete(databaseReleasesToRemove);
+        RepoFactory.StoredReleaseInfo.Delete(databaseReleasesToRemove);
 
         _logger.Trace($"Deleting {tmdbXrefsToRemove.Count} orphaned tmdb xrefs.");
         RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXrefsToRemove);

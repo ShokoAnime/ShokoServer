@@ -20,15 +20,15 @@ public class AnimeGroupService
 {
     private readonly ILogger<AnimeGroupService> _logger;
     private readonly AnimeGroup_UserRepository _groupUsers;
-    private readonly DatabaseReleaseInfoRepository _databaseReleaseInfo;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfo;
     private readonly AnimeGroupRepository _groups;
     private readonly AnimeSeries_UserRepository _seriesUsers;
 
-    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, DatabaseReleaseInfoRepository databaseReleaseInfo, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers)
+    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, StoredReleaseInfoRepository storedReleaseInfo, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers)
     {
         _groupUsers = groupUsers;
         _logger = logger;
-        _databaseReleaseInfo = databaseReleaseInfo;
+        _storedReleaseInfo = storedReleaseInfo;
         _groups = groups;
         _seriesUsers = seriesUsers;
     }
@@ -404,7 +404,7 @@ public class AnimeGroupService
         var videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         var traktXrefByAnime = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allIDs);
         var allVidQualByGroup = allSeriesForGroup
-            .SelectMany(a => _databaseReleaseInfo.GetByAnidbAnimeID(a.AniDB_ID))
+            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AniDB_ID))
             .Select(a => a.LegacySource)
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         var tmdbShowXrefByAnime = allIDs
@@ -647,13 +647,13 @@ public class AnimeGroupService
         contract.Stat_AudioLanguages = animeGroup.AllSeries
             .Select(a => a.AniDB_Anime)
             .WhereNotNull()
-            .SelectMany(a => RepoFactory.DatabaseReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
+            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
             .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_SubtitleLanguages = animeGroup.AllSeries
             .Select(a => a.AniDB_Anime)
             .WhereNotNull()
-            .SelectMany(a => RepoFactory.DatabaseReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
+            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
             .SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? [])
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate;

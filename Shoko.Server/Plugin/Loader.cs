@@ -19,7 +19,7 @@ public static class Loader
     private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
     private static IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
 
-    internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection)
+    internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection, out IReadOnlyList<Type> exportedTypes)
     {
         // add plugin api related things to service collection
         var assemblies = new List<Assembly>();
@@ -60,7 +60,7 @@ public static class Loader
             }
         }
 
-        LoadPlugins(assemblies, serviceCollection);
+        LoadPlugins(assemblies, serviceCollection, out exportedTypes);
 
         return serviceCollection;
     }
@@ -98,8 +98,9 @@ public static class Loader
         return options;
     }
 
-    private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
+    private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection, out IReadOnlyList<Type> exportedTypes)
     {
+        var outList = new List<Type>();
         s_logger.Trace("Scanning for IPlugin and IPluginServiceRegistration implementations");
         foreach (var assembly in assemblies)
         {
@@ -158,7 +159,13 @@ public static class Loader
                 s_logger.Error(ex, "Error registering plugin services from {0}.", registrationType.Assembly.FullName);
                 continue;
             }
+
+            var exportedTypeList = assembly.GetExportedTypes();
+            foreach (var type in exportedTypeList)
+                if (type.IsClass && !type.IsAbstract && !type.IsInterface && !type.IsGenericType)
+                    outList.Add(type);
         }
+        exportedTypes = outList;
     }
 
     internal static void InitPlugins(IServiceProvider provider)

@@ -79,8 +79,8 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
     public IReadOnlyList<SVR_VideoLocal_Place> Places =>
         VideoLocalID is 0 ? [] : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
-    public DatabaseReleaseInfo? ReleaseInfo =>
-        string.IsNullOrEmpty(Hash) ? null : RepoFactory.DatabaseReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);
+    public StoredReleaseInfo? ReleaseInfo =>
+        string.IsNullOrEmpty(Hash) ? null : RepoFactory.StoredReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);
 
     internal IReleaseGroup? ReleaseGroup =>
         ((IReleaseInfo?)ReleaseInfo)?.Group;

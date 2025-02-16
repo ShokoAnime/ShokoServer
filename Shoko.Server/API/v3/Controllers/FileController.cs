@@ -33,12 +33,15 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+using AbstractReleaseInfo = Shoko.Plugin.Abstractions.Release.ReleaseInfo;
+using AbstractReleaseVideoCrossReference = Shoko.Plugin.Abstractions.Release.ReleaseVideoCrossReference;
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using Path = System.IO.Path;
+using ReleaseInfo = Shoko.Server.API.v3.Models.Common.ReleaseInfo;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -63,6 +66,7 @@ public class FileController : BaseController
     private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
     private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly IUserDataService _userDataService;
 
     public FileController(
@@ -72,6 +76,7 @@ public class FileController : BaseController
         VideoLocal_PlaceService vlPlaceService,
         VideoLocal_UserRepository vlUsers,
         IUserDataService watchedService,
+        IVideoReleaseService videoReleaseService,
         VideoLocalService vlService
     ) : base(settingsProvider)
     {
@@ -79,6 +84,7 @@ public class FileController : BaseController
         _vlPlaceService = vlPlaceService;
         _vlUsers = vlUsers;
         _userDataService = watchedService;
+        _videoReleaseService = videoReleaseService;
         _vlService = vlService;
         _schedulerFactory = schedulerFactory;
     }
@@ -464,7 +470,7 @@ public class FileController : BaseController
     public ActionResult<ReleaseInfo> GetFileAnidbByAnidbFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID)
     {
         if (
-            RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
             return NotFound(AnidbNotFoundForFileID);
@@ -487,7 +493,7 @@ public class FileController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
         if (
-            RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
             return NotFound(AnidbNotFoundForFileID);
@@ -510,7 +516,7 @@ public class FileController : BaseController
     public async Task<ActionResult> RescanFileByAniDBFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID, [FromQuery] bool priority = false)
     {
         if (
-            RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
             return NotFound(AnidbNotFoundForFileID);
@@ -1007,14 +1013,8 @@ public class FileController : BaseController
     [HttpPost("{fileID}/Link")]
     public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
-
-        // Validate that we can manually link this file.
-        CheckXRefsForFile(file, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
 
         // Validate the episodes.
         var episodeList = body.EpisodeIDs
@@ -1030,18 +1030,16 @@ public class FileController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        // Remove any old links and schedule the linking commands.
-        RemoveXRefsForFile(file);
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var episode in episodeList)
+        await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            CrossReferences = episodeList
+                .Select(episode => new AbstractReleaseVideoCrossReference()
                 {
-                    c.VideoLocalID = fileID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                }
-            );
-        }
+                    AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
+                    AnidbEpisodeID = episode.AniDB_EpisodeID,
+                })
+                .ToList(),
+        });
 
         return Ok();
     }
@@ -1055,14 +1053,8 @@ public class FileController : BaseController
     [HttpPost("{fileID}/LinkFromSeries")]
     public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkSeriesBody body)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
-
-        // Validate that we can manually link this file.
-        CheckXRefsForFile(file, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
 
         // Validate that the ranges are in a valid syntax and that the series exists.
         var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
@@ -1125,18 +1117,16 @@ public class FileController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        // Remove any old links and schedule the linking commands.
-        RemoveXRefsForFile(file);
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var episode in episodeList)
+        await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            CrossReferences = episodeList
+                .Select(episode => new AbstractReleaseVideoCrossReference()
                 {
-                    c.VideoLocalID = fileID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                }
-            );
-        }
+                    AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
+                    AnidbEpisodeID = episode.AniDB_EpisodeID,
+                })
+                .ToList(),
+        });
 
         return Ok();
     }
@@ -1181,10 +1171,6 @@ public class FileController : BaseController
             .Select(episode => (Episode: episode, XRef: file.EpisodeCrossReferences.FirstOrDefault(x => x.EpisodeID == episode.AniDB_EpisodeID)))
             .Where(obj => obj.XRef != null)
             .ToList();
-        foreach (var (_, xref) in episodeList)
-            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                ModelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
-
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -1229,8 +1215,6 @@ public class FileController : BaseController
                 var file = RepoFactory.VideoLocal.GetByID(fileID);
                 if (file == null)
                     ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
-                else
-                    CheckXRefsForFile(file, ModelState);
 
                 return file;
             })
@@ -1295,19 +1279,49 @@ public class FileController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        // Remove any old links and schedule the linking commands.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var (file, episode) in episodeList)
+        // many:1 mapping between files and episode
+        if (body.SingleEpisode)
         {
-            RemoveXRefsForFile(file);
+            var count = 0;
+            var percentageRange = (int)Math.Round(1D / files.Count * 100);
+            var percentageEnd = 0;
+            foreach (var (video, episode) in episodeList)
+            {
+                var percentageStart = percentageEnd;
+                percentageEnd += percentageRange;
+                if (++count == files.Count)
+                    percentageEnd = 100;
 
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+                await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
                 {
-                    c.VideoLocalID = file.VideoLocalID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                    c.Percentage = singleEpisode ? (int)Math.Round(1D / files.Count * 100) : 0;
-                }
-            );
+                    CrossReferences = [
+                        new()
+                        {
+                            AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
+                            AnidbEpisodeID = episode.AniDB_EpisodeID,
+                            PercentageStart = percentageStart,
+                            PercentageEnd = percentageEnd,
+                        },
+                    ],
+                });
+            }
+
+            return Ok();
+        }
+
+        // 1:1 mapping between files and episodes.
+        foreach (var (video, episode) in episodeList)
+        {
+            await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+            {
+                CrossReferences = [
+                    new()
+                    {
+                        AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
+                        AnidbEpisodeID = episode.AniDB_EpisodeID,
+                    },
+                ],
+            });
         }
 
         return Ok();
@@ -1328,8 +1342,6 @@ public class FileController : BaseController
                 var file = RepoFactory.VideoLocal.GetByID(fileID);
                 if (file == null)
                     ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
-                else
-                    CheckXRefsForFile(file, ModelState);
 
                 return file;
             })
@@ -1349,49 +1361,31 @@ public class FileController : BaseController
         if (anidbEpisode == null)
             return InternalError("Could not find the AniDB entry for episode");
 
-        // Remove any old links and schedule the linking commands.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var file in files)
+        var count = 0;
+        var percentageRange = (int)Math.Round(1D / files.Count * 100);
+        var percentageEnd = 0;
+        foreach (var video in files)
         {
-            RemoveXRefsForFile(file);
+            var percentageStart = percentageEnd;
+            percentageEnd += percentageRange;
+            if (++count == files.Count)
+                percentageEnd = 100;
 
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
-                {
-                    c.VideoLocalID = file.VideoLocalID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                    c.Percentage = (int)Math.Floor(1D / files.Count * 100);
-                }
-            );
+            await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+            {
+                CrossReferences = [
+                    new()
+                    {
+                        AnidbAnimeID = anidbEpisode.AnimeID,
+                        AnidbEpisodeID = anidbEpisode.EpisodeID,
+                        PercentageStart = percentageStart,
+                        PercentageEnd = percentageEnd,
+                    },
+                ],
+            });
         }
 
         return Ok();
-    }
-
-    [NonAction]
-    private static void RemoveXRefsForFile(SVR_VideoLocal file)
-    {
-        foreach (var xref in file.EpisodeCrossReferences)
-        {
-            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                return;
-
-            RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
-        }
-
-        // Reset the import date.
-        if (file.DateTimeImported.HasValue)
-        {
-            file.DateTimeImported = null;
-            RepoFactory.VideoLocal.Save(file);
-        }
-    }
-
-    [NonAction]
-    private static void CheckXRefsForFile(SVR_VideoLocal file, ModelStateDictionary modelState)
-    {
-        foreach (var xref in file.EpisodeCrossReferences)
-            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                modelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
     }
 
     /// <summary>

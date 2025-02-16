@@ -31,6 +31,7 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger) : IReleaseInfoProv
             var releasePath = Path.ChangeExtension(path, ".release.json");
             if (!File.Exists(releasePath))
                 continue;
+
             try
             {
                 var textData = await File.ReadAllTextAsync(releasePath, cancellationToken);

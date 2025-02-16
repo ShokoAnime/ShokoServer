@@ -27,6 +27,7 @@ SOFTWARE.
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
 
 namespace NutzCode.InMemoryIndex;
 //NOTE PocoCache is not thread SAFE
@@ -52,6 +53,9 @@ public class PocoCache<T, S> where S : class
     {
         return new PocoIndex<T, S, U>(this, func1);
     }
+
+    public PocoIndex<T, S, U> CreateIndex<U>(Func<S, IReadOnlyList<U>> func1)
+        => new PocoIndex<T, S, U>(this, func1);
 
     public PocoCache(IEnumerable<S> objectList, Func<S, T> keyFunc)
     {
@@ -173,21 +177,37 @@ public class BiDictionaryManyToMany<TKey, TInverseKey>
 
     private readonly Dictionary<TInverseKey, HashSet<TKey>> _inverse = [];
 
+    private readonly bool _valueIsNullable;
+
+    private HashSet<TKey> _inverseNullValueSet;
+
     public BiDictionaryManyToMany() { }
 
     public BiDictionaryManyToMany(Dictionary<TKey, HashSet<TInverseKey>> input)
     {
+        _valueIsNullable = Nullable.GetUnderlyingType(typeof(TInverseKey)) is not null;
         _direct = input;
         _inverse = [];
-        foreach (var t in input.Keys)
+        if (_valueIsNullable)
         {
-            foreach (var s in input[t])
-            {
-                if (_inverse.TryGetValue(s, out var inverseValue))
-                    inverseValue.Add(t);
-                else
-                    _inverse.Add(s, [t]);
-            }
+            // Only set the hash-set if the input contained a null value. See `ContainsInverseKey` at L348 as to why.
+            _inverseNullValueSet = input
+                .Where(a => a.Value.Any(b => b is null))
+                .Select(a => a.Key)
+                .ToHashSet();
+            _inverse = input
+                .Where(a => a.Value.Any(b => b is null))
+                .SelectMany(a => a.Value.WhereNotNull().Select(b => (b, a.Key)))
+                .GroupBy(a => a.b)
+                .ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
+        }
+        else
+        {
+            _inverseNullValueSet = [];
+            _inverse = input
+                .SelectMany(a => a.Value.Select(b => (b, a.Key)))
+                .GroupBy(a => a.b)
+                .ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
         }
     }
 
@@ -196,20 +216,37 @@ public class BiDictionaryManyToMany<TKey, TInverseKey>
         get => _direct[key];
         set
         {
+            // Unset the previous value.
             if (_direct.TryGetValue(key, out var oldValue))
             {
-                if (oldValue.SetEquals(value)) return;
+                if (oldValue.SetEquals(value))
+                    return;
 
                 foreach (var s in oldValue)
                 {
-                    if (!_inverse.TryGetValue(s, out var inverseValue)) continue;
-                    if (inverseValue.Contains(key)) inverseValue.Remove(key);
-                    if (inverseValue.Count == 0) _inverse.Remove(s);
+                    if (_valueIsNullable && s is null)
+                    {
+                        _inverseNullValueSet.Remove(key);
+                        continue;
+                    }
+
+                    if (!_inverse.TryGetValue(s, out var inverseValue))
+                        continue;
+
+                    inverseValue.Remove(key);
+                    if (inverseValue.Count == 0)
+                        _inverse.Remove(s);
                 }
             }
 
             foreach (var s in value)
             {
+                if (_valueIsNullable && s is null)
+                {
+                    _inverseNullValueSet.Add(key);
+                    continue;
+                }
+
                 if (_inverse.TryGetValue(s, out var inverseValue))
                     inverseValue.Add(key);
                 else
@@ -221,37 +258,44 @@ public class BiDictionaryManyToMany<TKey, TInverseKey>
     }
 
     public bool ContainsKey(TKey key)
-    {
-        return _direct.ContainsKey(key);
-    }
+        => _direct.ContainsKey(key);
 
     public bool ContainsInverseKey(TInverseKey key)
-    {
-        return _inverse.ContainsKey(key);
-    }
+        => _valueIsNullable && key is null
+            ? _inverseNullValueSet is not null
+            : _inverse.ContainsKey(key);
 
-    public bool TryGetValue(TKey key, out HashSet<TInverseKey> value) =>
-        _direct.TryGetValue(key, out value);
+    public bool TryGetValue(TKey key, out HashSet<TInverseKey> value)
+        => _direct.TryGetValue(key, out value);
 
-    public bool TryGetInverse(TInverseKey key, out HashSet<TKey> value) =>
-        _inverse.TryGetValue(key, out value);
+    public bool TryGetInverse(TInverseKey key, out HashSet<TKey> value)
+        => key is null
+            ? (value = _inverseNullValueSet) is not null
+            : _inverse.TryGetValue(key, out value);
 
     public HashSet<TKey> FindInverse(TInverseKey k)
-    {
-        return _inverse.TryGetValue(k, out var value) ? value : [];
-    }
+        => k is null ? _inverseNullValueSet : _inverse.TryGetValue(k, out var value) ? value : [];
 
     public void Remove(TKey key)
     {
-        if (!_direct.TryGetValue(key, out var oldValue)) return;
+        if (!_direct.TryGetValue(key, out var oldValue))
+            return;
 
         foreach (var s in oldValue)
         {
-            if (!_inverse.TryGetValue(s, out var inverseValue)) continue;
-            if (inverseValue.Contains(key)) inverseValue.Remove(key);
-            if (inverseValue.Count == 0) _inverse.Remove(s);
-        }
+            if (_valueIsNullable && s is null)
+            {
+                _inverseNullValueSet.Remove(key);
+                continue;
+            }
 
+            if (!_inverse.TryGetValue(s, out var inverseValue))
+                continue;
+
+            inverseValue.Remove(key);
+            if (inverseValue.Count == 0)
+                _inverse.Remove(s);
+        }
         _direct.Remove(key);
     }
 
@@ -259,13 +303,6 @@ public class BiDictionaryManyToMany<TKey, TInverseKey>
     {
         _direct.Clear();
         _inverse.Clear();
-    }
-}
-
-public static class Extensions
-{
-    public static bool HasItems<T>(this List<T> org)
-    {
-        return org is { Count: > 0 };
+        _inverseNullValueSet = [];
     }
 }

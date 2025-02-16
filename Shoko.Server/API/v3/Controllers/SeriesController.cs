@@ -387,8 +387,7 @@ public class SeriesController : BaseController
     {
         var user = User;
         var query = RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Where(a => a.VideoLocal != null)
-                .Any(a => a.CrossRefSource == (int)CrossRefSource.User));
+            .Where(series => user.AllowedSeries(series) && series.VideoLocals.Count > 0);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
@@ -2052,7 +2051,7 @@ public class SeriesController : BaseController
                     // If we should hide manually linked episodes and the episode is manually linked, then hide it.
                     // Or if we should only show manually linked episodes and the episode is not manually linked, then hide it.
                     var shouldHideManuallyLinked = includeManuallyLinked == IncludeOnlyFilter.False;
-                    var isManuallyLinked = shoko.FileCrossReferences.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB);
+                    var isManuallyLinked = shoko.VideoLocals.Count > 0;
                     if (shouldHideManuallyLinked == isManuallyLinked)
                         return false;
                 }

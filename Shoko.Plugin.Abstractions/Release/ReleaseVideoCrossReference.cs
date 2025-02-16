@@ -44,7 +44,7 @@ public class ReleaseVideoCrossReference : IReleaseVideoCrossReference
         PercentageStart = reference.PercentageStart;
         PercentageEnd = reference.PercentageEnd;
     }
-    
+
     #region IReleaseVideoCrossReference Implementation
 
     /// <inheritdoc />

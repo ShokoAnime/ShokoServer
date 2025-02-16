@@ -23,6 +23,11 @@ public class FileMovedEventArgs : FileEventArgs
     public IImportFolder PreviousImportFolder { get; set; }
 
     /// <summary>
+    /// The absolute path leading to the previous location of the file. Uses an OS dependent directory separator.
+    /// </summary>
+    public string PreviousPath => Path.Join(PreviousImportFolder.Path, PreviousRelativePath);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="FileMovedEventArgs"/> class.
     /// </summary>
     /// <param name="relativePath">Relative path to the file.</param>
