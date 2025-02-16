@@ -439,12 +439,9 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     /// returns all the VideoLocal records associate with an AniDB_Anime Record
     /// </summary>
     /// <param name="animeID">AniDB Anime ID</param>
-    /// <param name="xrefSource">Include to select only files from the selected
-    /// cross-reference source.</param>
     /// <returns></returns>
-    public IReadOnlyList<SVR_VideoLocal> GetByAniDBAnimeID(int animeID, CrossRefSource? xrefSource = null)
+    public IReadOnlyList<SVR_VideoLocal> GetByAniDBAnimeID(int animeID)
         => RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
-            .Where(xref => !xrefSource.HasValue || xref.CrossRefSource != (int)xrefSource.Value)
             .Select(xref => GetByEd2k(xref.Hash))
             .WhereNotNull()
             .ToList();
@@ -527,7 +524,6 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public IReadOnlyList<SVR_VideoLocal> GetManuallyLinkedVideos()
         => RepoFactory.CrossRef_File_Episode.GetAll()
-                .Where(a => a.CrossRefSource != 1)
                 .Select(a => GetByEd2k(a.Hash))
                 .WhereNotNull()
                 .ToList();

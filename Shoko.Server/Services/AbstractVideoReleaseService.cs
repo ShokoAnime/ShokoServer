@@ -12,6 +12,7 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -22,6 +23,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
 
@@ -37,7 +39,8 @@ public class AbstractVideoReleaseService(
     IUserService userService,
     IUserDataService userDataService,
     VideoLocalRepository videoRepository,
-    DatabaseReleaseInfoRepository releaseInfoRepository,
+    StoredReleaseInfoRepository releaseInfoRepository,
+    StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
     AniDB_AnimeRepository anidbAnimeRepository,
     AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
@@ -137,9 +140,15 @@ public class AbstractVideoReleaseService(
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, CancellationToken cancellationToken = default)
     {
         IReleaseInfo? releaseInfo = null;
+        var startedAt = DateTime.Now;
+        var providerIDs = new List<string>();
         foreach (var providerInfo in GetAvailableProviders())
         {
             if (!providerInfo.Enabled)
+                continue;
+
+            providerIDs.Add(providerInfo.Provider.Name);
+            if (releaseInfo is not null)
                 continue;
 
             var provider = providerInfo.Provider;
@@ -149,75 +158,119 @@ public class AbstractVideoReleaseService(
                 continue;
 
             releaseInfo = new ReleaseInfoWithProvider(release, provider.Name);
-            break;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (!saveRelease || releaseInfo is null)
-            return releaseInfo;
+        var matchAttempt = new StoredReleaseInfo_MatchAttempt()
+        {
+            ProviderID = releaseInfo?.ProviderID,
+            ED2K = video.Hashes.ED2K,
+            FileSize = video.Size,
+            AttemptStartedAt = startedAt,
+            // Reuse startedAt because it will be overwritten in SaveReleaseForVideo later.
+            AttemptEndedAt = releaseInfo is null ? DateTime.UtcNow : startedAt,
+            AttemptedProviderIDs = providerIDs,
+        };
+        if (releaseInfo is null)
+            releaseInfoMatchAttemptRepository.Save(matchAttempt);
 
-        return await SaveReleaseForVideo(video, releaseInfo);
+        if (!saveRelease || releaseInfo is null)
+        {
+            var autoMatchAttempts = releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size).Count;
+            var hasXRefs = releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is not null;
+            var isUDPBanned = udpConnection.IsBanned;
+            var location = video.Locations.FirstOrDefault(l => l.IsAvailable) ?? video.Locations[0];
+            ShokoEventHandler.Instance.OnFileNotMatched(location, video, autoMatchAttempts, hasXRefs, isUDPBanned);
+            return releaseInfo;
+        }
+
+        return await SaveReleaseForVideo(video, releaseInfo, matchAttempt);
     }
 
     public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User")
         => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName));
 
     public async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release)
+        => await SaveReleaseForVideo(video, release, new() { ProviderID = release.ProviderID, EmbeddedAttemptProviderIDs = release.ProviderID, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.Hashes.ED2K, FileSize = video.Size });
+
+    private async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, StoredReleaseInfo_MatchAttempt matchAttempt)
     {
         if (release.CrossReferences.Count < 1)
             throw new InvalidOperationException("Release must have at least one valid cross reference.");
 
-        var releaseInfo = new DatabaseReleaseInfo(video, release);
+        var releaseInfo = new StoredReleaseInfo(video, release);
         if (!CheckCrossReferences(video, releaseInfo, out var legacyXrefs))
             throw new InvalidOperationException($"Release have {release.CrossReferences.Count - legacyXrefs.Count} invalid cross reference(s).");
 
         var missingGroupId = CheckReleaseGroup(releaseInfo);
+        // Store a hash-set of the old cross-references for comparison later.
+        var oldXRefs = video.CrossReferences
+            .Select(xref => xref.ToString())
+            .Join(',');
+
+        var location = video.Locations.FirstOrDefault(l => l.IsAvailable) ?? video.Locations[0];
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
         {
             // If the new release info is **EXACTLY** the same as the existing one, then just return the existing one.
             if (existingRelease == releaseInfo)
             {
                 existingRelease.LastUpdatedAt = DateTime.Now;
+                matchAttempt.AttemptEndedAt = existingRelease.LastUpdatedAt;
                 releaseInfoRepository.Save(existingRelease);
+                releaseInfoMatchAttemptRepository.Save(matchAttempt);
+
+                var autoMatchAttempts = releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size).Count;
+                var isUDPBanned = udpConnection.IsBanned;
+                ShokoEventHandler.Instance.OnFileNotMatched(location, video, autoMatchAttempts, true, isUDPBanned);
                 return existingRelease;
             }
 
             await ClearReleaseForVideo(video, existingRelease);
         }
 
+        // Make sure the revision is valid.
+        if (releaseInfo.Revision < 1)
+            releaseInfo.Revision = 1;
+
         releaseInfo.LastUpdatedAt = DateTime.Now;
+        matchAttempt.AttemptEndedAt = release.LastUpdatedAt;
         releaseInfoRepository.Save(releaseInfo);
+        releaseInfoMatchAttemptRepository.Save(matchAttempt);
         xrefRepository.Save(legacyXrefs);
 
         // Mark the video as imported if needed.
+        var scheduler = await schedulerFactory.GetScheduler();
         if (video is SVR_VideoLocal videoLocal && videoLocal.DateTimeImported is null)
         {
             videoLocal.DateTimeImported = DateTime.Now;
             videoRepository.Save(videoLocal);
-
-            var scheduler = await schedulerFactory.GetScheduler();
-            if (_settings.AniDb.MyList_AddFiles)
-            {
-                await scheduler.StartJob<AddFileToMyListJob>(c =>
-                {
-                    c.Hash = video.Hashes.ED2K;
-                    c.ReadStates = true;
-                }).ConfigureAwait(false);
-            }
         }
 
         // Schedule the release group to be fetched if needed.
         if (missingGroupId is not null)
-        {
-            var scheduler = await schedulerFactory.GetScheduler();
             await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
-        }
 
         await ScheduleAnimeForRelease(legacyXrefs);
 
         SetWatchedStateIfNeeded(video, releaseInfo);
 
+        // Sync to mylist if needed.
+        if (_settings.AniDb.MyList_AddFiles)
+            await scheduler.StartJob<AddFileToMyListJob>(c =>
+            {
+                c.Hash = video.Hashes.ED2K;
+                c.ReadStates = true;
+            }).ConfigureAwait(false);
+
+        // Dispatch the release saved event.
         VideoReleaseSaved?.Invoke(null, new(video, releaseInfo));
+
+        // Dispatch the on file matched event.
+        ShokoEventHandler.Instance.OnFileMatched(location, video);
+
+        // Rename and/or move the physical file(s) if needed.
+        if (_settings.Plugins.Renamer.RelocateOnImport)
+            await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
 
         return releaseInfo;
     }
@@ -231,7 +284,7 @@ public class AbstractVideoReleaseService(
         return await ClearReleaseForVideo(video, existingRelease);
     }
 
-    private Task<bool> ClearReleaseForVideo(IVideo video, DatabaseReleaseInfo releaseInfo)
+    private Task<bool> ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo)
     {
         if (video is SVR_VideoLocal videoLocal)
         {
@@ -249,7 +302,7 @@ public class AbstractVideoReleaseService(
         return Task.FromResult(true);
     }
 
-    private bool CheckCrossReferences(IVideo video, DatabaseReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
+    private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
     {
         legacyXrefs = [];
 
@@ -312,7 +365,6 @@ public class AbstractVideoReleaseService(
             legacyXrefs.Add(new()
             {
                 Hash = video.Hashes.ED2K,
-                CrossRefSource = releaseInfo.ProviderID.GetHashCode(),
                 AnimeID = animeID ?? 0,
                 EpisodeID = xref.AnidbEpisodeID,
                 Percentage = xref.PercentageEnd - xref.PercentageStart,
@@ -329,7 +381,7 @@ public class AbstractVideoReleaseService(
         return true;
     }
 
-    private int? CheckReleaseGroup(DatabaseReleaseInfo releaseInfo)
+    private int? CheckReleaseGroup(StoredReleaseInfo releaseInfo)
     {
         if (string.IsNullOrEmpty(releaseInfo.GroupID) || string.IsNullOrEmpty(releaseInfo.GroupProviderID))
         {

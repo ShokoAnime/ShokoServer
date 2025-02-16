@@ -676,7 +676,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.DatabaseReleaseInfo.GetAll()
+            return RepoFactory.StoredReleaseInfo.GetAll()
                 .Select(a => a.LegacySource)
                 .WhereNotDefault()
                 .Distinct()
@@ -695,7 +695,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.DatabaseReleaseInfo.GetAll()
+            return RepoFactory.StoredReleaseInfo.GetAll()
                 .SelectMany(a => a.AudioLanguages ?? [])
                 .Distinct()
                 .Select(a => a.GetString())
@@ -714,7 +714,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.DatabaseReleaseInfo.GetAll()
+            return RepoFactory.StoredReleaseInfo.GetAll()
                 .SelectMany(a => a.SubtitleLanguages ?? [])
                 .Distinct()
                 .Select(a => a.GetString())

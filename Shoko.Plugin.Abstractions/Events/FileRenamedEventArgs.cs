@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.IO;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
@@ -26,6 +26,11 @@ public class FileRenamedEventArgs : FileEventArgs
     /// The previous file name before the rename operation.
     /// </summary>
     public string PreviousFileName { get; }
+
+    /// <summary>
+    /// The absolute path leading to the previous location of the file. Uses an OS dependent directory separator.
+    /// </summary>
+    public string PreviousPath => Path.Join(ImportFolder.Path, PreviousRelativePath);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileRenamedEventArgs"/> class.
