@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -142,7 +143,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
         var seriesIsNew = series == null;
         var seriesUpdated = false;
-        var seriesEpisodeChanges = new Dictionary<SVR_AnimeEpisode, UpdateReason>();
+        var seriesEpisodeChanges = new Dictionary<IShokoEpisode, UpdateReason>();
         if (series == null && CreateSeriesEntry)
         {
             series = await CreateAnimeSeriesAndGroup(anime);
@@ -212,7 +213,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 if (animeEpisodeChanges.Count > 0)
                     videos.AddRange(
                         animeEpisodeChanges.Keys
-                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.EpisodeID))
+                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.ID))
                             .WhereNotNull()
                             .Select(a => a.VideoLocal)
                             .WhereNotNull()
@@ -221,7 +222,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 if (seriesEpisodeChanges.Count > 0)
                     videos.AddRange(
                         seriesEpisodeChanges.Keys
-                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AniDB_EpisodeID))
+                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AnidbEpisodeID))
                             .WhereNotNull()
                             .Select(a => a.VideoLocal)
                             .WhereNotNull()

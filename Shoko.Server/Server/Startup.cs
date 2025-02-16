@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using MessagePack;
 using Microsoft.AspNetCore.Builder;
@@ -7,7 +9,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
 using Shoko.Server.Filters;
@@ -43,7 +47,7 @@ public class Startup
     }
 
     // tried doing it without UseStartup<ServerStartup>(), but the documentation is lacking, and I couldn't get Configure() to work otherwise
-    private class ServerStartup
+    private class ServerStartup(List<Type> exportedTypes)
     {
         public void ConfigureServices(IServiceCollection services)
         {
@@ -88,7 +92,8 @@ public class Startup
             services.AddQuartz();
 
             services.AddAniDB();
-            services.AddPlugins();
+            services.AddPlugins(out var importedTypes);
+            exportedTypes.AddRange(importedTypes);
             services.AddAPI();
         }
 
@@ -158,13 +163,14 @@ public class Startup
         if (_webHost != null) return _webHost;
 
         var settings = settingsProvider.GetSettings();
+        var exportedTypes = new List<Type>();
         var builder = new WebHostBuilder().UseKestrel(options =>
             {
                 options.ListenAnyIP(settings.Web.Port);
             })
             .ConfigureApp()
             .ConfigureServiceProvider()
-            .UseStartup<ServerStartup>()
+            .UseStartup(_ => new ServerStartup(exportedTypes))
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();
@@ -181,8 +187,24 @@ public class Startup
 
         Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         Utils.ServiceContainer = result.Services;
+
+        var service = result.Services.GetRequiredService<IVideoReleaseService>();
+
+        service.AddProviders(GetExports<IReleaseInfoProvider>(exportedTypes, result.Services));
+
+        // Used to store the updated priorities for the providers in the settings file.
+        service.UpdateProviders();
+
         return result;
     }
+
+    private static List<T> GetExports<T>(IEnumerable<Type> types, IServiceProvider serviceProvider)
+        => types
+            .Where(type => typeof(T).IsAssignableFrom(type))
+            .Select(t => ActivatorUtilities.CreateInstance(serviceProvider, t))
+            .WhereNotNull()
+            .Cast<T>()
+            .ToList();
 
     public Task WaitForShutdown()
     {
