@@ -158,7 +158,7 @@ public interface IVideoReleaseService
     ///   The video to clear the current release for.
     /// </param>
     /// <returns>
-    ///   A boolean indicating the successful removal of the release.
+    ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task<bool> ClearReleaseForVideo(IVideo video);
+    Task ClearReleaseForVideo(IVideo video);
 }

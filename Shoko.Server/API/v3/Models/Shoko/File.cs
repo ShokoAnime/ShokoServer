@@ -434,19 +434,6 @@ public partial class File
         }
 
         /// <summary>
-        /// Unlink the spesified episodes from a file.
-        /// </summary>
-        public class UnlinkEpisodesBody
-        {
-            /// <summary>
-            /// An array of episode identifiers to unlink from the file.
-            /// </summary>
-            /// <value></value>
-            [Required]
-            public int[] EpisodeIDs { get; set; }
-        }
-
-        /// <summary>
         /// Unlink multiple files in batch.
         /// </summary>
         public class UnlinkMultipleBody
