@@ -52,4 +52,11 @@ public enum UserDataSaveReason
     /// The user data is being saved during an import from AniDB.
     /// </summary>
     AnidbImport,
+
+    /// <summary>
+    /// The user data is being saved because a video was imported from a generic
+    /// source that's neither AniDB nor an existing video. For plugins to use
+    /// when importing user data from other services.
+    /// </summary>
+    Import,
 }
