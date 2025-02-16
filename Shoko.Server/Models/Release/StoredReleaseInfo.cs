@@ -12,11 +12,11 @@ using Shoko.Server.Extensions;
 
 namespace Shoko.Server.Models.Release;
 
-public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IHashes, IEquatable<DatabaseReleaseInfo>
+public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IHashes, IEquatable<StoredReleaseInfo>
 {
-    public DatabaseReleaseInfo() { }
+    public StoredReleaseInfo() { }
 
-    public DatabaseReleaseInfo(IVideo video, IReleaseInfo releaseInfo)
+    public StoredReleaseInfo(IVideo video, IReleaseInfo releaseInfo)
     {
         ED2K = video.Hashes.ED2K;
 
@@ -51,7 +51,7 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
         CreatedAt = releaseInfo.CreatedAt;
     }
 
-    public int DatabaseReleaseInfoID { get; set; }
+    public int StoredReleaseInfoID { get; set; }
 
     public string ED2K { get; set; } = string.Empty;
 
@@ -228,13 +228,13 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
 
     IHashes? IReleaseInfo.Hashes => string.IsNullOrEmpty(Hashes) ? null : this;
 
-    public static bool operator ==(DatabaseReleaseInfo? left, DatabaseReleaseInfo? right)
+    public static bool operator ==(StoredReleaseInfo? left, StoredReleaseInfo? right)
         => left is null ? right is null : left.Equals(right);
 
-    public static bool operator !=(DatabaseReleaseInfo? left, DatabaseReleaseInfo? right)
+    public static bool operator !=(StoredReleaseInfo? left, StoredReleaseInfo? right)
         => !(left == right);
 
-    public bool Equals(DatabaseReleaseInfo? other)
+    public bool Equals(StoredReleaseInfo? other)
     {
         if (other is null)
             return false;
@@ -247,7 +247,7 @@ public class DatabaseReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInf
 
     public override bool Equals(object? obj)
     {
-        return Equals(obj as DatabaseReleaseInfo);
+        return Equals(obj as StoredReleaseInfo);
     }
 
     public override int GetHashCode()

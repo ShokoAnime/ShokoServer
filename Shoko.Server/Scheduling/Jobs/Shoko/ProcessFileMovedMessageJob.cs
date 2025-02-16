@@ -37,7 +37,7 @@ public class ProcessFileMovedMessageJob : BaseJob
             throw new Exception("Could not parse file ID from message title");
         }
 
-        var file = RepoFactory.DatabaseReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
+        var file = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
         if (file == null)
         {
             _logger.LogWarning("Could not find file with AniDB ID: {ID}", fileId);

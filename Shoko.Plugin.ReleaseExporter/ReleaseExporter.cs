@@ -1,5 +1,8 @@
+using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.Events;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.ReleaseExporter;
@@ -18,8 +21,7 @@ public class ReleaseExporter
         _videoReleaseService.VideoReleaseSaved += OnVideoReleaseSaved;
         _videoReleaseService.VideoReleaseDeleted += OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted += OnVideoDeleted;
-        _videoService.VideoFileRenamed += OnVideoRelocated;
-        _videoService.VideoFileMoved += OnVideoRelocated;
+        _videoService.VideoFileRelocated -= OnVideoRelocated;
     }
 
     ~ReleaseExporter()
@@ -27,8 +29,7 @@ public class ReleaseExporter
         _videoReleaseService.VideoReleaseSaved -= OnVideoReleaseSaved;
         _videoReleaseService.VideoReleaseDeleted -= OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted -= OnVideoDeleted;
-        _videoService.VideoFileRenamed -= OnVideoRelocated;
-        _videoService.VideoFileMoved -= OnVideoRelocated;
+        _videoService.VideoFileRelocated -= OnVideoRelocated;
     }
 
     private bool IsEnabled
@@ -39,26 +40,66 @@ public class ReleaseExporter
         if (!IsEnabled)
             return;
 
-        // replace or create the json file
+        if (eventArgs.Video.Locations is not { Count: > 0 } locations)
+            return;
+
+        var releaseInfo = JsonConvert.SerializeObject(new ReleaseInfoWithProvider(eventArgs.ReleaseInfo));
+        foreach (var location in locations)
+        {
+            var releasePath = Path.ChangeExtension(location.Path, ".release.json");
+            if (File.Exists(releasePath))
+            {
+                var textData = File.ReadAllText(releasePath);
+                if (textData == releaseInfo)
+                    continue;
+            }
+
+            File.WriteAllText(releasePath, releaseInfo);
+        }
     }
 
     private void OnVideoReleaseDeleted(object? sender, VideoReleaseEventArgs eventArgs)
     {
-        // delete the json file
+        if (eventArgs.Video.Locations is not { Count: > 0 } locations)
+            return;
+
+        foreach (var location in locations)
+        {
+            var releasePath = Path.ChangeExtension(location.Path, ".release.json");
+            if (!File.Exists(releasePath))
+                continue;
+
+            File.Delete(releasePath);
+        }
     }
 
     private void OnVideoRelocated(object? sender, FileMovedEventArgs eventArgs)
     {
-        // move the json file
-    }
+        var releasePath = Path.ChangeExtension(eventArgs.PreviousPath, ".release.json");
+        if (!File.Exists(releasePath))
+            return;
 
-    private void OnVideoRelocated(object? sender, FileRenamedEventArgs eventArgs)
-    {
-        // move the json file
+        var newReleasePath = Path.ChangeExtension(eventArgs.File.Path, ".release.json");
+        if (File.Exists(newReleasePath))
+        {
+            var releaseInfo = File.ReadAllText(releasePath);
+            var textData = File.ReadAllText(releasePath);
+            if (textData == releaseInfo)
+            {
+                File.Delete(releasePath);
+                return;
+            }
+        }
+
+        File.Move(releasePath, newReleasePath);
     }
 
     private void OnVideoDeleted(object? sender, FileEventArgs eventArgs)
     {
-        // delete the json file
+        var releasePath = Path.ChangeExtension(eventArgs.File.Path, ".release.json");
+        if (!File.Exists(releasePath))
+            return;
+
+        File.Delete(releasePath);
     }
 }
