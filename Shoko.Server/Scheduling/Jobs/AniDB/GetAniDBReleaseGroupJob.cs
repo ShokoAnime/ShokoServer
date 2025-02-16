@@ -52,7 +52,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), GroupID);
 
         // We've got nothing to download.
-        var databaseReleaseGroups = RepoFactory.DatabaseReleaseInfo.GetByGroupAndProviderIDs(GroupID.ToString(), "AniDB");
+        var databaseReleaseGroups = RepoFactory.StoredReleaseInfo.GetByGroupAndProviderIDs(GroupID.ToString(), "AniDB");
         if (databaseReleaseGroups.Count == 0)
             return;
 
@@ -71,7 +71,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
                 incorrectReleaseGroup.GroupName = existingReleaseGroup.GroupName;
                 incorrectReleaseGroup.GroupShortName = existingReleaseGroup.GroupShortName;
             }
-            RepoFactory.DatabaseReleaseInfo.Save(incorrectReleaseGroups);
+            RepoFactory.StoredReleaseInfo.Save(incorrectReleaseGroups);
 
             return;
         }
@@ -94,7 +94,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
             }
 
             RepoFactory.CrossRef_File_Episode.Delete(xrefsToDelete);
-            RepoFactory.DatabaseReleaseInfo.Delete(databaseReleaseGroups);
+            RepoFactory.StoredReleaseInfo.Delete(databaseReleaseGroups);
 
             foreach (var videoID in videosToUpdate)
                 await scheduler.StartJob<ProcessFileJob>(c =>
@@ -126,7 +126,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
                 databaseReleaseGroup.GroupShortName = null;
             }
         }
-        RepoFactory.DatabaseReleaseInfo.Save(databaseReleaseGroups);
+        RepoFactory.StoredReleaseInfo.Save(databaseReleaseGroups);
 
         // TODO: Maybe schedule all files with a release from the release group to be ran through the rename/move process again.
 

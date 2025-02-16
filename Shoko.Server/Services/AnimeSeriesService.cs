@@ -11,6 +11,7 @@ using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -109,7 +110,7 @@ public class AnimeSeriesService
         return false;
     }
 
-    public async Task<(bool, Dictionary<SVR_AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(SVR_AnimeSeries series)
+    public async Task<(bool, Dictionary<IShokoEpisode, UpdateReason>)> CreateAnimeEpisodes(SVR_AnimeSeries series)
     {
         var anime = series.AniDB_Anime;
         if (anime == null)
@@ -138,7 +139,7 @@ public class AnimeSeriesService
         var one_forth = (int)Math.Round(anidbEpisodes.Count / 4D, 0, MidpointRounding.AwayFromZero);
         var one_half = (int)Math.Round(anidbEpisodes.Count / 2D, 0, MidpointRounding.AwayFromZero);
         var three_forths = (int)Math.Round(anidbEpisodes.Count * 3 / 4D, 0, MidpointRounding.AwayFromZero);
-        var episodeDict = new Dictionary<SVR_AnimeEpisode, UpdateReason>();
+        var episodeDict = new Dictionary<IShokoEpisode, UpdateReason>();
         for (var i = 0; i < anidbEpisodes.Count; i++)
         {
             if (i == one_forth)
@@ -388,6 +389,12 @@ public class AnimeSeriesService
             var eps = series.AllAnimeEpisodes.Where(a => a.AniDB_Episode is not null).ToList();
             var tsEps = DateTime.Now - startEps;
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
+
+            // Ensure the episode added date is accurate.
+            series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+                .Select(a => a.LastUpdatedAt)
+                .DefaultIfEmpty()
+                .Max();
 
             if (watchedStats) UpdateWatchedStats(series, eps, name, ref start);
             if (missingEpsStats) UpdateMissingEpisodeStats(series, eps, name, ref start);
