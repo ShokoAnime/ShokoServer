@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
@@ -104,6 +105,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// <summary>
     /// Episode run-time.
     /// </summary>
+    [NotMapped]
     public TimeSpan? Runtime { get; set; }
 
     /// <summary>
@@ -290,6 +292,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID);
 
+    [NotMapped]
     public TMDB_Image? DefaultThumbnail => RepoFactory.TMDB_Image.GetByRemoteFileName(ThumbnailPath)?.GetImageMetadata(true, ImageEntityType.Thumbnail);
 
     /// <summary>
@@ -331,6 +334,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// Get all cast members that have worked on this episode.
     /// </summary>
     /// <returns>All cast members that have worked on this episode.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Episode_Cast> Cast =>
         RepoFactory.TMDB_Episode_Cast.GetByTmdbEpisodeID(TmdbEpisodeID);
 
@@ -338,6 +342,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// Get all crew members that have worked on this episode.
     /// </summary>
     /// <returns>All crew members that have worked on this episode.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Episode_Crew> Crew =>
         RepoFactory.TMDB_Episode_Crew.GetByTmdbEpisodeID(TmdbEpisodeID);
 
@@ -346,6 +351,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// have been purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB season, or null.</returns>
+    [NotMapped]
     public TMDB_Season? TmdbSeason =>
         RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID);
 
@@ -354,6 +360,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// been purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB show, or null.</returns>
+    [NotMapped]
     public TMDB_Show? TmdbShow =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
@@ -363,6 +370,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// settings file for these to be populated.
     /// </summary>
     /// <returns>All alternate ordering entries for the episode.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes =>
         RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
 
@@ -383,6 +391,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// Get all AniDB/TMDB cross-references for the episode.
     /// </summary>
     /// <returns>A read-only list of AniDB/TMDB cross-references for the episode.</returns>
+    [NotMapped]
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> CrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
 
@@ -391,6 +400,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// </summary>
     /// <returns>A read-only list of file cross-references associated with the
     /// episode.</returns>
+    [NotMapped]
     public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
         CrossReferences
             .DistinctBy(xref => xref.AnidbEpisodeID)

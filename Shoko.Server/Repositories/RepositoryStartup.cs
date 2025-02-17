@@ -100,6 +100,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<VideoLocal_PlaceRepository>();
         services.AddCachedRepository<VideoLocal_UserRepository>();
 
+        services.AddScoped<Shoko.Server.Repositories.EntityFramework.TMDB.TMDB_EpisodeRepository>();
         return services;
     }
 

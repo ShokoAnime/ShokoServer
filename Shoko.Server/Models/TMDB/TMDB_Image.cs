@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -56,6 +57,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
     /// <summary>
     /// Relative path to the image stored locally.
     /// </summary>
+    [NotMapped]
     public string RelativePath
     {
         get

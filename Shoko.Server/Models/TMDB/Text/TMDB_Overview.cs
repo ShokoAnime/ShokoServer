@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Server;
@@ -13,6 +14,7 @@ public class TMDB_Overview
 
     public ForeignEntityType ParentType { get; set; }
 
+    [NotMapped]
     public TitleLanguage Language
     {
         get => string.IsNullOrEmpty(LanguageCode) ? TitleLanguage.None : LanguageCode.GetTitleLanguage();

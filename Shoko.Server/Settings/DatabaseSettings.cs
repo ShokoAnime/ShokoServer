@@ -97,7 +97,43 @@ public class DatabaseSettings
     }
 
     [JsonIgnore]
-    private string _sqliteFile = "JMMServer.db3";
+    private string _sqliteFile = "ShokoServer.db3";
+    
+    public string SQLite_DatabaseFileEF
+    {
+        get => _sqliteFileEF;
+        set
+        {
+            string prefix = null;
+            if (value.StartsWith('/'))
+            {
+                prefix = "/";
+            }
+            else if (value.StartsWith("\\\\"))
+            {
+                prefix = "\\\\";
+            }
+
+            var parts = value.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length <= 1)
+            {
+                _sqliteFileEF = value;
+                return;
+            }
+
+            var directory = Path.Combine(parts[..^1]);
+            if (prefix != null)
+            {
+                directory = prefix + directory;
+            }
+
+            MySqliteDirectory = directory;
+            _sqliteFileEF = parts.LastOrDefault();
+        }
+    }
+
+    [JsonIgnore]
+    private string _sqliteFileEF = "ShokoServer_EF.db3";
 
     /// <summary>
     /// Log SQL in Console.

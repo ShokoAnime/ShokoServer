@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
@@ -81,6 +82,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// The original language this show was shot in, just as a title language
     /// enum instead.
     /// </summary>
+    [NotMapped]
     public TitleLanguage OriginalLanguage
     {
         get => string.IsNullOrEmpty(OriginalLanguageCode) ? TitleLanguage.None : OriginalLanguageCode.GetTitleLanguage();
@@ -228,7 +230,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             UpdateProperty(
                 ContentRatings,
                 show.ContentRatings.Results
-                    .Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating))
+                    .Select(rating => new TMDB_ContentRating { CountryCode = rating.Iso_3166_1, Rating = rating.Rating})
                     .WhereInLanguages(crLanguages?.Append(TitleLanguage.EnglishAmerican).ToHashSet())
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
@@ -238,7 +240,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             UpdateProperty(
                 ProductionCountries,
                 show.ProductionCountries
-                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1, country.Name))
+                    .Select(country => new TMDB_ProductionCountry{CountryCode = country.Iso_3166_1, CountryName = country.Name})
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ProductionCountries = v,
@@ -342,8 +344,10 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID);
 
+    [NotMapped]
     public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
 
+    [NotMapped]
     public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileName(BackdropPath)?.GetImageMetadata(true, ImageEntityType.Backdrop);
 
     /// <summary>
@@ -377,6 +381,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all TMDB company cross-references linked to the show.
     /// </summary>
     /// <returns>All TMDB company cross-references linked to the show.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Company_Entity> TmdbCompanyCrossReferences =>
         RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(ForeignEntityType.Show, TmdbShowID);
 
@@ -384,6 +389,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all TMDB companies linked to the show.
     /// </summary>
     /// <returns>All TMDB companies linked to the show.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Company> TmdbCompanies =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany())
@@ -394,6 +400,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all TMDB studios linked to the show.
     /// </summary>
     /// <returns>All TMDB studios linked to the show.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Studio<TMDB_Show>> TmdbStudios =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany() is { } company ? new TMDB_Studio<TMDB_Show>(company, this) : null)
@@ -404,6 +411,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all TMDB network cross-references linked to the show.
     /// </summary>
     /// <returns>All TMDB network cross-references linked to the show.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Show_Network> TmdbNetworkCrossReferences =>
         RepoFactory.TMDB_Show_Network.GetByTmdbShowID(TmdbShowID);
 
@@ -411,6 +419,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all TMDB networks linked to the show.
     /// </summary>
     /// <returns>All TMDB networks linked to the show.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Network> TmdbNetworks =>
         TmdbNetworkCrossReferences
             .Select(xref => xref.GetTmdbNetwork())
@@ -421,6 +430,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all cast members that have worked on this show.
     /// </summary>
     /// <returns>All cast members that have worked on this show.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Show_Cast> Cast =>
         RepoFactory.TMDB_Episode_Cast.GetByTmdbShowID(TmdbShowID)
             .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
@@ -447,6 +457,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all crew members that have worked on this show.
     /// </summary>
     /// <returns>All crew members that have worked on this show.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Show_Crew> Crew =>
         RepoFactory.TMDB_Episode_Crew.GetByTmdbShowID(TmdbShowID)
             .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
@@ -478,6 +489,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// <returns>The preferred alternate ordering scheme associated with the
     /// show in the local database. <see langword="null"/> if the show does not
     /// have an alternate ordering scheme associated with it.</returns>
+    [NotMapped]
     public TMDB_AlternateOrdering? PreferredAlternateOrdering =>
         string.IsNullOrEmpty(PreferredAlternateOrderingID)
             ? null
@@ -489,6 +501,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// settings file for these to be populated.
     /// </summary>
     /// <returns>The list of TMDB alternate ordering schemes.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_AlternateOrdering> TmdbAlternateOrdering =>
         RepoFactory.TMDB_AlternateOrdering.GetByTmdbShowID(TmdbShowID);
 
@@ -498,6 +511,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB seasons.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Season> TmdbSeasons =>
         RepoFactory.TMDB_Season.GetByTmdbShowID(TmdbShowID);
 
@@ -507,6 +521,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB episodes.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
         RepoFactory.TMDB_Episode.GetByTmdbShowID(TmdbShowID);
 
@@ -514,6 +529,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get AniDB/TMDB cross-references for the show.
     /// </summary>
     /// <returns>The cross-references.</returns>
+    [NotMapped]
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> CrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
@@ -521,6 +537,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get AniDB/TMDB episode cross-references for the show.
     /// </summary>
     /// <returns>The episode cross-references.</returns>
+    [NotMapped]
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> EpisodeCrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbShowID(TmdbShowID);
 

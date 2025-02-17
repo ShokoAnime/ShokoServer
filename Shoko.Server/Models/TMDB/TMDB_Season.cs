@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
@@ -205,6 +206,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
 
+    [NotMapped]
     public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
 
     /// <summary>
@@ -223,6 +225,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
     /// Get all cast members that have worked on this season.
     /// </summary>
     /// <returns>All cast members that have worked on this season.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Season_Cast> Cast =>
         RepoFactory.TMDB_Episode_Cast.GetByTmdbSeasonID(TmdbSeasonID)
             .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
@@ -242,13 +245,14 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
                 };
             })
             .OrderBy(crew => crew.Ordering)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
 
     /// <summary>
     /// Get all crew members that have worked on this season.
     /// </summary>
     /// <returns>All crew members that have worked on this season.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Season_Crew> Crew =>
         RepoFactory.TMDB_Episode_Crew.GetByTmdbSeasonID(TmdbSeasonID)
             .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
@@ -267,8 +271,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
                 };
             })
             .OrderBy(crew => crew.Department)
-            .OrderBy(crew => crew.Job)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.Job)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
 
     /// <summary>
@@ -276,6 +280,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
     /// been purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB show, or null.</returns>
+    [NotMapped]
     public TMDB_Show? TmdbShow =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
@@ -285,6 +290,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
     /// reason.
     /// </summary>
     /// <returns>The TMDB episodes.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
         RepoFactory.TMDB_Episode.GetByTmdbSeasonID(TmdbSeasonID);
 

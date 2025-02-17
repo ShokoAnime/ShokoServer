@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
 using TMDbLib.Objects.TvShows;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
+// TODO Navigation properties
 public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
 {
     #region Properties
@@ -105,6 +106,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     /// Get all cast members that have worked on this season.
     /// </summary>
     /// <returns>All cast members that have worked on this season.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Season_Cast> Cast =>
         TmdbAlternateOrderingEpisodes
             .SelectMany(episode => episode.TmdbEpisode?.Cast ?? [])
@@ -126,13 +128,14 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
                 };
             })
             .OrderBy(crew => crew.Ordering)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
 
     /// <summary>
     /// Get all crew members that have worked on this season.
     /// </summary>
     /// <returns>All crew members that have worked on this season.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Season_Crew> Crew =>
         TmdbAlternateOrderingEpisodes
             .SelectMany(episode => episode.TmdbEpisode?.Crew ?? [])
@@ -153,18 +156,13 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
                 };
             })
             .OrderBy(crew => crew.Department)
-            .OrderBy(crew => crew.Job)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.Job)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
 
-    public TMDB_Show? TmdbShow =>
-        RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
-
-    public TMDB_AlternateOrdering? TmdbAlternateOrdering =>
-        RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(TmdbEpisodeGroupCollectionID);
-
-    public IReadOnlyList<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes =>
-        RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeGroupID(TmdbEpisodeGroupID);
+    public virtual TMDB_Show? TmdbShow { get; set; }
+    public virtual TMDB_AlternateOrdering? TmdbAlternateOrdering { get; set; }
+    public virtual IEnumerable<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes { get; set; }
 
     #endregion
 }

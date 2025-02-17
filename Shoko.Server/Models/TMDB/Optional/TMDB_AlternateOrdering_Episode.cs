@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
+// TODO Navigation properties
 public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>
 {
     #region Properties
@@ -86,17 +86,10 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>
         return updates.Any(updated => updated);
     }
 
-    public TMDB_Show? TmdbShow =>
-        RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
-
-    public TMDB_AlternateOrdering? TmdbAlternateOrdering =>
-        RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(TmdbEpisodeGroupCollectionID);
-
-    public TMDB_AlternateOrdering_Season? TmdbAlternateOrderingSeason =>
-        RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(TmdbEpisodeGroupID);
-
-    public TMDB_Episode? TmdbEpisode =>
-        RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public virtual TMDB_Show? TmdbShow { get; set; }
+    public virtual TMDB_Episode? TmdbEpisode { get; set; }
+    public virtual TMDB_AlternateOrdering? TmdbAlternateOrdering { get; set; }
+    public virtual TMDB_AlternateOrdering_Season? TmdbAlternateOrderingSeason { get; set; }
 
     #endregion
 }

@@ -51,7 +51,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         }
     }
 
-    private static string GetDatabaseFilePath()
+    public static string GetDatabaseFilePath()
     {
         var dbName = Path.Combine(DatabasePath, Utils.SettingsProvider.GetSettings().Database.SQLite_DatabaseFile);
         return dbName;

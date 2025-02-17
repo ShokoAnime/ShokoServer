@@ -10,6 +10,7 @@ using NLog.Web;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
+using Shoko.Server.Data;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Plugin;
@@ -82,6 +83,7 @@ public class Startup
             services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddScoped<AnimeGroupCreator>();
 
+            services.AddEntityFramework();
             services.AddRepositories();
             services.AddSentry();
             services.AddQuartz();

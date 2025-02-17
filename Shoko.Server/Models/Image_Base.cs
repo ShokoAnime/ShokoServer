@@ -1,5 +1,6 @@
 
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
@@ -79,6 +80,7 @@ public class Image_Base : IImageMetadata
     private int InternalID { get; } = 0;
 
     /// <inheritdoc/>
+    [NotMapped]
     public virtual int ID
     {
         get => InternalID;
@@ -86,6 +88,7 @@ public class Image_Base : IImageMetadata
 
     private string? _contentType = null;
 
+    [NotMapped]
     public string ContentType
     {
         get
@@ -101,21 +104,26 @@ public class Image_Base : IImageMetadata
     }
 
     /// <inheritdoc/>
+    [NotMapped]
     public DataSourceEnum Source { get; }
 
     /// <inheritdoc/>
+    [NotMapped]
     public ImageEntityType ImageType { get; set; }
 
     /// <inheritdoc/>
+    [NotMapped]
     public bool IsPreferred { get; set; }
 
     /// <inheritdoc/>
     public bool IsEnabled { get; set; }
 
     /// <inheritdoc/>
+    [NotMapped]
     public virtual bool IsLocked => true;
 
     [MemberNotNullWhen(true, nameof(LocalPath))]
+    [NotMapped]
     public bool IsLocalAvailable
     {
         get => !string.IsNullOrEmpty(LocalPath) && File.Exists(LocalPath) && ImageExtensions.IsImageValid(LocalPath);
@@ -124,6 +132,7 @@ public class Image_Base : IImageMetadata
     private bool? _urlExists = null;
 
     [MemberNotNullWhen(true, nameof(RemoteURL))]
+    [NotMapped]
     public bool IsRemoteAvailable
     {
         get
@@ -169,6 +178,7 @@ public class Image_Base : IImageMetadata
     }
 
     /// <inheritdoc/>
+    [NotMapped]
     public double AspectRatio
         => Width / Height;
 
@@ -207,6 +217,7 @@ public class Image_Base : IImageMetadata
     }
 
     /// <inheritdoc/>
+    [NotMapped]
     public string? LanguageCode
     {
         get => Language == TitleLanguage.Unknown ? null : Language.GetString();
@@ -219,6 +230,7 @@ public class Image_Base : IImageMetadata
     private string? _remoteURL = null;
 
     /// <inheritdoc/>
+    [NotMapped]
     public virtual string? RemoteURL
     {
         get => _remoteURL;
@@ -235,6 +247,7 @@ public class Image_Base : IImageMetadata
     private string? _localPath = null;
 
     /// <inheritdoc/>
+    [NotMapped]
     public virtual string? LocalPath
     {
         get => _localPath;

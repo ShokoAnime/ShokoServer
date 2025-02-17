@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
@@ -20,6 +21,7 @@ public abstract class TMDB_Cast : ICast
     /// <summary>
     /// TMDB Parent ID for the production job.
     /// </summary>
+    [NotMapped]
     public abstract int TmdbParentID { get; }
 
     /// <summary>

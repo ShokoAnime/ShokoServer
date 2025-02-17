@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
@@ -86,6 +87,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// The original language this movie was shot in, just as a title language
     /// enum instead.
     /// </summary>
+    [NotMapped]
     public TitleLanguage OriginalLanguage
     {
         get => string.IsNullOrEmpty(OriginalLanguageCode) ? TitleLanguage.None : OriginalLanguageCode.GetTitleLanguage();
@@ -152,6 +154,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// <summary>
     /// Movie run-time.
     /// </summary>
+    [NotMapped]
     public TimeSpan? Runtime { get; set; }
 
     /// <summary>
@@ -238,7 +241,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
                 ContentRatings,
                 movie.ReleaseDates.Results
                     .Where(releaseDate => releaseDate.ReleaseDates.Any(r => !string.IsNullOrEmpty(r.Certification)))
-                    .Select(releaseDate => new TMDB_ContentRating(releaseDate.Iso_3166_1, releaseDate.ReleaseDates.Last(r => !string.IsNullOrEmpty(r.Certification)).Certification))
+                    .Select(releaseDate => new TMDB_ContentRating{ CountryCode = releaseDate.Iso_3166_1, Rating = releaseDate.ReleaseDates.Last(r => !string.IsNullOrEmpty(r.Certification)).Certification})
                     .WhereInLanguages(crLanguages?.Append(TitleLanguage.EnglishAmerican).ToHashSet())
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
@@ -248,7 +251,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
             UpdateProperty(
                 ProductionCountries,
                 movie.ProductionCountries
-                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1, country.Name))
+                    .Select(country => new TMDB_ProductionCountry{CountryCode = country.Iso_3166_1, CountryName = country.Name})
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ProductionCountries = v,
@@ -349,8 +352,10 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID);
 
+    [NotMapped]
     public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
 
+    [NotMapped]
     public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileName(BackdropPath)?.GetImageMetadata(true, ImageEntityType.Backdrop);
 
     /// <summary>
@@ -385,6 +390,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     /// <returns>All TMDB company cross-references linked to the movie.
     /// </returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Company_Entity> TmdbCompanyCrossReferences =>
         RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(ForeignEntityType.Movie, TmdbMovieID);
 
@@ -392,6 +398,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Get all TMDB companies linked to the movie.
     /// </summary>
     /// <returns>All TMDB companies linked to the movie.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Company> TmdbCompanies =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany())
@@ -402,6 +409,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Get all TMDB studios linked to the movie.
     /// </summary>
     /// <returns>All TMDB studios linked to the movie.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Studio<TMDB_Movie>> TmdbStudios =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany() is { } company ? new TMDB_Studio<TMDB_Movie>(company, this) : null)
@@ -412,6 +420,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Get all cast members that have worked on this movie.
     /// </summary>
     /// <returns>All cast members that have worked on this movie.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Movie_Cast> Cast =>
         RepoFactory.TMDB_Movie_Cast.GetByTmdbMovieID(TmdbMovieID);
 
@@ -419,6 +428,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Get all crew members that have worked on this movie.
     /// </summary>
     /// <returns>All crew members that have worked on this movie.</returns>
+    [NotMapped]
     public IReadOnlyList<TMDB_Movie_Crew> Crew =>
         RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(TmdbMovieID);
 
@@ -428,6 +438,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// settings file for this to be populated.
     /// </summary>
     /// <returns>The TMDB movie collection if found, or null.</returns>
+    [NotMapped]
     public TMDB_Collection? TmdbCollection => TmdbCollectionID.HasValue
         ? RepoFactory.TMDB_Collection.GetByTmdbCollectionID(TmdbCollectionID.Value)
         : null;
@@ -436,6 +447,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Get AniDB/TMDB cross-references for the movie.
     /// </summary>
     /// <returns>A read-only list of AniDB/TMDB cross-references for the movie.</returns>
+    [NotMapped]
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> CrossReferences =>
         RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
 
@@ -444,6 +456,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     /// <returns>A read-only list of file cross-references associated with the
     /// movie.</returns>
+    [NotMapped]
     public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
         CrossReferences
             .DistinctBy(xref => xref.AnidbEpisodeID)
