@@ -6,10 +6,12 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Commons.Properties;
+using Shoko.Server.Data.Context;
 using Shoko.Server.Databases;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -302,6 +304,13 @@ public class ShokoServer
             }
 
             _databaseFactory.CloseSessionFactory();
+
+            using (var scope = Utils.ServiceContainer.CreateScope())
+            {
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                dataContext.Database.Migrate();
+                dataContext.SaveChanges();
+            }
 
             var message = Resources.Database_Initializing;
             _logger.LogInformation("Starting Server: {Message}", message);

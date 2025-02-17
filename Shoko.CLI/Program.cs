@@ -4,9 +4,12 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using Shoko.Server.Data.Context;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -20,6 +23,19 @@ public static class Program
     private static ILogger _logger = null!;
     public static async Task Main()
     {
+        if (EF.IsDesignTime)
+        {
+            await Host.CreateDefaultBuilder()
+                .ConfigureServices(services =>
+                {
+                    services.AddDbContext<DataContext>();
+                })
+                .Build()
+                .RunAsync();
+
+            return;
+        }
+
         try
         {
             UnhandledExceptionManager.AddHandler();
