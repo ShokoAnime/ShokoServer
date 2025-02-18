@@ -1,6 +1,8 @@
 ﻿using System.IO;
+using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 using Shoko.Server.Data.TypeConverters;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
@@ -86,32 +88,78 @@ public class DataContext : DbContext
             var settings = _settingsProvider.GetSettings();
             DatabaseType = settings.Database.Type;
             // for now, only SQLite
-            if (DatabaseType == Constants.DatabaseType.Sqlite)
+            switch (DatabaseType)
             {
-                var connectionString = settings.Database.OverrideConnectionString;
-                if (string.IsNullOrEmpty(connectionString))
+                case Constants.DatabaseType.Sqlite:
                 {
-                    var dirPath = settings.Database.MySqliteDirectory;
-                    if (string.IsNullOrWhiteSpace(dirPath))
-                        dirPath = Path.Combine(Utils.ApplicationPath, "SQLite");
-                    else
-                        dirPath = Path.Combine(Utils.ApplicationPath, dirPath);
-
-                    var dbName = Path.Combine(dirPath, settings.Database.SQLite_DatabaseFileEF);
-
-                    var csBuilder = new SqliteConnectionStringBuilder
+                    var connectionString = settings.Database.OverrideConnectionString;
+                    if (string.IsNullOrEmpty(connectionString))
                     {
-                        DataSource = dbName,
-                        Mode = SqliteOpenMode.ReadWriteCreate,
-                        ForeignKeys = true,
-                        Pooling = true,
-                        DefaultTimeout = 90
-                    };
+                        var dirPath = settings.Database.MySqliteDirectory;
+                        if (string.IsNullOrWhiteSpace(dirPath))
+                            dirPath = Path.Combine(Utils.ApplicationPath, "SQLite");
+                        else
+                            dirPath = Path.Combine(Utils.ApplicationPath, dirPath);
 
-                    connectionString = csBuilder.ToString();
+                        var dbName = Path.Combine(dirPath, settings.Database.SQLite_DatabaseFileEF);
+
+                        var csBuilder = new SqliteConnectionStringBuilder
+                        {
+                            DataSource = dbName,
+                            Mode = SqliteOpenMode.ReadWriteCreate,
+                            ForeignKeys = true,
+                            Pooling = true,
+                            DefaultTimeout = 90
+                        };
+
+                        connectionString = csBuilder.ToString();
+                    }
+
+                    ConnectionString = connectionString;
+                    break;
                 }
+                case Constants.DatabaseType.MySQL:
+                {
+                    var connectionString = settings.Database.OverrideConnectionString;
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        var csBuilder = new MySqlConnectionStringBuilder
+                        {
+                            Database = settings.Database.Schema,
+                            Server = settings.Database.Hostname,
+                            Port = (uint)settings.Database.Port,
+                            UserID = settings.Database.Username,
+                            Password = settings.Database.Password,
+                            AllowUserVariables = true
+                        };
 
-                ConnectionString = connectionString;
+                        connectionString = csBuilder.ToString();
+                    }
+
+                    ConnectionString = connectionString;
+                    break;
+                }
+                case Constants.DatabaseType.SqlServer:
+                {
+                    var connectionString = settings.Database.OverrideConnectionString;
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        var csBuilder = new SqlConnectionStringBuilder
+                        {
+                            InitialCatalog = settings.Database.Schema,
+                            DataSource = $"{settings.Database.Host},{settings.Database.Port}",
+                            UserID = settings.Database.Username,
+                            Password = settings.Database.Password,
+                            MultipleActiveResultSets = true,
+                            TrustServerCertificate = true
+                        };
+
+                        connectionString = csBuilder.ToString();
+                    }
+
+                    ConnectionString = connectionString;
+                    break;
+                }
             }
         }
 
@@ -120,6 +168,12 @@ public class DataContext : DbContext
             case Constants.DatabaseType.Sqlite:
                 optionsBuilder.UseSqlite(ConnectionString);
                 break; 
+            case Constants.DatabaseType.MySQL:
+                optionsBuilder.UseMySql(ConnectionString, ServerVersion.AutoDetect(ConnectionString));
+                break;
+            case Constants.DatabaseType.SqlServer:
+                optionsBuilder.UseSqlServer(ConnectionString);
+                break;
         }
     }
 
