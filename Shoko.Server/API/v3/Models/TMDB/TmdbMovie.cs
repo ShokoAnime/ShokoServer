@@ -298,15 +298,15 @@ public class TmdbMovie
             ID = collection.TmdbCollectionID;
             Title = preferredTitle.Value;
             if (include.HasFlag(IncludeDetails.Titles))
-                Titles = collection.GetAllTitles()
+                Titles = collection.Titles
                     .ToDto(collection.EnglishTitle, preferredTitle, language);
             Overview = preferredOverview!.Value;
             if (include.HasFlag(IncludeDetails.Overviews))
-                Overviews = collection.GetAllOverviews()
+                Overviews = collection.Overviews
                     .ToDto(collection.EnglishOverview, preferredOverview, language);
             MovieCount = collection.MovieCount;
             if (include.HasFlag(IncludeDetails.Images))
-                Images = collection.GetImages()
+                Images = collection.Images
                     .ToDto(language, includeThumbnails: true);
             CreatedAt = collection.CreatedAt.ToUniversalTime();
             LastUpdatedAt = collection.LastUpdatedAt.ToUniversalTime();

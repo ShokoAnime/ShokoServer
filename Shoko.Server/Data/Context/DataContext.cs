@@ -215,6 +215,33 @@ public class DataContext : DbContext
             entity.Property(e => e.EnglishTitle).IsRequired();
             entity.Property(e => e.LastUpdatedAt).HasColumnType("DATETIME");
             entity.Property(e => e.TmdbCollectionID).HasColumnName("TmdbCollectionID");
+
+            // Foreign Keys
+            entity.HasMany(d => d.Movies).WithOne(p => p.TmdbCollection).HasForeignKey(d => d.TmdbCollectionID);
+
+            entity.HasMany(d => d.ImageEntities).WithOne().HasPrincipalKey(a => new
+            {
+                TmdbEntityID = a.TmdbCollectionID, TmdbEntityType = ForeignEntityType.Collection
+            }).HasForeignKey(d => new
+            {
+                d.TmdbEntityID, d.TmdbEntityType
+            });
+
+            entity.HasMany(d => d.Titles).WithOne().HasForeignKey(d => new
+            {
+                d.ParentType, d.ParentID
+            }).HasPrincipalKey(a => new
+            {
+                ParentType = ForeignEntityType.Collection, ParentID = a.TMDB_CollectionID
+            });
+
+            entity.HasMany(d => d.Overviews).WithOne().HasForeignKey(d => new
+            {
+                d.ParentType, d.ParentID
+            }).HasPrincipalKey(a => new
+            {
+                ParentType = ForeignEntityType.Collection, ParentID = a.TMDB_CollectionID
+            });
         });
 
         modelBuilder.Entity<TMDB_Collection_Movie>(entity =>

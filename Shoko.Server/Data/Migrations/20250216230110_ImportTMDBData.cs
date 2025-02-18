@@ -31,7 +31,7 @@ namespace Shoko.Server.Data.Migrations
             // Probably start with TMDB_Show, and build on it.
             // We have TMDB IDs, so we can look up shared ones like Person, Company, Season, etc
 
-            var settings = Utils.SettingsProvider.GetSettings();
+            /*var settings = Utils.SettingsProvider.GetSettings();
             var databaseType = settings.Database.Type;
             var batchSize = 1000;
             using var oldContext = new DataContext { DatabaseType = databaseType, ConnectionString = $@"data source={SQLite.GetDatabaseFilePath()};" };
@@ -213,7 +213,7 @@ namespace Shoko.Server.Data.Migrations
                 newContext.SaveChanges();
             }
 
-            throw new Exception("Test");
+            throw new Exception("Test");*/
         }
 
         /// <inheritdoc />
