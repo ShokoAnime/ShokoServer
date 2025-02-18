@@ -731,7 +731,7 @@ public partial class TmdbController : BaseController
             return RepoFactory.TMDB_Collection.GetAll()
                 .Search(
                     search,
-                    collection => collection.GetAllTitles()
+                    collection => collection.Titles
                         .WhereInLanguages(languages)
                         .Select(title => title.Value)
                         .Append(collection.EnglishTitle)
@@ -786,7 +786,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieCollectionNotFound);
 
         var preferredTitle = collection.GetPreferredTitle();
-        return new(collection.GetAllTitles().ToDto(collection.EnglishTitle, preferredTitle, language));
+        return new(collection.Titles.ToDto(collection.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Movie/Collection/{collectionID}/Overviews")]
@@ -802,7 +802,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieCollectionNotFound);
 
         var preferredOverview = collection.GetPreferredOverview();
-        return new(collection.GetAllOverviews().ToDto(collection.EnglishTitle, preferredOverview, language));
+        return new(collection.Overviews.ToDto(collection.EnglishTitle, preferredOverview, language));
     }
 
     [HttpGet("Movie/Collection/{collectionID}/Images")]
@@ -818,7 +818,7 @@ public partial class TmdbController : BaseController
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
-        return collection.GetImages()
+        return collection.Images
             .ToDto(language, includeDisabled: includeDisabled);
     }
 
@@ -839,7 +839,7 @@ public partial class TmdbController : BaseController
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
-        return collection.GetTmdbMovies()
+        return collection.Movies
             .Select(movie =>
             {
                 if (_tmdbMetadataService.WaitForMovieUpdate(movie.Id))
