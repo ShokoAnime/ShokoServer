@@ -275,14 +275,14 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Show, TmdbShowID, EnglishTitle, "en", "US");
+                return new TMDB_Title_TVShow { ParentID = TmdbShowID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"};
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Show, TmdbShowID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new TMDB_Title_TVShow { ParentID = TmdbShowID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"} : null;
     }
 
     /// <summary>
@@ -324,7 +324,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Show, TmdbShowID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new TMDB_Overview_TVShow { ParentID = TmdbShowID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"} : null;
     }
 
     /// <summary>

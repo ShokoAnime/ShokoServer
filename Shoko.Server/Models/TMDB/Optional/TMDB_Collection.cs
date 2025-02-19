@@ -121,14 +121,20 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
         foreach (var preferredLanguage in Languages.PreferredEpisodeNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US");
+                return new TMDB_Title_Collection
+                {
+                    ParentID = TmdbCollectionID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"
+                };
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new TMDB_Title_Collection
+        {
+            ParentID = TmdbCollectionID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"
+        } : null;
     }
 
     /// <summary>
@@ -150,20 +156,20 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Collection, TmdbCollectionID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new TMDB_Overview_Collection { ParentID = TmdbCollectionID, Value = EnglishOverview, LanguageCode = "en", CountryCode = "US" } : null;
     }
 
     /// <summary>
     /// Get all titles for the movie collection.
     /// </summary>
     /// <value>All titles for the movie collection.</value>
-    public IEnumerable<TMDB_Title> Titles => RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
+    public virtual IEnumerable<TMDB_Title> Titles { get; set; }
 
     /// <summary>
     /// Get all overviews for the movie collection.
     /// </summary>
     /// <value>All overviews for the movie collection.</value>
-    public IEnumerable<TMDB_Overview> Overviews => RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
+    public virtual IEnumerable<TMDB_Overview> Overviews { get; set; }
 
     /// <summary>
     /// Get all images for the movie collection, or all images for the given
@@ -172,7 +178,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     ///     A read-only list of images that are linked to the movie collection.
     /// </value>
     [NotMapped]
-    public IEnumerable<TMDB_Image> Images => ImageEntities.Select(a => new
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.Select(a => new
     {
         a.ImageType, Image = a.GetTmdbImage()
     }).Where(a => a.Image != null).Select(a => new TMDB_Image
@@ -189,13 +195,13 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
         UserVotes = a.Image.UserVotes
     });
 
-    public IEnumerable<TMDB_Image_Entity> ImageEntities => RepoFactory.TMDB_Image_Entity.GetByTmdbCollectionID(TmdbCollectionID);
+    public virtual IEnumerable<TMDB_Image_Collection> ImageXRefs { get; set; }
 
     /// <summary>
     /// Get all local TMDB movies associated with the movie collection.
     /// </summary>
     /// <value>The TMDB movies.</value>
-    public IEnumerable<TMDB_Movie> Movies => RepoFactory.TMDB_Movie.GetByTmdbCollectionID(TmdbCollectionID);
+    public virtual IEnumerable<TMDB_Movie> Movies { get; set; }
 
     #endregion
 

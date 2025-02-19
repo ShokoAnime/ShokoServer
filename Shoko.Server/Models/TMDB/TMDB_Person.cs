@@ -161,7 +161,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
                 return biography;
         }
 
-        return useFallback ? new(ForeignEntityType.Person, TmdbPersonID, EnglishBiography, "en", "US") : null;
+        return useFallback ? new TMDB_Overview_Person { ParentID = TmdbPersonID, Value = EnglishBiography,LanguageCode = "en", CountryCode = "US"} : null;
     }
 
     /// <summary>

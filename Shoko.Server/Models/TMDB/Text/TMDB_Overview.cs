@@ -6,12 +6,13 @@ using Shoko.Server.Server;
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Overview
+public abstract class TMDB_Overview
 {
     public int TMDB_OverviewID { get; set; }
 
     public int ParentID { get; set; }
 
+    [NotMapped] // Discriminators cannot be mapped. They are automatically set from the type
     public ForeignEntityType ParentType { get; set; }
 
     [NotMapped]
@@ -31,15 +32,11 @@ public class TMDB_Overview
     public string CountryCode { get; set; } = string.Empty;
 
     public string Value { get; set; } = string.Empty;
-
-    public TMDB_Overview() { }
-
-    public TMDB_Overview(ForeignEntityType parentType, int parentId, string value, string languageCode, string countryCode)
-    {
-        ParentType = parentType;
-        ParentID = parentId;
-        Value = value;
-        LanguageCode = languageCode;
-        CountryCode = countryCode;
-    }
 }
+
+public class TMDB_Overview_Season : TMDB_Overview;
+public class TMDB_Overview_TVShow : TMDB_Overview;
+public class TMDB_Overview_Movie : TMDB_Overview;
+public class TMDB_Overview_Episode : TMDB_Overview;
+public class TMDB_Overview_Collection : TMDB_Overview;
+public class TMDB_Overview_Person : TMDB_Overview;

@@ -2042,7 +2042,20 @@ public class TmdbMetadataService
                 if (existingTitle is null)
                 {
                     titlesToAdd++;
-                    titlesToSave.Add(new(tmdbEntity.Type, tmdbEntity.Id, currentTitle, languageCode, countryCode));
+                    TMDB_Title title = tmdbEntity.Type switch
+                    {
+                        ForeignEntityType.Collection => new TMDB_Title_Collection(),
+                        ForeignEntityType.Movie => new TMDB_Title_Movie(),
+                        ForeignEntityType.Show => new TMDB_Title_TVShow(),
+                        ForeignEntityType.Season => new TMDB_Title_Season(),
+                        ForeignEntityType.Episode => new TMDB_Title_Episode(),
+                        _ => throw new ArgumentOutOfRangeException(nameof(tmdbEntity.Type), tmdbEntity.Type, null)
+                    };
+                    title.ParentID = tmdbEntity.Id;
+                    title.Value = currentTitle;
+                    title.LanguageCode = languageCode;
+                    title.CountryCode = countryCode;
+                    titlesToSave.Add(title);
                 }
                 else
                 {
@@ -2070,7 +2083,21 @@ public class TmdbMetadataService
                 if (existingOverview is null)
                 {
                     overviewsToAdd++;
-                    overviewsToSave.Add(new(tmdbEntity.Type, tmdbEntity.Id, currentOverview, languageCode, countryCode));
+                    TMDB_Overview overview = tmdbEntity.Type switch
+                    {
+                        ForeignEntityType.Movie => new TMDB_Overview_Movie(),
+                        ForeignEntityType.Show => new TMDB_Overview_TVShow(),
+                        ForeignEntityType.Season => new TMDB_Overview_Season(),
+                        ForeignEntityType.Episode => new TMDB_Overview_Episode(),
+                        ForeignEntityType.Person => new TMDB_Overview_Person(),
+                        _ => throw new ArgumentOutOfRangeException(nameof(tmdbEntity), tmdbEntity, null)
+                    };
+
+                    overview.ParentID = tmdbEntity.Id;
+                    overview.Value = currentOverview;
+                    overview.LanguageCode = languageCode;
+                    overview.CountryCode = countryCode;
+                    overviewsToSave.Add(overview);
                 }
                 else
                 {
@@ -2156,7 +2183,25 @@ public class TmdbMetadataService
             else
             {
                 xrefsToAdd++;
-                xrefsToSave.Add(new(company.Id, tmdbEntity.Type, tmdbEntity.Id, currentIndex, tmdbEntity.ReleasedAt));
+                TMDB_Company_Entity xref;
+                switch (tmdbEntity.Type)
+                {
+                    case ForeignEntityType.Movie:
+                        xref = new TMDB_Company_Movie
+                        {
+                            TmdbCompanyID = company.Id, TmdbEntityID = tmdbEntity.Id, Ordering = currentIndex, ReleasedAt = tmdbEntity.ReleasedAt
+                        };
+                        break;
+                    case ForeignEntityType.Show:
+                        xref = new TMDB_Company_Show
+                        {
+                            TmdbCompanyID = company.Id, TmdbEntityID = tmdbEntity.Id, Ordering = currentIndex, ReleasedAt = tmdbEntity.ReleasedAt
+                        };
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(tmdbEntity.Type), tmdbEntity.Type, null);
+                }
+                xrefsToSave.Add(xref);
             }
 
             await UpdateCompany(company);

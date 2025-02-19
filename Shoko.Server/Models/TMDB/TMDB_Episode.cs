@@ -176,7 +176,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
             UpdateProperty(TmdbSeasonID, season.Id!.Value, v => TmdbSeasonID = v),
             UpdateProperty(TmdbShowID, show.Id, v => TmdbShowID = v),
             UpdateProperty(ThumbnailPath, episode.StillPath, v => ThumbnailPath = v),
-            // If the translations aren't provided and we have an English title, then don't update it.
+            // If the translations aren't provided, and we have an English title, then don't update it.
             UpdateProperty(EnglishTitle, translations is null && !string.IsNullOrEmpty(EnglishTitle) ? EnglishTitle : !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : episode.Name, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : episode.Overview, v => EnglishOverview = v),
             UpdateProperty(SeasonNumber, episode.SeasonNumber, v => SeasonNumber = v),
@@ -208,14 +208,14 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         foreach (var preferredLanguage in Languages.PreferredEpisodeNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Episode, TmdbEpisodeID, EnglishTitle, "en", "US");
+                return new TMDB_Title_Episode { ParentID = TmdbEpisodeID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US" };
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Episode, TmdbEpisodeID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new TMDB_Title_Episode { ParentID = TmdbEpisodeID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US" } : null;
     }
 
     /// <summary>
@@ -272,7 +272,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Episode, TmdbEpisodeID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new TMDB_Overview_Episode { ParentID = TmdbEpisodeID, Value = EnglishOverview, LanguageCode = "en", CountryCode = "US" } : null;
     }
 
     /// <summary>
