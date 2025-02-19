@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
@@ -65,36 +66,29 @@ public class TMDB_Company
         return updated;
     }
 
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbCompanyIDAndType(TmdbCompanyID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbCompanyID(TmdbCompanyID);
+    public IEnumerable<TMDB_Image_Entity> ImageEntities { get; set; }
 
-    public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImageMetadata> preferredImages) =>
-        GetImages(entityType)
-            .GroupBy(i => i.ImageType)
-            .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
-            .ToList();
+    [NotMapped]
+    public IEnumerable<TMDB_Image> Images => ImageEntities.Select(a => new
+    {
+        a.ImageType, Image = a.GetTmdbImage()
+    }).Where(a => a.Image != null).Select(a => new TMDB_Image
+    {
+        ImageType = a.ImageType,
+        RemoteFileName = a.Image!.RemoteFileName,
+        IsEnabled = a.Image.IsEnabled,
+        IsPreferred = a.Image.IsPreferred,
+        LanguageCode = a.Image.LanguageCode,
+        Height = a.Image.Height,
+        Width = a.Image.Width,
+        TMDB_ImageID = a.Image.TMDB_ImageID,
+        UserRating = a.Image.UserRating,
+        UserVotes = a.Image.UserVotes
+    });
 
-    public IReadOnlyList<TMDB_Company_Entity> GetTmdbCompanyCrossReferences() =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(TmdbCompanyID);
+    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType) => Images.Where(a => a.ImageType == entityType).ToList();
 
-    public IReadOnlyList<IEntityMetadata> GetTmdbEntities() =>
-        GetTmdbCompanyCrossReferences()
-            .Select(xref => xref.GetTmdbEntity())
-            .WhereNotNull()
-            .ToList();
-
-    public IReadOnlyList<IEntityMetadata> GetTmdbShows() =>
-        GetTmdbCompanyCrossReferences()
-            .Select(xref => xref.GetTmdbShow())
-            .WhereNotNull()
-            .ToList();
-
-    public IReadOnlyList<IEntityMetadata> GetTmdbMovies() =>
-        GetTmdbCompanyCrossReferences()
-            .Select(xref => xref.GetTmdbMovie())
-            .WhereNotNull()
-            .ToList();
+    public IEnumerable<TMDB_Company_Entity> XRefs => RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(TmdbCompanyID);
 
     #endregion
 }

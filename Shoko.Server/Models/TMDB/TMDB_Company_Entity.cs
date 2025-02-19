@@ -61,24 +61,10 @@ public class TMDB_Company_Entity
 
     #region Methods
 
-    public TMDB_Company? GetTmdbCompany() =>
-        RepoFactory.TMDB_Company.GetByTmdbCompanyID(TmdbCompanyID);
+    public TMDB_Company? Company { get; set; }
 
-    public IEntityMetadata? GetTmdbEntity() =>
-        TmdbEntityType switch
-        {
-            ForeignEntityType.Show => RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID),
-            ForeignEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID),
-            _ => null,
-        };
-
-    public TMDB_Show? GetTmdbShow() => TmdbEntityType == ForeignEntityType.Show
-        ? RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID)
-        : null;
-
-    public TMDB_Movie? GetTmdbMovie() => TmdbEntityType == ForeignEntityType.Movie
-        ? RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID)
-        : null;
+    public TMDB_Show? TVShow { get; set; }
+    public TMDB_Movie? Movie { get; set; }
 
     #endregion
 }
