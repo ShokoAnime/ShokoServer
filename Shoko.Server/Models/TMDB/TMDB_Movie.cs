@@ -284,14 +284,14 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Movie, TmdbMovieID, EnglishTitle, "en", "US");
+                return new TMDB_Title_Movie { ParentID = TmdbMovieID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"};
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Movie, TmdbMovieID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new TMDB_Title_Movie { ParentID = TmdbMovieID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"} : null;
     }
 
     /// <summary>
@@ -333,7 +333,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Movie, TmdbMovieID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new TMDB_Overview_Movie { ParentID = TmdbMovieID, Value = EnglishOverview, LanguageCode = "en", CountryCode = "US" } : null;
     }
 
     /// <summary>
@@ -438,10 +438,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// settings file for this to be populated.
     /// </summary>
     /// <returns>The TMDB movie collection if found, or null.</returns>
-    [NotMapped]
-    public TMDB_Collection? TmdbCollection => TmdbCollectionID.HasValue
-        ? RepoFactory.TMDB_Collection.GetByTmdbCollectionID(TmdbCollectionID.Value)
-        : null;
+    public virtual TMDB_Collection? TmdbCollection { get; set; }
 
     /// <summary>
     /// Get AniDB/TMDB cross-references for the movie.

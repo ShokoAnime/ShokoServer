@@ -1,14 +1,13 @@
 
 #nullable enable
 using System;
-using Shoko.Server.Models.Interfaces;
-using Shoko.Server.Repositories;
+using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Company_Entity
+public abstract class TMDB_Company_Entity
 {
     #region Properties
 
@@ -25,6 +24,7 @@ public class TMDB_Company_Entity
     /// <summary>
     /// TMDB Entity Type.
     /// </summary>
+    [NotMapped] // Discriminators cannot be mapped. They are automatically set from the type
     public ForeignEntityType TmdbEntityType { get; set; }
 
     /// <summary>
@@ -44,27 +44,15 @@ public class TMDB_Company_Entity
 
     #endregion
 
-    #region Constructors
-
-    public TMDB_Company_Entity() { }
-
-    public TMDB_Company_Entity(int companyId, ForeignEntityType entityType, int entityId, int index, DateOnly? releasedAt)
-    {
-        TmdbCompanyID = companyId;
-        TmdbEntityType = entityType;
-        TmdbEntityID = entityId;
-        Ordering = index;
-        ReleasedAt = releasedAt;
-    }
-
-    #endregion
-
     #region Methods
 
-    public TMDB_Company? Company { get; set; }
+    public virtual TMDB_Company? Company { get; set; }
 
-    public TMDB_Show? TVShow { get; set; }
-    public TMDB_Movie? Movie { get; set; }
+    public virtual TMDB_Show? TVShow { get; set; }
+    public virtual TMDB_Movie? Movie { get; set; }
 
     #endregion
 }
+
+public class TMDB_Company_Show : TMDB_Company_Entity;
+public class TMDB_Company_Movie : TMDB_Company_Entity;

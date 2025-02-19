@@ -66,10 +66,10 @@ public class TMDB_Company
         return updated;
     }
 
-    public IEnumerable<TMDB_Image_Entity> ImageEntities { get; set; }
+    public virtual IEnumerable<TMDB_Image_Company> ImageXRefs { get; set; }
 
     [NotMapped]
-    public IEnumerable<TMDB_Image> Images => ImageEntities.Select(a => new
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.Select(a => new
     {
         a.ImageType, Image = a.GetTmdbImage()
     }).Where(a => a.Image != null).Select(a => new TMDB_Image
@@ -88,7 +88,7 @@ public class TMDB_Company
 
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType) => Images.Where(a => a.ImageType == entityType).ToList();
 
-    public IEnumerable<TMDB_Company_Entity> XRefs => RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(TmdbCompanyID);
+    public virtual IEnumerable<TMDB_Company_Entity> XRefs { get; set; }
 
     #endregion
 }

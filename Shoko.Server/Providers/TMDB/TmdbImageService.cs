@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentNHibernate.Data;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;
@@ -69,7 +67,28 @@ public class TmdbImageService
         if (updated)
             _tmdbImages.Save(image);
 
-        var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, filePath) ?? new(filePath, imageType, foreignType, foreignId);
+        var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, filePath);
+        if (imageEntity == null)
+        {
+            imageEntity = foreignType switch
+            {
+                ForeignEntityType.Movie => new TMDB_Image_Movie(),
+                ForeignEntityType.Show => new TMDB_Image_TVShow(),
+                ForeignEntityType.Collection => new TMDB_Image_Collection(),
+                ForeignEntityType.Season => new TMDB_Image_Season(),
+                ForeignEntityType.Episode => new TMDB_Image_Episode(),
+                ForeignEntityType.Company => new TMDB_Image_Company(),
+                ForeignEntityType.Studio => new TMDB_Image_Studio(),
+                ForeignEntityType.Network => new TMDB_Image_Network(),
+                ForeignEntityType.Person => new TMDB_Image_Person(),
+                ForeignEntityType.Character => new TMDB_Image_Character(),
+                _ => throw new ArgumentOutOfRangeException(nameof(foreignType), foreignType, null)
+            };
+            imageEntity.RemoteFileName = filePath;
+            imageEntity.ImageType = imageType;
+            imageEntity.TmdbEntityID = foreignId;
+        }
+
         updated = imageEntity.Populate(0, null);
         if (updated)
             _tmdbImageEntities.Save(imageEntity);
@@ -120,7 +139,28 @@ public class TmdbImageService
             if (updated)
                 _tmdbImages.Save(image);
 
-            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, imageData.FilePath) ?? new(imageData.FilePath, imageType, foreignType, foreignId);
+            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, imageData.FilePath);
+            if (imageEntity == null)
+            {
+                imageEntity = foreignType switch
+                {
+                    ForeignEntityType.Movie => new TMDB_Image_Movie(),
+                    ForeignEntityType.Show => new TMDB_Image_TVShow(),
+                    ForeignEntityType.Collection => new TMDB_Image_Collection(),
+                    ForeignEntityType.Season => new TMDB_Image_Season(),
+                    ForeignEntityType.Episode => new TMDB_Image_Episode(),
+                    ForeignEntityType.Company => new TMDB_Image_Company(),
+                    ForeignEntityType.Studio => new TMDB_Image_Studio(),
+                    ForeignEntityType.Network => new TMDB_Image_Network(),
+                    ForeignEntityType.Person => new TMDB_Image_Person(),
+                    ForeignEntityType.Character => new TMDB_Image_Character(),
+                    _ => throw new ArgumentOutOfRangeException(nameof(foreignType), foreignType, null)
+                };
+                imageEntity.RemoteFileName = imageData.FilePath;
+                imageEntity.ImageType = imageType;
+                imageEntity.TmdbEntityID = foreignId;
+            }
+
             updated = imageEntity.Populate(index, releasedAt);
             if (updated)
                 _tmdbImageEntities.Save(imageEntity);

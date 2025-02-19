@@ -15,7 +15,7 @@ namespace Shoko.Server.Repositories;
 
 // ReSharper disable once InconsistentNaming
 public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedRepository, IRepository<T, S>
-    where T : class, new()
+    where T : class
 {
     private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
     protected readonly DatabaseFactory _databaseFactory;

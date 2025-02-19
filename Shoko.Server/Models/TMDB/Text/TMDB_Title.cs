@@ -7,12 +7,13 @@ using Shoko.Server.Server;
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Title : IEquatable<TMDB_Title>
+public abstract class TMDB_Title : IEquatable<TMDB_Title>
 {
     public int TMDB_TitleID { get; set; }
 
     public int ParentID { get; set; }
 
+    [NotMapped] // Discriminators cannot be mapped. They are automatically set from the type
     public ForeignEntityType ParentType { get; set; }
 
     [NotMapped]
@@ -32,17 +33,6 @@ public class TMDB_Title : IEquatable<TMDB_Title>
     public string CountryCode { get; set; } = string.Empty;
 
     public string Value { get; set; } = string.Empty;
-
-    public TMDB_Title() { }
-
-    public TMDB_Title(ForeignEntityType parentType, int parentId, string value, string languageCode, string countryCode)
-    {
-        ParentType = parentType;
-        ParentID = parentId;
-        Value = value;
-        LanguageCode = languageCode;
-        CountryCode = countryCode;
-    }
 
     public override int GetHashCode()
     {
@@ -66,3 +56,9 @@ public class TMDB_Title : IEquatable<TMDB_Title>
         LanguageCode == other.LanguageCode &&
         CountryCode == other.CountryCode;
 }
+
+public class TMDB_Title_Season : TMDB_Title;
+public class TMDB_Title_TVShow : TMDB_Title;
+public class TMDB_Title_Movie : TMDB_Title;
+public class TMDB_Title_Episode : TMDB_Title;
+public class TMDB_Title_Collection : TMDB_Title; 

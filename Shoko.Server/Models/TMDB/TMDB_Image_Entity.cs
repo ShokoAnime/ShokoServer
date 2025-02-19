@@ -1,13 +1,13 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Image_Entity
+public abstract class TMDB_Image_Entity
 {
     #region Properties
 
@@ -29,6 +29,7 @@ public class TMDB_Image_Entity
     /// <summary>
     /// TMDB Entity Type.
     /// </summary>
+    [NotMapped] // Discriminators cannot be mapped. They are automatically set from the type
     public ForeignEntityType TmdbEntityType { get; set; }
 
     /// <summary>
@@ -47,22 +48,6 @@ public class TMDB_Image_Entity
     public DateOnly? ReleasedAt { get; set; }
 
     #endregion
-
-    #region Constructors
-
-    public TMDB_Image_Entity() { }
-
-    public TMDB_Image_Entity(string remoteFileName, ImageEntityType imageType, ForeignEntityType entityType, int entityId)
-    {
-        RemoteFileName = remoteFileName;
-        ImageType = imageType;
-        TmdbEntityType = entityType;
-        TmdbEntityID = entityId;
-    }
-
-    #endregion
-
-    #region Methods
 
     public bool Populate(int index, DateOnly? releasedAt = null)
     {
@@ -86,52 +71,15 @@ public class TMDB_Image_Entity
         RepoFactory.TMDB_Image.GetByRemoteFileName(RemoteFileName) is { } image
             ? (ofType ? image.GetImageMetadata(imageType: ImageType) : image)
             : null;
-
-    public IEntityMetadata? GetTmdbEntity() =>
-        TmdbEntityType switch
-        {
-            ForeignEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID),
-            ForeignEntityType.Episode => RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEntityID),
-            ForeignEntityType.Season => RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbEntityID),
-            ForeignEntityType.Show => RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID),
-            ForeignEntityType.Collection => RepoFactory.TMDB_Collection.GetByTmdbCollectionID(TmdbEntityID),
-            // ForeignEntityType.Network => null,
-            // ForeignEntityType.Company => null,
-            ForeignEntityType.Person => RepoFactory.TMDB_Person.GetByTmdbPersonID(TmdbEntityID),
-            _ => null,
-        };
-
-    public TMDB_Movie? GetTmdbMovie() => TmdbEntityType == ForeignEntityType.Movie
-        ? RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID)
-        : null;
-
-    public TMDB_Episode? GetTmdbEpisode() => TmdbEntityType == ForeignEntityType.Episode
-        ? RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEntityID)
-        : null;
-
-    public TMDB_Season? GetTmdbSeason() => TmdbEntityType == ForeignEntityType.Season
-        ? RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbEntityID)
-        : null;
-
-    public TMDB_Show? GetTmdbShow() => TmdbEntityType == ForeignEntityType.Show
-        ? RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID)
-        : null;
-
-    public TMDB_Collection? GetTmdbCollection() => TmdbEntityType == ForeignEntityType.Collection
-        ? RepoFactory.TMDB_Collection.GetByTmdbCollectionID(TmdbEntityID)
-        : null;
-
-    public TMDB_Network? GetTmdbNetwork() => TmdbEntityType == ForeignEntityType.Network
-        ? RepoFactory.TMDB_Network.GetByTmdbNetworkID(TmdbEntityID)
-        : null;
-
-    public TMDB_Company? GetTmdbCompany() => TmdbEntityType == ForeignEntityType.Company
-        ? RepoFactory.TMDB_Company.GetByTmdbCompanyID(TmdbEntityID)
-        : null;
-
-    public TMDB_Person? GetTmdbPerson() => TmdbEntityType == ForeignEntityType.Person
-        ? RepoFactory.TMDB_Person.GetByTmdbPersonID(TmdbEntityID)
-        : null;
-
-    #endregion
 }
+
+public class TMDB_Image_Collection : TMDB_Image_Entity;
+public class TMDB_Image_Company : TMDB_Image_Entity;
+public class TMDB_Image_Movie : TMDB_Image_Entity;
+public class TMDB_Image_TVShow : TMDB_Image_Entity;
+public class TMDB_Image_Season : TMDB_Image_Entity;
+public class TMDB_Image_Episode : TMDB_Image_Entity;
+public class TMDB_Image_Person : TMDB_Image_Entity;
+public class TMDB_Image_Character : TMDB_Image_Entity;
+public class TMDB_Image_Network : TMDB_Image_Entity;
+public class TMDB_Image_Studio : TMDB_Image_Entity;

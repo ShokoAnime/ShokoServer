@@ -149,14 +149,14 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US");
+                return new TMDB_Title_Season { ParentID = TmdbSeasonID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"};
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new TMDB_Title_Season { ParentID = TmdbSeasonID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"} : null;
     }
 
     /// <summary>
@@ -186,7 +186,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Season, TmdbSeasonID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new TMDB_Overview_Season {ParentID = TmdbSeasonID, Value = EnglishOverview, LanguageCode = "en", CountryCode = "US"} : null;
     }
 
     /// <summary>

@@ -49,6 +49,8 @@ public class DataContext : DbContext
 
     public virtual DbSet<TMDB_Image> TmdbImage { get; set; }
 
+    public virtual DbSet<TMDB_Image_Entity> TmdbImageEntity { get; set; }
+
     public virtual DbSet<TMDB_Movie> TmdbMovie { get; set; }
 
     public virtual DbSet<TMDB_Movie_Cast> TmdbMovieCast { get; set; }
@@ -194,16 +196,14 @@ public class DataContext : DbContext
             entity.Property(e => e.EnglishOverview).IsRequired();
             entity.Property(e => e.EnglishTitle).IsRequired();
             entity.Property(e => e.LastUpdatedAt).HasColumnType("DATETIME");
-            entity.Property(e => e.TmdbEpisodeGroupCollectionID)
-                .IsRequired()
-                .HasColumnName("TmdbEpisodeGroupCollectionID");
+            entity.Property(e => e.TmdbEpisodeGroupCollectionID).IsRequired().HasColumnName("TmdbEpisodeGroupCollectionID");
             entity.Property(e => e.TmdbNetworkID).HasColumnName("TmdbNetworkID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
 
             // Foreign Keys
-            entity.HasOne(d => d.TmdbShow).WithMany(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbShowID);
-            entity.HasMany(d => d.TmdbAlternateOrderingEpisodes).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID);
-            entity.HasMany(d => d.TmdbAlternateOrderingSeasons).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID);
+            entity.HasOne(d => d.TmdbShow).WithMany(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(d => d.TmdbAlternateOrderingEpisodes).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID).HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
+            entity.HasMany(d => d.TmdbAlternateOrderingSeasons).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID).HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
         });
 
         modelBuilder.Entity<TMDB_AlternateOrdering_Episode>(entity =>
@@ -213,20 +213,19 @@ public class DataContext : DbContext
             entity.Property(e => e.TMDB_AlternateOrdering_EpisodeID).HasColumnName("TMDB_AlternateOrdering_EpisodeID");
             entity.Property(e => e.CreatedAt).HasColumnType("DATETIME");
             entity.Property(e => e.LastUpdatedAt).HasColumnType("DATETIME");
-            entity.Property(e => e.TmdbEpisodeGroupCollectionID)
-                .IsRequired()
-                .HasColumnName("TmdbEpisodeGroupCollectionID");
-            entity.Property(e => e.TmdbEpisodeGroupID)
-                .IsRequired()
-                .HasColumnName("TmdbEpisodeGroupID");
+            entity.Property(e => e.TmdbEpisodeGroupCollectionID).IsRequired().HasColumnName("TmdbEpisodeGroupCollectionID");
+            entity.Property(e => e.TmdbEpisodeGroupID).IsRequired().HasColumnName("TmdbEpisodeGroupID");
             entity.Property(e => e.TmdbEpisodeID).HasColumnName("TmdbEpisodeID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
 
             // Foreign Keys
-            entity.HasOne(d => d.TmdbEpisode).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeID);
-            entity.HasOne(d => d.TmdbShow).WithMany().HasForeignKey(d => d.TmdbShowID);
-            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeGroupID);
-            entity.HasOne(d => d.TmdbAlternateOrderingSeason).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID);
+            entity.HasOne(d => d.TmdbEpisode).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeID)
+                .HasPrincipalKey(a => a.TmdbEpisodeID);
+            entity.HasOne(d => d.TmdbShow).WithMany().HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
+                .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
+            entity.HasOne(d => d.TmdbAlternateOrderingSeason).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
+                .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
         });
 
         modelBuilder.Entity<TMDB_AlternateOrdering_Season>(entity =>
@@ -243,18 +242,16 @@ public class DataContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnType("DATETIME");
             entity.Property(e => e.EnglishTitle).IsRequired();
             entity.Property(e => e.LastUpdatedAt).HasColumnType("DATETIME");
-            entity.Property(e => e.TmdbEpisodeGroupCollectionID)
-                .IsRequired()
-                .HasColumnName("TmdbEpisodeGroupCollectionID");
-            entity.Property(e => e.TmdbEpisodeGroupID)
-                .IsRequired()
-                .HasColumnName("TmdbEpisodeGroupID");
+            entity.Property(e => e.TmdbEpisodeGroupCollectionID).IsRequired().HasColumnName("TmdbEpisodeGroupCollectionID");
+            entity.Property(e => e.TmdbEpisodeGroupID).IsRequired().HasColumnName("TmdbEpisodeGroupID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
 
             // Foreign Keys
-            entity.HasOne(d => d.TmdbShow).WithMany().HasForeignKey(d => d.TmdbShowID);
-            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.TmdbAlternateOrderingSeasons).HasForeignKey(d => d.TmdbEpisodeGroupID);
-            entity.HasMany(d => d.TmdbAlternateOrderingEpisodes).WithOne(p => p.TmdbAlternateOrderingSeason).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID);
+            entity.HasOne(d => d.TmdbShow).WithMany().HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.TmdbAlternateOrderingSeasons).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
+                .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
+            entity.HasMany(d => d.TmdbAlternateOrderingEpisodes).WithOne(p => p.TmdbAlternateOrderingSeason).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
+                .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
         });
 
         modelBuilder.Entity<TMDB_Collection>(entity =>
@@ -271,32 +268,13 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbCollectionID).HasColumnName("TmdbCollectionID");
 
             // Foreign Keys
-            entity.HasMany(d => d.Movies).WithOne(p => p.TmdbCollection).HasForeignKey(d => d.TmdbCollectionID);
-
-            // TODO this doesn't work. Maybe make a TPH implementation for Images?
-            entity.HasMany(d => d.ImageEntities).WithOne().HasPrincipalKey(a => new
-            {
-                TmdbEntityID = a.TmdbCollectionID, TmdbEntityType = ForeignEntityType.Collection
-            }).HasForeignKey(d => new
-            {
-                d.TmdbEntityID, d.TmdbEntityType
-            });
-
-            entity.HasMany(d => d.Titles).WithOne().HasForeignKey(d => new
-            {
-                d.ParentType, d.ParentID
-            }).HasPrincipalKey(a => new
-            {
-                ParentType = ForeignEntityType.Collection, ParentID = a.TMDB_CollectionID
-            });
-
-            entity.HasMany(d => d.Overviews).WithOne().HasForeignKey(d => new
-            {
-                d.ParentType, d.ParentID
-            }).HasPrincipalKey(a => new
-            {
-                ParentType = ForeignEntityType.Collection, ParentID = a.TMDB_CollectionID
-            });
+            entity.HasMany(d => d.Movies).WithOne(p => p.TmdbCollection).HasForeignKey(d => d.TmdbCollectionID).HasPrincipalKey(a => a.TmdbCollectionID);
+            entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbCollectionID).HasForeignKey(d => d.TmdbEntityID)
+                .HasPrincipalKey(a => a.TmdbCollectionID);
+            entity.HasMany(d => d.Titles).WithOne().HasForeignKey(d => d.ParentID).HasPrincipalKey(a => a.TmdbCollectionID)
+                .HasPrincipalKey(a => a.TmdbCollectionID);
+            entity.HasMany(d => d.Overviews).WithOne().HasForeignKey(d => d.ParentID).HasPrincipalKey(a => a.TmdbCollectionID)
+                .HasPrincipalKey(a => a.TmdbCollectionID);
         });
 
         modelBuilder.Entity<TMDB_Collection_Movie>(entity =>
@@ -324,20 +302,14 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbCompanyID).HasColumnName("TmdbCompanyID");
 
             // Foreign Keys
-            entity.HasMany(d => d.ImageEntities).WithOne().HasPrincipalKey(a => new
-            {
-                TmdbEntityID = a.TmdbCompanyID, TmdbEntityType = ForeignEntityType.Company
-            }).HasForeignKey(d => new
-            {
-                d.TmdbEntityID, d.TmdbEntityType
-            });
-
+            entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbCompanyID).HasForeignKey(d => d.TmdbEntityID);
             entity.HasMany(d => d.XRefs).WithOne(d => d.Company).HasForeignKey(d => d.TmdbCompanyID).HasPrincipalKey(a => a.TmdbCompanyID);
         });
 
         modelBuilder.Entity<TMDB_Company_Entity>(entity =>
         {
             entity.ToTable("TMDB_Company_Entity");
+            entity.HasDiscriminator(a => a.TmdbEntityType).HasValue<TMDB_Company_Show>(ForeignEntityType.Show).HasValue<TMDB_Company_Movie>(ForeignEntityType.Movie);
 
             entity.HasIndex(e => e.TmdbCompanyID, "IX_TMDB_Company_Entity_TmdbCompanyID");
 
@@ -349,20 +321,8 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbEntityID).HasColumnName("TmdbEntityID");
 
             // Foreign Keys
-            entity.HasOne(a => a.TVShow).WithMany().HasForeignKey(a => new
-            {
-                a.TmdbEntityType, a.TmdbEntityID
-            }).HasPrincipalKey(a => new
-            {
-                TmdbEntityType = ForeignEntityType.Show, TmdbEntityID = a.TmdbShowID
-            });
-            entity.HasOne(a => a.Movie).WithMany().HasForeignKey(a => new
-            {
-                a.TmdbEntityType, a.TmdbEntityID
-            }).HasPrincipalKey(a => new
-            {
-                TmdbEntityType = ForeignEntityType.Movie, TmdbEntityID = a.TmdbMovieID
-            });
+            entity.HasOne(a => a.TVShow).WithMany().HasForeignKey(a => a.TmdbEntityID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasOne(a => a.Movie).WithMany().HasForeignKey(a => a.TmdbEntityID).HasPrincipalKey(a => a.TmdbMovieID);
         });
 
         modelBuilder.Entity<TMDB_Episode>(entity =>
@@ -385,9 +345,7 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbEpisodeID).HasColumnName("TmdbEpisodeID");
             entity.Property(e => e.TmdbSeasonID).HasColumnName("TmdbSeasonID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
-            entity.Property(e => e.TvdbEpisodeID)
-                .HasDefaultValueSql("NULL")
-                .HasColumnName("TvdbEpisodeID");
+            entity.Property(e => e.TvdbEpisodeID).HasDefaultValueSql("NULL").HasColumnName("TvdbEpisodeID");
         });
 
         modelBuilder.Entity<TMDB_Episode_Cast>(entity =>
@@ -404,9 +362,7 @@ public class DataContext : DbContext
 
             entity.Property(e => e.TMDB_Episode_CastID).HasColumnName("TMDB_Episode_CastID");
             entity.Property(e => e.CharacterName).IsRequired();
-            entity.Property(e => e.TmdbCreditID)
-                .IsRequired()
-                .HasColumnName("TmdbCreditID");
+            entity.Property(e => e.TmdbCreditID).IsRequired().HasColumnName("TmdbCreditID");
             entity.Property(e => e.TmdbEpisodeID).HasColumnName("TmdbEpisodeID");
             entity.Property(e => e.TmdbPersonID).HasColumnName("TmdbPersonID");
             entity.Property(e => e.TmdbSeasonID).HasColumnName("TmdbSeasonID");
@@ -428,9 +384,7 @@ public class DataContext : DbContext
             entity.Property(e => e.TMDB_Episode_CrewID).HasColumnName("TMDB_Episode_CrewID");
             entity.Property(e => e.Department).IsRequired();
             entity.Property(e => e.Job).IsRequired();
-            entity.Property(e => e.TmdbCreditID)
-                .IsRequired()
-                .HasColumnName("TmdbCreditID");
+            entity.Property(e => e.TmdbCreditID).IsRequired().HasColumnName("TmdbCreditID");
             entity.Property(e => e.TmdbEpisodeID).HasColumnName("TmdbEpisodeID");
             entity.Property(e => e.TmdbPersonID).HasColumnName("TmdbPersonID");
             entity.Property(e => e.TmdbSeasonID).HasColumnName("TmdbSeasonID");
@@ -444,6 +398,27 @@ public class DataContext : DbContext
             entity.Property(e => e.TMDB_ImageID).HasColumnName("TMDB_ImageID");
             entity.Property(e => e.Language).IsRequired().HasConversion<TitleLanguageToString>();
             entity.Property(e => e.RemoteFileName).IsRequired();
+        });
+
+        modelBuilder.Entity<TMDB_Image_Entity>(entity =>
+        {
+            entity.ToTable("TMDB_Image_Entity");
+            entity.HasDiscriminator(a => a.TmdbEntityType)
+                .HasValue<TMDB_Image_Movie>(ForeignEntityType.Movie)
+                .HasValue<TMDB_Image_TVShow>(ForeignEntityType.Show)
+                .HasValue<TMDB_Image_Episode>(ForeignEntityType.Episode)
+                .HasValue<TMDB_Image_Season>(ForeignEntityType.Season)
+                .HasValue<TMDB_Image_Collection>(ForeignEntityType.Collection)
+                .HasValue<TMDB_Image_Company>(ForeignEntityType.Company)
+                .HasValue<TMDB_Image_Character>(ForeignEntityType.Character)
+                .HasValue<TMDB_Image_Person>(ForeignEntityType.Person)
+                .HasValue<TMDB_Image_Network>(ForeignEntityType.Network)
+                .HasValue<TMDB_Image_Studio>(ForeignEntityType.Studio);
+
+            entity.Property(e => e.TMDB_Image_EntityID).HasColumnName("TMDB_Image_EntityID");
+            entity.Property(e => e.ReleasedAt).HasColumnType("DATE").HasConversion<DateOnlyToString>();
+            entity.Property(e => e.RemoteFileName).IsRequired();
+            entity.Property(e => e.TmdbEntityID).HasColumnName("TmdbEntityID");
         });
 
         modelBuilder.Entity<TMDB_Movie>(entity =>
@@ -461,9 +436,7 @@ public class DataContext : DbContext
             entity.Property(e => e.EnglishOverview).IsRequired();
             entity.Property(e => e.EnglishTitle).IsRequired();
             entity.Property(e => e.Genres).IsRequired().HasConversion<StringListToString, StringListComparer>();
-            entity.Property(e => e.ImdbMovieID)
-                .HasDefaultValueSql("NULL")
-                .HasColumnName("ImdbMovieID");
+            entity.Property(e => e.ImdbMovieID).HasDefaultValueSql("NULL").HasColumnName("ImdbMovieID");
             entity.Property(e => e.Keywords).HasDefaultValueSql("NULL").HasConversion<StringListToString, StringListComparer>();
             entity.Property(e => e.LastUpdatedAt).HasColumnType("DATETIME");
             entity.Property(e => e.OriginalLanguageCode).IsRequired();
@@ -485,15 +458,9 @@ public class DataContext : DbContext
 
             entity.Property(e => e.TMDB_Movie_CastID).HasColumnName("TMDB_Movie_CastID");
             entity.Property(e => e.CharacterName).IsRequired();
-            entity.Property(e => e.TmdbCreditID)
-                .IsRequired()
-                .HasColumnName("TmdbCreditID");
-            entity.Property(e => e.TmdbMovieID)
-                .HasColumnType("INT")
-                .HasColumnName("TmdbMovieID");
-            entity.Property(e => e.TmdbPersonID)
-                .HasColumnType("INT")
-                .HasColumnName("TmdbPersonID");
+            entity.Property(e => e.TmdbCreditID).IsRequired().HasColumnName("TmdbCreditID");
+            entity.Property(e => e.TmdbMovieID).HasColumnType("INT").HasColumnName("TmdbMovieID");
+            entity.Property(e => e.TmdbPersonID).HasColumnType("INT").HasColumnName("TmdbPersonID");
         });
 
         modelBuilder.Entity<TMDB_Movie_Crew>(entity =>
@@ -507,9 +474,7 @@ public class DataContext : DbContext
             entity.Property(e => e.TMDB_Movie_CrewID).HasColumnName("TMDB_Movie_CrewID");
             entity.Property(e => e.Department).IsRequired();
             entity.Property(e => e.Job).IsRequired();
-            entity.Property(e => e.TmdbCreditID)
-                .IsRequired()
-                .HasColumnName("TmdbCreditID");
+            entity.Property(e => e.TmdbCreditID).IsRequired().HasColumnName("TmdbCreditID");
             entity.Property(e => e.TmdbMovieID).HasColumnName("TmdbMovieID");
             entity.Property(e => e.TmdbPersonID).HasColumnName("TmdbPersonID");
         });
@@ -529,6 +494,13 @@ public class DataContext : DbContext
         modelBuilder.Entity<TMDB_Overview>(entity =>
         {
             entity.ToTable("TMDB_Overview");
+            entity.HasDiscriminator(a => a.ParentType)
+                .HasValue<TMDB_Overview_Episode>(ForeignEntityType.Episode)
+                .HasValue<TMDB_Overview_Season>(ForeignEntityType.Season)
+                .HasValue<TMDB_Overview_Movie>(ForeignEntityType.Movie)
+                .HasValue<TMDB_Overview_TVShow>(ForeignEntityType.Show)
+                .HasValue<TMDB_Overview_Collection>(ForeignEntityType.Collection)
+                .HasValue<TMDB_Overview_Person>(ForeignEntityType.Person);
 
             entity.HasIndex(e => new { e.ParentType, e.ParentID }, "IX_TMDB_Overview");
 
@@ -594,14 +566,10 @@ public class DataContext : DbContext
             entity.Property(e => e.OriginalLanguageCode).IsRequired();
             entity.Property(e => e.OriginalTitle).IsRequired();
             entity.Property(e => e.PosterPath).HasDefaultValueSql("NULL");
-            entity.Property(e => e.PreferredAlternateOrderingID)
-                .HasDefaultValueSql("NULL")
-                .HasColumnName("PreferredAlternateOrderingID");
+            entity.Property(e => e.PreferredAlternateOrderingID).HasDefaultValueSql("NULL").HasColumnName("PreferredAlternateOrderingID");
             entity.Property(e => e.ProductionCountries).HasDefaultValueSql("NULL").HasConversion<ProductionCountriesToString, ProductionCountriesComparer>();
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
-            entity.Property(e => e.TvdbShowID)
-                .HasDefaultValueSql("NULL")
-                .HasColumnName("TvdbShowID");
+            entity.Property(e => e.TvdbShowID).HasDefaultValueSql("NULL").HasColumnName("TvdbShowID");
         });
 
         modelBuilder.Entity<TMDB_Show_Network>(entity =>
@@ -616,6 +584,12 @@ public class DataContext : DbContext
         modelBuilder.Entity<TMDB_Title>(entity =>
         {
             entity.ToTable("TMDB_Title");
+            entity.HasDiscriminator(a => a.ParentType)
+                .HasValue<TMDB_Title_Episode>(ForeignEntityType.Episode)
+                .HasValue<TMDB_Title_Season>(ForeignEntityType.Season)
+                .HasValue<TMDB_Title_Movie>(ForeignEntityType.Movie)
+                .HasValue<TMDB_Title_TVShow>(ForeignEntityType.Show)
+                .HasValue<TMDB_Title_Collection>(ForeignEntityType.Collection);
 
             entity.HasIndex(e => new { e.ParentType, e.ParentID }, "IX_TMDB_Title");
 
