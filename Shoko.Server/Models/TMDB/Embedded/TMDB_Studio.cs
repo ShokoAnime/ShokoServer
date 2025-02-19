@@ -39,17 +39,17 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
 
     IEnumerable<TMDB_Movie> GetMovies() =>
         RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(ForeignEntityType.Movie, ID)
-        .Select(xref => xref.GetTmdbMovie())
+        .Select(xref => xref.Movie)
         .WhereNotNull();
 
     IEnumerable<TMDB_Show> GetShows() =>
         RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(ForeignEntityType.Show, ID)
-        .Select(xref => xref.GetTmdbShow())
+        .Select(xref => xref.TVShow)
         .WhereNotNull();
 
     IEnumerable<IMetadata> GetWorks() =>
         RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(ID)
-        .Select(xref => xref.GetTmdbEntity() as IMetadata<int>)
+        .SelectMany(xref => new IMetadata?[] {xref.Movie, xref.TVShow})
         .WhereNotNull();
 
     #endregion

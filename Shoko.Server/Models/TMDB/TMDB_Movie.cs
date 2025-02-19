@@ -401,7 +401,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     [NotMapped]
     public IReadOnlyList<TMDB_Company> TmdbCompanies =>
         TmdbCompanyCrossReferences
-            .Select(xref => xref.GetTmdbCompany())
+            .Select(xref => xref.Company)
             .WhereNotNull()
             .ToList();
 
@@ -412,7 +412,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     [NotMapped]
     public IReadOnlyList<TMDB_Studio<TMDB_Movie>> TmdbStudios =>
         TmdbCompanyCrossReferences
-            .Select(xref => xref.GetTmdbCompany() is { } company ? new TMDB_Studio<TMDB_Movie>(company, this) : null)
+            .Select(xref => xref.Company is { } company ? new TMDB_Studio<TMDB_Movie>(company, this) : null)
             .WhereNotNull()
             .ToList();
 

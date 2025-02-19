@@ -273,6 +273,7 @@ public class DataContext : DbContext
             // Foreign Keys
             entity.HasMany(d => d.Movies).WithOne(p => p.TmdbCollection).HasForeignKey(d => d.TmdbCollectionID);
 
+            // TODO this doesn't work. Maybe make a TPH implementation for Images?
             entity.HasMany(d => d.ImageEntities).WithOne().HasPrincipalKey(a => new
             {
                 TmdbEntityID = a.TmdbCollectionID, TmdbEntityType = ForeignEntityType.Collection
@@ -321,6 +322,17 @@ public class DataContext : DbContext
             entity.Property(e => e.CountryOfOrigin).IsRequired();
             entity.Property(e => e.Name).IsRequired();
             entity.Property(e => e.TmdbCompanyID).HasColumnName("TmdbCompanyID");
+
+            // Foreign Keys
+            entity.HasMany(d => d.ImageEntities).WithOne().HasPrincipalKey(a => new
+            {
+                TmdbEntityID = a.TmdbCompanyID, TmdbEntityType = ForeignEntityType.Company
+            }).HasForeignKey(d => new
+            {
+                d.TmdbEntityID, d.TmdbEntityType
+            });
+
+            entity.HasMany(d => d.XRefs).WithOne(d => d.Company).HasForeignKey(d => d.TmdbCompanyID).HasPrincipalKey(a => a.TmdbCompanyID);
         });
 
         modelBuilder.Entity<TMDB_Company_Entity>(entity =>
@@ -335,6 +347,22 @@ public class DataContext : DbContext
             entity.Property(e => e.ReleasedAt).HasColumnType("DATE").HasConversion<DateOnlyToString>();
             entity.Property(e => e.TmdbCompanyID).HasColumnName("TmdbCompanyID");
             entity.Property(e => e.TmdbEntityID).HasColumnName("TmdbEntityID");
+
+            // Foreign Keys
+            entity.HasOne(a => a.TVShow).WithMany().HasForeignKey(a => new
+            {
+                a.TmdbEntityType, a.TmdbEntityID
+            }).HasPrincipalKey(a => new
+            {
+                TmdbEntityType = ForeignEntityType.Show, TmdbEntityID = a.TmdbShowID
+            });
+            entity.HasOne(a => a.Movie).WithMany().HasForeignKey(a => new
+            {
+                a.TmdbEntityType, a.TmdbEntityID
+            }).HasPrincipalKey(a => new
+            {
+                TmdbEntityType = ForeignEntityType.Movie, TmdbEntityID = a.TmdbMovieID
+            });
         });
 
         modelBuilder.Entity<TMDB_Episode>(entity =>
