@@ -176,7 +176,7 @@ public class Role
 
     public Role(TMDB_Movie_Crew crew)
     {
-        var person = crew.GetTmdbPerson() ??
+        var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
@@ -193,7 +193,7 @@ public class Role
 
     public Role(TMDB_Show_Crew crew)
     {
-        var person = crew.GetTmdbPerson() ??
+        var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
@@ -210,7 +210,7 @@ public class Role
 
     public Role(TMDB_Season_Crew crew)
     {
-        var person = crew.GetTmdbPerson() ??
+        var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
@@ -227,7 +227,7 @@ public class Role
 
     public Role(TMDB_Episode_Crew crew)
     {
-        var person = crew.GetTmdbPerson() ??
+        var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()

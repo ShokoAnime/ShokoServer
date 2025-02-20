@@ -79,7 +79,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             IReadOnlyList<TMDB_Title> GetTmdbTitles()
                 => tmdbTitles ??= (
                     TmdbEpisodes is { Count: > 0 } tmdbEpisodes
-                        ? tmdbEpisodes[0].GetAllTitles()
+                        ? tmdbEpisodes[0].AllTitles.ToList()
                         : TmdbMovies is { Count: 1 } tmdbMovies
                             ? tmdbMovies[0].GetAllTitles()
                             : []
@@ -122,7 +122,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
             IReadOnlyList<TMDB_Overview> GetTmdbOverviews()
                 => tmdbOverviews ??= (
                     TmdbEpisodes is { Count: > 0 } tmdbEpisodes
-                        ? tmdbEpisodes[0].GetAllOverviews()
+                        ? tmdbEpisodes[0].AllOverviews.ToList()
                         : TmdbMovies is { Count: 1 } tmdbMovies
                             ? tmdbMovies[0].GetAllOverviews()
                             : []

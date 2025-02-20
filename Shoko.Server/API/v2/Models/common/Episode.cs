@@ -105,10 +105,9 @@ public class Episode : BaseDirectory
         {
             TMDB_Image thumbnail = null;
             var tmdbEpisode = tmdbEpisodes[0];
-            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Thumbnail) is { Count: > 0 } thumbnailImages)
+            if (pic > 0 && tmdbEpisode.Images.Where(a => a.ImageType == ImageEntityType.Thumbnail && a.IsLocalAvailable).ToList() is { Count: > 0 } thumbnailImages)
             {
                 thumbnail = thumbnailImages
-                    .Where(image => image.ImageType == ImageEntityType.Thumbnail && image.IsLocalAvailable)
                     .OrderByDescending(image => image.IsPreferred)
                     .FirstOrDefault();
                 if (thumbnail is not null)
@@ -120,10 +119,9 @@ public class Episode : BaseDirectory
                     });
                 }
             }
-            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Backdrop) is { Count: > 0 } backdropImages)
+            if (pic > 0 && tmdbEpisode.Images.Where(a => a.ImageType == ImageEntityType.Backdrop && a.IsLocalAvailable).ToList() is { Count: > 0 } backdropImages)
             {
                 var backdrop = backdropImages
-                    .Where(image => image.ImageType == ImageEntityType.Backdrop && image.IsLocalAvailable)
                     .OrderByDescending(image => image.IsPreferred)
                     .FirstOrDefault();
                 backdrop ??= thumbnail;

@@ -1333,7 +1333,7 @@ public partial class TmdbController : BaseController
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
-        return show.TmdbSeasons
+        return show.Seasons
             .ToListResult(season => new TmdbSeason(season, include?.CombineFlags(), language), page, pageSize);
     }
 
@@ -1433,7 +1433,7 @@ public partial class TmdbController : BaseController
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
-        IEnumerable<TMDB_Episode> episodes = show.TmdbEpisodes;
+        IEnumerable<TMDB_Episode> episodes = show.Episodes;
         if (includeHidden is not IncludeOnlyFilter.True)
         {
             var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
@@ -2034,7 +2034,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFoundBySeasonID);
 
-        IEnumerable<TMDB_Episode> episodes = season.TmdbEpisodes;
+        IEnumerable<TMDB_Episode> episodes = season.Episodes;
         if (includeHidden is not IncludeOnlyFilter.True)
         {
             var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
@@ -2079,7 +2079,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.TmdbEpisodes
+        return season.Episodes
             .SelectMany(episode => episode.CrossReferences)
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbAnime)
@@ -2119,7 +2119,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.TmdbEpisodes
+        return season.Episodes
             .SelectMany(episode => episode.CrossReferences)
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnimeSeries)
@@ -2174,7 +2174,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        var videoLocals0 = season.TmdbEpisodes
+        var videoLocals0 = season.Episodes
             .SelectMany(episode => episode.CrossReferences)
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
@@ -2202,7 +2202,7 @@ public partial class TmdbController : BaseController
         body.IDs
             .Select(episodeID => episodeID <= 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID))
             .WhereNotNull()
-            .Select(episode => new TmdbEpisode(episode.TmdbShow ?? throw new Exception(ShowNotFoundByEpisodeID), episode, body.Include?.CombineFlags(), body.Language))
+            .Select(episode => new TmdbEpisode(episode.Show ?? throw new Exception(ShowNotFoundByEpisodeID), episode, body.Include?.CombineFlags(), body.Language))
             .ToList();
 
     [HttpGet("Episode/{episodeID}")]
@@ -2217,7 +2217,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        var show = episode.TmdbShow;
+        var show = episode.Show;
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
@@ -2253,7 +2253,7 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         var preferredTitle = episode.GetPreferredTitle();
-        return new(episode.GetAllTitles().ToDto(episode.EnglishTitle, preferredTitle, language));
+        return new(episode.AllTitles.ToDto(episode.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Episode/{episodeID}/Overviews")]
@@ -2267,7 +2267,7 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         var preferredOverview = episode.GetPreferredOverview();
-        return new(episode.GetAllOverviews().ToDto(episode.EnglishTitle, preferredOverview, language));
+        return new(episode.AllOverviews.ToDto(episode.EnglishTitle, preferredOverview, language));
     }
 
     [HttpGet("Episode/{episodeID}/Ordering")]
@@ -2280,7 +2280,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        var show = episode.TmdbShow;
+        var show = episode.Show;
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
@@ -2320,8 +2320,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return episode.GetImages()
-            .ToDto(language, includeDisabled: includeDisabled, includeThumbnails: true);
+        return episode.Images.ToDto(language, includeDisabled: includeDisabled, includeThumbnails: true);
     }
 
     [HttpGet("Episode/{episodeID}/Cast")]
@@ -2414,7 +2413,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        var show = episode.TmdbShow;
+        var show = episode.Show;
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
@@ -2448,7 +2447,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        var show = episode.TmdbShow;
+        var show = episode.Show;
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
@@ -2471,7 +2470,7 @@ public partial class TmdbController : BaseController
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
-        var season = episode.TmdbSeason;
+        var season = episode.Season;
         if (season is null)
             return NotFound(SeasonNotFoundByEpisodeID);
 

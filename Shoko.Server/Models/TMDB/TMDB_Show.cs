@@ -511,9 +511,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB seasons.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Season> TmdbSeasons =>
-        RepoFactory.TMDB_Season.GetByTmdbShowID(TmdbShowID);
+    public IEnumerable<TMDB_Season> Seasons { get; set; }
 
     /// <summary>
     /// Get all TMDB episodes associated with the show in the local database. Or
@@ -521,9 +519,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB episodes.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
-        RepoFactory.TMDB_Episode.GetByTmdbShowID(TmdbShowID);
+    public virtual IEnumerable<TMDB_Episode> Episodes { get; set; }
 
     /// <summary>
     /// Get AniDB/TMDB cross-references for the show.
@@ -653,7 +649,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByAnimeID(xref.AnidbAnimeID))
         .ToList();
 
-    IReadOnlyList<IEpisode> ISeries.Episodes => TmdbEpisodes;
+    IReadOnlyList<IEpisode> ISeries.Episodes => Episodes.ToList();
 
     EpisodeCounts ISeries.EpisodeCounts =>
         new()

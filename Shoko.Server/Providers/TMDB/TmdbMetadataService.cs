@@ -1674,10 +1674,10 @@ public class TmdbMetadataService
 
             await DownloadShowImages(showId, tmdbShow.OriginalLanguage, forceDownload);
 
-            foreach (var tmdbSeason in tmdbShow.TmdbSeasons)
+            foreach (var tmdbSeason in tmdbShow.Seasons)
             {
                 await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, tmdbShow.OriginalLanguage, forceDownload);
-                foreach (var tmdbEpisode in tmdbSeason.TmdbEpisodes)
+                foreach (var tmdbEpisode in tmdbSeason.Episodes)
                 {
                     await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbSeason.SeasonNumber, tmdbEpisode.EpisodeNumber, tmdbShow.OriginalLanguage, forceDownload);
                 }

@@ -1,5 +1,4 @@
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -38,17 +37,15 @@ public class TMDB_Episode_Crew : TMDB_Crew, ICrew<IEpisode>
 
     #region Methods
 
-    public TMDB_Episode? GetTmdbEpisode() =>
-        RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public virtual TMDB_Episode? Episode { get; set; }
 
-    public override IMetadata<int>? GetTmdbParent() =>
-        GetTmdbEpisode();
+    public override IMetadata<int>? GetTmdbParent() => Episode;
 
     #endregion
 
     #region ICrew Implementation
 
-    IEpisode? ICrew<IEpisode>.ParentOfType => GetTmdbEpisode();
+    IEpisode? ICrew<IEpisode>.ParentOfType => Episode;
 
     #endregion
 }

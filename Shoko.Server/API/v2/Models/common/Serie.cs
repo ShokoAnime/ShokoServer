@@ -192,7 +192,7 @@ public class Serie : BaseDirectory, IComparable
             .DistinctBy(a => a.TmdbEpisodeID)
             .GroupBy(a => a.TmdbShowID)
             .MaxBy(a => a.Count())
-            ?.First().TmdbShow;
+            ?.First().Show;
         if (tmdbShow is not null)
         {
             sr.titles.Add(new()

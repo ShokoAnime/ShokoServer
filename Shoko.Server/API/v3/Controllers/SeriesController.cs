@@ -1784,7 +1784,7 @@ public class SeriesController : BaseController
             .DistinctBy(o => o.TmdbSeasonID)
             .Select(o =>
             {
-                var season = o.TmdbSeason;
+                var season = o.Season;
                 if (season is not null && _tmdbMetadataService.WaitForShowUpdate(season.TmdbShowID))
                     season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(season.TmdbSeasonID);
                 return season;
