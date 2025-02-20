@@ -291,7 +291,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
     /// </summary>
     /// <returns>The TMDB episodes.</returns>
     [NotMapped]
-    public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
+    public IReadOnlyList<TMDB_Episode> Episodes =>
         RepoFactory.TMDB_Episode.GetByTmdbSeasonID(TmdbSeasonID);
 
     #endregion

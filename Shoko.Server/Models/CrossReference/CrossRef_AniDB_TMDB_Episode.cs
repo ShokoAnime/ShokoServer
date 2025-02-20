@@ -66,7 +66,7 @@ public class CrossRef_AniDB_TMDB_Episode
             : null;
 
     public TMDB_Season? TmdbSeason =>
-        TmdbEpisode?.TmdbSeason;
+        TmdbEpisode?.Season;
 
     public TMDB_Show? TmdbShow =>
         TmdbShowID == 0 ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);

@@ -200,7 +200,7 @@ public class Episode : BaseModel
                     })
                     .WhereNotNull()
                     .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
-                    .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
+                    .Select(groupBy => (TmdbShow: groupBy.First().Show!, TmdbEpisodes: groupBy.ToList()))
                     .Where(tuple => tuple.TmdbShow is not null)
                     .SelectMany(tuple0 =>
                         string.IsNullOrEmpty(tuple0.TmdbShow.PreferredAlternateOrderingID)

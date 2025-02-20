@@ -196,14 +196,11 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// </summary>
     /// <param name="useFallback">Use a fallback title if no title was found in
     /// any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all episode titles if they're
-    /// already cached from a previous call to <seealso cref="GetAllTitles"/>.
-    /// </param>
     /// <returns>The preferred episode title, or null if no preferred title was
     /// found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
+    public TMDB_Title? GetPreferredTitle(bool useFallback = true)
     {
-        var titles = GetAllTitles(force);
+        var titles = AllTitles;
 
         foreach (var preferredLanguage in Languages.PreferredEpisodeNamingLanguages)
         {
@@ -219,32 +216,13 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     }
 
     /// <summary>
-    /// Cached reference to all titles for the episode, so we won't have to hit
-    /// the database twice to get all titles _and_ the preferred title.
-    /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles = null;
-
-    /// <summary>
-    /// Get all titles for the episode.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all episode titles if they're
-    /// already cached from a previous call.</param>
-    /// <returns>All titles for the episode.</returns>
-    public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID);
-
-    /// <summary>
     /// Get all episode titles in the preferred episode title languages.
     /// </summary>
-    /// <param name="force">Forcefully re-fetch all episode titles if they're
-    /// already cached from a previous call.</param>
     /// <returns>All episode titles in the preferred episode title languages.</returns>
-    public IReadOnlyList<TMDB_Title> GetAllPreferredTitles(bool force = false)
+    public IReadOnlyList<TMDB_Title> GetAllPreferredTitles()
     {
-        var allTitles = GetAllTitles(force);
         var preferredLanguages = Languages.PreferredEpisodeNamingLanguages;
-        return allTitles
+        return AllTitles
             .WhereInLanguages(preferredLanguages.Select(language => language.Language).Append(TitleLanguage.English).ToHashSet())
             .ToList();
     }
@@ -255,15 +233,11 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// </summary>
     /// <param name="useFallback">Use a fallback overview if no overview was
     /// found in any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all episode overviews if they're
-    /// already cached from a previous call to
-    /// <seealso cref="GetAllOverviews"/>.
-    /// </param>
     /// <returns>The preferred episode overview, or null if no preferred
     /// overview was found.</returns>
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
+    public TMDB_Overview? GetPreferredOverview(bool useFallback = true)
     {
-        var overviews = GetAllOverviews(force);
+        var overviews = AllOverviews;
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
@@ -276,36 +250,44 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     }
 
     /// <summary>
-    /// Cached reference to all overviews for the episode, so we won't have to
-    /// hit the database twice to get all overviews _and_ the preferred
-    /// overview.
+    /// Get all titles for the episode.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews = null;
+    /// <value>All titles for the episode.</value>
+    public virtual IEnumerable<TMDB_Title_Episode> AllTitles { get; set; }
 
     /// <summary>
     /// Get all overviews for the episode.
     /// </summary>
-    /// <param name="force">Forcefully re-fetch all episode overviews if they're
-    /// already cached from a previous call.</param>
-    /// <returns>All overviews for the episode.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID);
+    /// <value>All overviews for the episode.</value>
+    public virtual IEnumerable<TMDB_Overview_Episode> AllOverviews { get; set; }
 
     [NotMapped]
-    public TMDB_Image? DefaultThumbnail => RepoFactory.TMDB_Image.GetByRemoteFileName(ThumbnailPath)?.GetImageMetadata(true, ImageEntityType.Thumbnail);
+    public TMDB_Image? DefaultThumbnail => Images.FirstOrDefault(a => a.IsPreferred && a.ImageType == ImageEntityType.Thumbnail);
 
     /// <summary>
-    /// Get all images for the episode, or all images for the given
-    /// <paramref name="entityType"/> provided for the episode.
+    /// Get all images for the episode
     /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
     /// <returns>A read-only list of images that are linked to the episode.
     /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
+    [NotMapped]
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
+    {
+        a.ImageType, Image = a.GetTmdbImage()
+    }).Where(a => a.Image != null).Select(a => new TMDB_Image
+    {
+        ImageType = a.ImageType,
+        RemoteFileName = a.Image!.RemoteFileName,
+        IsEnabled = a.Image.IsEnabled,
+        IsPreferred = a.Image.IsPreferred,
+        LanguageCode = a.Image.LanguageCode,
+        Height = a.Image.Height,
+        Width = a.Image.Width,
+        TMDB_ImageID = a.Image.TMDB_ImageID,
+        UserRating = a.Image.UserRating,
+        UserVotes = a.Image.UserVotes
+    }).ToList();
+
+    public virtual IEnumerable<TMDB_Image_Collection> ImageXRefs { get; set; }
 
     /// <summary>
     /// Get all images for the episode, or all images for the given
@@ -317,7 +299,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// <returns>A read-only list of images that are linked to the episode.
     /// </returns>
     public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImageMetadata> preferredImages) =>
-        GetImages(entityType)
+        Images.Where(a => entityType == null || a.ImageType == entityType)
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
             .ToList();
@@ -327,42 +309,34 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType)
         => entityType.HasValue
-            ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
+            ? Images.Where(a => a.ImageType == entityType.Value).ToList()
             : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     /// <summary>
     /// Get all cast members that have worked on this episode.
     /// </summary>
     /// <returns>All cast members that have worked on this episode.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Episode_Cast> Cast =>
-        RepoFactory.TMDB_Episode_Cast.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public virtual IEnumerable<TMDB_Episode_Cast> Cast { get; set; }
 
     /// <summary>
     /// Get all crew members that have worked on this episode.
     /// </summary>
     /// <returns>All crew members that have worked on this episode.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Episode_Crew> Crew =>
-        RepoFactory.TMDB_Episode_Crew.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public virtual IEnumerable<TMDB_Episode_Crew> Crew { get; set; }
 
     /// <summary>
     /// Get the TMDB season associated with the episode, or null if the season
     /// have been purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB season, or null.</returns>
-    [NotMapped]
-    public TMDB_Season? TmdbSeason =>
-        RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID);
+    public virtual TMDB_Season? Season { get; set; }
 
     /// <summary>
     /// Get the TMDB show associated with the episode, or null if the show have
     /// been purged from the local database for whatever reason.
     /// </summary>
     /// <returns>The TMDB show, or null.</returns>
-    [NotMapped]
-    public TMDB_Show? TmdbShow =>
-        RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
+    public virtual TMDB_Show? Show { get; set; }
 
     /// <summary>
     /// Get all alternate ordering entries for the episode available from the
@@ -370,9 +344,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// settings file for these to be populated.
     /// </summary>
     /// <returns>All alternate ordering entries for the episode.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes =>
-        RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public virtual IEnumerable<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes { get; set; }
 
     /// <summary>
     /// Get the alternate ordering entry for the episode with the given
@@ -385,7 +357,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     public TMDB_AlternateOrdering_Episode? GetTmdbAlternateOrderingEpisodeById(string? id) =>
         string.IsNullOrEmpty(id)
             ? null
-            : RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(id, TmdbEpisodeID);
+            : TmdbAlternateOrderingEpisodes.FirstOrDefault(a => a.TmdbEpisodeGroupCollectionID == id);
 
     /// <summary>
     /// Get all AniDB/TMDB cross-references for the episode.
@@ -440,7 +412,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     string IWithTitles.PreferredTitle => GetPreferredTitle()!.Value;
 
-    IReadOnlyList<AnimeTitle> IWithTitles.Titles => GetAllTitles()
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles => AllTitles
         .Select(title => new AnimeTitle()
         {
             Language = title.Language,
@@ -459,7 +431,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     string IWithDescriptions.PreferredDescription => GetPreferredOverview()!.Value;
 
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => GetAllOverviews()
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => AllOverviews
         .Select(overview => new TextDescription()
         {
             CountryCode = overview.CountryCode,
@@ -474,9 +446,9 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     #region IWithCastAndCrew Implementation
 
-    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast.ToList();
 
-    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew.ToList();
 
     #endregion
 
@@ -499,7 +471,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     DateTime? IEpisode.AirDate => AiredAt?.ToDateTime();
 
-    ISeries? IEpisode.Series => TmdbShow;
+    ISeries? IEpisode.Series => Show;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => CrossReferences
         .Select(xref => xref.AnimeEpisode)

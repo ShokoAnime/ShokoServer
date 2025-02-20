@@ -43,8 +43,7 @@ public abstract class TMDB_Crew : ICrew
 
     #region Methods
 
-    public TMDB_Person? GetTmdbPerson() =>
-        RepoFactory.TMDB_Person.GetByTmdbPersonID(TmdbPersonID);
+    public virtual TMDB_Person? Person { get; set; }
 
     public abstract IMetadata<int>? GetTmdbParent();
 
@@ -74,7 +73,7 @@ public abstract class TMDB_Crew : ICrew
 
     IMetadata<int>? ICrew.Parent => GetTmdbParent();
 
-    ICreator? ICrew.Creator => GetTmdbPerson();
+    ICreator? ICrew.Creator => Person;
 
     #endregion
 }

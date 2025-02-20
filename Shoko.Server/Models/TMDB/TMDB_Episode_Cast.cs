@@ -43,17 +43,16 @@ public class TMDB_Episode_Cast : TMDB_Cast, ICast<IEpisode>
 
     #region Methods
 
-    public TMDB_Episode? GetTmdbEpisode() =>
-        RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public virtual TMDB_Episode? Episode { get; set; }
 
     public override IMetadata<int>? GetTmdbParent() =>
-        GetTmdbEpisode();
+        Episode;
 
     #endregion
 
     #region ICast Implementation
 
-    IEpisode? ICast<IEpisode>.ParentOfType => GetTmdbEpisode();
+    IEpisode? ICast<IEpisode>.ParentOfType => Episode;
 
     #endregion
 }

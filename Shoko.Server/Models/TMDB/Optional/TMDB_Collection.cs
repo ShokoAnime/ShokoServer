@@ -178,7 +178,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     ///     A read-only list of images that are linked to the movie collection.
     /// </value>
     [NotMapped]
-    public IEnumerable<TMDB_Image> Images => ImageXRefs.Select(a => new
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
     {
         a.ImageType, Image = a.GetTmdbImage()
     }).Where(a => a.Image != null).Select(a => new TMDB_Image

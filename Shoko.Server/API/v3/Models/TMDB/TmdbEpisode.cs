@@ -161,12 +161,12 @@ public class TmdbEpisode
 
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
-            Titles = episode.GetAllTitles()
+            Titles = episode.AllTitles
                 .ToDto(episode.EnglishTitle, preferredTitle, language);
 
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
-            Overviews = episode.GetAllOverviews()
+            Overviews = episode.AllOverviews
                 .ToDto(episode.EnglishOverview, preferredOverview, language);
         IsHidden = episode.IsHidden;
 
@@ -189,7 +189,7 @@ public class TmdbEpisode
         };
         Runtime = episode.Runtime;
         if (include.HasFlag(IncludeDetails.Images))
-            Images = episode.GetImages()
+            Images = episode.Images
                 .InLanguage(language)
                 .ToDto(includeThumbnails: true, preferredThumbnail: episode.DefaultThumbnail);
         if (include.HasFlag(IncludeDetails.Cast))
@@ -282,7 +282,7 @@ public class TmdbEpisode
 
         public OrderingInformation(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
         {
-            var season = episode.TmdbSeason;
+            var season = episode.Season;
             OrderingID = episode.TmdbShowID.ToString();
             OrderingName = "Seasons";
             OrderingType = null;
