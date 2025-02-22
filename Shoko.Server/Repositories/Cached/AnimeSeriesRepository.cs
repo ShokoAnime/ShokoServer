@@ -420,15 +420,15 @@ GROUP BY
     {
         var anime = RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
         if (anime.Count == 0) yield break;
-        var minDate = anime.Min(a => a.AirDate!.Value);
-        var maxDate = anime.Max(o => o.EndDate ?? DateTime.Today);
+        var minDate = anime.Min(a => a!.AirDate!.Value);
+        var maxDate = anime.Max(o => o!.EndDate ?? DateTime.Today);
 
         for (var year = minDate.Year; year <= maxDate.Year; year++)
         {
             var yearStart = new DateTime(year, 1, 1);
             var yearEnd = new DateTime(year, 12, 31);
 
-            if (anime.Any(o => o.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate == null)))
+            if (anime.Any(o => o!.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate == null)))
             {
                 yield return year;
             }
@@ -438,7 +438,7 @@ GROUP BY
     public SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons()
     {
         var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
-        return GetAllSeasons(anime);
+        return GetAllSeasons(anime!);
     }
 
     public static SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons(IEnumerable<AniDB_Anime> anime)
