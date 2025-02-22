@@ -1,11 +1,18 @@
-﻿using Shoko.Models.Server;
+﻿using System;
+using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
 {
-    public class CL_DuplicateFile : DuplicateFile
+    public class CL_DuplicateFile
     {
+        public int DuplicateFileID { get; set; }
+        public string FilePathFile1 { get; set; }
+        public string FilePathFile2 { get; set; }
+        public string Hash { get; set; }
+        public int ImportFolderIDFile1 { get; set; }
+        public int ImportFolderIDFile2 { get; set; }
+        public DateTime DateTimeUpdated { get; set; }
 
-        // data from other entities
         public int? AnimeID { get; set; }
         public string AnimeName { get; set; }
         public int? EpisodeType { get; set; }
