@@ -28,7 +28,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 144;
+    public override int RequiredVersion { get; } = 145;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -894,6 +894,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(143, 02, "ALTER TABLE TMDB_Episode ADD ThumbnailPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new DatabaseCommand(144, 01, DatabaseFixes.NoOperation),
         new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
+        new DatabaseCommand(145, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
     };
 
     private static void AlterImdbMovieIDType()
