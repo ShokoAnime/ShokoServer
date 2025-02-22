@@ -33,7 +33,7 @@ public class TypelessMessagePackConverter : TypeConverter, IUserType
         {
             return MessagePackSerializer.Typeless.Deserialize(s);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Utils.ServiceContainer.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to deserialize {Type} from {Value}",
                 value.GetType(), Convert.ToBase64String((byte[])value));
@@ -61,7 +61,7 @@ public class TypelessMessagePackConverter : TypeConverter, IUserType
         {
             return MessagePackSerializer.Typeless.Serialize(value);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Utils.ServiceContainer.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to serialize {Type} from {Value}",
                 value.GetType(), Convert.ToBase64String((byte[])value));
