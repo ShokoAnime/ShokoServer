@@ -17,6 +17,7 @@ using Shoko.Server.Utilities;
 
 #pragma warning disable CS8618
 #pragma warning disable CS0618
+#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
@@ -138,7 +139,7 @@ public class DiscoverFileJob : BaseJob
         }
     }
 
-    private (SVR_VideoLocal, SVR_VideoLocal_Place) GetVideoLocal()
+    private (SVR_VideoLocal?, SVR_VideoLocal_Place?) GetVideoLocal()
     {
         // hash and read media info for file
         var (folder, filePath) = _importFolders.GetFromFullPath(FilePath);
@@ -158,8 +159,7 @@ public class DiscoverFileJob : BaseJob
 
         // check if we have already processed this file
         var vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, importFolderID);
-        SVR_VideoLocal vlocal = null;
-        var filename = Path.GetFileName(filePath);
+        SVR_VideoLocal? vlocal = null;
 
         if (vlocalplace != null)
         {
@@ -191,7 +191,7 @@ public class DiscoverFileJob : BaseJob
             {
                 DateTimeUpdated = DateTime.Now,
                 DateTimeCreated = DateTime.Now,
-                FileName = filename,
+                FileName = Path.GetFileName(filePath),
                 Hash = string.Empty,
                 CRC32 = string.Empty,
                 MD5 = string.Empty,
@@ -218,9 +218,12 @@ public class DiscoverFileJob : BaseJob
 
     private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
     {
-        var crossRefs =
-            RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
-        if (crossRefs.Count == 0) return false;
+        if (vlocal.FileSize == 0)
+            return false;
+
+        var crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
+        if (crossRefs.Count == 0)
+            return false;
 
         vlocal.Hash = crossRefs[0].Hash;
         vlocal.HashSource = (int)HashSource.DirectHash;
@@ -230,6 +233,9 @@ public class DiscoverFileJob : BaseJob
 
     private bool TrySetHashFromFileNameHash(string filename, SVR_VideoLocal vlocal)
     {
+        if (vlocal.FileSize == 0)
+            return false;
+
         // TODO support reading MD5 and SHA1 from files via the standard way
         var hashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
         if (hashes is { Count: > 1 })
@@ -364,13 +370,13 @@ public class DiscoverFileJob : BaseJob
         // remove missing files
         var preps = vlocal.Places.Where(a =>
         {
-            if (vlocalplace.FullServerPath.Equals(a.FullServerPath)) return false;
+            if (string.Equals(vlocalplace.FullServerPath, a.FullServerPath)) return false;
             if (a.FullServerPath == null) return true;
             return !File.Exists(a.FullServerPath);
         }).ToList();
         RepoFactory.VideoLocalPlace.Delete(preps);
 
-        var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
+        var dupPlace = vlocal.Places.FirstOrDefault(a => !string.Equals(vlocalplace.FullServerPath, a.FullServerPath));
         if (dupPlace == null) return false;
 
         _logger.LogWarning("Found Duplicate File");
