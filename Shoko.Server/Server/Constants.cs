@@ -3,6 +3,7 @@
 public static class Constants
 {
     public const string SentryDsn = "SENTRY_DSN_KEY_GOES_HERE";
+
     public static readonly string AniDBTitlesURL = @"http://anidb.net/api/anime-titles.xml.gz";
 
     public const string DatabaseTypeKey = "Database";
@@ -20,9 +21,6 @@ public static class Constants
         public const string MissingVotes = "Missing Votes";
         public const string MissingLinks = "Missing Links";
         public const string RecentlyWatched = "Recently Watched";
-        public const string Tags = "Tags";
-        public const string Seasons = "Seasons";
-        public const string Years = "Years";
     }
 
     public struct DatabaseType
@@ -91,6 +89,7 @@ public static class Constants
     public struct URLS
     {
         public const string MAL_Series = @"https://myanimelist.net/anime/{0}";
+
         public const string AniDB_Series = @"https://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
 
         public const string AniDB_SeriesDiscussion =
@@ -102,13 +101,6 @@ public static class Constants
         public const string AniDB_Images_Domain = @"cdn.anidb.net";
 
         public const string Trakt_Series = @"https://trakt.tv/show/{0}";
-
-
-        public const string TMDB_Movie = @"https://www.themoviedb.org/movie/{0}";
-
-        public const string TMDB_Images = @"https://image.tmdb.org/t/p/original{0}";
-
-        public const string TMDB_Export = @"https://files.tmdb.org/p/exports/{0}_ids_{1}_{2}_{3}.json.gz";
     }
 
     public struct TMDB
