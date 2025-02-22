@@ -48,7 +48,7 @@ public static class Program
             _logger.LogCritical(e, "The server failed to start");
         }
     }
-    
+
     private static void AddEventHandlers(IServiceProvider provider)
     {
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
@@ -61,7 +61,7 @@ public static class Program
     {
         return map == null ? string.Intern("No Details") : string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
     }
-    
+
     private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemAddedEventArgs e)
     {
         if (e.AddedItems is not { Count: > 0 }) return;
@@ -102,6 +102,4 @@ public static class Program
         if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
             Console.WriteLine(@"Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
     }
-
-    private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) => e.Cancel = true;
 }
