@@ -369,19 +369,12 @@ public partial class WebUIController(ISettingsProvider settingsProvider, WebUIUp
             var index = System.IO.File.ReadAllText(indexLocation);
             var token = "install-web-ui";
             if (!index.Contains(token))
-                return BadRequest("Unable to install web UI when a web UI is already installed.");
+                return ValidationProblem("Unable to install web UI when a web UI is already installed.", "Request");
         }
-
-        var result = LatestWebUIVersion(channel);
-        if (result.Value is null)
-            return result.Result!;
-
-        if (result.Value.Tag is null)
-            return BadRequest("Unable to install web UI because a GitHub release was not found.");
 
         try
         {
-            updateService.GetUrlAndUpdate(result.Value.Tag);
+            updateService.InstallUpdateForChannel(channel);
         }
         catch (WebException ex)
         {
@@ -415,18 +408,9 @@ public partial class WebUIController(ISettingsProvider settingsProvider, WebUIUp
     [HttpPost("Update")]
     public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
     {
-        if (channel == ReleaseChannel.Auto)
-            channel = updateService.GetCurrentWebUIReleaseChannel();
-        var result = LatestWebUIVersion(channel);
-        if (result.Value is null)
-            return result.Result!;
-
-        if (result.Value.Tag is null)
-            return BadRequest("Unable to update web UI because a GitHub release was not found.");
-
         try
         {
-            updateService.GetUrlAndUpdate(result.Value.Tag);
+            updateService.InstallUpdateForChannel(channel);
         }
         catch (WebException ex)
         {
@@ -464,7 +448,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, WebUIUp
     {
         try
         {
-            return updateService.LatestWebUIVersion(channel, force).ToDto();
+            return updateService.GetLatestVersion(channel, force).ToDto();
         }
         catch (WebException ex)
         {
@@ -489,7 +473,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, WebUIUp
     {
         try
         {
-            var version = updateService.LatestServerWebUIVersion(channel, force);
+            var version = updateService.GetLatestServerVersion(channel, force);
             if (version is null)
                 return BadRequest("Unable to locate the latest release to use.");
             return version.ToDto();

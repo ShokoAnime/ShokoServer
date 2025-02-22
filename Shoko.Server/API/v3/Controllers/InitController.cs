@@ -86,9 +86,10 @@ public class InitController : BaseController
         {
             versionSet.WebUI = new()
             {
-                Version = webuiVersion.Package,
-                ReleaseChannel = webuiVersion.Debug ? ReleaseChannel.Debug : webuiVersion.Package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable,
-                Commit = webuiVersion.Git,
+                Version = webuiVersion.Version,
+                Tag = webuiVersion.Tag,
+                ReleaseChannel = webuiVersion.Channel,
+                Commit = webuiVersion.Commit,
                 ReleaseDate = webuiVersion.Date,
             };
         }

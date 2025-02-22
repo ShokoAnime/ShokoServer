@@ -1,10 +1,10 @@
+using System;
 using System.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -38,7 +38,7 @@ public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService update
             }
         }
 
-        updateService.GetUrlAndUpdate(WebUILatestStableVersion().version);
+        updateService.InstallUpdateForChannel(ReleaseChannel.Stable);
         return Redirect("/webui/index.html");
     }
 
@@ -49,7 +49,7 @@ public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService update
     [HttpGet("update/stable")]
     public ActionResult WebUIStableUpdate()
     {
-        updateService.GetUrlAndUpdate(WebUILatestStableVersion().version);
+        updateService.InstallUpdateForChannel(ReleaseChannel.Stable);
         return Ok();
     }
 
@@ -60,7 +60,7 @@ public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService update
     [HttpGet("update/unstable")]
     public ActionResult WebUIUnstableUpdate()
     {
-        updateService.GetUrlAndUpdate(WebUILatestUnstableVersion().version);
+        updateService.InstallUpdateForChannel(ReleaseChannel.Dev);
         return Ok();
     }
 
@@ -71,11 +71,7 @@ public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService update
     [HttpGet("latest/stable")]
     [HttpGet("latest")]
     public ComponentVersion WebUILatestStableVersion()
-    {
-        var version = new ComponentVersion { version = updateService.WebUIGetLatestVersion(true) };
-
-        return version;
-    }
+        => new() { version = updateService.GetLatestVersion(ReleaseChannel.Stable).Version };
 
     /// <summary>
     /// Check for newest unstable version and return object { version: string, url: string }
@@ -83,59 +79,23 @@ public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService update
     /// <returns></returns>
     [HttpGet("latest/unstable")]
     public ComponentVersion WebUILatestUnstableVersion()
-    {
-        var version = new ComponentVersion();
-        version.version = updateService.WebUIGetLatestVersion(false);
-
-        return version;
-    }
+        => new() { version = updateService.GetLatestVersion(ReleaseChannel.Dev).Version };
 
     /// <summary>
     /// Read json file that is converted into string from .config file of Shoko.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("Use APIv3 to get web ui settings")]
     [HttpGet("config")]
     public ActionResult<WebUI_Settings> GetWebUIConfig()
-    {
-        var settings = HttpContext.RequestServices.GetRequiredService<ISettingsProvider>().GetSettings();
-        if (!string.IsNullOrEmpty(settings.WebUI_Settings))
-        {
-            try
-            {
-                return JsonConvert.DeserializeObject<WebUI_Settings>(settings.WebUI_Settings);
-            }
-            catch
-            {
-                return APIStatus.InternalError("error while reading webui settings");
-            }
-        }
-
-        return APIStatus.OK();
-    }
+        => new APIMessage(400, "Config is not a Valid.");
 
     /// <summary>
     /// Save webui settings as json converted into string inside .config file of Shoko.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("Use APIv3 to get web ui settings")]
     [HttpPost("config")]
     public ActionResult SetWebUIConfig(WebUI_Settings webuiSettings)
-    {
-        if (webuiSettings.Valid())
-        {
-            try
-            {
-                var settingsProvider = HttpContext.RequestServices.GetRequiredService<ISettingsProvider>();
-                var settings = settingsProvider.GetSettings();
-                settings.WebUI_Settings = JsonConvert.SerializeObject(webuiSettings);
-                settingsProvider.SaveSettings();
-                return APIStatus.OK();
-            }
-            catch
-            {
-                return APIStatus.InternalError("error at saving webui settings");
-            }
-        }
-
-        return new APIMessage(400, "Config is not a Valid.");
-    }
+        => new APIMessage(400, "Config is not a Valid.");
 }

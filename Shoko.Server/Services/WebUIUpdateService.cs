@@ -3,9 +3,9 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Server.Server;
@@ -65,16 +65,17 @@ public partial class WebUIUpdateService
     }
 
     /// <summary>
-    /// Find the download url for the <paramref name="tagName"/>, then download
+    /// Find the download url for the found version for the given channel, then download
     /// and install the update.
     /// </summary>
-    /// <param name="tagName">Tag name to download.</param>
+    /// <param name="channel">Channel to download the update for.</param>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    public void GetUrlAndUpdate(string tagName)
+    public void InstallUpdateForChannel(ReleaseChannel channel)
     {
+        var version = GetLatestVersion(channel);
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-        var release = DownloadApiResponse($"releases/tags/{tagName}", ClientRepoName);
+        var release = DownloadApiResponse($"releases/tags/{version.Tag}", ClientRepoName);
         if (release is null)
             return;
 
@@ -94,18 +95,17 @@ public partial class WebUIUpdateService
         if (string.IsNullOrWhiteSpace(url))
             throw new Exception("404 Not found");
 
-        DateTime releaseDate = release.published_at;
-        DownloadAndInstallUpdate(url, releaseDate);
+        DownloadAndInstallUpdate(url, version);
     }
 
     /// <summary>
     /// Download and install update.
     /// </summary>
     /// <param name="url">direct link to version you want to install</param>
-    /// <param name="releaseDate">the release date from the api response</param>
+    /// <param name="version">Version to download.</param>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    private void DownloadAndInstallUpdate(string url, DateTime releaseDate)
+    private void DownloadAndInstallUpdate(string url, ComponentVersion version)
     {
         var webuiDir = Path.Combine(Utils.ApplicationPath, "webui");
         var backupDir = Path.Combine(webuiDir, "old");
@@ -160,58 +160,50 @@ public partial class WebUIUpdateService
         // Clean up the now unneeded backup and zip file because we have an updated install.
         Directory.Delete(backupDir, true);
 
-        // Add release date to json
-        AddReleaseDate(releaseDate);
+        // Update cached version info.
+        UpdateCachedVersionInfo(version);
     }
 
-    /// <summary>
-    /// Find the latest version for the release channel.
-    /// </summary>
-    /// <param name="stable">do version have to be stable</param>
-    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
-    /// <returns></returns>
-    public string? WebUIGetLatestVersion(bool stable)
+    private static void UpdateCachedVersionInfo(ComponentVersion version)
     {
-        // The 'latest' release will always be a stable release, so we can skip
-        // checking it if we're looking for a pre-release.
-        if (!stable)
-            return GetVersionTag(false);
-        var release = DownloadApiResponse("releases/latest", ClientRepoName);
-        return release?.tag_name;
-    }
+        // Load the web ui version info from disk.
+        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
+        if (!webUIFileInfo.Exists || JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName)) is not { } webuiVersion)
+            webuiVersion = new();
 
-    /// <summary>
-    /// Look through the release history to find the first matching version
-    /// for the release channel.
-    /// </summary>
-    /// <param name="stable">do version have to be stable</param>
-    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
-    /// <returns></returns>
-    private string? GetVersionTag(bool stable)
-    {
-        var releases = DownloadApiResponse("releases", ClientRepoName);
-        if (releases is null)
-            return null;
-
-        foreach (var release in releases)
+        var changed = false;
+        if (webuiVersion.Version is not { Length: > 0 } || webuiVersion.Version != version.Version)
         {
-            // Filter out pre-releases from the stable release channel, but don't
-            // filter out stable releases from the dev channel.
-            if (stable && release.prerelease != "False")
-                continue;
-
-            foreach (var asset in release.assets)
-            {
-                // We don't care what the zip is named, only that it is attached.
-                // This is because we changed the signature from "latest.zip" to
-                // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
-                string fileName = asset.name;
-                if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{release.tag_name}.zip")
-                    return release.tag_name;
-            }
+            webuiVersion.Version = version.Version;
+            changed = true;
         }
-
-        return null;
+        if (webuiVersion.Tag is not { Length: > 0 } || webuiVersion.Tag != version.Tag)
+        {
+            webuiVersion.Tag = version.Tag;
+            changed = true;
+        }
+        if (webuiVersion.Commit is not { Length: > 0 } || webuiVersion.Commit != version.Commit)
+        {
+            webuiVersion.Commit = version.Commit;
+            changed = true;
+        }
+        if (webuiVersion.Date is null || webuiVersion.Date != version.ReleaseDate)
+        {
+            webuiVersion.Date = version.ReleaseDate;
+            changed = true;
+        }
+        if (webuiVersion.Channel != version.ReleaseChannel)
+        {
+            webuiVersion.Channel = version.ReleaseChannel;
+            changed = true;
+        }
+        if (webuiVersion.IsDebug.HasValue)
+        {
+            webuiVersion.IsDebug = false;
+            changed = true;
+        }
+        if (changed)
+            File.WriteAllText(webUIFileInfo.FullName, JsonConvert.SerializeObject(webuiVersion));
     }
 
     /// <summary>
@@ -223,7 +215,7 @@ public partial class WebUIUpdateService
     /// <param name="force">Bypass the cache and search for a new version online.</param>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    public ComponentVersion LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
+    public ComponentVersion GetLatestVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false)
     {
         if (channel == ReleaseChannel.Auto)
             channel = GetCurrentWebUIReleaseChannel();
@@ -254,8 +246,8 @@ public partial class WebUIUpdateService
                             return _cache.Set(key, new ComponentVersion
                             {
                                 Version = version,
-                                Commit = commit[..7],
-                                ReleaseChannel = ReleaseChannel.Dev,
+                                Commit = commit,
+                                ReleaseChannel = channel,
                                 ReleaseDate = releaseDate,
                                 Tag = tagName,
                                 Description = description.Trim(),
@@ -282,8 +274,8 @@ public partial class WebUIUpdateService
                 return _cache.Set(key, new ComponentVersion
                 {
                     Version = version,
-                    Commit = commit[0..7],
-                    ReleaseChannel = ReleaseChannel.Stable,
+                    Commit = commit,
+                    ReleaseChannel = channel,
                     ReleaseDate = releaseDate,
                     Tag = tagName,
                     Description = description.Trim(),
@@ -301,7 +293,7 @@ public partial class WebUIUpdateService
     /// <param name="force">Bypass the cache and search for a new version online.</param>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    public ComponentVersion? LatestServerWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
+    public ComponentVersion? GetLatestServerVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false)
     {
         if (channel == ReleaseChannel.Auto)
             channel = GetCurrentServerReleaseChannel();
@@ -375,27 +367,6 @@ public partial class WebUIUpdateService
                 }, _cacheTTL);
             }
 
-#if DEBUG
-            // Spoof update if debugging and requesting the latest debug version.
-            case ReleaseChannel.Debug:
-            {
-                componentVersion = new ComponentVersion() { Version = Utils.GetApplicationVersion(), Description = "Local debug version." };
-                var extraVersionDict = Utils.GetApplicationExtraVersion();
-                if (extraVersionDict.TryGetValue("tag", out var tag))
-                    componentVersion.Tag = tag;
-                if (extraVersionDict.TryGetValue("commit", out var commit))
-                    componentVersion.Commit = commit;
-                if (extraVersionDict.TryGetValue("channel", out var rawChannel))
-                    if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
-                        componentVersion.ReleaseChannel = parsedChannel;
-                    else
-                        componentVersion.ReleaseChannel = ReleaseChannel.Debug;
-                if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-                    componentVersion.ReleaseDate = releaseDate.ToUniversalTime();
-                return _cache.Set<ComponentVersion>(key, componentVersion, _cacheTTL);
-            }
-#endif
-
             // Check for stable channel updates.
             default:
             {
@@ -420,11 +391,11 @@ public partial class WebUIUpdateService
         }
     }
 
-    public ReleaseChannel GetCurrentWebUIReleaseChannel()
+    private static ReleaseChannel GetCurrentWebUIReleaseChannel()
     {
         var webuiVersion = LoadWebUIVersionInfo();
         if (webuiVersion != null)
-            return webuiVersion.Debug ? ReleaseChannel.Debug : webuiVersion.Package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable;
+            return webuiVersion.Channel;
         return GetCurrentServerReleaseChannel();
     }
 
@@ -434,22 +405,6 @@ public partial class WebUIUpdateService
         if (extraVersionDict.TryGetValue("channel", out var rawChannel) && Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
             return channel;
         return ReleaseChannel.Stable;
-    }
-
-    private static void AddReleaseDate(DateTime releaseDate)
-    {
-        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
-        if (webUIFileInfo.Exists)
-        {
-            // Load the web ui version info from disk.
-            var webuiVersion = JsonConvert.DeserializeObject<WebUIVersionInfo>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
-            // Set the release data and save the info again if the date is not set.
-            if (webuiVersion is not null && !webuiVersion.Date.HasValue)
-            {
-                webuiVersion.Date = releaseDate;
-                File.WriteAllText(webUIFileInfo.FullName, JsonConvert.SerializeObject(webuiVersion));
-            }
-        }
     }
 
     public static WebUIVersionInfo? LoadWebUIVersionInfo()
@@ -463,28 +418,51 @@ public partial class WebUIUpdateService
     /// <summary>
     /// Web UI Version Info.
     /// </summary>
-    public record WebUIVersionInfo
+    public class WebUIVersionInfo
     {
         /// <summary>
         /// Package version.
         /// </summary>
         [JsonProperty("package")]
-        public string Package { get; set; } = "1.0.0";
+        public string Version { get; set; } = "1.0.0";
+
         /// <summary>
-        /// Short-form git commit sha digest.
+        /// Git tag.
+        /// </summary>
+        [JsonProperty("tag")]
+        public string Tag { get; set; } = "v1.0.0";
+
+        /// <summary>
+        /// Long-form git commit sha digest.
         /// </summary>
         [JsonProperty("git")]
-        public string Git { get; set; } = "0000000";
-        /// <summary>
-        /// True if this is a debug package.
-        /// </summary>
-        [JsonProperty("debug")]
-        public bool Debug { get; set; } = false;
+        public string Commit { get; set; } = "0000000";
+
         /// <summary>
         /// Release date for web ui release.
         /// </summary>
         [JsonProperty("date")]
         public DateTime? Date { get; set; } = null;
+
+        [JsonIgnore]
+        private ReleaseChannel? _channel = null;
+
+        /// <summary>
+        /// Cached release channel.
+        /// </summary>
+        [JsonProperty("channel")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public ReleaseChannel Channel
+        {
+            get => _channel ??= IsDebug.HasValue && IsDebug.Value ? ReleaseChannel.Debug : Version.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable;
+            set => _channel = value;
+        }
+
+        /// <summary>
+        /// True if this is a debug package.
+        /// </summary>
+        [JsonProperty("debug", NullValueHandling = NullValueHandling.Ignore, DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool? IsDebug { get; set; }
     }
 
     public class ComponentVersion
@@ -492,31 +470,31 @@ public partial class WebUIUpdateService
         /// <summary>
         /// Version number.
         /// </summary>
-        public string? Version { get; set; }
+        public required string Version { get; set; }
 
         /// <summary>
         /// Commit SHA.
         /// </summary>
-        public string? Commit { get; set; }
+        public required string Commit { get; set; }
 
         /// <summary>
         /// Release channel.
         /// </summary>
-        public ReleaseChannel? ReleaseChannel { get; set; }
+        public required ReleaseChannel ReleaseChannel { get; set; }
 
         /// <summary>
         /// Release date.
         /// </summary>
-        public DateTime? ReleaseDate { get; set; }
+        public required DateTime ReleaseDate { get; set; }
 
         /// <summary>
         /// Git Tag.
         /// </summary>
-        public string? Tag { get; set; }
+        public required string Tag { get; set; }
 
         /// <summary>
         /// A short description about this release/version.
         /// </summary>
-        public string? Description { get; set; }
+        public required string? Description { get; set; }
     }
 }

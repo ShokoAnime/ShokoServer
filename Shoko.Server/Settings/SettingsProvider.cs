@@ -367,23 +367,26 @@ public class SettingsProvider : ISettingsProvider
 
         try
         {
-            var a = Assembly.GetEntryAssembly();
-            var serverVersion = new WebUIUpdateService.ComponentVersion { Version = Utils.GetApplicationVersion() };
-            var extraVersionDict = Utils.GetApplicationExtraVersion(a);
-            if (extraVersionDict.TryGetValue("tag", out var tag))
-                serverVersion.Tag = tag;
-            if (extraVersionDict.TryGetValue("commit", out var commit))
-                serverVersion.Commit = commit;
+            var assembly = Assembly.GetEntryAssembly();
+            var serverVersion = Utils.GetApplicationVersion(assembly);
+            var extraVersionDict = Utils.GetApplicationExtraVersion(assembly);
+            if (!extraVersionDict.TryGetValue("tag", out var tag))
+                tag = null;
+
+            if (!extraVersionDict.TryGetValue("commit", out var commit))
+                commit = null;
+
+            var releaseChannel = ReleaseChannel.Debug;
             if (extraVersionDict.TryGetValue("channel", out var rawChannel))
                 if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
-                    serverVersion.ReleaseChannel = channel;
-                else
-                    serverVersion.ReleaseChannel = ReleaseChannel.Debug;
-            if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-                serverVersion.ReleaseDate = releaseDate;
+                    releaseChannel = channel;
 
-            _logger.LogInformation("Shoko Server Version: v{ApplicationVersion}, Channel: {Channel}, Tag: {Tag}, Commit: {Commit}", serverVersion.Version,
-                serverVersion.ReleaseChannel, serverVersion.Tag, serverVersion.Commit);
+            DateTime? releaseDate = null;
+            if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate1))
+                releaseDate = releaseDate1;
+
+            _logger.LogInformation("Shoko Server Version: v{ApplicationVersion}, Channel: {Channel}, Tag: {Tag}, Commit: {Commit}", serverVersion,
+                releaseChannel, tag, commit);
         }
         catch (Exception ex)
         {
