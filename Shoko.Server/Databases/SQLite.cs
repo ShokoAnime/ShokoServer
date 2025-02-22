@@ -862,6 +862,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(134, 01, DatabaseFixes.NoOperation),
         new(134, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(135, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
+        new(135, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

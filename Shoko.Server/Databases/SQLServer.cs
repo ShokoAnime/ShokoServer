@@ -895,6 +895,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(144, 01, DatabaseFixes.NoOperation),
         new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new DatabaseCommand(145, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
+        new DatabaseCommand(145, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
     };
 
     private static void AlterImdbMovieIDType()

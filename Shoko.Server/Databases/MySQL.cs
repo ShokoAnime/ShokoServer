@@ -943,6 +943,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(152, 01, DatabaseFixes.NoOperation),
         new(152, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(153, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
+        new(153, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
