@@ -74,7 +74,7 @@ public enum AniDBMessageFlags
     FileMoveHandled = 8
 }
 
-[Flags]
+// TODO: Simplify these values to not be power of 2 and instead be increments of 1. We don't need flag support anymore.
 [JsonConverter(typeof(StringEnumConverter))]
 public enum ForeignEntityType
 {
