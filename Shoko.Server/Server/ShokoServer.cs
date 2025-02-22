@@ -60,17 +60,17 @@ public class ShokoServer
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
-        ShokoEventHandler.Instance.Shutdown += ShutDown;
+        ShokoEventHandler.Instance.Shutdown += OnShutDown;
     }
 
-    private void ShutDown(object sender, CancelEventArgs e)
+    private void OnShutDown(object sender, CancelEventArgs e)
     {
         ShutDown();
     }
 
     ~ShokoServer()
     {
-        ShokoEventHandler.Instance.Shutdown -= ShutDown;
+        ShokoEventHandler.Instance.Shutdown -= OnShutDown;
     }
 
     public bool StartUpServer()
@@ -340,9 +340,7 @@ public class ShokoServer
             catch (DatabaseCommandException ex)
             {
                 _logger.LogError(ex, ex.ToString());
-                Utils.ShowErrorMessage("Database Error :\n\r " + ex +
-                                       "\n\rNotify developers about this error, it will be logged in your logs",
-                    "Database Error");
+                Utils.ShowErrorMessage(ex, "Database Error :\n\r " + ex + "\n\rNotify developers about this error, it will be logged in your logs");
                 ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
                 errorMessage = "Database Error :\n\r " + ex +
                                "\n\rNotify developers about this error, it will be logged in your logs";
