@@ -172,7 +172,7 @@ public static class ModelClients
             JMMUserID = i.JMMUserID,
             AnimeID = i.AnimeID,
             IgnoreType = i.IgnoreType,
-            Anime = RepoFactory.AniDB_Anime.GetByAnimeID(i.AnimeID).ToClient(),
+            Anime = RepoFactory.AniDB_Anime.GetByAnimeID(i.AnimeID)?.ToClient(),
         };
 
     public static CrossRef_AniDB_Other? ToClient(this CrossRef_AniDB_TMDB_Movie? xref)
