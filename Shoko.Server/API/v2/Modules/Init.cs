@@ -274,7 +274,7 @@ public class Init : BaseController
     /// <returns></returns>
     [Authorize("init")]
     [HttpGet("anidb/test")]
-    public async Task<ActionResult> TestAniDB()
+    public ActionResult TestAniDB()
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();

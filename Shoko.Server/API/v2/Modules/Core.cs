@@ -202,7 +202,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("anidb/test")]
-    public async Task<ActionResult> TestAniDB()
+    public ActionResult TestAniDB()
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
