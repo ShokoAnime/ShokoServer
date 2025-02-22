@@ -52,7 +52,7 @@ public class Scanner : INotifyPropertyChangedExt
 
     public void Init()
     {
-        Utils.MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
+        MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
         var runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
         if (runscan != null)
         {
@@ -87,7 +87,7 @@ public class Scanner : INotifyPropertyChangedExt
 
         RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
         RepoFactory.Scan.Delete(ActiveScan);
-        Utils.MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
+        MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
         ActiveScan = null;
     }
 
@@ -104,7 +104,6 @@ public class Scanner : INotifyPropertyChangedExt
             cancelIntegrityCheck = true;
             while (workerIntegrityScanner.IsBusy)
             {
-                Utils.DoEvents();
                 Thread.Sleep(100);
             }
 
@@ -130,7 +129,7 @@ public class Scanner : INotifyPropertyChangedExt
             {
                 activeScan = value;
                 Refresh();
-                Utils.MainThreadDispatch(() =>
+                MainThreadDispatch(() =>
                 {
                     ActiveErrorFiles.Clear();
                     if (value != null)
@@ -160,7 +159,7 @@ public class Scanner : INotifyPropertyChangedExt
 
     public void AddErrorScan(ScanFile file)
     {
-        Utils.MainThreadDispatch(() =>
+        MainThreadDispatch(() =>
         {
             if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
             {
@@ -286,6 +285,22 @@ public class Scanner : INotifyPropertyChangedExt
             RepoFactory.Scan.Save(s);
             Refresh();
             RunScan = null;
+        }
+    }
+
+    private delegate void DispatchHandler(Action a);
+
+    private static event DispatchHandler OnDispatch;
+
+    private static void MainThreadDispatch(Action a)
+    {
+        if (OnDispatch != null)
+        {
+            OnDispatch?.Invoke(a);
+        }
+        else
+        {
+            a();
         }
     }
 }

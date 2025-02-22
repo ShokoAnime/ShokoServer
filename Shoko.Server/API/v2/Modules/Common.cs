@@ -202,7 +202,7 @@ public class Common : BaseController
     [HttpGet("folder/scan")]
     public async Task<ActionResult> ScanDropFolders()
     {
-        await _actionService.RunImport_DropFolders();
+        await _actionService.RunImport_DetectFiles(onlyInSourceFolders: true);
         return Ok();
     }
 

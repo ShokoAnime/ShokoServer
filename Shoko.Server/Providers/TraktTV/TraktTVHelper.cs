@@ -529,10 +529,8 @@ public class TraktTVHelper
     public void ScanForMatches()
     {
         var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || !settings.TraktTv.AutoLink)
-        {
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.AutoLink)
             return;
-        }
 
         var allSeries = RepoFactory.AnimeSeries.GetAll();
 

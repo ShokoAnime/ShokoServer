@@ -18,11 +18,11 @@ public class ImportJob : BaseJob
 
     public override async Task Process()
     {
-        await _service.RunImport_NewFiles();
+        await _service.RunImport_DetectFiles(onlyNewFiles: true);
         await _service.RunImport_IntegrityCheck();
 
         // drop folder
-        await _service.RunImport_DropFolders();
+        await _service.RunImport_DetectFiles(onlyInSourceFolders: true);
 
         // Trakt association checks
         _service.RunImport_ScanTrakt();

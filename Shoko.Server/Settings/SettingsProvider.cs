@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -401,7 +402,7 @@ public class SettingsProvider : ISettingsProvider
             logger.Warn("Error in log (database version lookup: {0}", ex.Message);
         }
         */
-        _logger.LogInformation("Operating System: {OSInfo}", Utils.GetOSInfo());
+        _logger.LogInformation("Operating System: {OSInfo}", RuntimeInformation.OSDescription);
 
         try
         {

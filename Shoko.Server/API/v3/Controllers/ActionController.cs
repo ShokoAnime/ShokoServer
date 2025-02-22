@@ -82,7 +82,7 @@ public class ActionController : BaseController
     [HttpGet("ImportNewFiles")]
     public async Task<ActionResult> ImportNewFiles()
     {
-        await _actionService.RunImport_NewFiles();
+        await _actionService.RunImport_DetectFiles(onlyNewFiles: true);
         return Ok();
     }
 

@@ -535,7 +535,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("Folder/Scan")]
     public void ScanDropFolders()
     {
-        Utils.ServiceContainer.GetRequiredService<ActionService>().RunImport_DropFolders().GetAwaiter().GetResult();
+        Utils.ServiceContainer.GetRequiredService<ActionService>().RunImport_DetectFiles(onlyInSourceFolders: true).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/Scan/{importFolderID}")]

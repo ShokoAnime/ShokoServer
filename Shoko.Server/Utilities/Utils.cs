@@ -152,67 +152,13 @@ public static class Utils
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public class ErrorEventArgs : EventArgs
-    {
-        public string Message { get; internal set; }
-
-        public string Title { get; internal set; }
-
-        public bool IsError { get; internal set; } = true;
-    }
-
-    public class CancelReasonEventArgs : CancelEventArgs
-    {
-        public CancelReasonEventArgs(string reason, string formTitle)
-        {
-            FormTitle = formTitle;
-            Reason = reason;
-        }
-
-        public string Reason { get; }
-        public string FormTitle { get; }
-    }
-
-    public static event EventHandler<ErrorEventArgs> ErrorMessage;
-
-    public static event EventHandler OnEvents;
-
-    public delegate void DispatchHandler(Action a);
-
-    public static event DispatchHandler OnDispatch;
-
-    public static void DoEvents()
-    {
-        OnEvents?.Invoke(null, null);
-    }
-
-    public static void MainThreadDispatch(Action a)
-    {
-        if (OnDispatch != null)
-        {
-            OnDispatch?.Invoke(a);
-        }
-        else
-        {
-            a();
-        }
-    }
-
     public static void ShowErrorMessage(Exception ex, string message = null)
     {
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = message ?? ex.Message });
         _logger.Error(ex, message);
     }
 
     public static void ShowErrorMessage(string msg)
     {
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg });
-        _logger.Error(msg);
-    }
-
-    public static void ShowErrorMessage(string title, string msg)
-    {
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg, Title = title });
         _logger.Error(msg);
     }
 
@@ -232,11 +178,6 @@ public static class Utils
                 .Select(raw => raw.Split("="))
                 .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
                 .ToDictionary(pair => pair[0], pair => pair[1]);
-    }
-
-    public static string GetOSInfo()
-    {
-        return RuntimeInformation.OSDescription;
     }
 
     // Returns the human-readable file size for an arbitrary, 64-bit file size
@@ -301,57 +242,6 @@ public static class Utils
             ScheduledUpdateFrequency.MonthOne => 24 * 30,
             _ => int.MaxValue,
         };
-    }
-
-    public static void GetFilesForImportFolder(DirectoryInfo sDir, ref List<string> fileList)
-    {
-        try
-        {
-            if (sDir == null)
-            {
-                _logger.Error("Filesystem not found");
-                return;
-            }
-            // get root level files
-
-            if (!sDir.Exists)
-            {
-                _logger.Error($"Unable to retrieve folder {sDir.FullName}");
-                return;
-            }
-
-            fileList.AddRange(sDir.GetFiles().Select(a => a.FullName));
-
-            // search sub folders
-            foreach (var dir in sDir.GetDirectories())
-            {
-                GetFilesForImportFolder(dir, ref fileList);
-            }
-        }
-        catch (Exception excpt)
-        {
-            _logger.Error(excpt.Message);
-        }
-    }
-
-    public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)
-    {
-        try
-        {
-            using (File.Create(Path.Combine(dirPath, Path.GetRandomFileName()), 1, FileOptions.DeleteOnClose))
-            {
-                return true;
-            }
-        }
-        catch
-        {
-            if (throwIfFails)
-            {
-                throw;
-            }
-
-            return false;
-        }
     }
 
     public static bool IsVideo(string fileName)

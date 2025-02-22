@@ -21,7 +21,6 @@ using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -34,47 +33,19 @@ using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
 
-public class ActionService
+public class ActionService(
+    ILogger<ActionService> _logger,
+    ISchedulerFactory _schedulerFactory,
+    IRequestFactory _requestFactory,
+    ISettingsProvider _settingsProvider,
+    VideoLocal_PlaceService _placeService,
+    TmdbMetadataService _tmdbService,
+    AnimeSeriesService _seriesService,
+    TraktTVHelper _traktHelper,
+    DatabaseFactory _databaseFactory,
+    HttpXmlUtils _xmlUtils
+)
 {
-    private readonly ILogger<ActionService> _logger;
-    private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IRequestFactory _requestFactory;
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly VideoLocal_PlaceService _placeService;
-    private readonly TmdbMetadataService _tmdbService;
-    private readonly AnimeSeriesService _seriesService;
-    private readonly TraktTVHelper _traktHelper;
-    private readonly ImportFolderRepository _importFolders;
-    private readonly DatabaseFactory _databaseFactory;
-    private readonly HttpXmlUtils _xmlUtils;
-
-    public ActionService(
-        ILogger<ActionService> logger,
-        ISchedulerFactory schedulerFactory,
-        IRequestFactory requestFactory,
-        ISettingsProvider settingsProvider,
-        VideoLocal_PlaceService placeService,
-        TmdbMetadataService tmdbService,
-        AnimeSeriesService seriesService,
-        TraktTVHelper traktHelper,
-        ImportFolderRepository importFolders,
-        DatabaseFactory databaseFactory,
-        HttpXmlUtils xmlUtils
-    )
-    {
-        _logger = logger;
-        _schedulerFactory = schedulerFactory;
-        _requestFactory = requestFactory;
-        _settingsProvider = settingsProvider;
-        _placeService = placeService;
-        _tmdbService = tmdbService;
-        _seriesService = seriesService;
-        _traktHelper = traktHelper;
-        _importFolders = importFolders;
-        _databaseFactory = databaseFactory;
-        _xmlUtils = xmlUtils;
-    }
-
     public async Task RunImport_IntegrityCheck()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -130,7 +101,6 @@ public class ActionService
             );
         }
 
-
         // check that all the episode data is populated
         foreach (var vl in RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData())
         {
@@ -139,57 +109,88 @@ public class ActionService
         }
     }
 
-    public async Task RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
+    public Task RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
+        => RunImport_DetectFiles(skipMyList: skipMyList, importFolderIDs: [importFolderID]);
+
+    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, bool skipMyList = false, IEnumerable<int> importFolderIDs = null)
     {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-
-        // get a complete list of files
-        var fileList = new List<string>();
-        var filesFound = 0;
-        var videosFound = 0;
-        var i = 0;
-
-        try
+        IReadOnlyList<SVR_ImportFolder> importFolders;
+        IEnumerable<SVR_VideoLocal_Place> locationsToCheck;
+        if (importFolderIDs is null)
         {
-            var folder = RepoFactory.ImportFolder.GetByID(importFolderID);
-            if (folder == null) return;
+            importFolders = RepoFactory.ImportFolder.GetAll();
+            locationsToCheck = RepoFactory.VideoLocalPlace.GetAll();
+        }
+        else
+        {
+            importFolders = importFolderIDs
+                .Select(RepoFactory.ImportFolder.GetByID)
+                .WhereNotNull()
+                .ToList();
+            locationsToCheck = importFolders.SelectMany(a => a.Places);
+        }
+        if (importFolders.Count is 0)
+            return;
 
-            // first build a list of files that we already know about, as we don't want to process them again
-            var filesAll = folder.Places;
-            var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
-            foreach (var vl in filesAll.Where(a => a.FullServerPath != null))
+        var existingFiles = new HashSet<string>();
+        foreach (var location in locationsToCheck)
+        {
+            try
             {
-                dictFilesExisting[vl.FullServerPath] = vl;
-            }
-
-            Utils.GetFilesForImportFolder(folder.BaseDirectory, ref fileList);
-
-            // Get Ignored Files and remove them from the scan listing
-            var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
-                .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
-            fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
-
-            // get a list of all files in the share
-            foreach (var fileName in fileList)
-            {
-                i++;
-
-                if (dictFilesExisting.TryGetValue(fileName, out var value) && folder.IsDropSource == 1)
-                    await _placeService.AutoRelocateFile(value);
-
-                if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
+                if (location.FullServerPath is not { Length: > 0 } path)
                 {
-                    _logger.LogTrace("Import exclusion, skipping --- {Filename}", fileName);
+                    _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ImportFolder={ImportFolderID})", location.FilePath, location.VideoLocalID, location.VideoLocal_Place_ID, location.ImportFolderID);
+                    await _placeService.RemoveRecord(location);
                     continue;
                 }
 
-                filesFound++;
-                _logger.LogTrace("Processing File {Count}/{Total} --- {Filename}", i, fileList.Count, fileName);
+                existingFiles.Add(path);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An exception occurred while processing VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ImportFolder={ImportFolderID})", location.FilePath, location.VideoLocalID, location.VideoLocal_Place_ID, location.ImportFolderID);
+            }
+        }
 
-                if (!Utils.IsVideo(fileName)) continue;
+        var filesFound = 0;
+        var videosFound = 0;
+        var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos()
+            .SelectMany(a => a.Places)
+            .Select(a => a.FullServerPath)
+            .Where(a => !string.IsNullOrEmpty(a))
+            .ToList();
+        var settings = _settingsProvider.GetSettings();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        foreach (var folder in importFolders)
+        {
+            if (onlyInSourceFolders && !folder.FolderIsDropSource)
+                continue;
+
+            var files = folder.Files
+                .Where(fileName =>
+                {
+                    if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
+                    {
+                        _logger.LogTrace("Import exclusion, skipping --- {Name}", fileName);
+                        return false;
+                    }
+
+                    return !onlyNewFiles || !existingFiles.Contains(fileName);
+                })
+                .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
+                .ToList();
+            var total = files.Count;
+            foreach (var fileName in files)
+            {
+                if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
+                    _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.ImportFolderName, fileName);
+
+                if (!Utils.IsVideo(fileName))
+                    continue;
 
                 videosFound++;
+                if (!existingFiles.Contains(fileName))
+                    ShokoEventHandler.Instance.OnFileDetected(folder, new FileInfo(fileName));
 
                 await scheduler.StartJob<DiscoverFileJob>(a =>
                 {
@@ -197,140 +198,6 @@ public class ActionService
                     a.SkipMyList = skipMyList;
                 });
             }
-
-            _logger.LogDebug("Found {Count} new files", filesFound);
-            _logger.LogDebug("Found {Count} videos", videosFound);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-        }
-    }
-
-    public async Task RunImport_DropFolders()
-    {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-        // get a complete list of files
-        var fileList = new List<string>();
-        foreach (var share in RepoFactory.ImportFolder.GetAll())
-        {
-            if (!share.FolderIsDropSource) continue;
-            Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
-        }
-
-        // Get Ignored Files and remove them from the scan listing
-        var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
-            .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
-        fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
-
-        // get a list of all the shares we are looking at
-        int filesFound = 0, videosFound = 0;
-        var i = 0;
-
-        // get a list of all files in the share
-        foreach (var fileName in fileList)
-        {
-            i++;
-
-            if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
-            {
-                _logger.LogTrace("Import exclusion, skipping --- {Name}", fileName);
-                continue;
-            }
-
-            filesFound++;
-            _logger.LogTrace("Processing File {Count}/{Total} --- {Name}", i, fileList.Count, fileName);
-
-            if (!Utils.IsVideo(fileName)) continue;
-            videosFound++;
-
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
-        }
-
-        _logger.LogDebug("Found {Count} files", filesFound);
-        _logger.LogDebug("Found {Count} videos", videosFound);
-    }
-
-    public async Task RunImport_NewFiles()
-    {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-        // first build a list of files that we already know about, as we don't want to process them again
-        var filesAll = RepoFactory.VideoLocalPlace.GetAll();
-        var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
-        foreach (var vl in filesAll)
-        {
-            try
-            {
-                if (vl.FullServerPath == null)
-                {
-                    _logger.LogInformation("Invalid File Path found. Removing: {ID}", vl.VideoLocal_Place_ID);
-                    await _placeService.RemoveRecord(vl);
-                    continue;
-                }
-
-                dictFilesExisting[vl.FullServerPath] = vl;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error RunImport_NewFiles XREF: {Path} - {Ex}", (vl.FullServerPath ?? vl.FilePath) ?? vl.VideoLocal_Place_ID.ToString(),
-                    ex.ToString());
-            }
-        }
-
-
-        // Steps for processing a file
-        // 1. Check if it is a video file
-        // 2. Check if we have a VideoLocal record for that file
-        // .........
-
-        // get a complete list of files
-        var fileList = new List<string>();
-        foreach (var share in RepoFactory.ImportFolder.GetAll())
-        {
-            try
-            {
-                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "{ex}", ex.ToString());
-            }
-        }
-
-        // get a list fo files that we haven't processed before
-        var fileListNew = new List<string>();
-        foreach (var fileName in fileList)
-        {
-            if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
-            {
-                _logger.LogTrace("Import exclusion, skipping --- {Name}", fileName);
-                continue;
-            }
-
-            if (!dictFilesExisting.ContainsKey(fileName)) fileListNew.Add(fileName);
-        }
-
-        // get a list of all the shares we are looking at
-        var filesFound = 0;
-        var videosFound = 0;
-        var i = 0;
-
-        // get a list of all files in the share
-        foreach (var fileName in fileListNew)
-        {
-            i++;
-            filesFound++;
-            _logger.LogTrace("Processing File {Count}/{Total} --- {Name}", i, fileList.Count, fileName);
-
-            if (!Utils.IsVideo(fileName)) continue;
-            videosFound++;
-
-            var (folder, relativePath) = _importFolders.GetFromFullPath(fileName);
-            ShokoEventHandler.Instance.OnFileDetected(folder, new FileInfo(fileName));
-
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
         }
 
         _logger.LogDebug("Found {Count} files", filesFound);
@@ -605,16 +472,10 @@ public class ActionService
     }
 
     public void RunImport_ScanTrakt()
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return;
-        _traktHelper.ScanForMatches();
-    }
+        => _traktHelper.ScanForMatches();
 
-    public async Task RunImport_ScanTMDB()
-    {
-        await _tmdbService.ScanForMatches();
-    }
+    public Task RunImport_ScanTMDB()
+        => _tmdbService.ScanForMatches();
 
     public async Task RunImport_UpdateAllAniDB()
     {
@@ -627,7 +488,8 @@ public class ActionService
                 c.AnimeID = anime.AnimeID;
                 c.ForceRefresh = true;
                 c.CacheOnly = false;
-                c.DownloadRelations = settings.AniDb.DownloadRelatedAnime;
+                c.DownloadRelations = false;
+                c.CreateSeriesEntry = false;
                 c.SkipTmdbUpdate = true;
             });
         }

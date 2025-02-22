@@ -94,6 +94,12 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
     public IReadOnlyList<SVR_VideoLocal_Place> Places
         => RepoFactory.VideoLocalPlace.GetByImportFolder(ImportFolderID);
 
+    [JsonIgnore, XmlIgnore]
+    public IReadOnlyList<string> Files
+        => Directory.Exists(ImportFolderLocation)
+            ? Directory.GetFiles(ImportFolderLocation, "*", new EnumerationOptions() { RecurseSubdirectories = true, MatchType = MatchType.Simple, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System })
+            : [];
+
     #region IImportFolder Implementation
 
     int IImportFolder.ID => ImportFolderID;

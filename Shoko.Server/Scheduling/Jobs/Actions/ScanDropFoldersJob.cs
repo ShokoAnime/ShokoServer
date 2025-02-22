@@ -18,7 +18,7 @@ internal class ScanDropFoldersJob : BaseJob
 
     public override async Task Process()
     {
-        await _actionService.RunImport_DropFolders();
+        await _actionService.RunImport_DetectFiles(onlyInSourceFolders: true);
     }
 
     public ScanDropFoldersJob(ActionService actionService)

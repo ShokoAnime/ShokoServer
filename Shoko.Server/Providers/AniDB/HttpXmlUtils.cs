@@ -56,17 +56,8 @@ public class HttpXmlUtils
                 Directory.CreateDirectory(filePath);
             }
 
-            // First check to make sure we not rights issue
-            if (!Utils.IsDirectoryWritable(filePath))
-            {
-                _logger.LogTrace("Unable to access {FileNameWithPath}. Insufficient permissions. Attempting to grant",
-                    fileNameWithPath);
-                return;
-            }
-
             // Check again and only if write-able we create it
-            _logger.LogTrace("Can write to {FilePath}. Writing xml file {FileNameWithPath}", filePath,
-                fileNameWithPath);
+            _logger.LogTrace("Attempting to write xml file {FileNameWithPath}", fileNameWithPath);
             await using var sw = File.CreateText(fileNameWithPath);
             await sw.WriteAsync(xml);
         }
