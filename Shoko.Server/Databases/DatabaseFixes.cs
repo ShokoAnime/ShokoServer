@@ -11,15 +11,19 @@ using Newtonsoft.Json;
 using NHibernate;
 using NLog;
 using Quartz;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
@@ -967,5 +971,293 @@ public class DatabaseFixes
         }
 
         _logger.Info($"Moved {total} TMDb images on disc. Skipped {skipped} images.");
+    }
+
+    public static void MoveAnidbFileDataToReleaseInfoFormat()
+    {
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+
+        // get anidb files, xrefs, anidb release groups
+        var anidbFileUpdates = new List<DBF_AniDB_FileUpdate>();
+        var anidbFileDict = new Dictionary<string, DBF_AniDB_File>();
+        var anidbReleaseGroupDict = new Dictionary<int, DBF_AniDB_ReleaseGroup>();
+        var crossRefTypes = new Dictionary<int, CrossRefSource>();
+        var anidbFileAudioLanguageDict = new Dictionary<int, List<TitleLanguage>>();
+        var anidbFileSubtitleLanguageDict = new Dictionary<int, List<TitleLanguage>>();
+        var rawAnidbFileList = session.CreateSQLQuery("SELECT FileID, Hash, GroupID, File_Source, File_Description, File_ReleaseDate, DateTimeUpdated, FileName, FileSize, FileVersion, InternalVersion, IsDeprecated, IsCensored, IsChaptered FROM AniDB_File")
+            .AddScalar("FileID", NHibernateUtil.Int32)
+            .AddScalar("Hash", NHibernateUtil.String)
+            .AddScalar("GroupID", NHibernateUtil.Int32)
+            .AddScalar("File_Source", NHibernateUtil.String)
+            .AddScalar("File_Description", NHibernateUtil.String)
+            .AddScalar("File_ReleaseDate", NHibernateUtil.Int32)
+            .AddScalar("DateTimeUpdated", NHibernateUtil.DateTime)
+            .AddScalar("FileName", NHibernateUtil.String)
+            .AddScalar("FileSize", NHibernateUtil.Int64)
+            .AddScalar("FileVersion", NHibernateUtil.Int32)
+            .AddScalar("InternalVersion", NHibernateUtil.Int32)
+            .AddScalar("IsDeprecated", NHibernateUtil.Boolean)
+            .AddScalar("IsCensored", NHibernateUtil.Boolean)
+            .AddScalar("IsChaptered", NHibernateUtil.Boolean)
+            .List();
+        var rawAnidbFileUpdateList = session.CreateSQLQuery("SELECT Hash, FileSize, HasResponse, UpdatedAt FROM AniDB_FileUpdate")
+            .AddScalar("Hash", NHibernateUtil.String)
+            .AddScalar("FileSize", NHibernateUtil.Int64)
+            .AddScalar("HasResponse", NHibernateUtil.Boolean)
+            .AddScalar("UpdatedAt", NHibernateUtil.DateTime)
+            .List();
+        var rawAnidbReleaseGroupList = session.CreateSQLQuery("SELECT GroupID, GroupName, GroupNameShort FROM AniDB_ReleaseGroup")
+            .AddScalar("GroupID", NHibernateUtil.Int32)
+            .AddScalar("GroupName", NHibernateUtil.String)
+            .AddScalar("GroupNameShort", NHibernateUtil.String)
+            .List();
+        var rawCrossRefSource = session.CreateSQLQuery("SELECT CrossRef_File_EpisodeID, CrossRefSource FROM CrossRef_File_Episode")
+            .AddScalar("CrossRef_File_EpisodeID", NHibernateUtil.Int32)
+            .AddScalar("CrossRefSource", NHibernateUtil.Int32)
+            .List();
+        var rawAnidbFileLanguages = session.CreateSQLQuery("SELECT FileID, LanguageName FROM CrossRef_Languages_AniDB_File")
+            .AddScalar("FileID", NHibernateUtil.Int32)
+            .AddScalar("LanguageName", NHibernateUtil.String)
+            .List();
+        var rawAnidbFileSubtitles = session.CreateSQLQuery("SELECT FileID, LanguageName FROM CrossRef_Subtitles_AniDB_File")
+            .AddScalar("FileID", NHibernateUtil.Int32)
+            .AddScalar("LanguageName", NHibernateUtil.String)
+            .List();
+        foreach (object[] fields in rawAnidbFileList)
+        {
+            var anidbFile = new DBF_AniDB_File
+            {
+                FileID = (int)fields[0],
+                ED2k = (string)fields[1],
+                GroupID = (int)fields[2],
+                File_Source = (string)fields[3],
+                File_Description = (string)fields[4],
+                File_ReleaseDate = (int)fields[5] > 0 ? DateTime.UnixEpoch.AddSeconds((int)fields[5]).ToLocalTime() : null,
+                DateTimeUpdated = ((DateTime)fields[6]).ToLocalTime(),
+                FileName = (string)fields[7],
+                FileSize = (long)fields[8],
+                FileVersion = (int)fields[9],
+                InternalVersion = (int)fields[10],
+                IsDeprecated = (bool)fields[11],
+                IsCensored = (bool?)fields[12],
+                IsChaptered = (bool)fields[13],
+            };
+            if (anidbFile.FileID == 0 || anidbFile.InternalVersion < 2)
+                continue;
+
+            anidbFileDict.Add(anidbFile.ED2k, anidbFile);
+        }
+        foreach (object[] fields in rawAnidbFileUpdateList)
+        {
+            var anidbFileUpdate = new DBF_AniDB_FileUpdate
+            {
+                ED2K = (string)fields[0],
+                FileSize = (long)fields[1],
+                HasResponse = (bool)fields[2],
+                UpdatedAt = ((DateTime)fields[3]).ToLocalTime(),
+            };
+            anidbFileUpdates.Add(anidbFileUpdate);
+        }
+        foreach (object[] fields in rawAnidbReleaseGroupList)
+        {
+            var anidbReleaseGroup = new DBF_AniDB_ReleaseGroup
+            {
+                GroupID = (int)fields[0],
+                GroupName = (string)fields[1],
+                GroupNameShort = (string)fields[2],
+            };
+            if (anidbReleaseGroup.GroupID == 0)
+                continue;
+
+            anidbReleaseGroupDict.Add(anidbReleaseGroup.GroupID, anidbReleaseGroup);
+        }
+        foreach (object[] fields in rawCrossRefSource)
+        {
+            var id = (int)fields[0];
+            var source = (CrossRefSource)fields[1];
+            crossRefTypes.Add(id, source);
+        }
+        foreach (object[] fields in rawAnidbFileLanguages)
+        {
+            var fileID = (int)fields[0];
+            var language = (string)fields[1];
+            if (!anidbFileAudioLanguageDict.ContainsKey(fileID))
+                anidbFileAudioLanguageDict[fileID] = [];
+            anidbFileAudioLanguageDict[fileID].Add(language.GetTitleLanguage());
+        }
+        foreach (object[] fields in rawAnidbFileSubtitles)
+        {
+            var fileID = (int)fields[0];
+            var language = (string)fields[1];
+            if (!anidbFileSubtitleLanguageDict.ContainsKey(fileID))
+                anidbFileSubtitleLanguageDict[fileID] = [];
+            anidbFileSubtitleLanguageDict[fileID].Add(language.GetTitleLanguage());
+        }
+
+        // create the releases using the above info
+        var potentialReleases = RepoFactory.CrossRef_File_Episode.GetAll()
+            .GroupBy(x => (x.Hash, x.FileSize, crossRefTypes[x.CrossRef_File_EpisodeID]))
+            .ToList();
+        var anidbFileUpdateLookup = anidbFileUpdates.ToLookup(x => x.ED2K);
+        var crossRefsToRemove = new List<SVR_CrossRef_File_Episode>();
+        var storedReleaseInfos = new List<StoredReleaseInfo>();
+        var storedReleaseInfoAttempts = new List<StoredReleaseInfo_MatchAttempt>();
+        var count = 0;
+        var str = ServerState.Instance.ServerStartingStatus;
+        foreach (var groupBy in potentialReleases)
+        {
+            if (++count % 10000 == 0 || count == 1 || count == potentialReleases.Count)
+            {
+                _logger.Info($"Converting releases: {count}/{potentialReleases.Count}");
+                ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {potentialReleases.Count}";
+            }
+
+            var (ed2k, fileSize, source) = groupBy.Key;
+            var video = RepoFactory.VideoLocal.GetByEd2k(ed2k);
+            var anidbFileUpdateList = anidbFileUpdateLookup.Contains(ed2k)
+                ? anidbFileUpdateLookup[ed2k].OrderByDescending(x => x.UpdatedAt).ToList()
+                : [];
+            var anidbFile = source is CrossRefSource.AniDB && anidbFileDict.ContainsKey(ed2k)
+                ? anidbFileDict[ed2k]
+                : null;
+            var importedAt = video?.DateTimeImported ?? anidbFileUpdateList.FirstOrDefault(a => a.HasResponse)?.UpdatedAt ?? anidbFileUpdateList.FirstOrDefault()?.UpdatedAt ?? DateTime.Now;
+            var storedReleaseInfo = new StoredReleaseInfo
+            {
+                ED2K = ed2k,
+                FileSize = fileSize,
+                ProviderID = "User",
+                CrossReferences = groupBy
+                    .OrderBy(x => x.CrossRef_File_EpisodeID)
+                    .Select(xref => new EmbeddedCrossReference
+                    {
+                        AnidbAnimeID = xref.AnimeID,
+                        AnidbEpisodeID = xref.EpisodeID,
+                        PercentageStart = xref.PercentageRange.Start,
+                        PercentageEnd = xref.PercentageRange.End,
+                    })
+                    .ToList(),
+                CreatedAt = importedAt,
+                LastUpdatedAt = importedAt,
+            };
+
+            if (anidbFile is not null)
+            {
+                var lastCheckedAt = anidbFileUpdateList.FirstOrDefault(a => a.HasResponse)?.UpdatedAt;
+                if (lastCheckedAt is not null && storedReleaseInfo.LastUpdatedAt < lastCheckedAt.Value)
+                    storedReleaseInfo.LastUpdatedAt = lastCheckedAt.Value;
+
+                var audioLanguages = anidbFileAudioLanguageDict.ContainsKey(anidbFile.FileID)
+                    ? anidbFileAudioLanguageDict[anidbFile.FileID]
+                    : [];
+                var subtitleLanguages = anidbFileSubtitleLanguageDict.ContainsKey(anidbFile.FileID)
+                    ? anidbFileSubtitleLanguageDict[anidbFile.FileID]
+                    : [];
+                var anidbReleaseGroup = anidbFile is not null && anidbReleaseGroupDict.ContainsKey(anidbFile.GroupID)
+                    ? anidbReleaseGroupDict[anidbFile.GroupID]
+                    : null;
+
+                storedReleaseInfo.ID = anidbFile.FileID.ToString();
+                storedReleaseInfo.ProviderID = "AniDB";
+                storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile.FileID}";
+                storedReleaseInfo.Revision = anidbFile.FileVersion;
+                storedReleaseInfo.Comment = string.IsNullOrEmpty(anidbFile.File_Description) ? null : anidbFile.File_Description;
+                storedReleaseInfo.OriginalFilename = anidbFile.FileName;
+                storedReleaseInfo.IsCensored = anidbFile.IsCensored;
+                storedReleaseInfo.IsCorrupted = anidbFile.IsDeprecated;
+                storedReleaseInfo.IsChaptered = anidbFile.IsChaptered;
+                storedReleaseInfo.Source = Enum.Parse<GetFile_Source>(anidbFile.File_Source.ToString()) switch
+                {
+                    GetFile_Source.TV => ReleaseSource.TV,
+                    GetFile_Source.DTV => ReleaseSource.TV,
+                    GetFile_Source.HDTV => ReleaseSource.TV,
+                    GetFile_Source.DVD => ReleaseSource.DVD,
+                    GetFile_Source.HKDVD => ReleaseSource.DVD,
+                    GetFile_Source.HDDVD => ReleaseSource.DVD,
+                    GetFile_Source.VHS => ReleaseSource.VHS,
+                    GetFile_Source.Camcorder => ReleaseSource.Camera,
+                    GetFile_Source.VCD => ReleaseSource.VCD,
+                    GetFile_Source.SVCD => ReleaseSource.VCD,
+                    GetFile_Source.LaserDisc => ReleaseSource.LaserDisc,
+                    GetFile_Source.BluRay => ReleaseSource.BluRay,
+                    GetFile_Source.Web => ReleaseSource.Web,
+                    _ => ReleaseSource.Unknown,
+                };
+                storedReleaseInfo.ReleasedAt = anidbFile.File_ReleaseDate is null ? null : DateOnly.FromDateTime(anidbFile.File_ReleaseDate.Value);
+                storedReleaseInfo.AudioLanguages = audioLanguages;
+                storedReleaseInfo.SubtitleLanguages = subtitleLanguages;
+
+                if (anidbReleaseGroup is not null)
+                {
+                    storedReleaseInfo.GroupID = anidbReleaseGroup.GroupID.ToString();
+                    storedReleaseInfo.GroupProviderID = "AniDB";
+                    storedReleaseInfo.GroupName = anidbReleaseGroup.GroupName;
+                    storedReleaseInfo.GroupShortName = anidbReleaseGroup.GroupNameShort;
+                }
+            }
+
+            storedReleaseInfos.Add(storedReleaseInfo);
+
+            foreach (var anidbFileUpdate in anidbFileUpdateList)
+            {
+                storedReleaseInfoAttempts.Add(new StoredReleaseInfo_MatchAttempt
+                {
+                    ED2K = ed2k,
+                    FileSize = fileSize,
+                    AttemptedProviderIDs = ["AniDB"],
+                    ProviderID = anidbFileUpdate.HasResponse ? "AniDB" : null,
+                    AttemptStartedAt = anidbFileUpdate.UpdatedAt,
+                    AttemptEndedAt = anidbFileUpdate.UpdatedAt,
+                });
+            }
+        }
+
+        RepoFactory.StoredReleaseInfo.Save(storedReleaseInfos);
+        RepoFactory.StoredReleaseInfo_MatchAttempt.Save(storedReleaseInfoAttempts);
+
+        // drop the tables once the new info is saved.
+        var tablesToDrop = new[]
+        {
+            "AniDB_File",
+            "AniDB_FileUpdate",
+            "AniDB_ReleaseGroup",
+            "CrossRef_Languages_AniDB_File",
+            "CrossRef_Subtitles_AniDB_File",
+        };
+        foreach (var table in tablesToDrop)
+            session.CreateSQLQuery($"DROP TABLE {table};").ExecuteUpdate();
+        session.CreateSQLQuery("ALTER TABLE CrossRef_File_Episode DROP COLUMN CrossRefSource;").ExecuteUpdate();
+    }
+
+    public class DBF_AniDB_File
+    {
+        public int FileID { get; set; }
+        public string ED2k { get; set; }
+        public int GroupID { get; set; }
+        public string File_Source { get; set; }
+        public string File_Description { get; set; }
+        public DateTime? File_ReleaseDate { get; set; }
+        public DateTime DateTimeUpdated { get; set; }
+        public string FileName { get; set; }
+        public long FileSize { get; set; }
+        public int FileVersion { get; set; }
+        public bool? IsCensored { get; set; }
+        public bool IsDeprecated { get; set; }
+        public int InternalVersion { get; set; }
+        public bool IsChaptered { get; set; }
+    }
+
+    private class DBF_AniDB_ReleaseGroup
+    {
+        public int GroupID { get; set; }
+        public string GroupName { get; set; }
+        public string GroupNameShort { get; set; }
+    }
+
+    private class DBF_AniDB_FileUpdate
+    {
+        public string ED2K { get; set; }
+        public long FileSize { get; set; }
+        public bool HasResponse { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 }
