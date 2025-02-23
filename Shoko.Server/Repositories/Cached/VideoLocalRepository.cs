@@ -6,7 +6,6 @@ using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Quartz;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;

@@ -5,11 +5,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
-using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
 
