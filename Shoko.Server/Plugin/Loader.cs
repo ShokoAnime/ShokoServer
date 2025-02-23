@@ -126,11 +126,17 @@ public static class Loader
             s_logger.Trace("Loaded IPlugin implementation: {0}", pluginType.Name);
             _pluginTypes.Add(pluginType);
 
+            var exportedTypeList = assembly.GetExportedTypes();
+            foreach (var type in exportedTypeList)
+                if (type.IsClass && !type.IsAbstract && !type.IsInterface && !type.IsGenericType)
+                    _exportedTypes.Add(type);
+
             // Compat. for plugins targeting <4.2.0-beta2 using the previously undocumented (except in source code) ConfigureServices method.
             if (pluginType.GetMethod("ConfigureServices", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy) is { } mtd)
             {
                 s_logger.Trace("Registering plugin service: {0}", pluginType.Name);
                 mtd.Invoke(null, [serviceCollection]);
+                continue;
             }
 
             var registrationImpl = pluginTypes
@@ -161,11 +167,6 @@ public static class Loader
                 s_logger.Error(ex, "Error registering plugin services from {0}.", registrationType.Assembly.FullName);
                 continue;
             }
-
-            var exportedTypeList = assembly.GetExportedTypes();
-            foreach (var type in exportedTypeList)
-                if (type.IsClass && !type.IsAbstract && !type.IsInterface && !type.IsGenericType)
-                    _exportedTypes.Add(type);
         }
     }
 
