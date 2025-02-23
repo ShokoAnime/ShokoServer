@@ -12,13 +12,6 @@ public enum UserDataSaveReason
     None = 0,
 
     /// <summary>
-    /// The user data is being saved because a video was imported, and the watch
-    /// state from an existing video was copied over to the newly imported
-    /// video.
-    /// </summary>
-    VideoReImport,
-
-    /// <summary>
     /// The user data is being saved because of user interaction.
     /// </summary>
     UserInteraction,
@@ -52,6 +45,13 @@ public enum UserDataSaveReason
     /// The user data is being saved during an import from AniDB.
     /// </summary>
     AnidbImport,
+
+    /// <summary>
+    /// The user data is being saved because a video was imported, and the watch
+    /// state from an existing video was copied over to the newly imported
+    /// video.
+    /// </summary>
+    VideoReImport,
 
     /// <summary>
     /// The user data is being saved because a video was imported from a generic

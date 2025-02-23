@@ -55,5 +55,5 @@ public enum ReleaseSource
     /// <summary>
     /// Filmed with a camera.
     /// </summary>
-    Camera = 9
+    Camera = 9,
 }
