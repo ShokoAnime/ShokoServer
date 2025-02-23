@@ -406,10 +406,10 @@ public class AbstractVideoReleaseService(
 
     private int? CheckReleaseGroup(StoredReleaseInfo releaseInfo)
     {
-        if (string.IsNullOrEmpty(releaseInfo.GroupID) || string.IsNullOrEmpty(releaseInfo.GroupProviderID))
+        if (string.IsNullOrEmpty(releaseInfo.GroupID) || string.IsNullOrEmpty(releaseInfo.GroupSource))
         {
             releaseInfo.GroupID = null;
-            releaseInfo.GroupProviderID = null;
+            releaseInfo.GroupSource = null;
             releaseInfo.GroupName = null;
             releaseInfo.GroupShortName = null;
             return null;
@@ -424,7 +424,7 @@ public class AbstractVideoReleaseService(
             return null;
 
         // If we have an existing release from the group with valid names, use that.
-        var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID, releaseInfo.GroupProviderID)
+        var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID, releaseInfo.GroupSource)
             .Where(rI => !string.IsNullOrEmpty(rI.GroupName) && !string.IsNullOrEmpty(rI.GroupShortName))
             .OrderByDescending(rI => rI.LastUpdatedAt)
             .ToList();
@@ -436,10 +436,10 @@ public class AbstractVideoReleaseService(
         }
 
         // Remove the group info if it's not from AniDB and doesn't have a valid name/short name.
-        if (releaseInfo.GroupProviderID is not "AniDB" || !int.TryParse(releaseInfo.GroupID, out var groupID) || groupID <= 0)
+        if (releaseInfo.GroupSource is not "AniDB" || !int.TryParse(releaseInfo.GroupID, out var groupID) || groupID <= 0)
         {
             releaseInfo.GroupID = null;
-            releaseInfo.GroupProviderID = null;
+            releaseInfo.GroupSource = null;
             releaseInfo.GroupName = null;
             releaseInfo.GroupShortName = null;
             return null;
@@ -467,7 +467,7 @@ public class AbstractVideoReleaseService(
                 else
                 {
                     releaseInfo.GroupID = null;
-                    releaseInfo.GroupProviderID = null;
+                    releaseInfo.GroupSource = null;
                     releaseInfo.GroupName = null;
                     releaseInfo.GroupShortName = null;
                 }
@@ -475,7 +475,7 @@ public class AbstractVideoReleaseService(
             else
             {
                 releaseInfo.GroupID = null;
-                releaseInfo.GroupProviderID = null;
+                releaseInfo.GroupSource = null;
                 releaseInfo.GroupName = null;
                 releaseInfo.GroupShortName = null;
             }

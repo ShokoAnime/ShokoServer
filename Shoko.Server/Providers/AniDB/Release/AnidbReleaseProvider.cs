@@ -97,7 +97,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
             Group = new()
             {
                 ID = anidbFile.GroupID?.ToString() ?? string.Empty,
-                ProviderID = Name,
+                Source = "AniDB",
                 Name = string.IsNullOrEmpty(anidbFile.GroupName) ? string.Empty : anidbFile.GroupName,
                 ShortName = string.IsNullOrEmpty(anidbFile.GroupShortName) ? string.Empty : anidbFile.GroupShortName,
             },

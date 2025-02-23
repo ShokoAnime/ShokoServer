@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.MediaInfo;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
@@ -192,8 +193,8 @@ public class WebUI
             var releaseGroups = releases.Values
                 .Select(r => r.Group)
                 .WhereNotNull()
-                .DistinctBy(r => (r.ID, r.ProviderID))
-                .ToDictionary(releaseGroup => (releaseGroup.ID, releaseGroup.ProviderID));
+                .DistinctBy(r => (r.ID, r.Source))
+                .ToDictionary(releaseGroup => (releaseGroup.ID, releaseGroup.Source));
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
             var filesWithXrefAndLocation = crossRefs
                 .Where(tuple => episodes.ContainsKey(tuple.xref.EpisodeID))
@@ -232,15 +233,15 @@ public class WebUI
                     // Release group criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.GroupName))
                     {
-                        groupByDetails.GroupName = releaseGroup?.Name ?? (releaseGroup is { ProviderID: "AniDB" } ? "Unknown" : "None");
-                        groupByDetails.GroupNameShort = releaseGroup?.ShortName ?? (releaseGroup is { ProviderID: "AniDB" } ? "Unk" : "-");
+                        groupByDetails.GroupName = releaseGroup?.Name ?? (releaseGroup is { Source: "AniDB" } ? "Unknown" : "None");
+                        groupByDetails.GroupNameShort = releaseGroup?.ShortName ?? (releaseGroup is { Source: "AniDB" } ? "Unk" : "-");
                     }
 
                     // File criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileVersion))
                         groupByDetails.FileVersion = release?.Revision ?? 1;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
-                        groupByDetails.FileSource = File.ParseFileSource(release?.Source);
+                        groupByDetails.FileSource = release?.Source ?? ReleaseSource.Unknown;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
                         groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
@@ -341,7 +342,7 @@ public class WebUI
                     {
                         var episodeType = episodes[t.xref.EpisodeID].Type;
                         var fileSource = releases.TryGetValue((t.xref.Hash, t.xref.FileSize), out var release)
-                            ? File.ParseFileSource(release?.Source) : FileSource.Unknown;
+                            ? release?.Source ?? ReleaseSource.Unknown : ReleaseSource.Unknown;
 
                         return (episodeType, fileSource);
                     })
@@ -501,7 +502,7 @@ public class WebUI
             /// The source type for the files in this range (e.g., BluRay, Web, etc.).
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public FileSource? FileSource { get; set; }
+            public ReleaseSource? FileSource { get; set; }
 
             /// <summary>
             /// The parent directory location of the files in this range.
@@ -762,7 +763,7 @@ public class WebUI
 
             public int? FileVersion { get; set; }
 
-            public FileSource? FileSource { get; set; }
+            public ReleaseSource? FileSource { get; set; }
 
             public int? VideoBitDepth { get; set; }
 
@@ -942,7 +943,7 @@ public class WebUI
             /// The file source.
             /// </summary>
             [JsonConverter(typeof(StringEnumConverter))]
-            public FileSource Type { get; set; }
+            public ReleaseSource Type { get; set; }
 
             /// <summary>
             /// Amount of files with this file source.

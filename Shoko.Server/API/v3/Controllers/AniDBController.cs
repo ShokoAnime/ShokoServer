@@ -3,17 +3,15 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
-
-using ReleaseGroup = Shoko.Server.API.v3.Models.Common.ReleaseGroup;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -80,7 +78,7 @@ public class AniDBController(
     [HttpGet("ReleaseGroup/{id}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
     {
-        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not IReleaseInfo { Group.ProviderID: "AniDB" } releaseInfo)
+        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not Shoko.Plugin.Abstractions.Release.IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
             return NotFound();
 
         return new ReleaseGroup(releaseInfo.Group);

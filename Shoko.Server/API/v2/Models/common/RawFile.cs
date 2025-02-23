@@ -131,7 +131,7 @@ public class RawFile : BaseDirectory
         updated = vl.DateTimeUpdated;
         duration = vl.Duration;
 
-        if (vl.ReleaseGroup is { ProviderID: "AniDB " } releaseGroup)
+        if (vl.ReleaseGroup is { Source: "AniDB " } releaseGroup)
         {
             group_full = releaseGroup.Name;
             group_short = releaseGroup.ShortName;

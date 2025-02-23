@@ -10,13 +10,13 @@ public class ReleaseGroup : IReleaseGroup
     public string ID { get; set; } = string.Empty;
 
     /// <inheritdoc />
-    public string ProviderID { get; set; } = string.Empty;
-
-    /// <inheritdoc />
     public string Name { get; set; } = string.Empty;
 
     /// <inheritdoc />
     public string ShortName { get; set; } = string.Empty;
+
+    /// <inheritdoc />
+    public string Source { get; set; } = string.Empty;
 
     /// <inheritdoc />
     public ReleaseGroup() { }
@@ -25,14 +25,14 @@ public class ReleaseGroup : IReleaseGroup
     public ReleaseGroup(IReleaseGroup group)
     {
         ID = group.ID;
-        ProviderID = group.ProviderID;
         Name = group.Name;
         ShortName = group.ShortName;
+        Source = group.Source;
     }
 
     /// <inheritdoc/>
     public bool Equals(IReleaseGroup? other)
         => other is not null &&
            string.Equals(ID, other.ID) &&
-           string.Equals(ProviderID, other.ProviderID);
+           string.Equals(Source, other.Source);
 }

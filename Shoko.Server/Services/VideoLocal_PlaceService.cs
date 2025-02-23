@@ -294,7 +294,7 @@ public class VideoLocal_PlaceService
             }
 
             if (destinationExistingReleaseInfo.GroupID == releaseInfo.GroupID &&
-                destinationExistingReleaseInfo.GroupProviderID == releaseInfo.GroupProviderID &&
+                destinationExistingReleaseInfo.GroupSource == releaseInfo.GroupSource &&
                 destinationExistingReleaseInfo.Revision < releaseInfo.Revision)
             {
                 // This is a V2 replacing a V1 with the same name.

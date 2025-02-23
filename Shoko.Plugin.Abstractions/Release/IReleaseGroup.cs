@@ -14,11 +14,6 @@ public interface IReleaseGroup : IEquatable<IReleaseGroup>
     string ID { get; }
 
     /// <summary>
-    /// The provider id of the release group.
-    /// </summary>
-    string ProviderID { get; }
-
-    /// <summary>
     /// The name of the release group, if available.
     /// </summary>
     string Name { get; }
@@ -27,4 +22,9 @@ public interface IReleaseGroup : IEquatable<IReleaseGroup>
     /// The short name of the release group, if available.
     /// </summary>
     string ShortName { get; }
+
+    /// <summary>
+    /// The source of the release group.
+    /// </summary>
+    string Source { get; }
 }

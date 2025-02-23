@@ -1220,7 +1220,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 foreach (var h in hashes)
                 {
                     var vid = vids.First(a => a.Hash == h);
-                    if (vid.ReleaseGroup is { ProviderID: "AniDB" } group && int.TryParse(group.ID, out var groupId))
+                    if (vid.ReleaseGroup is { Source: "AniDB" } group && int.TryParse(group.ID, out var groupId))
                     {
                         if (!userReleaseGroups.ContainsKey(groupId))
                             userReleaseGroups[groupId] = 0;
