@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Nancy.Rest.Annotations.Attributes;
 using Nancy.Rest.Annotations.Enums;
-using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
@@ -244,19 +243,19 @@ namespace Shoko.Models.Interfaces
         string UseMyTvDBLinksWebCache(int animeID);
 
         [Rest("WebCache/RandomLinkForApproval/{linkType}", Verbs.Get)]
-        Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType);
+        object Admin_GetRandomLinkForApproval(int linkType);
 
         [Rest("WebCache/IsAdmin", Verbs.Get)]
         bool IsWebCacheAdmin();
 
         [Rest("WebCache/AdminMessages", Verbs.Get)]
-        List<Azure_AdminMessage> GetAdminMessages();
+        List<object> GetAdminMessages();
 
         [Rest("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}",Verbs.Get)]
-        List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin);
+        List<object> GetTVDBCrossRefWebCache(int animeID, bool isAdmin);
 
         [Rest("WebCache/CrossRef/Other/{animeID}/{crossRefType}", Verbs.Get)]
-        CL_CrossRef_AniDB_Other_Response GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType);
+        object GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType);
 
         [Rest("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}", Verbs.Post)]
         string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
@@ -265,7 +264,7 @@ namespace Shoko.Models.Interfaces
         string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
 
         [Rest("WebCache/CrossRef/Trakt/{animeID}/{isAdmin}", Verbs.Get)]
-        List<Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin);
+        List<object> GetTraktCrossRefWebCache(int animeID, bool isAdmin);
 
         [Rest("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}", Verbs.Post)]
         string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId);

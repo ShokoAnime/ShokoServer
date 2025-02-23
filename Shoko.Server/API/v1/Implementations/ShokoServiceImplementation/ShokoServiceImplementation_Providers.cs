@@ -4,7 +4,6 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -113,13 +112,13 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("WebCache/RandomLinkForApproval/{linkType}")]
-    public Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
+    public object Admin_GetRandomLinkForApproval(int linkType)
     {
         return null;
     }
 
     [HttpGet("WebCache/AdminMessages")]
-    public List<Azure_AdminMessage> GetAdminMessages()
+    public List<object> GetAdminMessages()
     {
         return [];
     }
@@ -195,7 +194,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}")]
-    public List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
+    public List<object> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
     {
         return [];
     }
@@ -339,17 +338,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("WebCache/CrossRef/Trakt/{animeID}/{isAdmin}")]
-    public List<Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin)
+    public List<object> GetTraktCrossRefWebCache(int animeID, bool isAdmin)
     {
-        try
-        {
-            return [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpPost(
@@ -711,17 +702,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     #region Other Cross Refs
 
     [HttpGet("WebCache/CrossRef/Other/{animeID}/{crossRefType}")]
-    public CL_CrossRef_AniDB_Other_Response GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType)
+    public object GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType)
     {
-        try
-        {
-            return new CL_CrossRef_AniDB_Other_Response();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return null;
-        }
+        return null;
     }
 
     [HttpGet("Other/CrossRef/{animeID}/{crossRefType}")]

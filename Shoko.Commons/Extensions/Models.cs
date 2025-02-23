@@ -15,12 +15,7 @@ namespace Shoko.Commons.Extensions
         private static Dictionary<int, HashSet<string>> _hidecategoriescache = new();
         private static Dictionary<string, HashSet<string>> _plexuserscache = new();
 
-
-        public static double GetApprovalPercentage(this AniDB_Anime_Similar similar)
-        {
-            if (similar.Total == 0) return (double) 0;
-            return (double) similar.Approval / (double) similar.Total * (double) 100;
-        }
+        public static List<T> CastList<T>(this IEnumerable<dynamic> list) => list?.Cast<T>().ToList();
 
         public static AnimeType GetAnimeTypeEnum(this AniDB_Anime anime)
         {
