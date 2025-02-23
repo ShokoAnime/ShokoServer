@@ -26,13 +26,15 @@ SOFTWARE.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Shoko.Commons.Extensions;
 
+#nullable enable
 namespace NutzCode.InMemoryIndex;
 //NOTE PocoCache is not thread SAFE
 
-public class PocoCache<T, S> where S : class
+public class PocoCache<T, S> where S : class where T : notnull
 {
     private readonly Dictionary<T, S> _dict;
 
@@ -68,7 +70,7 @@ public class PocoCache<T, S> where S : class
         _observers.Add(observer);
     }
 
-    public S Get(T key)
+    public S? Get(T key)
     {
         return _dict.GetValueOrDefault(key);
     }
@@ -119,7 +121,7 @@ public interface IPocoCacheObserver<in TKey, in TEntity> where TEntity : class
 }
 
 public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TEntity>
-    where TEntity : class
+    where TEntity : class where TKey : notnull
 {
     private static readonly List<TEntity> _emptyList = [];
 
@@ -134,17 +136,17 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
     internal PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, IEnumerable<TInverseKey>> func)
     {
         _cache = cache;
-        _dict = new BiDictionaryManyToMany<TKey, TInverseKey>(_cache.Keys.ToDictionary(a => a, a => func(_cache.Get(a)).ToHashSet()));
+        _dict = new BiDictionaryManyToMany<TKey, TInverseKey>(_cache.Keys.ToDictionary(a => a, a => func(_cache.Get(a)!).ToHashSet()));
         _func = func;
         cache.AddChain(this);
     }
 
-    public TEntity GetOne(TInverseKey key)
+    public TEntity? GetOne(TInverseKey key)
     {
         if (_cache == null || !_dict.TryGetInverse(key, out var results))
             return null;
 
-        return results.Count == 0 ? null : _cache.Get(results.FirstOrDefault());
+        return results is { Count: > 0 } ? _cache.Get(results.First()) : null;
     }
 
     public List<TEntity> GetMultiple(TInverseKey key)
@@ -152,7 +154,7 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
         if (_cache == null || !_dict.TryGetInverse(key, out var results))
             return _emptyList;
 
-        return results.Select(a => _cache.Get(a)).ToList();
+        return results.Select(a => _cache.Get(a)!).ToList();
     }
 
     void IPocoCacheObserver<TKey, TEntity>.Update(TKey key, TEntity obj)
@@ -171,7 +173,9 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
     }
 }
 
-public class BiDictionaryManyToMany<TKey, TInverseKey>
+#pragma warning disable CS8714
+
+public class BiDictionaryManyToMany<TKey, TInverseKey> where TKey : notnull
 {
     private readonly Dictionary<TKey, HashSet<TInverseKey>> _direct = [];
 
@@ -181,11 +185,9 @@ public class BiDictionaryManyToMany<TKey, TInverseKey>
 
     private HashSet<TKey> _inverseNullValueSet;
 
-    public BiDictionaryManyToMany() { }
-
     public BiDictionaryManyToMany(Dictionary<TKey, HashSet<TInverseKey>> input)
     {
-        _valueIsNullable = Nullable.GetUnderlyingType(typeof(TInverseKey)) is not null;
+        _valueIsNullable = Nullable.GetUnderlyingType(typeof(TInverseKey)) is not null || typeof(string).IsAssignableFrom(typeof(TInverseKey));
         _direct = input;
         _inverse = [];
         if (_valueIsNullable)
@@ -196,7 +198,7 @@ public class BiDictionaryManyToMany<TKey, TInverseKey>
                 .Select(a => a.Key)
                 .ToHashSet();
             _inverse = input
-                .Where(a => a.Value.Any(b => b is null))
+                .Where(a => !a.Value.Any(b => b is null))
                 .SelectMany(a => a.Value.WhereNotNull().Select(b => (b, a.Key)))
                 .GroupBy(a => a.b)
                 .ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
@@ -265,10 +267,10 @@ public class BiDictionaryManyToMany<TKey, TInverseKey>
             ? _inverseNullValueSet is not null
             : _inverse.ContainsKey(key);
 
-    public bool TryGetValue(TKey key, out HashSet<TInverseKey> value)
+    public bool TryGetValue(TKey key, [NotNullWhen(true)] out HashSet<TInverseKey>? value)
         => _direct.TryGetValue(key, out value);
 
-    public bool TryGetInverse(TInverseKey key, out HashSet<TKey> value)
+    public bool TryGetInverse(TInverseKey key, [NotNullWhen(true)] out HashSet<TKey>? value)
         => key is null
             ? (value = _inverseNullValueSet) is not null
             : _inverse.TryGetValue(key, out value);
