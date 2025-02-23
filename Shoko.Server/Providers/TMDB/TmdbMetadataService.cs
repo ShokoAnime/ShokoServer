@@ -12,7 +12,6 @@ using Polly.Bulkhead;
 using Polly.RateLimit;
 using Polly.Retry;
 using Quartz;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Extensions;
@@ -1120,7 +1119,7 @@ public class TmdbMetadataService
         }
     }
 
-    private async Task<(bool episodesOrSeasonsUpdated, Dictionary<IEpisode, UpdateReason> updatedEpisodes, int episodeCount, int hiddenEpisodeCount)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
+    private async Task<(bool episodesOrSeasonsUpdated, Dictionary<TMDB_Episode, UpdateReason> updatedEpisodes, int episodeCount, int hiddenEpisodeCount)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
     {
         var settings = _settingsProvider.GetSettings();
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -1140,7 +1139,7 @@ public class TmdbMetadataService
         var episodesToAdd = 0;
         var episodesToSkip = new ConcurrentBag<int>();
         var episodesToSave = new ConcurrentBag<TMDB_Episode>();
-        var episodeEventsToEmit = new Dictionary<IEpisode, UpdateReason>();
+        var episodeEventsToEmit = new Dictionary<TMDB_Episode, UpdateReason>();
         var allPeopleToAddOrKeep = new ConcurrentBag<int>();
         var allPeopleToPotentiallyRemove = new ConcurrentBag<int>();
         foreach (var reducedSeason in show.Seasons)

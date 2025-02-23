@@ -11,7 +11,6 @@ using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -110,7 +109,7 @@ public class AnimeSeriesService
         return false;
     }
 
-    public async Task<(bool, Dictionary<IShokoEpisode, UpdateReason>)> CreateAnimeEpisodes(SVR_AnimeSeries series)
+    public async Task<(bool, Dictionary<SVR_AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(SVR_AnimeSeries series)
     {
         var anime = series.AniDB_Anime;
         if (anime == null)
@@ -139,7 +138,7 @@ public class AnimeSeriesService
         var one_forth = (int)Math.Round(anidbEpisodes.Count / 4D, 0, MidpointRounding.AwayFromZero);
         var one_half = (int)Math.Round(anidbEpisodes.Count / 2D, 0, MidpointRounding.AwayFromZero);
         var three_forths = (int)Math.Round(anidbEpisodes.Count * 3 / 4D, 0, MidpointRounding.AwayFromZero);
-        var episodeDict = new Dictionary<IShokoEpisode, UpdateReason>();
+        var episodeDict = new Dictionary<SVR_AnimeEpisode, UpdateReason>();
         for (var i = 0; i < anidbEpisodes.Count; i++)
         {
             if (i == one_forth)
