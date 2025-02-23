@@ -121,7 +121,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
             else
             {
                 databaseReleaseGroup.GroupID = null;
-                databaseReleaseGroup.GroupProviderID = null;
+                databaseReleaseGroup.GroupSource = null;
                 databaseReleaseGroup.GroupName = null;
                 databaseReleaseGroup.GroupShortName = null;
             }

@@ -65,7 +65,7 @@ public interface IReleaseInfo
     /// <summary>
     /// Indicates that the released file is corrupted.
     /// </summary>
-    public bool IsCorrupted { get; }
+    bool IsCorrupted { get; }
 
     /// <summary>
     /// The source of the release. What the video file was created from.
