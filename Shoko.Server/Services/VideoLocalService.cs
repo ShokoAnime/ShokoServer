@@ -138,7 +138,7 @@ public class VideoLocalService
                 await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                     {
                         c.AnimeID = xref.AnimeID;
-                        c.EpisodeType = ep.GetEpisodeTypeEnum();
+                        c.EpisodeType = ep.EpisodeTypeEnum;
                         c.EpisodeNumber = ep.EpisodeNumber;
                     }
                 );
