@@ -67,6 +67,8 @@ public class AbstractVideoReleaseService(
         _releaseInfoProviders = providers
             .DistinctBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+
+        ProvidersUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders()
