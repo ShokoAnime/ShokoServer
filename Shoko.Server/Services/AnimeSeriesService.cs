@@ -264,7 +264,7 @@ public class AnimeSeriesService
             contract.MovieDB_Movie = tmdbMovieXrefs[0].TmdbMovie?.ToClient();
         }
 
-        contract.CrossRefAniDBMAL = series.MalCrossReferences?.ToList() ?? new List<CrossRef_AniDB_MAL>();
+        contract.CrossRefAniDBMAL = series.MalCrossReferences.ToList();
         try
         {
 
