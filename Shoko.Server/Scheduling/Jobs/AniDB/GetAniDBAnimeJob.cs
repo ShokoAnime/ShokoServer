@@ -143,7 +143,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
         var seriesIsNew = series == null;
         var seriesUpdated = false;
-        var seriesEpisodeChanges = new Dictionary<IShokoEpisode, UpdateReason>();
+        var seriesEpisodeChanges = new Dictionary<SVR_AnimeEpisode, UpdateReason>();
         if (series == null && CreateSeriesEntry)
         {
             series = await CreateAnimeSeriesAndGroup(anime);
@@ -213,7 +213,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 if (animeEpisodeChanges.Count > 0)
                     videos.AddRange(
                         animeEpisodeChanges.Keys
-                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.ID))
+                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.EpisodeID))
                             .WhereNotNull()
                             .Select(a => a.VideoLocal)
                             .WhereNotNull()
@@ -222,7 +222,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 if (seriesEpisodeChanges.Count > 0)
                     videos.AddRange(
                         seriesEpisodeChanges.Keys
-                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AnidbEpisodeID))
+                            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AniDB_EpisodeID))
                             .WhereNotNull()
                             .Select(a => a.VideoLocal)
                             .WhereNotNull()
