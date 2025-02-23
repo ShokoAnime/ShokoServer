@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -11,7 +12,6 @@ using Shoko.Server.Repositories;
 
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
-using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
 
@@ -304,36 +304,36 @@ public static class ModelHelper
                     continue;
                 }
 
-                switch (File.ParseFileSource(anidbFile.Source))
+                switch (anidbFile.Source)
                 {
-                    case FileSource.Unknown:
+                    case ReleaseSource.Unknown:
                         sizes.FileSources.Unknown++;
                         break;
-                    case FileSource.Other:
+                    case ReleaseSource.Other:
                         sizes.FileSources.Other++;
                         break;
-                    case FileSource.TV:
+                    case ReleaseSource.TV:
                         sizes.FileSources.TV++;
                         break;
-                    case FileSource.DVD:
+                    case ReleaseSource.DVD:
                         sizes.FileSources.DVD++;
                         break;
-                    case FileSource.BluRay:
+                    case ReleaseSource.BluRay:
                         sizes.FileSources.BluRay++;
                         break;
-                    case FileSource.Web:
+                    case ReleaseSource.Web:
                         sizes.FileSources.Web++;
                         break;
-                    case FileSource.VHS:
+                    case ReleaseSource.VHS:
                         sizes.FileSources.VHS++;
                         break;
-                    case FileSource.VCD:
+                    case ReleaseSource.VCD:
                         sizes.FileSources.VCD++;
                         break;
-                    case FileSource.LaserDisc:
+                    case ReleaseSource.LaserDisc:
                         sizes.FileSources.LaserDisc++;
                         break;
-                    case FileSource.Camera:
+                    case ReleaseSource.Camera:
                         sizes.FileSources.Camera++;
                         break;
                 }

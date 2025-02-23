@@ -10,10 +10,11 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
-using ReleaseInfo = Shoko.Server.API.v3.Models.Common.ReleaseInfo;
+using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -21,9 +22,13 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-[Authorize]
+[Authorize("admin")]
 public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoReleaseService videoReleaseService, VideoLocalRepository videoRepository) : BaseController(settingsProvider)
 {
+    /// <summary>
+    /// Gets all release providers available, with their current enabled and priority states.
+    /// </summary>
+    /// <returns>A list of <see cref="ReleaseInfoProvider"/>.</returns>
     [HttpGet("Provider")]
     public ActionResult<List<ReleaseInfoProvider>> GetAvailableReleaseProviders()
         => videoReleaseService.GetAvailableProviders()
@@ -36,9 +41,14 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         })
         .ToList();
 
-    [Authorize("admin")]
+    /// <summary>
+    /// Update the enabled state and/or priority of one or more release providers in the same request. 
+    /// </summary>
+    /// <param name="body">The providers to update.</param>
+    /// <returns></returns>
+    [ProducesResponseType(200)]
     [HttpPost("Provider")]
-    public ActionResult UpdateMultipleReleaseProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<ReleaseInfoProviderUpdateMultipleBody> body)
+    public ActionResult UpdateMultipleReleaseProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<ReleaseInfoProvider.Input.UpdateMultipleProvidersBody> body)
     {
         var providers = videoReleaseService.GetAvailableProviders().ToDictionary(p => p.Provider.Name);
         var changedProviders = new List<ReleaseInfoProviderInfo>();
@@ -67,9 +77,14 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         if (changedProviders.Count > 0)
             videoReleaseService.UpdateProviders([.. changedProviders]);
 
-        return NoContent();
+        return Ok();
     }
 
+    /// <summary>
+    /// Gets a specific release provider, with its current enabled and priority state.
+    /// </summary>
+    /// <param name="name">The name of the release provider to get.</param>
+    /// <returns>A <see cref="ReleaseInfoProvider"/>.</returns>
     [HttpGet("Provider/{name}")]
     public ActionResult<ReleaseInfoProvider> GetReleaseProviderByName(string name)
     {
@@ -85,9 +100,16 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         };
     }
 
-    [Authorize("admin")]
+    /// <summary>
+    /// Update the enabled state and/or priority of a specific release provider.
+    /// </summary>
+    /// <param name="name">The name of the release provider to update.</param>
+    /// <param name="body">The provider to update.</param>
+    /// <returns>The updated <see cref="ReleaseInfoProvider"/>.</returns>
+    [ProducesResponseType(404)]
+    [ProducesResponseType(200)]
     [HttpPut("Provider/{name}")]
-    public ActionResult UpdateReleaseProviderByName([FromRoute] string name, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ReleaseInfoProviderUpdateSingleBody body)
+    public ActionResult<ReleaseInfoProvider> UpdateReleaseProviderByName([FromRoute] string name, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ReleaseInfoProvider.Input.UpdateSingleProviderBody body)
     {
         if (videoReleaseService.GetAvailableProviders().FirstOrDefault(p => p.Provider.Name == name) is not { } provider)
             return NotFound($"Release Provider '{name}' not found!");
@@ -108,10 +130,15 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         if (changed)
             videoReleaseService.UpdateProviders(provider);
 
-        return Ok();
+        return GetReleaseProviderByName(name);
     }
 
-    [Authorize("admin")]
+    /// <summary>
+    /// Preview a release by ID at a specific release provider by name.
+    /// </summary>
+    /// <param name="name">The name of the release provider to preview the release for.</param>
+    /// <param name="id">The ID of the release to preview.</param>
+    /// <returns></returns>
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
@@ -127,7 +154,14 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         return new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, provider.Name));
     }
 
-    [Authorize("admin")]
+    /// <summary>
+    /// Preview a release by file ID or ED2K hash at a specific release provider by name.
+    /// </summary>
+    /// <param name="name">The name of the release provider to preview the release for.</param>
+    /// <param name="fileID">The ID of the file to preview.</param>
+    /// <param name="ed2k">The ED2K hash of the file to preview.</param>
+    /// <param name="fileSize">The size of the file to preview.</param>
+    /// <returns>The previewed release.</returns>
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
@@ -174,6 +208,11 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         return Ok(new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, provider.Name)));
     }
 
+    /// <summary>
+    /// Get the <see cref="ReleaseInfo"/> for a file using the <paramref name="fileID"/>
+    /// </summary>
+    /// <param name="fileID">File ID</param>
+    /// <returns>The current <see cref="ReleaseInfo"/> for the <paramref name="fileID"/>, or a 204 response if none is available.</returns>
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
@@ -189,9 +228,13 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         return new ReleaseInfo(releaseInfo);
     }
 
-    [Authorize("admin")]
+    /// <summary>
+    /// Remove the current <see cref="ReleaseInfo"/> for a file using the <paramref name="fileID"/>.
+    /// </summary>
+    /// <param name="fileID"></param>
+    /// <returns></returns>
     [ProducesResponseType(404)]
-    [ProducesResponseType(204)]
+    [ProducesResponseType(200)]
     [HttpDelete("File/{fileID}")]
     public async Task<ActionResult> RemoveReleaseInfoByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
@@ -200,10 +243,15 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
 
         await videoReleaseService.ClearReleaseForVideo(video);
 
-        return NoContent();
+        return Ok();
     }
 
-    [Authorize("admin")]
+    /// <summary>
+    /// Save a <see cref="ReleaseInfo"/> for a file using the <paramref name="fileID"/>.
+    /// </summary>
+    /// <param name="fileID">File ID.</param>
+    /// <param name="body">The <see cref="ReleaseInfo"/> to save.</param>
+    /// <returns>The newly saved <see cref="ReleaseInfo"/>.</returns>
     [ProducesResponseType(404)]
     [ProducesResponseType(201)]
     [HttpPost("File/{fileID}")]
@@ -212,15 +260,16 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         if (videoRepository.GetByID(fileID) is not { } video)
             return NotFound("File not found!");
 
-        var releaseInfo = new ReleaseInfoWithProvider("User");
-        // TODO: Copy properties from body to releaseInfo
-
-        var r = await videoReleaseService.SaveReleaseForVideo(video, releaseInfo);
+        var r = await videoReleaseService.SaveReleaseForVideo(video, body);
 
         return Created(Url.Action(nameof(GetReleaseInfoByFileID), new { fileID = video.VideoLocalID }), new ReleaseInfo(r));
     }
 
-    [Authorize("admin")]
+    /// <summary>
+    /// Preview an automatic search for a <see cref="ReleaseInfo"/> for a file, disregarding any existing info, using the <paramref name="fileID"/>.
+    /// </summary>
+    /// <param name="fileID">File ID</param>
+    /// <returns>The current automatic <see cref="ReleaseInfo"/> for the <paramref name="fileID"/>, or a 204 response if none is available.</returns>
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
@@ -237,31 +286,3 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     }
 }
 
-public class ReleaseInfoProvider
-{
-    public required string Name { get; set; }
-
-    public required Version Version { get; set; }
-
-    public required bool IsEnabled { get; set; }
-
-    public required int Priority { get; set; }
-}
-
-public class ReleaseInfoProviderUpdateMultipleBody
-{
-    public required string Name { get; set; }
-
-    public required bool? IsEnabled { get; set; }
-
-    public required int? Priority { get; set; }
-}
-
-public class ReleaseInfoProviderUpdateSingleBody
-{
-    public required string Name { get; set; }
-
-    public required bool? IsEnabled { get; set; }
-
-    public required int? Priority { get; set; }
-}
