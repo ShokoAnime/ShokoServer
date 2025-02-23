@@ -983,7 +983,10 @@ public class FileController : BaseController
                 var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
                 if (episode == null)
                     ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find shoko episode with id {episodeID}");
-                return episode;
+                var anidbEpisode = episode.AniDB_Episode;
+                if (anidbEpisode == null)
+                    ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find anidb episode for shoko episode with id {episodeID}");
+                return anidbEpisode;
             })
             .Where(episode => episode != null)
             .ToList();
@@ -995,8 +998,8 @@ public class FileController : BaseController
             CrossReferences = episodeList
                 .Select(episode => new AbstractReleaseVideoCrossReference()
                 {
-                    AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
-                    AnidbEpisodeID = episode.AniDB_EpisodeID,
+                    AnidbAnimeID = episode.AnimeID,
+                    AnidbEpisodeID = episode.EpisodeID,
                 })
                 .ToList(),
         });
@@ -1054,7 +1057,7 @@ public class FileController : BaseController
             return ValidationProblem(ModelState);
 
         // Validate the episodes.
-        var episodeList = new List<SVR_AnimeEpisode>();
+        var episodeList = new List<SVR_AniDB_Episode>();
         for (var episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
@@ -1071,7 +1074,7 @@ public class FileController : BaseController
                 continue;
             }
 
-            episodeList.Add(episode);
+            episodeList.Add(anidbEpisode);
         }
 
         if (!ModelState.IsValid)
@@ -1082,8 +1085,8 @@ public class FileController : BaseController
             CrossReferences = episodeList
                 .Select(episode => new AbstractReleaseVideoCrossReference()
                 {
-                    AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
-                    AnidbEpisodeID = episode.AniDB_EpisodeID,
+                    AnidbAnimeID = episode.AnimeID,
+                    AnidbEpisodeID = episode.EpisodeID,
                 })
                 .ToList(),
         });
@@ -1184,7 +1187,7 @@ public class FileController : BaseController
         // Validate the episodes.
         var singleEpisode = body.SingleEpisode;
         var episodeNumber = rangeStart;
-        var episodeList = new List<(SVR_VideoLocal, SVR_AnimeEpisode)>();
+        var episodeList = new List<(SVR_VideoLocal, SVR_AniDB_Episode)>();
         foreach (var file in files)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
@@ -1201,7 +1204,7 @@ public class FileController : BaseController
                 continue;
             }
 
-            episodeList.Add((file, episode));
+            episodeList.Add((file, anidbEpisode));
         }
 
         if (!ModelState.IsValid)
@@ -1225,8 +1228,8 @@ public class FileController : BaseController
                     CrossReferences = [
                         new()
                         {
-                            AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
-                            AnidbEpisodeID = episode.AniDB_EpisodeID,
+                            AnidbAnimeID = episode.AnimeID,
+                            AnidbEpisodeID = episode.EpisodeID,
                             PercentageStart = percentageStart,
                             PercentageEnd = percentageEnd,
                         },
@@ -1245,8 +1248,8 @@ public class FileController : BaseController
                 CrossReferences = [
                     new()
                     {
-                        AnidbAnimeID = episode.AnimeSeries.AniDB_ID,
-                        AnidbEpisodeID = episode.AniDB_EpisodeID,
+                        AnidbAnimeID = episode.AnimeID,
+                        AnidbEpisodeID = episode.EpisodeID,
                     },
                 ],
             });
