@@ -11,7 +11,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Constants = Shoko.Server.Server.Constants;
