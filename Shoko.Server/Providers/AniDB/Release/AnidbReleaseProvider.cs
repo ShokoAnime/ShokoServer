@@ -40,7 +40,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         if (string.IsNullOrEmpty(releaseId))
             return null;
 
-        var (hash, fileSize) = releaseId.Split('-');
+        var (hash, fileSize) = releaseId.Split('+');
         if (string.IsNullOrEmpty(hash) || hash.Length != 32 || !long.TryParse(fileSize, out var size))
             return null;
 
@@ -148,5 +148,5 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
     }
 
     public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
-        => GetReleaseInfoById($"{video.Hashes.ED2K}-{video.Size}", cancellationToken);
+        => GetReleaseInfoById($"{video.Hashes.ED2K}+{video.Size}", cancellationToken);
 }
