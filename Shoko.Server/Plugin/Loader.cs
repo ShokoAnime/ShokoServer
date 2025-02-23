@@ -6,6 +6,8 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Release;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -15,11 +17,12 @@ namespace Shoko.Server.Plugin;
 
 public static class Loader
 {
-    private static readonly IList<Type> _pluginTypes = new List<Type>();
+    private static readonly List<Type> _exportedTypes = new List<Type>();
+    private static readonly List<Type> _pluginTypes = new List<Type>();
     private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
     private static IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
 
-    internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection, out IReadOnlyList<Type> exportedTypes)
+    internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection)
     {
         // add plugin api related things to service collection
         var assemblies = new List<Assembly>();
@@ -60,7 +63,7 @@ public static class Loader
             }
         }
 
-        LoadPlugins(assemblies, serviceCollection, out exportedTypes);
+        LoadPlugins(assemblies, serviceCollection);
 
         return serviceCollection;
     }
@@ -98,9 +101,8 @@ public static class Loader
         return options;
     }
 
-    private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection, out IReadOnlyList<Type> exportedTypes)
+    private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
     {
-        var outList = new List<Type>();
         s_logger.Trace("Scanning for IPlugin and IPluginServiceRegistration implementations");
         foreach (var assembly in assemblies)
         {
@@ -163,9 +165,8 @@ public static class Loader
             var exportedTypeList = assembly.GetExportedTypes();
             foreach (var type in exportedTypeList)
                 if (type.IsClass && !type.IsAbstract && !type.IsInterface && !type.IsGenericType)
-                    outList.Add(type);
+                    _exportedTypes.Add(type);
         }
-        exportedTypes = outList;
     }
 
     internal static void InitPlugins(IServiceProvider provider)
@@ -181,9 +182,22 @@ public static class Loader
             plugin.Load();
         }
 
+        // Used to store the updated priorities for the providers in the settings file.
+        var service = provider.GetRequiredService<IVideoReleaseService>();
+        service.AddProviders(GetExports<IReleaseInfoProvider>(provider));
+        service.UpdateProviders();
+
         // When we initialized the plugins, we made entries for the Enabled State of Plugins
         Utils.SettingsProvider.SaveSettings();
     }
+
+    private static List<T> GetExports<T>(IServiceProvider serviceProvider)
+        => _exportedTypes
+            .Where(type => typeof(T).IsAssignableFrom(type))
+            .Select(t => ActivatorUtilities.CreateInstance(serviceProvider, t))
+            .WhereNotNull()
+            .Cast<T>()
+            .ToList();
 
     private static void LoadSettings(Type type, IPlugin plugin)
     {
