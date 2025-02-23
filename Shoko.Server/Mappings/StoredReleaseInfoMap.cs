@@ -25,7 +25,7 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.IsCorrupted).Not.Nullable();
         Map(x => x.Source).Not.Nullable();
         Map(x => x.GroupID);
-        Map(x => x.GroupProviderID);
+        Map(x => x.GroupSource);
         Map(x => x.GroupName);
         Map(x => x.GroupShortName);
         Map(x => x.Hashes);

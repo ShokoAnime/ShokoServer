@@ -11,11 +11,13 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public partial class File
@@ -31,7 +33,7 @@ public partial class File
     /// shown. In many cases, this will have arrays of 1 item
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<FileCrossReference> SeriesIDs { get; set; }
+    public List<FileCrossReference>? SeriesIDs { get; set; }
 
     /// <summary>
     /// The Filesize in bytes
@@ -62,7 +64,7 @@ public partial class File
     /// <summary>
     /// Try to fit this file's resolution to something like 1080p, 480p, etc
     /// </summary>
-    public string Resolution { get; set; }
+    public string? Resolution { get; set; }
 
     /// <summary>
     /// The duration of the file.
@@ -108,32 +110,30 @@ public partial class File
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Updated { get; set; }
 
-    public File() { }
-
     /// <summary>
     /// The <see cref="File.Release"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public ReleaseInfo Release { get; set; }
+    public ReleaseInfo? Release { get; set; }
 
     /// <summary>
     /// The <see cref="MediaInfo"/>, if to-be included in the response data.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public MediaInfo MediaInfo { get; set; }
+    public MediaInfo? MediaInfo { get; set; }
 
     public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
         this(RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths)
     { }
 
-    public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    public File(SVR_VideoLocal_User? userRecord, SVR_VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
         var mediaInfo = file.MediaInfo as IMediaInfo;
         ID = file.VideoLocalID;
         Size = file.FileSize;
         IsVariation = file.IsVariation;
-        Hashes = new() { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
+        Hashes = new(file);
         Resolution = mediaInfo?.VideoStream?.Resolution;
         Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
@@ -154,7 +154,6 @@ public partial class File
             MediaInfo = new MediaInfo(file, mediaInfo);
     }
 
-#nullable enable
     /// <summary>
     /// Represents a file location.
     /// </summary>
@@ -245,32 +244,39 @@ public partial class File
     /// <summary>
     /// Stores all of the hashes for the file.
     /// </summary>
-    public class HashesDict
+    public class HashesDict(IHashes hashes) : IHashes
     {
         /// <summary>
         /// ED2K is AniDB's base hash.
         /// </summary>
-        public required string ED2K { get; set; }
+        public string ED2K { get; set; } = hashes.ED2K;
 
         /// <summary>
         /// SHA1 is not used internally, but it is effortless to calculate with
         /// the others.
         /// </summary>
-        public string? SHA1 { get; set; }
+        public string? SHA1 { get; set; } = hashes.SHA1;
 
         /// <summary>
         /// CRC. It's got plenty of uses, but the big one is checking for file
         /// corruption.
         /// </summary>
-        public string? CRC32 { get; set; }
+        public string? CRC32 { get; set; } = hashes.CRC;
 
         /// <summary>
         /// MD5 might be useful for clients, but it's not used internally.
         /// </summary>
-        public string? MD5 { get; set; }
+        public string? MD5 { get; set; } = hashes.MD5;
+
+        #region IHashes implementation
+
+        string? IHashes.CRC => CRC32;
+
+        string? IHashes.this[HashAlgorithmName algorithm] => null;
+
+        #endregion
     }
 
-#nullable disable
     /// <summary>
     /// User stats for the file.
     /// </summary>
@@ -292,10 +298,10 @@ public partial class File
             LastUpdatedAt = userStats.LastUpdated.ToUniversalTime();
         }
 
-        public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal file = null)
+        public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal? file = null)
         {
             // Get the file associated with the user entry.
-            file ??= existing.VideoLocal;
+            file ??= existing.VideoLocal!;
 
             var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
             userDataService.SaveVideoUserData(existing.User, file, new()
@@ -349,7 +355,7 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] EpisodeIDs { get; set; }
+            public int[] EpisodeIDs { get; set; } = [];
         }
 
         /// <summary>
@@ -362,7 +368,7 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] FileIDs { get; set; }
+            public int[] FileIDs { get; set; } = [];
 
             /// <summary>
             /// The episode identifier.
@@ -389,14 +395,14 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public string RangeStart { get; set; }
+            public string RangeStart { get; set; } = string.Empty;
 
             /// <summary>
             /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="RangeStart"/>.
             /// </summary>
             /// <value></value>
             [Required]
-            public string RangeEnd { get; set; }
+            public string RangeEnd { get; set; } = string.Empty;
         }
 
         /// <summary>
@@ -409,7 +415,7 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] FileIDs { get; set; }
+            public int[] FileIDs { get; set; } = [];
 
             /// <summary>
             /// The series identifier.
@@ -423,7 +429,7 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public string RangeStart { get; set; }
+            public string RangeStart { get; set; } = string.Empty;
 
             /// <summary>
             /// If true then files will be linked to a single episode instead of a range spanning the amount of files to add.
@@ -443,7 +449,7 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] fileIDs { get; set; }
+            public int[] fileIDs { get; set; } = [];
         }
 
         public class BatchDeleteFilesBody
@@ -453,7 +459,7 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] fileIDs { get; set; }
+            public int[] fileIDs { get; set; } = [];
 
             /// <summary>
             /// Remove all physical file locations and not just the file record.
@@ -517,7 +523,7 @@ public partial class File
         FileID = 16,
     }
 
-    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place Location, IReadOnlyList<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User UserRecord), object> GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place? Location, IReadOnlyList<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
         criteria switch
         {
             FileSortCriteria.ImportFolderName => (tuple) => tuple.Location?.ImportFolder?.ImportFolderName ?? string.Empty,
@@ -539,7 +545,7 @@ public partial class File
             _ => null,
         };
 
-    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> enumerable, List<string> sortCriterias)
+    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User?)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User?)> enumerable, List<string> sortCriterias)
     {
         var first = true;
         return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
@@ -557,8 +563,8 @@ public partial class File
                 return isInverted ? enumerable.OrderByDescending(orderFunc) : enumerable.OrderBy(orderFunc);
             }
 
-            // All other criterias in the list.
-            var ordered = current as IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User)>;
+            // All other criteria in the list.
+            var ordered = (IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User?)>)current;
             return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
         });
     }
@@ -578,20 +584,6 @@ public partial class File
         return (sortCriteria, isInverted);
     }
 
-    public static FileSource ParseFileSource(ReleaseSource? source)
-        => source switch
-        {
-            ReleaseSource.TV => FileSource.TV,
-            ReleaseSource.DVD => FileSource.DVD,
-            ReleaseSource.BluRay => FileSource.BluRay,
-            ReleaseSource.Web => FileSource.Web,
-            ReleaseSource.VHS => FileSource.VHS,
-            ReleaseSource.VCD => FileSource.VCD,
-            ReleaseSource.LaserDisc => FileSource.LaserDisc,
-            ReleaseSource.Camera => FileSource.Camera,
-            ReleaseSource.Other => FileSource.Other,
-            _ => FileSource.Unknown,
-        };
 
     /// <summary>
     /// AVDump info for the file.
@@ -601,7 +593,7 @@ public partial class File
         /// <summary>
         /// Indicates if an AVDump session is queued or running.
         /// </summary>
-        public string Status { get; set; }
+        public string? Status { get; set; }
 
         /// <summary>
         /// The current progress if an AVDump session is running.
@@ -644,7 +636,7 @@ public partial class File
         /// The version of the AVDump component from the last time we did a
         /// successful AVDump.
         /// </summary>
-        public string LastVersion { get; set; }
+        public string? LastVersion { get; set; }
 
         public AVDumpInfo(SVR_VideoLocal video)
         {
@@ -662,19 +654,4 @@ public partial class File
             LastVersion = video.LastAVDumpVersion;
         }
     }
-}
-
-[JsonConverter(typeof(StringEnumConverter))]
-public enum FileSource
-{
-    Unknown = 0,
-    Other = 1,
-    TV = 2,
-    DVD = 3,
-    BluRay = 4,
-    Web = 5,
-    VHS = 6,
-    VCD = 7,
-    LaserDisc = 8,
-    Camera = 9
 }
