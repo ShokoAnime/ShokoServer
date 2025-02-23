@@ -28,12 +28,12 @@ public class TMDB_Image_EntityRepository(DatabaseFactory databaseFactory) : Base
 
     public override void PopulateIndexes()
     {
-        _byImageType = new(Cache, a => a.ImageType);
-        _byEntityType = new(Cache, a => a.TmdbEntityType);
-        _byEntityTypeAndEntityID = new(Cache, a => (a.TmdbEntityType, a.TmdbEntityID));
-        _byEntityTypeAndImageTypeAndEntityID = new(Cache, a => (a.TmdbEntityType, a.ImageType, a.TmdbEntityID));
-        _byEntityTypeAndImageTypeAndEntityIDAndRemoteFileName = new(Cache, a => (a.TmdbEntityType, a.ImageType, a.TmdbEntityID, a.RemoteFileName));
-        _tmdbRemoteFileNames = new(Cache, a => a.RemoteFileName);
+        _byImageType = Cache.CreateIndex(a => a.ImageType);
+        _byEntityType = Cache.CreateIndex(a => a.TmdbEntityType);
+        _byEntityTypeAndEntityID = Cache.CreateIndex(a => (a.TmdbEntityType, a.TmdbEntityID));
+        _byEntityTypeAndImageTypeAndEntityID = Cache.CreateIndex(a => (a.TmdbEntityType, a.ImageType, a.TmdbEntityID));
+        _byEntityTypeAndImageTypeAndEntityIDAndRemoteFileName = Cache.CreateIndex(a => (a.TmdbEntityType, a.ImageType, a.TmdbEntityID, a.RemoteFileName));
+        _tmdbRemoteFileNames = Cache.CreateIndex(a => a.RemoteFileName);
     }
 
     public IReadOnlyList<TMDB_Image_Entity> GetByTmdbMovieID(int? movieId)
