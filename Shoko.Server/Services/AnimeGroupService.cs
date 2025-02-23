@@ -630,7 +630,7 @@ public class AnimeGroupService
         contract.Stat_AllTags = animeGroup.Tags.Select(a => a.TagName.Trim()).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllCustomTags = animeGroup.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllTitles = animeGroup.Titles.Select(a => a.Title).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        contract.Stat_AnimeTypes = allSeriesForGroup.Select(a => a.AniDB_Anime.GetAnimeTypeName()).WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_AnimeTypes = allSeriesForGroup.Select(a => a.AniDB_Anime.AnimeTypeEnum.ToString().Replace('_', ' ')).WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllVideoQuality = allVidQualByGroup;
         contract.Stat_IsComplete = isComplete;
         contract.Stat_HasFinishedAiring = hasFinishedAiring;

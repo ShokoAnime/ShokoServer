@@ -53,7 +53,7 @@ public class Scanner : INotifyPropertyChangedExt
     public void Init()
     {
         MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
-        var runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
+        var runscan = Scans.FirstOrDefault(a => (ScanStatus)a.Status == ScanStatus.Running);
         if (runscan != null)
         {
             ActiveScan = runscan;
@@ -111,12 +111,19 @@ public class Scanner : INotifyPropertyChangedExt
         }
     }
 
-    public bool Finished => (ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Finish) ||
+    public bool Finished => (ActiveScan != null && (ScanStatus)ActiveScan.Status == ScanStatus.Finish) ||
                             ActiveScan == null;
 
-    public string QueueState => ActiveScan != null ? ActiveScan.GetStatusText() : string.Empty;
-    public bool QueuePaused => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Standby;
-    public bool QueueRunning => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Running;
+    public string QueueState => ActiveScan != null
+        ? (ScanStatus)ActiveScan.Status switch
+        {
+            ScanStatus.Finish => "Finished",
+            ScanStatus.Running => "Running",
+            _ => "Standby",
+        }
+        : string.Empty;
+    public bool QueuePaused => ActiveScan != null && (ScanStatus)ActiveScan.Status == ScanStatus.Standby;
+    public bool QueueRunning => ActiveScan != null && (ScanStatus)ActiveScan.Status == ScanStatus.Running;
     public bool Exists => ActiveScan != null;
     private SVR_Scan activeScan;
 
@@ -205,7 +212,7 @@ public class Scanner : INotifyPropertyChangedExt
 
     private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
     {
-        if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
+        if (RunScan != null && (ScanStatus)RunScan.Status != ScanStatus.Finish)
         {
             var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
             scheduler.PauseAll();
@@ -273,7 +280,7 @@ public class Scanner : INotifyPropertyChangedExt
                 }
             }
 
-            if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
+            if (files.Any(a => a.Status == (int)ScanFileStatus.Waiting))
             {
                 s.Status = (int)ScanStatus.Standby;
             }

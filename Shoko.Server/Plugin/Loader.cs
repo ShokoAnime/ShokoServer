@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -183,8 +182,8 @@ public static class Loader
     {
         var (name, t) = type.Assembly.GetTypes()
             .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-            .DistinctBy(a => a.GetAssemblyName())
-            .Select(a => (a.GetAssemblyName() + ".json", a)).FirstOrDefault();
+            .DistinctBy(a => a.Assembly.GetName().Name)
+            .Select(a => (a.Assembly.GetName().Name + ".json", a)).FirstOrDefault();
         if (string.IsNullOrEmpty(name) || name == ".json") return;
 
         try
@@ -209,7 +208,7 @@ public static class Loader
 
     public static void SaveSettings(IPluginSettings settings)
     {
-        var name = settings.GetType().GetAssemblyName() + ".json";
+        var name = settings.GetType().Assembly.GetName().Name + ".json";
         if (string.IsNullOrEmpty(name) || name == ".json") return;
 
         try

@@ -55,17 +55,20 @@ namespace Shoko.Commons.Extensions
         [return: NotNullIfNotNull(nameof(enumerable))]
         public static IEnumerable<T>? WhereNotDefault<T>(this IEnumerable<T?>? enumerable) => enumerable?.Where(a => a != null && !Equals(a, default(T))).Select(a => a!);
 
-        public static string ToRanges(this List<int> ints) {
+        public static string ToRanges(this List<int> ints)
+        {
             if (ints.Count < 1) return "";
             if (ints.Count == 1) return ints[0].ToString();
             ints.Sort();
             var lng = ints.Count;
             var fromnums = new List<int>();
             var tonums = new List<int>();
-            for (var i = 0; i < lng - 1; i++) {
+            for (var i = 0; i < lng - 1; i++)
+            {
                 if (i == 0)
                     fromnums.Add(ints[0]);
-                if (ints[i + 1] > ints[i] + 1) {
+                if (ints[i + 1] > ints[i] + 1)
+                {
                     tonums.Add(ints[i]);
                     fromnums.Add(ints[i + 1]);
                 }
@@ -145,7 +148,7 @@ namespace Shoko.Commons.Extensions
             else if (source.GetType().IsAssignableFrom(typeof(IList<TSource>)))
             {
                 // It's to be tested, but I'm fairly certain that this is faster for Lists, and we use Lists a lot
-                var lSource = (IList<TSource>) source; 
+                var lSource = (IList<TSource>)source;
                 for (var i = 0; i < lSource.Count; i++)
                 {
                     var item = lSource[i];
@@ -206,7 +209,5 @@ namespace Shoko.Commons.Extensions
                 .SelectMany(t => list.Where(e => !t.Contains(e)),
                     (t1, t2) => t1.Concat(new[] { t2 }));
         }
-
-        public static string? GetAssemblyName(this Type type) => type.Assembly.GetName().Name;
     }
 }

@@ -85,7 +85,7 @@ public class DashboardController : BaseController
             // normal episodes.
             var totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
             var count = episodeDict[series]
-                .Count(episode => episode.AniDB_Episode.GetEpisodeTypeEnum() == EpisodeType.Episode &&
+                .Count(episode => episode.AniDB_Episode.EpisodeTypeEnum == EpisodeType.Episode &&
                                   episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null);
             return count >= totalWatchableNormalEpisodes;
         });

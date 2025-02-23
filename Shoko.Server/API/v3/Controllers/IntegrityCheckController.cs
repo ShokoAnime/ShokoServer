@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
@@ -31,7 +30,8 @@ public class IntegrityCheckController : BaseController
         if (scan.ScanID == 0)
             RepoFactory.Scan.Save(scan);
 
-        var files = scan.GetImportFolderList()
+        var files = scan.ImportFolders.Split(',')
+            .Select(int.Parse)
             .SelectMany(RepoFactory.VideoLocalPlace.GetByImportFolder)
             .Select(p => new { p, v = p.VideoLocal })
             .Select(t => new ScanFile
@@ -49,7 +49,9 @@ public class IntegrityCheckController : BaseController
         return new IntegrityCheck()
         {
             ID = scan.ScanID,
-            ImportFolderIDs = scan.GetImportFolderList(),
+            ImportFolderIDs = scan.ImportFolders.Split(',')
+                .Select(int.Parse)
+                .ToList(),
             Status = scan.Status,
             CreatedAt = scan.CreationTIme,
         };

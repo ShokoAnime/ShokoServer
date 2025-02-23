@@ -596,7 +596,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
                 var summary = new Metro_Anime_Summary
                 {
-                    AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds(),
+                    AirDateAsSeconds = AniDB.GetAniDBDateAsSeconds(anidb_anime.AirDate),
                     AnimeID = anidb_anime.AnimeID
                 };
                 if (ser is not null)
@@ -656,7 +656,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 var imgDet = anidb_anime.PreferredOrDefaultPoster;
                 var summary = new Metro_Anime_Summary
                 {
-                    AirDateAsSeconds = anidb_anime.GetAirDateAsSeconds(),
+                    AirDateAsSeconds = AniDB.GetAniDBDateAsSeconds(anidb_anime.AirDate),
                     AnimeID = anidb_anime.AnimeID,
                     AnimeName = ser.PreferredTitle,
                     AnimeSeriesID = ser.AnimeSeriesID,
@@ -834,7 +834,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
                                 contract.EpisodeType = anidbEpisode.EpisodeType;
                                 contract.LengthSeconds = anidbEpisode.LengthSeconds;
-                                contract.AirDate = anidbEpisode.GetAirDateFormatted();
+                                contract.AirDate = AniDB.GetAniDBDate(anidbEpisode.AirDate);
 
                                 ret.NextEpisodesToWatch.Add(contract);
                                 cnt++;

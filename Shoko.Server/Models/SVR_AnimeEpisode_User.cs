@@ -19,6 +19,8 @@ public class SVR_AnimeEpisode_User : AnimeEpisode_User
         WatchedDate = null;
     }
 
+    public bool IsWatched => WatchedCount > 0;
+
     public SVR_AnimeEpisode? AnimeEpisode
         => RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
 }

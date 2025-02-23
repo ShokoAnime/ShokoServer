@@ -607,7 +607,7 @@ public class TraktTVHelper
             #region normal episodes
 
             // now do stuff to improve performance
-            if (ep.GetEpisodeTypeEnum() == EpisodeType.Episode)
+            if (ep.EpisodeTypeEnum == EpisodeType.Episode)
             {
                 if (traktSummary.CrossRefTraktV2 != null &&
                     traktSummary.CrossRefTraktV2.Count > 0)
@@ -683,7 +683,7 @@ public class TraktTVHelper
 
             #region special episodes
 
-            if (ep.GetEpisodeTypeEnum() == EpisodeType.Special)
+            if (ep.EpisodeTypeEnum == EpisodeType.Special)
             {
                 // find the xref that is right
                 // relies on the xrefs being sorted by season number and then episode number (desc)

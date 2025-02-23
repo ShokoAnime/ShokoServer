@@ -347,7 +347,7 @@ public static class FilterExtensions
                 var vls = ep.VideoLocals;
                 if (vls.Count == 0 || vls.All(vl => vl.IsIgnored)) continue;
 
-                var isWatched = ep.GetUserRecord(userID)?.IsWatched() ?? false;
+                var isWatched = ep.GetUserRecord(userID)?.IsWatched ?? false;
                 if (isWatched == getWatched)
                     count++;
             }

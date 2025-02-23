@@ -293,7 +293,7 @@ GROUP BY
 
     public IReadOnlyList<SVR_AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
         => RepoFactory.AnimeEpisode_User.GetByUserID(userid)
-            .Where(a => a.IsWatched() && a.WatchedDate > after_date).OrderBy(a => a.WatchedDate)
+            .Where(a => a.IsWatched && a.WatchedDate > after_date).OrderBy(a => a.WatchedDate)
             .Select(a => a.AnimeEpisode)
             .WhereNotNull()
             .ToList();

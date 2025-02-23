@@ -16,7 +16,8 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+using AnimeTypeEnum = Shoko.Models.Enums.AnimeType;
+using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 
 #nullable enable
@@ -34,7 +35,20 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
         set => Restricted = value ? 1 : 0;
     }
 
-    public AnimeType AbstractAnimeType => (AnimeType)AnimeType;
+    public AnimeTypeEnum AnimeTypeEnum => (AnimeTypeEnum)AnimeType;
+
+    public AbstractAnimeType AbstractAnimeType => (AbstractAnimeType)AnimeType;
+
+    public string? RawAnimeType => AnimeTypeEnum switch
+    {
+        AnimeTypeEnum.Movie => "movie",
+        AnimeTypeEnum.OVA => "ova",
+        AnimeTypeEnum.TVSeries => "tv series",
+        AnimeTypeEnum.TVSpecial => "tv special",
+        AnimeTypeEnum.Web => "web",
+        AnimeTypeEnum.Other => "other",
+        _ => null,
+    };
 
     [XmlIgnore]
     public AniDB_Vote? UserVote
@@ -453,7 +467,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #region ISeries Implementation
 
-    AnimeType ISeries.Type => AbstractAnimeType;
+    AbstractAnimeType ISeries.Type => AbstractAnimeType;
 
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series.AnimeSeriesID] : [];
 

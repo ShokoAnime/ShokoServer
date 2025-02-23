@@ -1376,7 +1376,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return relGroups;
             }
 
-            if (aniEp.GetEpisodeTypeEnum() != EpisodeType.Episode)
+            if (aniEp.EpisodeTypeEnum != EpisodeType.Episode)
             {
                 return relGroups;
             }

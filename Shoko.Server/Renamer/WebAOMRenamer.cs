@@ -631,7 +631,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 test = test.Substring(1, test.Length - 1);
             }
 
-            var hasType = !string.IsNullOrEmpty(anime.GetAnimeTypeRAW());
+            var hasType = !string.IsNullOrEmpty(anime.RawAnimeType);
             if (
                 test.Trim()
                     .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
@@ -641,7 +641,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             }
 
 
-            if (test.Trim().Equals(anime.GetAnimeTypeRAW(), StringComparison.InvariantCultureIgnoreCase))
+            if (test.Trim().Equals(anime.RawAnimeType, StringComparison.InvariantCultureIgnoreCase))
             {
                 return !notCondition;
             }
@@ -763,7 +763,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             }
 
             var epType = string.Empty;
-            switch (episodes[0].GetEpisodeTypeEnum())
+            switch (episodes[0].EpisodeTypeEnum)
             {
                 case EpisodeType.Episode:
                     epType = "E";
@@ -1584,32 +1584,32 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             var prefix = string.Empty;
             int epCount;
 
-            if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Credits)
+            if (episodes[0].EpisodeTypeEnum == EpisodeType.Credits)
             {
                 prefix = "C";
             }
 
-            if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Other)
+            if (episodes[0].EpisodeTypeEnum == EpisodeType.Other)
             {
                 prefix = "O";
             }
 
-            if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Parody)
+            if (episodes[0].EpisodeTypeEnum == EpisodeType.Parody)
             {
                 prefix = "P";
             }
 
-            if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Special)
+            if (episodes[0].EpisodeTypeEnum == EpisodeType.Special)
             {
                 prefix = "S";
             }
 
-            if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Trailer)
+            if (episodes[0].EpisodeTypeEnum == EpisodeType.Trailer)
             {
                 prefix = "T";
             }
 
-            switch (episodes[0].GetEpisodeTypeEnum())
+            switch (episodes[0].EpisodeTypeEnum)
             {
                 case EpisodeType.Episode:
                     epCount = anime.EpisodeCountNormal;
@@ -1649,7 +1649,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         {
             int epCount;
 
-            switch (episodes[0].GetEpisodeTypeEnum())
+            switch (episodes[0].EpisodeTypeEnum)
             {
                 case EpisodeType.Episode:
                     epCount = anime.EpisodeCountNormal;
@@ -1845,7 +1845,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().Contains(Constants.FileRenameTag.Type))
         {
-            newFileName = newFileName.Replace(Constants.FileRenameTag.Type, anime.GetAnimeTypeRAW());
+            newFileName = newFileName.Replace(Constants.FileRenameTag.Type, anime.RawAnimeType ?? "unknown");
         }
 
         #endregion

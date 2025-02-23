@@ -516,7 +516,7 @@ public class AnimeSeriesService
 
     private void UpdateMissingEpisodeStats(SVR_AnimeSeries series, List<SVR_AnimeEpisode> eps, string name, ref DateTime start)
     {
-        var animeType = series.AniDB_Anime?.GetAnimeTypeEnum() ?? AnimeType.TVSeries;
+        var animeType = series.AniDB_Anime?.AnimeTypeEnum ?? AnimeType.TVSeries;
 
         series.MissingEpisodeCount = 0;
         series.MissingEpisodeCountGroups = 0;

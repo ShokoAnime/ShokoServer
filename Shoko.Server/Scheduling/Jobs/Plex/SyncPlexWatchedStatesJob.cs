@@ -87,7 +87,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
 
                     if (!alreadyWatched && userRecord != null)
                     {
-                        alreadyWatched = userRecord.IsWatched();
+                        alreadyWatched = userRecord.IsWatched;
                     }
 
                     _logger.LogTrace("Already watched in shoko? {AlreadyWatched} Has been watched in plex? {IsWatched}", alreadyWatched, isWatched);

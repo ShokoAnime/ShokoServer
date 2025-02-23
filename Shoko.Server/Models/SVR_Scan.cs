@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
@@ -12,8 +11,9 @@ public class SVR_Scan : Scan
 {
     public string TitleText =>
         CreationTIme.ToString(CultureInfo.CurrentUICulture) + " (" + string.Join(" | ",
-            this.GetImportFolderList()
-                .Select(a => RepoFactory.ImportFolder.GetByID(a))
+            this.ImportFolders.Split(',')
+                .Select(int.Parse)
+                .Select(RepoFactory.ImportFolder.GetByID)
                 .Where(a => a != null)
                 .Select(a => a.ImportFolderLocation
                     .Split(

@@ -10,18 +10,13 @@ namespace Shoko.Commons.Extensions
     public static class Models
     {
         //TODO Move this to a cache Dictionary when time, memory consumption should be low but, who knows.
-        private static Dictionary<int, HashSet<string>> _alltagscache = new();
-        private static Dictionary<int, HashSet<string>> _alltitlescache = new();
-        private static Dictionary<int, HashSet<string>> _hidecategoriescache = new();
-        private static Dictionary<string, HashSet<string>> _plexuserscache = new();
+        private static readonly Dictionary<int, HashSet<string>> _alltagscache = new();
 
-        public static List<T> CastList<T>(this IEnumerable<dynamic> list) => list?.Cast<T>().ToList();
+        private static readonly Dictionary<int, HashSet<string>> _alltitlescache = new();
 
-        public static AnimeType GetAnimeTypeEnum(this AniDB_Anime anime)
-        {
-            if (anime.AnimeType > 5) return AnimeType.Other;
-            return (AnimeType) anime.AnimeType;
-        }
+        private static readonly Dictionary<int, HashSet<string>> _hidecategoriescache = new();
+
+        private static readonly Dictionary<string, HashSet<string>> _plexuserscache = new();
 
         public static bool GetFinishedAiring(this AniDB_Anime anime)
         {
@@ -72,7 +67,7 @@ namespace Shoko.Commons.Extensions
         {
             if (anime.AirDate == null) return false;
             // If it isn't a normal series, then it won't adhere to standard airing norms
-            if (anime.AnimeType != (int) AnimeType.TVSeries && anime.AnimeType != (int) AnimeType.Web) return false;
+            if (anime.AnimeType != (int)AnimeType.TVSeries && anime.AnimeType != (int)AnimeType.Web) return false;
             return IsInSeason(anime.AirDate.Value, anime.EndDate, season, year);
         }
 
@@ -130,53 +125,6 @@ namespace Shoko.Commons.Extensions
             return false;
         }
 
-        public static int GetAirDateAsSeconds(this AniDB_Anime anime) => AniDB.GetAniDBDateAsSeconds(anime.AirDate);
-
-        public static string GetAnimeTypeRAW(this AniDB_Anime anime) => ConvertToRAW((AnimeType) anime.AnimeType);
-
-        public static AnimeType RawToType(string raw)
-        {
-            switch (raw.ToLowerInvariant().Trim())
-            {
-                case "movie":
-                    return AnimeType.Movie;
-                case "ova":
-                    return AnimeType.OVA;
-                case "tv series":
-                    return AnimeType.TVSeries;
-                case "tv special":
-                    return AnimeType.TVSpecial;
-                case "web":
-                    return AnimeType.Web;
-                default:
-                    return AnimeType.Other;
-            }
-        }
-
-        public static string ConvertToRAW(AnimeType t)
-        {
-            switch (t)
-            {
-                case AnimeType.Movie:
-                    return "movie";
-                case AnimeType.OVA:
-                    return "ova";
-                case AnimeType.TVSeries:
-                    return "tv series";
-                case AnimeType.TVSpecial:
-                    return "tv special";
-                case AnimeType.Web:
-                    return "web";
-                default:
-                    return "other";
-            }
-        }
-
-        public static string GetAnimeTypeName(this AniDB_Anime anime)
-        {
-            return Enum.GetName(typeof(AnimeType), (AnimeType) anime.AnimeType).Replace('_', ' ');
-        }
-
         public static HashSet<string> GetAllTags(this AniDB_Anime anime)
         {
             if (string.IsNullOrEmpty(anime.AllTags)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
@@ -184,7 +132,7 @@ namespace Shoko.Commons.Extensions
             {
                 if (!_alltagscache.ContainsKey(anime.AnimeID))
                     _alltagscache[anime.AnimeID] = new HashSet<string>(
-                        anime.AllTags.Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
+                        anime.AllTags.Split('|', StringSplitOptions.RemoveEmptyEntries)
                                 .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
                 return _alltagscache[anime.AnimeID];
             }
@@ -204,41 +152,30 @@ namespace Shoko.Commons.Extensions
             }
         }
 
+        public static double GetApprovalPercentage(this AniDB_Anime_Similar similar)
+        {
+            if (similar.Total == 0) return 0;
+            return similar.Approval / (double)similar.Total * 100;
+        }
+
         public static decimal GetAniDBRating(this AniDB_Anime anime)
         {
             if (anime.GetAniDBTotalVotes() == 0)
                 return 0;
-            return anime.GetAniDBTotalRating() / (decimal) anime.GetAniDBTotalVotes();
+            return anime.GetAniDBTotalRating() / anime.GetAniDBTotalVotes();
         }
 
         public static decimal GetAniDBTotalRating(this AniDB_Anime anime)
         {
             decimal totalRating = 0;
-            totalRating += (decimal) anime.Rating * anime.VoteCount;
-            totalRating += (decimal) anime.TempRating * anime.TempVoteCount;
+            totalRating += (decimal)anime.Rating * anime.VoteCount;
+            totalRating += (decimal)anime.TempRating * anime.TempVoteCount;
             return totalRating;
         }
 
         public static int GetAniDBTotalVotes(this AniDB_Anime anime) => anime.TempVoteCount + anime.VoteCount;
 
-        public static string GetAirDateFormatted(this AniDB_Episode episode)
-        {
-            try
-            {
-                return AniDB.GetAniDBDate(episode.AirDate);
-            }
-            catch (Exception)
-            {
-                return "";
-            }
-        }
-
         public static DateTime? GetAirDateAsDate(this AniDB_Episode episode) => AniDB.GetAniDBDateAsDate(episode.AirDate);
-
-        public static EpisodeType GetEpisodeTypeEnum(this AniDB_Episode episode) => (EpisodeType) episode.EpisodeType;
-
-        public static bool IsWatched(this AnimeEpisode_User epuser) => epuser.WatchedCount > 0;
-
 
         public static HashSet<string> GetHideCategories(this JMMUser user)
         {
@@ -247,7 +184,7 @@ namespace Shoko.Commons.Extensions
             {
                 if (!_hidecategoriescache.ContainsKey(user.JMMUserID))
                     _hidecategoriescache[user.JMMUserID] = new HashSet<string>(
-                        user.HideCategories.Trim().Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                        user.HideCategories.Trim().Split([','], StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim())
                             .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
                         StringComparer.InvariantCultureIgnoreCase);
@@ -270,7 +207,7 @@ namespace Shoko.Commons.Extensions
             {
                 if (!_plexuserscache.ContainsKey(user.PlexUsers))
                     _plexuserscache[user.PlexUsers] = new HashSet<string>(
-                        user.PlexUsers.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                        user.PlexUsers.Split([','], StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim())
                             .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
                         StringComparer.InvariantCultureIgnoreCase);
@@ -311,25 +248,6 @@ namespace Shoko.Commons.Extensions
 
             return false;
         }
-
-        public static ScanStatus GetScanStatus(this Scan scan) => (ScanStatus) scan.Status;
-
-        public static string GetStatusText(this Scan scan)
-        {
-            switch (scan.GetScanStatus())
-            {
-                case ScanStatus.Finish:
-                    return "Finished";
-                case ScanStatus.Running:
-                    return "Running";
-                default:
-                    return "Standby";
-            }
-        }
-
-        public static List<int> GetImportFolderList(this Scan scan) => scan.ImportFolders.Split(',').Select(a => int.Parse(a)).ToList();
-
-        public static ScanFileStatus GetScanFileStatus(this ScanFile scanfile) => (ScanFileStatus) scanfile.Status;
 
         public static bool IsAdminUser(this JMMUser JMMUser) => JMMUser.IsAdmin == 1;
 
