@@ -79,7 +79,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Shoko.Models\Shoko.Models.csproj" />
+    <ProjectReference Include="..\Shoko.Models\Shoko.Models.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="F23.StringSimilarity" Version="6.0.0" />

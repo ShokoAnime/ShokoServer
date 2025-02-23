@@ -13,7 +13,7 @@
     <RuntimeIdentifiers>win-x64;win-x86;linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MessagePack.Annotations" Version="2.5.140" />
