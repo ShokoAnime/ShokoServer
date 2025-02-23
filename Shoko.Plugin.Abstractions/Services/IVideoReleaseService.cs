@@ -41,17 +41,6 @@ public interface IVideoReleaseService
     void AddProviders(IEnumerable<IReleaseInfoProvider> providers);
 
     /// <summary>
-    ///   Get the current release for the specified video, if one exists.
-    /// </summary>
-    /// <param name="video">
-    ///   The video to find a release for.
-    /// </param>
-    /// <returns>
-    ///   The found release, or <c>null</c> if none could be found.
-    /// </returns>
-    IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
-
-    /// <summary>
     ///   List out all available providers, if they're enabled for use in
     ///   <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/> and
     ///   their priority order when used in said method.
@@ -88,6 +77,17 @@ public interface IVideoReleaseService
     ///   The provider, or <c>null</c> if none could be found.
     /// </returns>
     IReleaseInfoProvider? GetProviderByName(string providerName);
+
+    /// <summary>
+    ///   Get the current release for the specified video, if one exists.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to find a release for.
+    /// </param>
+    /// <returns>
+    ///   The found release, or <c>null</c> if none could be found.
+    /// </returns>
+    IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
 
     /// <summary>
     ///   Asks all enabled <see cref="IReleaseInfoProvider"/>s, in priority
