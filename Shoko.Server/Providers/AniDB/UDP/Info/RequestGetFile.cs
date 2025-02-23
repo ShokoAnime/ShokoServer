@@ -65,9 +65,9 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         {
             case UDPReturnCode.FILE:
             {
-                // The spaces here are added for readability. They aren't in the response
-                // fileid |anime|episode|group|MyListID |other eps|deprecated|state|quality|source|audio lang|sub lang|file description|filename                                                                                                    |mylist state|mylist filestate|viewcount|view date
-                // 2442444|14360|225455 |8482 |291278112|         |    0     |4097 |  high |  www | japanese | english|                |Magia Record: Mahou Shoujo Madoka Magica Gaiden - 03 - Sorry for Making You My Friend - [Doki](a076b874).mkv|   3        |         0      |     1   |1584060577
+                // NOTE: Redo this overview if the fmask or amask above changes again.
+                // |fileid|anime|episode|group|other eps|deprecated|state|quality|source|audio lang|sub lang|file desc|air date|filename|group name|group name short|
+                //     00 |  01 |    02 |  03 |      04 |       05 |  06 |    07 |   08 |       09 |     10 |      11 |     12 |     13 |       14 |             15 |
                 // we don't want to remove empty parts or change the layout here. Some will be empty, but we want consistent indexing
                 var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
                 if (parts.Length != 16)
@@ -75,59 +75,49 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                     throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code, receivedData, Command);
                 }
 
-                // TODO: REDO THE PART NUMBERS
-
                 // parse out numbers into temp vars
-                if (!int.TryParse(parts[0], out var fid))
+                if (!int.TryParse(parts[00], out var fid))
                 {
                     throw new UnexpectedUDPResponseException("File ID was not an int", code, receivedData, Command);
                 }
 
-                if (!int.TryParse(parts[1], out var aid))
+                if (!int.TryParse(parts[01], out var aid))
                 {
                     throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData, Command);
                 }
 
                 // It can be possible that a file is added with an unknown group, though I've never seen it before
-                var hasGroup = int.TryParse(parts[3], out var gid) && gid != 0;
+                var hasGroup = int.TryParse(parts[03], out var gid) && gid != 0;
                 int? groupID = hasGroup ? gid : null;
                 // save mylist and partial episode mapping 'til later
 
                 // cheap but fast
-                var deprecated = parts[6].Equals("1");
-                if (!Enum.TryParse<GetFile_State>(parts[7], out var state)) state = GetFile_State.None;
+                var deprecated = parts[05].Equals("1");
+                if (!Enum.TryParse<GetFile_State>(parts[07], out var state)) state = GetFile_State.None;
                 var version = 1;
                 if (state.HasFlag(GetFile_State.IsV2))
-                {
                     version = 2;
-                }
-
                 if (state.HasFlag(GetFile_State.IsV3))
-                {
                     version = 3;
-                }
-
                 if (state.HasFlag(GetFile_State.IsV4))
-                {
                     version = 4;
-                }
-
                 if (state.HasFlag(GetFile_State.IsV5))
-                {
                     version = 5;
-                }
 
                 bool? censored = state.HasFlag(GetFile_State.Uncensored) ? false :
                     state.HasFlag(GetFile_State.Censored) ? true : null;
                 bool? crc = state.HasFlag(GetFile_State.CRCMatch) ? true :
                     state.HasFlag(GetFile_State.CRCErr) ? false : null;
                 var chaptered = state.HasFlag(GetFile_State.Chaptered);
-                var quality = ParseQuality(parts[8]);
-                var source = ParseSource(parts[9]);
-                var description = parts[12];
+                var quality = ParseQuality(parts[08]);
+                var source = ParseSource(parts[09]);
+                var description = parts[11];
                 var filename = parts[13];
-                var groupShortName = parts[18];
-                var groupName = parts[19];
+                var airDate = int.TryParse(parts[12], out var rawReleaseDate) && rawReleaseDate > 0
+                    ? DateOnly.FromDateTime(DateTime.UnixEpoch.AddSeconds(rawReleaseDate))
+                    : (DateOnly?)null;
+                var groupName = parts[14];
+                var groupShortName = parts[15];
 
                 // episode xrefs
                 var xrefs = new List<ResponseGetFile.EpisodeXRef>();
@@ -139,7 +129,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                 // try to parse multiple
                 else
                 {
-                    var eps = parts[2].Split('\'');
+                    var eps = parts[02].Split('\'');
                     foreach (var ep in eps)
                     {
                         var percent = (byte)Math.Round(100D / eps.Length);
@@ -163,16 +153,17 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                     }
                 }
 
+                var rawOtherEps = parts[04];
                 var otherXrefs = new List<ResponseGetFile.EpisodeXRef>();
-                if (!string.IsNullOrEmpty(parts[5]))
+                if (!string.IsNullOrEmpty(rawOtherEps))
                 {
                     // check the format.
                     // 1: number'percent'number'percent
                     // 2: number,percent'number,percent
 
-                    if (s_episodeFormat1.IsMatch(parts[5]))
+                    if (s_episodeFormat1.IsMatch(rawOtherEps))
                     {
-                        var xrefStrings = parts[5].Split('\'');
+                        var xrefStrings = rawOtherEps.Split('\'');
                         var tempXrefs = xrefStrings.Batch(2).Select(
                             a =>
                             {
@@ -194,9 +185,9 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                             otherXrefs.AddRange(tempXrefs);
                         }
                     }
-                    else if (s_episodeFormat2.IsMatch(parts[5]))
+                    else if (s_episodeFormat2.IsMatch(rawOtherEps))
                     {
-                        var xrefStrings = parts[5].Split('\'');
+                        var xrefStrings = rawOtherEps.Split('\'');
                         var tempXrefs = xrefStrings.Select(
                             a =>
                             {
@@ -220,14 +211,14 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                         }
                     }
                     else
-                        Logger.LogError("Found an Other Episodes format that was not handled: {Format}", parts[5]);
+                        Logger.LogError("Found an Other Episodes format that was not handled: {Format}", rawOtherEps);
                 }
 
                 // audio languages
-                var alangs = parts[10].Split(new[] { '\'' }, StringSplitOptions.RemoveEmptyEntries).Where(lang => lang != "none").ToList();
+                var alangs = parts[09].Split('\'', StringSplitOptions.RemoveEmptyEntries).Where(lang => lang != "none").ToList();
 
                 // sub languages
-                var slangs = parts[11].Split(new[] { '\'' }, StringSplitOptions.RemoveEmptyEntries).Where(lang => lang != "none").ToList();
+                var slangs = parts[10].Split('\'', StringSplitOptions.RemoveEmptyEntries).Where(lang => lang != "none").ToList();
 
                 return new UDPResponse<ResponseGetFile>
                 {
@@ -252,6 +243,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                         OtherEpisodes = otherXrefs,
                         AudioLanguages = alangs,
                         SubtitleLanguages = slangs,
+                        ReleasedAt = airDate,
                     }
                 };
             }

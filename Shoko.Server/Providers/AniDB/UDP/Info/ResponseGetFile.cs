@@ -56,7 +56,7 @@ public class ResponseGetFile
     // Filename as reported in AVDump
     public string Filename { get; set; }
 
-    public DateOnly ReleasedAt { get; set; }
+    public DateOnly? ReleasedAt { get; set; }
 
     public class EpisodeXRef
     {
