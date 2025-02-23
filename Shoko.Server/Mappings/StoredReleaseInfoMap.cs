@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Release;
 
 namespace Shoko.Server.Mappings;
@@ -31,7 +32,7 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.EmbeddedAudioLanguages).Column("AudioLanguages");
         Map(x => x.EmbeddedSubtitleLanguages).Column("SubtitleLanguages");
         Map(x => x.EmbeddedCrossReferences).Column("CrossReferences").Not.Nullable();
-        Map(x => x.ReleasedAt);
+        Map(x => x.ReleasedAt).CustomType<DateOnlyConverter>();
         Map(x => x.LastUpdatedAt).Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();
     }
