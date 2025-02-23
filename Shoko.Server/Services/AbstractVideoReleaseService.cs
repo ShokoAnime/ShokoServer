@@ -57,6 +57,8 @@ public class AbstractVideoReleaseService(
 
     public event EventHandler<VideoReleaseEventArgs>? VideoReleaseDeleted;
 
+    public event EventHandler? ProvidersUpdated;
+
     public void AddProviders(IEnumerable<IReleaseInfoProvider> providers)
     {
         if (_releaseInfoProviders is not null)
@@ -125,13 +127,27 @@ public class AbstractVideoReleaseService(
             }
         }
 
+        var changed = false;
         var settings = settingsProvider.GetSettings();
-        settings.Plugins.ReleaseProvider.Priority = existingProviders
-            .Select(pI => pI.Provider.Name)
-            .ToList();
-        settings.Plugins.ReleaseProvider.Enabled = existingProviders
-            .ToDictionary(p => p.Provider.Name, p => p.Enabled);
-        settingsProvider.SaveSettings(settings);
+        var priority = existingProviders.Select(pI => pI.Provider.Name).ToList();
+        if (!settings.Plugins.ReleaseProvider.Priority.SequenceEqual(priority))
+        {
+            settings.Plugins.ReleaseProvider.Priority = priority;
+            changed = true;
+        }
+
+        var enabled = existingProviders.ToDictionary(p => p.Provider.Name, p => p.Enabled);
+        if (!settings.Plugins.ReleaseProvider.Enabled.SequenceEqual(enabled))
+        {
+            settings.Plugins.ReleaseProvider.Enabled = enabled;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            settingsProvider.SaveSettings(settings);
+            ProvidersUpdated?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public IReleaseInfo? GetCurrentReleaseForVideo(IVideo video)
