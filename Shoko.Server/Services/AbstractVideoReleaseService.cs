@@ -151,13 +151,21 @@ public class AbstractVideoReleaseService(
             if (releaseInfo is not null)
                 continue;
 
+            logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
             var provider = providerInfo.Provider;
             var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (release is null || release.CrossReferences.Count < 1)
                 continue;
 
+            logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
             releaseInfo = new ReleaseInfoWithProvider(release, provider.Name);
+        }
+
+        if (providerIDs.Count == 0)
+        {
+            logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.ID);
+            return null;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
