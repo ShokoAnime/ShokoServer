@@ -19,7 +19,7 @@ public class TMDB_ImageRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public override void PopulateIndexes()
     {
-        _tmdbRemoteFileNames = new(Cache, a => a.RemoteFileName);
+        _tmdbRemoteFileNames = Cache.CreateIndex(a => a.RemoteFileName);
     }
 
     public IReadOnlyList<TMDB_Image> GetByTmdbMovieID(int? movieId)
