@@ -1189,7 +1189,7 @@ public class DatabaseFixes
                 if (anidbReleaseGroup is not null)
                 {
                     storedReleaseInfo.GroupID = anidbReleaseGroup.GroupID.ToString();
-                    storedReleaseInfo.GroupProviderID = "AniDB";
+                    storedReleaseInfo.GroupSource = "AniDB";
                     storedReleaseInfo.GroupName = anidbReleaseGroup.GroupName;
                     storedReleaseInfo.GroupShortName = anidbReleaseGroup.GroupNameShort;
                 }
