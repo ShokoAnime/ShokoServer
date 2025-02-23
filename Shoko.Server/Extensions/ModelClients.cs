@@ -184,7 +184,7 @@ public static class ModelClients
             CrossRefSource = (int)CrossRefSource.User,
         };
 
-    public static MovieDB_Movie ToClient(this TMDB_Movie movie)
+    public static CL_MovieDB_Movie ToClient(this TMDB_Movie movie)
         => new()
         {
             MovieDB_MovieID = movie.TMDB_MovieID,
@@ -195,7 +195,7 @@ public static class ModelClients
             Rating = (int)Math.Round(movie.UserRating * 10),
         };
 
-    public static MovieDB_Fanart ToClientFanart(this TMDB_Image image)
+    public static CL_MovieDB_Fanart ToClientFanart(this TMDB_Image image)
         => new()
         {
             MovieDB_FanartID = image.TMDB_ImageID,
@@ -209,7 +209,7 @@ public static class ModelClients
             URL = image.RemoteFileName,
         };
 
-    public static MovieDB_Poster ToClientPoster(this TMDB_Image image)
+    public static CL_MovieDB_Poster ToClientPoster(this TMDB_Image image)
         => new()
         {
             MovieDB_PosterID = image.TMDB_ImageID,
@@ -247,10 +247,10 @@ public static class ModelClients
         switch ((CL_ImageEntityType)contract.ImageParentType)
         {
             case CL_ImageEntityType.MovieDB_Poster:
-                contract.MoviePoster = parentImage as MovieDB_Poster;
+                contract.MoviePoster = parentImage as CL_MovieDB_Poster;
                 break;
             case CL_ImageEntityType.MovieDB_FanArt:
-                contract.MovieFanart = parentImage as MovieDB_Fanart;
+                contract.MovieFanart = parentImage as CL_MovieDB_Fanart;
                 break;
         }
 

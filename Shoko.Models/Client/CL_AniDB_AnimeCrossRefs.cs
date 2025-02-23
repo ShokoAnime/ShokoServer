@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
@@ -21,9 +21,9 @@ namespace Shoko.Models.Client
 
         // MovieDB
         public CrossRef_AniDB_Other CrossRef_AniDB_MovieDB { get; set; }
-        public MovieDB_Movie MovieDBMovie { get; set; }
-        public List<MovieDB_Fanart> MovieDBFanarts { get; set; }
-        public List<MovieDB_Poster> MovieDBPosters { get; set; }
+        public CL_MovieDB_Movie MovieDBMovie { get; set; }
+        public List<CL_MovieDB_Fanart> MovieDBFanarts { get; set; }
+        public List<CL_MovieDB_Poster> MovieDBPosters { get; set; }
 
         // MAL
         public List<CrossRef_AniDB_MAL> CrossRef_AniDB_MAL { get; set; }

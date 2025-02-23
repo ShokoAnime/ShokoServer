@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -803,7 +803,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("MovieDB/Poster/{movieID?}")]
-    public List<MovieDB_Poster> GetAllMovieDBPosters(int? movieID)
+    public List<CL_MovieDB_Poster> GetAllMovieDBPosters(int? movieID)
     {
         try
         {
@@ -824,7 +824,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("MovieDB/Fanart/{movieID?}")]
-    public List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID)
+    public List<CL_MovieDB_Fanart> GetAllMovieDBFanart(int? movieID)
     {
         try
         {

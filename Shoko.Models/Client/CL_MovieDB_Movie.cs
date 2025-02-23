@@ -2,9 +2,9 @@
 
 using System;
 
-namespace Shoko.Models.Server
+namespace Shoko.Models.Client
 {
-    public class MovieDB_Movie : ICloneable
+    public class CL_MovieDB_Movie : ICloneable
     {
         public int MovieDB_MovieID { get; set; }
         public int MovieId { get; set; }
@@ -15,7 +15,7 @@ namespace Shoko.Models.Server
 
         public object Clone()
         {
-            return new MovieDB_Movie
+            return new CL_MovieDB_Movie
             {
                 MovieDB_MovieID = MovieDB_MovieID,
                 MovieId = MovieId,

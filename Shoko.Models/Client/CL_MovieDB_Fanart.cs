@@ -1,9 +1,9 @@
 ﻿using System;
 using Shoko.Models.Interfaces;
 
-namespace Shoko.Models.Server
+namespace Shoko.Models.Client
 {
-    public class MovieDB_Fanart : IImageEntity, ICloneable
+    public class CL_MovieDB_Fanart : IImageEntity, ICloneable
     {
         public int MovieDB_FanartID { get; set; }
         public string ImageID { get; set; }
@@ -17,7 +17,7 @@ namespace Shoko.Models.Server
 
         public object Clone()
         {
-            return new MovieDB_Fanart
+            return new CL_MovieDB_Fanart
             {
                 MovieDB_FanartID = MovieDB_FanartID,
                 ImageID = ImageID,

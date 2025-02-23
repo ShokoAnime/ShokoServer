@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
@@ -11,8 +11,8 @@ namespace Shoko.Models.Client
         public int ImageParentType { get; set; }
         public int ImageType { get; set; }
 
-        public MovieDB_Poster MoviePoster { get; set; }
-        public MovieDB_Fanart MovieFanart { get; set; }
+        public CL_MovieDB_Poster MoviePoster { get; set; }
+        public CL_MovieDB_Fanart MovieFanart { get; set; }
 
         public object TVPoster { get; set; }
         public object TVFanart { get; set; }
@@ -31,8 +31,8 @@ namespace Shoko.Models.Client
                 ImageParentID = ImageParentID,
                 ImageParentType = ImageParentType,
                 ImageType = ImageType,
-                MoviePoster = (MovieDB_Poster)MoviePoster?.Clone(),
-                MovieFanart = (MovieDB_Fanart)MovieFanart?.Clone(),
+                MoviePoster = (CL_MovieDB_Poster)MoviePoster?.Clone(),
+                MovieFanart = (CL_MovieDB_Fanart)MovieFanart?.Clone(),
                 TVPoster = TVPoster,
                 TVFanart = TVFanart,
                 TVWideBanner = TVWideBanner,

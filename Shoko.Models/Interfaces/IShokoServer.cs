@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Nancy.Rest.Annotations.Attributes;
 using Nancy.Rest.Annotations.Enums;
@@ -680,10 +680,10 @@ namespace Shoko.Models.Interfaces
         List<CL_MovieDBMovieSearch_Response> SearchTheMovieDB(string criteria);
 
         [Rest("MovieDB/Poster/{movieID?}", Verbs.Get)]
-        List<MovieDB_Poster> GetAllMovieDBPosters(int? movieID);
+        List<CL_MovieDB_Poster> GetAllMovieDBPosters(int? movieID);
 
         [Rest("MovieDB/Fanart/{movieID?}", Verbs.Get)]
-        List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID);
+        List<CL_MovieDB_Fanart> GetAllMovieDBFanart(int? movieID);
 
         [Rest("MovieDB/Refresh/{movieID}", Verbs.Post)]
         string UpdateMovieDBData(int movieID);

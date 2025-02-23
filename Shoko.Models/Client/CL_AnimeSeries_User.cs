@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
@@ -29,7 +29,7 @@ namespace Shoko.Models.Client
         public CrossRef_AniDB_Other CrossRefAniDBMovieDB { get; set; }
         public List<CrossRef_AniDB_MAL> CrossRefAniDBMAL { get; set; }
         public List<object> TvDB_Series { get; set; }
-        public MovieDB_Movie MovieDB_Movie { get; set; }
+        public CL_MovieDB_Movie MovieDB_Movie { get; set; }
 
         public CL_AnimeSeries_User()
         {
@@ -71,7 +71,7 @@ namespace Shoko.Models.Client
                 CrossRefAniDBMovieDB = (CrossRef_AniDB_Other)CrossRefAniDBMovieDB?.Clone(),
                 CrossRefAniDBMAL = CrossRefAniDBMAL?.Select(a => (CrossRef_AniDB_MAL)a.Clone()).ToList(),
                 TvDB_Series = TvDB_Series,
-                MovieDB_Movie = (MovieDB_Movie)MovieDB_Movie?.Clone(),
+                MovieDB_Movie = (CL_MovieDB_Movie)MovieDB_Movie?.Clone(),
             };
 
             return seriesBase;
