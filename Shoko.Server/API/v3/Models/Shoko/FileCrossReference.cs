@@ -140,7 +140,7 @@ public class FileCrossReference
                 .Select(xref =>
                 {
                     // Percentages.
-                    var releaseGroup = xref.Release.Group is { ProviderID: "AniDB" } group && int.TryParse(group.ID, out var releaseGroupId) ? releaseGroupId : (int?)null;
+                    var releaseGroup = xref.Release.Group is { Source: "AniDB" } group && int.TryParse(group.ID, out var releaseGroupId) ? releaseGroupId : (int?)null;
                     var assumedFileCount = PercentageToFileCount(xref.Percentage);
                     var shokoEpisode = xref.ShokoEpisode as SVR_AnimeEpisode;
                     return (

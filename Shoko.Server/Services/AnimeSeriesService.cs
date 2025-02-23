@@ -546,7 +546,7 @@ public class AnimeSeriesService
             .SelectMany(a => a.VideoLocals
                 .Select(b => b.ReleaseGroup)
                 .WhereNotNull()
-                .Where(b => b.ProviderID is "AniDB" && int.TryParse(b.ID, out var groupID) && groupID > 0)
+                .Where(b => b.Source is "AniDB" && int.TryParse(b.ID, out var groupID) && groupID > 0)
                 .Select(b => int.Parse(b.ID))
             )
             .Distinct()
