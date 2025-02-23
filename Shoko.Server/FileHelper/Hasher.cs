@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using NLog;
-using Shoko.Models.Server;
 using Shoko.Server.Utilities;
 using Exception = System.Exception;
 
@@ -104,11 +103,10 @@ public class Hasher
 
     public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
     {
-        var hashes = new Hashes();
+        Hashes? hashes = null;
         if (Finalize.ModuleHandle == IntPtr.Zero && !Utils.IsLinux)
             return CalculateHashesSlow(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
 
-        var gotHash = false;
         try
         {
             var filename = strPath;
@@ -119,23 +117,24 @@ public class Hasher
                     : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
             }
 
-            var (e2Dk, crc32, md5, sha1) = NativeHasher.GetHash(filename, getCRC32, getMD5, getSHA1);
-            hashes.ED2K = e2Dk;
-            if (!string.IsNullOrEmpty(hashes.ED2K))
-                gotHash = true;
-            if (getCRC32)
-                hashes.CRC32 = crc32;
-            if (getMD5)
-                hashes.MD5 = md5;
-            if (getSHA1)
-                hashes.SHA1 = sha1;
+            var (ed2k, crc32, md5, sha1) = NativeHasher.GetHash(filename, getCRC32, getMD5, getSHA1);
+            if (!string.IsNullOrEmpty(ed2k))
+            {
+                hashes = new() { ED2K = ed2k };
+                if (getCRC32)
+                    hashes.CRC32 = crc32;
+                if (getMD5)
+                    hashes.MD5 = md5;
+                if (getSHA1)
+                    hashes.SHA1 = sha1;
+            }
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
         }
 
-        if (gotHash)
+        if (hashes is not null)
             return hashes;
 
         logger.Error("Error using DLL to get hash, trying C# code instead: {0}", strPath);
@@ -151,7 +150,6 @@ public class Hasher
 
         onHashProgress?.Invoke(strPath, 0);
 
-        var hashes = new Hashes();
         var stream = File.OpenRead(strPath);
         var md4 = MD4.Create();
         var md5 = getMD5 ? MD5.Create() : null;
@@ -203,9 +201,12 @@ public class Hasher
 
         onHashProgress?.Invoke(strPath, 100);
 
-        hashes.ED2K = numberOfBlocks > 1
-            ? BitConverter.ToString(md4.ComputeHash(ed2kHash)).Replace("-", string.Empty).ToUpper()
-            : BitConverter.ToString(ed2kHash).Replace("-", string.Empty).ToUpper();
+        var hashes = new Hashes
+        {
+            ED2K = numberOfBlocks > 1
+                ? BitConverter.ToString(md4.ComputeHash(ed2kHash)).Replace("-", string.Empty).ToUpper()
+                : BitConverter.ToString(ed2kHash).Replace("-", string.Empty).ToUpper()
+        };
         if (crc32 is not null)
             hashes.CRC32 = BitConverter.ToString(crc32.Hash!).Replace("-", string.Empty).ToUpper();
         if (md5 is not null)
