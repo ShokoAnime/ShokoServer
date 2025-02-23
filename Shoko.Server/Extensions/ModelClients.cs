@@ -4,7 +4,6 @@ using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models;
@@ -223,10 +222,9 @@ public static class ModelClients
             URL = image.RemoteFileName,
         };
 
-    public static CL_AniDB_Anime_DefaultImage? ToClient(this AniDB_Anime_PreferredImage image, IImageEntity? parentImage = null)
+    public static CL_AniDB_Anime_DefaultImage? ToClient(this AniDB_Anime_PreferredImage image)
     {
-        parentImage ??= image.GetImageEntity();
-        if (parentImage is null)
+        if (image.ImageSource is not DataSourceType.TMDB)
             return null;
 
         var contract = new CL_AniDB_Anime_DefaultImage()
@@ -247,10 +245,14 @@ public static class ModelClients
         switch ((CL_ImageEntityType)contract.ImageParentType)
         {
             case CL_ImageEntityType.MovieDB_Poster:
-                contract.MoviePoster = parentImage as CL_MovieDB_Poster;
+                contract.MoviePoster = ((TMDB_Image?)image.GetImageMetadata())?.ToClientPoster();
+                if (contract.MoviePoster is null)
+                    return null;
                 break;
             case CL_ImageEntityType.MovieDB_FanArt:
-                contract.MovieFanart = parentImage as CL_MovieDB_Fanart;
+                contract.MovieFanart = ((TMDB_Image?)image.GetImageMetadata())?.ToClientFanart();
+                if (contract.MovieFanart is null)
+                    return null;
                 break;
         }
 

@@ -126,7 +126,7 @@ public class AniDB_AnimeService
             cl.Fanarts = null;
         cl.DefaultImageFanart = anime.PreferredBackdrop?.ToClient();
         cl.DefaultImagePoster = anime.PreferredPoster?.ToClient();
-        cl.DefaultImageWideBanner = anime.PreferredBanner?.ToClient();
+        cl.DefaultImageWideBanner = null;
         return cl;
     }
 

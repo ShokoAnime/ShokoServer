@@ -1,6 +1,4 @@
-
 using Shoko.Models.Enums;
-using Shoko.Models.Interfaces;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
@@ -38,18 +36,4 @@ public class AniDB_Anime_PreferredImage
             _ => null,
         };
     }
-
-    public IImageEntity? GetImageEntity()
-        => ImageSource switch
-        {
-            DataSourceType.TMDB => ImageType switch
-            {
-                ImageEntityType.Backdrop =>
-                    RepoFactory.TMDB_Image.GetByID(ImageID)?.ToClientFanart(),
-                ImageEntityType.Poster =>
-                    RepoFactory.TMDB_Image.GetByID(ImageID)?.ToClientPoster(),
-                _ => null,
-            },
-            _ => null,
-        };
 }
