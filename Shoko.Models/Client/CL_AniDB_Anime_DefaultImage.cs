@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
@@ -14,9 +14,9 @@ namespace Shoko.Models.Client
         public MovieDB_Poster MoviePoster { get; set; }
         public MovieDB_Fanart MovieFanart { get; set; }
 
-        public TvDB_ImagePoster TVPoster { get; set; }
-        public TvDB_ImageFanart TVFanart { get; set; }
-        public TvDB_ImageWideBanner TVWideBanner { get; set; }
+        public object TVPoster { get; set; }
+        public object TVFanart { get; set; }
+        public object TVWideBanner { get; set; }
 
         public CL_AniDB_Anime_DefaultImage()
         {
@@ -33,9 +33,9 @@ namespace Shoko.Models.Client
                 ImageType = ImageType,
                 MoviePoster = (MovieDB_Poster)MoviePoster?.Clone(),
                 MovieFanart = (MovieDB_Fanart)MovieFanart?.Clone(),
-                TVPoster = (TvDB_ImagePoster)TVPoster?.Clone(),
-                TVFanart = (TvDB_ImageFanart)TVFanart?.Clone(),
-                TVWideBanner = (TvDB_ImageWideBanner)TVWideBanner?.Clone()
+                TVPoster = TVPoster,
+                TVFanart = TVFanart,
+                TVWideBanner = TVWideBanner,
             };
 
             return image;

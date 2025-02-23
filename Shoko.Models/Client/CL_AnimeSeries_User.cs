@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
@@ -25,10 +25,10 @@ namespace Shoko.Models.Client
         public DayOfWeek? AirsOn { get; set; }
 
         public CL_AniDB_AnimeDetailed AniDBAnime { get; set; }
-        public List<CrossRef_AniDB_TvDBV2> CrossRefAniDBTvDBV2 { get; set; }
+        public List<object> CrossRefAniDBTvDBV2 { get; set; }
         public CrossRef_AniDB_Other CrossRefAniDBMovieDB { get; set; }
         public List<CrossRef_AniDB_MAL> CrossRefAniDBMAL { get; set; }
-        public List<TvDB_Series> TvDB_Series { get; set; }
+        public List<object> TvDB_Series { get; set; }
         public MovieDB_Movie MovieDB_Movie { get; set; }
 
         public CL_AnimeSeries_User()
@@ -67,12 +67,11 @@ namespace Shoko.Models.Client
                 MissingEpisodeCountGroups = MissingEpisodeCountGroups,
                 AirsOn = AirsOn,
                 AniDBAnime = AniDBAnime,
-                CrossRefAniDBTvDBV2 =
-                    CrossRefAniDBTvDBV2?.Select(a => a.Clone()).Cast<CrossRef_AniDB_TvDBV2>().ToList(),
-                CrossRefAniDBMovieDB = (CrossRef_AniDB_Other) CrossRefAniDBMovieDB?.Clone(),
-                CrossRefAniDBMAL = CrossRefAniDBMAL?.Select(a => a.Clone()).Cast<CrossRef_AniDB_MAL>().ToList(),
-                TvDB_Series = TvDB_Series?.Select(a => a.Clone()).Cast<TvDB_Series>().ToList(),
-                MovieDB_Movie = (MovieDB_Movie) MovieDB_Movie?.Clone()
+                CrossRefAniDBTvDBV2 = CrossRefAniDBTvDBV2,
+                CrossRefAniDBMovieDB = (CrossRef_AniDB_Other)CrossRefAniDBMovieDB?.Clone(),
+                CrossRefAniDBMAL = CrossRefAniDBMAL?.Select(a => (CrossRef_AniDB_MAL)a.Clone()).ToList(),
+                TvDB_Series = TvDB_Series,
+                MovieDB_Movie = (MovieDB_Movie)MovieDB_Movie?.Clone(),
             };
 
             return seriesBase;

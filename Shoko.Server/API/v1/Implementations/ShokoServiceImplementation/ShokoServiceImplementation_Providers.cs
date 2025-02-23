@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,6 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Models.TvDB;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -188,7 +187,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("TvDB/Language")]
-    public List<TvDB_Language> GetTvDBLanguages()
+    public List<object> GetTvDBLanguages()
     {
         return [];
     }
@@ -200,25 +199,25 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("TvDB/CrossRef/{animeID}")]
-    public List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID)
+    public List<object> GetTVDBCrossRefV2(int animeID)
     {
         return [];
     }
 
     [HttpGet("TvDB/CrossRef/Preview/{animeID}/{tvdbID}")]
-    public List<CrossRef_AniDB_TvDB_Episode> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID)
+    public List<object> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID)
     {
         return [];
     }
 
     [HttpGet("TvDB/CrossRef/Episode/{animeID}")]
-    public List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID)
+    public List<object> GetTVDBCrossRefEpisode(int animeID)
     {
         return [];
     }
 
     [HttpGet("TvDB/Search/{criteria}")]
-    public List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria)
+    public List<object> SearchTheTvDB(string criteria)
     {
         return [];
     }
@@ -230,13 +229,13 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpPost("TvDB/CrossRef")]
-    public string LinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
+    public string LinkAniDBTvDB(object link)
     {
         return string.Empty;
     }
 
     [HttpPost("TvDB/CrossRef/FromWebCache")]
-    public string LinkTvDBUsingWebCacheLinks(List<CrossRef_AniDB_TvDBV2> links)
+    public string LinkTvDBUsingWebCacheLinks(List<object> links)
     {
         return "The WebCache is disabled.";
     }
@@ -259,7 +258,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpDelete("TvDB/CrossRef")]
-    public string RemoveLinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
+    public string RemoveLinkAniDBTvDB(object link)
     {
         return string.Empty;
     }
@@ -271,25 +270,25 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpGet("TvDB/Poster/{tvDBID?}")]
-    public List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
+    public List<object> GetAllTvDBPosters(int? tvDBID)
     {
         return [];
     }
 
     [HttpGet("TvDB/Banner/{tvDBID?}")]
-    public List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID)
+    public List<object> GetAllTvDBWideBanners(int? tvDBID)
     {
         return [];
     }
 
     [HttpGet("TvDB/Fanart/{tvDBID?}")]
-    public List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID)
+    public List<object> GetAllTvDBFanart(int? tvDBID)
     {
         return [];
     }
 
     [HttpGet("TvDB/Episode/{tvDBID?}")]
-    public List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID)
+    public List<object> GetAllTvDBEpisodes(int? tvDBID)
     {
         return [];
     }

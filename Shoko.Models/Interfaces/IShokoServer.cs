@@ -1,16 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Nancy.Rest.Annotations.Attributes;
 using Nancy.Rest.Annotations.Enums;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
-using Shoko.Models.TvDB;
 
 // ReSharper disable InconsistentNaming
 namespace Shoko.Models.Interfaces
 {
     [RestBasePath("/v1")]
-    public interface IShokoServer 
+    public interface IShokoServer
     {
 
         #region GroupsFilter
@@ -568,46 +567,46 @@ namespace Shoko.Models.Interfaces
         #region TvDB Provider
 
         [Rest("TvDB/CrossRef/{animeID}", Verbs.Get)]
-        List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID);
+        List<object> GetTVDBCrossRefV2(int animeID);
 
         [Rest("TvDB/CrossRef/Preview/{animeID}/{tvdbID}", Verbs.Get)]
-        List<CrossRef_AniDB_TvDB_Episode> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID);
+        List<object> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID);
 
         [Rest("TvDB/CrossRef/{animeID}", Verbs.Delete)]
         string RemoveLinkAniDBTvDBForAnime(int animeID);
 
         [Rest("TvDB/CrossRef", Verbs.Post)]
-        string LinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link);
+        string LinkAniDBTvDB(object link);
 
         [Rest("TvDB/CrossRef", Verbs.Delete)]
-        string RemoveLinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link);
+        string RemoveLinkAniDBTvDB(object link);
 
         [Rest("TvDB/CrossRef/FromWebCache", Verbs.Post)]
-        string LinkTvDBUsingWebCacheLinks(List<CrossRef_AniDB_TvDBV2> links);
+        string LinkTvDBUsingWebCacheLinks(List<object> links);
 
         [Rest("TvDB/Search/{criteria}", Verbs.Get)]
-        List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria);
+        List<object> SearchTheTvDB(string criteria);
 
         [Rest("TvDB/Poster/{tvDBID?}", Verbs.Get)]
-        List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID);
+        List<object> GetAllTvDBPosters(int? tvDBID);
 
         [Rest("TvDB/Banner/{tvDBID?}", Verbs.Get)]
-        List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID);
+        List<object> GetAllTvDBWideBanners(int? tvDBID);
 
         [Rest("TvDB/Fanart/{tvDBID?}", Verbs.Get)]
-        List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID);
+        List<object> GetAllTvDBFanart(int? tvDBID);
 
         [Rest("TvDB/Episode/{tvDBID?}", Verbs.Get)]
-        List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID);
+        List<object> GetAllTvDBEpisodes(int? tvDBID);
 
         [Rest("TvDB/Language", Verbs.Get)]
-        List<TvDB_Language> GetTvDBLanguages();
+        List<object> GetTvDBLanguages();
 
         [Rest("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}", Verbs.Post)]
         string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID);
 
         [Rest("TvDB/CrossRef/Episode/{animeID}", Verbs.Get)]
-        List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID);
+        List<object> GetTVDBCrossRefEpisode(int animeID);
 
         [Rest("TvDB/CrossRef/Episode/{aniDBEpisodeID}/{tvdbEpisodeID}", Verbs.Delete)]
         string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID, int tvdbEpisodeID);

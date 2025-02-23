@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
@@ -8,12 +8,12 @@ namespace Shoko.Models.Client
         public int AnimeID { get; set; }
 
         // TvDB
-        public List<CrossRef_AniDB_TvDBV2> CrossRef_AniDB_TvDB { get; set; }
-        public List<TvDB_Series> TvDBSeries { get; set; }
-        public List<TvDB_Episode> TvDBEpisodes { get; set; }
-        public List<TvDB_ImageFanart> TvDBImageFanarts { get; set; }
-        public List<TvDB_ImagePoster> TvDBImagePosters { get; set; }
-        public List<TvDB_ImageWideBanner> TvDBImageWideBanners { get; set; }
+        public List<object> CrossRef_AniDB_TvDB { get; set; }
+        public List<object> TvDBSeries { get; set; }
+        public List<object> TvDBEpisodes { get; set; }
+        public List<object> TvDBImageFanarts { get; set; }
+        public List<object> TvDBImagePosters { get; set; }
+        public List<object> TvDBImageWideBanners { get; set; }
 
         // Trakt
         public List<CrossRef_AniDB_TraktV2> CrossRef_AniDB_Trakt { get; set; }
