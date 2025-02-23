@@ -184,7 +184,7 @@ namespace Shoko.Commons.Extensions
             {
                 if (!_hidecategoriescache.ContainsKey(user.JMMUserID))
                     _hidecategoriescache[user.JMMUserID] = new HashSet<string>(
-                        user.HideCategories.Trim().Split([','], StringSplitOptions.RemoveEmptyEntries)
+                        user.HideCategories.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim())
                             .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
                         StringComparer.InvariantCultureIgnoreCase);
@@ -207,7 +207,7 @@ namespace Shoko.Commons.Extensions
             {
                 if (!_plexuserscache.ContainsKey(user.PlexUsers))
                     _plexuserscache[user.PlexUsers] = new HashSet<string>(
-                        user.PlexUsers.Split([','], StringSplitOptions.RemoveEmptyEntries)
+                        user.PlexUsers.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.Trim())
                             .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
                         StringComparer.InvariantCultureIgnoreCase);

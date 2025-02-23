@@ -720,7 +720,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             ret.FanartImageType = 0;
             ret.FanartImageID = 0;
 
-            ret.AnimeType = anime.GetAnimeTypeEnum().ToString();
+            ret.AnimeType = anime.AnimeTypeEnum.ToString();
             ret.Description = anime.Description;
             ret.EpisodeCountNormal = anime.EpisodeCountNormal;
             ret.EpisodeCountSpecial = anime.EpisodeCountSpecial;
