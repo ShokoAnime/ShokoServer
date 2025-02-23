@@ -89,7 +89,7 @@ public class AbstractVideoReleaseService(
             yield return new()
             {
                 Provider = provider,
-                Enabled = enabled.TryGetValue(provider.Name, out var isEnabled) && isEnabled,
+                Enabled = enabled.TryGetValue(provider.Name, out var isEnabled) ? isEnabled : provider.Name is "AniDB",
                 Priority = index,
             };
         }
