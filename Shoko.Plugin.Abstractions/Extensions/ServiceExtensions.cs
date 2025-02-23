@@ -16,6 +16,6 @@ public static class ServiceExtensions
     /// <param name="providerID">The provider ID.</param>
     /// <param name="provider">The provider.</param>
     /// <returns></returns>
-    public static bool TryGetProviderByID(this IVideoReleaseService service, string providerID, [NotNullWhen(true)] out IReleaseInfoProvider? provider)
-        => (provider = service.GetProviderByID(providerID)) is not null;
+    public static bool TryGetProviderByName(this IVideoReleaseService service, string providerID, [NotNullWhen(true)] out IReleaseInfoProvider? provider)
+        => (provider = service.GetProviderByName(providerID)) is not null;
 }
