@@ -24,6 +24,11 @@ public interface IVideoReleaseService
     event EventHandler<VideoReleaseEventArgs>? VideoReleaseDeleted;
 
     /// <summary>
+    /// Event raised when the release info providers are updated.
+    /// </summary>
+    event EventHandler? ProvidersUpdated;
+
+    /// <summary>
     ///   Adds the release info providers.
     /// </summary>
     /// <remarks>
