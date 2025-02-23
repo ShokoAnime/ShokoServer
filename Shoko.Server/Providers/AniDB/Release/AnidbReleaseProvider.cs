@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
@@ -19,6 +20,12 @@ namespace Shoko.Server.Providers.AniDB.Release;
 
 public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler) : IReleaseInfoProvider
 {
+    public IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions()
+    {
+        ExpirationScanFrequency = TimeSpan.FromMinutes(25),
+        SizeLimit = 10,
+    });
+
     public const string ReleasePrefix = "https://anidb.net/file/";
 
     public string Name => "AniDB";
@@ -27,6 +34,9 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
 
     public async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
     {
+        if (_memoryCache.TryGetValue(releaseId, out ReleaseInfoWithProvider? releaseInfo))
+            return releaseInfo;
+
         if (string.IsNullOrEmpty(releaseId))
             return null;
 
@@ -57,7 +67,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         if (anidbFile is null)
             return null;
 
-        var releaseInfo = new ReleaseInfoWithProvider(Name)
+        releaseInfo = new ReleaseInfoWithProvider(Name)
         {
             ID = releaseId,
             ProviderID = Name,
@@ -133,6 +143,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
                 offset += xref.Percentage;
         }
 
+        _memoryCache.Set(releaseId, releaseInfo, TimeSpan.FromHours(1));
         return releaseInfo;
     }
 
