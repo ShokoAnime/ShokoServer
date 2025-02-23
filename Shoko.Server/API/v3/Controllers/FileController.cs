@@ -39,7 +39,7 @@ using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using Path = System.IO.Path;
-using ReleaseInfo = Shoko.Server.API.v3.Models.Common.ReleaseInfo;
+using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -51,7 +51,11 @@ public class FileController : BaseController
 
     private const string FileNoPath = "Unable to resolve file location.";
 
-    private const string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
+    private const string AnidbReleaseNotFoundForFileID = "No AniDB ReleaseInfo entry for the given fileID";
+
+    private const string AnidbReleaseNotFoundForAnidbFileID = "No AniDB ReleaseInfo entry for the given anidbFileID";
+
+    private const string ReleaseNotFoundForFileID = "No ReleaseInfo entry for the given fileID";
 
     internal const string FileNotFoundWithFileID = "No File entry for the given fileID";
 
@@ -436,7 +440,28 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Get the <see cref="File.Release"/> using the <paramref name="fileID"/>.
+    /// Get the <see cref="ReleaseInfo"/> using the <paramref name="fileID"/>.
+    /// </summary>
+    /// <remarks>
+    /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
+    /// </remarks>
+    /// <param name="fileID">Shoko File ID</param>
+    /// <returns></returns>
+    [HttpGet("{fileID}/Release")]
+    public ActionResult<ReleaseInfo> GetFileReleaseByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        if (file.ReleaseInfo is not { ReleaseURI: not null } releaseInfo)
+            return NotFound(ReleaseNotFoundForFileID);
+
+        return new ReleaseInfo(releaseInfo);
+    }
+
+    /// <summary>
+    /// Get the <see cref="ReleaseInfo"/> using the <paramref name="fileID"/> if the provider is AniDB.
     /// </summary>
     /// <remarks>
     /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
@@ -451,13 +476,13 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         if (file.ReleaseInfo is not { ReleaseURI: not null } releaseInfo || !releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForFileID);
 
         return new ReleaseInfo(releaseInfo);
     }
 
     /// <summary>
-    /// Get the <see cref="File.Release"/> using the <paramref name="anidbFileID"/>.
+    /// Get the <see cref="ReleaseInfo"/> using the <paramref name="anidbFileID"/>.
     /// </summary>
     /// <remarks>
     /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
@@ -471,13 +496,13 @@ public class FileController : BaseController
             RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
         return new ReleaseInfo(anidb);
     }
 
     /// <summary>
-    /// Get the <see cref="File.Release"/>for file using the <paramref name="anidbFileID"/>.
+    /// Get the <see cref="File"/> for the AniDB file using the <paramref name="anidbFileID"/>.
     /// </summary>
     /// <remarks>
     /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
@@ -494,11 +519,11 @@ public class FileController : BaseController
             RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
         var file = RepoFactory.VideoLocal.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
         if (file == null)
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
         return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
@@ -517,11 +542,11 @@ public class FileController : BaseController
             RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForFileID);
 
         var file = RepoFactory.VideoLocal.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
         if (file == null)
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForFileID);
 
         var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
