@@ -1156,7 +1156,7 @@ public class DatabaseFixes
                     ? anidbReleaseGroupDict[anidbFile.GroupID]
                     : null;
 
-                storedReleaseInfo.ID = anidbFile.FileID.ToString();
+                storedReleaseInfo.ID = $"{ed2k}+{fileSize}";
                 storedReleaseInfo.ProviderID = "AniDB";
                 storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile.FileID}";
                 storedReleaseInfo.Revision = anidbFile.FileVersion;
