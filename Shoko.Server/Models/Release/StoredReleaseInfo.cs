@@ -32,7 +32,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         if (releaseInfo.Group is { } group)
         {
             GroupID = group.ID;
-            GroupProviderID = group.ProviderID;
+            GroupSource = group.Source;
             GroupName = group.Name;
             GroupShortName = group.ShortName;
         }
@@ -120,7 +120,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public string? GroupID { get; set; }
 
-    public string? GroupProviderID { get; set; }
+    public string? GroupSource { get; set; }
 
     public string? GroupName { get; set; }
 
@@ -129,13 +129,13 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public bool Equals(IReleaseGroup? other)
         => other is not null &&
             string.Equals(GroupID, other.ID) &&
-            string.Equals(GroupProviderID, other.ProviderID);
+            string.Equals(GroupSource, other.Source);
 
-    IReleaseGroup? IReleaseInfo.Group => !string.IsNullOrEmpty(GroupID) && !string.IsNullOrEmpty(GroupProviderID) && !string.IsNullOrEmpty(GroupName) && !string.IsNullOrEmpty(GroupShortName) ? this : null;
+    IReleaseGroup? IReleaseInfo.Group => !string.IsNullOrEmpty(GroupID) && !string.IsNullOrEmpty(GroupSource) && !string.IsNullOrEmpty(GroupName) && !string.IsNullOrEmpty(GroupShortName) ? this : null;
 
     string IReleaseGroup.ID => GroupID ?? string.Empty;
 
-    string IReleaseGroup.ProviderID => GroupProviderID ?? string.Empty;
+    string IReleaseGroup.Source => GroupSource ?? string.Empty;
 
     string IReleaseGroup.Name => GroupName ?? string.Empty;
 
@@ -265,7 +265,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
             ),
             HashCode.Combine(
                 GroupID,
-                GroupProviderID,
+                GroupSource,
                 GroupName,
                 GroupShortName
             ),
