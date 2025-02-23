@@ -95,8 +95,8 @@ public class AbstractVideoReleaseService(
         }
     }
 
-    public IReleaseInfoProvider? GetProviderByID(string providerID)
-        => _releaseInfoProviders?.TryGetValue(providerID, out var provider) ?? false ? provider : null;
+    public IReleaseInfoProvider? GetProviderByName(string providerName)
+        => _releaseInfoProviders?.TryGetValue(providerName, out var provider) ?? false ? provider : null;
 
     public void UpdateProviders(params ReleaseInfoProviderInfo[] providers)
     {
