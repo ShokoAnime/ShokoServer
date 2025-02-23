@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -46,7 +45,7 @@ public class AnimeCreator
 
 
 #pragma warning disable CS0618
-    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, bool shouldUpdateFiles, Dictionary<IEpisode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, bool shouldUpdateFiles, Dictionary<SVR_AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
         if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, false, []);
@@ -326,7 +325,7 @@ public class AnimeCreator
         return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
 
-    private async Task<(bool, Dictionary<IEpisode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task<(bool, Dictionary<SVR_AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
             return (false, []);
@@ -354,7 +353,7 @@ public class AnimeCreator
         var epsToSave = new List<SVR_AniDB_Episode>();
         var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
         var titlesToSave = new List<SVR_AniDB_Episode_Title>();
-        var episodeEventsToEmit = new Dictionary<IEpisode, UpdateReason>();
+        var episodeEventsToEmit = new Dictionary<SVR_AniDB_Episode, UpdateReason>();
 
         foreach (var rawEpisode in rawEpisodeList)
         {
