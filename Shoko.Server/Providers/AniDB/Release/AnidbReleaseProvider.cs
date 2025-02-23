@@ -17,7 +17,7 @@ using Shoko.Server.Providers.AniDB.UDP.Info;
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
 
-public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory) : IReleaseInfoProvider
+public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler) : IReleaseInfoProvider
 {
     public const string ReleasePrefix = "https://anidb.net/file/";
 
@@ -34,24 +34,25 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         if (string.IsNullOrEmpty(hash) || hash.Length != 32 || !long.TryParse(fileSize, out var size))
             return null;
 
+        if (connectionHandler.IsBanned)
+        {
+            logger.LogInformation("Unable to lookup release for {Hash} & {Size} due to being AniDB UDP banned.", hash, size);
+            return null;
+        }
+
         ResponseGetFile? anidbFile = null;
         try
         {
-            var response = await Task.Run(() => requestFactory.Create<RequestGetFile>(request =>
-                {
-                    request.Hash = hash;
-                    request.Size = size;
-                }
-            ).Send());
+            var response = await Task.Run(() => requestFactory.Create<RequestGetFile>(request => { request.Hash = hash; request.Size = size; }).Send());
             anidbFile = response?.Response;
         }
         catch (NotLoggedInException ex)
         {
-            logger.LogError(ex, "Is AniDB UDP Banned.");
+            logger.LogError(ex, "Unable to lookup release for {Hash} & {Size} due to being AniDB UDP banned.", hash, size);
         }
         catch (AniDBBannedException ex)
         {
-            logger.LogError(ex, "Is AniDB UDP Banned.");
+            logger.LogError(ex, "Unable to lookup release for {Hash} & {Size} due to being AniDB UDP banned.", hash, size);
         }
         if (anidbFile is null)
             return null;
@@ -104,7 +105,33 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
             CreatedAt = DateTime.Now,
         };
 
-        // TODO: Do xrefs here
+        // These percentages will probably be wrong, but we can tolerate that for now
+        // until a better solution to get more accurate readings for the start/end ranges
+        // is found.
+        var offset = 0;
+        foreach (var xref in anidbFile.EpisodeIDs)
+        {
+            releaseInfo.CrossReferences.Add(new()
+            {
+                AnidbAnimeID = anidbFile.AnimeID,
+                AnidbEpisodeID = xref.EpisodeID,
+                PercentageStart = xref.Percentage < 100 ? offset : 0,
+                PercentageEnd = xref.Percentage < 100 ? offset + xref.Percentage : 100,
+            });
+            if (xref.Percentage < 100)
+                offset += xref.Percentage;
+        }
+        foreach (var xref in anidbFile.OtherEpisodes)
+        {
+            releaseInfo.CrossReferences.Add(new()
+            {
+                AnidbEpisodeID = xref.EpisodeID,
+                PercentageStart = xref.Percentage < 100 ? offset : 0,
+                PercentageEnd = xref.Percentage < 100 ? offset + xref.Percentage : 100,
+            });
+            if (xref.Percentage < 100)
+                offset += xref.Percentage;
+        }
 
         return releaseInfo;
     }
