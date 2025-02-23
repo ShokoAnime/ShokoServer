@@ -20,9 +20,9 @@ public class AniDB_CharacterRepository(DatabaseFactory databaseFactory) : BaseCa
         _characterIDs = Cache.CreateIndex(a => a.CharacterID);
     }
 
-    public AniDB_Character GetByCharacterID(int characterID)
+    public AniDB_Character? GetByCharacterID(int characterID)
         => ReadLock(() => _characterIDs!.GetOne(characterID));
 
-    public List<AniDB_Character> GetCharactersForAnime(int animeID)
+    public IReadOnlyList<AniDB_Character> GetCharactersForAnime(int animeID)
         => ReadLock(() => RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID).Select(xref => GetByCharacterID(xref.CharacterID)).WhereNotNull().ToList());
 }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
