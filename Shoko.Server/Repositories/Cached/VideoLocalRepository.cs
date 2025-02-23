@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -72,9 +71,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public override void RegenerateDb()
     {
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal), " Checking Media Info"
-        );
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Checking Media Info...";
         var count = 0;
         int max;
         IReadOnlyList<SVR_VideoLocal> list;
@@ -90,10 +87,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 {
                     scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = a.VideoLocalID).GetAwaiter().GetResult();
                     count++;
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, nameof(VideoLocal),
-                        " Queuing Media Info Commands - " + count + "/" + max
-                    );
+                    ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Queuing Media Info Commands - {count}/{max}...";
                 }
             );
         }
@@ -106,10 +100,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal),
-            " Cleaning Empty Records"
-        );
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Cleaning Empty Records...";
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using (var transaction = session.BeginTransaction())
         {
@@ -120,10 +111,8 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             {
                 RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
                 count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Cleaning Empty Records - " + count + "/" + max
-                );
+                ServerState.Instance.ServerStartingStatus =
+                    $"Database - Validating - {nameof(VideoLocal)} Cleaning Empty Records - {count}/{max}...";
             }
 
             transaction.Commit();
@@ -132,10 +121,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         var toRemove = new List<SVR_VideoLocal>();
         var comparer = new VideoLocalComparer();
 
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal),
-            " Checking for Duplicate Records"
-        );
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Checking for Duplicate Records...";
 
         foreach (var hash in locals.Keys)
         {
@@ -172,10 +158,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             foreach (var remove in batch)
             {
                 count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Cleaning Duplicate Records - " + count + "/" + max
-                );
+                ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Cleaning Duplicate Records - {count}/{max}...";
                 DeleteWithOpenTransaction(session, remove);
             }
 

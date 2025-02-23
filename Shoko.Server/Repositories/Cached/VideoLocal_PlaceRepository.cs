@@ -2,7 +2,6 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
@@ -45,7 +44,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
 
     public override void RegenerateDb()
     {
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(VideoLocal_Place), " Removing orphaned VideoLocal_Places");
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal_Place)} Removing orphaned VideoLocal_Places...";
         var entries = Cache.Values.Where(a => a is { VideoLocalID: 0 } or { ImportFolderID: 0 } or { FilePath: null or "" }).ToList();
         var total = entries.Count;
         var current = 0;
@@ -57,7 +56,8 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
             {
                 DeleteWithOpenTransaction(session, entry);
                 current++;
-                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(VideoLocal_Place), " Removing Orphaned VideoLocal_Places - " + current + "/" + total);
+                ServerState.Instance.ServerStartingStatus =
+                    $"Database - Validating - {nameof(VideoLocal_Place)} Removing Orphaned VideoLocal_Places - {current}/{total}...";
             }
 
             transaction.Commit();

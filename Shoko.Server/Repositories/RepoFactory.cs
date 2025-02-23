@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Properties;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
@@ -296,8 +295,7 @@ public class RepoFactory
             _logger.LogInformation("Starting Server: RepoFactory.PostInit()");
             foreach (var repo in _cachedRepositories)
             {
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, repo.GetType().Name.Replace("Repository", ""), " Database Regeneration");
+                ServerState.Instance.ServerStartingStatus = $"Database - Validating - {repo.GetType().Name.Replace("Repository", "")} Database Regeneration...";
                 repo.RegenerateDb();
             }
 

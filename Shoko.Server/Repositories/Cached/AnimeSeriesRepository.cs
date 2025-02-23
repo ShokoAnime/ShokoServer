@@ -8,7 +8,6 @@ using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
@@ -72,7 +71,8 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     {
         try
         {
-            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " Database Regeneration - Caching Titles & Overview");
+            ServerState.Instance.ServerStartingStatus =
+                $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Caching Titles & Overview...";
             foreach (var series in Cache.Values.ToList())
             {
                 series.ResetPreferredTitle();
@@ -82,7 +82,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
             var sers = Cache.Values.Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
             var max = sers.Count;
-            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " Database Regeneration - Ensuring Groups Exist");
+            ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Ensuring Groups Exist...";
 
             var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
             for (var i = 0; i < max; i++)
@@ -100,12 +100,12 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 }
 
                 if (i % 10 != 0) continue;
-                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries),
-                    " DbRegen - Ensuring Groups Exist - " + i + "/" + max);
+                ServerState.Instance.ServerStartingStatus =
+                    $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {i}/{max}...";
             }
 
-            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries),
-                " DbRegen - Ensuring Groups Exist - " + max + "/" + max);
+            ServerState.Instance.ServerStartingStatus =
+                $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {max}/{max}...";
         }
         catch (Exception e)
         {

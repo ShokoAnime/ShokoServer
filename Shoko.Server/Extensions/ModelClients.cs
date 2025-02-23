@@ -258,28 +258,6 @@ public static class ModelClients
         return contract;
     }
 
-    public static AniDB_Anime_PreferredImage? ToServer(this CL_AniDB_Anime_DefaultImage image)
-        => new()
-        {
-            AniDB_Anime_PreferredImageID = image.AniDB_Anime_DefaultImageID,
-            AnidbAnimeID = image.AnimeID,
-            ImageID = image.ImageParentID,
-            ImageType = (CL_ImageSizeType)image.ImageType switch
-            {
-                CL_ImageSizeType.Poster => ImageEntityType.Poster,
-                CL_ImageSizeType.Fanart => ImageEntityType.Backdrop,
-                CL_ImageSizeType.WideBanner => ImageEntityType.Banner,
-                _ => ImageEntityType.None,
-            },
-            ImageSource = (CL_ImageEntityType)image.ImageParentType switch
-            {
-                CL_ImageEntityType.AniDB_Cover => DataSourceType.AniDB,
-                CL_ImageEntityType.MovieDB_FanArt => DataSourceType.TMDB,
-                CL_ImageEntityType.MovieDB_Poster => DataSourceType.TMDB,
-                _ => DataSourceType.None,
-            },
-        };
-
     public static ImageEntityType ToServerType(this CL_ImageEntityType type)
         => type switch
         {
@@ -535,18 +513,5 @@ public static class ModelClients
             Rating = group.Rating,
             URL = group.URL,
             Votes = group.Votes,
-        };
-
-    //The resources need to be moved
-    public static string GetAnimeTypeDescription(this AniDB_Anime anime)
-        => anime.GetAnimeTypeEnum() switch
-        {
-            AnimeType.Movie => Resources.AnimeType_Movie,
-            AnimeType.Other => Resources.AnimeType_Other,
-            AnimeType.OVA => Resources.AnimeType_OVA,
-            AnimeType.TVSeries => Resources.AnimeType_TVSeries,
-            AnimeType.TVSpecial => Resources.AnimeType_TVSpecial,
-            AnimeType.Web => Resources.AnimeType_Web,
-            _ => Resources.AnimeType_Other,
         };
 }

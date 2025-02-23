@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Filters.Functions;
@@ -53,7 +52,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
     public override void PostProcess()
     {
         // Clean up. This will populate empty conditions and remove duplicate filters
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, Template, " " + Resources.GroupFilter_Cleanup);
+        ServerState.Instance.ServerStartingStatus = "Database - Validating - FilterPreset Cleaning Up Group Filters...";
         var all = GetAll();
         var set = new HashSet<FilterPreset>(all);
         var notIn = all.Except(set).ToList();
@@ -64,7 +63,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
     {
         var lockedGFs = GetLockedGroupFilters();
 
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, Template, " " + Resources.Filter_CreateContinueWatching);
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - FilterPreset Validating Filters...";
 
         if (!lockedGFs.Any(a => a.Name == Constants.GroupFilterName.ContinueWatching))
         {

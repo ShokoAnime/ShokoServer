@@ -36,7 +36,7 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
         var current = 0;
         var records = Cache.Values.Where(a => a.AnimeEpisode_UserID == 0).ToList();
         var total = records.Count;
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, typeof(AnimeEpisode_User).Name, " Database Regeneration");
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration...";
         if (total is 0)
             return;
 
@@ -45,10 +45,12 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
             Save(record);
             current++;
             if (current % 10 == 0)
-                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, typeof(AnimeEpisode_User).Name, " Database Regeneration - " + current + "/" + total);
+                ServerState.Instance.ServerStartingStatus =
+                    $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration - {current}/{total}...";
         }
 
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, typeof(AnimeEpisode_User).Name, " Database Regeneration - " + total + "/" + total);
+        ServerState.Instance.ServerStartingStatus =
+            $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration - {total}/{total}...";
     }
 
     public SVR_AnimeEpisode_User? GetByUserIDAndEpisodeID(int userID, int episodeID)

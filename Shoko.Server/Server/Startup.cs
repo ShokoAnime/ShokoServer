@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
-using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
@@ -111,7 +110,7 @@ public class Startup
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
 
             _logger.LogInformation("Initializing Web Hosts...");
-            ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingHosts;
+            ServerState.Instance.ServerStartingStatus = "Initializing Hosts...";
             if (!await StartWebHost(_settingsProvider)) return;
 
             var shokoServer = Utils.ServiceContainer.GetRequiredService<ShokoServer>();

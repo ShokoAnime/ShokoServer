@@ -24,8 +24,7 @@ public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : Base
     public override void RegenerateDb()
     {
         // Don't need lock in init
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, typeof(SVR_AniDB_Anime_Title).Name, " DbRegen");
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(SVR_AniDB_Anime_Title)} DbRegen...";
         var titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
         foreach (var title in titles)
         {

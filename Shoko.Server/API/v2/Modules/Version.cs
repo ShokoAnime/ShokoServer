@@ -40,13 +40,13 @@ public class Version : BaseController
 
         version = new ComponentVersion
         {
-            version = Assembly.GetAssembly(typeof(FolderMappings)).GetName().Version.ToString(), name = "commons"
+            version = Utils.GetApplicationVersion(), name = "commons"
         };
         list.Add(version);
 
         version = new ComponentVersion
         {
-            version = Assembly.GetAssembly(typeof(AniDB_Anime)).GetName().Version.ToString(), name = "models"
+            version = Utils.GetApplicationVersion(), name = "models"
         };
         list.Add(version);
 

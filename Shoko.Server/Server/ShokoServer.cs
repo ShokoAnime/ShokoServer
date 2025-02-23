@@ -9,7 +9,6 @@ using System.Timers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -79,7 +78,7 @@ public class ShokoServer
         // Check if any of the DLL are blocked, common issue with daily builds
         if (!CheckBlockedFiles())
         {
-            Utils.ShowErrorMessage(Resources.ErrorBlockedDll);
+            Utils.ShowErrorMessage("Blocked DLL files found in server directory!");
             Environment.Exit(1);
         }
 
@@ -170,7 +169,7 @@ public class ShokoServer
     private void WorkerSetupDB_ReportProgress()
     {
         _logger.LogInformation("Starting Server: Complete!");
-        ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
+        ServerState.Instance.ServerStartingStatus = "Complete!";
         ServerState.Instance.ServerOnline = true;
         var settings = _settingsProvider.GetSettings();
         settings.FirstRun = false;
@@ -191,7 +190,7 @@ public class ShokoServer
             ServerState.Instance.ServerStarting = true;
             ServerState.Instance.StartupFailed = false;
             ServerState.Instance.StartupFailedMessage = string.Empty;
-            ServerState.Instance.ServerStartingStatus = Resources.Server_Cleaning;
+            ServerState.Instance.ServerStartingStatus = "Cleaning up...";
 
             _fileWatcherService.StopWatchingFiles();
 
@@ -202,10 +201,10 @@ public class ShokoServer
 
             _databaseFactory.CloseSessionFactory();
 
-            ServerState.Instance.ServerStartingStatus = Resources.Server_Initializing;
+            ServerState.Instance.ServerStartingStatus = "Initializing...";
             Thread.Sleep(1000);
 
-            ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseSetup;
+            ServerState.Instance.ServerStartingStatus = "Setting up database...";
 
             _logger.LogInformation("Setting up database...");
             if (!InitDB(out var errorMessage))
@@ -214,8 +213,7 @@ public class ShokoServer
 
                 if (string.IsNullOrEmpty(settings.Database.Type))
                 {
-                    ServerState.Instance.ServerStartingStatus =
-                        Resources.Server_DatabaseConfig;
+                    ServerState.Instance.ServerStartingStatus = "Please select and configure your database.";
                 }
 
                 e.Result = false;
@@ -226,7 +224,7 @@ public class ShokoServer
 
             _logger.LogInformation("Initializing Session Factory...");
             //init session factory
-            ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingSession;
+            ServerState.Instance.ServerStartingStatus = "Initializing Session Factory...";
             var _ = _databaseFactory.SessionFactory;
             ServerState.Instance.DatabaseAvailable = true;
 
@@ -240,7 +238,7 @@ public class ShokoServer
             _autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
             _autoUpdateTimer.Start();
 
-            ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingFile;
+            ServerState.Instance.ServerStartingStatus = "Initializing File Watchers...";
 
             _fileWatcherService.StartWatchingFiles();
 
@@ -303,7 +301,7 @@ public class ShokoServer
 
             _databaseFactory.CloseSessionFactory();
 
-            var message = Resources.Database_Initializing;
+            var message = "Initializing Session Factory...";
             _logger.LogInformation("Starting Server: {Message}", message);
             ServerState.Instance.ServerStartingStatus = message;
 
@@ -311,16 +309,16 @@ public class ShokoServer
             var version = instance.GetDatabaseVersion();
             if (version > instance.RequiredVersion)
             {
-                message = Resources.Database_NotSupportedVersion;
+                message = "The Database Version is bigger than the supported version by Shoko Server. You should upgrade Shoko Server.";
                 _logger.LogInformation("Starting Server: {Message}", message);
                 ServerState.Instance.ServerStartingStatus = message;
-                errorMessage = Resources.Database_NotSupportedVersion;
+                errorMessage = message;
                 return false;
             }
 
             if (version != 0 && version < instance.RequiredVersion)
             {
-                message = Resources.Database_Backup;
+                message = "New Version detected. Database Backup in progress...";
                 _logger.LogInformation("Starting Server: {Message}", message);
                 ServerState.Instance.ServerStartingStatus = message;
                 instance.BackupDatabase(instance.GetDatabaseBackupName(version));
@@ -341,7 +339,7 @@ public class ShokoServer
             {
                 _logger.LogError(ex, ex.ToString());
                 Utils.ShowErrorMessage(ex, "Database Error :\n\r " + ex + "\n\rNotify developers about this error, it will be logged in your logs");
-                ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
+                ServerState.Instance.ServerStartingStatus = "Failed to start. Please review database settings.";
                 errorMessage = "Database Error :\n\r " + ex +
                                "\n\rNotify developers about this error, it will be logged in your logs";
                 return false;
@@ -349,8 +347,8 @@ public class ShokoServer
             catch (TimeoutException ex)
             {
                 _logger.LogError(ex, $"Database Timeout: {ex}");
-                ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseTimeOut;
-                errorMessage = Resources.Server_DatabaseTimeOut + "\n\r" + ex;
+                ServerState.Instance.ServerStartingStatus = "Database timeout:";
+                errorMessage = "Database timeout:\n\r" + ex;
                 return false;
             }
 
@@ -361,7 +359,7 @@ public class ShokoServer
         {
             errorMessage = $"Could not init database: {ex}";
             _logger.LogError(ex, errorMessage);
-            ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
+            ServerState.Instance.ServerStartingStatus = "Failed to start. Please review database settings.";
             return false;
         }
     }

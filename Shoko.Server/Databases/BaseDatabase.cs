@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
@@ -174,8 +173,7 @@ public abstract class BaseDatabase<T> : IDatabase
                 }
 
                 message = ServerState.Instance.ServerStartingStatus =
-                    Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
-                    " - " + message;
+                    $"Database - Applying Schema Patches...{cmd.Version}.{cmd.Revision} - {message}";
                 Logger.Info($"Starting Server: {message}");
                 ServerState.Instance.ServerStartingStatus = message;
 
@@ -210,9 +208,7 @@ public abstract class BaseDatabase<T> : IDatabase
             message = message.Substring(0, 42) + "...";
         }
 
-        message = ServerState.Instance.ServerStartingStatus =
-            Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
-            " - " + message;
+        message = ServerState.Instance.ServerStartingStatus = $"Database - Applying Schema Patches...{cmd.Version}.{cmd.Revision} - {message}";
         ServerState.Instance.ServerStartingStatus = message;
 
         switch (cmd.Type)
@@ -247,28 +243,28 @@ public abstract class BaseDatabase<T> : IDatabase
 
     public void PopulateInitialData()
     {
-        var message = Resources.Database_Users;
+        var message = "Database - Populating Data (Users)...";
 
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialUsers();
 
-        message = Resources.Database_Filters;
+        message = "Database - Populating Data (Group Filters)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialGroupFilters();
 
-        message = Resources.Database_LockFilters;
+        message = "Database - Populating Data (Locked Group Filters)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateOrVerifyLockedFilters();
 
-        message = Resources.Database_RenameScripts;
+        message = "Database - Populating Data (Rename Script)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialRenameScript();
 
-        message = Resources.Database_CustomTags;
+        message = "Database - Populating Data (Custom Tags)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialCustomTags();
@@ -361,37 +357,37 @@ public abstract class BaseDatabase<T> : IDatabase
             // Dropped
             var tag = new CustomTag
             {
-                TagName = Resources.CustomTag_Dropped, TagDescription = Resources.CustomTag_DroppedInfo
+                TagName = "Dropped", TagDescription = "Started watching this series, but have since dropped it"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Pinned
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_Pinned, TagDescription = Resources.CustomTag_PinnedInfo
+                TagName = "Pinned", TagDescription = "Pinned this series for whatever reason you like"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Ongoing
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_Ongoing, TagDescription = Resources.CustomTag_OngoingInfo
+                TagName = "Ongoing", TagDescription = "This series does not have an end date"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Waiting for Series Completion
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_SeriesComplete,
-                TagDescription = Resources.CustomTag_SeriesCompleteInfo
+                TagName = "Waiting for Series Completion",
+                TagDescription = "Will start watching this once this series is finished"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Waiting for Bluray Completion
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_BlurayComplete,
-                TagDescription = Resources.CustomTag_BlurayCompleteInfo
+                TagName = "Waiting for Blu-ray Completion",
+                TagDescription = "Will start watching this once all episodes are available in Blu-Ray"
             };
             RepoFactory.CustomTag.Save(tag);
         }
@@ -400,65 +396,4 @@ public abstract class BaseDatabase<T> : IDatabase
             Logger.Error(ex, "Could not Create Initial Custom Tags: " + ex);
         }
     }
-
-    /*
- private static void CreateContinueWatchingGroupFilter()
- {
-     // group filters
-     GroupFilterRepository repFilters = new GroupFilterRepository();
-     GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
-
-     using (var session = JMMService.SessionFactory.OpenSession())
-     {
-         // check if it already exists
-         List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
-
-         if (lockedGFs != null)
-         {
-             // if it already exists we can leave
-             foreach (GroupFilter gfTemp in lockedGFs)
-             {
-                 if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
-                     return;
-             }
-
-             // the default value when the column was added to the database was '1'
-             // this is only needed for users of a migrated database
-             foreach (GroupFilter gfTemp in lockedGFs)
-             {
-                 if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase) &&
-                     gfTemp.FilterType != (int)GroupFilterType.ContinueWatching)
-                 {
-                     DatabaseFixes.FixContinueWatchingGroupFilter_20160406();
-                     return;
-                 }
-             }
-         }
-
-         GroupFilter gf = new GroupFilter();
-         gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
-         gf.Locked = 1;
-         gf.SortingCriteria = "4;2"; // by last watched episode desc
-         gf.ApplyToSeries = 0;
-         gf.BaseCondition = 1; // all
-         gf.FilterType = (int)GroupFilterType.ContinueWatching;
-
-         repFilters.Save(gf,true,null);
-
-         GroupFilterCondition gfc = new GroupFilterCondition();
-         gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
-         gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-         gfc.ConditionParameter = string.Empty;
-         gfc.GroupFilterID = gf.GroupFilterID;
-         repGFC.Save(gfc);
-
-         gfc = new GroupFilterCondition();
-         gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
-         gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-         gfc.ConditionParameter = string.Empty;
-         gfc.GroupFilterID = gf.GroupFilterID;
-         repGFC.Save(gfc);
-     }
- }
- */
 }

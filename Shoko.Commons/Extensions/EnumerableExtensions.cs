@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Shoko.Commons.Collections;
 
 namespace Shoko.Commons.Extensions
 {
@@ -54,16 +53,7 @@ namespace Shoko.Commons.Extensions
         public static IEnumerable<T>? WhereNotNull<T>(this IEnumerable<T?>? enumerable) where T : struct => enumerable?.Where(a => a != null).Select(a => a!.Value);
 
         [return: NotNullIfNotNull(nameof(enumerable))]
-        public static IQueryable<T>? WhereNotNull<T>(this IQueryable<T?>? enumerable) => enumerable?.Where(a => a != null).Select(a => a!);
-
-        [return: NotNullIfNotNull(nameof(enumerable))]
         public static IEnumerable<T>? WhereNotDefault<T>(this IEnumerable<T?>? enumerable) => enumerable?.Where(a => a != null && !Equals(a, default(T))).Select(a => a!);
-
-        [return: NotNullIfNotNull(nameof(enumerable))]
-        public static IEnumerable<T>? WhereNotDefault<T>(this IEnumerable<T?>? enumerable) where T : struct => enumerable?.Where(a => a != null && !Equals(a, default(T))).Select(a => a!.Value);
-
-        [return: NotNullIfNotNull(nameof(enumerable))]
-        public static IQueryable<T>? WhereNotDefault<T>(this IQueryable<T?>? enumerable) => enumerable?.Where(a => a != null && !Equals(a, default(T))).Select(a => a!);
 
         public static string ToRanges(this List<int> ints) {
             if (ints.Count < 1) return "";
@@ -84,18 +74,6 @@ namespace Shoko.Commons.Extensions
             return string.Join(", ", Enumerable.Range(0, tonums.Count).Select(
                 i => fromnums[i] + (tonums[i] == fromnums[i] ? "" : "-" + tonums[i])
             ));
-        }
-
-        public static ILookup<TKey, TSource> ToLazyLookup<TKey, TSource>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector,
-            IEqualityComparer<TKey>? comparer = null)
-        {
-            return LazyLookup<TKey, TSource>.Create(source, keySelector, comparer);
-        }
-
-        public static ILookup<TKey, TElement> ToLazyLookup<TSource, TKey, TElement>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector,
-            Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null)
-        {
-            return LazyLookup<TKey, TElement>.Create(source, keySelector, elementSelector, comparer);
         }
 
         /// <summary>
@@ -201,105 +179,6 @@ namespace Shoko.Commons.Extensions
             }
         }
 
-#if !NET6_0_OR_GREATER
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>
-            (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            var seenKeys = new HashSet<TKey>();
-            foreach (var element in source)
-            {
-                if (seenKeys.Add(keySelector(element)))
-                {
-                    yield return element;
-                }
-            }
-        }
-
-        // These next few for MaxBy are borrowed from MoreLINQ
-         public static IEnumerable<TSource> MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector)
-        {
-            return source.MaxBy(selector, null);
-        }
-
-        public static IEnumerable<TSource> MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector, IComparer<TKey>? comparer)
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-
-            comparer ??= Comparer<TKey>.Default;
-            return ExtremaBy(source, selector, (x, y) => comparer.Compare(x, y));
-        }
-        
-        public static IEnumerable<TSource> MinBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector)
-        {
-            return source.MinBy(selector, null);
-        }
-
-        public static IEnumerable<TSource> MinBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector, IComparer<TKey>? comparer)
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-
-            comparer ??= Comparer<TKey>.Default;
-            return ExtremaBy(source, selector, (x, y) => comparer.Compare(y, x));
-        }
-#endif
-
-        static IEnumerable<TSource> ExtremaBy<TSource, TKey>(IEnumerable<TSource> source,
-            Func<TSource, TKey> selector, Func<TKey, TKey, int> comparer)
-        {
-            foreach (var item in Extrema())
-                yield return item;
-            yield break;
-
-            IEnumerable<TSource> Extrema()
-            {
-                using var e = source.GetEnumerator();
-                if (!e.MoveNext())
-                    return new List<TSource>();
-
-                var extrema = new List<TSource> { e.Current };
-                var extremaKey = selector(e.Current);
-
-                while (e.MoveNext())
-                {
-                    var item = e.Current;
-                    var key = selector(item);
-                    var comparison = comparer(key, extremaKey);
-                    if (comparison > 0)
-                    {
-                        extrema = new List<TSource> { item };
-                        extremaKey = key;
-                    }
-                    else if (comparison == 0)
-                    {
-                        extrema.Add(item);
-                    }
-                }
-
-                return extrema;
-            }
-        }
-
-/*        /// <summary>
-        /// Converts the specified sequence into a <see cref="HashSet{T}"/>
-        /// </summary>
-        /// <typeparam name="TSource">The type of items in <paramref name="source"/>.</typeparam>
-        /// <param name="source">The sequence to convert to a <see cref="HashSet{T}"/></param>
-        /// <param name="comparer">The optional <see cref="IEqualityComparer{T}"/> to use for comparing values.</param>
-        /// <returns>The created <see cref="HashSet{T}"/> containing the distinct values from <paramref name="source"/>.</returns>
-        public static HashSet<TSource> ToHashSet<TSource>(this IEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
-        {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-
-            return new HashSet<TSource>(source, comparer);
-        }
-*/
         /// <summary>
         /// Casts/converts the specified <see cref="IEnumerable{T}"/> to a <see cref="IReadOnlyCollection{T}"/>.
         /// </summary>

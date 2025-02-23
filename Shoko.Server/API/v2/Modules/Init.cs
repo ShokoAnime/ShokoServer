@@ -78,14 +78,14 @@ public class Init : BaseController
 
         version = new ComponentVersion
         {
-            version = Assembly.GetAssembly(typeof(FolderMappings)).GetName().Version.ToString(),
+            version = Utils.GetApplicationVersion(),
             name = "commons"
         };
         list.Add(version);
 
         version = new ComponentVersion
         {
-            version = Assembly.GetAssembly(typeof(AniDB_Anime)).GetName().Version.ToString(),
+            version = Utils.GetApplicationVersion(),
             name = "models"
         };
         list.Add(version);

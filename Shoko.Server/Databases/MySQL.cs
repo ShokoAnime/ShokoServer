@@ -1437,7 +1437,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
             if (create)
             {
-                ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
+                ServerState.Instance.ServerStartingStatus = "Database - Creating Initial Schema...";
                 ExecuteWithException(myConn, createVersionTable);
             }
 
@@ -1460,7 +1460,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
                 ExecuteWithException(myConn, linuxTableFixes);
             }
 
-            ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
+            ServerState.Instance.ServerStartingStatus = "Database - Applying Schema Patches...";
 
             ExecuteWithException(myConn, patchCommands);
         });

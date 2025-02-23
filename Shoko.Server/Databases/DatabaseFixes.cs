@@ -11,7 +11,6 @@ using Newtonsoft.Json;
 using NHibernate;
 using NLog;
 using Quartz;
-using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
@@ -187,9 +186,7 @@ public class DatabaseFixes
         {
             if (i % 10 == 0)
             {
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, "Populating AniDB Info from Cache",
-                    $" {i}/{list.Count}");
+                ServerState.Instance.ServerStartingStatus = $"Database - Validating - Populating AniDB Info from Cache {i}/{list.Count}...";
             }
 
             i++;

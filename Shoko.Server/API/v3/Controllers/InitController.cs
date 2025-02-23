@@ -60,8 +60,8 @@ public class InitController : BaseController
         var versionSet = new ComponentVersionSet()
         {
             Server = new() { Version = Utils.GetApplicationVersion(), ReleaseChannel = ReleaseChannel.Debug },
-            Commons = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Commons.Culture))) },
-            Models = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Models.Constants))) },
+            Commons = new() { Version = Utils.GetApplicationVersion() },
+            Models = new() { Version = Utils.GetApplicationVersion() },
             MediaInfo = new()
         };
 

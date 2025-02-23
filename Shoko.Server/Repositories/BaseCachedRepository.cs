@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using NHibernate;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Repositories.NHibernate;
@@ -38,9 +37,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     {
         if (displayname)
         {
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Cache, typeof(T).Name.Replace("SVR_", string.Empty),
-                string.Empty);
+            ServerState.Instance.ServerStartingStatus = $"Database Cache - Caching  - {typeof(T).Name.Replace("SVR_", string.Empty)}...";
         }
 
         // This is only called from main thread, so we don't need to lock

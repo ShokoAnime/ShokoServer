@@ -1194,7 +1194,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
             var create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
             if (create)
             {
-                ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
+                ServerState.Instance.ServerStartingStatus = "Database - Creating Initial Schema...";
                 ExecuteWithException(myConn, createVersionTable);
             }
             var update = (ExecuteScalar(myConn,
@@ -1208,7 +1208,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
             PreFillVersions(createTables.Union(patchCommands));
             if (create)
                 ExecuteWithException(myConn, createTables);
-            ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
+            ServerState.Instance.ServerStartingStatus = "Database - Applying Schema Patches...";
 
             ExecuteWithException(myConn, patchCommands);
         });

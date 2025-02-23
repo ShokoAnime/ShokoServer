@@ -1518,7 +1518,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
                 ExecuteScalar(myConn, "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0;
             if (create)
             {
-                ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
+                ServerState.Instance.ServerStartingStatus = "Database - Creating Initial Schema...";
                 ExecuteWithException(myConn, createVersionTable);
             }
 
@@ -1534,7 +1534,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
                 ExecuteWithException(myConn, createTables);
             }
 
-            ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
+            ServerState.Instance.ServerStartingStatus = "Database - Applying Schema Patches...";
             ExecuteWithException(myConn, patchCommands);
         });
     }
