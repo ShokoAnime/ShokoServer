@@ -10,7 +10,6 @@ using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Databases.SqliteFixes;

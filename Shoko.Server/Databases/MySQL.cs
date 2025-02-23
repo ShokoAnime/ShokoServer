@@ -10,7 +10,6 @@ using MySqlConnector;
 using NHibernate;
 using NHibernate.Driver.MySqlConnector;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models;
