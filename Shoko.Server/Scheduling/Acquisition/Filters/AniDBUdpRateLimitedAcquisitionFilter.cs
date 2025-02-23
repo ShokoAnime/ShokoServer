@@ -29,7 +29,7 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
         _connectionHandler.AniDBStateUpdate += OnAniDBStateUpdate;
         _videoReleaseService = videoReleaseService;
         _videoReleaseService.ProvidersUpdated += OnProvidersUpdated;
-        _processJobIncluded = _videoReleaseService.GetAvailableProviders().Any(a => a.Provider.Name is "AniDB");
+        _processJobIncluded = false;
 
         _typesWithProcessJob = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
             typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract && ObjectUtils.IsAttributePresent(a, typeof(AniDBUdpRateLimitedAttribute))).ToArray();
