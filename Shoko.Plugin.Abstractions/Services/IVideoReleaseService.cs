@@ -76,18 +76,18 @@ public interface IVideoReleaseService
     void UpdateProviders(params ReleaseInfoProviderInfo[] providers);
 
     /// <summary>
-    ///   Gets the <see cref="IReleaseInfoProvider"/> with the specified ID.
+    ///   Gets the <see cref="IReleaseInfoProvider"/> with the specified name.
     /// </summary>
-    /// <param name="providerID">
-    ///   The ID of the provider.
+    /// <param name="providerName">
+    ///   The name of the provider.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="providerID"/> is <c>null</c>.
+    ///   <paramref name="providerName"/> is <c>null</c>.
     /// </exception>
     /// <returns>
     ///   The provider, or <c>null</c> if none could be found.
     /// </returns>
-    IReleaseInfoProvider? GetProviderByID(string providerID);
+    IReleaseInfoProvider? GetProviderByName(string providerName);
 
     /// <summary>
     ///   Asks all enabled <see cref="IReleaseInfoProvider"/>s, in priority
