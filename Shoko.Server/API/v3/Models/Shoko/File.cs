@@ -523,7 +523,7 @@ public partial class File
         FileID = 16,
     }
 
-    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place? Location, IReadOnlyList<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place? Location, IReadOnlyList<SVR_VideoLocal_Place>? Locations, SVR_VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
         criteria switch
         {
             FileSortCriteria.ImportFolderName => (tuple) => tuple.Location?.ImportFolder?.ImportFolderName ?? string.Empty,
@@ -533,7 +533,7 @@ public partial class File
             FileSortCriteria.FileSize => (tuple) => tuple.Video.FileSize,
             FileSortCriteria.FileName => (tuple) => tuple.Location?.FileName,
             FileSortCriteria.FileID => (tuple) => tuple.Video.VideoLocalID,
-            FileSortCriteria.DuplicateCount => (tuple) => tuple.Locations.Count,
+            FileSortCriteria.DuplicateCount => (tuple) => tuple.Locations?.Count ?? 0,
             FileSortCriteria.CreatedAt => (tuple) => tuple.Video.DateTimeCreated,
             FileSortCriteria.ImportedAt => isInverted ? (tuple) => tuple.Video.DateTimeImported ?? DateTime.MinValue : (tuple) => tuple.Video.DateTimeImported ?? DateTime.MaxValue,
             FileSortCriteria.ViewedAt => isInverted ? (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MaxValue,
@@ -545,7 +545,7 @@ public partial class File
             _ => null,
         };
 
-    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User?)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User?)> enumerable, List<string> sortCriterias)
+    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> enumerable, List<string> sortCriterias)
     {
         var first = true;
         return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
@@ -564,7 +564,7 @@ public partial class File
             }
 
             // All other criteria in the list.
-            var ordered = (IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>, SVR_VideoLocal_User?)>)current;
+            var ordered = (IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)>)current;
             return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
         });
     }

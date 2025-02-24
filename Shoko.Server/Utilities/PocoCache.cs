@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Shoko.Commons.Extensions;
+using Shoko.Server.Extensions;
 
 #nullable enable
 namespace NutzCode.InMemoryIndex;

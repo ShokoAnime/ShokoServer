@@ -40,6 +40,7 @@ using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using Shoko.Server.API.v3.Models.TMDB;
+using Shoko.Server.Extensions;
 
 #pragma warning disable CA1822
 #nullable enable

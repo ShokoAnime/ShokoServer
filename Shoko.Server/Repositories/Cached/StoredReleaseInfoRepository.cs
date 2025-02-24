@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.Release;
 
 #nullable enable
