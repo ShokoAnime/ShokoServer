@@ -202,7 +202,7 @@ public class AbstractVideoReleaseService(
                 .Select(t => t.Item1)
                 .FirstOrDefault();
             if (releaseInfo is not null)
-                logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", releaseInfo.ProviderID, video.ID);
+                logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", releaseInfo.ProviderName, video.ID);
         }
         else
         {
@@ -236,13 +236,13 @@ public class AbstractVideoReleaseService(
         cancellationToken.ThrowIfCancellationRequested();
         var matchAttempt = new StoredReleaseInfo_MatchAttempt()
         {
-            ProviderID = releaseInfo?.ProviderID,
+            ProviderName = releaseInfo?.ProviderName,
             ED2K = video.Hashes.ED2K,
             FileSize = video.Size,
             AttemptStartedAt = startedAt,
             // Reuse startedAt because it will be overwritten in SaveReleaseForVideo later.
             AttemptEndedAt = releaseInfo is null ? DateTime.UtcNow : startedAt,
-            AttemptedProviderIDs = providerIDs,
+            AttemptedProviderNames = providerIDs,
         };
         if (releaseInfo is null)
             releaseInfoMatchAttemptRepository.Save(matchAttempt);
@@ -264,7 +264,7 @@ public class AbstractVideoReleaseService(
         => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName));
 
     public async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release)
-        => await SaveReleaseForVideo(video, release, new() { ProviderID = release.ProviderID, EmbeddedAttemptProviderIDs = release.ProviderID, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.Hashes.ED2K, FileSize = video.Size });
+        => await SaveReleaseForVideo(video, release, new() { ProviderName = release.ProviderName, EmbeddedAttemptProviderNames = release.ProviderName, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.Hashes.ED2K, FileSize = video.Size });
 
     private async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, StoredReleaseInfo_MatchAttempt matchAttempt)
     {

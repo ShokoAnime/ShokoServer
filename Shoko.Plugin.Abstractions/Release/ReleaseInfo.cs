@@ -16,7 +16,7 @@ public class ReleaseInfo
     public string? ID { get; set; }
 
     /// <inheritdoc />
-    public string? ProviderID { get; set; }
+    public string? ProviderName { get; set; }
 
     /// <summary>
     /// An URL for where to find the information online, if available from the provider.
@@ -135,7 +135,7 @@ public class ReleaseInfo
     public ReleaseInfo(IReleaseInfo info)
     {
         ID = info.ID;
-        ProviderID = info.ProviderID;
+        ProviderName = info.ProviderName;
         Revision = info.Revision;
         Comment = info.Comment;
         OriginalFilename = info.OriginalFilename;
