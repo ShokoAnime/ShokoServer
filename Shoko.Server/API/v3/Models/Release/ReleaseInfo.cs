@@ -22,10 +22,11 @@ public class ReleaseInfo : IReleaseInfo
     public string? ID { get; init; }
 
     /// <summary>
-    /// The id of the provider where the release can be found, used to identify
-    /// which provider found the release.
+    /// The name of the provider which found the release. This field can
+    /// intentionally be set to anything to allow importing/exporting/remixing
+    /// data from other providers.
     /// </summary>
-    public string ProviderID { get; init; }
+    public string ProviderName { get; init; }
 
     /// <summary>
     /// An absolute URI for where to find the information, if available from the
@@ -123,14 +124,14 @@ public class ReleaseInfo : IReleaseInfo
 
     public ReleaseInfo()
     {
-        ProviderID = "User";
+        ProviderName = "User";
         CrossReferences = [];
     }
 
     public ReleaseInfo(IReleaseInfo releaseInfo)
     {
         ID = releaseInfo.ID;
-        ProviderID = releaseInfo.ProviderID;
+        ProviderName = releaseInfo.ProviderName;
         ReleaseURI = releaseInfo.ReleaseURI;
         Revision = releaseInfo.Revision;
         FileSize = releaseInfo.FileSize;
