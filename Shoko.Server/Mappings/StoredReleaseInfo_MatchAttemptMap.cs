@@ -12,10 +12,10 @@ public class StoredReleaseInfo_MatchAttemptMap : ClassMap<StoredReleaseInfo_Matc
         Not.LazyLoad();
         Id(x => x.StoredReleaseInfo_MatchAttemptID);
 
-        Map(x => x.ProviderID);
+        Map(x => x.ProviderName);
         Map(x => x.ED2K).Not.Nullable();
         Map(x => x.FileSize).Not.Nullable();
-        Map(x => x.EmbeddedAttemptProviderIDs).Column("AttemptProviderIDs").Not.Nullable();
+        Map(x => x.EmbeddedAttemptProviderNames).Column("AttemptProviderNames").Not.Nullable();
         Map(x => x.AttemptStartedAt).Not.Nullable();
         Map(x => x.AttemptEndedAt).Not.Nullable();
     }
