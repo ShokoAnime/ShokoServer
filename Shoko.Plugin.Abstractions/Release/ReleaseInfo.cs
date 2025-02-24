@@ -94,12 +94,6 @@ public class ReleaseInfo
     public DateOnly? ReleasedAt { get; set; }
 
     /// <summary>
-    /// When the release information was last updated by the provider. Can be
-    /// <c>null</c> if not applicable.
-    /// </summary>
-    public DateTime? LastUpdatedAt { get; set; }
-
-    /// <summary>
     /// When the release information was locally saved in Shoko for the first time.
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -130,7 +124,6 @@ public class ReleaseInfo
         MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
         CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
         ReleasedAt = info.ReleasedAt;
-        LastUpdatedAt = info.LastUpdatedAt;
         CreatedAt = info.CreatedAt;
     }
 
@@ -153,7 +146,6 @@ public class ReleaseInfo
         MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
         CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
         ReleasedAt = info.ReleasedAt;
-        LastUpdatedAt = info.LastUpdatedAt;
         CreatedAt = info.CreatedAt;
     }
 }

@@ -29,8 +29,6 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 
     string IReleaseInfo.ProviderID => ProviderID ?? string.Empty;
 
-    long? IReleaseInfo.FileSize => FileSize;
-
     IHashes? IReleaseInfo.Hashes => Hashes;
 
     IReleaseGroup? IReleaseInfo.Group => Group;
@@ -39,7 +37,7 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 
     IReadOnlyList<IReleaseVideoCrossReference> IReleaseInfo.CrossReferences => CrossReferences;
 
-    DateTime IReleaseInfo.LastUpdatedAt => LastUpdatedAt ??= DateTime.Now;
+    DateTime IReleaseInfo.LastUpdatedAt => CreatedAt;
 
     #endregion
 }

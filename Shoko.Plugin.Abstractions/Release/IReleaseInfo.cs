@@ -100,9 +100,7 @@ public interface IReleaseInfo
     DateOnly? ReleasedAt { get; }
 
     /// <summary>
-    /// When the release information was last updated by the provider or
-    /// locally. Up to the provider to decide how to set this, but it should
-    /// always be set.
+    /// When the release information was last updated locally.
     /// </summary>
     DateTime LastUpdatedAt { get; }
 
