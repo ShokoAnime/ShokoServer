@@ -118,7 +118,7 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
 
     #region IVideoCrossReference implementation
 
-    string IVideoCrossReference.Source => ReleaseInfo?.ProviderID ?? string.Empty;
+    string IVideoCrossReference.Source => ReleaseInfo?.ProviderName ?? string.Empty;
 
     string IVideoCrossReference.ED2K => Hash;
 
