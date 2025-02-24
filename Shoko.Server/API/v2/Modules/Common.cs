@@ -854,7 +854,7 @@ public class Common : BaseController
         JMMUser user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
-            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderID: "AniDB", IsCorrupted: true }).ToList();
+            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true }).ToList();
         return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
 

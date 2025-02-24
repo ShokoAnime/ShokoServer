@@ -338,7 +338,7 @@ public class ActionController : BaseController
         var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
             .Select(file => (Video: file, AniDB: file.ReleaseInfo))
-            .Where(tuple => tuple.AniDB is { ProviderID: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
+            .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
             .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);

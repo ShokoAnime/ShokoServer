@@ -84,7 +84,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         releaseInfo = new ReleaseInfoWithProvider(Name)
         {
             ID = releaseId,
-            ProviderID = Name,
+            ProviderName = Name,
             ReleaseURI = $"{ReleasePrefix}{anidbFile.FileID}",
             Revision = anidbFile.Version,
             Comment = anidbFile.Description,

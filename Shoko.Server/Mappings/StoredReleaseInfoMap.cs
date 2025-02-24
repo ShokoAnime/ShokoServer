@@ -16,7 +16,7 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.ED2K).Not.Nullable();
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.ID);
-        Map(x => x.ProviderID).Not.Nullable();
+        Map(x => x.ProviderName).Not.Nullable();
         Map(x => x.ReleaseURI);
         Map(x => x.Revision).Not.Nullable();
         Map(x => x.ProvidedFileSize);

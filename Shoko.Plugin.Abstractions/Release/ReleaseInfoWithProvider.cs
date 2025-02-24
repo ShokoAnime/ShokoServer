@@ -10,16 +10,16 @@ namespace Shoko.Plugin.Abstractions.Release;
 public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 {
     /// <inheritdoc />
-    public ReleaseInfoWithProvider(string providerID) : base()
+    public ReleaseInfoWithProvider(string providerName) : base()
     {
-        ProviderID = providerID;
+        ProviderName = providerName;
     }
 
     /// <inheritdoc />
-    public ReleaseInfoWithProvider(ReleaseInfo releaseInfo, string providerID) : base(releaseInfo)
+    public ReleaseInfoWithProvider(ReleaseInfo releaseInfo, string providerName) : base(releaseInfo)
     {
-        if (!string.IsNullOrEmpty(ProviderID))
-            ProviderID = providerID;
+        if (!string.IsNullOrEmpty(ProviderName))
+            ProviderName = providerName;
     }
 
     /// <inheritdoc />
@@ -27,7 +27,7 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 
     #region IReleaseInfo Implementation
 
-    string IReleaseInfo.ProviderID => ProviderID ?? string.Empty;
+    string IReleaseInfo.ProviderName => ProviderName ?? string.Empty;
 
     IHashes? IReleaseInfo.Hashes => Hashes;
 

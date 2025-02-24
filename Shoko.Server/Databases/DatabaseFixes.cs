@@ -1125,7 +1125,7 @@ public class DatabaseFixes
             {
                 ED2K = ed2k,
                 FileSize = fileSize,
-                ProviderID = "User",
+                ProviderName = "User",
                 CrossReferences = groupBy
                     .OrderBy(x => x.CrossRef_File_EpisodeID)
                     .Select(xref => new EmbeddedCrossReference
@@ -1157,7 +1157,7 @@ public class DatabaseFixes
                     : null;
 
                 storedReleaseInfo.ID = $"{ed2k}+{fileSize}";
-                storedReleaseInfo.ProviderID = "AniDB";
+                storedReleaseInfo.ProviderName = "AniDB";
                 storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile.FileID}";
                 storedReleaseInfo.Revision = anidbFile.FileVersion;
                 storedReleaseInfo.Comment = string.IsNullOrEmpty(anidbFile.File_Description) ? null : anidbFile.File_Description;
@@ -1211,8 +1211,8 @@ public class DatabaseFixes
                 {
                     ED2K = ed2k,
                     FileSize = fileSize,
-                    AttemptedProviderIDs = ["AniDB"],
-                    ProviderID = anidbFileUpdate.HasResponse ? "AniDB" : null,
+                    AttemptedProviderNames = ["AniDB"],
+                    ProviderName = anidbFileUpdate.HasResponse ? "AniDB" : null,
                     AttemptStartedAt = anidbFileUpdate.UpdatedAt,
                     AttemptEndedAt = anidbFileUpdate.UpdatedAt,
                 });
