@@ -29,6 +29,17 @@ public interface IVideoReleaseService
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
+    ///   Gets or sets a value indicating whether to use parallel mode.
+    /// </summary>
+    /// <remarks>
+    ///   Parallel mode affects <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/>
+    ///   and makes it run all providers in parallel and pick the highest priority valid result,
+    ///   as opposed to running each provider serially in the priority order and picking the first
+    ///   valid result when parallel mode is off.
+    /// </remarks>
+    bool ParallelMode { get; set; }
+
+    /// <summary>
     ///   Adds the release info providers.
     /// </summary>
     /// <remarks>
@@ -90,9 +101,11 @@ public interface IVideoReleaseService
     IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
 
     /// <summary>
-    ///   Asks all enabled <see cref="IReleaseInfoProvider"/>s, in priority
-    ///   order, to find a release until a release is found or all providers are
-    ///   exhausted.
+    ///   If parallel mode is disabled, then it will run all enabled
+    ///   <see cref="IReleaseInfoProvider"/>s, in priority order, until a
+    ///   release is found or all providers are exhausted. If parallel mode is
+    ///   enabled, then it will run all enabled <see cref="IReleaseInfoProvider"/>s
+    ///   in parallel and pick the highest priority valid result.
     /// </summary>
     /// <remarks>
     ///   This method does not save the found release to the database unless

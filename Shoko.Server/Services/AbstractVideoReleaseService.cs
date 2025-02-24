@@ -58,6 +58,19 @@ public class AbstractVideoReleaseService(
 
     public event EventHandler? ProvidersUpdated;
 
+    public bool ParallelMode
+    {
+        get => _settings.Plugins.ReleaseProvider.ParallelMode;
+        set
+        {
+            if (_settings.Plugins.ReleaseProvider.ParallelMode == value)
+                return;
+
+            _settings.Plugins.ReleaseProvider.ParallelMode = value;
+            ProvidersUpdated?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
     public void AddProviders(IEnumerable<IReleaseInfoProvider> providers)
     {
         if (_releaseInfoProviders is not null)
@@ -159,24 +172,59 @@ public class AbstractVideoReleaseService(
         IReleaseInfo? releaseInfo = null;
         var startedAt = DateTime.Now;
         var providerIDs = new List<string>();
-        foreach (var providerInfo in GetAvailableProviders())
+        if (ParallelMode)
         {
-            if (!providerInfo.Enabled)
-                continue;
+            var tasks = new List<Task<(ReleaseInfoWithProvider?, int)>>();
+            foreach (var providerInfo in GetAvailableProviders())
+            {
+                if (!providerInfo.Enabled)
+                    continue;
 
-            providerIDs.Add(providerInfo.Provider.Name);
-            if (releaseInfo is not null)
-                continue;
+                providerIDs.Add(providerInfo.Provider.Name);
+                tasks.Add(Task.Run<(ReleaseInfoWithProvider?, int)>(async () =>
+                {
+                    logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
+                    var provider = providerInfo.Provider;
+                    var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
+                    if (release is null || release.CrossReferences.Count < 1)
+                        return default;
 
-            logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-            var provider = providerInfo.Provider;
-            var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
+                    logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
+                    return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo.Priority);
+                }, cancellationToken));
+            }
+
+            var results = await Task.WhenAll(tasks);
             cancellationToken.ThrowIfCancellationRequested();
-            if (release is null || release.CrossReferences.Count < 1)
-                continue;
+            releaseInfo = results
+                .Where(t => t.Item1 is not null)
+                .OrderBy(t => t.Item2)
+                .Select(t => t.Item1)
+                .FirstOrDefault();
+            if (releaseInfo is not null)
+                logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", releaseInfo.ProviderID, video.ID);
+        }
+        else
+        {
+            foreach (var providerInfo in GetAvailableProviders())
+            {
+                if (!providerInfo.Enabled)
+                    continue;
 
-            logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-            releaseInfo = new ReleaseInfoWithProvider(release, provider.Name);
+                providerIDs.Add(providerInfo.Provider.Name);
+                if (releaseInfo is not null)
+                    continue;
+
+                logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
+                var provider = providerInfo.Provider;
+                var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (release is null || release.CrossReferences.Count < 1)
+                    continue;
+
+                logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
+                releaseInfo = new ReleaseInfoWithProvider(release, provider.Name);
+            }
         }
 
         if (providerIDs.Count == 0)
