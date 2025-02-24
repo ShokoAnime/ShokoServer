@@ -14,11 +14,12 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Info;
+using Shoko.Server.Repositories.Cached;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
 
-public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler) : IReleaseInfoProvider
+public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler, VideoLocalRepository videoRepository) : IReleaseInfoProvider
 {
     public IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions()
     {
@@ -32,7 +33,13 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
 
     public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
 
-    public async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
+    public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
+        => GetReleaseInfoById($"{video.Hashes.ED2K}+{video.Size}", video);
+
+    public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
+        => GetReleaseInfoById(releaseId, null);
+
+    private async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, IVideo? video = null)
     {
         if (_memoryCache.TryGetValue(releaseId, out ReleaseInfoWithProvider? releaseInfo))
             return releaseInfo;
@@ -73,6 +80,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
             return null;
         }
 
+        video ??= videoRepository.GetByEd2kAndSize(hash, size);
         releaseInfo = new ReleaseInfoWithProvider(Name)
         {
             ID = releaseId,
@@ -116,7 +124,14 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
                     .Select(a => a.GetTitleLanguage())
                     .ToList(),
             },
-            CrossReferences = [],
+            FileSize = size,
+            Hashes = new()
+            {
+                CRC = video?.Hashes.CRC,
+                MD5 = video?.Hashes.MD5,
+                ED2K = hash,
+                SHA1 = video?.Hashes.SHA1,
+            },
             ReleasedAt = anidbFile.ReleasedAt,
             CreatedAt = DateTime.Now,
         };
@@ -153,7 +168,4 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         _memoryCache.Set(releaseId, releaseInfo, TimeSpan.FromHours(1));
         return releaseInfo;
     }
-
-    public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
-        => GetReleaseInfoById($"{video.Hashes.ED2K}+{video.Size}", cancellationToken);
 }
