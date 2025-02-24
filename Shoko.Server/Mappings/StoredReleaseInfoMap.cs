@@ -19,6 +19,7 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.ProviderID).Not.Nullable();
         Map(x => x.ReleaseURI);
         Map(x => x.Revision).Not.Nullable();
+        Map(x => x.ProvidedFileSize);
         Map(x => x.Comment);
         Map(x => x.OriginalFilename);
         Map(x => x.IsCensored);
