@@ -46,26 +46,32 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
 
         if (connectionHandler.IsBanned)
         {
-            logger.LogInformation("Unable to lookup release for {Hash} & {Size} due to being AniDB UDP banned.", hash, size);
+            logger.LogInformation("Unable to lookup release for Hash={Hash} & Size={Size} due to being AniDB UDP banned.", hash, size);
             return null;
         }
 
-        ResponseGetFile? anidbFile = null;
+        ResponseGetFile anidbFile;
         try
         {
             var response = await Task.Run(() => requestFactory.Create<RequestGetFile>(request => { request.Hash = hash; request.Size = size; }).Send());
-            anidbFile = response?.Response;
+            if (response?.Response is null)
+            {
+                logger.LogInformation("Unable to find a release for Hash={Hash} & Size={Size} at AniDB.", hash, size);
+                return null;
+            }
+
+            anidbFile = response.Response;
         }
         catch (NotLoggedInException ex)
         {
-            logger.LogError(ex, "Unable to lookup release for {Hash} & {Size} due to being AniDB UDP banned.", hash, size);
+            logger.LogError(ex, "Unable to lookup release for Hash={Hash} & Size={Size} due to being AniDB UDP banned.", hash, size);
+            return null;
         }
         catch (AniDBBannedException ex)
         {
-            logger.LogError(ex, "Unable to lookup release for {Hash} & {Size} due to being AniDB UDP banned.", hash, size);
-        }
-        if (anidbFile is null)
+            logger.LogError(ex, "Unable to lookup release for Hash={Hash} & Size={Size} due to being AniDB UDP banned.", hash, size);
             return null;
+        }
 
         releaseInfo = new ReleaseInfoWithProvider(Name)
         {
@@ -143,6 +149,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
                 offset += xref.Percentage;
         }
 
+        logger.LogInformation("Found a release for Hash={Hash} & Size={Size} at AniDB!", hash, size);
         _memoryCache.Set(releaseId, releaseInfo, TimeSpan.FromHours(1));
         return releaseInfo;
     }
