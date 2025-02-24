@@ -21,7 +21,7 @@ public class ReleaseExporter
         _videoReleaseService.VideoReleaseSaved += OnVideoReleaseSaved;
         _videoReleaseService.VideoReleaseDeleted += OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted += OnVideoDeleted;
-        _videoService.VideoFileRelocated -= OnVideoRelocated;
+        _videoService.VideoFileRelocated += OnVideoRelocated;
     }
 
     ~ReleaseExporter()
