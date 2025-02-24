@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
@@ -446,13 +444,13 @@ public class ActionService(
         foreach (var creator in RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID).Select(a => a.Creator).WhereNotNull())
         {
             if (string.IsNullOrEmpty(creator.ImagePath)) continue;
-            if (!Misc.IsImageValid(creator.GetFullImagePath())) return true;
+            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
         }
 
         foreach (var creator in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID).Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
         {
             if (string.IsNullOrEmpty(creator.ImagePath)) continue;
-            if (!Misc.IsImageValid(creator.GetFullImagePath())) return true;
+            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
         }
 
         return false;
@@ -465,7 +463,7 @@ public class ActionService(
         foreach (var chr in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID))
         {
             if (string.IsNullOrEmpty(chr.ImagePath)) continue;
-            if (!Misc.IsImageValid(chr.GetFullImagePath())) return true;
+            if (!ImageExtensions.IsImageValid(chr.GetFullImagePath())) return true;
         }
 
         return false;

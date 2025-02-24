@@ -11,7 +11,7 @@ public class RequestUpdatedAnime : UDPRequest<ResponseUpdatedAnime>
     public DateTime LastUpdated { get; set; }
 
     protected override string BaseCommand =>
-        $"UPDATED entity=1&time={Commons.Utils.AniDB.GetAniDBDateAsSeconds(LastUpdated)}";
+        $"UPDATED entity=1&time={AniDBExtensions.GetAniDBDateAsSeconds(LastUpdated)}";
 
     protected override UDPResponse<ResponseUpdatedAnime> ParseResponse(UDPResponse<string> response)
     {

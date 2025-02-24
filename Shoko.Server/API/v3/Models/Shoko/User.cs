@@ -5,8 +5,8 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Commons.Extensions;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -218,7 +218,6 @@ public class User
                 // Update restricted tags for the user.
                 if (RestrictedTags != null)
                 {
-                    user.InvalidateHideCategoriesCache();
                     var tags = RestrictedTags
                         .Select(RepoFactory.AniDB_Tag.GetByTagID)
                         .WhereNotNull()

@@ -1,23 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Providers.AniDB;
+using AnimeType = Shoko.Models.Enums.AnimeType;
 
-namespace Shoko.Commons.Extensions
+namespace Shoko.Server.Extensions
 {
     public static class Models
     {
-        //TODO Move this to a cache Dictionary when time, memory consumption should be low but, who knows.
-        private static readonly Dictionary<int, HashSet<string>> _alltagscache = new();
-
-        private static readonly Dictionary<int, HashSet<string>> _alltitlescache = new();
-
-        private static readonly Dictionary<int, HashSet<string>> _hidecategoriescache = new();
-
-        private static readonly Dictionary<string, HashSet<string>> _plexuserscache = new();
-
         public static bool GetFinishedAiring(this AniDB_Anime anime)
         {
             if (!anime.EndDate.HasValue) return false; // ongoing
@@ -128,28 +120,13 @@ namespace Shoko.Commons.Extensions
         public static HashSet<string> GetAllTags(this AniDB_Anime anime)
         {
             if (string.IsNullOrEmpty(anime.AllTags)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-            lock (_alltagscache)
-            {
-                if (!_alltagscache.ContainsKey(anime.AnimeID))
-                    _alltagscache[anime.AnimeID] = new HashSet<string>(
-                        anime.AllTags.Split('|', StringSplitOptions.RemoveEmptyEntries)
-                                .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
-                return _alltagscache[anime.AnimeID];
-            }
+            return new HashSet<string>(anime.AllTags.Split('|', StringSplitOptions.RemoveEmptyEntries), StringComparer.InvariantCultureIgnoreCase);
         }
 
         public static HashSet<string> GetAllTitles(this AniDB_Anime anime)
         {
             if (string.IsNullOrEmpty(anime.AllTitles)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-            lock (_alltitlescache)
-            {
-                if (!_alltitlescache.ContainsKey(anime.AnimeID))
-                    _alltitlescache[anime.AnimeID] = new HashSet<string>(
-                        anime.AllTitles.Split('|')
-                            .Select(a => a.Trim())
-                            .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
-                return _alltitlescache[anime.AnimeID];
-            }
+            return new HashSet<string>(anime.AllTitles.Split('|').Select(a => a.Trim()), StringComparer.InvariantCultureIgnoreCase);
         }
 
         public static double GetApprovalPercentage(this AniDB_Anime_Similar similar)
@@ -175,44 +152,20 @@ namespace Shoko.Commons.Extensions
 
         public static int GetAniDBTotalVotes(this AniDB_Anime anime) => anime.TempVoteCount + anime.VoteCount;
 
-        public static DateTime? GetAirDateAsDate(this AniDB_Episode episode) => AniDB.GetAniDBDateAsDate(episode.AirDate);
+        public static DateTime? GetAirDateAsDate(this AniDB_Episode episode) => AniDBExtensions.GetAniDBDateAsDate(episode.AirDate);
 
         public static HashSet<string> GetHideCategories(this JMMUser user)
         {
             if (string.IsNullOrEmpty(user.HideCategories)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-            lock (_hidecategoriescache)
-            {
-                if (!_hidecategoriescache.ContainsKey(user.JMMUserID))
-                    _hidecategoriescache[user.JMMUserID] = new HashSet<string>(
-                        user.HideCategories.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(a => a.Trim())
-                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
-                        StringComparer.InvariantCultureIgnoreCase);
-                return _hidecategoriescache[user.JMMUserID];
-            }
-        }
-
-        public static void InvalidateHideCategoriesCache(this JMMUser user)
-        {
-            lock (_hidecategoriescache)
-            {
-                _hidecategoriescache.Remove(user.JMMUserID);
-            }
+            return new HashSet<string>(user.HideCategories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                StringComparer.InvariantCultureIgnoreCase);
         }
 
         public static HashSet<string> GetPlexUsers(this JMMUser user)
         {
             if (string.IsNullOrEmpty(user.PlexUsers)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-            lock (_plexuserscache)
-            {
-                if (!_plexuserscache.ContainsKey(user.PlexUsers))
-                    _plexuserscache[user.PlexUsers] = new HashSet<string>(
-                        user.PlexUsers.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(a => a.Trim())
-                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
-                        StringComparer.InvariantCultureIgnoreCase);
-                return _plexuserscache[user.PlexUsers];
-            }
+            return new HashSet<string>(user.PlexUsers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                StringComparer.InvariantCultureIgnoreCase);
         }
 
         /// <summary>

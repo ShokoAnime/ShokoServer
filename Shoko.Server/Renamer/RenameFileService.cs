@@ -5,13 +5,13 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.Events;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Utilities;
 

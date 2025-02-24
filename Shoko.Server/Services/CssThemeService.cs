@@ -10,7 +10,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Shoko.Commons.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 

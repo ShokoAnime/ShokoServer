@@ -22,7 +22,7 @@ public class RequestAddEpisode : UDPRequest<ResponseMyListFile>
             if (IsWatched)
             {
                 var date = WatchedDate ?? DateTime.Now;
-                command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";
+                command += $"&viewed=1&viewdate={AniDBExtensions.GetAniDBDateAsSeconds(date)}";
             }
             else
             {

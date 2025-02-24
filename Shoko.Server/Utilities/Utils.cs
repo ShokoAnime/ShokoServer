@@ -12,9 +12,9 @@ using NLog.Filters;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using Quartz.Logging;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.SignalR.NLog;
+using Shoko.Server.Extensions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 

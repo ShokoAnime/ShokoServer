@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate.Util;
-using Shoko.Commons.Extensions;
+using Shoko.Server.Extensions;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.TvShows;

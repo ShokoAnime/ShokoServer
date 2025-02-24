@@ -6,8 +6,8 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using TMDbLib.Objects.Search;
 

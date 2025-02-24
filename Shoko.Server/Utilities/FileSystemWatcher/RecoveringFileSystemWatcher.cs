@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Extensions;
+using Shoko.Server.Extensions;
 
 namespace Shoko.Server.Utilities.FileSystemWatcher;
 

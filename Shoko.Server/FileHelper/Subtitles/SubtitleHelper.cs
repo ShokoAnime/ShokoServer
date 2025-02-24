@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
+using Shoko.Server.Extensions;
 
 // ReSharper disable StringLiteralTypo
 

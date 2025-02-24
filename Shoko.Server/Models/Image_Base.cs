@@ -10,10 +10,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
-using Shoko.Commons.Utils;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
 #nullable enable
@@ -118,7 +118,7 @@ public class Image_Base : IImageMetadata
     [MemberNotNullWhen(true, nameof(LocalPath))]
     public bool IsLocalAvailable
     {
-        get => !string.IsNullOrEmpty(LocalPath) && File.Exists(LocalPath) && Misc.IsImageValid(LocalPath);
+        get => !string.IsNullOrEmpty(LocalPath) && File.Exists(LocalPath) && ImageExtensions.IsImageValid(LocalPath);
     }
 
     private bool? _urlExists = null;
@@ -157,7 +157,7 @@ public class Image_Base : IImageMetadata
             var bytes = new byte[12];
             stream.Read(bytes, 0, 12);
             stream.Close();
-            _urlExists = Misc.IsImageValid(bytes);
+            _urlExists = ImageExtensions.IsImageValid(bytes);
             return _urlExists.Value;
         }
         catch (Exception ex)
@@ -306,7 +306,7 @@ public class Image_Base : IImageMetadata
             return true;
 
         var binary = await _retryPolicy.ExecuteAsync(async () => await Client.GetByteArrayAsync(RemoteURL));
-        if (!Misc.IsImageValid(binary))
+        if (!ImageExtensions.IsImageValid(binary))
             throw new HttpRequestException($"Invalid image data format at remote resource: {RemoteURL}", null, HttpStatusCode.ExpectationFailed);
 
         // Ensure directory structure exists.

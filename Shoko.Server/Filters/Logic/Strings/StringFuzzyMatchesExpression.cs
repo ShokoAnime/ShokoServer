@@ -1,5 +1,5 @@
 using System;
-using Shoko.Commons.Utils;
+using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Strings;

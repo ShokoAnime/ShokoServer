@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;

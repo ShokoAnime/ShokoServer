@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions.Events;
+using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;

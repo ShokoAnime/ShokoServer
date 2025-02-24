@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Models.Server;

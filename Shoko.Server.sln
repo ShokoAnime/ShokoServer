@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.30803.129
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.Server", "Shoko.Server\Shoko.Server.csproj", "{DA8F0783-0F82-4106-9860-6F09BA2EA522}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.Commons", "Shoko.Commons\Shoko.Commons.csproj", "{E0399140-9902-4F38-909D-85E42717EC30}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.Models", "Shoko.Models\Shoko.Models.csproj", "{F73F9DF6-580A-4341-B516-8717626F9D42}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{64D264D0-B20E-4889-B535-EFDC52F921C0}"
@@ -130,20 +128,6 @@ Global
 		{DA8F0783-0F82-4106-9860-6F09BA2EA522}.ApiLogging|x64.Build.0 = ApiLogging|x64
 		{DA8F0783-0F82-4106-9860-6F09BA2EA522}.Benchmarks|Any CPU.ActiveCfg = Benchmarks|Any CPU
 		{DA8F0783-0F82-4106-9860-6F09BA2EA522}.Benchmarks|Any CPU.Build.0 = Benchmarks|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.Debug|x64.ActiveCfg = Debug|x64
-		{E0399140-9902-4F38-909D-85E42717EC30}.Debug|x64.Build.0 = Debug|x64
-		{E0399140-9902-4F38-909D-85E42717EC30}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.Release|x64.ActiveCfg = Release|x64
-		{E0399140-9902-4F38-909D-85E42717EC30}.Release|x64.Build.0 = Release|x64
-		{E0399140-9902-4F38-909D-85E42717EC30}.ApiLogging|Any CPU.ActiveCfg = Debug|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.ApiLogging|Any CPU.Build.0 = Debug|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.ApiLogging|x64.ActiveCfg = Debug|x64
-		{E0399140-9902-4F38-909D-85E42717EC30}.ApiLogging|x64.Build.0 = Debug|x64
-		{E0399140-9902-4F38-909D-85E42717EC30}.Benchmarks|Any CPU.ActiveCfg = Benchmarks|Any CPU
-		{E0399140-9902-4F38-909D-85E42717EC30}.Benchmarks|Any CPU.Build.0 = Benchmarks|Any CPU
 		{F73F9DF6-580A-4341-B516-8717626F9D42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F73F9DF6-580A-4341-B516-8717626F9D42}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F73F9DF6-580A-4341-B516-8717626F9D42}.Debug|x64.ActiveCfg = Debug|x64

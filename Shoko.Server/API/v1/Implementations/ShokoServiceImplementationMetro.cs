@@ -5,17 +5,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
-using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -25,6 +23,7 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server;
 
@@ -581,8 +580,8 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 return retAnime;
             }
 
-            var startDate = AniDB.GetAniDBDateAsDate(startDateSecs);
-            var endDate = AniDB.GetAniDBDateAsDate(endDateSecs);
+            var startDate = AniDBExtensions.GetAniDBDateAsDate(startDateSecs);
+            var endDate = AniDBExtensions.GetAniDBDateAsDate(endDateSecs);
 
             var allAnime = RepoFactory.AniDB_Anime.GetForDate(startDate.Value, endDate.Value);
             foreach (var anidb_anime in allAnime)
@@ -596,7 +595,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
                 var summary = new Metro_Anime_Summary
                 {
-                    AirDateAsSeconds = AniDB.GetAniDBDateAsSeconds(anidb_anime.AirDate),
+                    AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate),
                     AnimeID = anidb_anime.AnimeID
                 };
                 if (ser is not null)
@@ -656,7 +655,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 var imgDet = anidb_anime.PreferredOrDefaultPoster;
                 var summary = new Metro_Anime_Summary
                 {
-                    AirDateAsSeconds = AniDB.GetAniDBDateAsSeconds(anidb_anime.AirDate),
+                    AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate),
                     AnimeID = anidb_anime.AnimeID,
                     AnimeName = ser.PreferredTitle,
                     AnimeSeriesID = ser.AnimeSeriesID,
@@ -834,7 +833,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
                                 contract.EpisodeType = anidbEpisode.EpisodeType;
                                 contract.LengthSeconds = anidbEpisode.LengthSeconds;
-                                contract.AirDate = AniDB.GetAniDBDate(anidbEpisode.AirDate);
+                                contract.AirDate = GetAniDBDate(anidbEpisode.AirDate);
 
                                 ret.NextEpisodesToWatch.Add(contract);
                                 cnt++;
@@ -856,6 +855,14 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             _logger.Error(ex, ex.ToString());
             return null;
         }
+    }
+    
+    private static string GetAniDBDate(int secs)
+    {
+        if (secs == 0) return "";
+        var thisDate = new DateTime(1970, 1, 1, 0, 0, 0);
+        thisDate = thisDate.AddSeconds(secs);
+        return thisDate.ToString("dd MMM yyyy");
     }
 
     [HttpGet("Anime/Summary/{animeID}")]

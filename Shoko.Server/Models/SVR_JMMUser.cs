@@ -5,7 +5,6 @@ using System.Security.Principal;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Server.Extensions;

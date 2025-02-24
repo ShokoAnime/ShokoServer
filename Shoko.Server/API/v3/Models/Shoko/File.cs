@@ -11,6 +11,7 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -284,7 +285,7 @@ public partial class File
             ID = anidb.FileID;
             Source = ParseFileSource(anidb.File_Source);
             ReleaseGroup = new ReleaseGroup(anidb.ReleaseGroup);
-            ReleaseDate = Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate) is { } releaseDate
+            ReleaseDate = AniDBExtensions.GetAniDBDateAsDate(anidb.File_ReleaseDate) is { } releaseDate
                 ? DateOnly.FromDateTime(releaseDate)
                 : null;
             Version = anidb.FileVersion;

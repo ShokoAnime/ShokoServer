@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;

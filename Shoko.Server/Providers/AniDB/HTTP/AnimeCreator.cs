@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
@@ -374,7 +373,7 @@ public class AnimeCreator
                 if (episode.DateTimeUpdated >= rawEpisode.LastUpdated && episode.AnimeID != rawEpisode.AnimeID)
                     continue;
 
-                var airDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate);
+                var airDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate);
                 var rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture);
                 var votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
                 var description = rawEpisode.Description ?? string.Empty;
@@ -432,7 +431,7 @@ public class AnimeCreator
                 isNew = true;
                 episode = new()
                 {
-                    AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate),
+                    AirDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate),
                     AnimeID = rawEpisode.AnimeID,
                     DateTimeUpdated = rawEpisode.LastUpdated,
                     EpisodeID = rawEpisode.EpisodeID,
