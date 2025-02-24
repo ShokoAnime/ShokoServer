@@ -20,7 +20,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         ED2K = video.Hashes.ED2K;
 
         ID = releaseInfo.ID;
-        ProviderID = releaseInfo.ProviderID;
+        ProviderName = releaseInfo.ProviderName;
         ReleaseURI = releaseInfo.ReleaseURI;
         Revision = releaseInfo.Revision;
         Comment = releaseInfo.Comment;
@@ -68,7 +68,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public string? ID { get; set; }
 
-    public string ProviderID { get; set; } = string.Empty;
+    public string ProviderName { get; set; } = string.Empty;
 
     public string? ReleaseURI { get; set; }
 
@@ -216,7 +216,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
             HashCode.Combine(
                 ED2K,
                 ID,
-                ProviderID,
+                ProviderName,
                 ReleaseURI,
                 Revision,
                 Comment,

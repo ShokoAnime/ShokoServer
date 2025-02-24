@@ -16,10 +16,9 @@ public interface IReleaseInfo
     string? ID { get; }
 
     /// <summary>
-    /// The id of the provider where the release can be found, used to identify
-    /// which provider found the release.
+    /// The name of the provider which found the release.
     /// </summary>
-    string ProviderID { get; }
+    string ProviderName { get; }
 
     /// <summary>
     /// An absolute URI for where to find the information, if available from the

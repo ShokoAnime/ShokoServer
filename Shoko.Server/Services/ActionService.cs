@@ -716,7 +716,7 @@ public class ActionService(
             .Select(a => int.Parse(a.GroupID))
             .ToHashSet();
         var missingFiles = RepoFactory.StoredReleaseInfo.GetAll()
-            .Where(r => r.ProviderID is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
+            .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
             .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
             .WhereNotNull()
             .Select(a => a.VideoLocalID)
