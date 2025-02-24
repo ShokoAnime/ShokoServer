@@ -1182,6 +1182,14 @@ public class DatabaseFixes
                     GetFile_Source.Web => ReleaseSource.Web,
                     _ => ReleaseSource.Unknown,
                 };
+                storedReleaseInfo.ProvidedFileSize = fileSize;
+                storedReleaseInfo.Hashes = new()
+                {
+                    ED2K = ed2k,
+                    MD5 = video?.MD5,
+                    CRC = video?.CRC32,
+                    SHA1 = video?.SHA1,
+                };
                 storedReleaseInfo.ReleasedAt = anidbFile.File_ReleaseDate is null ? null : DateOnly.FromDateTime(anidbFile.File_ReleaseDate.Value);
                 storedReleaseInfo.AudioLanguages = audioLanguages;
                 storedReleaseInfo.SubtitleLanguages = subtitleLanguages;

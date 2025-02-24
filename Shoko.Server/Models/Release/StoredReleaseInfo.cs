@@ -11,7 +11,7 @@ using Shoko.Server.Extensions;
 
 namespace Shoko.Server.Models.Release;
 
-public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IHashes, IEquatable<StoredReleaseInfo>
+public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IEquatable<StoredReleaseInfo>
 {
     public StoredReleaseInfo() { }
 
@@ -37,7 +37,11 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         }
         if (releaseInfo.Hashes is { } hashes)
         {
-            Hashes = $"{hashes.ED2K},{hashes.MD5 ?? string.Empty},{hashes.SHA1 ?? string.Empty},{hashes.CRC ?? string.Empty}";
+            Hashes = new(hashes);
+
+            // Ensure hashes are valid.
+            if (Hashes is not { ED2K: not null and not "" and not "00000000000000000000000000000000" })
+                Hashes = null;
         }
         if (releaseInfo.MediaInfo is { } mediaInfo)
         {
@@ -100,6 +104,8 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         _ => "unk",
     };
 
+    public EmbeddedHashes? Hashes { get; set; }
+
     public string EmbeddedCrossReferences { get; set; } = string.Empty;
 
     public DateOnly? ReleasedAt { get; set; }
@@ -107,8 +113,6 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public DateTime LastUpdatedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }
-
-    long? IReleaseInfo.FileSize => ProvidedFileSize;
 
     public IReadOnlyList<IReleaseVideoCrossReference> CrossReferences
     {
@@ -121,6 +125,10 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
             .Select(x => x.ToEmbeddedString())
             .Join(',');
     }
+
+    long? IReleaseInfo.FileSize => ProvidedFileSize;
+
+    IHashes? IReleaseInfo.Hashes => Hashes;
 
     #endregion
 
@@ -179,62 +187,6 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     #region IHashes Implementation
 
-    public string? Hashes { get; set; }
-
-    string IHashes.ED2K => this[HashAlgorithmName.ED2K] ?? string.Empty;
-
-    string? IHashes.MD5 => this[HashAlgorithmName.MD5];
-
-    string? IHashes.SHA1 => this[HashAlgorithmName.SHA1];
-
-    string? IHashes.CRC => this[HashAlgorithmName.CRC32];
-
-    public string? this[HashAlgorithmName algorithm]
-    {
-        get
-        {
-            var (ed2k, md5, sha1, crc32) = Hashes?.Split('|', StringSplitOptions.TrimEntries) ?? [];
-            return algorithm switch
-            {
-                HashAlgorithmName.ED2K => string.IsNullOrEmpty(ed2k) ? null : ed2k,
-                HashAlgorithmName.MD5 => string.IsNullOrEmpty(md5) ? null : md5,
-                HashAlgorithmName.SHA1 => string.IsNullOrEmpty(sha1) ? null : sha1,
-                HashAlgorithmName.CRC32 => string.IsNullOrEmpty(crc32) ? null : crc32,
-                _ => null,
-            };
-        }
-        set
-        {
-            var (ed2k, md5, sha1, crc32) = Hashes?.Split('|', StringSplitOptions.TrimEntries) ?? [];
-            ed2k ??= string.Empty;
-            md5 ??= string.Empty;
-            sha1 ??= string.Empty;
-            crc32 ??= string.Empty;
-            switch (algorithm)
-            {
-                case HashAlgorithmName.ED2K:
-                    ed2k = value;
-                    break;
-
-                case HashAlgorithmName.MD5:
-                    md5 = value;
-                    break;
-
-                case HashAlgorithmName.SHA1:
-                    sha1 = value;
-                    break;
-
-                case HashAlgorithmName.CRC32:
-                    crc32 = value;
-                    break;
-            }
-
-            Hashes = string.IsNullOrEmpty(ed2k) && string.IsNullOrEmpty(md5) && string.IsNullOrEmpty(sha1) && string.IsNullOrEmpty(crc32)
-                ? null : $"{ed2k}|{md5}|{sha1}|{crc32}";
-        }
-    }
-
-    IHashes? IReleaseInfo.Hashes => string.IsNullOrEmpty(Hashes) ? null : this;
 
     public static bool operator ==(StoredReleaseInfo? left, StoredReleaseInfo? right)
         => left is null ? right is null : left.Equals(right);
