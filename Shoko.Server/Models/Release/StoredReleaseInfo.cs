@@ -54,6 +54,10 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public string ED2K { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Is used together with <see cref="ED2K"/> to identify which video this
+    /// release is tied to.
+    /// </summary>
     public long FileSize { get; set; }
 
     #region IReleaseInfo Implementation
@@ -65,6 +69,11 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public string? ReleaseURI { get; set; }
 
     public int Revision { get; set; }
+
+    /// <summary>
+    /// The file size for the found release provided by the release provider or user, if any.
+    /// </summary>
+    public long? ProvidedFileSize { get; set; }
 
     public string? Comment { get; set; }
 
@@ -99,7 +108,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public DateTime CreatedAt { get; set; }
 
-    long? IReleaseInfo.FileSize => FileSize;
+    long? IReleaseInfo.FileSize => ProvidedFileSize;
 
     public IReadOnlyList<IReleaseVideoCrossReference> CrossReferences
     {
