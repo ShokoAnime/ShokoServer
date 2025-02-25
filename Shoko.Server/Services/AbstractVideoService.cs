@@ -27,12 +27,6 @@ public class AbstractVideoService : IVideoService
     public event EventHandler<FileEventArgs>? VideoFileHashed;
 
     /// <inheritdoc/>
-    public event EventHandler<FileRenamedEventArgs>? VideoFileRenamed;
-
-    /// <inheritdoc/>
-    public event EventHandler<FileMovedEventArgs>? VideoFileMoved;
-
-    /// <inheritdoc/>
     public event EventHandler<FileMovedEventArgs>? VideoFileRelocated;
 
     private readonly VideoLocal_PlaceRepository _placeRepository;
@@ -91,13 +85,11 @@ public class AbstractVideoService : IVideoService
             eventArgs.Groups
         );
         VideoFileRelocated?.Invoke(this, moveEventArgs);
-        VideoFileRenamed?.Invoke(this, eventArgs);
     }
 
     private void OnFileMoved(object? sender, FileMovedEventArgs eventArgs)
     {
         VideoFileRelocated?.Invoke(this, eventArgs);
-        VideoFileMoved?.Invoke(this, eventArgs);
     }
 
     /// <inheritdoc/>

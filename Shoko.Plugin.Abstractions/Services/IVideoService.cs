@@ -33,16 +33,6 @@ public interface IVideoService
     event EventHandler<FileEventArgs> VideoFileHashed;
 
     /// <summary>
-    /// Dispatched when a video file has been renamed.
-    /// </summary>
-    event EventHandler<FileRenamedEventArgs> VideoFileRenamed;
-
-    /// <summary>
-    /// Dispatched when a video file has been moved.
-    /// </summary>
-    event EventHandler<FileMovedEventArgs> VideoFileMoved;
-
-    /// <summary>
     /// Dispatched when a video file has been moved or renamed.
     /// </summary>
     event EventHandler<FileMovedEventArgs> VideoFileRelocated;
