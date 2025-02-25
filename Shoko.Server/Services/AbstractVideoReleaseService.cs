@@ -197,14 +197,20 @@ public class AbstractVideoReleaseService(
         var startedAt = DateTime.Now;
         try
         {
-            SearchStarted?.Invoke(this, new(video, saveRelease, startedAt));
+            SearchStarted?.Invoke(this, new()
+            {
+                ShouldSave = saveRelease,
+                StartedAt = startedAt,
+                Video = video,
+            });
         }
         catch { }
 
         var completedAt = startedAt;
-        var providerID = (string?)null;
+        var selectedProviderName = (string?)null;
         var providerNames = new List<string>();
         var releaseInfo = (IReleaseInfo?)null;
+        var exception = (Exception?)null;
         try
         {
             var providers = GetAvailableProviders(onlyEnabled: true).ToList();
@@ -229,7 +235,7 @@ public class AbstractVideoReleaseService(
                     return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo.Priority, provider.Name);
                 }, cancellationToken)));
                 cancellationToken.ThrowIfCancellationRequested();
-                (releaseInfo, providerID) = results
+                (releaseInfo, selectedProviderName) = results
                     .Where(t => t.Item1 is not null)
                     .OrderBy(t => t.Item2)
                     .Select(t => (t.Item1, t.Item3))
@@ -260,7 +266,7 @@ public class AbstractVideoReleaseService(
             cancellationToken.ThrowIfCancellationRequested();
             var matchAttempt = new StoredReleaseInfo_MatchAttempt()
             {
-                ProviderName = providerID,
+                ProviderName = selectedProviderName,
                 ED2K = video.Hashes.ED2K,
                 FileSize = video.Size,
                 AttemptStartedAt = startedAt,
@@ -281,17 +287,28 @@ public class AbstractVideoReleaseService(
         }
         // We're going to re-throw the exception, but we want to make sure we reset the release info and completion time
         // if something went wrong.
-        catch
+        catch (Exception ex)
         {
             releaseInfo = null;
             completedAt = DateTime.Now;
+            exception = ex;
             throw;
         }
         finally
         {
             try
             {
-                SearchCompleted?.Invoke(this, new(video, releaseInfo, saveRelease, startedAt, completedAt));
+                SearchCompleted?.Invoke(this, new()
+                {
+                    Video = video,
+                    ReleaseInfo = releaseInfo,
+                    IsSaved = saveRelease,
+                    StartedAt = startedAt,
+                    CompletedAt = completedAt,
+                    Exception = exception,
+                    AttemptedProviderIDs = providerNames,
+                    ProviderID = selectedProviderName,
+                });
             }
             catch { }
         }
@@ -371,7 +388,7 @@ public class AbstractVideoReleaseService(
             await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
 
         // Dispatch the release saved event now.
-        ReleaseSaved?.Invoke(null, new(video, releaseInfo));
+        ReleaseSaved?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
 
         return releaseInfo;
     }
@@ -397,7 +414,7 @@ public class AbstractVideoReleaseService(
 
         await ScheduleAnimeForRelease(xrefs);
 
-        ReleaseDeleted?.Invoke(null, new(video, releaseInfo));
+        ReleaseDeleted?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
     }
 
     private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
