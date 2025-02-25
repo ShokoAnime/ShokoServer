@@ -34,6 +34,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
         => videoReleaseService.GetAvailableProviders()
         .Select(p => new ReleaseInfoProvider
         {
+            ID = p.ID,
             Name = p.Provider.Name,
             Version = p.Provider.Version,
             IsEnabled = p.Enabled,
@@ -50,11 +51,11 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     [HttpPost("Provider")]
     public ActionResult UpdateMultipleReleaseProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<ReleaseInfoProvider.Input.UpdateMultipleProvidersBody> body)
     {
-        var providers = videoReleaseService.GetAvailableProviders().ToDictionary(p => p.Provider.Name);
+        var providerInfoDict = videoReleaseService.GetAvailableProviders().ToDictionary(p => p.ID);
         var changedProviders = new List<ReleaseInfoProviderInfo>();
         foreach (var provider in body)
         {
-            if (providers.TryGetValue(provider.Name, out var p))
+            if (providerInfoDict.TryGetValue(provider.ID, out var p))
             {
                 var changed = false;
                 if (provider.IsEnabled.HasValue && provider.IsEnabled.Value != p.Enabled)
@@ -83,81 +84,82 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     /// <summary>
     /// Gets a specific release provider, with its current enabled and priority state.
     /// </summary>
-    /// <param name="name">The name of the release provider to get.</param>
+    /// <param name="providerID">The ID of the release provider to get.</param>
     /// <returns>A <see cref="ReleaseInfoProvider"/>.</returns>
-    [HttpGet("Provider/{name}")]
-    public ActionResult<ReleaseInfoProvider> GetReleaseProviderByName(string name)
+    [HttpGet("Provider/{providerID}")]
+    public ActionResult<ReleaseInfoProvider> GetReleaseProviderByID(Guid providerID)
     {
-        if (videoReleaseService.GetAvailableProviders().FirstOrDefault(p => p.Provider.Name == name) is not { } provider)
-            return NotFound($"Release Provider '{name}' not found!");
+        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+            return NotFound($"Release Provider '{providerID}' not found!");
 
         return new ReleaseInfoProvider
         {
-            Name = provider.Provider.Name,
-            Version = provider.Provider.Version,
-            IsEnabled = provider.Enabled,
-            Priority = provider.Priority,
+            ID = providerInfo.ID,
+            Name = providerInfo.Provider.Name,
+            Version = providerInfo.Provider.Version,
+            IsEnabled = providerInfo.Enabled,
+            Priority = providerInfo.Priority,
         };
     }
 
     /// <summary>
     /// Update the enabled state and/or priority of a specific release provider.
     /// </summary>
-    /// <param name="name">The name of the release provider to update.</param>
+    /// <param name="providerID">The ID of the release provider to update.</param>
     /// <param name="body">The provider to update.</param>
     /// <returns>The updated <see cref="ReleaseInfoProvider"/>.</returns>
     [ProducesResponseType(404)]
     [ProducesResponseType(200)]
-    [HttpPut("Provider/{name}")]
-    public ActionResult<ReleaseInfoProvider> UpdateReleaseProviderByName([FromRoute] string name, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ReleaseInfoProvider.Input.UpdateSingleProviderBody body)
+    [HttpPut("Provider/{providerID}")]
+    public ActionResult<ReleaseInfoProvider> UpdateReleaseProviderByID([FromRoute] Guid providerID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ReleaseInfoProvider.Input.UpdateSingleProviderBody body)
     {
-        if (videoReleaseService.GetAvailableProviders().FirstOrDefault(p => p.Provider.Name == name) is not { } provider)
-            return NotFound($"Release Provider '{name}' not found!");
+        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+            return NotFound($"Release Provider '{providerID}' not found!");
 
         var changed = false;
-        if (body.IsEnabled.HasValue && body.IsEnabled.Value != provider.Enabled)
+        if (body.IsEnabled.HasValue && body.IsEnabled.Value != providerInfo.Enabled)
         {
-            provider.Enabled = body.IsEnabled.Value;
+            providerInfo.Enabled = body.IsEnabled.Value;
             changed = true;
         }
 
-        if (body.Priority.HasValue && body.Priority.Value != provider.Priority)
+        if (body.Priority.HasValue && body.Priority.Value != providerInfo.Priority)
         {
-            provider.Priority = body.Priority.Value;
+            providerInfo.Priority = body.Priority.Value;
             changed = true;
         }
 
         if (changed)
-            videoReleaseService.UpdateProviders(provider);
+            videoReleaseService.UpdateProviders(providerInfo);
 
-        return GetReleaseProviderByName(name);
+        return GetReleaseProviderByID(providerID);
     }
 
     /// <summary>
-    /// Preview a release by ID at a specific release provider by name.
+    /// Preview a release by ID at a specific release provider by ID.
     /// </summary>
-    /// <param name="name">The name of the release provider to preview the release for.</param>
+    /// <param name="providerID">The ID of the release provider to preview the release for.</param>
     /// <param name="id">The ID of the release to preview.</param>
     /// <returns></returns>
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
-    [HttpGet("Provider/{name}/Preview/By-Release")]
-    public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByName([FromRoute] string name, [FromQuery] string id)
+    [HttpGet("Provider/{providerID}/Preview/By-Release")]
+    public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByID([FromRoute] Guid providerID, [FromQuery] string id)
     {
-        if (videoReleaseService.GetProviderByName(name) is not { } provider)
-            return NotFound($"Release Provider '{name}' not found!");
+        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+            return NotFound($"Release Provider '{providerID}' not found!");
 
-        if (await provider.GetReleaseInfoById(id, HttpContext.RequestAborted) is not { } releaseInfo)
+        if (await providerInfo.Provider.GetReleaseInfoById(id, HttpContext.RequestAborted) is not { } releaseInfo)
             return NoContent();
 
-        return new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, provider.Name));
+        return new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, providerInfo.Provider.Name));
     }
 
     /// <summary>
-    /// Preview a release by file ID or ED2K hash at a specific release provider by name.
+    /// Preview a release by file ID or ED2K hash at a specific release provider by ID.
     /// </summary>
-    /// <param name="name">The name of the release provider to preview the release for.</param>
+    /// <param name="providerID">The ID of the release provider to preview the release for.</param>
     /// <param name="fileID">The ID of the file to preview.</param>
     /// <param name="ed2k">The ED2K hash of the file to preview.</param>
     /// <param name="fileSize">The size of the file to preview.</param>
@@ -166,11 +168,11 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
-    [HttpGet("Provider/{name}/Preview/By-File")]
-    public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByName([FromRoute] string name, [FromQuery, Range(1, int.MaxValue)] int? fileID = null, [FromQuery] string? ed2k = null, [FromQuery] long? fileSize = null)
+    [HttpGet("Provider/{providerID}/Preview/By-File")]
+    public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByID([FromRoute] Guid providerID, [FromQuery, Range(1, int.MaxValue)] int? fileID = null, [FromQuery] string? ed2k = null, [FromQuery] long? fileSize = null)
     {
-        if (videoReleaseService.GetProviderByName(name) is not { } provider)
-            return NotFound($"Release Provider '{name}' not found!");
+        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+            return NotFound($"Release Provider '{providerID}' not found!");
 
         IVideo video;
         if (fileID.HasValue)
@@ -202,10 +204,10 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
             return BadRequest("File ID or ED2K must be provided!");
         }
 
-        if (await provider.GetReleaseInfoForVideo(video, HttpContext.RequestAborted) is not { } releaseInfo)
+        if (await providerInfo.Provider.GetReleaseInfoForVideo(video, HttpContext.RequestAborted) is not { } releaseInfo)
             return NoContent();
 
-        return Ok(new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, provider.Name)));
+        return Ok(new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, providerInfo.Provider.Name)));
     }
 
     /// <summary>

@@ -6,6 +6,8 @@ namespace Shoko.Server.API.v3.Models.Release;
 
 public class ReleaseInfoProvider
 {
+    public required Guid ID { get; set; }
+
     public required string Name { get; set; }
 
     public required Version Version { get; set; }
@@ -19,7 +21,7 @@ public class ReleaseInfoProvider
         public class UpdateMultipleProvidersBody
         {
             [Required]
-            public string Name { get; set; } = string.Empty;
+            public Guid ID { get; set; }
 
             public bool? IsEnabled { get; set; }
 

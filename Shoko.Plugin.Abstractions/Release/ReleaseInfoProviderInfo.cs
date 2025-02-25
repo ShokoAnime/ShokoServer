@@ -1,3 +1,5 @@
+using System;
+
 namespace Shoko.Plugin.Abstractions.Release;
 
 /// <summary>
@@ -5,6 +7,11 @@ namespace Shoko.Plugin.Abstractions.Release;
 /// </summary>
 public class ReleaseInfoProviderInfo
 {
+    /// <summary>
+    /// The unique ID of the provider, generated off of the full class name.
+    /// </summary>
+    public required Guid ID { get; init; }
+
     /// <summary>
     /// The <see cref="IReleaseInfoProvider"/> that this info is for.
     /// </summary>
