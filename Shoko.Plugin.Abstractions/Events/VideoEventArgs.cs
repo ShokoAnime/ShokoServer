@@ -6,11 +6,10 @@ namespace Shoko.Plugin.Abstractions.Events;
 /// <summary>
 /// Base class for video events.
 /// </summary>
-/// <param name="video">The video.</param>
-public class VideoEventArgs(IVideo video)
+public class VideoEventArgs
 {
     /// <summary>
     /// The video.
     /// </summary>
-    public IVideo Video { get; } = video;
+    public required IVideo Video { get; init; }
 }
