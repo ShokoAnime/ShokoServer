@@ -9,12 +9,10 @@ namespace Shoko.Plugin.Abstractions.Events;
 /// <summary>
 /// Dispatched when a video release is saved or deleted.
 /// </summary>
-/// <param name="video">The video.</param>
-/// <param name="releaseInfo">The release info.</param>
-public class VideoReleaseEventArgs(IVideo video, IReleaseInfo releaseInfo) : VideoEventArgs(video)
+public class VideoReleaseEventArgs : VideoEventArgs
 {
     /// <summary>
     /// The release information for the video.
     /// </summary>
-    public IReleaseInfo ReleaseInfo { get; } = releaseInfo;
+    public required IReleaseInfo ReleaseInfo { get; init; }
 }
