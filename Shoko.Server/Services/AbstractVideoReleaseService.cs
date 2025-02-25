@@ -54,9 +54,13 @@ public class AbstractVideoReleaseService(
 
     private Dictionary<Guid, IReleaseInfoProvider>? _releaseInfoProviders = null;
 
-    public event EventHandler<VideoReleaseEventArgs>? VideoReleaseSaved;
+    public event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
 
-    public event EventHandler<VideoReleaseEventArgs>? VideoReleaseDeleted;
+    public event EventHandler<VideoReleaseEventArgs>? ReleaseDeleted;
+
+    public event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
+
+    public event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
 
     public event EventHandler? ProvidersUpdated;
 
@@ -82,8 +86,10 @@ public class AbstractVideoReleaseService(
 
         ProvidersUpdated?.Invoke(this, EventArgs.Empty);
     }
-
     public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders()
+        => GetAvailableProviders(false);
+
+    public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders(bool onlyEnabled)
     {
         if (_releaseInfoProviders is null)
             yield break;
@@ -95,14 +101,18 @@ public class AbstractVideoReleaseService(
             .ThenBy(p => order.IndexOf(p.Key))
             .ThenBy(p => p.Key)
             .Select((provider, index) => (provider, index));
-        foreach (var ((id, provider), index) in orderedProviders)
+        foreach (var ((id, provider), priority) in orderedProviders)
         {
+            var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
+            if (onlyEnabled && !isEnabled)
+                continue;
+
             yield return new()
             {
                 ID = id,
                 Provider = provider,
-                Enabled = enabled.TryGetValue(id, out var isEnabled) ? isEnabled : provider.Name is "AniDB",
-                Priority = index,
+                Enabled = isEnabled,
+                Priority = priority,
             };
         }
     }
@@ -183,19 +193,31 @@ public class AbstractVideoReleaseService(
 
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, CancellationToken cancellationToken = default)
     {
-        IReleaseInfo? releaseInfo = null;
+        // We don't want the search started/completed events to interrupt the search, so wrap them both in a try…catch block.
         var startedAt = DateTime.Now;
-        var providerIDs = new List<string>();
-        if (ParallelMode)
+        try
         {
-            var tasks = new List<Task<(ReleaseInfoWithProvider?, int)>>();
-            foreach (var providerInfo in GetAvailableProviders())
-            {
-                if (!providerInfo.Enabled)
-                    continue;
+            SearchStarted?.Invoke(this, new(video, saveRelease, startedAt));
+        }
+        catch { }
 
-                providerIDs.Add(providerInfo.Provider.Name);
-                tasks.Add(Task.Run<(ReleaseInfoWithProvider?, int)>(async () =>
+        var completedAt = startedAt;
+        var providerID = (string?)null;
+        var providerNames = new List<string>();
+        var releaseInfo = (IReleaseInfo?)null;
+        try
+        {
+            var providers = GetAvailableProviders(onlyEnabled: true).ToList();
+            providerNames.AddRange(providers.Select(p => p.Provider.Name));
+            if (providerNames.Count == 0)
+            {
+                logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.ID);
+                return null;
+            }
+
+            if (ParallelMode)
+            {
+                var results = await Task.WhenAll(providers.Select(providerInfo => Task.Run<(ReleaseInfoWithProvider?, int, string)>(async () =>
                 {
                     logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
                     var provider = providerInfo.Provider;
@@ -204,74 +226,75 @@ public class AbstractVideoReleaseService(
                         return default;
 
                     logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-                    return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo.Priority);
-                }, cancellationToken));
-            }
-
-            var results = await Task.WhenAll(tasks);
-            cancellationToken.ThrowIfCancellationRequested();
-            releaseInfo = results
-                .Where(t => t.Item1 is not null)
-                .OrderBy(t => t.Item2)
-                .Select(t => t.Item1)
-                .FirstOrDefault();
-            if (releaseInfo is not null)
-                logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", releaseInfo.ProviderName, video.ID);
-        }
-        else
-        {
-            foreach (var providerInfo in GetAvailableProviders())
-            {
-                if (!providerInfo.Enabled)
-                    continue;
-
-                providerIDs.Add(providerInfo.Provider.Name);
-                if (releaseInfo is not null)
-                    continue;
-
-                logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-                var provider = providerInfo.Provider;
-                var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
+                    return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo.Priority, provider.Name);
+                }, cancellationToken)));
                 cancellationToken.ThrowIfCancellationRequested();
-                if (release is null || release.CrossReferences.Count < 1)
-                    continue;
-
-                logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-                releaseInfo = new ReleaseInfoWithProvider(release, provider.Name);
+                (releaseInfo, providerID) = results
+                    .Where(t => t.Item1 is not null)
+                    .OrderBy(t => t.Item2)
+                    .Select(t => (t.Item1, t.Item3))
+                    .FirstOrDefault();
+                if (releaseInfo is not null)
+                    logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", releaseInfo.ProviderName, video.ID);
             }
-        }
+            else
+            {
+                foreach (var providerInfo in providers)
+                {
+                    if (releaseInfo is not null)
+                        continue;
 
-        if (providerIDs.Count == 0)
-        {
-            logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.ID);
-            return null;
-        }
+                    logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
+                    var provider = providerInfo.Provider;
+                    var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (release is null || release.CrossReferences.Count < 1)
+                        continue;
 
-        cancellationToken.ThrowIfCancellationRequested();
-        var matchAttempt = new StoredReleaseInfo_MatchAttempt()
-        {
-            ProviderName = releaseInfo?.ProviderName,
-            ED2K = video.Hashes.ED2K,
-            FileSize = video.Size,
-            AttemptStartedAt = startedAt,
-            // Reuse startedAt because it will be overwritten in SaveReleaseForVideo later.
-            AttemptEndedAt = releaseInfo is null ? DateTime.UtcNow : startedAt,
-            AttemptedProviderNames = providerIDs,
-        };
-        if (releaseInfo is null)
-            releaseInfoMatchAttemptRepository.Save(matchAttempt);
+                    logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
+                    releaseInfo = new ReleaseInfoWithProvider(release, provider.Name);
+                    break;
+                }
+            }
 
-        if (!saveRelease || releaseInfo is null)
-        {
-            var autoMatchAttempts = releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size).Count;
-            var hasXRefs = releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is not null;
-            var isUDPBanned = udpConnection.IsBanned;
-            var location = video.Locations.FirstOrDefault(l => l.IsAvailable) ?? video.Locations[0];
-            ShokoEventHandler.Instance.OnFileNotMatched(location, video, autoMatchAttempts, hasXRefs, isUDPBanned);
+            cancellationToken.ThrowIfCancellationRequested();
+            var matchAttempt = new StoredReleaseInfo_MatchAttempt()
+            {
+                ProviderName = providerID,
+                ED2K = video.Hashes.ED2K,
+                FileSize = video.Size,
+                AttemptStartedAt = startedAt,
+                // Reuse startedAt because it will be overwritten in SaveReleaseForVideo later.
+                AttemptEndedAt = releaseInfo is null ? DateTime.Now : startedAt,
+                AttemptedProviderNames = providerNames,
+            };
+            // If we didn't find a release then save the attempt now.
+            if (releaseInfo is null)
+                releaseInfoMatchAttemptRepository.Save(matchAttempt);
+
+            if (!saveRelease || releaseInfo is null)
+                return releaseInfo;
+
+            releaseInfo = await SaveReleaseForVideo(video, releaseInfo, matchAttempt);
+            completedAt = matchAttempt.AttemptEndedAt;
             return releaseInfo;
         }
-
-        return await SaveReleaseForVideo(video, releaseInfo, matchAttempt);
+        // We're going to re-throw the exception, but we want to make sure we reset the release info and completion time
+        // if something went wrong.
+        catch
+        {
+            releaseInfo = null;
+            completedAt = DateTime.Now;
+            throw;
+        }
+        finally
+        {
+            try
+            {
+                SearchCompleted?.Invoke(this, new(video, releaseInfo, saveRelease, startedAt, completedAt));
+            }
+            catch { }
+        }
     }
 
     public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User")
@@ -295,7 +318,6 @@ public class AbstractVideoReleaseService(
             .Select(xref => xref.ToString())
             .Join(',');
 
-        var location = video.Locations.FirstOrDefault(l => l.IsAvailable) ?? video.Locations[0];
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
         {
             // If the new release info is **EXACTLY** the same as the existing one, then just return the existing one.
@@ -305,10 +327,6 @@ public class AbstractVideoReleaseService(
                 matchAttempt.AttemptEndedAt = existingRelease.LastUpdatedAt;
                 releaseInfoRepository.Save(existingRelease);
                 releaseInfoMatchAttemptRepository.Save(matchAttempt);
-
-                var autoMatchAttempts = releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size).Count;
-                var isUDPBanned = udpConnection.IsBanned;
-                ShokoEventHandler.Instance.OnFileNotMatched(location, video, autoMatchAttempts, true, isUDPBanned);
                 return existingRelease;
             }
 
@@ -348,16 +366,12 @@ public class AbstractVideoReleaseService(
                 c.Hash = video.Hashes.ED2K;
                 c.ReadStates = true;
             }).ConfigureAwait(false);
-
-        // Dispatch the release saved event.
-        VideoReleaseSaved?.Invoke(null, new(video, releaseInfo));
-
-        // Dispatch the on file matched event.
-        ShokoEventHandler.Instance.OnFileMatched(location, video);
-
         // Rename and/or move the physical file(s) if needed.
         if (_settings.Plugins.Renamer.RelocateOnImport)
             await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
+
+        // Dispatch the release saved event now.
+        ReleaseSaved?.Invoke(null, new(video, releaseInfo));
 
         return releaseInfo;
     }
@@ -383,7 +397,7 @@ public class AbstractVideoReleaseService(
 
         await ScheduleAnimeForRelease(xrefs);
 
-        VideoReleaseDeleted?.Invoke(null, new(video, releaseInfo));
+        ReleaseDeleted?.Invoke(null, new(video, releaseInfo));
     }
 
     private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
