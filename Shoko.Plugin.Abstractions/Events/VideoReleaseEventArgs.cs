@@ -11,13 +11,8 @@ namespace Shoko.Plugin.Abstractions.Events;
 /// </summary>
 /// <param name="video">The video.</param>
 /// <param name="releaseInfo">The release info.</param>
-public class VideoReleaseEventArgs(IVideo video, IReleaseInfo releaseInfo)
+public class VideoReleaseEventArgs(IVideo video, IReleaseInfo releaseInfo) : VideoEventArgs(video)
 {
-    /// <summary>
-    /// The video.
-    /// </summary>
-    public IVideo Video { get; } = video;
-
     /// <summary>
     /// The release information for the video.
     /// </summary>
