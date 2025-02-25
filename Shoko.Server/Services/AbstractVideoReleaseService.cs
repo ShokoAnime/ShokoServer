@@ -82,7 +82,7 @@ public class AbstractVideoReleaseService(
         if (_releaseInfoProviders is not null)
             return;
 
-        _releaseInfoProviders = providers.ToDictionary(a => GetID(a.GetType().FullName!));
+        _releaseInfoProviders = providers.ToDictionary(GetID);
 
         ProvidersUpdated?.Invoke(this, EventArgs.Empty);
     }
@@ -117,7 +117,20 @@ public class AbstractVideoReleaseService(
         }
     }
 
-    public ReleaseInfoProviderInfo? GetProviderByID(Guid providerID)
+    public ReleaseInfoProviderInfo GetProviderInfo(IReleaseInfoProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        if (_releaseInfoProviders is null)
+            throw new InvalidOperationException("Providers have not been added yet.");
+
+        return GetProviderInfoByID(GetID(provider))
+            ?? throw new ArgumentException($"Unregistered provider '{provider.Name}.'", nameof(provider));
+    }
+
+    public ReleaseInfoProviderInfo? GetProviderInfoByType(Type type)
+        => GetProviderInfoByID(GetID(type));
+
+    public ReleaseInfoProviderInfo? GetProviderInfoByID(Guid providerID)
     {
         if (_releaseInfoProviders is null || !_releaseInfoProviders.TryGetValue(providerID, out var provider))
             return null;
@@ -677,8 +690,16 @@ public class AbstractVideoReleaseService(
     /// <summary>
     /// Gets a unique ID for a release provider generated from its class name.
     /// </summary>
-    /// <param name="className">The string.</param>
+    /// <param name="provider">The provider.</param>
     /// <returns><see cref="Guid" />.</returns>
-    private static Guid GetID(string className)
-        => new(MD5.HashData(Encoding.Unicode.GetBytes(className)));
+    private static Guid GetID(IReleaseInfoProvider provider)
+        => GetID(provider.GetType());
+
+    /// <summary>
+    /// Gets a unique ID for a release provider generated from its class name.
+    /// </summary>
+    /// <param name="providerType">The provider type.</param>
+    /// <returns><see cref="Guid" />.</returns>
+    private static Guid GetID(Type providerType)
+        => new(MD5.HashData(Encoding.Unicode.GetBytes(providerType.FullName!)));
 }
