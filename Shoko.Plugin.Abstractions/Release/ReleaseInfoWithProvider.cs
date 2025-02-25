@@ -9,6 +9,8 @@ namespace Shoko.Plugin.Abstractions.Release;
 /// </summary>
 public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 {
+    private readonly DateTime? _lastUpdatedAt = null;
+
     /// <inheritdoc />
     public ReleaseInfoWithProvider(string providerName) : base()
     {
@@ -23,7 +25,10 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
     }
 
     /// <inheritdoc />
-    public ReleaseInfoWithProvider(IReleaseInfo releaseInfo) : base(releaseInfo) { }
+    public ReleaseInfoWithProvider(IReleaseInfo releaseInfo) : base(releaseInfo)
+    {
+        _lastUpdatedAt = releaseInfo.LastUpdatedAt;
+    }
 
     #region IReleaseInfo Implementation
 
@@ -37,7 +42,7 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 
     IReadOnlyList<IReleaseVideoCrossReference> IReleaseInfo.CrossReferences => CrossReferences;
 
-    DateTime IReleaseInfo.LastUpdatedAt => CreatedAt;
+    DateTime IReleaseInfo.LastUpdatedAt => _lastUpdatedAt ?? CreatedAt;
 
     #endregion
 }
