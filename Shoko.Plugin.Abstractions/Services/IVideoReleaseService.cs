@@ -9,19 +9,29 @@ using Shoko.Plugin.Abstractions.Release;
 namespace Shoko.Plugin.Abstractions.Services;
 
 /// <summary>
-/// Video service.
+/// Service responsible for managing release info for videos.
 /// </summary>
 public interface IVideoReleaseService
 {
     /// <summary>
     /// Event raised when a video release is saved to the database.
     /// </summary>
-    event EventHandler<VideoReleaseEventArgs>? VideoReleaseSaved;
+    event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
 
     /// <summary>
     /// Event raised when a video release is deleted from the database.
     /// </summary>
-    event EventHandler<VideoReleaseEventArgs>? VideoReleaseDeleted;
+    event EventHandler<VideoReleaseEventArgs>? ReleaseDeleted;
+
+    /// <summary>
+    /// Event raised when a video release search is started.
+    /// </summary>
+    event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
+
+    /// <summary>
+    /// Event raised when a video release search is completed.
+    /// </summary>
+    event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
 
     /// <summary>
     /// Event raised when the release info providers are updated.
