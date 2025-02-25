@@ -24,10 +24,6 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public event EventHandler<FileEventArgs>? FileHashed;
 
-    public event EventHandler<FileNotMatchedEventArgs>? FileNotMatched;
-
-    public event EventHandler<FileEventArgs>? FileMatched;
-
     public event EventHandler<FileRenamedEventArgs>? FileRenamed;
 
     public event EventHandler<FileMovedEventArgs>? FileMoved;
@@ -99,48 +95,6 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         FileDeleted?.Invoke(null, new(path, folder, vlp, vl, episodes, series, groups));
-    }
-
-    public void OnFileMatched(IVideoFile vlp, IVideo vl)
-    {
-        var path = vlp.RelativePath;
-        var xrefs = vl.CrossReferences;
-        var episodes = xrefs
-            .Select(x => x.ShokoEpisode)
-            .WhereNotNull()
-            .ToList();
-        var series = xrefs
-            .DistinctBy(x => x.AnidbAnimeID)
-            .Select(x => x.ShokoSeries)
-            .WhereNotNull()
-            .ToList();
-        var groups = series
-            .DistinctBy(a => a.ParentGroupID)
-            .Select(a => a.ParentGroup)
-            .WhereNotNull()
-            .ToList();
-        FileMatched?.Invoke(null, new(path, vlp.ImportFolder!, vlp, vl, episodes, series, groups));
-    }
-
-    public void OnFileNotMatched(IVideoFile vlp, IVideo vl, int autoMatchAttempts, bool hasXRefs, bool isUDPBanned)
-    {
-        var path = vlp.RelativePath;
-        var xrefs = vl.CrossReferences;
-        var episodes = xrefs
-            .Select(x => x.ShokoEpisode)
-            .WhereNotNull()
-            .ToList();
-        var series = xrefs
-            .DistinctBy(x => x.AnidbAnimeID)
-            .Select(x => x.ShokoSeries)
-            .WhereNotNull()
-            .ToList();
-        var groups = series
-            .DistinctBy(a => a.ParentGroupID)
-            .Select(a => a.ParentGroup)
-            .WhereNotNull()
-            .ToList();
-        FileNotMatched?.Invoke(null, new(path, vlp.ImportFolder!, vlp, vl, episodes, series, groups, autoMatchAttempts, hasXRefs, isUDPBanned));
     }
 
     public void OnFileMoved(IImportFolder oldFolder, IImportFolder newFolder, string oldPath, string newPath, IVideoFile vlp)
