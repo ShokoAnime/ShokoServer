@@ -80,24 +80,49 @@ public interface IVideoReleaseService
     /// <param name="providers">
     ///   The providers to update.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="providers"/> is <c>null</c>.
-    /// </exception>
     void UpdateProviders(params ReleaseInfoProviderInfo[] providers);
 
     /// <summary>
-    ///   Gets the <see cref="IReleaseInfoProvider"/> with the specified ID.
+    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the provider.
+    /// </summary>
+    /// <param name="provider">
+    ///   The provider.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="provider"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Providers have not been added yet.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="provider"/> is unregistered.
+    /// </exception>
+    /// <returns>
+    ///   The provider info.
+    /// </returns>
+    ReleaseInfoProviderInfo GetProviderInfo(IReleaseInfoProvider provider);
+
+    /// <summary>
+    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified type.
+    /// </summary>
+    /// <param name="providerType">
+    ///   The type of the provider.
+    /// </param>
+    /// <returns>
+    ///   The provider info, or <c>null</c> if none could be found.
+    /// </returns>
+    ReleaseInfoProviderInfo? GetProviderInfoByType(Type providerType);
+
+    /// <summary>
+    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified ID.
     /// </summary>
     /// <param name="providerID">
     ///   The ID of the provider.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="providerID"/> is <c>null</c>.
-    /// </exception>
     /// <returns>
-    ///   The provider, or <c>null</c> if none could be found.
+    ///   The provider info, or <c>null</c> if none could be found.
     /// </returns>
-    ReleaseInfoProviderInfo? GetProviderByID(Guid providerID);
+    ReleaseInfoProviderInfo? GetProviderInfoByID(Guid providerID);
 
     /// <summary>
     ///   Get the current release for the specified video, if one exists.
