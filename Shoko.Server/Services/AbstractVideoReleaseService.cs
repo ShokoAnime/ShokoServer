@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -50,7 +52,7 @@ public class AbstractVideoReleaseService(
 {
     private IServerSettings _settings => settingsProvider.GetSettings();
 
-    private Dictionary<string, IReleaseInfoProvider>? _releaseInfoProviders = null;
+    private Dictionary<Guid, IReleaseInfoProvider>? _releaseInfoProviders = null;
 
     public event EventHandler<VideoReleaseEventArgs>? VideoReleaseSaved;
 
@@ -76,9 +78,7 @@ public class AbstractVideoReleaseService(
         if (_releaseInfoProviders is not null)
             return;
 
-        _releaseInfoProviders = providers
-            .DistinctBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+        _releaseInfoProviders = providers.ToDictionary(a => GetID(a.GetType().FullName!));
 
         ProvidersUpdated?.Invoke(this, EventArgs.Empty);
     }
@@ -88,27 +88,41 @@ public class AbstractVideoReleaseService(
         if (_releaseInfoProviders is null)
             yield break;
 
-        var settings = settingsProvider.GetSettings().Plugins.ReleaseProvider;
-        var order = settings.Priority;
-        var enabled = settings.Enabled;
-        var orderedProviders = _releaseInfoProviders.Values
-            .OrderBy(p => order.IndexOf(p.Name) is -1)
-            .ThenBy(p => order.IndexOf(p.Name))
-            .ThenBy(p => p.Name)
+        var order = _settings.Plugins.ReleaseProvider.Priority;
+        var enabled = _settings.Plugins.ReleaseProvider.Enabled;
+        var orderedProviders = _releaseInfoProviders
+            .OrderBy(p => order.IndexOf(p.Key) is -1)
+            .ThenBy(p => order.IndexOf(p.Key))
+            .ThenBy(p => p.Key)
             .Select((provider, index) => (provider, index));
-        foreach (var (provider, index) in orderedProviders)
+        foreach (var ((id, provider), index) in orderedProviders)
         {
             yield return new()
             {
+                ID = id,
                 Provider = provider,
-                Enabled = enabled.TryGetValue(provider.Name, out var isEnabled) ? isEnabled : provider.Name is "AniDB",
+                Enabled = enabled.TryGetValue(id, out var isEnabled) ? isEnabled : provider.Name is "AniDB",
                 Priority = index,
             };
         }
     }
 
-    public IReleaseInfoProvider? GetProviderByName(string providerName)
-        => _releaseInfoProviders?.TryGetValue(providerName, out var provider) ?? false ? provider : null;
+    public ReleaseInfoProviderInfo? GetProviderByID(Guid providerID)
+    {
+        if (_releaseInfoProviders is null || !_releaseInfoProviders.TryGetValue(providerID, out var provider))
+            return null;
+
+        // We update the settings upon server start to ensure the priority and enabled states are accurate, so trust them.
+        var priority = _settings.Plugins.ReleaseProvider.Priority.IndexOf(providerID);
+        var enabled = _settings.Plugins.ReleaseProvider.Enabled.TryGetValue(providerID, out var isEnabled) ? isEnabled : provider.Name is "AniDB";
+        return new()
+        {
+            ID = providerID,
+            Provider = provider,
+            Enabled = enabled,
+            Priority = priority,
+        };
+    }
 
     public void UpdateProviders(params ReleaseInfoProviderInfo[] providers)
     {
@@ -143,14 +157,14 @@ public class AbstractVideoReleaseService(
 
         var changed = false;
         var settings = settingsProvider.GetSettings();
-        var priority = existingProviders.Select(pI => pI.Provider.Name).ToList();
+        var priority = existingProviders.Select(pI => pI.ID).ToList();
         if (!settings.Plugins.ReleaseProvider.Priority.SequenceEqual(priority))
         {
             settings.Plugins.ReleaseProvider.Priority = priority;
             changed = true;
         }
 
-        var enabled = existingProviders.ToDictionary(p => p.Provider.Name, p => p.Enabled);
+        var enabled = existingProviders.ToDictionary(p => p.ID, p => p.Enabled);
         if (!settings.Plugins.ReleaseProvider.Enabled.SequenceEqual(enabled))
         {
             settings.Plugins.ReleaseProvider.Enabled = enabled;
@@ -628,4 +642,12 @@ public class AbstractVideoReleaseService(
             userDataService.SaveVideoUserData(user, video, new(watchedRecord), UserDataSaveReason.VideoReImport);
         }
     }
+
+    /// <summary>
+    /// Gets a unique ID for a release provider generated from its class name.
+    /// </summary>
+    /// <param name="className">The string.</param>
+    /// <returns><see cref="Guid" />.</returns>
+    private static Guid GetID(string className)
+        => new(MD5.HashData(Encoding.Unicode.GetBytes(className)));
 }
