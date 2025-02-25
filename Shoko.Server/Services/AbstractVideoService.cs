@@ -27,12 +27,6 @@ public class AbstractVideoService : IVideoService
     public event EventHandler<FileEventArgs>? VideoFileHashed;
 
     /// <inheritdoc/>
-    public event EventHandler<FileEventArgs>? VideoFileMatched;
-
-    /// <inheritdoc/>
-    public event EventHandler<FileNotMatchedEventArgs>? VideoFileNotMatched;
-
-    /// <inheritdoc/>
     public event EventHandler<FileRenamedEventArgs>? VideoFileRenamed;
 
     /// <inheritdoc/>
@@ -55,8 +49,6 @@ public class AbstractVideoService : IVideoService
         ShokoEventHandler.Instance.FileDetected += OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
         ShokoEventHandler.Instance.FileHashed += OnFileHashed;
-        ShokoEventHandler.Instance.FileMatched += OnFileMatched;
-        ShokoEventHandler.Instance.FileNotMatched += OnFileNotMatched;
         ShokoEventHandler.Instance.FileRenamed += OnFileRenamed;
         ShokoEventHandler.Instance.FileMoved += OnFileMoved;
     }
@@ -66,8 +58,6 @@ public class AbstractVideoService : IVideoService
         ShokoEventHandler.Instance.FileDetected -= OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted -= OnFileDeleted;
         ShokoEventHandler.Instance.FileHashed -= OnFileHashed;
-        ShokoEventHandler.Instance.FileMatched -= OnFileMatched;
-        ShokoEventHandler.Instance.FileNotMatched -= OnFileNotMatched;
         ShokoEventHandler.Instance.FileRenamed -= OnFileRenamed;
         ShokoEventHandler.Instance.FileMoved -= OnFileMoved;
     }
@@ -85,16 +75,6 @@ public class AbstractVideoService : IVideoService
     private void OnFileHashed(object? sender, FileEventArgs eventArgs)
     {
         VideoFileHashed?.Invoke(this, eventArgs);
-    }
-
-    private void OnFileMatched(object? sender, FileEventArgs eventArgs)
-    {
-        VideoFileMatched?.Invoke(this, eventArgs);
-    }
-
-    private void OnFileNotMatched(object? sender, FileNotMatchedEventArgs eventArgs)
-    {
-        VideoFileNotMatched?.Invoke(this, eventArgs);
     }
 
     private void OnFileRenamed(object? sender, FileRenamedEventArgs eventArgs)
