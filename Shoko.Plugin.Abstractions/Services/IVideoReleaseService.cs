@@ -66,11 +66,16 @@ public interface IVideoReleaseService
     ///   <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/> and
     ///   their priority order when used in said method.
     /// </summary>
+    /// <param name="onlyEnabled">
+    ///   If true, only providers that are enabled for use in
+    ///   <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/> will
+    ///   be returned.
+    /// </param>
     /// <returns>
     ///   An enumerable of <see cref="ReleaseInfoProviderInfo"/>s, one for each
     ///   available <see cref="IReleaseInfoProvider"/>.
     /// </returns>
-    IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders();
+    IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders(bool onlyEnabled = false);
 
     /// <summary>
     ///   Edit the settings for an <see cref="IReleaseInfoProvider"/>, such as

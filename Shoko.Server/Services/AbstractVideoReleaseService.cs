@@ -86,10 +86,8 @@ public class AbstractVideoReleaseService(
 
         ProvidersUpdated?.Invoke(this, EventArgs.Empty);
     }
-    public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders()
-        => GetAvailableProviders(false);
 
-    public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders(bool onlyEnabled)
+    public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
     {
         if (_releaseInfoProviders is null)
             yield break;
