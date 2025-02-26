@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
 using Quartz;
 using Shoko.Models.Enums;
@@ -20,23 +19,26 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+using AbstractReleaseInfo = Shoko.Plugin.Abstractions.Release.ReleaseInfo;
+using AbstractReleaseVideoCrossReference = Shoko.Plugin.Abstractions.Release.ReleaseVideoCrossReference;
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using Path = System.IO.Path;
+using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -48,7 +50,11 @@ public class FileController : BaseController
 
     private const string FileNoPath = "Unable to resolve file location.";
 
-    private const string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
+    private const string AnidbReleaseNotFoundForFileID = "No AniDB ReleaseInfo entry for the given fileID";
+
+    private const string AnidbReleaseNotFoundForAnidbFileID = "No AniDB ReleaseInfo entry for the given anidbFileID";
+
+    private const string ReleaseNotFoundForFileID = "No ReleaseInfo entry for the given fileID";
 
     internal const string FileNotFoundWithFileID = "No File entry for the given fileID";
 
@@ -61,6 +67,7 @@ public class FileController : BaseController
     private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
     private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly IUserDataService _userDataService;
 
     public FileController(
@@ -70,6 +77,7 @@ public class FileController : BaseController
         VideoLocal_PlaceService vlPlaceService,
         VideoLocal_UserRepository vlUsers,
         IUserDataService watchedService,
+        IVideoReleaseService videoReleaseService,
         VideoLocalService vlService
     ) : base(settingsProvider)
     {
@@ -77,6 +85,7 @@ public class FileController : BaseController
         _vlPlaceService = vlPlaceService;
         _vlUsers = vlUsers;
         _userDataService = watchedService;
+        _videoReleaseService = videoReleaseService;
         _vlService = vlService;
         _schedulerFactory = schedulerFactory;
     }
@@ -190,14 +199,12 @@ public class FileController : BaseController
     /// <param name="hash">ED2K hex-encoded hash.</param>
     /// <param name="size">File size.</param>
     /// <param name="include">Include items that are not included by default</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns>The file that matches the given ED2K hash and file size, if found.</returns>
     [HttpGet("Hash/ED2K")]
     public ActionResult<File> GetFileByEd2k(
         [FromQuery, Required, Length(32, 32)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -207,7 +214,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
 
@@ -217,14 +224,12 @@ public class FileController : BaseController
     /// <param name="hash">CRC32 hex-encoded hash.</param>
     /// <param name="size">File size.</param>
     /// <param name="include">Include items that are not included by default</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns>The file that matches the given CRC32 hash and file size, if found.</returns>
     [HttpGet("Hash/CRC32")]
     public ActionResult<File> GetFileByCrc32(
         [FromQuery, Required, Length(8, 8)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -234,7 +239,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
 
@@ -244,14 +249,12 @@ public class FileController : BaseController
     /// <param name="hash">MD5 hex-encoded hash.</param>
     /// <param name="size">File size.</param>
     /// <param name="include">Include items that are not included by default</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns>The file that matches the given MD5 hash and file size, if found.</returns>
     [HttpGet("Hash/MD5")]
     public ActionResult<File> GetFileByMd5(
         [FromQuery, Required, Length(32, 32)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -261,7 +264,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
 
@@ -271,14 +274,12 @@ public class FileController : BaseController
     /// <param name="hash">SHA1 hex-encoded hash.</param>
     /// <param name="size">File size.</param>
     /// <param name="include">Include items that are not included by default</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns>The file that matches the given SHA1 hash and file size, if found.</returns>
     [HttpGet("Hash/SHA1")]
     public ActionResult<File> GetFileBySha1(
         [FromQuery, Required, Length(40, 40)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -288,7 +289,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
 
@@ -299,18 +300,18 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="fileID">Shoko VideoLocalID</param>
     /// <param name="include">Include items that are not included by default</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
-    public ActionResult<File> GetFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+    public ActionResult<File> GetFile(
+        [FromRoute, Range(1, int.MaxValue)] int fileID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
 
@@ -399,7 +400,28 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Get the <see cref="File.AniDB"/> using the <paramref name="fileID"/>.
+    /// Get the <see cref="ReleaseInfo"/> using the <paramref name="fileID"/>.
+    /// </summary>
+    /// <remarks>
+    /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
+    /// </remarks>
+    /// <param name="fileID">Shoko File ID</param>
+    /// <returns></returns>
+    [HttpGet("{fileID}/Release")]
+    public ActionResult<ReleaseInfo> GetFileReleaseByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        if (file.ReleaseInfo is not { ReleaseURI: not null } releaseInfo)
+            return NotFound(ReleaseNotFoundForFileID);
+
+        return new ReleaseInfo(releaseInfo);
+    }
+
+    /// <summary>
+    /// Get the <see cref="ReleaseInfo"/> using the <paramref name="fileID"/> if the provider is AniDB.
     /// </summary>
     /// <remarks>
     /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
@@ -407,21 +429,20 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko File ID</param>
     /// <returns></returns>
     [HttpGet("{fileID}/AniDB")]
-    public ActionResult<File.AniDB> GetFileAnidbByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
+    public ActionResult<ReleaseInfo> GetFileAnidbByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var anidb = file.AniDBFile;
-        if (anidb == null)
-            return NotFound(AnidbNotFoundForFileID);
+        if (file.ReleaseInfo is not { ReleaseURI: not null } releaseInfo || !releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            return NotFound(AnidbReleaseNotFoundForFileID);
 
-        return new File.AniDB(anidb);
+        return new ReleaseInfo(releaseInfo);
     }
 
     /// <summary>
-    /// Get the <see cref="File.AniDB"/> using the <paramref name="anidbFileID"/>.
+    /// Get the <see cref="ReleaseInfo"/> using the <paramref name="anidbFileID"/>.
     /// </summary>
     /// <remarks>
     /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
@@ -429,41 +450,43 @@ public class FileController : BaseController
     /// <param name="anidbFileID">AniDB File ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}")]
-    public ActionResult<File.AniDB> GetFileAnidbByAnidbFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID)
+    public ActionResult<ReleaseInfo> GetFileAnidbByAnidbFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID)
     {
-        var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
-        if (anidb == null)
-            return NotFound(AnidbNotFoundForFileID);
+        if (
+            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
+        )
+            return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
-        return new File.AniDB(anidb);
+        return new ReleaseInfo(anidb);
     }
 
     /// <summary>
-    /// Get the <see cref="File.AniDB"/>for file using the <paramref name="anidbFileID"/>.
+    /// Get the <see cref="File"/> for the AniDB file using the <paramref name="anidbFileID"/>.
     /// </summary>
     /// <remarks>
     /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
     /// </remarks>
     /// <param name="anidbFileID">AniDB File ID</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <param name="includeMediaInfo">Include media info data.</param>
-    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="include">Include items that are not included by default</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
-    public ActionResult<File> GetFileByAnidbFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool includeMediaInfo = false, [FromQuery] bool includeAbsolutePaths = false)
+    public ActionResult<File> GetFileByAnidbFileID(
+        [FromRoute, Range(1, int.MaxValue)] int anidbFileID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
     {
-        var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
-        if (anidb == null)
-            return NotFound(FileNotFoundWithFileID);
+        if (
+            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
+        )
+            return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
-        var file = RepoFactory.VideoLocal.GetByEd2k(anidb.Hash);
+        var file = RepoFactory.VideoLocal.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
         if (file == null)
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
-        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths);
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
 
     /// <summary>
@@ -475,13 +498,15 @@ public class FileController : BaseController
     [HttpPost("AniDB/{anidbFileID}/Rescan")]
     public async Task<ActionResult> RescanFileByAniDBFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID, [FromQuery] bool priority = false)
     {
-        var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
-        if (anidb == null)
-            return NotFound(FileNotFoundWithFileID);
+        if (
+            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
+        )
+            return NotFound(AnidbReleaseNotFoundForFileID);
 
-        var file = RepoFactory.VideoLocal.GetByEd2k(anidb.Hash);
+        var file = RepoFactory.VideoLocal.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
         if (file == null)
-            return NotFound(AnidbNotFoundForFileID);
+            return NotFound(AnidbReleaseNotFoundForFileID);
 
         var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
@@ -492,14 +517,14 @@ public class FileController : BaseController
             await scheduler.StartJobNow<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         else
             await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         return Ok();
@@ -913,14 +938,14 @@ public class FileController : BaseController
             await scheduler.StartJobNow<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         else
             await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         return Ok();
@@ -971,14 +996,8 @@ public class FileController : BaseController
     [HttpPost("{fileID}/Link")]
     public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
-
-        // Validate that we can manually link this file.
-        CheckXRefsForFile(file, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
 
         // Validate the episodes.
         var episodeList = body.EpisodeIDs
@@ -987,25 +1006,26 @@ public class FileController : BaseController
                 var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
                 if (episode == null)
                     ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find shoko episode with id {episodeID}");
-                return episode;
+                var anidbEpisode = episode.AniDB_Episode;
+                if (anidbEpisode == null)
+                    ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find anidb episode for shoko episode with id {episodeID}");
+                return anidbEpisode;
             })
             .Where(episode => episode != null)
             .ToList();
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        // Remove any old links and schedule the linking commands.
-        RemoveXRefsForFile(file);
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var episode in episodeList)
+        await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            CrossReferences = episodeList
+                .Select(episode => new AbstractReleaseVideoCrossReference()
                 {
-                    c.VideoLocalID = fileID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                }
-            );
-        }
+                    AnidbAnimeID = episode.AnimeID,
+                    AnidbEpisodeID = episode.EpisodeID,
+                })
+                .ToList(),
+        });
 
         return Ok();
     }
@@ -1019,14 +1039,8 @@ public class FileController : BaseController
     [HttpPost("{fileID}/LinkFromSeries")]
     public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkSeriesBody body)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
-
-        // Validate that we can manually link this file.
-        CheckXRefsForFile(file, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
 
         // Validate that the ranges are in a valid syntax and that the series exists.
         var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
@@ -1066,7 +1080,7 @@ public class FileController : BaseController
             return ValidationProblem(ModelState);
 
         // Validate the episodes.
-        var episodeList = new List<SVR_AnimeEpisode>();
+        var episodeList = new List<SVR_AniDB_Episode>();
         for (var episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
@@ -1083,24 +1097,22 @@ public class FileController : BaseController
                 continue;
             }
 
-            episodeList.Add(episode);
+            episodeList.Add(anidbEpisode);
         }
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        // Remove any old links and schedule the linking commands.
-        RemoveXRefsForFile(file);
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var episode in episodeList)
+        await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            CrossReferences = episodeList
+                .Select(episode => new AbstractReleaseVideoCrossReference()
                 {
-                    c.VideoLocalID = fileID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                }
-            );
-        }
+                    AnidbAnimeID = episode.AnimeID,
+                    AnidbEpisodeID = episode.EpisodeID,
+                })
+                .ToList(),
+        });
 
         return Ok();
     }
@@ -1124,56 +1136,20 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Unlink all the episodes if no body is given, or only the specified episodes from the file.
+    /// Unlink all the episodes from the file.
     /// </summary>
     /// <param name="fileID">The file id.</param>
-    /// <param name="body">Optional. The body.</param>
     /// <returns></returns>
     [HttpDelete("{fileID}/Link")]
-    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.UnlinkEpisodesBody body)
+    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
-        if (file == null)
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
 
-        // Validate that the cross-references are allowed to be removed.
-        var all = body == null;
-        var episodeIdSet = body?.EpisodeIDs?.ToHashSet() ?? [];
-        var seriesIDs = new HashSet<int>();
-        var episodeList = file.AnimeEpisodes
-            .Where(episode => all || episodeIdSet.Contains(episode.AniDB_EpisodeID))
-            .Select(episode => (Episode: episode, XRef: file.EpisodeCrossReferences.FirstOrDefault(x => x.EpisodeID == episode.AniDB_EpisodeID)))
-            .Where(obj => obj.XRef != null)
-            .ToList();
-        foreach (var (_, xref) in episodeList)
-            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                ModelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
+        if (_videoReleaseService.GetCurrentReleaseForVideo(video) is null)
+            return ValidationProblem("The file is not linked to any episodes.");
 
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        // Remove the cross-references, and take note of the series ids that
-        // needs to be updated later.
-        foreach (var (episode, xref) in episodeList)
-        {
-            seriesIDs.Add(episode.AnimeSeriesID);
-            RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
-        }
-
-        // Reset the import date.
-        if (file.DateTimeImported.HasValue)
-        {
-            file.DateTimeImported = null;
-            RepoFactory.VideoLocal.Save(file);
-        }
-
-        // Update any series affected by this unlinking.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var seriesID in seriesIDs)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
-        }
+        await _videoReleaseService.ClearReleaseForVideo(video);
 
         return Ok();
     }
@@ -1193,8 +1169,6 @@ public class FileController : BaseController
                 var file = RepoFactory.VideoLocal.GetByID(fileID);
                 if (file == null)
                     ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
-                else
-                    CheckXRefsForFile(file, ModelState);
 
                 return file;
             })
@@ -1236,7 +1210,7 @@ public class FileController : BaseController
         // Validate the episodes.
         var singleEpisode = body.SingleEpisode;
         var episodeNumber = rangeStart;
-        var episodeList = new List<(SVR_VideoLocal, SVR_AnimeEpisode)>();
+        var episodeList = new List<(SVR_VideoLocal, SVR_AniDB_Episode)>();
         foreach (var file in files)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
@@ -1253,25 +1227,55 @@ public class FileController : BaseController
                 continue;
             }
 
-            episodeList.Add((file, episode));
+            episodeList.Add((file, anidbEpisode));
         }
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        // Remove any old links and schedule the linking commands.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var (file, episode) in episodeList)
+        // many:1 mapping between files and episode
+        if (body.SingleEpisode)
         {
-            RemoveXRefsForFile(file);
+            var count = 0;
+            var percentageRange = (int)Math.Round(1D / files.Count * 100);
+            var percentageEnd = 0;
+            foreach (var (video, episode) in episodeList)
+            {
+                var percentageStart = percentageEnd;
+                percentageEnd += percentageRange;
+                if (++count == files.Count)
+                    percentageEnd = 100;
 
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+                await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
                 {
-                    c.VideoLocalID = file.VideoLocalID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                    c.Percentage = singleEpisode ? (int)Math.Round(1D / files.Count * 100) : 0;
-                }
-            );
+                    CrossReferences = [
+                        new()
+                        {
+                            AnidbAnimeID = episode.AnimeID,
+                            AnidbEpisodeID = episode.EpisodeID,
+                            PercentageStart = percentageStart,
+                            PercentageEnd = percentageEnd,
+                        },
+                    ],
+                });
+            }
+
+            return Ok();
+        }
+
+        // 1:1 mapping between files and episodes.
+        foreach (var (video, episode) in episodeList)
+        {
+            await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+            {
+                CrossReferences = [
+                    new()
+                    {
+                        AnidbAnimeID = episode.AnimeID,
+                        AnidbEpisodeID = episode.EpisodeID,
+                    },
+                ],
+            });
         }
 
         return Ok();
@@ -1292,8 +1296,6 @@ public class FileController : BaseController
                 var file = RepoFactory.VideoLocal.GetByID(fileID);
                 if (file == null)
                     ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
-                else
-                    CheckXRefsForFile(file, ModelState);
 
                 return file;
             })
@@ -1313,49 +1315,31 @@ public class FileController : BaseController
         if (anidbEpisode == null)
             return InternalError("Could not find the AniDB entry for episode");
 
-        // Remove any old links and schedule the linking commands.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var file in files)
+        var count = 0;
+        var percentageRange = (int)Math.Round(1D / files.Count * 100);
+        var percentageEnd = 0;
+        foreach (var video in files)
         {
-            RemoveXRefsForFile(file);
+            var percentageStart = percentageEnd;
+            percentageEnd += percentageRange;
+            if (++count == files.Count)
+                percentageEnd = 100;
 
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
-                {
-                    c.VideoLocalID = file.VideoLocalID;
-                    c.EpisodeID = episode.AnimeEpisodeID;
-                    c.Percentage = (int)Math.Round(1D / files.Count * 100);
-                }
-            );
+            await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+            {
+                CrossReferences = [
+                    new()
+                    {
+                        AnidbAnimeID = anidbEpisode.AnimeID,
+                        AnidbEpisodeID = anidbEpisode.EpisodeID,
+                        PercentageStart = percentageStart,
+                        PercentageEnd = percentageEnd,
+                    },
+                ],
+            });
         }
 
         return Ok();
-    }
-
-    [NonAction]
-    private static void RemoveXRefsForFile(SVR_VideoLocal file)
-    {
-        foreach (var xref in file.EpisodeCrossReferences)
-        {
-            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                return;
-
-            RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
-        }
-
-        // Reset the import date.
-        if (file.DateTimeImported.HasValue)
-        {
-            file.DateTimeImported = null;
-            RepoFactory.VideoLocal.Save(file);
-        }
-    }
-
-    [NonAction]
-    private static void CheckXRefsForFile(SVR_VideoLocal file, ModelStateDictionary modelState)
-    {
-        foreach (var xref in file.EpisodeCrossReferences)
-            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                modelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
     }
 
     /// <summary>
@@ -1364,15 +1348,14 @@ public class FileController : BaseController
     /// before matching.
     /// </summary>
     /// <param name="path">The path to search for.</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="include">Include items that are not included by default</param>
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith")]
-    public ActionResult<List<File>> PathEndsWithQuery([FromQuery] string path, [FromQuery] bool includeXRefs = true,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+    public ActionResult<List<File>> PathEndsWithQuery([FromQuery] string path,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
         [Range(0, 100)] int limit = 0)
-        => PathEndsWithInternal(path, includeXRefs, includeDataFrom, limit);
+        => PathEndsWithInternal(path, include, limit);
 
     /// <summary>
     /// Search for a file by path or name. Internally, it will convert forward
@@ -1380,15 +1363,14 @@ public class FileController : BaseController
     /// before matching.
     /// </summary>
     /// <param name="path">The path to search for. URL encoded.</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="include">Include items that are not included by default</param>
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith/{*path}")]
-    public ActionResult<List<File>> PathEndsWithPath([FromRoute] string path, [FromQuery] bool includeXRefs = true,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+    public ActionResult<List<File>> PathEndsWithPath([FromRoute] string path,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
         [Range(0, 100)] int limit = 0)
-        => PathEndsWithInternal(Uri.UnescapeDataString(path), includeXRefs, includeDataFrom, limit);
+        => PathEndsWithInternal(Uri.UnescapeDataString(path), include, limit);
 
     /// <summary>
     /// Search for a file by path or name. Internally, it will convert forward
@@ -1396,13 +1378,11 @@ public class FileController : BaseController
     /// before matching.
     /// </summary>
     /// <param name="path">The path to search for.</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="include">Include items that are not included by default</param>
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [NonAction]
-    private ActionResult<List<File>> PathEndsWithInternal(string path, bool includeXRefs,
-        HashSet<DataSource> includeDataFrom, int limit = 0)
+    private ActionResult<List<File>> PathEndsWithInternal(string path, FileNonDefaultIncludeType[] include, int limit = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
             return new List<File>();
@@ -1427,12 +1407,14 @@ public class FileController : BaseController
 
         if (limit <= 0)
             return results
-                .Select(a => new File(HttpContext, a, includeXRefs, includeDataFrom))
+                .Select(a => new File(HttpContext, a, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)))
                 .ToList();
 
         return results
             .Take(limit)
-            .Select(a => new File(HttpContext, a, includeXRefs, includeDataFrom))
+            .Select(a => new File(HttpContext, a, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)))
             .ToList();
     }
 

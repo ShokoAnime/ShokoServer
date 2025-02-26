@@ -8,9 +8,10 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
+using Shoko.Plugin.Abstractions.Release;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
 
-using AniDB_ReleaseGroup = Shoko.Server.Models.AniDB.AniDB_ReleaseGroup;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
 #pragma warning disable CS0618
@@ -43,8 +44,6 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     public int MyListID { get; set; }
 
-    public bool IsManualLink => AniDBFile == null;
-
     /// <summary>
     /// Playback duration in milliseconds.
     /// </summary>
@@ -67,28 +66,24 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
         }
     }
 
-    public string VideoResolution => MediaInfo?.VideoStream == null ? "0x0" : $"{MediaInfo.VideoStream.Width}x{MediaInfo.VideoStream.Height}";
+    public string VideoResolution =>
+        MediaInfo?.VideoStream == null ? "0x0" : $"{MediaInfo.VideoStream.Width}x{MediaInfo.VideoStream.Height}";
 
-    public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
+    public string Info =>
+        string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
     public const int MEDIA_VERSION = 5;
 
     public MediaContainer? MediaInfo { get; set; }
 
-    public IReadOnlyList<SVR_VideoLocal_Place> Places => VideoLocalID is 0 ? [] : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
+    public IReadOnlyList<SVR_VideoLocal_Place> Places =>
+        VideoLocalID is 0 ? [] : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
-    public SVR_AniDB_File? AniDBFile => RepoFactory.AniDB_File.GetByHash(Hash);
+    public StoredReleaseInfo? ReleaseInfo =>
+        string.IsNullOrEmpty(Hash) ? null : RepoFactory.StoredReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);
 
-    internal AniDB_ReleaseGroup? ReleaseGroup
-    {
-        get
-        {
-            if (AniDBFile is not { } anidbFile)
-                return null;
-
-            return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anidbFile.GroupID);
-        }
-    }
+    internal IReleaseGroup? ReleaseGroup =>
+        ((IReleaseInfo?)ReleaseInfo)?.Group;
 
     public IReadOnlyList<SVR_AnimeEpisode> AnimeEpisodes
         => RepoFactory.AnimeEpisode.GetByHash(Hash);
@@ -162,7 +157,7 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     IReadOnlyList<IVideoFile> IVideo.Locations => Places;
 
-    IAniDBFile? IVideo.AniDB => AniDBFile;
+    IReleaseInfo? IVideo.ReleaseInfo => ReleaseInfo;
 
     IHashes IVideo.Hashes => this;
 

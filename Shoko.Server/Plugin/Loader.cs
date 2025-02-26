@@ -6,6 +6,9 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Release;
+using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Extensions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -15,7 +18,8 @@ namespace Shoko.Server.Plugin;
 
 public static class Loader
 {
-    private static readonly IList<Type> _pluginTypes = new List<Type>();
+    private static readonly List<Type> _exportedTypes = new List<Type>();
+    private static readonly List<Type> _pluginTypes = new List<Type>();
     private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
     private static IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
 
@@ -123,11 +127,17 @@ public static class Loader
             s_logger.Trace("Loaded IPlugin implementation: {0}", pluginType.Name);
             _pluginTypes.Add(pluginType);
 
+            var exportedTypeList = assembly.GetExportedTypes();
+            foreach (var type in exportedTypeList)
+                if (type.IsClass && !type.IsAbstract && !type.IsInterface && !type.IsGenericType)
+                    _exportedTypes.Add(type);
+
             // Compat. for plugins targeting <4.2.0-beta2 using the previously undocumented (except in source code) ConfigureServices method.
             if (pluginType.GetMethod("ConfigureServices", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy) is { } mtd)
             {
                 s_logger.Trace("Registering plugin service: {0}", pluginType.Name);
                 mtd.Invoke(null, [serviceCollection]);
+                continue;
             }
 
             var registrationImpl = pluginTypes
@@ -174,9 +184,22 @@ public static class Loader
             plugin.Load();
         }
 
+        // Used to store the updated priorities for the providers in the settings file.
+        var service = provider.GetRequiredService<IVideoReleaseService>();
+        service.AddProviders(GetExports<IReleaseInfoProvider>(provider));
+        service.UpdateProviders();
+
         // When we initialized the plugins, we made entries for the Enabled State of Plugins
         Utils.SettingsProvider.SaveSettings();
     }
+
+    private static List<T> GetExports<T>(IServiceProvider serviceProvider)
+        => _exportedTypes
+            .Where(type => typeof(T).IsAssignableFrom(type))
+            .Select(t => ActivatorUtilities.CreateInstance(serviceProvider, t))
+            .WhereNotNull()
+            .Cast<T>()
+            .ToList();
 
     private static void LoadSettings(Type type, IPlugin plugin)
     {

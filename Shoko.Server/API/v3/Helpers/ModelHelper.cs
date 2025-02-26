@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -11,7 +12,6 @@ using Shoko.Server.Repositories;
 
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
-using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
 
@@ -297,43 +297,43 @@ public static class ModelHelper
                 if (!fileSet.Add(file.VideoLocalID))
                     continue;
 
-                var anidbFile = file.AniDBFile;
+                var anidbFile = file.ReleaseInfo;
                 if (anidbFile == null)
                 {
                     sizes.FileSources.Unknown++;
                     continue;
                 }
 
-                switch (File.ParseFileSource(anidbFile.File_Source))
+                switch (anidbFile.Source)
                 {
-                    case FileSource.Unknown:
+                    case ReleaseSource.Unknown:
                         sizes.FileSources.Unknown++;
                         break;
-                    case FileSource.Other:
+                    case ReleaseSource.Other:
                         sizes.FileSources.Other++;
                         break;
-                    case FileSource.TV:
+                    case ReleaseSource.TV:
                         sizes.FileSources.TV++;
                         break;
-                    case FileSource.DVD:
+                    case ReleaseSource.DVD:
                         sizes.FileSources.DVD++;
                         break;
-                    case FileSource.BluRay:
+                    case ReleaseSource.BluRay:
                         sizes.FileSources.BluRay++;
                         break;
-                    case FileSource.Web:
+                    case ReleaseSource.Web:
                         sizes.FileSources.Web++;
                         break;
-                    case FileSource.VHS:
+                    case ReleaseSource.VHS:
                         sizes.FileSources.VHS++;
                         break;
-                    case FileSource.VCD:
+                    case ReleaseSource.VCD:
                         sizes.FileSources.VCD++;
                         break;
-                    case FileSource.LaserDisc:
+                    case ReleaseSource.LaserDisc:
                         sizes.FileSources.LaserDisc++;
                         break;
-                    case FileSource.Camera:
+                    case ReleaseSource.Camera:
                         sizes.FileSources.Camera++;
                         break;
                 }
@@ -534,10 +534,8 @@ public static class ModelHelper
                 if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)) return false;
                 if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null))) return false;
 
-                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
-                    xrefs.All(xref => xref.CrossRefSource == (int)CrossRefSource.User)) return false;
-                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) &&
-                    (xrefs.Count == 0 || xrefs.All(xref => xref.CrossRefSource != (int)CrossRefSource.User))) return false;
+                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) && xrefs.Count == 0) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;
@@ -559,7 +557,16 @@ public static class ModelHelper
 
         // Skip and limit.
         return enumerable.ToListResult(
-            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
-                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
+            tuple => new File(
+                tuple.UserRecord,
+                tuple.Video,
+                include.Contains(FileNonDefaultIncludeType.XRefs),
+                include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+                include.Contains(FileNonDefaultIncludeType.MediaInfo),
+                include.Contains(FileNonDefaultIncludeType.AbsolutePaths)
+            ),
+            page,
+            pageSize
+        );
     }
 }

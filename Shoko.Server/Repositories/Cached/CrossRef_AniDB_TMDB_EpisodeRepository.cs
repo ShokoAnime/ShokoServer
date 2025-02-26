@@ -24,11 +24,11 @@ public class CrossRef_AniDB_TMDB_EpisodeRepository(DatabaseFactory databaseFacto
 
     public override void PopulateIndexes()
     {
-        _anidbAnimeIDs = new(Cache, a => a.AnidbAnimeID);
-        _anidbEpisodeIDs = new(Cache, a => a.AnidbEpisodeID);
-        _tmdbShowIDs = new(Cache, a => a.TmdbShowID);
-        _tmdbEpisodeIDs = new(Cache, a => a.TmdbEpisodeID);
-        _pairedIDs = new(Cache, a => (a.AnidbAnimeID, a.TmdbShowID));
+        _anidbAnimeIDs = Cache.CreateIndex(a => a.AnidbAnimeID);
+        _anidbEpisodeIDs = Cache.CreateIndex(a => a.AnidbEpisodeID);
+        _tmdbShowIDs = Cache.CreateIndex(a => a.TmdbShowID);
+        _tmdbEpisodeIDs = Cache.CreateIndex(a => a.TmdbEpisodeID);
+        _pairedIDs = Cache.CreateIndex(a => (a.AnidbAnimeID, a.TmdbShowID));
     }
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetByAnidbAnimeID(int animeId)

@@ -389,6 +389,12 @@ public class AnimeSeriesService
             var tsEps = DateTime.Now - startEps;
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
 
+            // Ensure the episode added date is accurate.
+            series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+                .Select(a => a.LastUpdatedAt)
+                .DefaultIfEmpty()
+                .Max();
+
             if (watchedStats) UpdateWatchedStats(series, eps, name, ref start);
             if (missingEpsStats) UpdateMissingEpisodeStats(series, eps, name, ref start);
 
@@ -535,24 +541,16 @@ public class AnimeSeriesService
         var epGroupReleasedList = new EpisodeList(animeType);
         var daysofweekcounter = new Dictionary<DayOfWeek, int>();
 
-        var userReleaseGroups = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(
-            a =>
-            {
-                var vls = a.VideoLocals;
-                if (!vls.Any())
-                {
-                    return Array.Empty<int>();
-                }
-
-                var aniFiles = vls.Select(b => b.AniDBFile).Where(b => b != null).ToList();
-                if (!aniFiles.Any())
-                {
-                    return Array.Empty<int>();
-                }
-
-                return aniFiles.Select(b => b.GroupID);
-            }
-        ).Distinct().ToList();
+        var userReleaseGroups = eps
+            .Where(a => a.EpisodeTypeEnum == EpisodeType.Episode)
+            .SelectMany(a => a.VideoLocals
+                .Select(b => b.ReleaseGroup)
+                .WhereNotNull()
+                .Where(b => b.Source is "AniDB" && int.TryParse(b.ID, out var groupID) && groupID > 0)
+                .Select(b => int.Parse(b.ID))
+            )
+            .Distinct()
+            .ToList();
 
         var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
                 a.VideoLocals.Select(b => new

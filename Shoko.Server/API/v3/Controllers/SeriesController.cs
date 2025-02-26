@@ -24,7 +24,6 @@ using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB.Input;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
@@ -41,6 +40,7 @@ using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using Shoko.Server.API.v3.Models.TMDB;
+using Shoko.Server.Extensions;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -387,8 +387,7 @@ public class SeriesController : BaseController
     {
         var user = User;
         var query = RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Where(a => a.VideoLocal != null)
-                .Any(a => a.CrossRefSource == (int)CrossRefSource.User));
+            .Where(series => user.AllowedSeries(series) && series.VideoLocals.Count > 0);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
@@ -2052,7 +2051,7 @@ public class SeriesController : BaseController
                     // If we should hide manually linked episodes and the episode is manually linked, then hide it.
                     // Or if we should only show manually linked episodes and the episode is not manually linked, then hide it.
                     var shouldHideManuallyLinked = includeManuallyLinked == IncludeOnlyFilter.False;
-                    var isManuallyLinked = shoko.FileCrossReferences.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB);
+                    var isManuallyLinked = shoko.VideoLocals.Count > 0;
                     if (shouldHideManuallyLinked == isManuallyLinked)
                         return false;
                 }
@@ -2313,14 +2312,14 @@ public class SeriesController : BaseController
                 await scheduler.StartJobNow<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
             else
                 await scheduler.StartJob<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
         }
