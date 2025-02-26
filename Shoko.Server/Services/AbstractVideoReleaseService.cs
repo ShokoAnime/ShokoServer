@@ -226,72 +226,32 @@ public class AbstractVideoReleaseService(
         catch { }
 
         var completedAt = startedAt;
-        var selectedProviderName = (string?)null;
-        var providerNames = new List<string>();
+        var selectedProvider = (ReleaseInfoProviderInfo?)null;
         var releaseInfo = (IReleaseInfo?)null;
         var exception = (Exception?)null;
+        var providers = GetAvailableProviders(onlyEnabled: true).ToList();
         try
         {
-            var providers = GetAvailableProviders(onlyEnabled: true).ToList();
-            providerNames.AddRange(providers.Select(p => p.Provider.Name));
-            if (providerNames.Count == 0)
+            if (providers.Count == 0)
             {
                 logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.ID);
                 return null;
             }
 
-            if (ParallelMode)
-            {
-                var results = await Task.WhenAll(providers.Select(providerInfo => Task.Run<(ReleaseInfoWithProvider?, int, string)>(async () =>
-                {
-                    logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-                    var provider = providerInfo.Provider;
-                    var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
-                    if (release is null || release.CrossReferences.Count < 1)
-                        return default;
-
-                    logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-                    return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo.Priority, provider.Name);
-                }, cancellationToken)));
-                cancellationToken.ThrowIfCancellationRequested();
-                (releaseInfo, selectedProviderName) = results
-                    .Where(t => t.Item1 is not null)
-                    .OrderBy(t => t.Item2)
-                    .Select(t => (t.Item1, t.Item3))
-                    .FirstOrDefault();
-                if (releaseInfo is not null)
-                    logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", releaseInfo.ProviderName, video.ID);
-            }
-            else
-            {
-                foreach (var providerInfo in providers)
-                {
-                    if (releaseInfo is not null)
-                        continue;
-
-                    logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-                    var provider = providerInfo.Provider;
-                    var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (release is null || release.CrossReferences.Count < 1)
-                        continue;
-
-                    logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID})", providerInfo.Provider.Name, video.ID);
-                    releaseInfo = new ReleaseInfoWithProvider(release, provider.Name);
-                    break;
-                }
-            }
+            (releaseInfo, selectedProvider) = ParallelMode
+                ? await FileReleaseForVideoParallel(video, providers, cancellationToken)
+                : await FileReleaseForVideoSequential(video, providers, cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
             var matchAttempt = new StoredReleaseInfo_MatchAttempt()
             {
-                ProviderName = selectedProviderName,
+                ProviderName = selectedProvider?.Provider.Name,
                 ED2K = video.Hashes.ED2K,
                 FileSize = video.Size,
                 AttemptStartedAt = startedAt,
                 // Reuse startedAt because it will be overwritten in SaveReleaseForVideo later.
                 AttemptEndedAt = releaseInfo is null ? DateTime.Now : startedAt,
-                AttemptedProviderNames = providerNames,
+                AttemptedProviderNames = providers.Select(p => p.Provider.Name).ToList(),
             };
             // If we didn't find a release then save the attempt now.
             if (releaseInfo is null)
@@ -325,12 +285,85 @@ public class AbstractVideoReleaseService(
                     StartedAt = startedAt,
                     CompletedAt = completedAt,
                     Exception = exception,
-                    AttemptedProviderIDs = providerNames,
-                    ProviderID = selectedProviderName,
+                    AttemptedProviders = providers,
+                    SelectedProvider = selectedProvider,
                 });
             }
             catch { }
         }
+    }
+
+    private async Task<(IReleaseInfo?, ReleaseInfoProviderInfo?)> FileReleaseForVideoSequential(IVideo video, IReadOnlyList<ReleaseInfoProviderInfo> providers, CancellationToken cancellationToken)
+    {
+        foreach (var providerInfo in providers)
+        {
+            logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, video.ID, providerInfo.ID);
+            var provider = providerInfo.Provider;
+            var release = await provider.GetReleaseInfoForVideo(video, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (release is null || release.CrossReferences.Count < 1)
+                continue;
+
+            logger.LogTrace("Selected release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, video.ID, providerInfo.ID);
+            return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo);
+        }
+
+        return default;
+    }
+
+    private async Task<(IReleaseInfo?, ReleaseInfoProviderInfo?)> FileReleaseForVideoParallel(IVideo video, IReadOnlyList<ReleaseInfoProviderInfo> providers, CancellationToken cancellationToken)
+    {
+        // Start as many providers as possible in parallel until we've exhausted the list or the token is cancelled.
+        var tasks = new Dictionary<Task<IReleaseInfo?>, (ReleaseInfoProviderInfo providerInfo, CancellationTokenSource source)>();
+        foreach (var providerInfo in providers)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            var source = new CancellationTokenSource();
+            cancellationToken.Register(source.Cancel);
+            var task = Task.Run<IReleaseInfo?>(async () =>
+            {
+                logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, video.ID, providerInfo.ID);
+                var release = await providerInfo.Provider.GetReleaseInfoForVideo(video, source.Token);
+                if (release is not null && release.CrossReferences.Count > 0)
+                {
+                    logger.LogTrace("Found release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, video.ID, providerInfo.ID);
+                    return new ReleaseInfoWithProvider(release, providerInfo.Provider.Name);
+                }
+
+                return null;
+            }, source.Token);
+            tasks.Add(task, (providerInfo, source));
+        }
+
+        // Wait for the highest priority release to be found or for all the tasks to be cancelled.
+        var selectedRelease = (IReleaseInfo?)null;
+        var selectedProvider = (ReleaseInfoProviderInfo?)null;
+        var queue = tasks.Keys.ToList();
+        while (queue.Count > 0)
+        {
+            var task = await Task.WhenAny(queue);
+            queue.Remove(task);
+            var (providerInfo, source) = tasks[task];
+            if (source.IsCancellationRequested)
+                continue;
+
+            var releaseInfo = task.Result;
+            if (releaseInfo is not null && (selectedProvider is null || providerInfo.Priority < selectedProvider.Priority))
+            {
+                selectedRelease = releaseInfo;
+                selectedProvider = providerInfo;
+            }
+
+            foreach (var item in tasks.Values.Where(tuple => tuple.providerInfo.Priority >= providerInfo.Priority))
+                item.source.Cancel();
+        }
+
+        if (selectedRelease is not null && selectedProvider is not null)
+            logger.LogTrace("Selected release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", selectedProvider.Provider.Name, video.ID, selectedProvider.ID);
+
+        return (selectedRelease, selectedProvider);
     }
 
     public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User")
