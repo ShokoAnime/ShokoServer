@@ -123,14 +123,20 @@ public class AbstractVideoReleaseService(
         if (_releaseInfoProviders is null)
             throw new InvalidOperationException("Providers have not been added yet.");
 
-        return GetProviderInfoByID(GetID(provider))
-            ?? throw new ArgumentException($"Unregistered provider '{provider.Name}.'", nameof(provider));
+        return GetProviderInfo(GetID(provider))
+            ?? throw new ArgumentException($"Unregistered provider: '{provider.GetType().Name}'", nameof(provider));
     }
 
-    public ReleaseInfoProviderInfo? GetProviderInfoByType(Type type)
-        => GetProviderInfoByID(GetID(type));
+    public ReleaseInfoProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider
+    {
+        if (_releaseInfoProviders is null)
+            throw new InvalidOperationException("Providers have not been added yet.");
 
-    public ReleaseInfoProviderInfo? GetProviderInfoByID(Guid providerID)
+        return GetProviderInfo(GetID(typeof(TProvider)))
+            ?? throw new ArgumentException($"Unregistered provider: '{typeof(TProvider).Name}'", nameof(TProvider));
+    }
+
+    public ReleaseInfoProviderInfo? GetProviderInfo(Guid providerID)
     {
         if (_releaseInfoProviders is null || !_releaseInfoProviders.TryGetValue(providerID, out var provider))
             return null;

@@ -89,7 +89,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     [HttpGet("Provider/{providerID}")]
     public ActionResult<ReleaseInfoProvider> GetReleaseProviderByID(Guid providerID)
     {
-        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+        if (videoReleaseService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Release Provider '{providerID}' not found!");
 
         return new ReleaseInfoProvider
@@ -113,7 +113,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     [HttpPut("Provider/{providerID}")]
     public ActionResult<ReleaseInfoProvider> UpdateReleaseProviderByID([FromRoute] Guid providerID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ReleaseInfoProvider.Input.UpdateSingleProviderBody body)
     {
-        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+        if (videoReleaseService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Release Provider '{providerID}' not found!");
 
         var changed = false;
@@ -147,7 +147,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     [HttpGet("Provider/{providerID}/Preview/By-Release")]
     public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByID([FromRoute] Guid providerID, [FromQuery] string id)
     {
-        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+        if (videoReleaseService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Release Provider '{providerID}' not found!");
 
         if (await providerInfo.Provider.GetReleaseInfoById(id, HttpContext.RequestAborted) is not { } releaseInfo)
@@ -171,7 +171,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoRel
     [HttpGet("Provider/{providerID}/Preview/By-File")]
     public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByID([FromRoute] Guid providerID, [FromQuery, Range(1, int.MaxValue)] int? fileID = null, [FromQuery] string? ed2k = null, [FromQuery] long? fileSize = null)
     {
-        if (videoReleaseService.GetProviderByID(providerID) is not { } providerInfo)
+        if (videoReleaseService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Release Provider '{providerID}' not found!");
 
         IVideo video;

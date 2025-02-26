@@ -83,6 +83,17 @@ public interface IVideoReleaseService
     void UpdateProviders(params ReleaseInfoProviderInfo[] providers);
 
     /// <summary>
+    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified ID.
+    /// </summary>
+    /// <param name="providerID">
+    ///   The ID of the provider.
+    /// </param>
+    /// <returns>
+    ///   The provider info, or <c>null</c> if none could be found.
+    /// </returns>
+    ReleaseInfoProviderInfo? GetProviderInfo(Guid providerID);
+
+    /// <summary>
     ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the provider.
     /// </summary>
     /// <param name="provider">
@@ -105,24 +116,19 @@ public interface IVideoReleaseService
     /// <summary>
     ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified type.
     /// </summary>
-    /// <param name="providerType">
-    ///   The type of the provider.
-    /// </param>
+    /// <typeparam name="TProvider">
+    ///   The provider type.
+    /// </typeparam>
+    /// <exception cref="InvalidOperationException">
+    ///   Providers have not been added yet.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <typeparamref name="TProvider"/> is unregistered.
+    /// </exception>
     /// <returns>
-    ///   The provider info, or <c>null</c> if none could be found.
+    ///   The provider info.
     /// </returns>
-    ReleaseInfoProviderInfo? GetProviderInfoByType(Type providerType);
-
-    /// <summary>
-    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified ID.
-    /// </summary>
-    /// <param name="providerID">
-    ///   The ID of the provider.
-    /// </param>
-    /// <returns>
-    ///   The provider info, or <c>null</c> if none could be found.
-    /// </returns>
-    ReleaseInfoProviderInfo? GetProviderInfoByID(Guid providerID);
+    ReleaseInfoProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider;
 
     /// <summary>
     ///   Get the current release for the specified video, if one exists.
