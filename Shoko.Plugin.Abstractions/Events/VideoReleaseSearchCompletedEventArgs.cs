@@ -21,19 +21,20 @@ public class VideoReleaseSearchCompletedEventArgs : VideoEventArgs
     /// Indicates if the search was successful.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ReleaseInfo))]
-    [MemberNotNullWhen(true, nameof(ProviderID))]
-    public bool IsSuccessful => ReleaseInfo is not null && ProviderID is not { Length: > 0 };
+    [MemberNotNullWhen(true, nameof(SelectedProvider))]
+    public bool IsSuccessful => ReleaseInfo is not null && SelectedProvider is not null;
 
     /// <summary>
     /// The IDs of the release providers that were attempted.
     /// </summary>
-    public required IReadOnlyList<string> AttemptedProviderIDs { get; init; }
+    public required IReadOnlyList<ReleaseInfoProviderInfo> AttemptedProviders { get; init; }
 
     /// <summary>
     /// The ID of the release provider that was selected for the successful
     /// search.
     /// </summary>
-    public required string? ProviderID { get; init; }
+    public required ReleaseInfoProviderInfo? SelectedProvider { get; init; }
+
     /// <summary>
     /// The found release info, if successful.
     /// </summary>
