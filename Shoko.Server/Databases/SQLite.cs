@@ -446,7 +446,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(36, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new(37, 1, DatabaseFixes.PopulateTagWeight),
         new(38, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new(39, 1, DatabaseFixes.FixHashes),
+        new(39, 1, DatabaseFixes.NoOperation),
         new(40, 1, "DROP TABLE LogMessage;"),
         new(41, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder text NULL"),
         new(42, 1, "ALTER TABLE JMMUser ADD PlexUsers text NULL"),
@@ -864,7 +864,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(135, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
         new(136, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INTEGER PRIMARY KEY AUTOINCREMENT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, ID TEXT, ProviderName TEXT NOT NULL, ReleaseURI TEXT, Revision INTEGER NOT NULL, ProvidedFileSize INTEGER, Comment TEXT, OriginalFilename TEXT, IsCensored INTEGER, IsCorrupted INTEGER NOT NULL, Source INTEGER NOT NULL, GroupID TEXT, GroupSource TEXT, GroupName TEXT, GroupShortName TEXT, Hashes BLOB NULL, AudioLanguages TEXT, SubtitleLanguages TEXT, CrossReferences TEXT NOT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME NOT NULL, CreatedAt DATETIME NOT NULL);"),
         new(136, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INTEGER PRIMARY KEY AUTOINCREMENT, AttemptProviderNames TEXT NOT NULL, ProviderName TEXT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, AttemptStartedAt DATETIME NOT NULL, AttemptEndedAt DATETIME NOT NULL);"),
-        new(136, 03, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new(136, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, Type INTEGER NOT NULL, Value TEXT NOT NULL, Metadata TEXT);"),
+        new(136, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

@@ -6,6 +6,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
@@ -185,9 +186,12 @@ public static class Loader
         }
 
         // Used to store the updated priorities for the providers in the settings file.
-        var service = provider.GetRequiredService<IVideoReleaseService>();
-        service.AddProviders(GetExports<IReleaseInfoProvider>(provider));
-        service.UpdateProviders();
+        var videoReleaseService = provider.GetRequiredService<IVideoReleaseService>();
+        videoReleaseService.AddProviders(GetExports<IReleaseInfoProvider>(provider));
+        videoReleaseService.UpdateProviders();
+        var videoHashingService = provider.GetRequiredService<IVideoHashingService>();
+        videoHashingService.AddProviders(GetExports<IHashProvider>(provider));
+        videoHashingService.UpdateProviders();
 
         // When we initialized the plugins, we made entries for the Enabled State of Plugins
         Utils.SettingsProvider.SaveSettings();
