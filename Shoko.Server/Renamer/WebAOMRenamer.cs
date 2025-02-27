@@ -416,7 +416,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="test"></param>
     /// <param name="vid"></param>
     /// <returns></returns>
-    private bool EvaluateTestZ(string test, SVR_VideoLocal vid)
+    private bool EvaluateTestZ(string test, VideoLocal vid)
     {
         try
         {
@@ -469,7 +469,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private bool EvaluateTestW(string test, SVR_VideoLocal vid)
+    private bool EvaluateTestW(string test, VideoLocal vid)
     {
         try
         {
@@ -524,7 +524,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private bool EvaluateTestU(string test, SVR_VideoLocal vid)
+    private bool EvaluateTestU(string test, VideoLocal vid)
     {
         try
         {
@@ -910,7 +910,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="episodes"></param>
     /// <param name="anime"></param>
     /// <returns></returns>
-    private bool EvaluateTestI(string test, SVR_VideoLocal vid, StoredReleaseInfo aniFile,
+    private bool EvaluateTestI(string test, VideoLocal vid, StoredReleaseInfo aniFile,
         List<SVR_AniDB_Episode> episodes,
         SVR_AniDB_Anime anime)
     {
@@ -1457,7 +1457,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return (true, $"{newFileName.Replace("`", "'")}{ext}".ReplaceInvalidPathCharacters());
     }
 
-    private (bool, string) PerformActionOnFileName(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, StoredReleaseInfo aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+    private (bool, string) PerformActionOnFileName(string newFileName, string action, WebAOMSettings settings, VideoLocal vid, StoredReleaseInfo aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         // find the first test
         var posStart = action.IndexOf(' ');
@@ -1510,7 +1510,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return (true, newFileName);
     }
 
-    private (bool, string) PerformActionOnFileNameADD(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid,
+    private (bool, string) PerformActionOnFileNameADD(string newFileName, string action, WebAOMSettings settings, VideoLocal vid,
         StoredReleaseInfo aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         newFileName += action;
@@ -1969,7 +1969,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return action;
     }
 
-    private bool EvaluateTest(string line, SVR_VideoLocal vid, StoredReleaseInfo aniFile,
+    private bool EvaluateTest(string line, VideoLocal vid, StoredReleaseInfo aniFile,
         List<SVR_AniDB_Episode> episodes,
         SVR_AniDB_Anime anime)
     {
@@ -2045,7 +2045,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return false;
     }
 
-    private bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid,
+    private bool EvaluateTest(char testChar, string testCondition, VideoLocal vid,
         StoredReleaseInfo aniFile,
         List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
