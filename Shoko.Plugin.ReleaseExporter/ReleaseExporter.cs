@@ -1,5 +1,5 @@
+using System;
 using System.IO;
-using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Release;
@@ -22,6 +22,7 @@ public class ReleaseExporter
         _videoReleaseService.ReleaseDeleted += OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted += OnVideoDeleted;
         _videoService.VideoFileRelocated += OnVideoRelocated;
+        _videoReleaseService.ProvidersUpdated += OnReleaseProvidersUpdated;
     }
 
     ~ReleaseExporter()
@@ -30,10 +31,15 @@ public class ReleaseExporter
         _videoReleaseService.ReleaseDeleted -= OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted -= OnVideoDeleted;
         _videoService.VideoFileRelocated -= OnVideoRelocated;
+        _videoReleaseService.ProvidersUpdated -= OnReleaseProvidersUpdated;
     }
 
-    private bool IsEnabled
-        => _videoReleaseService.GetAvailableProviders().Any(x => x.Provider.Name == ReleaseImporter.Key && x.Enabled);
+    private bool IsEnabled { get; set; } = false;
+
+    private void OnReleaseProvidersUpdated(object? sender, EventArgs e)
+    {
+        IsEnabled = _videoReleaseService.GetProviderInfo<ReleaseImporter>().Enabled;
+    }
 
     private void OnVideoReleaseSaved(object? sender, VideoReleaseEventArgs eventArgs)
     {
