@@ -122,11 +122,11 @@ public partial class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo? MediaInfo { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
+    public File(HttpContext context, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
         this(RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths)
     { }
 
-    public File(SVR_VideoLocal_User? userRecord, SVR_VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    public File(SVR_VideoLocal_User? userRecord, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
         var mediaInfo = file.MediaInfo as IMediaInfo;
         ID = file.VideoLocalID;
@@ -311,7 +311,7 @@ public partial class File
             LastUpdatedAt = userStats.LastUpdated.ToUniversalTime();
         }
 
-        public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal? file = null)
+        public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, VideoLocal? file = null)
         {
             // Get the file associated with the user entry.
             file ??= existing.VideoLocal!;
@@ -536,7 +536,7 @@ public partial class File
         FileID = 16,
     }
 
-    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place? Location, IReadOnlyList<SVR_VideoLocal_Place>? Locations, SVR_VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+    private static Func<(VideoLocal Video, SVR_VideoLocal_Place? Location, IReadOnlyList<SVR_VideoLocal_Place>? Locations, SVR_VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
         criteria switch
         {
             FileSortCriteria.ImportFolderName => (tuple) => tuple.Location?.ImportFolder?.ImportFolderName ?? string.Empty,
@@ -558,7 +558,7 @@ public partial class File
             _ => null,
         };
 
-    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> enumerable, List<string> sortCriterias)
+    public static IEnumerable<(VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> OrderBy(IEnumerable<(VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> enumerable, List<string> sortCriterias)
     {
         var first = true;
         return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
@@ -577,7 +577,7 @@ public partial class File
             }
 
             // All other criteria in the list.
-            var ordered = (IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)>)current;
+            var ordered = (IOrderedEnumerable<(VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)>)current;
             return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
         });
     }
@@ -651,7 +651,7 @@ public partial class File
         /// </summary>
         public string? LastVersion { get; set; }
 
-        public AVDumpInfo(SVR_VideoLocal video)
+        public AVDumpInfo(VideoLocal video)
         {
             var session = AVDumpHelper.GetSessionForVideo(video);
             Status = session == null ? null : session.IsRunning ? "Running" : "Queued";

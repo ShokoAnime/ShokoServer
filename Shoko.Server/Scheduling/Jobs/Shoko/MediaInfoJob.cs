@@ -17,7 +17,7 @@ public class MediaInfoJob : BaseJob
 {
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    private SVR_VideoLocal _vlocal;
+    private VideoLocal _vlocal;
     private string _fileName;
 
     public int VideoLocalID { get; set; }

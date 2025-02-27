@@ -265,7 +265,7 @@ public class AbstractUserDataService(
 
     private void SaveWatchedStatus(IVideo video, int userID, DateTime? watchedDate, DateTime lastUpdated, TimeSpan? resumePosition = null, int? watchedCount = null)
     {
-        var userData = videoService.GetOrCreateUserRecord((SVR_VideoLocal)video, userID);
+        var userData = videoService.GetOrCreateUserRecord((VideoLocal)video, userID);
         userData.WatchedDate = watchedDate;
         if (watchedCount.HasValue)
         {
