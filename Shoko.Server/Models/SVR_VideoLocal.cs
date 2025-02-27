@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
@@ -18,13 +18,30 @@ using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
+public class SVR_VideoLocal : IHashes, IVideo
 {
     #region DB columns
 
-    public new bool IsIgnored { get; set; }
+    public int VideoLocalID { get; set; }
 
-    public new bool IsVariation { get; set; }
+    public string Hash { get; set; } = string.Empty;
+
+    public int HashSource { get; set; }
+
+    public long FileSize { get; set; }
+
+    public DateTime DateTimeUpdated { get; set; }
+
+    public DateTime DateTimeCreated { get; set; }
+
+    public DateTime? DateTimeImported { get; set; }
+
+    [Obsolete("Use VideoLocal_Place.FilePath instead")]
+    public string FileName { get; set; } = string.Empty;
+
+    public bool IsIgnored { get; set; }
+
+    public bool IsVariation { get; set; }
 
     public int MediaVersion { get; set; }
 
@@ -128,25 +145,9 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
     public bool IsEmpty()
     {
         if (!string.IsNullOrEmpty(Hash)) return false;
-        if (!string.IsNullOrEmpty(MD5)) return false;
-        if (!string.IsNullOrEmpty(CRC32)) return false;
-        if (!string.IsNullOrEmpty(SHA1)) return false;
         if (!string.IsNullOrEmpty(FileName)) return false;
         if (FileSize > 0) return false;
         return true;
-    }
-
-    /// <summary>
-    /// Checks if any of the hashes are empty
-    /// </summary>
-    /// <returns></returns>
-    public bool HasAnyEmptyHashes()
-    {
-        if (string.IsNullOrEmpty(Hash)) return true;
-        if (string.IsNullOrEmpty(MD5)) return true;
-        if (string.IsNullOrEmpty(SHA1)) return true;
-        if (string.IsNullOrEmpty(CRC32)) return true;
-        return false;
     }
 
     #region IVideo Implementation
@@ -213,43 +214,42 @@ public class SVR_VideoLocal : VideoLocal, IHashes, IVideo
 
     #region IHashes Implementation
 
-    string? IHashes.CRC => CRC32;
 
-    string? IHashes.MD5 => MD5;
+    public string ED2K => Hash;
 
-    string IHashes.ED2K => Hash;
+    public string CRC32 =>
+        Hashes?.FirstOrDefault(h => h.Type is "CRC32")?.Value ?? string.Empty;
 
-    string? IHashes.SHA1 => SHA1;
+    public string MD5 =>
+        Hashes?.FirstOrDefault(h => h.Type is "MD5")?.Value ?? string.Empty;
 
-    string? IHashes.this[HashAlgorithmName algorithm]
-        => algorithm switch
-        {
-            HashAlgorithmName.ED2K => Hash,
-            HashAlgorithmName.MD5 => MD5,
-            HashAlgorithmName.SHA1 => SHA1,
-            HashAlgorithmName.CRC32 => CRC32,
-            _ => null,
-        };
+    public string SHA1 =>
+        Hashes?.FirstOrDefault(h => h.Type is "SHA1")?.Value ?? string.Empty;
+
+    string IHashes.SHA256 =>
+        Hashes?.FirstOrDefault(h => h.Type is "SHA256")?.Value ?? string.Empty;
+
+    string IHashes.SHA512 =>
+        Hashes?.FirstOrDefault(h => h.Type is "SHA512")?.Value ?? string.Empty;
+
+    public IReadOnlyList<VideoLocal_HashDigest> Hashes
+        => RepoFactory.VideoLocalHashDigest.GetByVideoLocalID(VideoLocalID);
+
+    IReadOnlyList<IHashDigest> IHashes.Hashes => Hashes;
 
     #endregion
 }
 
 // This is a comparer used to sort the completeness of a video local, more complete first.
 // Because this is only used for comparing completeness of hashes, it does NOT follow the strict equality rules
-public class VideoLocalComparer : IComparer<VideoLocal>
+public class VideoLocalComparer : IComparer<SVR_VideoLocal>
 {
-    public int Compare(VideoLocal? x, VideoLocal? y)
+    public int Compare(SVR_VideoLocal? x, SVR_VideoLocal? y)
     {
         if (x == null) return 1;
         if (y == null) return -1;
         if (string.IsNullOrEmpty(x.Hash)) return 1;
         if (string.IsNullOrEmpty(y.Hash)) return -1;
-        if (string.IsNullOrEmpty(x.CRC32)) return 1;
-        if (string.IsNullOrEmpty(y.CRC32)) return -1;
-        if (string.IsNullOrEmpty(x.MD5)) return 1;
-        if (string.IsNullOrEmpty(y.MD5)) return -1;
-        if (string.IsNullOrEmpty(x.SHA1)) return 1;
-        if (string.IsNullOrEmpty(y.SHA1)) return -1;
         return x.HashSource.CompareTo(y.HashSource);
     }
 }

@@ -95,9 +95,10 @@ public class RepoFactory
     public static Trakt_SeasonRepository Trakt_Season;
     public static Trakt_ShowRepository Trakt_Show;
     public static VersionsRepository Versions;
+    public static VideoLocalRepository VideoLocal;
+    public static VideoLocal_HashDigestRepository VideoLocalHashDigest;
     public static VideoLocal_PlaceRepository VideoLocalPlace;
     public static VideoLocal_UserRepository VideoLocalUser;
-    public static VideoLocalRepository VideoLocal;
 
     public RepoFactory(
         ILogger<RepoFactory> logger,
@@ -176,6 +177,7 @@ public class RepoFactory
         Trakt_SeasonRepository traktSeason,
         Trakt_ShowRepository traktShow,
         VersionsRepository versions,
+        VideoLocal_HashDigestRepository videoLocalHashDigest,
         VideoLocal_PlaceRepository videoLocalPlace,
         VideoLocal_UserRepository videoLocalUser,
         VideoLocalRepository videoLocal
@@ -258,6 +260,7 @@ public class RepoFactory
         Trakt_Show = traktShow;
         Versions = versions;
         VideoLocal = videoLocal;
+        VideoLocalHashDigest = videoLocalHashDigest;
         VideoLocalPlace = videoLocalPlace;
         VideoLocalUser = videoLocalUser;
     }
