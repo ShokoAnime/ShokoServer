@@ -137,7 +137,7 @@ public class HashFileJob : BaseJob
         {
             SaveFileNameHash(filename, video);
 
-            if ((video.MediaInfo?.GeneralStream?.Duration ?? 0) == 0 || video.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
+            if ((video.MediaInfo?.GeneralStream?.Duration ?? 0) == 0 || video.MediaVersion < VideoLocal.MEDIA_VERSION)
             {
                 if (_vlPlaceService.RefreshMediaInfo(videoLocation))
                     RepoFactory.VideoLocal.Save(video, false);
@@ -158,7 +158,7 @@ public class HashFileJob : BaseJob
             });
     }
 
-    private (SVR_VideoLocal?, SVR_VideoLocal_Place?, SVR_ImportFolder?) GetVideoLocal(string resolvedFilePath)
+    private (VideoLocal?, SVR_VideoLocal_Place?, SVR_ImportFolder?) GetVideoLocal(string resolvedFilePath)
     {
         if (!File.Exists(resolvedFilePath))
         {
@@ -179,7 +179,7 @@ public class HashFileJob : BaseJob
         var videoLocation = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, importFolderID);
         var filename = Path.GetFileName(filePath);
 
-        SVR_VideoLocal? vlocal = null;
+        VideoLocal? vlocal = null;
         if (videoLocation != null)
         {
             vlocal = videoLocation.VideoLocal;
@@ -205,7 +205,7 @@ public class HashFileJob : BaseJob
         if (vlocal == null)
         {
             _logger.LogTrace("No existing VideoLocal, creating temporary record");
-            vlocal = new SVR_VideoLocal
+            vlocal = new VideoLocal
             {
                 DateTimeUpdated = DateTime.Now,
                 DateTimeCreated = DateTime.Now,
@@ -321,7 +321,7 @@ public class HashFileJob : BaseJob
         return false;
     }
 
-    private async Task<bool> ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
+    private async Task<bool> ProcessDuplicates(VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
     {
         if (vlocal == null) return false;
         // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
@@ -350,7 +350,7 @@ public class HashFileJob : BaseJob
         return true;
     }
 
-    private static void SaveFileNameHash(string filename, SVR_VideoLocal vlocal)
+    private static void SaveFileNameHash(string filename, VideoLocal vlocal)
     {
         // also save the filename to hash record
         // replace the existing records just in case it was corrupt

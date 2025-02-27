@@ -583,7 +583,7 @@ public class DatabaseFixes
         _logger.Trace($"Checking {shokoEpisodesToRemove.Count} orphaned shoko episodes before deletion.");
         var databaseReleasesToRemove = new List<StoredReleaseInfo>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
-        var videosToRefetch = new List<SVR_VideoLocal>();
+        var videosToRefetch = new List<VideoLocal>();
         var tmdbXrefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         foreach (var shokoEpisode in shokoEpisodesToRemove)
         {

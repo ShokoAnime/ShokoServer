@@ -54,7 +54,7 @@ public static class FileQualityFilter
 
     #region Checks
 
-    public static bool CheckFileKeep(SVR_VideoLocal video)
+    public static bool CheckFileKeep(VideoLocal video)
     {
         // Don't delete files with missing info. If it's not getting updated, then do it manually
         var anidbFile = video.ReleaseInfo;
@@ -213,7 +213,7 @@ public static class FileQualityFilter
         };
     }
 
-    private static bool CheckSubStreamCount(SVR_VideoLocal file)
+    private static bool CheckSubStreamCount(VideoLocal file)
     {
         var streamCount = file?.MediaInfo?.TextStreams.Count ?? -1;
         if (streamCount == -1)
@@ -256,7 +256,7 @@ public static class FileQualityFilter
     #region Comparisons
 
     // -1 if oldFile is to be deleted, 0 if they are comparatively equal, 1 if the oldFile is better
-    public static int CompareTo(SVR_VideoLocal newVideo, SVR_VideoLocal oldVideo)
+    public static int CompareTo(VideoLocal newVideo, VideoLocal oldVideo)
     {
         if (newVideo == null && oldVideo == null)
             return 0;

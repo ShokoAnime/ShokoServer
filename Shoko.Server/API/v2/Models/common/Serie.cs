@@ -47,7 +47,7 @@ public class Serie : BaseDirectory, IComparable
         tags = [];
     }
 
-    public static Serie GenerateFromVideoLocal(HttpContext ctx, SVR_VideoLocal vl, int uid, bool noCast, bool noTag,
+    public static Serie GenerateFromVideoLocal(HttpContext ctx, VideoLocal vl, int uid, bool noCast, bool noTag,
         int level, bool all, bool allPictures, int pic, TagFilter.Filter tagFilter)
     {
         if (vl is null)
