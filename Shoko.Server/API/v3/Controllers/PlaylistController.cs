@@ -62,7 +62,7 @@ public class PlaylistController : BaseController
                     .Select(episode => new Episode(HttpContext, (episode as SVR_AnimeEpisode)!, includeDataFrom, withXRefs: includeXRefs))
                     .ToList(),
                 tuple.videos
-                    .Select(video => new File(HttpContext, (video as SVR_VideoLocal)!, withXRefs: includeXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
+                    .Select(video => new File(HttpContext, (video as VideoLocal)!, withXRefs: includeXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
                     .ToList()
             ))
             .ToList();

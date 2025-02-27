@@ -415,7 +415,7 @@ public class AbstractVideoReleaseService(
 
         // Mark the video as imported if needed.
         var scheduler = await schedulerFactory.GetScheduler();
-        if (video is SVR_VideoLocal videoLocal && videoLocal.DateTimeImported is null)
+        if (video is VideoLocal videoLocal && videoLocal.DateTimeImported is null)
         {
             videoLocal.DateTimeImported = DateTime.Now;
             videoRepository.Save(videoLocal);
@@ -454,7 +454,7 @@ public class AbstractVideoReleaseService(
 
     private async Task ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo)
     {
-        if (video is SVR_VideoLocal videoLocal)
+        if (video is VideoLocal videoLocal)
         {
             videoLocal.DateTimeImported = null;
             videoRepository.Save(videoLocal);
