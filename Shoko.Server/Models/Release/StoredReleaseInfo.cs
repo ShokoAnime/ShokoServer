@@ -19,6 +19,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public StoredReleaseInfo(IVideo video, IReleaseInfo releaseInfo)
     {
         ED2K = video.Hashes.ED2K;
+        FileSize = video.Size;
 
         ID = releaseInfo.ID;
         ProviderName = releaseInfo.ProviderName;
