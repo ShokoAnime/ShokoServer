@@ -433,7 +433,7 @@ public class AnimeGroupService
             var vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID);
             var crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
             var crossRefsLookup = crossRefs.ToLookup(cr => cr.EpisodeID);
-            var dictVids = new Dictionary<string, SVR_VideoLocal>();
+            var dictVids = new Dictionary<string, VideoLocal>();
 
             foreach (var vid in vidsTemp)
             // Hashes may be repeated from multiple locations, but we don't care
@@ -456,7 +456,7 @@ public class AnimeGroupService
                     continue;
                 }
 
-                var epVids = new List<SVR_VideoLocal>();
+                var epVids = new List<VideoLocal>();
 
                 foreach (var xref in crossRefsLookup[ep.AniDB_EpisodeID])
                 {

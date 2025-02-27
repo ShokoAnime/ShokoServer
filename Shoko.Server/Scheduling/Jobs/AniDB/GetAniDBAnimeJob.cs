@@ -196,7 +196,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             isNew || shouldUpdateFiles || animeEpisodeChanges.Count > 0 || seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0
         ))
         {
-            var videos = new List<SVR_VideoLocal>();
+            var videos = new List<VideoLocal>();
             if (isNew || seriesIsNew || shouldUpdateFiles || seriesUpdated)
             {
                 videos.AddRange(
