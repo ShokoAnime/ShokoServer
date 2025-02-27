@@ -446,7 +446,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(38, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new(39, 1, DatabaseFixes.PopulateTagWeight),
         new(40, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new(41, 1, DatabaseFixes.FixHashes),
+        new(41, 1, DatabaseFixes.NoOperation),
         new(42, 1, "drop table `LogMessage`;"),
         new(43, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder text character set utf8"),
         new(44, 1, "ALTER TABLE JMMUser ADD PlexUsers text character set utf8"),
