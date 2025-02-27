@@ -13,7 +13,7 @@ namespace Shoko.Server.Models;
 public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossReference
 {
 
-    public SVR_VideoLocal? VideoLocal => RepoFactory.VideoLocal.GetByEd2k(Hash);
+    public VideoLocal? VideoLocal => RepoFactory.VideoLocal.GetByEd2k(Hash);
 
     public SVR_AniDB_Episode? AniDBEpisode => RepoFactory.AniDB_Episode.GetByEpisodeID(EpisodeID);
 

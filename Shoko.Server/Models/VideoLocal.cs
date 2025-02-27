@@ -18,7 +18,7 @@ using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_VideoLocal : IHashes, IVideo
+public class VideoLocal : IHashes, IVideo
 {
     #region DB columns
 
@@ -242,9 +242,9 @@ public class SVR_VideoLocal : IHashes, IVideo
 
 // This is a comparer used to sort the completeness of a video local, more complete first.
 // Because this is only used for comparing completeness of hashes, it does NOT follow the strict equality rules
-public class VideoLocalComparer : IComparer<SVR_VideoLocal>
+public class VideoLocalComparer : IComparer<VideoLocal>
 {
-    public int Compare(SVR_VideoLocal? x, SVR_VideoLocal? y)
+    public int Compare(VideoLocal? x, VideoLocal? y)
     {
         if (x == null) return 1;
         if (y == null) return -1;
