@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Hashing;
 
 namespace Shoko.Plugin.Abstractions.Release;
 
@@ -79,7 +79,7 @@ public interface IReleaseInfo
     /// <summary>
     /// Override hashes for the file, if available from the provider.
     /// </summary>
-    IHashes? Hashes { get; }
+    IReadOnlyList<IHashDigest>? Hashes { get; }
 
     /// <summary>
     /// Remote media information about the file, if available from the provider.
