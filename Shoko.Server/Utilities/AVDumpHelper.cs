@@ -115,7 +115,7 @@ public static partial class AVDumpHelper
     /// </summary>
     /// <param name="video"></param>
     /// <returns></returns>
-    public static AVDumpSession? GetSessionForVideo(SVR_VideoLocal video)
+    public static AVDumpSession? GetSessionForVideo(VideoLocal video)
     {
         // Check if we have an active session for the video (x1).
         return ActiveSessions.TryGetValue(video.VideoLocalID, out var session) ? session : null;
