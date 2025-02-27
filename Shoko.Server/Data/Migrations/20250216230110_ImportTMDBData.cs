@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Commons.Extensions;
 using Shoko.Server.Data.Context;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
