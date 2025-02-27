@@ -41,7 +41,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
 
     private async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, IVideo? video = null)
     {
-        if (_memoryCache.TryGetValue(releaseId, out ReleaseInfoWithProvider? releaseInfo))
+        if (_memoryCache.TryGetValue(releaseId, out ReleaseInfo? releaseInfo))
             return releaseInfo;
 
         if (string.IsNullOrEmpty(releaseId))
@@ -81,10 +81,9 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         }
 
         video ??= videoRepository.GetByEd2kAndSize(hash, size);
-        releaseInfo = new ReleaseInfoWithProvider(Name)
+        releaseInfo = new ReleaseInfo()
         {
             ID = releaseId,
-            ProviderName = Name,
             ReleaseURI = $"{ReleasePrefix}{anidbFile.FileID}",
             Revision = anidbFile.Version,
             Comment = anidbFile.Description,
