@@ -20,9 +20,6 @@ public class VideoLocalMap : ClassMap<SVR_VideoLocal>
 #pragma warning restore CS0618
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.Hash).Not.Nullable();
-        Map(x => x.CRC32);
-        Map(x => x.MD5);
-        Map(x => x.SHA1);
         Map(x => x.HashSource).Not.Nullable();
         Map(x => x.IsIgnored).Not.Nullable();
         Map(x => x.IsVariation).Not.Nullable();
