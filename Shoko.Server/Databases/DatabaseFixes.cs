@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NHibernate;
@@ -17,6 +18,7 @@ using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
@@ -139,44 +141,6 @@ public class DatabaseFixes
         RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.Cache.Values
             .Where(a => !list.Contains(a.AnimeSeriesID))
             .ToList());
-    }
-
-    public static void FixHashes()
-    {
-        try
-        {
-            foreach (var vid in RepoFactory.VideoLocal.GetAll())
-            {
-                var fixedHash = false;
-                if (vid.CRC32.Equals("00000000"))
-                {
-                    vid.CRC32 = null;
-                    fixedHash = true;
-                }
-
-                if (vid.MD5.Equals("00000000000000000000000000000000"))
-                {
-                    vid.MD5 = null;
-                    fixedHash = true;
-                }
-
-                if (vid.SHA1.Equals("0000000000000000000000000000000000000000"))
-                {
-                    vid.SHA1 = null;
-                    fixedHash = true;
-                }
-
-                if (fixedHash)
-                {
-                    RepoFactory.VideoLocal.Save(vid, false);
-                    _logger.Info("Fixed hashes on file: {0}", vid.FileName);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, ex.ToString());
-        }
     }
 
     public static void RefreshAniDBInfoFromXML()
@@ -978,12 +942,20 @@ public class DatabaseFixes
         using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
 
         // get anidb files, xrefs, anidb release groups
+        var videos = new List<DBF_VideoLocal>();
         var anidbFileUpdates = new List<DBF_AniDB_FileUpdate>();
         var anidbFileDict = new Dictionary<string, DBF_AniDB_File>();
         var anidbReleaseGroupDict = new Dictionary<int, DBF_AniDB_ReleaseGroup>();
         var crossRefTypes = new Dictionary<int, CrossRefSource>();
         var anidbFileAudioLanguageDict = new Dictionary<int, List<TitleLanguage>>();
         var anidbFileSubtitleLanguageDict = new Dictionary<int, List<TitleLanguage>>();
+        var rawVideoLocal = session.CreateSQLQuery("SELECT VideoLocalID, Hash, MD5, SHA1, CRC32 FROM VideoLocal")
+            .AddScalar("VideoLocalID", NHibernateUtil.Int32)
+            .AddScalar("Hash", NHibernateUtil.String)
+            .AddScalar("MD5", NHibernateUtil.String)
+            .AddScalar("SHA1", NHibernateUtil.String)
+            .AddScalar("CRC32", NHibernateUtil.String)
+            .List();
         var rawAnidbFileList = session.CreateSQLQuery("SELECT FileID, Hash, GroupID, File_Source, File_Description, File_ReleaseDate, DateTimeUpdated, FileName, FileSize, FileVersion, InternalVersion, IsDeprecated, IsCensored, IsChaptered FROM AniDB_File")
             .AddScalar("FileID", NHibernateUtil.Int32)
             .AddScalar("Hash", NHibernateUtil.String)
@@ -1023,6 +995,33 @@ public class DatabaseFixes
             .AddScalar("FileID", NHibernateUtil.Int32)
             .AddScalar("LanguageName", NHibernateUtil.String)
             .List();
+        foreach (object[] fields in rawVideoLocal)
+        {
+            var video = new DBF_VideoLocal()
+            {
+                VideoLocalID = (int)fields[0],
+                ED2K = (string)fields[1],
+                MD5 = (string)fields[2],
+                SHA1 = (string)fields[3],
+                CRC32 = (string)fields[4],
+            };
+            if (video.VideoLocalID == 0)
+                continue;
+
+            if (video.ED2K is not { Length: 32 } and not "00000000000000000000000000000000")
+                continue;
+
+            if (video.MD5 is not { Length: 32 } and not "00000000000000000000000000000000")
+                continue;
+
+            if (video.SHA1 is not { Length: 40 } and not "0000000000000000000000000000000000000000")
+                continue;
+
+            if (video.CRC32 is not { Length: 8 } and not "00000000")
+                continue;
+
+            videos.Add(video);
+        }
         foreach (object[] fields in rawAnidbFileList)
         {
             var anidbFile = new DBF_AniDB_File
@@ -1093,6 +1092,39 @@ public class DatabaseFixes
                 anidbFileSubtitleLanguageDict[fileID] = [];
             anidbFileSubtitleLanguageDict[fileID].Add(language.GetTitleLanguage());
         }
+
+        var videoLocalHashDigests = new List<VideoLocal_HashDigest>();
+        foreach (var video in videos)
+        {
+            videoLocalHashDigests.Add(new VideoLocal_HashDigest
+            {
+                VideoLocalID = video.VideoLocalID,
+                Type = "ED2K",
+                Value = video.ED2K,
+            });
+            if (!string.IsNullOrEmpty(video.MD5))
+                videoLocalHashDigests.Add(new VideoLocal_HashDigest
+                {
+                    VideoLocalID = video.VideoLocalID,
+                    Type = "MD5",
+                    Value = video.MD5,
+                });
+            if (!string.IsNullOrEmpty(video.SHA1))
+                videoLocalHashDigests.Add(new VideoLocal_HashDigest
+                {
+                    VideoLocalID = video.VideoLocalID,
+                    Type = "SHA1",
+                    Value = video.SHA1,
+                });
+            if (!string.IsNullOrEmpty(video.CRC32))
+                videoLocalHashDigests.Add(new VideoLocal_HashDigest
+                {
+                    VideoLocalID = video.VideoLocalID,
+                    Type = "CRC32",
+                    Value = video.CRC32,
+                });
+        }
+        RepoFactory.VideoLocalHashDigest.Save(videoLocalHashDigests);
 
         // create the releases using the above info
         var potentialReleases = RepoFactory.CrossRef_File_Episode.GetAll()
@@ -1183,13 +1215,10 @@ public class DatabaseFixes
                     _ => ReleaseSource.Unknown,
                 };
                 storedReleaseInfo.ProvidedFileSize = fileSize;
-                storedReleaseInfo.Hashes = new()
-                {
-                    ED2K = ed2k,
-                    MD5 = video?.MD5,
-                    CRC = video?.CRC32,
-                    SHA1 = video?.SHA1,
-                };
+                storedReleaseInfo.Hashes = [
+                    new() { Type = "ED2K", Value = ed2k },
+                    ..video?.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? [],
+                ];
                 storedReleaseInfo.ReleasedAt = anidbFile.File_ReleaseDate is null ? null : DateOnly.FromDateTime(anidbFile.File_ReleaseDate.Value);
                 storedReleaseInfo.AudioLanguages = audioLanguages;
                 storedReleaseInfo.SubtitleLanguages = subtitleLanguages;
@@ -1234,6 +1263,22 @@ public class DatabaseFixes
         foreach (var table in tablesToDrop)
             session.CreateSQLQuery($"DROP TABLE {table};").ExecuteUpdate();
         session.CreateSQLQuery("ALTER TABLE CrossRef_File_Episode DROP COLUMN CrossRefSource;").ExecuteUpdate();
+        session.CreateSQLQuery("ALTER TABLE VideoLocal DROP COLUMN MD5;").ExecuteUpdate();
+        session.CreateSQLQuery("ALTER TABLE VideoLocal DROP COLUMN SHA1;").ExecuteUpdate();
+        session.CreateSQLQuery("ALTER TABLE VideoLocal DROP COLUMN CRC32;").ExecuteUpdate();
+    }
+
+    public class DBF_VideoLocal
+    {
+        public int VideoLocalID { get; set; }
+
+        public string ED2K { get; set; }
+
+        public string MD5 { get; set; }
+
+        public string SHA1 { get; set; }
+
+        public string CRC32 { get; set; }
     }
 
     public class DBF_AniDB_File

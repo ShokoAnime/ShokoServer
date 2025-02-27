@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Threading;
 using NLog;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Server.Utilities;
 using Exception = System.Exception;
 
@@ -101,12 +104,16 @@ public class Hasher
         }
     }
 
-    public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
+    public static List<HashDigest> CalculateHashes(string strPath, bool getED2K = false, bool getCRC32 = false, bool getMD5 = false, bool getSHA1 = false, bool getSHA256 = false, bool getSHA512 = false, CancellationToken cancellationToken = default)
     {
-        Hashes? hashes = null;
-        if (Finalize.ModuleHandle == IntPtr.Zero && !Utils.IsLinux)
-            return CalculateHashesSlow(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
+        // Short circuit if no hashes are requested.
+        if (!getED2K && !getCRC32 && !getMD5 && !getSHA1 && !getSHA256 && !getSHA512)
+            return [];
 
+        if (Finalize.ModuleHandle == IntPtr.Zero && !Utils.IsLinux)
+            return CalculateHashesSlow(strPath, getED2K, getCRC32, getMD5, getSHA1, getSHA256, getSHA512, cancellationToken);
+
+        var hashes = (List<HashDigest>?)null;
         try
         {
             var filename = strPath;
@@ -117,17 +124,7 @@ public class Hasher
                     : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
             }
 
-            var (ed2k, crc32, md5, sha1) = NativeHasher.GetHash(filename, getCRC32, getMD5, getSHA1);
-            if (!string.IsNullOrEmpty(ed2k))
-            {
-                hashes = new() { ED2K = ed2k };
-                if (getCRC32)
-                    hashes.CRC32 = crc32;
-                if (getMD5)
-                    hashes.MD5 = md5;
-                if (getSHA1)
-                    hashes.SHA1 = sha1;
-            }
+            hashes = NativeHasher.GetHash(filename, getED2K, getCRC32, getMD5, getSHA1, getSHA256, getSHA512, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -139,22 +136,22 @@ public class Hasher
 
         logger.Error("Error using DLL to get hash, trying C# code instead: {0}", strPath);
 
-        return CalculateHashesSlow(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
+        return CalculateHashesSlow(strPath, getED2K, getCRC32, getMD5, getSHA1, getSHA256, getSHA512, cancellationToken);
     }
 
     private const int ChunkSize = 9728000;
 
-    private static Hashes CalculateHashesSlow(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
+    private static List<HashDigest> CalculateHashesSlow(string strPath, bool getED2K, bool getCRC32, bool getMD5, bool getSHA1, bool getSHA256, bool getSHA512, CancellationToken cancellationToken = default)
     {
         logger.Trace("Using C# code to hash file: {0}", strPath);
 
-        onHashProgress?.Invoke(strPath, 0);
-
-        var stream = File.OpenRead(strPath);
-        var md4 = MD4.Create();
-        var md5 = getMD5 ? MD5.Create() : null;
-        var sha1 = getSHA1 ? SHA1.Create() : null;
-        var crc32 = getCRC32 ? new Crc32() : null;
+        using var stream = File.OpenRead(strPath);
+        using var md4 = getED2K ? MD4.Create() : null;
+        using var md5 = getMD5 ? MD5.Create() : null;
+        using var sha1 = getSHA1 ? SHA1.Create() : null;
+        using var sha256 = getSHA256 ? SHA256.Create() : null;
+        using var sha512 = getSHA512 ? SHA512.Create() : null;
+        using var crc32 = getCRC32 ? new Crc32() : null;
         var totalBytes = stream.Length;
         var numberOfBlocks = (int)Math.DivRem(totalBytes, ChunkSize, out var remainder);
         if (remainder > 0)
@@ -170,49 +167,62 @@ public class Hasher
         var chunkCount = 0L;
         while (bytesRemaining > 0)
         {
+            if (cancellationToken.IsCancellationRequested)
+                return [];
+
             chunkCount++;
 
             logger.Trace("Hashing Chunk: " + chunkCount.ToString());
 
             var bytesRead = stream.Read(workBuffer, 0, bytesToRead);
-            var md4Hash = md4.ComputeHash(workBuffer, 0, bytesRead);
-            var chunkOffset = (int)((chunkCount - 1) * 16);
-            for (var index = 0; index < 16; index++)
-                ed2kHash[chunkOffset + index] = md4Hash[index];
-
+            if (md4 is not null)
+            {
+                var md4Hash = md4.ComputeHash(workBuffer, 0, bytesRead);
+                var chunkOffset = (int)((chunkCount - 1) * 16);
+                for (var index = 0; index < 16; index++)
+                    ed2kHash[chunkOffset + index] = md4Hash[index];
+            }
             md5?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
             sha1?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
             crc32?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
-
-            var percentComplete = (int)(chunkCount / (float)numberOfBlocks * 100);
-            onHashProgress?.Invoke(strPath, percentComplete);
-
+            sha256?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
+            sha512?.TransformBlock(workBuffer, 0, bytesRead, workBuffer, 0);
             byteOffset += ChunkSize;
             bytesRemaining = totalBytes - byteOffset;
             if (bytesRemaining < ChunkSize)
                 bytesToRead = (int)bytesRemaining;
         }
 
+        if (cancellationToken.IsCancellationRequested)
+            return [];
+
         md5?.TransformFinalBlock(workBuffer, 0, 0);
         sha1?.TransformFinalBlock(workBuffer, 0, 0);
         crc32?.TransformFinalBlock(workBuffer, 0, 0);
+        sha256?.TransformFinalBlock(workBuffer, 0, 0);
+        sha512?.TransformFinalBlock(workBuffer, 0, 0);
 
-        stream.Close();
-
-        onHashProgress?.Invoke(strPath, 100);
-
-        var hashes = new Hashes
+        var hashes = new List<HashDigest>();
+        if (md4 is not null)
         {
-            ED2K = numberOfBlocks > 1
-                ? BitConverter.ToString(md4.ComputeHash(ed2kHash)).Replace("-", string.Empty).ToUpper()
-                : BitConverter.ToString(ed2kHash).Replace("-", string.Empty).ToUpper()
-        };
+            hashes.Add(new()
+            {
+                Type = "ED2K",
+                Value = numberOfBlocks > 1
+                    ? BitConverter.ToString(md4.ComputeHash(ed2kHash)).Replace("-", string.Empty).ToUpper()
+                    : BitConverter.ToString(ed2kHash).Replace("-", string.Empty).ToUpper()
+            });
+        }
         if (crc32 is not null)
-            hashes.CRC32 = BitConverter.ToString(crc32.Hash!).Replace("-", string.Empty).ToUpper();
+            hashes.Add(new() { Type = "CRC32", Value = BitConverter.ToString(crc32.Hash!).Replace("-", string.Empty).ToUpper() });
         if (md5 is not null)
-            hashes.MD5 = BitConverter.ToString(md5.Hash!).Replace("-", string.Empty).ToUpper();
+            hashes.Add(new() { Type = "MD5", Value = BitConverter.ToString(md5.Hash!).Replace("-", string.Empty).ToUpper() });
         if (sha1 is not null)
-            hashes.SHA1 = BitConverter.ToString(sha1.Hash!).Replace("-", string.Empty).ToUpper();
+            hashes.Add(new() { Type = "SHA1", Value = BitConverter.ToString(sha1.Hash!).Replace("-", string.Empty).ToUpper() });
+        if (sha256 is not null)
+            hashes.Add(new() { Type = "SHA256", Value = BitConverter.ToString(sha256.Hash!).Replace("-", string.Empty).ToUpper() });
+        if (sha512 is not null)
+            hashes.Add(new() { Type = "SHA512", Value = BitConverter.ToString(sha512.Hash!).Replace("-", string.Empty).ToUpper() });
         return hashes;
     }
 }

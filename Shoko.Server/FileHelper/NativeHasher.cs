@@ -1,28 +1,35 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
+using System.Threading;
+using Shoko.Plugin.Abstractions.Hashing;
 
 namespace Shoko.Server.FileHelper;
 
 internal class NativeHasher
 {
-    public static (string e2dk, string crc32, string md5, string sha1) GetHash(string filename, bool hashCRC, bool hashMD5, bool hashSHA1)
+    public static List<HashDigest> GetHash(string filename, bool hashED2K, bool hashCRC, bool hashMD5, bool hashSHA1, bool hashSHA256 = false, bool hashSHA512 = false, CancellationToken cancellationToken = default)
     {
-        var sb = new StringBuilder();
-        Native.rhash_library_init();
-        var ids = RHashIds.RHASH_ED2K;
+        var ids = (RHashIds)0;
+        if (hashED2K) ids |= RHashIds.RHASH_ED2K;
         if (hashCRC) ids |= RHashIds.RHASH_CRC32;
         if (hashMD5) ids |= RHashIds.RHASH_MD5;
         if (hashSHA1) ids |= RHashIds.RHASH_SHA1;
+        if (hashSHA256) ids |= RHashIds.RHASH_SHA256;
+        if (hashSHA512) ids |= RHashIds.RHASH_SHA512;
+        if (ids == 0) return [];
+        Native.rhash_library_init();
         var ctx = Native.rhash_init(ids);
 
-        using (Stream source = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var source = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
         {
             var buffer = new byte[8192];
             int bytesRead;
             while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
             {
+                if (cancellationToken.IsCancellationRequested)
+                    return default;
                 var buf = Marshal.AllocHGlobal(bytesRead);
                 Marshal.Copy(buffer, 0, buf, bytesRead);
                 Native.rhash_update(ctx, buf, bytesRead);
@@ -30,26 +37,59 @@ internal class NativeHasher
             }
         }
 
-        var output = Marshal.AllocHGlobal(200);
+        if (cancellationToken.IsCancellationRequested)
+            return default;
 
-        Native.rhash_print(output, ctx, RHashIds.RHASH_ED2K, RhashPrintSumFlags.RHPR_DEFAULT);
-        var e2dk = Marshal.PtrToStringAnsi(output);
+        var hashes = new List<HashDigest>();
+        var output = Marshal.AllocHGlobal(hashSHA512 ? 512 : hashSHA256 ? 256 : 200);
+        if (hashED2K)
+        {
+            Native.rhash_print(output, ctx, RHashIds.RHASH_ED2K, RhashPrintSumFlags.RHPR_DEFAULT);
+            var e2dk = Marshal.PtrToStringAnsi(output);
+            hashes.Add(new HashDigest() { Type = "ED2K", Value = e2dk.ToUpperInvariant() });
+        }
 
-        Native.rhash_print(output, ctx, RHashIds.RHASH_CRC32, RhashPrintSumFlags.RHPR_DEFAULT);
-        var crc32 = Marshal.PtrToStringAnsi(output);
+        if (hashCRC)
+        {
+            Native.rhash_print(output, ctx, RHashIds.RHASH_CRC32, RhashPrintSumFlags.RHPR_DEFAULT);
+            var crc32 = Marshal.PtrToStringAnsi(output);
+            hashes.Add(new HashDigest() { Type = "CRC32", Value = crc32.ToUpperInvariant() });
+        }
 
-        Native.rhash_print(output, ctx, RHashIds.RHASH_MD5, RhashPrintSumFlags.RHPR_DEFAULT);
-        var md5 = Marshal.PtrToStringAnsi(output);
+        if (hashMD5)
+        {
+            Native.rhash_print(output, ctx, RHashIds.RHASH_MD5, RhashPrintSumFlags.RHPR_DEFAULT);
+            var md5 = Marshal.PtrToStringAnsi(output);
+            hashes.Add(new HashDigest() { Type = "MD5", Value = md5.ToUpperInvariant() });
+        }
 
-        Native.rhash_print(output, ctx, RHashIds.RHASH_SHA1, RhashPrintSumFlags.RHPR_DEFAULT);
-        var sha1 = Marshal.PtrToStringAnsi(output);
+        if (hashSHA1)
+        {
+            Native.rhash_print(output, ctx, RHashIds.RHASH_SHA1, RhashPrintSumFlags.RHPR_DEFAULT);
+            var sha1 = Marshal.PtrToStringAnsi(output);
+            hashes.Add(new HashDigest() { Type = "SHA1", Value = sha1.ToUpperInvariant() });
+        }
+
+        if (hashSHA256)
+        {
+            Native.rhash_print(output, ctx, RHashIds.RHASH_SHA256, RhashPrintSumFlags.RHPR_DEFAULT);
+            var sha256 = Marshal.PtrToStringAnsi(output);
+            hashes.Add(new HashDigest() { Type = "SHA256", Value = sha256.ToUpperInvariant() });
+        }
+
+        if (hashSHA512)
+        {
+            Native.rhash_print(output, ctx, RHashIds.RHASH_SHA512, RhashPrintSumFlags.RHPR_DEFAULT);
+            var sha512 = Marshal.PtrToStringAnsi(output);
+            hashes.Add(new HashDigest() { Type = "SHA512", Value = sha512 });
+        }
 
         Marshal.FreeHGlobal(output);
 
         Native.rhash_final(ctx, IntPtr.Zero);
         Native.rhash_free(ctx);
 
-        return (e2dk, crc32, md5, sha1);
+        return hashes;
     }
 
 

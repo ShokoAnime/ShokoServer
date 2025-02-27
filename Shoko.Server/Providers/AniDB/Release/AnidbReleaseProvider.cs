@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -24,7 +25,6 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
     public IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions()
     {
         ExpirationScanFrequency = TimeSpan.FromMinutes(25),
-        SizeLimit = 10,
     });
 
     public const string ReleasePrefix = "https://anidb.net/file/";
@@ -125,13 +125,10 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
                     .ToList(),
             },
             FileSize = size,
-            Hashes = new()
-            {
-                CRC = video?.Hashes.CRC,
-                MD5 = video?.Hashes.MD5,
-                ED2K = hash,
-                SHA1 = video?.Hashes.SHA1,
-            },
+            Hashes = [
+                    new() { Type = "ED2K", Value = hash },
+                    ..video?.Hashes.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? [],
+                ],
             ReleasedAt = anidbFile.ReleasedAt,
             CreatedAt = DateTime.Now,
         };

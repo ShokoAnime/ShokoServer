@@ -1,13 +1,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.API.v3.Models.Shoko;
 
@@ -88,7 +87,7 @@ public class ReleaseInfo : IReleaseInfo
     /// <summary>
     /// Override hashes for the file, if available from the provider.
     /// </summary>
-    public File.HashesDict? Hashes { get; init; }
+    public List<File.HashDigest>? Hashes { get; init; }
 
     /// <summary>
     /// Remote media information about the file, if available from the provider.
@@ -142,7 +141,7 @@ public class ReleaseInfo : IReleaseInfo
         IsCorrupted = releaseInfo.IsCorrupted;
         Source = releaseInfo.Source;
         Group = releaseInfo.Group is not null ? new(releaseInfo.Group) : null;
-        Hashes = releaseInfo.Hashes is not null ? new(releaseInfo.Hashes) : null;
+        Hashes = releaseInfo.Hashes?.Select(h => new File.HashDigest(h)).ToList();
         MediaInfo = releaseInfo.MediaInfo is not null ? new(releaseInfo.MediaInfo) : null;
         CrossReferences = releaseInfo.CrossReferences.Select(x => new ReleaseCrossReference(x)).ToList();
         Released = releaseInfo.ReleasedAt;
@@ -154,7 +153,7 @@ public class ReleaseInfo : IReleaseInfo
 
     IReleaseGroup? IReleaseInfo.Group => Group;
 
-    IHashes? IReleaseInfo.Hashes => Hashes;
+    IReadOnlyList<IHashDigest>? IReleaseInfo.Hashes => Hashes;
 
     IReleaseMediaInfo? IReleaseInfo.MediaInfo => MediaInfo;
 

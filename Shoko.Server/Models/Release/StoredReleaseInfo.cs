@@ -6,6 +6,7 @@ using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 
@@ -37,11 +38,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         }
         if (releaseInfo.Hashes is { } hashes)
         {
-            Hashes = new(hashes);
-
-            // Ensure hashes are valid.
-            if (Hashes is not { ED2K: not null and not "" and not "00000000000000000000000000000000" })
-                Hashes = null;
+            Hashes = hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();
         }
         if (releaseInfo.MediaInfo is { } mediaInfo)
         {
@@ -104,7 +101,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         _ => "unk",
     };
 
-    public EmbeddedHashes? Hashes { get; set; }
+    public List<HashDigest>? Hashes { get; set; }
 
     public string EmbeddedCrossReferences { get; set; } = string.Empty;
 
@@ -128,7 +125,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     long? IReleaseInfo.FileSize => ProvidedFileSize;
 
-    IHashes? IReleaseInfo.Hashes => Hashes;
+    IReadOnlyList<IHashDigest>? IReleaseInfo.Hashes => Hashes;
 
     #endregion
 

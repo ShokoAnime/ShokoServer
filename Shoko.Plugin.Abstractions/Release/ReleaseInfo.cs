@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Hashing;
 
 namespace Shoko.Plugin.Abstractions.Release;
 
@@ -74,7 +75,7 @@ public class ReleaseInfo
     /// <summary>
     /// Override hashes for the file, if available from the provider.
     /// </summary>
-    public ReleaseHashes? Hashes { get; set; }
+    public List<HashDigest>? Hashes { get; set; }
 
     /// <summary>
     /// Remote media information about the file, if available from the provider.
@@ -142,7 +143,7 @@ public class ReleaseInfo
         IsCensored = info.IsCensored;
         Source = info.Source;
         Group = info.Group is not null ? new(info.Group) : null;
-        Hashes = info.Hashes is not null ? new(info.Hashes) : null;
+        Hashes = info.Hashes?.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();
         MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
         CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
         ReleasedAt = info.ReleasedAt;

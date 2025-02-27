@@ -29,7 +29,7 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.GroupSource);
         Map(x => x.GroupName);
         Map(x => x.GroupShortName);
-        Map(x => x.Hashes).CustomType<MessagePackConverter<EmbeddedHashes>>();
+        Map(x => x.Hashes).CustomType<TypelessMessagePackConverter>();
         Map(x => x.EmbeddedAudioLanguages).Column("AudioLanguages");
         Map(x => x.EmbeddedSubtitleLanguages).Column("SubtitleLanguages");
         Map(x => x.EmbeddedCrossReferences).Column("CrossReferences").Not.Nullable();

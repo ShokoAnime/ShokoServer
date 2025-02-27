@@ -8,12 +8,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -49,7 +48,7 @@ public partial class File
     /// The calculated hashes of the file
     /// </summary>
     /// <returns></returns>
-    public HashesDict Hashes { get; set; }
+    public List<HashDigest> Hashes { get; set; }
 
     /// <summary>
     /// All of the Locations that this file exists in
@@ -133,7 +132,7 @@ public partial class File
         ID = file.VideoLocalID;
         Size = file.FileSize;
         IsVariation = file.IsVariation;
-        Hashes = new(file);
+        Hashes = file.Hashes.Select(h => new HashDigest(h)).ToList();
         Resolution = mediaInfo?.VideoStream?.Resolution;
         Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
@@ -241,40 +240,54 @@ public partial class File
 
     }
 
-    /// <summary>
-    /// Stores all of the hashes for the file.
-    /// </summary>
-    public class HashesDict(IHashes hashes) : IHashes
+    public class HashDigest : IHashDigest
     {
-        /// <summary>
-        /// ED2K is AniDB's base hash.
-        /// </summary>
-        public string ED2K { get; set; } = hashes.ED2K;
+        /// <inheritdoc />
+        [Required]
+        [MinLength(1)]
+        public string Type { get; set; } = string.Empty;
 
-        /// <summary>
-        /// SHA1 is not used internally, but it is effortless to calculate with
-        /// the others.
-        /// </summary>
-        public string? SHA1 { get; set; } = hashes.SHA1;
+        /// <inheritdoc />
+        [Required]
+        [MinLength(1)]
+        public string Value { get; set; } = string.Empty;
 
-        /// <summary>
-        /// CRC. It's got plenty of uses, but the big one is checking for file
-        /// corruption.
-        /// </summary>
-        public string? CRC32 { get; set; } = hashes.CRC;
+        /// <inheritdoc />
+        [MinLength(1)]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Metadata { get; set; }
 
-        /// <summary>
-        /// MD5 might be useful for clients, but it's not used internally.
-        /// </summary>
-        public string? MD5 { get; set; } = hashes.MD5;
+        public HashDigest() { }
 
-        #region IHashes implementation
+        public HashDigest(IHashDigest hash) => (Type, Value, Metadata) = (hash.Type, hash.Value, hash.Metadata);
 
-        string? IHashes.CRC => CRC32;
+        /// <inheritdoc/>
+        public int CompareTo(IHashDigest? other)
+        {
+            if (other is null)
+                return 1;
 
-        string? IHashes.this[HashAlgorithmName algorithm] => null;
+            var result = string.Compare(Type, other.Type, StringComparison.InvariantCulture);
+            if (result != 0)
+                return result;
 
-        #endregion
+            result = string.Compare(Value, other.Value, StringComparison.InvariantCulture);
+            if (result != 0)
+                return result;
+
+            return string.Compare(Metadata, other.Metadata, StringComparison.InvariantCulture);
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(IHashDigest? other)
+        {
+            if (other is null)
+                return false;
+
+            return string.Equals(Type, other.Type, StringComparison.InvariantCulture) &&
+                string.Equals(Value, other.Value, StringComparison.InvariantCulture) &&
+                string.Equals(Metadata, other.Metadata, StringComparison.InvariantCulture);
+        }
     }
 
     /// <summary>

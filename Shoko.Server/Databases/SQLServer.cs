@@ -451,7 +451,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(34, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new DatabaseCommand(35, 1, DatabaseFixes.PopulateTagWeight),
         new DatabaseCommand(36, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new DatabaseCommand(37, 1, DatabaseFixes.FixHashes),
+        new DatabaseCommand(37, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(38, 1, "DROP TABLE LogMessage"),
         new DatabaseCommand(39, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder nvarchar(max) NULL"),
         new DatabaseCommand(40, 1, "ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL"),

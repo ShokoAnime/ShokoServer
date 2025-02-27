@@ -66,13 +66,13 @@ public class AbstractVideoReleaseService(
 
     public bool ParallelMode
     {
-        get => _settings.Plugins.ReleaseProvider.ParallelMode;
+        get => _settings.Plugins.ReleaseProviders.ParallelMode;
         set
         {
-            if (_settings.Plugins.ReleaseProvider.ParallelMode == value)
+            if (_settings.Plugins.ReleaseProviders.ParallelMode == value)
                 return;
 
-            _settings.Plugins.ReleaseProvider.ParallelMode = value;
+            _settings.Plugins.ReleaseProviders.ParallelMode = value;
             ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -92,8 +92,8 @@ public class AbstractVideoReleaseService(
         if (_releaseInfoProviders is null)
             yield break;
 
-        var order = _settings.Plugins.ReleaseProvider.Priority;
-        var enabled = _settings.Plugins.ReleaseProvider.Enabled;
+        var order = _settings.Plugins.ReleaseProviders.Priority;
+        var enabled = _settings.Plugins.ReleaseProviders.Enabled;
         var orderedProviders = _releaseInfoProviders
             .OrderBy(p => order.IndexOf(p.Key) is -1)
             .ThenBy(p => order.IndexOf(p.Key))
@@ -140,8 +140,8 @@ public class AbstractVideoReleaseService(
             return null;
 
         // We update the settings upon server start to ensure the priority and enabled states are accurate, so trust them.
-        var priority = _settings.Plugins.ReleaseProvider.Priority.IndexOf(providerID);
-        var enabled = _settings.Plugins.ReleaseProvider.Enabled.TryGetValue(providerID, out var isEnabled) ? isEnabled : provider.Name is "AniDB";
+        var priority = _settings.Plugins.ReleaseProviders.Priority.IndexOf(providerID);
+        var enabled = _settings.Plugins.ReleaseProviders.Enabled.TryGetValue(providerID, out var isEnabled) ? isEnabled : provider.Name is "AniDB";
         return new()
         {
             ID = providerID,
@@ -185,16 +185,16 @@ public class AbstractVideoReleaseService(
         var changed = false;
         var settings = settingsProvider.GetSettings();
         var priority = existingProviders.Select(pI => pI.ID).ToList();
-        if (!settings.Plugins.ReleaseProvider.Priority.SequenceEqual(priority))
+        if (!settings.Plugins.ReleaseProviders.Priority.SequenceEqual(priority))
         {
-            settings.Plugins.ReleaseProvider.Priority = priority;
+            settings.Plugins.ReleaseProviders.Priority = priority;
             changed = true;
         }
 
         var enabled = existingProviders.ToDictionary(p => p.ID, p => p.Enabled);
-        if (!settings.Plugins.ReleaseProvider.Enabled.SequenceEqual(enabled))
+        if (!settings.Plugins.ReleaseProviders.Enabled.SequenceEqual(enabled))
         {
-            settings.Plugins.ReleaseProvider.Enabled = enabled;
+            settings.Plugins.ReleaseProviders.Enabled = enabled;
             changed = true;
         }
 
@@ -380,10 +380,13 @@ public class AbstractVideoReleaseService(
             throw new InvalidOperationException($"Release have {release.CrossReferences.Count - legacyXrefs.Count} invalid cross reference(s).");
 
         var missingGroupId = CheckReleaseGroup(releaseInfo);
-        // Store a hash-set of the old cross-references for comparison later.
-        var oldXRefs = video.CrossReferences
-            .Select(xref => xref.ToString())
-            .Join(',');
+
+        // Ensure we don't have an empty list of hashes.
+        if (releaseInfo.Hashes is { } hashes)
+        {
+            hashes = hashes.Where(h => !string.IsNullOrEmpty(h.Value) && !string.IsNullOrEmpty(h.Type)).ToList();
+            releaseInfo.Hashes = hashes.Count < 1 ? null : hashes;
+        }
 
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
         {
@@ -729,7 +732,7 @@ public class AbstractVideoReleaseService(
     /// </summary>
     /// <param name="provider">The provider.</param>
     /// <returns><see cref="Guid" />.</returns>
-    private static Guid GetID(IReleaseInfoProvider provider)
+    internal static Guid GetID(IReleaseInfoProvider provider)
         => GetID(provider.GetType());
 
     /// <summary>
@@ -737,6 +740,6 @@ public class AbstractVideoReleaseService(
     /// </summary>
     /// <param name="providerType">The provider type.</param>
     /// <returns><see cref="Guid" />.</returns>
-    private static Guid GetID(Type providerType)
+    internal static Guid GetID(Type providerType)
         => new(MD5.HashData(Encoding.Unicode.GetBytes(providerType.FullName!)));
 }

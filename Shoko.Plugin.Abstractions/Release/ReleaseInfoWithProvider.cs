@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Hashing;
 
 namespace Shoko.Plugin.Abstractions.Release;
 
@@ -34,7 +34,7 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
 
     string IReleaseInfo.ProviderName => ProviderName ?? string.Empty;
 
-    IHashes? IReleaseInfo.Hashes => Hashes;
+    IReadOnlyList<IHashDigest>? IReleaseInfo.Hashes => Hashes;
 
     IReleaseGroup? IReleaseInfo.Group => Group;
 
