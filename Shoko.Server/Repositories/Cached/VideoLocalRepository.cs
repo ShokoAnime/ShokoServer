@@ -6,7 +6,6 @@ using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Quartz;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
@@ -26,12 +25,6 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 {
     private PocoIndex<int, SVR_VideoLocal, string>? _ed2k;
 
-    private PocoIndex<int, SVR_VideoLocal, string>? _sha1;
-
-    private PocoIndex<int, SVR_VideoLocal, string>? _md5;
-
-    private PocoIndex<int, SVR_VideoLocal, string>? _crc32;
-
     private PocoIndex<int, SVR_VideoLocal, bool>? _ignored;
 
     public VideoLocalRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
@@ -40,6 +33,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         {
             RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(ses, obj.Places.ToList());
             RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
+            RepoFactory.VideoLocalHashDigest.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalHashDigest.GetByVideoLocalID(obj.VideoLocalID));
         };
     }
 
@@ -51,26 +45,20 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         //Fix null hashes
         foreach (var l in Cache.Values)
         {
-            if (l.MD5 != null && l.SHA1 != null && l.Hash != null && l.CRC32 != null && l.FileName != null) continue;
+            if (l.Hash != null && l.FileName != null) continue;
 
             l.MediaVersion = 0;
-            l.MD5 ??= string.Empty;
-            l.CRC32 ??= string.Empty;
-            l.SHA1 ??= string.Empty;
             l.Hash ??= string.Empty;
             l.FileName ??= string.Empty;
         }
 
         _ed2k = Cache.CreateIndex(a => a.Hash);
-        _sha1 = Cache.CreateIndex(a => a.SHA1);
-        _md5 = Cache.CreateIndex(a => a.MD5);
-        _crc32 = Cache.CreateIndex(a => a.CRC32);
         _ignored = Cache.CreateIndex(a => a.IsIgnored);
     }
 
     public override void RegenerateDb()
     {
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Checking Media Info...";
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(SVR_VideoLocal)} Checking Media Info...";
         var count = 0;
         int max;
         IReadOnlyList<SVR_VideoLocal> list;
@@ -86,7 +74,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 {
                     scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = a.VideoLocalID).GetAwaiter().GetResult();
                     count++;
-                    ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Queuing Media Info Commands - {count}/{max}...";
+                    ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(SVR_VideoLocal)} Queuing Media Info Commands - {count}/{max}...";
                 }
             );
         }
@@ -99,7 +87,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Cleaning Empty Records...";
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(SVR_VideoLocal)} Cleaning Empty Records...";
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using (var transaction = session.BeginTransaction())
         {
@@ -111,7 +99,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
                 count++;
                 ServerState.Instance.ServerStartingStatus =
-                    $"Database - Validating - {nameof(VideoLocal)} Cleaning Empty Records - {count}/{max}...";
+                    $"Database - Validating - {nameof(SVR_VideoLocal)} Cleaning Empty Records - {count}/{max}...";
             }
 
             transaction.Commit();
@@ -120,7 +108,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         var toRemove = new List<SVR_VideoLocal>();
         var comparer = new VideoLocalComparer();
 
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Checking for Duplicate Records...";
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(SVR_VideoLocal)} Checking for Duplicate Records...";
 
         foreach (var hash in locals.Keys)
         {
@@ -157,7 +145,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             foreach (var remove in batch)
             {
                 count++;
-                ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Cleaning Duplicate Records - {count}/{max}...";
+                ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(SVR_VideoLocal)} Cleaning Duplicate Records - {count}/{max}...";
                 DeleteWithOpenTransaction(session, remove);
             }
 
@@ -236,7 +224,10 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (string.IsNullOrEmpty(hash))
             throw new InvalidStateException("Trying to lookup a VideoLocal by an empty MD5");
 
-        return ReadLock(() => _md5!.GetOne(hash));
+        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("MD5", hash)
+            .Select(a => GetByID(a.VideoLocalID))
+            .WhereNotNull()
+            .FirstOrDefault();
     }
 
     public SVR_VideoLocal? GetByMd5AndSize(string hash, long fileSize)
@@ -247,7 +238,10 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (fileSize <= 0)
             throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
 
-        return ReadLock(() => _md5!.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
+        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("MD5", hash)
+            .Select(a => GetByID(a.VideoLocalID))
+            .WhereNotNull()
+            .FirstOrDefault(a => a.FileSize == fileSize);
     }
 
     public SVR_VideoLocal? GetBySha1(string hash)
@@ -255,7 +249,10 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (string.IsNullOrEmpty(hash))
             throw new InvalidStateException("Trying to lookup a VideoLocal by an empty SHA1");
 
-        return ReadLock(() => _sha1!.GetOne(hash));
+        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("SHA1", hash)
+            .Select(a => GetByID(a.VideoLocalID))
+            .WhereNotNull()
+            .FirstOrDefault();
     }
 
     public SVR_VideoLocal? GetBySha1AndSize(string hash, long fileSize)
@@ -266,7 +263,10 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (fileSize <= 0)
             throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
 
-        return ReadLock(() => _sha1!.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
+        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("SHA1", hash)
+            .Select(a => GetByID(a.VideoLocalID))
+            .WhereNotNull()
+            .FirstOrDefault(a => a.FileSize == fileSize);
     }
 
     public SVR_VideoLocal? GetByCrc32(string hash)
@@ -274,7 +274,10 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (string.IsNullOrEmpty(hash))
             throw new InvalidStateException("Trying to lookup a VideoLocal by an empty CRC32");
 
-        return ReadLock(() => _crc32!.GetOne(hash));
+        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("CRC32", hash)
+            .Select(a => GetByID(a.VideoLocalID))
+            .WhereNotNull()
+            .FirstOrDefault();
     }
 
     public SVR_VideoLocal? GetByCrc32AndSize(string hash, long fileSize)
@@ -285,7 +288,10 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         if (fileSize <= 0)
             throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
 
-        return ReadLock(() => _crc32!.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
+        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("CRC32", hash)
+            .Select(a => GetByID(a.VideoLocalID))
+            .WhereNotNull()
+            .FirstOrDefault(a => a.FileSize == fileSize);
     }
 
     public IReadOnlyList<SVR_VideoLocal> GetByName(string fileName)

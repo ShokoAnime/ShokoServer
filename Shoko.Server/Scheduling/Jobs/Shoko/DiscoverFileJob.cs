@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -26,6 +27,7 @@ public class DiscoverFileJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IVideoHashingService _videoHashingService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
     private readonly ImportFolderRepository _importFolders;
 
@@ -42,6 +44,17 @@ public class DiscoverFileJob : BaseJob
         }
     };
 
+    protected DiscoverFileJob() { }
+
+    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
+    {
+        _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
+        _videoHashingService = videoHashingService;
+        _vlPlaceService = vlPlaceService;
+        _importFolders = importFolders;
+    }
+
     public override async Task Process()
     {
         // The flow has changed.
@@ -53,14 +66,13 @@ public class DiscoverFileJob : BaseJob
         var (vlocal, vlocalplace) = GetVideoLocal();
         if (vlocal == null || vlocalplace == null)
         {
-            _logger.LogWarning("Could not get or create VideoLocal. exiting");
+            _logger.LogWarning("Could not get VideoLocal. exiting");
             return;
         }
 
         var filename = vlocalplace.FileName;
         var shouldSave = false;
-
-        if (vlocal.HasAnyEmptyHashes())
+        if (string.IsNullOrEmpty(vlocal.Hash) && vlocal.FileSize > 0)
         {
             _logger.LogTrace("Missing hashes in VideoLocal (or forced), checking XRefs");
             // try getting the hash from the CrossRef
@@ -74,19 +86,14 @@ public class DiscoverFileJob : BaseJob
                 shouldSave = true;
                 _logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
             }
-
-            if (vlocal.HasAnyEmptyHashes())
-                shouldSave |= FillHashesAgainstVideoLocalRepo(vlocal);
         }
 
-        // on a new file, this will always be true
-        var (needEd2k, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
-        var shouldHash = needEd2k || needCRC32 || needMD5 || needSHA1;
-
+        var enabledHashes = _videoHashingService.AllEnabledHashTypes;
+        var shouldHash = vlocal.Hashes.Any(a => !enabledHashes.Contains(a.Type));
         var scheduler = await _schedulerFactory.GetScheduler();
 
         // if !shouldHash, then we definitely have a hash
-        var hasXrefs = vlocal.EpisodeCrossReferences.Any(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
+        var hasXrefs = vlocal.EpisodeCrossReferences.All(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
         if (!shouldHash && hasXrefs && !vlocal.DateTimeImported.HasValue)
         {
             vlocal.DateTimeImported = DateTime.Now;
@@ -193,11 +200,6 @@ public class DiscoverFileJob : BaseJob
                 DateTimeCreated = DateTime.Now,
                 FileName = Path.GetFileName(filePath),
                 Hash = string.Empty,
-                CRC32 = string.Empty,
-                MD5 = string.Empty,
-                SHA1 = string.Empty,
-                IsIgnored = false,
-                IsVariation = false
             };
         }
 
@@ -218,24 +220,25 @@ public class DiscoverFileJob : BaseJob
 
     private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
     {
-        if (vlocal.FileSize == 0)
-            return false;
-
         var crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
         if (crossRefs.Count == 0)
             return false;
 
         vlocal.Hash = crossRefs[0].Hash;
         vlocal.HashSource = (int)HashSource.DirectHash;
+
+        var hash = RepoFactory.VideoLocalHashDigest.GetByVideoIDAndHashType(vlocal.VideoLocalID, "ED2K") is { Count: > 0 } hashDigests
+            ? hashDigests[0]
+            : new() { VideoLocalID = vlocal.VideoLocalID, Type = "ED2K" };
+        hash.Value = crossRefs[0].Hash;
+        RepoFactory.VideoLocalHashDigest.Save(hash);
+
         _logger.LogTrace("Got hash from xrefs: {Filename} ({Hash})", FilePath, crossRefs[0].Hash);
         return true;
     }
 
     private bool TrySetHashFromFileNameHash(string filename, SVR_VideoLocal vlocal)
     {
-        if (vlocal.FileSize == 0)
-            return false;
-
         // TODO support reading MD5 and SHA1 from files via the standard way
         var hashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
         if (hashes is { Count: > 1 })
@@ -248,7 +251,7 @@ public class DiscoverFileJob : BaseJob
             }
         }
 
-        // reinit this to check if we erased them
+        // re-init this to check if we erased them
         hashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
 
         if (hashes is not { Count: 1 }) return false;
@@ -256,104 +259,14 @@ public class DiscoverFileJob : BaseJob
         _logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FilePath, hashes[0].Hash);
         vlocal.Hash = hashes[0].Hash;
         vlocal.HashSource = (int)HashSource.FileNameCache;
+
+        var hash = RepoFactory.VideoLocalHashDigest.GetByVideoIDAndHashType(vlocal.VideoLocalID, "ED2K") is { Count: > 0 } hashDigests
+            ? hashDigests[0]
+            : new() { VideoLocalID = vlocal.VideoLocalID, Type = "ED2K" };
+        hash.Value = hashes[0].Hash;
+        RepoFactory.VideoLocalHashDigest.Save(hash);
+
         return true;
-    }
-
-    private static bool FillHashesAgainstVideoLocalRepo(SVR_VideoLocal v)
-    {
-        var changed = false;
-        if (!string.IsNullOrEmpty(v.Hash))
-        {
-            var n = RepoFactory.VideoLocal.GetByEd2k(v.Hash);
-            if (n != null)
-            {
-                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
-                {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5))
-                {
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1))
-                {
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    changed = true;
-                }
-
-                return changed;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(v.SHA1))
-        {
-            var n = RepoFactory.VideoLocal.GetBySha1(v.SHA1);
-            if (n != null)
-            {
-                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
-                {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5))
-                {
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1))
-                {
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    changed = true;
-                }
-
-                return changed;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(v.MD5))
-        {
-            var n = RepoFactory.VideoLocal.GetByMd5(v.MD5);
-            if (n != null)
-            {
-                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
-                {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5))
-                {
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1))
-                {
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    changed = true;
-                }
-
-                return changed;
-            }
-        }
-
-        return false;
-    }
-
-    private (bool needEd2k, bool needCRC32, bool needMD5, bool needSHA1) ShouldHash(SVR_VideoLocal vlocal)
-    {
-        var hasherSettings = _settingsProvider.GetSettings().Import.Hasher;
-        var needEd2k = string.IsNullOrEmpty(vlocal.Hash);
-        var needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && (hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes);
-        var needMD5 = string.IsNullOrEmpty(vlocal.MD5) && (hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes);
-        var needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && (hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes);
-        return (needEd2k, needCRC32, needMD5, needSHA1);
     }
 
     /// <summary>
@@ -391,14 +304,4 @@ public class DiscoverFileJob : BaseJob
         await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
         return true;
     }
-
-    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
-    {
-        _settingsProvider = settingsProvider;
-        _schedulerFactory = schedulerFactory;
-        _vlPlaceService = vlPlaceService;
-        _importFolders = importFolders;
-    }
-
-    protected DiscoverFileJob() { }
 }

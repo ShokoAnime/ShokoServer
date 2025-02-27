@@ -10,5 +10,7 @@ public class PluginSettings
 
     public RenamerSettings Renamer { get; set; } = new();
 
-    public ReleaseProviderSettings ReleaseProvider { get; set; } = new();
+    public ReleaseProviderSettings ReleaseProviders { get; set; } = new();
+
+    public HashingProviderSettings HashingProviders { get; set; } = new();
 }
