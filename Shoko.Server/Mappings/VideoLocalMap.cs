@@ -5,7 +5,7 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings;
 
-public class VideoLocalMap : ClassMap<SVR_VideoLocal>
+public class VideoLocalMap : ClassMap<VideoLocal>
 {
     public VideoLocalMap()
     {

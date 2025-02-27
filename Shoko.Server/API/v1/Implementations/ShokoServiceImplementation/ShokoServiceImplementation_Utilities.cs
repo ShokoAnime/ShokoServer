@@ -140,7 +140,7 @@ public partial class ShokoServiceImplementation
                     .Where(b => b != null)
                     .ToList();
 
-            var videosToDelete = new List<SVR_VideoLocal>();
+            var videosToDelete = new List<VideoLocal>();
 
             foreach (var ep in eps)
             {
@@ -190,7 +190,7 @@ public partial class ShokoServiceImplementation
                 .Where(b => b != null)
                 .ToList();
 
-        var videosToDelete = new List<SVR_VideoLocal>();
+        var videosToDelete = new List<VideoLocal>();
 
         foreach (var ep in eps)
         {
@@ -216,7 +216,7 @@ public partial class ShokoServiceImplementation
                 .Where(b => b != null)
                 .ToList();
 
-        var videosToDelete = new List<SVR_VideoLocal>();
+        var videosToDelete = new List<VideoLocal>();
 
         foreach (var ep in eps)
         {

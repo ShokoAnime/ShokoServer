@@ -80,7 +80,7 @@ public class MediaInfo
     /// </summary>
     public List<ChapterInfo> Chapters { get; }
 
-    public MediaInfo(SVR_VideoLocal file, IMediaInfo mediaInfo)
+    public MediaInfo(VideoLocal file, IMediaInfo mediaInfo)
     {
         Title = mediaInfo.Title;
         Duration = file.DurationTimeSpan;

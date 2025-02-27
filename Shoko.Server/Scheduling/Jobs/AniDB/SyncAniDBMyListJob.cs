@@ -189,7 +189,7 @@ public class SyncAniDBMyListJob : BaseJob
         }
     }
 
-    private async Task<int> ProcessStates(IReadOnlyList<SVR_JMMUser> aniDBUsers, SVR_VideoLocal video, ResponseMyList myItem,
+    private async Task<int> ProcessStates(IReadOnlyList<SVR_JMMUser> aniDBUsers, VideoLocal video, ResponseMyList myItem,
         int modifiedItems, ISet<SVR_AnimeSeries> modifiedSeries)
     {
         // check watched states, read the states if needed, and update differences

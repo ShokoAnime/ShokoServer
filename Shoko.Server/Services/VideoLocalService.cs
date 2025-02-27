@@ -45,7 +45,7 @@ public class VideoLocalService
         _aniDBEpisode = aniDBEpisode;
     }
 
-    public SVR_VideoLocal_User GetOrCreateUserRecord(SVR_VideoLocal vl, int userID)
+    public SVR_VideoLocal_User GetOrCreateUserRecord(VideoLocal vl, int userID)
     {
         SVR_VideoLocal_User userRecord;
         var lockObj = _userLock.GetOrAdd(vl.VideoLocalID, _ => new object());
@@ -66,7 +66,7 @@ public class VideoLocalService
         return userRecord;
     }
 
-    public CL_VideoLocal GetV1Contract(SVR_VideoLocal vl, int userID)
+    public CL_VideoLocal GetV1Contract(VideoLocal vl, int userID)
     {
         var cl = new CL_VideoLocal
         {
@@ -111,7 +111,7 @@ public class VideoLocalService
         return cl;
     }
 
-    public async Task ScheduleRemovalFromMyList(SVR_VideoLocal video)
+    public async Task ScheduleRemovalFromMyList(VideoLocal video)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         if (_storedReleaseInfo.GetByEd2kAndFileSize(video.Hash, video.FileSize) is { ReleaseURI: not null } releaseInfo && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
@@ -146,7 +146,7 @@ public class VideoLocalService
         }
     }
 
-    public CL_VideoDetailed GetV1DetailedContract(SVR_VideoLocal vl, int userID)
+    public CL_VideoDetailed GetV1DetailedContract(VideoLocal vl, int userID)
     {
         // get the cross ref episode
         var xrefs = vl.EpisodeCrossReferences;

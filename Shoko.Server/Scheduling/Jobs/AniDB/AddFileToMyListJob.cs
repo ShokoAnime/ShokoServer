@@ -36,7 +36,7 @@ public class AddFileToMyListJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly IUserDataService _userDataService;
-    private SVR_VideoLocal _videoLocal;
+    private VideoLocal _videoLocal;
 
     public string Hash { get; set; }
     public bool ReadStates { get; set; } = true;

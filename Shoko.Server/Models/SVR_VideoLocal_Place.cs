@@ -25,7 +25,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     public string FileName => Path.GetFileName(FilePath);
 
-    public SVR_VideoLocal? VideoLocal => VideoLocalID is 0 ? null : RepoFactory.VideoLocal.GetByID(VideoLocalID);
+    public VideoLocal? VideoLocal => VideoLocalID is 0 ? null : RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
     public FileInfo? GetFile()
     {

@@ -495,7 +495,7 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[]? include,
+    public static ListResult<File> FilterFiles(IEnumerable<VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[]? include,
         FileExcludeTypes[]? exclude, FileIncludeOnlyType[]? include_only, List<string>? sortOrder, HashSet<DataSource>? includeDataFrom, bool skipSort = false)
     {
         include ??= [];

@@ -788,7 +788,7 @@ public class VideoLocal_PlaceService
                 }
 
                 info.MediaInfo = m;
-                info.MediaVersion = SVR_VideoLocal.MEDIA_VERSION;
+                info.MediaVersion = VideoLocal.MEDIA_VERSION;
                 return true;
             }
 

@@ -22,7 +22,7 @@ public class ProcessFileJob : BaseJob
 {
     private readonly IVideoReleaseService _videoReleaseService;
 
-    private SVR_VideoLocal _vlocal;
+    private VideoLocal _vlocal;
     private string _fileName;
 
     public int VideoLocalID { get; set; }

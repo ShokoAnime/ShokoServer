@@ -207,7 +207,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
     private class InfoResult
     {
         public FileInfo File { get; set; }
-        public SVR_VideoLocal VideoLocal { get; set; }
+        public VideoLocal VideoLocal { get; set; }
         public SVR_JMMUser User { get; set; }
         public HttpStatusCode Status { get; set; }
         public string StatusDescription { get; set; }

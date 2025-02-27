@@ -103,7 +103,7 @@ public class RawFile : BaseDirectory
 
         public RecentFile() { }
 
-        public RecentFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
+        public RecentFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
             vl, level, uid, e)
         {
         }
@@ -113,7 +113,7 @@ public class RawFile : BaseDirectory
     {
     }
 
-    public RawFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null)
+    public RawFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null)
     {
         if (vl == null)
         {

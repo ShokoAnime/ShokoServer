@@ -19,7 +19,7 @@ public class SVR_VideoLocal_User : VideoLocal_User, IVideoUserData
     }
 
     /// <summary>
-    /// Where to resume the playback of the <see cref="SVR_VideoLocal"/>
+    /// Where to resume the playback of the <see cref="Models.VideoLocal"/>
     ///  as a <see cref="TimeSpan"/>.
     /// </summary>
     public TimeSpan? ResumePositionTimeSpan
@@ -31,9 +31,9 @@ public class SVR_VideoLocal_User : VideoLocal_User, IVideoUserData
     public SVR_JMMUser User => RepoFactory.JMMUser.GetByID(JMMUserID);
 
     /// <summary>
-    /// Get the related <see cref="SVR_VideoLocal"/>.
+    /// Get the related <see cref="Models.VideoLocal"/>.
     /// </summary>
-    public SVR_VideoLocal? VideoLocal
+    public VideoLocal? VideoLocal
         => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
     public override string ToString()

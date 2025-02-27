@@ -864,7 +864,7 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private void ScrobbleToTrakt(SVR_VideoLocal file, SVR_AnimeEpisode episode, long position, ScrobblePlayingStatus status)
+    private void ScrobbleToTrakt(VideoLocal file, SVR_AnimeEpisode episode, long position, ScrobblePlayingStatus status)
     {
         if (User.IsTraktUser == 0)
             return;
@@ -1250,7 +1250,7 @@ public class FileController : BaseController
         // Validate the episodes.
         var singleEpisode = body.SingleEpisode;
         var episodeNumber = rangeStart;
-        var episodeList = new List<(SVR_VideoLocal, SVR_AniDB_Episode)>();
+        var episodeList = new List<(VideoLocal, SVR_AniDB_Episode)>();
         foreach (var file in files)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];

@@ -14,16 +14,16 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class ScrobblingFileResult : PhysicalFileResult
 {
-    private SVR_VideoLocal VideoLocal { get; set; }
+    private VideoLocal VideoLocal { get; set; }
     private SVR_JMMUser User { get; set; }
-    public ScrobblingFileResult(SVR_VideoLocal videoLocal, SVR_JMMUser user, string fileName, string contentType) : base(fileName, contentType)
+    public ScrobblingFileResult(VideoLocal videoLocal, SVR_JMMUser user, string fileName, string contentType) : base(fileName, contentType)
     {
         VideoLocal = videoLocal;
         User = user;
         EnableRangeProcessing = true;
     }
 
-    public ScrobblingFileResult(SVR_VideoLocal videoLocal, SVR_JMMUser user, string fileName, MediaTypeHeaderValue contentType) : base(fileName, contentType)
+    public ScrobblingFileResult(VideoLocal videoLocal, SVR_JMMUser user, string fileName, MediaTypeHeaderValue contentType) : base(fileName, contentType)
     {
         VideoLocal = videoLocal;
         User = user;

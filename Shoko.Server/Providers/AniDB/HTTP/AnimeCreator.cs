@@ -509,7 +509,7 @@ public class AnimeCreator
         var shokoSeriesDict = new Dictionary<int, SVR_AnimeSeries>();
         var storedReleasesToRemove = new List<StoredReleaseInfo>();
         var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
-        var videosToRefetch = new List<SVR_VideoLocal>();
+        var videosToRefetch = new List<VideoLocal>();
         var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         if (correctSeries != null)
             shokoSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);

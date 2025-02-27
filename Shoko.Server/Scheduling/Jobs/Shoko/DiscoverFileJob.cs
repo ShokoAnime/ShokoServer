@@ -146,7 +146,7 @@ public class DiscoverFileJob : BaseJob
         }
     }
 
-    private (SVR_VideoLocal?, SVR_VideoLocal_Place?) GetVideoLocal()
+    private (VideoLocal?, SVR_VideoLocal_Place?) GetVideoLocal()
     {
         // hash and read media info for file
         var (folder, filePath) = _importFolders.GetFromFullPath(FilePath);
@@ -166,7 +166,7 @@ public class DiscoverFileJob : BaseJob
 
         // check if we have already processed this file
         var vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, importFolderID);
-        SVR_VideoLocal? vlocal = null;
+        VideoLocal? vlocal = null;
 
         if (vlocalplace != null)
         {
@@ -194,7 +194,7 @@ public class DiscoverFileJob : BaseJob
         if (vlocal == null)
         {
             _logger.LogTrace("No existing VideoLocal, creating temporary record");
-            vlocal = new SVR_VideoLocal
+            vlocal = new VideoLocal
             {
                 DateTimeUpdated = DateTime.Now,
                 DateTimeCreated = DateTime.Now,
@@ -218,7 +218,7 @@ public class DiscoverFileJob : BaseJob
         return (vlocal, vlocalplace);
     }
 
-    private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
+    private bool TrySetHashFromXrefs(string filename, VideoLocal vlocal)
     {
         var crossRefs = RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
         if (crossRefs.Count == 0)
@@ -237,7 +237,7 @@ public class DiscoverFileJob : BaseJob
         return true;
     }
 
-    private bool TrySetHashFromFileNameHash(string filename, SVR_VideoLocal vlocal)
+    private bool TrySetHashFromFileNameHash(string filename, VideoLocal vlocal)
     {
         // TODO support reading MD5 and SHA1 from files via the standard way
         var hashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
@@ -275,7 +275,7 @@ public class DiscoverFileJob : BaseJob
     /// <param name="vlocal"></param>
     /// <param name="vlocalplace"></param>
     /// <returns>true if the file was removed</returns>
-    private async Task<bool> ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
+    private async Task<bool> ProcessDuplicates(VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
     {
         // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
         if (vlocal.VideoLocalID == 0) return false;

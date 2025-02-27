@@ -309,7 +309,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     #endregion
 
-    public IReadOnlyList<SVR_VideoLocal> VideoLocals => RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
+    public IReadOnlyList<VideoLocal> VideoLocals => RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
 
     public IReadOnlyList<SVR_AnimeEpisode> AnimeEpisodes => RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
         .Where(episode => !episode.IsHidden)

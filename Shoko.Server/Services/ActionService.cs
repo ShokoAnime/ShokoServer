@@ -51,7 +51,7 @@ public class ActionService(
         // files which have not been hashed yet
         // or files which do not have a VideoInfo record
         var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
-        var dictFilesToHash = new Dictionary<int, SVR_VideoLocal>();
+        var dictFilesToHash = new Dictionary<int, VideoLocal>();
         foreach (var vl in filesToHash)
         {
             dictFilesToHash[vl.VideoLocalID] = vl;
@@ -529,7 +529,7 @@ public class ActionService(
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
-        var toRemove = new List<SVR_VideoLocal>();
+        var toRemove = new List<VideoLocal>();
         var comparer = new VideoLocalComparer();
 
         foreach (var hash in locals.Keys)
@@ -965,7 +965,7 @@ public class ActionService(
         try
         {
             var filesAll = RepoFactory.VideoLocal.GetAll();
-            IReadOnlyList<SVR_VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+            IReadOnlyList<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
 
             foreach (var vl in filesAll)
             {
