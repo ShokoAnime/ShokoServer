@@ -26,6 +26,31 @@ namespace Shoko.Server.API.v3.Controllers;
 public class ReleaseInfoController(ISettingsProvider settingsProvider, IVideoReleaseService videoReleaseService, VideoLocalRepository videoRepository) : BaseController(settingsProvider)
 {
     /// <summary>
+    /// Gets the current release information service settings.
+    /// </summary>
+    /// <returns>A <see cref="ReleaseInfoSettings"/> containing the current settings.</returns>
+    [HttpGet("Settings")]
+    public ActionResult<ReleaseInfoSettings> GetReleaseInfoSummary()
+        => new ReleaseInfoSettings
+        {
+            ParallelMode = videoReleaseService.ParallelMode,
+        };
+
+    /// <summary>
+    /// Updates the release information settings, such as the parallel mode.
+    /// </summary>
+    /// <param name="body">The settings to update.</param>
+    /// <returns>An empty <see cref="ActionResult"/>.</returns>
+    [HttpPost("Settings")]
+    public ActionResult UpdateReleaseInfoSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ReleaseInfoSettings.Input.UpdateReleaseInfoSettingsBody body)
+    {
+        if (body.ParallelMode.HasValue)
+            videoReleaseService.ParallelMode = body.ParallelMode.Value;
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Gets all release providers available, with their current enabled and priority states.
     /// </summary>
     /// <returns>A list of <see cref="ReleaseInfoProvider"/>.</returns>
