@@ -96,6 +96,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<VideoLocalRepository>();
         services.AddCachedRepository<VideoLocal_PlaceRepository>();
         services.AddCachedRepository<VideoLocal_UserRepository>();
+        services.AddCachedRepository<VideoLocal_HashDigestRepository>();
 
         return services;
     }

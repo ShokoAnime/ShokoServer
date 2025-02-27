@@ -31,14 +31,24 @@ public class ProcessFileJob : BaseJob
 
     public bool SkipMyList { get; set; }
 
-    public override string TypeName => "Get Cross-References for File";
+    public override string TypeName => "Get Release Information for Video";
 
-    public override string Title => "Getting Cross-References for File";
+    public override string Title => "Getting Release Information for Video";
 
-    public override Dictionary<string, object> Details => new()
+    public override Dictionary<string, object> Details
     {
-        { "File Path", _fileName ?? VideoLocalID.ToString() }
-    };
+        get
+        {
+            var result = new Dictionary<string, object> { };
+            if (string.IsNullOrEmpty(_fileName))
+                result["Video"] = VideoLocalID;
+            else
+                result["File Path"] = _fileName;
+            if (ForceRecheck) result["Force"] = true;
+            if (!SkipMyList) result["Add to MyList"] = true;
+            return result;
+        }
+    }
 
     public override void PostInit()
     {
