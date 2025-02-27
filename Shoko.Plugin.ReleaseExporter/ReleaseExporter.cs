@@ -18,16 +18,16 @@ public class ReleaseExporter
         _videoReleaseService = videoReleaseService;
         _videoService = videoService;
 
-        _videoReleaseService.VideoReleaseSaved += OnVideoReleaseSaved;
-        _videoReleaseService.VideoReleaseDeleted += OnVideoReleaseDeleted;
+        _videoReleaseService.ReleaseSaved += OnVideoReleaseSaved;
+        _videoReleaseService.ReleaseDeleted += OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted += OnVideoDeleted;
         _videoService.VideoFileRelocated += OnVideoRelocated;
     }
 
     ~ReleaseExporter()
     {
-        _videoReleaseService.VideoReleaseSaved -= OnVideoReleaseSaved;
-        _videoReleaseService.VideoReleaseDeleted -= OnVideoReleaseDeleted;
+        _videoReleaseService.ReleaseSaved -= OnVideoReleaseSaved;
+        _videoReleaseService.ReleaseDeleted -= OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted -= OnVideoDeleted;
         _videoService.VideoFileRelocated -= OnVideoRelocated;
     }
