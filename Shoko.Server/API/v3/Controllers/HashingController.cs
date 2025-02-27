@@ -7,9 +7,8 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Hashing;
 using Shoko.Server.Settings;
-
-using HashProvider = Shoko.Server.API.v3.Models.Hashing.HashProvider;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -20,6 +19,24 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize("admin")]
 public class HashingController(ISettingsProvider settingsProvider, IVideoHashingService videoHashingService) : BaseController(settingsProvider)
 {
+    [HttpGet("Settings")]
+    public ActionResult<HashingSettings> GetHashSummary()
+        => new HashingSettings
+        {
+            ParallelMode = videoHashingService.ParallelMode,
+            AllAvailableHashTypes = videoHashingService.AllAvailableHashTypes,
+            AllEnabledHashTypes = videoHashingService.AllEnabledHashTypes,
+        };
+
+    [HttpPost("Settings")]
+    public ActionResult UpdateHashingSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] HashingSettings.Input.UpdateHashingSettingsBody body)
+    {
+        if (body.ParallelMode != null)
+            videoHashingService.ParallelMode = body.ParallelMode.Value;
+
+        return Ok();
+    }
+
     /// <summary>
     /// Gets all hash providers available, with their current enabled and priority states.
     /// </summary>
