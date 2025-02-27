@@ -175,8 +175,6 @@ public class AbstractVideoReleaseService(
                 existingProviders.RemoveAt(existingIndex);
                 if (wantedIndex < 0)
                     existingProviders.Add(pI);
-                else if (wantedIndex > existingIndex && wantedIndex > 0)
-                    existingProviders.Insert(wantedIndex - 1, pI);
                 else
                     existingProviders.Insert(wantedIndex, pI);
             }
