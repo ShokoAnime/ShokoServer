@@ -27,10 +27,9 @@ public static class Loader
     internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection)
     {
         // add plugin api related things to service collection
-        var assemblies = new List<Assembly>();
-        var assembly = Assembly.GetExecutingAssembly();
-        var dirname = Path.GetDirectoryName(assembly.Location);
-        assemblies.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
+        var assemblies = new List<(Assembly, string)>();
+        var dirname = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        assemblies.Add((Assembly.GetCallingAssembly(), string.Empty)); //add this to dynamically load as well.
 
         // Load plugins from the user config dir too.
         var userPluginDir = Path.Combine(Utils.ApplicationPath, "plugins");
@@ -39,25 +38,40 @@ public static class Loader
             : Array.Empty<string>();
 
         // using static reference because we have a pre-init settings handler, which will be updated after init
+        var settingsChanged = false;
         var settings = Utils.SettingsProvider.GetSettings();
         foreach (var dll in userPlugins.Concat(Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories)))
         {
             try
             {
                 var name = Path.GetFileNameWithoutExtension(dll);
-                if (settings.Plugins.EnabledPlugins.ContainsKey(name) && !settings.Plugins.EnabledPlugins[name])
+                if (settings.Plugins.EnabledPlugins.TryGetValue(name, out var isEnabled) && !isEnabled)
                 {
                     s_logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                     continue;
                 }
 
-                s_logger.Info($"Trying to load {dll}");
-                assemblies.Add(Assembly.LoadFrom(dll));
+                s_logger.Trace($"Checking assembly for IPlugin implementations; {dll}");
+                var assembly = Assembly.LoadFrom(dll);
+                var pluginTypes = assembly.GetTypes();
+                var pluginImpl = pluginTypes
+                    .Where(a => a.GetInterfaces().Contains(typeof(IPlugin)))
+                    .ToList();
+                if (pluginImpl.Count == 0)
+                    continue;
+                s_logger.Info($"Found assembly with IPlugin implementation ({pluginImpl[0].FullName}); {dll}");
+
                 // TryAdd, because if it made it this far, then it's missing or true.
-                settings.Plugins.EnabledPlugins.TryAdd(name, true);
-                if (!settings.Plugins.Priority.Contains(name)) settings.Plugins.Priority.Add(name);
-                Utils.SettingsProvider.SaveSettings();
-                s_logger.Info($"Loaded Assemblies from {dll}");
+                if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
+                    settingsChanged = true;
+
+                if (!settings.Plugins.Priority.Contains(name))
+                {
+                    settings.Plugins.Priority.Add(name);
+                    settingsChanged = true;
+                }
+
+                assemblies.Add((assembly, name));
             }
             catch (Exception ex)
             {
@@ -65,7 +79,14 @@ public static class Loader
             }
         }
 
-        LoadPlugins(assemblies, serviceCollection);
+        if (settingsChanged)
+            Utils.SettingsProvider.SaveSettings();
+
+        var orderedAssemblies = assemblies
+            .OrderBy(a => settings.Plugins.Priority.IndexOf(a.Item2))
+            .Select(a => a.Item1)
+            .ToList();
+        LoadPlugins(orderedAssemblies, serviceCollection);
 
         return serviceCollection;
     }
@@ -125,7 +146,7 @@ public static class Loader
             }
 
             var pluginType = pluginImpl[0];
-            s_logger.Trace("Loaded IPlugin implementation: {0}", pluginType.Name);
+            s_logger.Trace("Found IPlugin implementation: {0}", pluginType.FullName);
             _pluginTypes.Add(pluginType);
 
             var exportedTypeList = assembly.GetExportedTypes();
@@ -136,7 +157,7 @@ public static class Loader
             // Compat. for plugins targeting <4.2.0-beta2 using the previously undocumented (except in source code) ConfigureServices method.
             if (pluginType.GetMethod("ConfigureServices", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy) is { } mtd)
             {
-                s_logger.Trace("Registering plugin service: {0}", pluginType.Name);
+                s_logger.Trace("Registering plugin service: {0}", pluginType.FullName);
                 mtd.Invoke(null, [serviceCollection]);
                 continue;
             }
@@ -157,7 +178,7 @@ public static class Loader
             }
 
             var registrationType = registrationImpl[0];
-            s_logger.Trace("Registering plugin service: {0}", registrationType.Name);
+            s_logger.Trace("Registering plugin service: {0}", registrationType.FullName);
 
             try
             {
@@ -181,7 +202,7 @@ public static class Loader
             var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
             Plugins.Add(pluginType, plugin);
             LoadSettings(pluginType, plugin);
-            s_logger.Info($"Loaded: {plugin.Name}");
+            s_logger.Info($"Loaded: {plugin.Name} ({pluginType.FullName})");
             plugin.Load();
         }
 
@@ -189,13 +210,14 @@ public static class Loader
         var videoReleaseService = provider.GetRequiredService<IVideoReleaseService>();
         videoReleaseService.AddProviders(GetExports<IReleaseInfoProvider>(provider));
         videoReleaseService.UpdateProviders();
+
         var videoHashingService = provider.GetRequiredService<IVideoHashingService>();
         videoHashingService.AddProviders(GetExports<IHashProvider>(provider));
         videoHashingService.UpdateProviders();
-
-        // When we initialized the plugins, we made entries for the Enabled State of Plugins
-        Utils.SettingsProvider.SaveSettings();
     }
+
+    public static List<T> GetExports<T>()
+        => GetExports<T>(Utils.ServiceContainer);
 
     private static List<T> GetExports<T>(IServiceProvider serviceProvider)
         => _exportedTypes
