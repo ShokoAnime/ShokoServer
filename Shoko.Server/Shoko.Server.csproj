@@ -22,7 +22,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- Define plugin names here -->
-    <PluginNames>Shoko.Plugin.ReleaseExporter</PluginNames>
+    <PluginNames>ReleaseExporter</PluginNames>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'ApiLogging' ">
     <DefineConstants>LOGWEB;DEBUG</DefineConstants>
@@ -54,7 +54,12 @@
     <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
   </ItemGroup>
   <ItemGroup>
-      <ProjectReference Include="..\$(PluginNames)\$(PluginNames).csproj">
+      <ProjectsToInclude Include="..\plugins\**\*.csproj">
+          <PluginName>$([System.String]::new('%(Filename)').SubString(13))</PluginName>
+          <KeepThis Condition=" '$([System.Text.RegularExpressions.Regex]::IsMatch($(PluginNames), &quot;(^;?|;)\b%(PluginName)\b(;|;?$)&quot;))' != 'true'">false</KeepThis>
+      </ProjectsToInclude>
+      <ProjectsToInclude Remove="@(ProjectsToInclude)" MatchOnMetadata="KeepThis" />
+      <ProjectReference Include="@(ProjectsToInclude)">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <OutputItemType>CopyToPublishDirectory</OutputItemType>
       </ProjectReference>
@@ -134,12 +139,8 @@
       <HintPath>..\Dependencies\Quartz\Quartz.Server.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <Target Name="MovePluginReferencesOutput" AfterTargets="Build">
-      <ItemGroup>
-          <PluginDll Include="$(OutputPath)$(PluginNames).dll" />
-          <PluginPdb Include="$(OutputPath)$(PluginNames).pdb" Condition="Exists('$(OutputPath)$(PluginNames).pdb')" />
-      </ItemGroup>
-      <Move SourceFiles="@(PluginDll)" DestinationFolder="$(OutputPath)plugins\%(Filename)" />
-      <Move SourceFiles="@(PluginPdb)" DestinationFolder="$(OutputPath)plugins\%(Filename)" />
+  <Target Inputs="@(ProjectsToInclude)" Outputs="(OutputPath)plugins" Name="MovePluginReferencesOutput" AfterTargets="Build">
+      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).dll" DestinationFolder="$(OutputPath)plugins" />
+      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).pdb" DestinationFolder="$(OutputPath)plugins" />
   </Target>
 </Project>
