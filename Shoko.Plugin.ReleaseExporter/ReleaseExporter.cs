@@ -1,5 +1,9 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Release;
@@ -7,14 +11,17 @@ using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.ReleaseExporter;
 
-public class ReleaseExporter
+public class ReleaseExporter : IHostedService
 {
+    private readonly ILogger<ReleaseExporter> _logger;
+
     private readonly IVideoReleaseService _videoReleaseService;
 
     private readonly IVideoService _videoService;
 
-    public ReleaseExporter(IVideoReleaseService videoReleaseService, IVideoService videoService)
+    public ReleaseExporter(IVideoReleaseService videoReleaseService, IVideoService videoService, ILogger<ReleaseExporter> logger)
     {
+        _logger = logger;
         _videoReleaseService = videoReleaseService;
         _videoService = videoService;
 
@@ -23,6 +30,8 @@ public class ReleaseExporter
         _videoService.VideoFileDeleted += OnVideoDeleted;
         _videoService.VideoFileRelocated += OnVideoRelocated;
         _videoReleaseService.ProvidersUpdated += OnReleaseProvidersUpdated;
+
+        _logger.LogInformation("ReleaseExporter initialized");
     }
 
     ~ReleaseExporter()
@@ -33,6 +42,12 @@ public class ReleaseExporter
         _videoService.VideoFileRelocated -= OnVideoRelocated;
         _videoReleaseService.ProvidersUpdated -= OnReleaseProvidersUpdated;
     }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+        => Task.CompletedTask;
+
+    public Task StopAsync(CancellationToken cancellationToken)
+        => Task.CompletedTask;
 
     private bool IsEnabled { get; set; } = false;
 
@@ -60,6 +75,7 @@ public class ReleaseExporter
                     continue;
             }
 
+            _logger.LogInformation("Saving release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
             File.WriteAllText(releasePath, releaseInfo);
         }
     }
@@ -75,6 +91,7 @@ public class ReleaseExporter
             if (!File.Exists(releasePath))
                 continue;
 
+            _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
             File.Delete(releasePath);
         }
     }
@@ -92,11 +109,13 @@ public class ReleaseExporter
             var textData = File.ReadAllText(releasePath);
             if (textData == releaseInfo)
             {
+                _logger.LogInformation("Deleting duplicate release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
                 File.Delete(releasePath);
                 return;
             }
         }
 
+        _logger.LogInformation("Relocating release info for {VideoID} from {Path} to {NewPath}", eventArgs.Video.ID, releasePath, newReleasePath);
         File.Move(releasePath, newReleasePath);
     }
 
@@ -106,6 +125,7 @@ public class ReleaseExporter
         if (!File.Exists(releasePath))
             return;
 
+        _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
         File.Delete(releasePath);
     }
 }
