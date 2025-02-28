@@ -20,6 +20,10 @@
     <ApplicationIcon>db.ico</ApplicationIcon>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <!-- Define plugin names here -->
+    <PluginNames>Shoko.Plugin.ReleaseExporter</PluginNames>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'ApiLogging' ">
     <DefineConstants>LOGWEB;DEBUG</DefineConstants>
   </PropertyGroup>
@@ -48,6 +52,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Models\Shoko.Models.csproj" />
     <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+      <ProjectReference Include="..\$(PluginNames)\$(PluginNames).csproj">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+          <OutputItemType>CopyToPublishDirectory</OutputItemType>
+      </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.4" />
@@ -124,4 +134,12 @@
       <HintPath>..\Dependencies\Quartz\Quartz.Server.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <Target Name="MovePluginReferencesOutput" AfterTargets="Build">
+      <ItemGroup>
+          <PluginDll Include="$(OutputPath)$(PluginNames).dll" />
+          <PluginPdb Include="$(OutputPath)$(PluginNames).pdb" Condition="Exists('$(OutputPath)$(PluginNames).pdb')" />
+      </ItemGroup>
+      <Move SourceFiles="@(PluginDll)" DestinationFolder="$(OutputPath)plugins\%(Filename)" />
+      <Move SourceFiles="@(PluginPdb)" DestinationFolder="$(OutputPath)plugins\%(Filename)" />
+  </Target>
 </Project>

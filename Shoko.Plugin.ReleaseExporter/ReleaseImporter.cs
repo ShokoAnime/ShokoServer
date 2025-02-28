@@ -24,6 +24,7 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger) : IReleaseInfoProv
 
     public async Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
     {
+        logger.LogTrace("Trying to find release for video. (Video={VideoID})", video.ID);
         foreach (var location in video.Locations)
         {
             cancellationToken.ThrowIfCancellationRequested();
