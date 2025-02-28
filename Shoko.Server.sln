@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30803.129
@@ -102,7 +102,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Benchmarks", "Shoko.B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.TestData", "Shoko.TestData\Shoko.TestData.csproj", "{88A3A583-5844-4888-80F8-B5757EC7939E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.ReleaseExporter", "Shoko.Plugin.ReleaseExporter\Shoko.Plugin.ReleaseExporter.csproj", "{BB49EC9E-A5EA-4475-B052-9FA6130ACDB6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.ReleaseExporter", "plugins\Shoko.Plugin.ReleaseExporter\Shoko.Plugin.ReleaseExporter.csproj", "{BB49EC9E-A5EA-4475-B052-9FA6130ACDB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

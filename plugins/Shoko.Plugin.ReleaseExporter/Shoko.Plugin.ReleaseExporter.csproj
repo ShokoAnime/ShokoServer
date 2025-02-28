@@ -13,7 +13,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj">
+        <ProjectReference Include="..\..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj">
             <Private>false</Private>
         </ProjectReference>
     </ItemGroup>
