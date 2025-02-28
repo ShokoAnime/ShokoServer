@@ -8,6 +8,6 @@ public class PluginServiceRegistration : IPluginServiceRegistration
 {
     public void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths)
     {
-        serviceCollection.AddSingleton<ReleaseExporter>();
+        serviceCollection.AddHostedService<ReleaseExporter>();
     }
 }
