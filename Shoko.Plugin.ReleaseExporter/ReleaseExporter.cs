@@ -30,8 +30,6 @@ public class ReleaseExporter : IHostedService
         _videoService.VideoFileDeleted += OnVideoDeleted;
         _videoService.VideoFileRelocated += OnVideoRelocated;
         _videoReleaseService.ProvidersUpdated += OnReleaseProvidersUpdated;
-
-        _logger.LogInformation("ReleaseExporter initialized");
     }
 
     ~ReleaseExporter()
