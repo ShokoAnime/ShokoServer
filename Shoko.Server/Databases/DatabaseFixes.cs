@@ -1018,13 +1018,13 @@ public class DatabaseFixes
                 continue;
 
             if (video.MD5 is not { Length: 32 } or "00000000000000000000000000000000")
-                continue;
+                video.MD5 = null;
 
             if (video.SHA1 is not { Length: 40 } or "0000000000000000000000000000000000000000")
-                continue;
+                video.SHA1 = null;
 
             if (video.CRC32 is not { Length: 8 } or "00000000")
-                continue;
+                video.CRC32 = null;
 
             videos.Add(video);
         }
