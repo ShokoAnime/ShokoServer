@@ -1014,16 +1014,16 @@ public class DatabaseFixes
             if (video.VideoLocalID == 0)
                 continue;
 
-            if (video.ED2K is not { Length: 32 } and not "00000000000000000000000000000000")
+            if (video.ED2K is not { Length: 32 } or "00000000000000000000000000000000")
                 continue;
 
-            if (video.MD5 is not { Length: 32 } and not "00000000000000000000000000000000")
+            if (video.MD5 is not { Length: 32 } or "00000000000000000000000000000000")
                 continue;
 
-            if (video.SHA1 is not { Length: 40 } and not "0000000000000000000000000000000000000000")
+            if (video.SHA1 is not { Length: 40 } or "0000000000000000000000000000000000000000")
                 continue;
 
-            if (video.CRC32 is not { Length: 8 } and not "00000000")
+            if (video.CRC32 is not { Length: 8 } or "00000000")
                 continue;
 
             videos.Add(video);
