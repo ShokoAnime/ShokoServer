@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30803.129
@@ -103,6 +103,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.TestData", "Shoko.TestData\Shoko.TestData.csproj", "{88A3A583-5844-4888-80F8-B5757EC7939E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.ReleaseExporter", "plugins\Shoko.Plugin.ReleaseExporter\Shoko.Plugin.ReleaseExporter.csproj", "{BB49EC9E-A5EA-4475-B052-9FA6130ACDB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.RelocationPlus", "plugins\Shoko.Plugin.RelocationPlus\Shoko.Plugin.RelocationPlus.csproj", "{21E30B57-12DF-4887-9607-2E0608D11973}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -235,6 +237,20 @@ Global
 		{BB49EC9E-A5EA-4475-B052-9FA6130ACDB6}.ApiLogging|x64.Build.0 = Debug|x64
 		{BB49EC9E-A5EA-4475-B052-9FA6130ACDB6}.Benchmarks|Any CPU.ActiveCfg = Debug|Any CPU
 		{BB49EC9E-A5EA-4475-B052-9FA6130ACDB6}.Benchmarks|Any CPU.Build.0 = Debug|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Debug|x64.ActiveCfg = Debug|x64
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Debug|x64.Build.0 = Debug|x64
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Release|x64.ActiveCfg = Release|x64
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Release|x64.Build.0 = Release|x64
+		{21E30B57-12DF-4887-9607-2E0608D11973}.ApiLogging|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.ApiLogging|Any CPU.Build.0 = Debug|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.ApiLogging|x64.ActiveCfg = Debug|x64
+		{21E30B57-12DF-4887-9607-2E0608D11973}.ApiLogging|x64.Build.0 = Debug|x64
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Benchmarks|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E30B57-12DF-4887-9607-2E0608D11973}.Benchmarks|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
