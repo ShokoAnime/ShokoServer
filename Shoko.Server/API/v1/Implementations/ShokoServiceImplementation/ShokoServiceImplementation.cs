@@ -52,6 +52,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
     private readonly IUserDataService _userDataService;
+    private readonly IVideoReleaseService _videoReleaseService;
 
     public ShokoServiceImplementation(
         TraktTVHelper traktHelper,
@@ -66,7 +67,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         JobFactory jobFactory,
         AnimeEpisodeService episodeService,
         IUserDataService userDataService,
-        VideoLocalService videoLocalService
+        VideoLocalService videoLocalService,
+        IVideoReleaseService videoReleaseService
     )
     {
         _traktHelper = traktHelper;
@@ -82,6 +84,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _episodeService = episodeService;
         _userDataService = userDataService;
         _videoLocalService = videoLocalService;
+        _videoReleaseService = videoReleaseService;
     }
 
     #region Bookmarks
