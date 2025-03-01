@@ -770,6 +770,9 @@ public partial class ShokoServiceImplementation
     [HttpPost("File/Unlinked/Rescan")]
     public void RescanUnlinkedFiles()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return;
+
         try
         {
             // files which have been hashed, but don't have an associated episode

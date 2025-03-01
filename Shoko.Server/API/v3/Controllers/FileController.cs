@@ -512,6 +512,9 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return ValidationProblem("Release auto-matching is currently disabled.", "IVideoReleaseService");
+
         var scheduler = await _schedulerFactory.GetScheduler();
         if (priority)
             await scheduler.StartJobNow<ProcessFileJob>(c =>
@@ -932,6 +935,9 @@ public class FileController : BaseController
         var filePath = file.FirstResolvedPlace?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
+
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return ValidationProblem("Release auto-matching is currently disabled.", "IVideoReleaseService");
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (priority)

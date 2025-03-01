@@ -12,6 +12,7 @@ using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
@@ -34,13 +35,15 @@ public class AnimeCreator
     private readonly ILogger<AnimeCreator> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
-    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory)
+    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _settingsProvider = settings;
         _schedulerFactory = schedulerFactory;
+        _videoReleaseService = videoReleaseService;
     }
 
 
@@ -564,7 +567,7 @@ public class AnimeCreator
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
             var videos = xrefs
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
-                .Where(video => video != null)
+                .WhereNotNull()
                 .ToList();
             var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
@@ -588,14 +591,18 @@ public class AnimeCreator
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
         var scheduler = await _schedulerFactory.GetScheduler();
+        // If auto-match is not available then clear the release so the video is
+        // not referencing no longer existing episodes.
+        var autoMatch = _videoReleaseService.AutoMatchEnabled;
         foreach (var video in videosToRefetch)
         {
-            await scheduler.StartJobNow<ProcessFileJob>(c =>
-            {
-                c.VideoLocalID = video.VideoLocalID;
-                c.SkipMyList = true;
-                c.ForceRecheck = true;
-            });
+            await _videoReleaseService.ClearReleaseForVideo(video);
+            if (autoMatch)
+                await scheduler.StartJobNow<ProcessFileJob>(c =>
+                {
+                    c.VideoLocalID = video.VideoLocalID;
+                    c.SkipMyList = true;
+                });
         }
 
         var episodeCount = episodeCountSpecial + episodeCountNormal;
