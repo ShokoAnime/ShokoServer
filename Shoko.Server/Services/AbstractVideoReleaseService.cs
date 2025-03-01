@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -38,7 +39,7 @@ public class AbstractVideoReleaseService(
     ISchedulerFactory schedulerFactory,
     IRequestFactory requestFactory,
     IUserService userService,
-    IUserDataService userDataService,
+    IServiceProvider serviceProvider,
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
@@ -50,6 +51,12 @@ public class AbstractVideoReleaseService(
     CrossRef_File_EpisodeRepository xrefRepository
 ) : IVideoReleaseService
 {
+    // We need to lazy init. the user data service since otherwise there will be
+    // a circular dependency between this service, the user data service, and
+    // the anime series service (which in turn depend on this service). So we
+    // lazy init the user data service to break the circle.
+    private IUserDataService? _userDataService = null;
+
     private IServerSettings _settings => settingsProvider.GetSettings();
 
     private Dictionary<Guid, IReleaseInfoProvider>? _releaseInfoProviders = null;
@@ -721,15 +728,16 @@ public class AbstractVideoReleaseService(
         if (otherVideos.Count == 0)
             return;
 
+        _userDataService ??= serviceProvider.GetRequiredService<IUserDataService>();
         foreach (var user in userService.GetUsers())
         {
             var watchedVideo = otherVideos
-                .FirstOrDefault(video => userDataService.GetVideoUserData(user.ID, video.ID)?.LastPlayedAt is not null);
+                .FirstOrDefault(video => _userDataService.GetVideoUserData(user.ID, video.ID)?.LastPlayedAt is not null);
             if (watchedVideo is null)
                 continue;
 
-            var watchedRecord = userDataService.GetVideoUserData(user.ID, watchedVideo.ID)!;
-            userDataService.SaveVideoUserData(user, video, new(watchedRecord), UserDataSaveReason.VideoReImport);
+            var watchedRecord = _userDataService.GetVideoUserData(user.ID, watchedVideo.ID)!;
+            _userDataService.SaveVideoUserData(user, video, new(watchedRecord), UserDataSaveReason.VideoReImport);
         }
     }
 
