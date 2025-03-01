@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
@@ -34,6 +35,8 @@ public class GetAniDBReleaseGroupJob : BaseJob
 
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IVideoReleaseService _videoReleaseService;
+
     public int GroupID { get; set; }
     public bool ForceRefresh { get; set; }
 
@@ -96,6 +99,12 @@ public class GetAniDBReleaseGroupJob : BaseJob
             RepoFactory.CrossRef_File_Episode.Delete(xrefsToDelete);
             RepoFactory.StoredReleaseInfo.Delete(databaseReleaseGroups);
 
+            // If auto-match is not available then just ignore the removal of
+            // the group, since it seems like we don't care about changes like
+            // that.
+            if (!_videoReleaseService.AutoMatchEnabled)
+                return;
+
             foreach (var videoID in videosToUpdate)
                 await scheduler.StartJob<ProcessFileJob>(c =>
                 {
@@ -133,10 +142,11 @@ public class GetAniDBReleaseGroupJob : BaseJob
         return;
     }
 
-    public GetAniDBReleaseGroupJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory)
+    public GetAniDBReleaseGroupJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
+        _videoReleaseService = videoReleaseService;
     }
 
     protected GetAniDBReleaseGroupJob()
