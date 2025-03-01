@@ -41,7 +41,7 @@ internal class NativeHasher
             return default;
 
         var hashes = new List<HashDigest>();
-        var output = Marshal.AllocHGlobal(hashSHA512 ? 512 : hashSHA256 ? 256 : 200);
+        var output = Marshal.AllocHGlobal(200);
         if (hashED2K)
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_ED2K, RhashPrintSumFlags.RHPR_DEFAULT);
