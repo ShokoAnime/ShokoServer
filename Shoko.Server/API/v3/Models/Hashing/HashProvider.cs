@@ -13,6 +13,10 @@ public class HashProvider
 
     public required Version Version { get; set; }
 
+    public required HashSet<string> AvailableHashTypes { get; set; }
+
+    public required HashSet<string> DefaultEnabledHashTypes { get; set; }
+
     public required HashSet<string> EnabledHashTypes { get; set; }
 
     public required int Priority { get; set; }
