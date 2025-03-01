@@ -44,6 +44,7 @@ public class AbstractVideoHashingService : IVideoHashingService
                 return;
 
             _settings.Plugins.HashingProviders.ParallelMode = value;
+            _settingsProvider.SaveSettings(_settings);
             ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
