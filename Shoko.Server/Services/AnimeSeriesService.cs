@@ -12,6 +12,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
@@ -38,8 +39,9 @@ public class AnimeSeriesService
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly JobFactory _jobFactory;
+    private readonly IVideoReleaseService _videoReleaseService;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _seriesUsers = seriesUsers;
@@ -48,6 +50,7 @@ public class AnimeSeriesService
         _animeService = animeService;
         _groupService = groupService;
         _vlUsers = vlUsers;
+        _videoReleaseService = videoReleaseService;
     }
 
     public async Task AddSeriesVote(SVR_AnimeSeries series, AniDBVoteType voteType, decimal vote)
@@ -123,15 +126,24 @@ public class AnimeSeriesService
             .SelectMany(a => a.FileCrossReferences)
             .ToList();
         var vlIDsToUpdate = filesToUpdate
-            .Select(a => a.VideoLocal?.VideoLocalID)
-            .Where(a => a != null)
-            .Select(a => a.Value)
+            .Select(a => a.VideoLocal)
+            .WhereNotNull()
             .ToList();
 
-        // queue rescan for the files
+        // remove the current release and schedule a recheck for the file if
+        // auto match is enabled.
         var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var id in vlIDsToUpdate)
-            await scheduler.StartJob<ProcessFileJob>(a => a.VideoLocalID = id);
+        var autoMatch = _videoReleaseService.AutoMatchEnabled;
+        foreach (var video in vlIDsToUpdate)
+        {
+            await _videoReleaseService.ClearReleaseForVideo(video);
+            if (autoMatch)
+                await scheduler.StartJob<ProcessFileJob>(c =>
+                {
+                    c.VideoLocalID = video.VideoLocalID;
+                    c.SkipMyList = true;
+                });
+        }
 
         _logger.LogTrace($"Generating {anidbEpisodes.Count} episodes for {anime.MainTitle}");
 

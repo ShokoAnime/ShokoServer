@@ -28,6 +28,7 @@ public class DiscoverFileJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IVideoHashingService _videoHashingService;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
     private readonly ImportFolderRepository _importFolders;
 
@@ -46,11 +47,12 @@ public class DiscoverFileJob : BaseJob
 
     protected DiscoverFileJob() { }
 
-    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
+    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, IVideoReleaseService videoReleaseService, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
     {
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
         _videoHashingService = videoHashingService;
+        _videoReleaseService = videoReleaseService;
         _vlPlaceService = vlPlaceService;
         _importFolders = importFolders;
     }
@@ -109,6 +111,13 @@ public class DiscoverFileJob : BaseJob
                 return;
             }
 
+            // Don't schedule the auto-match attempt if auto-matching is disabled.
+            if (!_videoReleaseService.AutoMatchEnabled)
+            {
+                _logger.LogTrace("Hashes wer found and xrefs are missing, but auto-match is disabled. Exiting: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
+                return;
+            }
+
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
             await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
             return;
@@ -139,8 +148,15 @@ public class DiscoverFileJob : BaseJob
             return;
         }
 
+        // Only schedule the auto-match attempt if auto-matching is enabled.
         if (!hasXrefs)
         {
+            if (!_videoReleaseService.AutoMatchEnabled)
+            {
+                _logger.LogTrace("Hashes were found and xrefs are missing, but auto-match is disabled. Exiting: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
+                return;
+            }
+
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
             await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
         }

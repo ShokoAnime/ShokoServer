@@ -19,6 +19,7 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Hashing;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
@@ -528,6 +529,7 @@ public class DatabaseFixes
     public static void FixOrphanedShokoEpisodes()
     {
         var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+        var videoReleaseService = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>();
         var allSeries = RepoFactory.AnimeSeries.GetAll()
             .ToDictionary(series => series.AnimeSeriesID);
         var allSeriesAnidbId = allSeries.Values
@@ -604,14 +606,18 @@ public class DatabaseFixes
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
         _logger.Trace($"Scheduling {videosToRefetch.Count} videos for a re-fetch.");
+        // If auto-match is not available then clear the release so the video is
+        // not referencing no longer existing episodes.
+        var autoMatch = videoReleaseService.AutoMatchEnabled;
         foreach (var video in videosToRefetch)
         {
-            scheduler.StartJob<ProcessFileJob>(c =>
-            {
-                c.VideoLocalID = video.VideoLocalID;
-                c.SkipMyList = true;
-                c.ForceRecheck = true;
-            }).GetAwaiter().GetResult();
+            videoReleaseService.ClearReleaseForVideo(video).GetAwaiter().GetResult();
+            if (autoMatch)
+                scheduler.StartJobNow<ProcessFileJob>(c =>
+                {
+                    c.VideoLocalID = video.VideoLocalID;
+                    c.SkipMyList = true;
+                }).GetAwaiter().GetResult();
         }
 
         _logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");

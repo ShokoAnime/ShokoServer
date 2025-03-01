@@ -39,6 +39,11 @@ public interface IVideoReleaseService
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
+    ///   Gets a value indicating whether any release info providers are enabled for auto-matching.
+    /// </summary>
+    bool AutoMatchEnabled { get; }
+
+    /// <summary>
     ///   Gets or sets a value indicating whether to use parallel mode.
     /// </summary>
     /// <remarks>

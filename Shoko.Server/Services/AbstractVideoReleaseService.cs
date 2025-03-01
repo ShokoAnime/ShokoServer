@@ -64,6 +64,11 @@ public class AbstractVideoReleaseService(
 
     public event EventHandler? ProvidersUpdated;
 
+    private bool? _autoMatchEnabled = null;
+
+    public bool AutoMatchEnabled
+        => _autoMatchEnabled ??= GetAvailableProviders(true).Any();
+
     public bool ParallelMode
     {
         get => _settings.Plugins.ReleaseProviders.ParallelMode;
@@ -72,7 +77,9 @@ public class AbstractVideoReleaseService(
             if (_settings.Plugins.ReleaseProviders.ParallelMode == value)
                 return;
 
+            _autoMatchEnabled = null;
             _settings.Plugins.ReleaseProviders.ParallelMode = value;
+            settingsProvider.SaveSettings(_settings);
             ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -198,6 +205,7 @@ public class AbstractVideoReleaseService(
 
         if (changed)
         {
+            _autoMatchEnabled = null;
             settingsProvider.SaveSettings(settings);
             ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }

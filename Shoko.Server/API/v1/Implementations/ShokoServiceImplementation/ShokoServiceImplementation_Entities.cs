@@ -565,9 +565,10 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
             if (vid is null)
-            {
                 return "File could not be found";
-            }
+
+            if (!_videoReleaseService.AutoMatchEnabled)
+                return "Release auto-matching is currently disabled";
 
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
             scheduler.StartJobNow<ProcessFileJob>(
@@ -594,14 +595,13 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
             if (vid is null)
-            {
                 return "File could not be found";
-            }
 
             if (string.IsNullOrEmpty(vid.Hash))
-            {
                 return "Could not Update a cloud file without hash, hash it locally first";
-            }
+
+            if (!_videoReleaseService.AutoMatchEnabled)
+                return "Release auto-matching is currently disabled";
 
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
             scheduler.StartJobNow<ProcessFileJob>(

@@ -34,6 +34,8 @@ public class HashFileJob : BaseJob
 
     private readonly IVideoHashingService _videoHashingService;
 
+    private readonly IVideoReleaseService _videoReleaseService;
+
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
     private readonly ImportFolderRepository _importFolders;
@@ -61,11 +63,12 @@ public class HashFileJob : BaseJob
 
     protected HashFileJob() { }
 
-    public HashFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
+    public HashFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, IVideoReleaseService videoReleaseService, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
     {
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
         _videoHashingService = videoHashingService;
+        _videoReleaseService = videoReleaseService;
         _vlPlaceService = vlPlaceService;
         _importFolders = importFolders;
     }
@@ -148,6 +151,10 @@ public class HashFileJob : BaseJob
 
         // Add the process file job if we're not forcefully re-hashing the file.
         if (!ForceHash && video.ReleaseInfo is not null)
+            return;
+
+        // Don't schedule the auto-match attempt if auto-matching is disabled.
+        if (!_videoReleaseService.AutoMatchEnabled)
             return;
 
         await scheduler.StartJobNow<ProcessFileJob>(c =>

@@ -53,6 +53,7 @@ public class Common : BaseController
     private readonly QueueHandler _queueHandler;
     private readonly IUserDataService _userDataService;
     private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly IVideoReleaseService _videoReleaseService;
 
     public Common(
         ISchedulerFactory schedulerFactory,
@@ -63,7 +64,8 @@ public class Common : BaseController
         AnimeSeriesService seriesService,
         AnimeGroupService groupService,
         IUserDataService userDataService,
-        VideoLocal_UserRepository vlUsers) : base(settingsProvider)
+        VideoLocal_UserRepository vlUsers,
+        IVideoReleaseService videoReleaseService) : base(settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
@@ -73,6 +75,7 @@ public class Common : BaseController
         _groupService = groupService;
         _userDataService = userDataService;
         _vlUsers = vlUsers;
+        _videoReleaseService = videoReleaseService;
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
@@ -274,14 +277,10 @@ public class Common : BaseController
         {
             var vid = RepoFactory.VideoLocal.GetByID(id);
             if (vid == null)
-            {
                 return NotFound();
-            }
 
-            if (string.IsNullOrEmpty(vid.Hash))
-            {
-                return BadRequest("Could not Update a cloud file without hash, hash it locally first");
-            }
+            if (!_videoReleaseService.AutoMatchEnabled)
+                return Ok();
 
             var scheduler = await _schedulerFactory.GetScheduler();
             await scheduler.StartJobNow<ProcessFileJob>(
@@ -306,6 +305,9 @@ public class Common : BaseController
     [HttpGet("rescanunlinked")]
     public async Task<ActionResult> RescanUnlinked()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return Ok();
+
         try
         {
             // files which have been hashed, but don't have an associated episode
@@ -338,6 +340,9 @@ public class Common : BaseController
     [HttpGet("rescanmanuallinks")]
     public async Task<ActionResult> RescanManualLinks()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return Ok();
+
         try
         {
             // files which have been hashed, but don't have an associated episode

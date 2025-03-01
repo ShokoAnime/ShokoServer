@@ -10,6 +10,7 @@ using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -36,6 +37,7 @@ public class ActionService(
     ISchedulerFactory _schedulerFactory,
     IRequestFactory _requestFactory,
     ISettingsProvider _settingsProvider,
+    IVideoReleaseService _videoReleaseService,
     VideoLocalService _videoService,
     VideoLocal_PlaceService _placeService,
     TmdbMetadataService _tmdbService,
@@ -78,6 +80,9 @@ public class ActionService(
                 _logger.LogInformation("Error RunImport_IntegrityCheck XREF: {Detailed} - {Ex}", vl.ToStringDetailed(), ex.ToString());
             }
         }
+
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return;
 
         // files which have been hashed, but don't have an associated episode
         var settings = _settingsProvider.GetSettings();
@@ -715,7 +720,7 @@ public class ActionService(
             .DistinctBy(a => a.GroupID)
             .Select(a => int.Parse(a.GroupID))
             .ToHashSet();
-        var missingFiles = RepoFactory.StoredReleaseInfo.GetAll()
+        var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : RepoFactory.StoredReleaseInfo.GetAll()
             .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
             .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
             .WhereNotNull()
@@ -929,26 +934,26 @@ public class ActionService(
         }
 
         // files which have been hashed, but don't have an associated episode
-        var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-        foreach (var vl in filesWithoutEpisode)
+        if (_videoReleaseService.AutoMatchEnabled)
         {
-            if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
+            var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            foreach (var vl in filesWithoutEpisode)
             {
-                var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
-                if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                    continue;
-            }
-
-            await scheduler.StartJob<ProcessFileJob>(c =>
+                if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
                 {
-                    c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceRecheck = true;
+                    var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
+                    if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
+                        continue;
                 }
-            );
+
+                await scheduler.StartJob<ProcessFileJob>(c =>
+                    {
+                        c.VideoLocalID = vl.VideoLocalID;
+                        c.ForceRecheck = true;
+                    }
+                );
+            }
         }
-
-        // now check for any files which have been manually linked and are less than 30 days old
-
 
         schedule ??= new ScheduledUpdate
         {
