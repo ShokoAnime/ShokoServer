@@ -91,11 +91,11 @@ public class DiscoverFileJob : BaseJob
         }
 
         var enabledHashes = _videoHashingService.AllEnabledHashTypes;
-        var shouldHash = vlocal.Hashes.Any(a => !enabledHashes.Contains(a.Type));
+        var shouldHash = vlocal.Hashes is { } hashes && (hashes.Count == 0 || vlocal.Hashes.Any(a => !enabledHashes.Contains(a.Type)));
         var scheduler = await _schedulerFactory.GetScheduler();
 
         // if !shouldHash, then we definitely have a hash
-        var hasXrefs = vlocal.EpisodeCrossReferences.All(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
+        var hasXrefs = vlocal.EpisodeCrossReferences is { } xrefs && xrefs.Count > 0 && xrefs.All(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
         if (!shouldHash && hasXrefs && !vlocal.DateTimeImported.HasValue)
         {
             vlocal.DateTimeImported = DateTime.Now;
