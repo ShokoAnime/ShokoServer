@@ -44,13 +44,15 @@ public class HashingController(ISettingsProvider settingsProvider, IVideoHashing
     [HttpGet("Provider")]
     public ActionResult<List<HashProvider>> GetAvailableHashProviders()
         => videoHashingService.GetAvailableProviders()
-        .Select(p => new HashProvider
+        .Select(providerInfo => new HashProvider
         {
-            ID = p.ID,
-            Name = p.Provider.Name,
-            Version = p.Provider.Version,
-            EnabledHashTypes = p.EnabledHashTypes,
-            Priority = p.Priority,
+            ID = providerInfo.ID,
+            Name = providerInfo.Provider.Name,
+            Version = providerInfo.Provider.Version,
+            AvailableHashTypes = providerInfo.Provider.AvailableHashTypes.ToHashSet(),
+            DefaultEnabledHashTypes = providerInfo.Provider.DefaultEnabledHashTypes.ToHashSet(),
+            EnabledHashTypes = providerInfo.EnabledHashTypes,
+            Priority = providerInfo.Priority,
         })
         .ToList();
 
@@ -123,6 +125,8 @@ public class HashingController(ISettingsProvider settingsProvider, IVideoHashing
             ID = providerInfo.ID,
             Name = providerInfo.Provider.Name,
             Version = providerInfo.Provider.Version,
+            AvailableHashTypes = providerInfo.Provider.AvailableHashTypes.ToHashSet(),
+            DefaultEnabledHashTypes = providerInfo.Provider.DefaultEnabledHashTypes.ToHashSet(),
             EnabledHashTypes = providerInfo.EnabledHashTypes,
             Priority = providerInfo.Priority,
         };
