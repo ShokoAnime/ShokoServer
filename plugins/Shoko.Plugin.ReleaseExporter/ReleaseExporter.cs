@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
@@ -19,26 +20,33 @@ public class ReleaseExporter : IHostedService
 
     private readonly IVideoService _videoService;
 
-    public ReleaseExporter(IVideoReleaseService videoReleaseService, IVideoService videoService, ILogger<ReleaseExporter> logger)
+    private readonly ConfigurationProvider<ReleaseExporterConfiguration> _configProvider;
+
+    private ReleaseExporterConfiguration Configuration { get; set; }
+
+    public ReleaseExporter(IVideoReleaseService videoReleaseService, IVideoService videoService, ILogger<ReleaseExporter> logger, ConfigurationProvider<ReleaseExporterConfiguration> configProvider)
     {
         _logger = logger;
         _videoReleaseService = videoReleaseService;
         _videoService = videoService;
+        _configProvider = configProvider;
 
+        Configuration = configProvider.Load();
+
+        _configProvider.Saved += OnConfigurationSaved;
         _videoReleaseService.ReleaseSaved += OnVideoReleaseSaved;
         _videoReleaseService.ReleaseDeleted += OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted += OnVideoDeleted;
         _videoService.VideoFileRelocated += OnVideoRelocated;
-        _videoReleaseService.ProvidersUpdated += OnReleaseProvidersUpdated;
     }
 
     ~ReleaseExporter()
     {
+        _configProvider.Saved -= OnConfigurationSaved;
         _videoReleaseService.ReleaseSaved -= OnVideoReleaseSaved;
         _videoReleaseService.ReleaseDeleted -= OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted -= OnVideoDeleted;
         _videoService.VideoFileRelocated -= OnVideoRelocated;
-        _videoReleaseService.ProvidersUpdated -= OnReleaseProvidersUpdated;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -47,16 +55,14 @@ public class ReleaseExporter : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 
-    private bool IsEnabled { get; set; } = false;
-
-    private void OnReleaseProvidersUpdated(object? sender, EventArgs e)
+    private void OnConfigurationSaved(object? sender, ConfigurationSavedEventArgs<ReleaseExporterConfiguration> e)
     {
-        IsEnabled = _videoReleaseService.GetProviderInfo<ReleaseImporter>().Enabled;
+        Configuration = e.Configuration;
     }
 
     private void OnVideoReleaseSaved(object? sender, VideoReleaseEventArgs eventArgs)
     {
-        if (!IsEnabled)
+        if (!Configuration.IsExporterEnabled)
             return;
 
         if (eventArgs.Video.Locations is not { Count: > 0 } locations)
@@ -65,16 +71,26 @@ public class ReleaseExporter : IHostedService
         var releaseInfo = JsonConvert.SerializeObject(new ReleaseInfoWithProvider(eventArgs.ReleaseInfo));
         foreach (var location in locations)
         {
-            var releasePath = Path.ChangeExtension(location.Path, ".release.json");
-            if (File.Exists(releasePath))
+            var releasePath = Path.ChangeExtension(location.Path, Configuration.ReleaseExtension);
+            try
             {
-                var textData = File.ReadAllText(releasePath);
-                if (textData == releaseInfo)
-                    continue;
-            }
+                if (File.Exists(releasePath))
+                {
+                    var textData = File.ReadAllText(releasePath);
+                    if (string.Equals(textData, releaseInfo, StringComparison.InvariantCulture))
+                    {
+                        _logger.LogInformation("Release info for {VideoID} already exists at {Path}", eventArgs.Video.ID, releasePath);
+                        continue;
+                    }
+                }
 
-            _logger.LogInformation("Saving release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
-            File.WriteAllText(releasePath, releaseInfo);
+                _logger.LogInformation("Saving release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
+                File.WriteAllText(releasePath, releaseInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Encountered an error saving release file: {ReleasePath}", releasePath);
+            }
         }
     }
 
@@ -85,27 +101,34 @@ public class ReleaseExporter : IHostedService
 
         foreach (var location in locations)
         {
-            var releasePath = Path.ChangeExtension(location.Path, ".release.json");
-            if (!File.Exists(releasePath))
-                continue;
+            var releasePath = Path.ChangeExtension(location.Path, Configuration.ReleaseExtension);
+            try
+            {
+                if (!File.Exists(releasePath))
+                    continue;
 
-            _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
-            File.Delete(releasePath);
+                _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
+                File.Delete(releasePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Encountered an error deleting release file: {ReleasePath}", releasePath);
+            }
         }
     }
 
     private void OnVideoRelocated(object? sender, FileMovedEventArgs eventArgs)
     {
-        var releasePath = Path.ChangeExtension(eventArgs.PreviousPath, ".release.json");
+        var releasePath = Path.ChangeExtension(eventArgs.PreviousPath, Configuration.ReleaseExtension);
         if (!File.Exists(releasePath))
             return;
 
-        var newReleasePath = Path.ChangeExtension(eventArgs.File.Path, ".release.json");
+        var newReleasePath = Path.ChangeExtension(eventArgs.File.Path, Configuration.ReleaseExtension);
         if (File.Exists(newReleasePath))
         {
             var releaseInfo = File.ReadAllText(releasePath);
-            var textData = File.ReadAllText(releasePath);
-            if (textData == releaseInfo)
+            var textData = File.ReadAllText(newReleasePath);
+            if (string.Equals(releaseInfo, textData, StringComparison.InvariantCulture))
             {
                 _logger.LogInformation("Deleting duplicate release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
                 File.Delete(releasePath);
@@ -119,7 +142,7 @@ public class ReleaseExporter : IHostedService
 
     private void OnVideoDeleted(object? sender, FileEventArgs eventArgs)
     {
-        var releasePath = Path.ChangeExtension(eventArgs.File.Path, ".release.json");
+        var releasePath = Path.ChangeExtension(eventArgs.File.Path, Configuration.ReleaseExtension);
         if (!File.Exists(releasePath))
             return;
 
