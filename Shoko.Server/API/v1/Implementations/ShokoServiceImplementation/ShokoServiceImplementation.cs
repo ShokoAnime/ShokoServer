@@ -6,6 +6,7 @@ using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Quartz;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -441,8 +442,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
             if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
             {
-                settings.FileQualityPreferences =
-                    SettingsProvider.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                settings.FileQualityPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
             }
 
             settings.Import.RunOnStart = contractIn.RunImportOnStart;
