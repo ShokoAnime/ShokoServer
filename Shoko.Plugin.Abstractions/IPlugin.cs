@@ -1,4 +1,6 @@
 ﻿
+using System;
+
 namespace Shoko.Plugin.Abstractions;
 
 /// <summary>
@@ -6,6 +8,11 @@ namespace Shoko.Plugin.Abstractions;
 /// </summary>
 public interface IPlugin
 {
+    /// <summary>
+    /// Unique ID of the plugin.
+    /// </summary>
+    Guid ID { get; }
+
     /// <summary>
     /// Friendly name of the plugin.
     /// </summary>
@@ -15,11 +22,4 @@ public interface IPlugin
     /// Load event.
     /// </summary>
     void Load();
-
-    /// <summary>
-    /// This will be called with the created settings object if you have an <see cref="IPluginSettings"/> in the Plugin.
-    /// You can cast to your desired type and set the settings within it.
-    /// </summary>
-    /// <param name="settings"></param>
-    void OnSettingsLoaded(IPluginSettings settings);
 }

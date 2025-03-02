@@ -85,8 +85,6 @@ public class ShokoServer
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
         //CommandHelper.LoadCommands(Utils.ServiceContainer);
 
-        Loader.InitPlugins(Utils.ServiceContainer);
-
         _settingsProvider.DebugSettingsToLog();
 
         ServerState.Instance.DatabaseAvailable = false;
@@ -172,8 +170,11 @@ public class ShokoServer
         ServerState.Instance.ServerStartingStatus = "Complete!";
         ServerState.Instance.ServerOnline = true;
         var settings = _settingsProvider.GetSettings();
-        settings.FirstRun = false;
-        _settingsProvider.SaveSettings();
+        if (settings.FirstRun)
+        {
+            settings.FirstRun = false;
+            _settingsProvider.SaveSettings(settings);
+        }
 
         DBSetupCompleted?.Invoke(this, EventArgs.Empty);
         ShokoEventHandler.Instance.OnStarted();

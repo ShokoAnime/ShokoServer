@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
 using Shoko.Server.Filters;
@@ -27,29 +28,38 @@ using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
+#nullable enable
 namespace Shoko.Server.Server;
 
 public class Startup
 {
     private readonly ILogger<Startup> _logger;
-    private readonly ISettingsProvider _settingsProvider;
-    private IWebHost _webHost;
-    public event EventHandler<ServerAboutToStartEventArgs> AboutToStart;
 
-    public Startup(ILogger<Startup> logger, ISettingsProvider settingsProvider)
+    private readonly ConfigurationService _configurationService;
+
+    private readonly SettingsProvider _settingsProvider;
+
+    private IWebHost? _webHost;
+
+    public event EventHandler<ServerAboutToStartEventArgs>? AboutToStart;
+
+    public Startup(ILoggerFactory loggerFactory)
     {
-        _logger = logger;
-        _settingsProvider = settingsProvider;
+        _logger = loggerFactory.CreateLogger<Startup>();
+        _configurationService = new ConfigurationService(loggerFactory.CreateLogger<ConfigurationService>(), ApplicationPaths.Instance);
+        _settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>(), _configurationService.CreateProvider<ServerSettings>());
     }
 
     // tried doing it without UseStartup<ServerStartup>(), but the documentation is lacking, and I couldn't get Configure() to work otherwise
-    private class ServerStartup
+    private class ServerStartup(IConfigurationService configurationService, ISettingsProvider settingsProvider)
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton(configurationService);
+            services.AddSingleton(settingsProvider);
+
             services.AddSingleton<IRelocationService, RelocationService>();
             services.AddSingleton<RenameFileService>();
-            services.AddSingleton<ISettingsProvider, SettingsProvider>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<ShokoServer>();
             services.AddSingleton<LogRotator>();
@@ -75,6 +85,7 @@ public class Startup
             services.AddSingleton<IVideoService, AbstractVideoService>();
             services.AddSingleton<IVideoReleaseService, AbstractVideoReleaseService>();
             services.AddSingleton<IVideoHashingService, AbstractVideoHashingService>();
+            services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, AbstractUserService>();
             services.AddSingleton<IUserDataService, AbstractUserDataService>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
@@ -105,6 +116,8 @@ public class Startup
     {
         try
         {
+            Utils.SettingsProvider = _settingsProvider;
+
             // Set default options for MessagePack
             MessagePackSerializer.DefaultOptions = MessagePackSerializer.DefaultOptions.WithAllowAssemblyVersionMismatch(true)
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
@@ -112,8 +125,8 @@ public class Startup
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
 
             _logger.LogInformation("Initializing Web Hosts...");
-            ServerState.Instance.ServerStartingStatus = "Initializing Hosts...";
-            if (!await StartWebHost(_settingsProvider)) return;
+            ServerState.Instance.ServerStartingStatus = "Initializing Web Hosts...";
+            if (!await StartWebHost()) return;
 
             var shokoServer = Utils.ServiceContainer.GetRequiredService<ShokoServer>();
             Utils.ShokoServer = shokoServer;
@@ -132,11 +145,11 @@ public class Startup
             _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
     }
 
-    private async Task<bool> StartWebHost(ISettingsProvider settingsProvider)
+    private async Task<bool> StartWebHost()
     {
         try
         {
-            _webHost ??= InitWebHost(settingsProvider);
+            _webHost ??= InitWebHost();
             AboutToStart?.Invoke(null, new ServerAboutToStartEventArgs
             {
                 ServiceProvider = Utils.ServiceContainer
@@ -154,18 +167,19 @@ public class Startup
         return false;
     }
 
-    private IWebHost InitWebHost(ISettingsProvider settingsProvider)
+    private IWebHost InitWebHost()
     {
         if (_webHost != null) return _webHost;
 
-        var settings = settingsProvider.GetSettings();
-        var builder = new WebHostBuilder().UseKestrel(options =>
+        var settings = _settingsProvider.GetSettings();
+        var builder = new WebHostBuilder()
+            .UseKestrel(options =>
             {
                 options.ListenAnyIP(settings.Web.Port);
             })
             .ConfigureApp()
             .ConfigureServiceProvider()
-            .UseStartup<ServerStartup>()
+            .UseStartup(_ => new ServerStartup(_configurationService, _settingsProvider))
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();
@@ -175,7 +189,8 @@ public class Startup
                 logging.AddFilter("System", LogLevel.Warning);
                 logging.AddFilter("Shoko.Server.API", LogLevel.Warning);
 #endif
-            }).UseNLog()
+            })
+            .UseNLog()
             .UseSentryConfig();
 
         var result = builder.Build();
@@ -183,18 +198,21 @@ public class Startup
         Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         Utils.ServiceContainer = result.Services;
 
+        // Init. plugins before starting the IHostedService services.
+        Loader.InitPlugins(result.Services);
+
         return result;
     }
 
     public Task WaitForShutdown()
-    {
-        return _webHost?.WaitForShutdownAsync();
-    }
+        => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
 
     private async Task StopHost()
     {
-        if (_webHost is IAsyncDisposable disp) await disp.DisposeAsync();
-        else _webHost?.Dispose();
+        if (_webHost is IAsyncDisposable disposable)
+            await disposable.DisposeAsync();
+        else
+            _webHost?.Dispose();
         _webHost = null;
     }
 }

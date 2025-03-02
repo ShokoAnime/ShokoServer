@@ -1,3 +1,4 @@
+using System;
 using Shoko.Plugin.Abstractions;
 
 namespace Shoko.Server.Plugin;
@@ -9,15 +10,11 @@ namespace Shoko.Server.Plugin;
 /// </summary>
 public class CorePlugin : IPlugin
 {
+    public Guid ID => Guid.Parse("b6014d5b-bd38-5909-9203-7d4219676be7");
+
     /// <inheritdoc/>
     public string Name => "Shoko Core";
 
     /// <inheritdoc/>
     public void Load() { }
-
-    /// <inheritdoc/>
-    public void OnSettingsLoaded(IPluginSettings settings)
-    {
-        // No settings!? Maybe make this abstract in the future
-    }
 }

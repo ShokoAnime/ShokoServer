@@ -37,6 +37,12 @@ public interface IApplicationPaths
     string PluginsPath { get; }
 
     /// <summary>
+    /// Gets the path to the plugin configuration directory.
+    /// </summary>
+    /// <value>The plugin configuration path.</value>
+    string PluginConfigurationsPath { get; }
+
+    /// <summary>
     /// Gets the path to the log directory.
     /// </summary>
     /// <value>The log directory path.</value>
