@@ -19,23 +19,35 @@ public static class ImageExtensions
 
     public static IImageMetadata? GetImageMetadata(this AniDB_Character character, bool preferred = false)
         => !string.IsNullOrEmpty(character.ImagePath)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Character, character.CharacterID, character.GetFullImagePath(), ResolveAnidbImageUrl(character.ImagePath))
+            ? new Image_Base
             {
-                IsEnabled = true,
+                ID = character.CharacterID,
+                Source = DataSourceEnum.AniDB,
+                ImageType = ImageEntityType.Character,
                 IsPreferred = preferred,
+                LocalPath = character.GetFullImagePath(),
+                RemoteURL = ResolveAnidbImageUrl(character.ImagePath),
             }
             : null;
 
     public static IImageMetadata GetImageMetadata(this AniDB_Anime anime, bool? preferred = null) =>
         !string.IsNullOrEmpty(anime.Picname)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Poster, anime.AnimeID, GetFullImagePath(anime), ResolveAnidbImageUrl(anime.Picname))
+            ? new Image_Base
             {
+                Source = DataSourceEnum.AniDB,
+                ImageType = ImageEntityType.Poster,
+                ID = anime.AnimeID,
                 IsEnabled = anime.ImageEnabled == 1,
                 IsPreferred = preferred ??
-                    (RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(anime.AnimeID, ImageEntityType.Poster) is { } preferredImage &&
-                    preferredImage!.ImageSource == Shoko.Models.Enums.DataSourceType.AniDB),
+                              RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(anime.AnimeID, ImageEntityType.Poster) is
+                                  { ImageSource: Shoko.Models.Enums.DataSourceType.AniDB },
+                RemoteURL = ResolveAnidbImageUrl(anime.Picname),
+                LocalPath = GetFullImagePath(anime)
             }
-            : new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Poster, anime.AnimeID);
+            : new Image_Base
+            {
+                Source = DataSourceEnum.AniDB, ImageType = ImageEntityType.Poster, ID = anime.AnimeID
+            };
 
     public static string GetFullImagePath(this AniDB_Anime anime)
     {
@@ -55,10 +67,14 @@ public static class ImageExtensions
 
     public static IImageMetadata? GetImageMetadata(this AniDB_Creator creator, bool preferred = false)
         => !string.IsNullOrEmpty(creator.ImagePath)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Person, creator.CreatorID, creator.GetFullImagePath(), ResolveAnidbImageUrl(creator.ImagePath))
+            ? new Image_Base
             {
-                IsEnabled = true,
+                Source = DataSourceEnum.AniDB,
+                ImageType = ImageEntityType.Person,
+                ID = creator.CreatorID,
                 IsPreferred = preferred,
+                RemoteURL = ResolveAnidbImageUrl(creator.ImagePath),
+                LocalPath = creator.GetFullImagePath()
             }
             : null;
 
@@ -104,19 +120,19 @@ public static class ImageExtensions
     public static string? GetImageFormat(byte[] bytes)
     {
         // https://en.wikipedia.org/wiki/BMP_file_format#File_structure
-        var bmp = new byte[] { 66, 77 };
+        var bmp = "BM"u8.ToArray();
         // https://en.wikipedia.org/wiki/GIF#File_format
-        var gif = new byte[] { 71, 73, 70 };
+        var gif = "GIF"u8.ToArray();
         // https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
         var jpeg = new byte[] { 255, 216 };
         // https://en.wikipedia.org/wiki/Portable_Network_Graphics#File_header
         var png = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
         // https://en.wikipedia.org/wiki/TIFF#Byte_order
-        var tiff1 = new byte[] { 73, 73, 42, 0 };
-        var tiff2 = new byte[] { 77, 77, 42, 0 };
+        var tiff1 = "II*\0"u8.ToArray();
+        var tiff2 = "MM*\0"u8.ToArray();
         // https://developers.google.com/speed/webp/docs/riff_container#webp_file_header
-        var webp1 = new byte[] { 82, 73, 70, 70 };
-        var webp2 = new byte[] { 87, 69, 66, 80 };
+        var webp1 = "RIFF"u8.ToArray();
+        var webp2 = "WEBP"u8.ToArray();
 
         if (png.SequenceEqual(bytes.Take(png.Length)))
             return "png";

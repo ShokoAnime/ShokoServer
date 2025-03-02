@@ -1,4 +1,4 @@
-
+#nullable enable
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MimeMapping;
 using Polly;
 using Polly.Retry;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -17,7 +18,6 @@ using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Models;
 
 public class Image_Base : IImageMetadata
@@ -26,7 +26,7 @@ public class Image_Base : IImageMetadata
 
     private static readonly object _lockObj = new();
 
-    private static ILogger<Image_Base>? _logger = null;
+    private static ILogger<Image_Base>? _logger;
 
     private static ILogger<Image_Base> Logger
     {
@@ -43,7 +43,7 @@ public class Image_Base : IImageMetadata
         }
     }
 
-    private static HttpClient? _httpClient = null;
+    private static HttpClient? _httpClient;
 
     private static HttpClient Client
     {
@@ -77,16 +77,17 @@ public class Image_Base : IImageMetadata
 
     #endregion
 
-    private int InternalID { get; } = 0;
+    private int InternalID { get; init; }
 
     /// <inheritdoc/>
     [NotMapped]
     public virtual int ID
     {
         get => InternalID;
+        init => InternalID = value;
     }
 
-    private string? _contentType = null;
+    private string? _contentType;
 
     [NotMapped]
     public string ContentType
@@ -97,26 +98,26 @@ public class Image_Base : IImageMetadata
                 return _contentType;
 
             if (!string.IsNullOrEmpty(LocalPath))
-                return _contentType = MimeMapping.MimeUtility.GetMimeMapping(LocalPath);
+                return _contentType = MimeUtility.GetMimeMapping(LocalPath);
 
-            return MimeMapping.MimeUtility.UnknownMimeType;
+            return MimeUtility.UnknownMimeType;
         }
     }
 
     /// <inheritdoc/>
     [NotMapped]
-    public DataSourceEnum Source { get; }
+    public DataSourceEnum Source { get; init; }
 
     /// <inheritdoc/>
     [NotMapped]
-    public ImageEntityType ImageType { get; set; }
+    public ImageEntityType ImageType { get; init; }
 
     /// <inheritdoc/>
     [NotMapped]
     public bool IsPreferred { get; set; }
 
     /// <inheritdoc/>
-    public bool IsEnabled { get; set; }
+    public bool IsEnabled { get; set; } = true;
 
     /// <inheritdoc/>
     [NotMapped]
@@ -129,7 +130,7 @@ public class Image_Base : IImageMetadata
         get => !string.IsNullOrEmpty(LocalPath) && File.Exists(LocalPath) && ImageExtensions.IsImageValid(LocalPath);
     }
 
-    private bool? _urlExists = null;
+    private bool? _urlExists;
 
     [MemberNotNullWhen(true, nameof(RemoteURL))]
     [NotMapped]
@@ -141,10 +142,6 @@ public class Image_Base : IImageMetadata
                 return _urlExists.Value;
             lock (this)
                 return CheckIsRemoteAvailableAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-        set
-        {
-            _urlExists = null;
         }
     }
 
@@ -180,9 +177,9 @@ public class Image_Base : IImageMetadata
     /// <inheritdoc/>
     [NotMapped]
     public double AspectRatio
-        => Width / Height;
+        => (double)Width / Height;
 
-    internal int? _width = null;
+    internal int? _width;
 
     /// <inheritdoc/>
     public virtual int Width
@@ -196,10 +193,10 @@ public class Image_Base : IImageMetadata
 
             return _width ?? 0;
         }
-        set { }
+        set => _width = value; 
     }
 
-    internal int? _height = null;
+    internal int? _height;
 
     /// <inheritdoc/>
     public virtual int Height
@@ -213,7 +210,7 @@ public class Image_Base : IImageMetadata
 
             return _height ?? 0;
         }
-        set { }
+        set => _height = value;
     }
 
     /// <inheritdoc/>
@@ -227,14 +224,14 @@ public class Image_Base : IImageMetadata
     /// <inheritdoc/>
     public TitleLanguage Language { get; set; }
 
-    private string? _remoteURL = null;
+    private string? _remoteURL;
 
     /// <inheritdoc/>
     [NotMapped]
     public virtual string? RemoteURL
     {
         get => _remoteURL;
-        set
+        init
         {
             _contentType = null;
             _width = null;
@@ -244,7 +241,7 @@ public class Image_Base : IImageMetadata
         }
     }
 
-    private string? _localPath = null;
+    private string? _localPath;
 
     /// <inheritdoc/>
     [NotMapped]
@@ -260,17 +257,6 @@ public class Image_Base : IImageMetadata
         }
     }
 
-    public Image_Base(DataSourceEnum source, ImageEntityType type, int id, string? localPath = null, string? remoteURL = null)
-    {
-        InternalID = id;
-        ImageType = type;
-        IsPreferred = false;
-        IsEnabled = false;
-        RemoteURL = remoteURL;
-        LocalPath = localPath;
-        Source = source;
-    }
-
     private void RefreshMetadata()
     {
         try
@@ -284,13 +270,6 @@ public class Image_Base : IImageMetadata
             }
 
             var info = new MagickImageInfo(stream);
-            if (info == null)
-            {
-                _width = 0;
-                _height = 0;
-                return;
-            }
-
             _width = info.Width;
             _height = info.Height;
         }
@@ -298,16 +277,12 @@ public class Image_Base : IImageMetadata
         {
             _width = 0;
             _height = 0;
-            return;
         }
     }
 
     public Stream? GetStream()
     {
-        if (IsLocalAvailable)
-            return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
-
-        return null;
+        return IsLocalAvailable ? new FileStream(LocalPath, FileMode.Open, FileAccess.Read) : null;
     }
 
     public async Task<bool> DownloadImage(bool force = false)
@@ -332,7 +307,7 @@ public class Image_Base : IImageMetadata
             File.Delete(LocalPath);
 
         // Write the memory-cached image onto the disk.
-        File.WriteAllBytes(LocalPath, binary);
+        await File.WriteAllBytesAsync(LocalPath, binary);
 
         // "Flush" the cached image.
         _urlExists = null;
@@ -341,7 +316,7 @@ public class Image_Base : IImageMetadata
     }
 
     public override int GetHashCode()
-        => System.HashCode.Combine(ID, Source, ImageType);
+        => HashCode.Combine(ID, Source, ImageType);
 
     public override bool Equals(object? other)
     {

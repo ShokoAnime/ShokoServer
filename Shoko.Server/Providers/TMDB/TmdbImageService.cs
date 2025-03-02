@@ -62,7 +62,7 @@ public class TmdbImageService
         if (string.IsNullOrEmpty(filePath))
             return;
 
-        var image = _tmdbImages.GetByRemoteFileName(filePath) ?? new(filePath);
+        var image = _tmdbImages.GetByRemoteFileName(filePath) ?? new TMDB_Image { RemoteFileName = filePath };
         var updated = image.TMDB_ImageID is 0;
         if (updated)
             _tmdbImages.Save(image);
@@ -89,7 +89,7 @@ public class TmdbImageService
             imageEntity.TmdbEntityID = foreignId;
         }
 
-        updated = imageEntity.Populate(0, null);
+        updated = imageEntity.Populate(0);
         if (updated)
             _tmdbImageEntities.Save(imageEntity);
 
@@ -134,7 +134,10 @@ public class TmdbImageService
         {
             visitedImages.Add(imageData.FilePath);
 
-            var image = _tmdbImages.GetByRemoteFileName(imageData.FilePath) ?? new(imageData.FilePath, imageType);
+            var image = _tmdbImages.GetByRemoteFileName(imageData.FilePath) ?? new TMDB_Image
+            {
+                RemoteFileName = imageData.FilePath, ImageType = imageType
+            };
             var updated = image.Populate(imageData);
             if (updated)
                 _tmdbImages.Save(image);

@@ -1,18 +1,17 @@
+#nullable enable
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Image : Image_Base, IImageMetadata
+public class TMDB_Image : Image_Base
 {
     #region Properties
 
@@ -23,10 +22,10 @@ public class TMDB_Image : Image_Base, IImageMetadata
     public override bool IsLocked => false;
 
     /// <inheritdoc/>
-    public override int Width { get; set; } = 0;
+    public override int Width { get; set; }
 
     /// <inheritdoc/>
-    public override int Height { get; set; } = 0;
+    public override int Height { get; set; }
 
     /// <summary>
     /// Local id for image.
@@ -35,13 +34,17 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     private string _remoteFileName = string.Empty;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Remotely provided filename, if available.
+    /// </summary>
     public string RemoteFileName
     {
         get => _remoteFileName;
         set
         {
             _remoteFileName = value;
+            if (!string.IsNullOrEmpty(_remoteFileName) && _remoteFileName[0] != '/')
+                _remoteFileName = '/' + _remoteFileName;
             _relativePath = null;
         }
     }
@@ -49,10 +52,9 @@ public class TMDB_Image : Image_Base, IImageMetadata
     private string RemoteImageName => _remoteFileName.EndsWith(".svg") ? _remoteFileName[..^4] + ".png" : _remoteFileName;
 
     /// <inheritdoc/>
-    public override string RemoteURL
-        => $"{TmdbMetadataService.ImageServerUrl}original{RemoteImageName}";
+    public override string RemoteURL => $"{TmdbMetadataService.ImageServerUrl}original{RemoteImageName}";
 
-    private string? _relativePath = null;
+    private string? _relativePath;
 
     /// <summary>
     /// Relative path to the image stored locally.
@@ -73,8 +75,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
     }
 
     /// <inheritdoc/>
-    public override string LocalPath
-        => ImageUtils.ResolvePath(RelativePath);
+    public override string LocalPath => ImageUtils.ResolvePath(RelativePath);
 
     /// <summary>
     /// Average user rating across all user votes.
@@ -82,7 +83,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
     /// <remarks>
     /// May be used for ordering when acquiring and/or discarding images.
     /// </remarks>
-    public double UserRating { get; set; } = 0.0;
+    public double UserRating { get; set; }
 
     /// <summary>
     /// User votes.
@@ -90,21 +91,16 @@ public class TMDB_Image : Image_Base, IImageMetadata
     /// <remarks>
     /// May be used for ordering when acquiring and/or discarding images.
     /// </remarks>
-    public int UserVotes { get; set; } = 0;
+    public int UserVotes { get; set; }
 
     #endregion
 
     #region Constructors
 
-    public TMDB_Image() : base(DataSourceEnum.TMDB, ImageEntityType.None, 0) { }
-
-    public TMDB_Image(string filePath, ImageEntityType type = ImageEntityType.None) : base(DataSourceEnum.TMDB, type, 0)
+    public TMDB_Image()
     {
-        _remoteFileName = filePath;
-        if (!string.IsNullOrEmpty(_remoteFileName) && _remoteFileName[0] != '/')
-            _remoteFileName = '/' + _remoteFileName;
-
-        IsEnabled = true;
+        Source = DataSourceEnum.TMDB;
+        ImageType = ImageEntityType.None;
     }
 
     #endregion
@@ -130,7 +126,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
             LanguageCode = languageCode;
             updated = true;
         }
-        if (UserRating != data.VoteAverage)
+        if (Math.Abs(UserRating - data.VoteAverage) > 0.0001)
         {
             UserRating = data.VoteAverage;
             updated = true;
@@ -146,8 +142,9 @@ public class TMDB_Image : Image_Base, IImageMetadata
     public TMDB_Image GetImageMetadata(bool? preferred = null, ImageEntityType? imageType = null)
         => (!preferred.HasValue || preferred.Value == IsPreferred) && (!imageType.HasValue || imageType.Value == ImageType)
             ? this
-            : new TMDB_Image(RemoteFileName, imageType ?? ImageType)
+            : new TMDB_Image
             {
+                RemoteFileName = RemoteFileName,
                 IsEnabled = IsEnabled,
                 IsPreferred = preferred ?? IsPreferred,
                 LanguageCode = LanguageCode,
@@ -158,6 +155,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
                 UserVotes = UserVotes,
                 _width = Width,
                 _height = Height,
+                ImageType = imageType ?? ImageType
             };
 
     #endregion
