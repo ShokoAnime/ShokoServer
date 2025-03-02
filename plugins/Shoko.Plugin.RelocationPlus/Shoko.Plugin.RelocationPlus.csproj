@@ -3,6 +3,7 @@
         <TargetFramework>net8</TargetFramework>
         <OutputType>Library</OutputType>
         <LangVersion>latest</LangVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Title>Shoko Relocation+</Title>
         <Authors>revam</Authors>
         <Version>1.0.0</Version>
