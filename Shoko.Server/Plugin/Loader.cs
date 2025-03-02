@@ -6,29 +6,30 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Services;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
+#nullable enable
 namespace Shoko.Server.Plugin;
 
 public static class Loader
 {
-    private static readonly List<Type> _exportedTypes = new List<Type>();
-    private static readonly List<Type> _pluginTypes = new List<Type>();
+    private static readonly List<Type> _exportedTypes = [];
+    private static readonly List<Type> _pluginTypes = [];
     private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
-    private static IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
+    private static Dictionary<Type, IPlugin> Plugins { get; } = [];
 
     internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection)
     {
         // add plugin api related things to service collection
         var assemblies = new List<(Assembly, string)>();
-        var dirname = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        var dirname = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
         assemblies.Add((Assembly.GetCallingAssembly(), string.Empty)); //add this to dynamically load as well.
 
         // Load plugins from the user config dir too.
@@ -113,8 +114,7 @@ public static class Loader
         {
             var assembly = type.Assembly;
             var location = assembly.Location;
-            var xml = Path.Combine(Path.GetDirectoryName(location),
-                $"{Path.GetFileNameWithoutExtension(location)}.xml");
+            var xml = Path.ChangeExtension(location, "xml");
             if (File.Exists(xml))
             {
                 options.IncludeXmlComments(xml, true); //Include the XML comments if it exists.
@@ -201,10 +201,12 @@ public static class Loader
         {
             var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
             Plugins.Add(pluginType, plugin);
-            LoadSettings(pluginType, plugin);
             s_logger.Info($"Loaded: {plugin.Name} ({pluginType.FullName})");
             plugin.Load();
         }
+
+        var configurationService = provider.GetRequiredService<IConfigurationService>();
+        configurationService.AddParts(GetTypes<IConfiguration>(), GetExports<IConfigurationDefinition>(provider));
 
         // Used to store the updated priorities for the providers in the settings file.
         var videoReleaseService = provider.GetRequiredService<IVideoReleaseService>();
@@ -216,60 +218,27 @@ public static class Loader
         videoHashingService.UpdateProviders();
     }
 
-    public static List<T> GetExports<T>()
+    public static IPlugin? GetFromType(Type pluginType)
+        => Plugins.GetValueOrDefault(pluginType);
+
+    public static IEnumerable<Type> GetTypes<T>()
+        => _exportedTypes.Where(type => typeof(T).IsAssignableFrom(type));
+
+    public static IEnumerable<Type> GetTypes<T>(Assembly assembly)
+        => assembly.GetTypes().Where(type => typeof(T).IsAssignableFrom(type));
+
+    public static IEnumerable<T> GetExports<T>()
         => GetExports<T>(Utils.ServiceContainer);
 
-    private static List<T> GetExports<T>(IServiceProvider serviceProvider)
-        => _exportedTypes
-            .Where(type => typeof(T).IsAssignableFrom(type))
+    public static IEnumerable<T> GetExports<T>(Assembly assembly)
+        => GetTypes<T>(assembly)
+            .Select(t => ActivatorUtilities.CreateInstance(Utils.ServiceContainer, t))
+            .WhereNotNull()
+            .Cast<T>();
+
+    private static IEnumerable<T> GetExports<T>(IServiceProvider serviceProvider)
+        => GetTypes<T>()
             .Select(t => ActivatorUtilities.CreateInstance(serviceProvider, t))
             .WhereNotNull()
-            .Cast<T>()
-            .ToList();
-
-    private static void LoadSettings(Type type, IPlugin plugin)
-    {
-        var (name, t) = type.Assembly.GetTypes()
-            .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-            .DistinctBy(a => a.Assembly.GetName().Name)
-            .Select(a => (a.Assembly.GetName().Name + ".json", a)).FirstOrDefault();
-        if (string.IsNullOrEmpty(name) || name == ".json") return;
-
-        try
-        {
-            var serverSettings = Utils.SettingsProvider.GetSettings();
-            if (serverSettings.Plugins.EnabledPlugins.ContainsKey(name) && !serverSettings.Plugins.EnabledPlugins[name])
-                return;
-
-            var settingsPath = Path.Combine(Utils.ApplicationPath, "plugins", name);
-            var obj = !File.Exists(settingsPath)
-                ? Activator.CreateInstance(t)
-                : SettingsProvider.Deserialize(t, File.ReadAllText(settingsPath));
-            var settings = (IPluginSettings)obj;
-
-            plugin.OnSettingsLoaded(settings);
-        }
-        catch (Exception e)
-        {
-            s_logger.Error(e, $"Unable to initialize Settings for {name}");
-        }
-    }
-
-    public static void SaveSettings(IPluginSettings settings)
-    {
-        var name = settings.GetType().Assembly.GetName().Name + ".json";
-        if (string.IsNullOrEmpty(name) || name == ".json") return;
-
-        try
-        {
-            var settingsPath = Path.Combine(Utils.ApplicationPath, "plugins", name);
-            Directory.CreateDirectory(Path.Combine(Utils.ApplicationPath, "plugins"));
-            var json = SettingsProvider.Serialize(settings);
-            File.WriteAllText(settingsPath, json);
-        }
-        catch (Exception e)
-        {
-            s_logger.Error(e, $"Unable to Save Settings for {name}");
-        }
-    }
+            .Cast<T>();
 }

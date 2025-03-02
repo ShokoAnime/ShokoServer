@@ -9,10 +9,16 @@ namespace Shoko.Server.Services;
 
 public class AbstractApplicationPaths : IApplicationPaths
 {
-    public static AbstractApplicationPaths Instance => new();
+    private static AbstractApplicationPaths? _instance = null;
+
+    public static AbstractApplicationPaths Instance
+        => _instance ??= new();
+
+    private string? _executableDirectoryPath = null;
 
     /// <inheritdoc/>
-    public string ExecutableDirectoryPath => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+    public string ExecutableDirectoryPath
+        => _executableDirectoryPath ??= Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
     /// <inheritdoc/>
     public string WebPath => Path.Combine(ProgramDataPath, "webui");
@@ -24,8 +30,11 @@ public class AbstractApplicationPaths : IApplicationPaths
     public string ImageDirectoryPath => ImageUtils.GetBaseImagesPath();
 
     /// <inheritdoc/>
-    public string PluginsPath => Path.Combine(ProgramDataPath, "plugins");
+    public string PluginsPath => Path.Combine(Utils.ApplicationPath, "plugins");
 
     /// <inheritdoc/>
-    public string LogDirectoryPath => Path.Combine(ProgramDataPath, "logs");
+    public string PluginConfigurationsPath => Path.Combine(Utils.ApplicationPath, "plugins", "configuration");
+
+    /// <inheritdoc/>
+    public string LogDirectoryPath => Path.Combine(Utils.ApplicationPath, "logs");
 }
