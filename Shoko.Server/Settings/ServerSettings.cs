@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using JetBrains.Annotations;
 using Shoko.Models;
+using Shoko.Plugin.Abstractions.Config;
 
 namespace Shoko.Server.Settings;
 
-public class ServerSettings : IServerSettings
+[Display(Name = "Shoko Core")]
+public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration
 {
     // Increment this when a new migration is added
     [UsedImplicitly]
