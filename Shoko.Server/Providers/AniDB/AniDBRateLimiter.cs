@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Settings;
-
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
@@ -28,7 +27,7 @@ public abstract class AniDBRateLimiter
 
     private readonly Func<IServerSettings, AnidbRateLimitSettings> _settingsSelector;
 
-    private int? _shortDelay = null;
+    private int? _shortDelay;
 
     // From AniDB's wiki about UDP rate limiting:
     // Short Term:
@@ -44,7 +43,7 @@ public abstract class AniDBRateLimiter
         }
     }
 
-    private int? _longDelay = null;
+    private int? _longDelay;
 
     // From AniDB's wiki about UDP rate limiting:
     // Long Term:
@@ -60,7 +59,7 @@ public abstract class AniDBRateLimiter
         }
     }
 
-    private long? _shortPeriod = null;
+    private long? _shortPeriod;
 
     // Switch to longer delay after a short period
     private long ShortPeriod
@@ -73,7 +72,7 @@ public abstract class AniDBRateLimiter
         }
     }
 
-    private long? _resetPeriod = null;
+    private long? _resetPeriod;
 
     // Switch to shorter delay after inactivity
     private long ResetPeriod
@@ -141,31 +140,31 @@ public abstract class AniDBRateLimiter
     public T EnsureRate<T>(Func<T> action, bool forceShortDelay = false)
     {
         lock (_lock)
-        try
-        {
-            var delay = _requestWatch.ElapsedMilliseconds;
-            if (delay > ResetPeriod) ResetRate();
-            var currentDelay = !forceShortDelay && _activeTimeWatch.ElapsedMilliseconds > ShortPeriod ? LongDelay : ShortDelay;
-
-            if (delay > currentDelay)
+            try
             {
-                _logger.LogTrace("Time since last request is {Delay} ms, not throttling", delay);
+                var delay = _requestWatch.ElapsedMilliseconds;
+                if (delay > ResetPeriod) ResetRate();
+                var currentDelay = !forceShortDelay && _activeTimeWatch.ElapsedMilliseconds > ShortPeriod ? LongDelay : ShortDelay;
+
+                if (delay > currentDelay)
+                {
+                    _logger.LogTrace("Time since last request is {Delay} ms, not throttling", delay);
+                    _logger.LogTrace("Sending AniDB command");
+                    return action();
+                }
+
+                // add 50ms for good measure
+                var waitTime = currentDelay - (int)delay + 50;
+
+                _logger.LogTrace("Time since last request is {Delay} ms, throttling for {Time}ms", delay, waitTime);
+                Thread.Sleep(waitTime);
+
                 _logger.LogTrace("Sending AniDB command");
                 return action();
             }
-
-            // add 50ms for good measure
-            var waitTime = currentDelay - (int)delay + 50;
-
-            _logger.LogTrace("Time since last request is {Delay} ms, throttling for {Time}ms", delay, waitTime);
-            Thread.Sleep(waitTime);
-
-            _logger.LogTrace("Sending AniDB command");
-            return action();
-        }
-        finally
-        {
-            _requestWatch.Restart();
-        }
+            finally
+            {
+                _requestWatch.Restart();
+            }
     }
 }

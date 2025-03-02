@@ -32,31 +32,23 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         _clientPort = clientPort;
     }
 
-    public async Task<byte[]> Send(byte[] payload, CancellationToken token = new())
+    public byte[] Send(byte[] payload)
     {
         if (!IsConnected) return [0];
         // this doesn't need to be bigger than 1400, but meh, better safe than sorry
-        return await SendUnsafe(payload, token);
+        return SendUnsafe(payload);
     }
 
-    private async Task<byte[]> SendUnsafe(byte[] payload, CancellationToken token)
+    private byte[] SendUnsafe(byte[] payload)
     {
         EmptyBuffer();
 
-        if (token.IsCancellationRequested) throw new TaskCanceledException();
-        using CancellationTokenSource sendCts = new(SendTimeoutMs);
-        await _aniDBSocket.SendToAsync(payload, SocketFlags.None, _remoteIpEndPoint, sendCts.Token);
-
-        if (sendCts.IsCancellationRequested) throw new OperationCanceledException();
-        if (token.IsCancellationRequested) throw new TaskCanceledException();
+        _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
 
         using CancellationTokenSource receiveCts = new(ReceiveTimeoutMs);
         var result = new byte[1600];
-        var receivedResult = await _aniDBSocket.ReceiveFromAsync(result, SocketFlags.None, _remoteIpEndPoint, receiveCts.Token);
-        if (sendCts.IsCancellationRequested) throw new OperationCanceledException();
-        if (token.IsCancellationRequested) throw new TaskCanceledException();
-
-        var received = receivedResult.ReceivedBytes;
+        EndPoint endpoint = _remoteIpEndPoint;
+        var received = _aniDBSocket.ReceiveFrom(result, ref endpoint);
 
         if (received > 2 && result[0] == 0 && result[1] == 0)
         {
@@ -97,7 +89,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
     }
 
-    public async Task<bool> TryConnection()
+    public bool TryConnection()
     {
         if (IsConnected) return true;
         // Don't send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
@@ -114,6 +106,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
              *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
              */
             _aniDBSocket.Bind(_localIpEndPoint);
+            _aniDBSocket.SendTimeout = SendTimeoutMs;
             _aniDBSocket.ReceiveTimeout = ReceiveTimeoutMs;
 
             _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
@@ -128,7 +121,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
         try
         {
-            var remoteHostEntry = await Dns.GetHostEntryAsync(_serverHost).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            var remoteHostEntry = Dns.GetHostEntry(_serverHost);
             _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
 
             _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,

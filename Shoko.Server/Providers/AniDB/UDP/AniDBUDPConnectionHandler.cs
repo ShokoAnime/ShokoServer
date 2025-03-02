@@ -20,7 +20,7 @@ using Timer = System.Timers.Timer;
 namespace Shoko.Server.Providers.AniDB.UDP;
 
 #nullable enable
-public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
+public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
 {
     /****
     * From Anidb wiki:
@@ -35,7 +35,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     private readonly IConnectivityService _connectivityService;
     private AniDBSocketHandler? _socketHandler;
     private readonly object _socketHandlerLock = new();
-    private static readonly Regex s_logMask = new("(?<=(\\bpass=|&pass=\\bs=|&s=))[^&]+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    // IDK Rider said to use a GeneratedRegex attribute
+    private static readonly Regex s_logMask = GetLogRegex();
+    
+    [GeneratedRegex("(?<=(\\bpass=|&pass=\\bs=|&s=))[^&]+", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
+    private static partial Regex GetLogRegex();
 
     public event EventHandler? LoginFailed;
 
@@ -150,7 +154,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             }
 
             _socketHandler = new AniDBSocketHandler(_loggerFactory, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
-            IsNetworkAvailable = _socketHandler.TryConnection().Result;
+            IsNetworkAvailable = _socketHandler.TryConnection();
         }
 
         _isLoggedOn = false;
@@ -214,32 +218,32 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     /// <returns></returns>
     public string Send(string command, bool needsUnicode = true)
     {
-        lock(_socketHandlerLock)
+        // Steps:
+        // 1. Check Ban state and throw if Banned
+        // 2. Check Login State and Login if needed
+        // 3. Actually Call AniDB
+
+        // Check Ban State
+        // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
+        if (IsBanned)
         {
-            // Steps:
-            // 1. Check Ban state and throw if Banned
-            // 2. Check Login State and Login if needed
-            // 3. Actually Call AniDB
-
-            // Check Ban State
-            // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
-            if (IsBanned)
+            throw new AniDBBannedException
             {
-                throw new AniDBBannedException
-                {
-                    BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
-                };
-            }
-            // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
-            // It wasn't handled before, and it's not caused serious problems
+                BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+            };
+        }
+        // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
+        // It wasn't handled before, and it's not caused serious problems
 
-            // login doesn't use this method, so this check won't interfere with it
-            // if we got here, and it's invalid session, then it already failed to re-log
-            if (IsInvalidSession)
-            {
-                throw new NotLoggedInException();
-            }
+        // login doesn't use this method, so this check won't interfere with it
+        // if we got here, and it's invalid session, then it already failed to re-log
+        if (IsInvalidSession)
+        {
+            throw new NotLoggedInException();
+        }
 
+        lock (_socketHandlerLock)
+        {
             // Check Login State
             if (!Login())
             {
@@ -296,7 +300,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
                 var start = DateTime.Now;
                 Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", MaskLog(command));
-                var byReceivedAdd = _socketHandler.Send(sendByteAdd).Result;
+                var byReceivedAdd = _socketHandler.Send(sendByteAdd);
 
                 if (byReceivedAdd.All(a => a == 0))
                 {
@@ -344,31 +348,35 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     public void ForceReconnection()
     {
-        try
+        lock (_socketHandlerLock)
         {
-            ForceLogout();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to logout");
-        }
 
-        try
-        {
-            CloseConnections();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to close socket");
-        }
+            try
+            {
+                ForceLogout();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to logout");
+            }
 
-        try
-        {
-            InitInternal();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to reinitialize socket");
+            try
+            {
+                CloseConnections();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to close socket");
+            }
+
+            try
+            {
+                InitInternal();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to reinitialize socket");
+            }
         }
     }
 
@@ -387,7 +395,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         Logger.LogTrace("Logging Out");
         try
         {
-            _requestFactory.Create<RequestLogout>().Send();
+            lock(_socketHandlerLock) _requestFactory.Create<RequestLogout>().Send();
         }
         catch
         {
@@ -437,8 +445,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         {
             if (IsBanned) return false;
             Logger.LogTrace("Failed to login to AniDB. Issuing a Logout command and retrying");
-            ForceLogout();
-            return Login(settings.AniDb.Username, settings.AniDb.Password);
+            lock (_socketHandlerLock)
+            {
+                ForceLogout();
+                return Login(settings.AniDb.Username, settings.AniDb.Password);
+            }
         }
         catch (Exception e)
         {
@@ -551,13 +562,16 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             return false;
         }
 
-        var result = Login(username, password);
-        if (result)
+        lock (_socketHandlerLock)
         {
-            ForceLogout();
-        }
+            var result = Login(username, password);
+            if (result)
+            {
+                ForceLogout();
+            }
 
-        return result;
+            return result;
+        }
     }
 
     public bool SetCredentials(string username, string password)

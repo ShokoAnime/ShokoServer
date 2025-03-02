@@ -27,14 +27,14 @@ public class RequestLogin : UDPRequest<ResponseLogin>
         }
 
         // after response code, before "LOGIN"
-        var sessionID = receivedData.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Skip(1)
+        var sessionID = receivedData.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1)
             .FirstOrDefault();
         if (string.IsNullOrWhiteSpace(sessionID))
         {
             throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }
 
-        var imageServer = receivedData.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        var imageServer = receivedData.Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
         return new UDPResponse<ResponseLogin>
         {
             Response = new ResponseLogin { SessionID = sessionID, ImageServer = imageServer }, Code = code
