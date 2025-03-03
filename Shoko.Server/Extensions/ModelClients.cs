@@ -78,9 +78,6 @@ public static class ModelClients
             Import_UseExistingFileWatchedStatus = settings.Import.UseExistingFileWatchedStatus,
             RunImportOnStart = settings.Import.RunOnStart,
             ScanDropFoldersOnStart = settings.Import.ScanDropFoldersOnStart,
-            Hash_CRC32 = settings.Import.Hasher.CRC,
-            Hash_MD5 = settings.Import.Hasher.MD5,
-            Hash_SHA1 = settings.Import.Hasher.SHA1,
             SkipDiskSpaceChecks = settings.Import.SkipDiskSpaceChecks,
 
             // Language
