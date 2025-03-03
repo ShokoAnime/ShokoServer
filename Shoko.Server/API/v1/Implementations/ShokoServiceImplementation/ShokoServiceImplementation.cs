@@ -447,9 +447,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             settings.Import.RunOnStart = contractIn.RunImportOnStart;
             settings.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
-            settings.Import.Hasher.CRC = contractIn.Hash_CRC32;
-            settings.Import.Hasher.MD5 = contractIn.Hash_MD5;
-            settings.Import.Hasher.SHA1 = contractIn.Hash_SHA1;
             settings.Plugins.Renamer.RenameOnImport = contractIn.Import_RenameOnImport;
             settings.Plugins.Renamer.MoveOnImport = contractIn.Import_MoveOnImport;
             settings.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
