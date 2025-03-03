@@ -75,11 +75,15 @@ public class HashFileJob : BaseJob
 
     public override async Task Process()
     {
-        var (video, videoLocation, folder) = GetVideoLocal();
+        var resolvedFilePath = File.ResolveLinkTarget(FilePath, true)?.FullName ?? FilePath;
+        if (resolvedFilePath != FilePath)
+            _logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedFilePath);
+
+        var (video, videoLocation, folder) = GetVideoLocal(resolvedFilePath);
         if (video == null || videoLocation == null || folder == null) return;
         Exception? e = null;
         var filename = videoLocation.FileName;
-        var fileSize = GetFileSize(folder, ref e);
+        var fileSize = GetFileSize(resolvedFilePath, folder, ref e);
         if (fileSize is 0 && e is not null)
         {
             _logger.LogError(e, "Could not access file. Exiting");
@@ -87,7 +91,7 @@ public class HashFileJob : BaseJob
         }
 
         var existingHashes = ForceHash ? [] : video.Hashes;
-        var hashes = await _videoHashingService.GetHashesForFile(new FileInfo(FilePath), existingHashes);
+        var hashes = await _videoHashingService.GetHashesForFile(new FileInfo(resolvedFilePath), existingHashes);
         var ed2k = hashes.FirstOrDefault(x => x.Type is "ED2K");
         if (ed2k is not { Type: "ED2K", Value.Length: 32 })
         {
@@ -118,8 +122,10 @@ public class HashFileJob : BaseJob
                 Metadata = x.Metadata,
             })
             .ToList();
-        if (ForceHash)
-            existingHashes = video.Hashes;
+
+        // Re-fetch the hashes in case we changed to an existing video.
+        existingHashes = video.Hashes;
+
         var toRemove = existingHashes.Except(newHashes).ToList();
         var toSave = newHashes.Except(existingHashes).ToList();
         RepoFactory.VideoLocalHashDigest.Save(toSave);
@@ -159,11 +165,11 @@ public class HashFileJob : BaseJob
             });
     }
 
-    private (VideoLocal?, SVR_VideoLocal_Place?, SVR_ImportFolder?) GetVideoLocal()
+    private (VideoLocal?, SVR_VideoLocal_Place?, SVR_ImportFolder?) GetVideoLocal(string resolvedFilePath)
     {
-        if (!File.Exists(FilePath))
+        if (!File.Exists(resolvedFilePath))
         {
-            _logger.LogError("File does not exist: {Filename}", FilePath);
+            _logger.LogError("File does not exist: {Filename}", resolvedFilePath);
             return default;
         }
 
@@ -230,7 +236,7 @@ public class HashFileJob : BaseJob
         return (vlocal, videoLocation, folder);
     }
 
-    private long GetFileSize(SVR_ImportFolder folder, ref Exception? e)
+    private long GetFileSize(string resolvedFilePath, SVR_ImportFolder folder, ref Exception? e)
     {
         var settings = _settingsProvider.GetSettings();
         var access = folder.IsDropSource == 1 ? FileAccess.ReadWrite : FileAccess.Read;
@@ -246,45 +252,45 @@ public class HashFileJob : BaseJob
             var policy = Policy
                 .HandleResult<long>(result => result == 0)
                 .Or<IOException>()
-                .Or<UnauthorizedAccessException>(HandleReadOnlyException)
+                .Or<UnauthorizedAccessException>(ex => HandleReadOnlyException(ex, resolvedFilePath != FilePath))
                 .Or<Exception>(ex =>
                 {
-                    _logger.LogError(ex, "Could not access file: {Filename}", FilePath);
+                    _logger.LogError(ex, "Could not access file: {Filename}", resolvedFilePath);
                     return false;
                 })
                 .WaitAndRetry(60, _ => TimeSpan.FromMilliseconds(waitTime), (_, _, count, _) =>
                 {
-                    _logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}", count, FilePath);
+                    _logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}", count, resolvedFilePath);
                 });
 
-            var result = policy.ExecuteAndCapture(() => GetFileSize(FilePath, access));
+            var result = policy.ExecuteAndCapture(() => GetFileSize(resolvedFilePath, access));
             if (result.Outcome == OutcomeType.Failure)
             {
                 if (result.FinalException is not null)
                 {
-                    _logger.LogError(result.FinalException, "Could not access file: {Filename}", FilePath);
+                    _logger.LogError(result.FinalException, "Could not access file: {Filename}", resolvedFilePath);
                     e = result.FinalException;
                 }
                 else
-                    _logger.LogError("Could not access file: {Filename}", FilePath);
+                    _logger.LogError("Could not access file: {Filename}", resolvedFilePath);
             }
         }
 
-        if (File.Exists(FilePath))
+        if (File.Exists(resolvedFilePath))
         {
             try
             {
-                return GetFileSize(FilePath, access);
+                return GetFileSize(resolvedFilePath, access);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Could not access file: {Filename}", FilePath);
+                _logger.LogError(exception, "Could not access file: {Filename}", resolvedFilePath);
                 e = exception;
                 return 0;
             }
         }
 
-        _logger.LogError("Could not access file: {Filename}", FilePath);
+        _logger.LogError("Could not access file: {Filename}", resolvedFilePath);
         return 0;
     }
 
@@ -295,18 +301,24 @@ public class HashFileJob : BaseJob
         return size;
     }
 
-    private bool HandleReadOnlyException(Exception ex)
+    private bool HandleReadOnlyException(Exception ex, bool isSymbolicLink)
     {
+        // If it's a symbolic link or we're running on linux or mac then abort now.
+        if (isSymbolicLink || !Utils.IsRunningOnLinuxOrMac())
+        {
+#pragma warning disable CA2254 // Template should be a static expression
+            _logger.LogError(ex, $"Failed to read read-only {(isSymbolicLink ? "symbolic link" : "file")} on {Environment.OSVersion.VersionString}: {{Filename}}", FilePath);
+#pragma warning restore CA2254 // Template should be a static expression
+            return false;
+        }
+
         _logger.LogTrace("File {FileName} is Read-Only, attempting to unmark", FilePath);
         try
         {
             var info = new FileInfo(FilePath);
             if (info.IsReadOnly) info.IsReadOnly = false;
-
-            if (!info.IsReadOnly && !Utils.IsRunningOnLinuxOrMac())
-            {
+            if (!info.IsReadOnly)
                 return true;
-            }
         }
         catch
         {
