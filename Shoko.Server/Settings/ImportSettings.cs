@@ -5,8 +5,6 @@ namespace Shoko.Server.Settings;
 
 public class ImportSettings
 {
-    public HasherSettings Hasher { get; set; } = new();
-
     public List<string> VideoExtensions { get; set; } =
     [
         "MKV",
