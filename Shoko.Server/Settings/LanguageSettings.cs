@@ -24,11 +24,7 @@ public class LanguageSettings
     public List<string> SeriesTitleLanguageOrder
     {
         get => _seriesTitleLanguageOrder;
-        set
-        {
-            _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredNamingLanguages = [];
-        }
+        set => _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
     private List<DataSourceType> _seriesTitleSourceOrder = [DataSourceType.AniDB, DataSourceType.TMDB];
@@ -51,11 +47,7 @@ public class LanguageSettings
     public List<string> EpisodeTitleLanguageOrder
     {
         get => _episodeLanguagePreference;
-        set
-        {
-            _episodeLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredEpisodeNamingLanguages = [];
-        }
+        set => _episodeLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
     private List<DataSourceType> _episodeTitleSourceOrder = [DataSourceType.TMDB, DataSourceType.AniDB];
@@ -78,11 +70,7 @@ public class LanguageSettings
     public List<string> DescriptionLanguageOrder
     {
         get => _descriptionLanguagePreference;
-        set
-        {
-            _descriptionLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredDescriptionNamingLanguages = [];
-        }
+        set => _descriptionLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
     private List<DataSourceType> _descriptionSourceOrder = [DataSourceType.TMDB, DataSourceType.AniDB];
