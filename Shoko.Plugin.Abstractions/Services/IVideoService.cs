@@ -33,33 +33,9 @@ public interface IVideoService
     event EventHandler<FileEventArgs> VideoFileHashed;
 
     /// <summary>
-    /// Dispatched when cross references are made and data is gathered for a
-    /// video file. This has most if not all relevant data for a file, but
-    /// is not necessarily complete, e.g. if we failed to download the metadata
-    /// for the linked series or episodes. In that case, then use
-    /// <see cref="IMetadataService.EpisodeUpdated"/> with a filter on the data
-    /// source and episode id to ensure the desired data is gathered before
-    /// doing your thing.
+    /// Dispatched when a video file has been moved or renamed.
     /// </summary>
-    event EventHandler<FileEventArgs> VideoFileMatched;
-
-    /// <summary>
-    /// Dispatched when a video file has been scanned but no changes to the
-    /// cross-references were made. It can be because the file is unrecognized,
-    /// or because there was no changes to the existing cross-references linked
-    /// to the video file.
-    /// </summary>
-    event EventHandler<FileNotMatchedEventArgs> VideoFileNotMatched;
-
-    /// <summary>
-    /// Dispatched when a video file has been renamed.
-    /// </summary>
-    event EventHandler<FileRenamedEventArgs> VideoFileRenamed;
-
-    /// <summary>
-    /// Dispatched when a video file has been moved.
-    /// </summary>
-    event EventHandler<FileMovedEventArgs> VideoFileMoved;
+    event EventHandler<FileMovedEventArgs> VideoFileRelocated;
 
     /// <summary>
     /// Gets all video files as a queryable list.
