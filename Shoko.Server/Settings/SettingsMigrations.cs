@@ -12,7 +12,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 10;
+    public const int Version = 11;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -49,6 +49,7 @@ public static class SettingsMigrations
         { 8, MigrateRenamerFromImportToPluginsSettings },
         { 9, MigrateFixDefaultRenamer },
         { 10, MigrateLanguageSourceOrders },
+        { 11, MigrateHasherSettings },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -196,6 +197,15 @@ public static class SettingsMigrations
         {
             DataSourceType.AniDB, DataSourceType.TMDB
         };
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateHasherSettings(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        ((JObject)currentSettings["Import"])?.Remove("Hasher");
 
         return currentSettings.ToString();
     }
