@@ -195,11 +195,10 @@ public class Startup
 
         var result = builder.Build();
 
-        Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
-        Utils.ServiceContainer = result.Services;
-
         // Init. plugins before starting the IHostedService services.
         Loader.InitPlugins(result.Services);
+
+        Utils.ServiceContainer = result.Services;
 
         return result;
     }
