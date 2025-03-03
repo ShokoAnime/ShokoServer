@@ -60,6 +60,7 @@ public partial class ConfigurationService : IConfigurationService
         {
             Formatting = Formatting.Indented,
             DefaultValueHandling = DefaultValueHandling.Include,
+            ObjectCreationHandling = ObjectCreationHandling.Replace,
             MissingMemberHandling = MissingMemberHandling.Ignore,
             Converters = [new StringEnumConverter()]
         };
@@ -68,6 +69,7 @@ public partial class ConfigurationService : IConfigurationService
         {
             AllowTrailingCommas = true,
             WriteIndented = true,
+            PreferredObjectCreationHandling = System.Text.Json.Serialization.JsonObjectCreationHandling.Replace,
             ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
         };
         _systemTextJsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
