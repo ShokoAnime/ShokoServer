@@ -23,7 +23,7 @@ public static class PluginUtilities
         { "<", "\u2039" }, // ‹ (SINGLE LEFT-POINTING ANGLE QUOTATION MARK)
         { "?", "\uff1f" }, // ？ (FULL WIDTH QUESTION MARK)
     };
-    
+
     /// <summary>
     /// Remove invalid path characters.
     /// </summary>

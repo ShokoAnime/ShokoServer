@@ -11,17 +11,26 @@ using Shoko.Plugin.Abstractions.Release;
 
 namespace Shoko.Plugin.ReleaseExporter;
 
+/// <summary>
+/// Responsible for importing releases from the file system near the video files.
+/// </summary>
+/// <param name="logger">Logger.</param>
 public class ReleaseImporter(ILogger<ReleaseImporter> logger) : IReleaseInfoProvider
 {
+    /// <inheritdoc/>
     public const string Key = "Release Importer/Exporter";
 
+    /// <inheritdoc/>
     public string Name => Key;
 
+    /// <inheritdoc/>
     public Version Version { get; private set; } = Assembly.GetExecutingAssembly().GetName().Version ?? new("0.0.0");
 
+    /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
         => Task.FromResult<ReleaseInfo?>(null);
 
+    /// <inheritdoc/>
     public async Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
     {
         logger.LogTrace("Trying to find release for video. (Video={VideoID})", video.ID);

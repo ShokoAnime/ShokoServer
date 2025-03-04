@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -276,8 +274,6 @@ public class Init : BaseController
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
         handler.CloseConnections();
-
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
         handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,

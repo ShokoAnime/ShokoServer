@@ -1,15 +1,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
+using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NJsonSchema;
@@ -20,6 +17,7 @@ using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
 using Shoko.Plugin.Abstractions.Events;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Plugin;
@@ -28,11 +26,13 @@ using Shoko.Server.Settings;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public partial class ConfigurationService : IConfigurationService
+public class ConfigurationService : IConfigurationService
 {
     private readonly ILogger<ConfigurationService> _logger;
 
     private readonly IApplicationPaths _applicationPaths;
+
+    private readonly IPluginManager _pluginManager;
 
     private readonly JsonSerializerSettings _newtonsoftJsonSerializerSettings;
 
@@ -50,11 +50,13 @@ public partial class ConfigurationService : IConfigurationService
 
     public event EventHandler<ConfigurationSavedEventArgs>? Saved;
 
-    public ConfigurationService(ILogger<ConfigurationService> logger, IApplicationPaths applicationPaths)
+    public ConfigurationService(ILogger<ConfigurationService> logger, IApplicationPaths applicationPaths, IPluginManager pluginManager)
     {
         var serverSettingsDefinition = new ServerSettingsDefinition(new(this));
+
         _logger = logger;
         _applicationPaths = applicationPaths;
+        _pluginManager = pluginManager;
 
         _newtonsoftJsonSerializerSettings = new()
         {
@@ -77,15 +79,16 @@ public partial class ConfigurationService : IConfigurationService
         _configurationTypes = new()
         {
             {
-                GetID(typeof(ServerSettings)),
+                Guid.Empty,
                 new ConfigurationInfo()
                 {
-                    ID = GetID(typeof(ServerSettings)),
-                    Name = "Shoko Core",
+                    ID = Guid.Empty,
+                    Name = PluginManager.GetDisplayName(typeof(ServerSettings)),
+                    Description = string.Empty,
                     Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
                     Type = typeof(ServerSettings),
                     // We're not going to be using this before .AddParts is called.
-                    Plugin = null!,
+                    PluginInfo = null!,
                     Schema = GetSchemaForType(typeof(ServerSettings)),
                 }
             },
@@ -93,7 +96,7 @@ public partial class ConfigurationService : IConfigurationService
 
         _configurationDefinitions = new()
         {
-            { GetID(typeof(ServerSettings)),  serverSettingsDefinition },
+            { Guid.Empty,  serverSettingsDefinition },
         };
 
         _serializedSchemas = _configurationTypes.Values
@@ -101,6 +104,8 @@ public partial class ConfigurationService : IConfigurationService
     }
 
     #region Configuration Info
+
+    private static readonly HashSet<string> _configurationSuffixSet = ["Setting", "Settings", "Conf", "Config", "Configuration"];
 
     public void AddParts(IEnumerable<Type> configurationTypes, IEnumerable<IConfigurationDefinition> configurationDefinitions)
     {
@@ -110,43 +115,61 @@ public partial class ConfigurationService : IConfigurationService
         ArgumentNullException.ThrowIfNull(configurationTypes);
         ArgumentNullException.ThrowIfNull(configurationDefinitions);
 
+        _logger.LogInformation("Initializing service.");
+
         var configurationDefinitionDict = configurationDefinitions.ToDictionary(GetID);
         _configurationTypes = configurationTypes
             .Select(configurationType =>
             {
-                var configName = GetDisplayName(configurationType);
-                if (configName.EndsWith(" Settings"))
-                    configName = configName[..^9];
-                if (configName.EndsWith(" Config"))
-                    configName = configName[..^7];
-                if (configName.EndsWith(" Configuration"))
-                    configName = configName[..^14];
-
-                var pluginTypes = Loader.GetTypes<IPlugin>(configurationType.Assembly);
-                foreach (var pluginType in pluginTypes)
+                var pluginInfo = _pluginManager.GetPluginInfo(
+                    Loader.GetTypes<IPlugin>(configurationType.Assembly)
+                        .First(t => _pluginManager.GetPluginInfo(t) is not null)
+                )!;
+                var contextualType = configurationType.ToContextualType();
+                var name = PluginManager.GetDisplayName(contextualType);
+                foreach (var suffix in _configurationSuffixSet)
                 {
-                    var plugin = Loader.GetFromType(pluginType);
-                    if (plugin is null)
-                        continue;
-
-                    var configurationId = GetID(configurationType);
-                    var provider = configurationDefinitionDict.GetValueOrDefault(configurationId);
-                    var path = provider is IConfigurationDefinitionWithCustomSaveLocation { } p
-                        ? Path.Join(_applicationPaths.ProgramDataPath, p.RelativePath)
-                        : Path.Join(_applicationPaths.PluginConfigurationsPath, plugin.ID.ToString(), configurationType.FullName! + ".json");
-                    var schema = GetSchemaForType(configurationType);
-                    return new ConfigurationInfo()
-                    {
-                        ID = configurationId,
-                        Name = configName,
-                        Path = path,
-                        Type = configurationType,
-                        Schema = schema,
-                        Plugin = plugin,
-                    };
+                    var endWith = $" {suffix}";
+                    if (name.EndsWith(endWith, StringComparison.OrdinalIgnoreCase))
+                        name = name[..^endWith.Length];
                 }
-
-                return null;
+                var description = PluginManager.GetDescription(contextualType);
+                var id = GetID(configurationType, pluginInfo);
+                var definition = configurationDefinitionDict.GetValueOrDefault(id);
+                string path;
+                if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
+                {
+                    var relativePath = p0.RelativePath;
+                    if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                        relativePath += ".json";
+                    path = Path.Join(_applicationPaths.ProgramDataPath, relativePath);
+                }
+                else if (definition is IConfigurationDefinitionWithCustomSaveName { } p1)
+                {
+                    var fileName = p1.Name;
+                    if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                        fileName += ".json";
+                    path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                }
+                else
+                {
+                    var fileName = name
+                        .RemoveInvalidPathCharacters()
+                        .Replace(' ', '-')
+                        .ToLower();
+                    path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
+                }
+                var schema = GetSchemaForType(configurationType);
+                return new ConfigurationInfo()
+                {
+                    ID = id,
+                    Name = name,
+                    Description = description,
+                    Path = path,
+                    Type = configurationType,
+                    Schema = schema,
+                    PluginInfo = pluginInfo,
+                };
             })
             .WhereNotNull()
             .ToDictionary(info => info.ID);
@@ -170,9 +193,16 @@ public partial class ConfigurationService : IConfigurationService
 
     public IEnumerable<ConfigurationInfo> GetAllConfigurationInfos()
         => _configurationTypes.Values
-            .OrderByDescending(p => p.Plugin.GetType() == typeof(CorePlugin))
-            .ThenBy(p => p.Plugin.Name)
+            .OrderByDescending(p => p.PluginInfo.PluginType == typeof(CorePlugin))
+            .ThenBy(p => p.PluginInfo.Name)
             .ThenBy(p => p.Name);
+
+    public IReadOnlyList<ConfigurationInfo> GetConfigurationInfo(IPlugin plugin)
+        => _configurationTypes.Values
+            .Where(info => info.PluginInfo.ID == plugin.ID)
+            .OrderBy(info => info.Name)
+            .ThenBy(info => info.ID)
+            .ToList();
 
     public ConfigurationInfo GetConfigurationInfo<TConfig>() where TConfig : class, IConfiguration, new()
         => GetConfigurationInfo(GetID(typeof(TConfig)))!;
@@ -186,34 +216,29 @@ public partial class ConfigurationService : IConfigurationService
 
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, string json)
     {
-        var evalRes = info.Schema.Validate(json);
-        var errors = new Dictionary<string, List<string>>();
-        if (evalRes.Count > 0)
+        var results = info.Schema.Validate(json);
+        var errorDict = new Dictionary<string, List<string>>();
+        foreach (var error in results)
         {
-            foreach (var error in evalRes)
-            {
-                // Ignore the "$schema" property at the root of the document if it is present.
-                if (error.Path is "#/$schema" && error.Property is "$schema")
-                    continue;
+            // Ignore the "$schema" property at the root of the document if it is present.
+            if (error is { Path: "#/$schema", Property: "$schema", Kind: ValidationErrorKind.NoAdditionalPropertiesAllowed })
+                continue;
 
-                var path = string.IsNullOrEmpty(error.Path) ? string.Empty : error.Path.StartsWith("#/") ? error.Path[2..] : error.Path;
-                if (!errors.TryGetValue(path, out var errorList))
-                    errors[path] = errorList = [];
+            var path = string.IsNullOrEmpty(error.Path) ? string.Empty : error.Path.StartsWith("#/") ? error.Path[2..] : error.Path;
+            if (!errorDict.TryGetValue(path, out var errorList))
+                errorDict[path] = errorList = [];
 
-                var message = GetErrorMessage(error);
-                errorList.Add(message);
-            }
-
-            // Log validation errors if the server hasn't started yet.
-            if (errors.Count > 0)
-            {
-                _logger.LogTrace("Configuration validation failed for {Type} with {ErrorCount} errors.", info.Name, errors.Sum(a => a.Value.Count));
-                foreach (var (path, messages) in errors)
-                    _logger.LogError("Configuration validation failed for {Type} at \"{Path}\": {Message}", info.Name, path, string.Join(", ", messages));
-            }
+            errorList.Add(GetErrorMessage(error));
         }
 
-        return errors
+        if (errorDict.Count > 0)
+        {
+            _logger.LogTrace("Configuration validation failed for {Type} with {ErrorCount} errors.", info.Name, errorDict.Sum(a => a.Value.Count));
+            foreach (var (path, messages) in errorDict)
+                _logger.LogError("Configuration validation failed for {Type} at \"{Path}\": {Message}", info.Name, path, string.Join(", ", messages));
+        }
+
+        return errorDict
             .Select(a => KeyValuePair.Create(a.Key, (IReadOnlyList<string>)a.Value))
             .ToDictionary();
     }
@@ -293,7 +318,6 @@ public partial class ConfigurationService : IConfigurationService
 
         lock (info)
         {
-
             var json = File.ReadAllText(info.Path);
             if (_configurationDefinitions!.GetValueOrDefault(info.ID) is IConfigurationDefinitionsWithMigrations { } provider)
                 json = provider.ApplyMigrations(json);
@@ -304,10 +328,7 @@ public partial class ConfigurationService : IConfigurationService
             if (errors.Count > 0)
                 throw new ConfigurationValidationException(info, errors);
 
-            _logger?.LogTrace("Loading configuration for {Name}.", info.Name);
             config = Deserialize<TConfig>(json);
-            _logger?.LogTrace("Loaded configuration for {Name}.", info.Name);
-
             _loadedConfigurations[info.ID] = config;
             return copy ? config.DeepClone() : config;
         }
@@ -317,14 +338,14 @@ public partial class ConfigurationService : IConfigurationService
 
     #region Save
 
-    public void Save(ConfigurationInfo info, IConfiguration config)
+    public bool Save(ConfigurationInfo info, IConfiguration config)
     {
         try
         {
-            typeof(ConfigurationService)
+            return (bool)typeof(ConfigurationService)
                 .GetMethod(nameof(SaveInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(info.Type)
-                .Invoke(this, [info, Serialize(config), config]);
+                .Invoke(this, [info, Serialize(config), config])!;
         }
         catch (TargetInvocationException ex)
         {
@@ -334,14 +355,14 @@ public partial class ConfigurationService : IConfigurationService
         }
     }
 
-    public void Save(ConfigurationInfo info, string json)
+    public bool Save(ConfigurationInfo info, string json)
     {
         try
         {
-            typeof(ConfigurationService)
+            return (bool)typeof(ConfigurationService)
                 .GetMethod(nameof(SaveInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(info.Type)
-                .Invoke(this, [info, json, null]);
+                .Invoke(this, [info, json, null])!;
         }
         catch (TargetInvocationException ex)
         {
@@ -351,16 +372,16 @@ public partial class ConfigurationService : IConfigurationService
         }
     }
 
-    public void Save<TConfig>() where TConfig : class, IConfiguration, new()
+    public bool Save<TConfig>() where TConfig : class, IConfiguration, new()
         => Save(Load<TConfig>());
 
-    public void Save<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
+    public bool Save<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
         => SaveInternal(GetConfigurationInfo<TConfig>(), Serialize(config), config);
 
-    public void Save<TConfig>(string json) where TConfig : class, IConfiguration, new()
+    public bool Save<TConfig>(string json) where TConfig : class, IConfiguration, new()
         => SaveInternal<TConfig>(GetConfigurationInfo<TConfig>(), json);
 
-    private void SaveInternal<TConfig>(ConfigurationInfo info, string json, TConfig? config = null) where TConfig : class, IConfiguration, new()
+    private bool SaveInternal<TConfig>(ConfigurationInfo info, string json, TConfig? config = null) where TConfig : class, IConfiguration, new()
     {
         json = AddSchemaProperty(info, json);
         var errors = Validate(info, json);
@@ -381,7 +402,7 @@ public partial class ConfigurationService : IConfigurationService
                 if (oldJson.Equals(json, StringComparison.Ordinal))
                 {
                     _logger.LogTrace("Configuration for {Name} is unchanged. Skipping save.", info.Name);
-                    return;
+                    return false;
                 }
             }
 
@@ -393,6 +414,8 @@ public partial class ConfigurationService : IConfigurationService
         }
 
         Saved?.Invoke(this, new ConfigurationSavedEventArgs() { ConfigurationInfo = info });
+
+        return true;
     }
 
     #endregion
@@ -513,43 +536,21 @@ public partial class ConfigurationService : IConfigurationService
     /// </summary>
     /// <param name="provider">The provider.</param>
     /// <returns><see cref="Guid" />.</returns>
-    private static Guid GetID(IConfigurationDefinition provider) => GetID(provider.ConfigurationType);
+    private Guid GetID(IConfigurationDefinition provider) => GetID(provider.ConfigurationType);
 
-    /// <summary>
-    /// Gets a unique ID for a configuration generated from its class name.
-    /// </summary>
-    /// <param name="providerType">The provider type.</param>
-    /// <returns><see cref="Guid" />.</returns>
-    private static Guid GetID(Type providerType)
-        => new(MD5.HashData(Encoding.Unicode.GetBytes(providerType.FullName!)));
+    private Guid GetID(Type type)
+        => _loaded && Loader.GetTypes<IPlugin>(type.Assembly).FirstOrDefault(t => _pluginManager.GetPluginInfo(t) is not null) is { } pluginType
+            ? GetID(type, _pluginManager.GetPluginInfo(pluginType)!)
+            : Guid.Empty;
 
-    /// <summary>
-    /// Gets the display name for a configuration inferred from it's type.
-    /// </summary>
-    /// <param name="type">The type.</param>
-    private static string GetDisplayName(Type type)
-    {
-        var displayAttribute = type.GetCustomAttribute<DisplayAttribute>();
-        if (displayAttribute != null && !string.IsNullOrEmpty(displayAttribute.Name))
-        {
-            return displayAttribute.Name;
-        }
-
-        // If no attributes, auto-infer from class name.
-        return DisplayNameRegex().Replace(type.Name, " $1");
-    }
-
-    /// <summary>
-    /// Simple regex to auto-infer display name from PascalCase class names.
-    /// </summary>
-    [GeneratedRegex(@"(\B[A-Z](?![A-Z]))")]
-    private static partial Regex DisplayNameRegex();
+    private static Guid GetID(Type type, PluginInfo pluginInfo)
+        => UuidUtility.GetV5($"Configuration={type.FullName!}", pluginInfo.ID);
 
     private static string GetErrorMessage(ValidationError validationError)
     {
         return validationError.Kind switch
         {
-            _ => DisplayNameRegex().Replace(validationError.Kind.ToString(), " $1"),
+            _ => PluginManager.GetDisplayName(validationError.Kind.ToString()),
         };
     }
 }

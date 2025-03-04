@@ -11,49 +11,67 @@ namespace Shoko.Plugin.Abstractions.Services;
 /// <summary>
 ///   Service responsible for hashing video files.
 /// </summary>
+/// <remarks>
+///   The service can operate in sequential mode or parallel model. In
+///   sequential mode it will run each enabled provider in order of priority,
+///   while in parallel mode it will run all enabled providers in parallel. The
+///   latter can increase performance if your system can handle it, but may also
+///   cause slowdowns if it overloads your system.
+/// </remarks>
 public interface IVideoHashingService
 {
     /// <summary>
-    ///   Event raised when a video file has been hashed. It is now ready to be
-    ///   matched, and has been properly added to the database.
+    ///   Event raised when a video file has been hashed. It is now been
+    ///   properly added to the database and is ready for use.
     /// </summary>
     event EventHandler<FileEventArgs> FileHashed;
 
     /// <summary>
-    ///   Event raised when the hash providers are updated.
+    ///   Event raised when the enabled hash providers are updated or parallel
+    ///   mode is changed.
     /// </summary>
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
-    ///   Gets or sets a value indicating whether to use parallel mode.
+    ///   Event raised when all hash providers are registered and the service is
+    ///   ready for use.
+    /// </summary>
+    event EventHandler? Ready;
+
+    /// <summary>
+    ///   Gets or sets a value indicating whether to use parallel mode. Parallel
+    ///   mode will allow all providers to hash the same file at the same time.
+    ///   <br/>
+    ///   This can increase performance if your system can handle it, but may
+    ///   also cause slowdowns if it overloads your system.
     /// </summary>
     bool ParallelMode { get; set; }
 
     /// <summary>
-    ///   Gets the set of all available hash types across all providers.
+    ///   Gets the read-only set of all available hash types across all providers.
     /// </summary>
     IReadOnlySet<string> AllAvailableHashTypes { get; }
 
     /// <summary>
-    ///   Gets the set of all enabled hash types across all providers.
+    ///   Gets the read-only set of all enabled hash types across all providers.
     /// </summary>
     IReadOnlySet<string> AllEnabledHashTypes { get; }
 
     /// <summary>
-    ///   Adds the hash providers.
+    ///   Adds the needed parts for the service to function.
     /// </summary>
     /// <remarks>
-    ///   This should be called once per instance of the service. Calling it
-    ///   multiple times will have no effect.
+    ///   This should be called once per instance of the service, and will be
+    ///   called during start-up. Calling it multiple times will have no effect.
     /// </remarks>
     /// <param name="providers">
     ///   The hash providers.
     /// </param>
-    void AddProviders(IEnumerable<IHashProvider> providers);
+    void AddParts(IEnumerable<IHashProvider> providers);
 
     /// <summary>
-    ///   Gets the set of providers that are available, optionally filtered by
-    ///   enabled state.
+    ///   Gets all providers that are available, optionally filtered by enabled
+    ///   state.
     /// </summary>
     /// <param name="onlyEnabled">
     ///   If true, only returns enabled providers.
@@ -73,7 +91,18 @@ public interface IVideoHashingService
     void UpdateProviders(params HashProviderInfo[] providers);
 
     /// <summary>
-    ///   Gets the provider info for a given provider ID.
+    ///   Gets the <see cref="HashProviderInfo"/> for a given plugin.
+    /// </summary>
+    /// <param name="plugin">
+    ///   The plugin.
+    /// </param>
+    /// <returns>
+    ///   The provider info.
+    /// </returns>
+    IReadOnlyList<HashProviderInfo> GetProviderInfo(IPlugin plugin);
+
+    /// <summary>
+    ///   Gets the <see cref="HashProviderInfo"/> for a given provider ID.
     /// </summary>
     /// <param name="providerID">
     ///   The provider ID.
@@ -84,7 +113,7 @@ public interface IVideoHashingService
     HashProviderInfo? GetProviderInfo(Guid providerID);
 
     /// <summary>
-    ///   Gets the provider info for a given provider.
+    ///   Gets the <see cref="HashProviderInfo"/> for a given provider.
     /// </summary>
     /// <param name="provider">
     ///   The provider.
@@ -95,7 +124,7 @@ public interface IVideoHashingService
     HashProviderInfo GetProviderInfo(IHashProvider provider);
 
     /// <summary>
-    ///   Gets the provider info for a given provider type.
+    ///   Gets the <see cref="HashProviderInfo"/> for a given provider type.
     /// </summary>
     /// <typeparam name="TProvider">
     ///   The provider type.

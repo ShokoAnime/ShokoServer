@@ -20,25 +20,49 @@ using Shoko.Server.Repositories.Cached;
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
 
+/// <summary>
+///    The built-in AniDB release provider, using the AniDB UDP API through the
+///    internal UDP connection handler.
+/// </summary>
+/// <param name="logger">The logger.</param>
+/// <param name="requestFactory">The request factory.</param>
+/// <param name="connectionHandler">The connection handler.</param>
+/// <param name="videoRepository">The video repository.</param>
 public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler, VideoLocalRepository videoRepository) : IReleaseInfoProvider
 {
-    public IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions()
+    /// <summary>
+    /// Simple memory cache to prevent looking up the same file multiple times within half an hour.
+    /// </summary>
+    private readonly IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions()
     {
         ExpirationScanFrequency = TimeSpan.FromMinutes(25),
     });
 
+    /// <summary>
+    ///    Prefix for AniDB file URLs.
+    /// </summary>
     public const string ReleasePrefix = "https://anidb.net/file/";
 
+    /// <inheritdoc/>
     public string Name => "AniDB";
 
+    /// <inheritdoc/>
     public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
 
+    /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
         => GetReleaseInfoById($"{video.Hashes.ED2K}+{video.Size}", video);
 
+    /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
         => GetReleaseInfoById(releaseId, null);
 
+    /// <summary>
+    ///    Gets the release info by ID. The ID should be a hash+size combination.
+    /// </summary>
+    /// <param name="releaseId">Release ID. Hash+Size.</param>
+    /// <param name="video">Optional. A loaded video instance to use for some extra metadata to include in the release.</param>
+    /// <returns>The release info, or null if not found.</returns>
     private async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, IVideo? video = null)
     {
         if (_memoryCache.TryGetValue(releaseId, out ReleaseInfo? releaseInfo))
@@ -161,7 +185,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         }
 
         logger.LogInformation("Found a release for Hash={Hash} & Size={Size} at AniDB!", hash, size);
-        _memoryCache.Set(releaseId, releaseInfo, TimeSpan.FromHours(1));
+        _memoryCache.Set(releaseId, releaseInfo, TimeSpan.FromMinutes(30));
         return releaseInfo;
     }
 }

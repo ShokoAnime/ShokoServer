@@ -11,35 +11,50 @@ namespace Shoko.Plugin.Abstractions.Services;
 /// <summary>
 /// Service responsible for managing release info for videos.
 /// </summary>
+/// <remarks>
+///   The service can operate in sequential mode or parallel model. Parallel
+///   mode affects <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/>
+///   and makes it run all providers in parallel and pick the highest priority
+///   valid result, as opposed to running each provider serially in the priority
+///   order and picking the first valid result when running in sequential mode.
+/// </remarks>
 public interface IVideoReleaseService
 {
     /// <summary>
-    /// Event raised when a video release is saved to the database.
+    ///   Event raised when a video release is saved to the database.
     /// </summary>
     event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
 
     /// <summary>
-    /// Event raised when a video release is deleted from the database.
+    ///   Event raised when a video release is deleted from the database.
     /// </summary>
     event EventHandler<VideoReleaseEventArgs>? ReleaseDeleted;
 
     /// <summary>
-    /// Event raised when a video release search is started.
+    ///   Event raised when an automatic video release search is started.
     /// </summary>
     event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
 
     /// <summary>
-    /// Event raised when a video release search is completed.
+    ///   Event raised when an automatic video release search is completed.
     /// </summary>
     event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
 
     /// <summary>
-    /// Event raised when the release info providers are updated.
+    ///   Event raised when the enabled release info providers are updated or
+    ///   parallel mode is changed.
     /// </summary>
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
-    ///   Gets a value indicating whether any release info providers are enabled for auto-matching.
+    ///   Event raised when all release info providers are registered and the
+    ///   service is ready for use.
+    /// </summary>
+    event EventHandler? Ready;
+
+    /// <summary>
+    ///   Gets a value indicating whether any release info providers are enabled
+    ///   for auto-matching.
     /// </summary>
     bool AutoMatchEnabled { get; }
 
@@ -48,9 +63,10 @@ public interface IVideoReleaseService
     /// </summary>
     /// <remarks>
     ///   Parallel mode affects <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/>
-    ///   and makes it run all providers in parallel and pick the highest priority valid result,
-    ///   as opposed to running each provider serially in the priority order and picking the first
-    ///   valid result when parallel mode is off.
+    ///   and makes it run all providers in parallel and pick the highest
+    ///   priority valid result, as opposed to running each provider serially in
+    ///   the priority order and picking the first valid result when running in
+    ///   sequential mode.
     /// </remarks>
     bool ParallelMode { get; set; }
 
@@ -58,13 +74,13 @@ public interface IVideoReleaseService
     ///   Adds the release info providers.
     /// </summary>
     /// <remarks>
-    ///   This should be called once per instance of the service. Calling it
-    ///   multiple times will have no effect.
+    ///   This should be called once per instance of the service, and will be
+    ///   called during start-up. Calling it multiple times will have no effect.
     /// </remarks>
     /// <param name="providers">
     ///   The release info providers.
     /// </param>
-    void AddProviders(IEnumerable<IReleaseInfoProvider> providers);
+    void AddParts(IEnumerable<IReleaseInfoProvider> providers);
 
     /// <summary>
     ///   List out all available providers, if they're enabled for use in
@@ -91,6 +107,17 @@ public interface IVideoReleaseService
     ///   The providers to update.
     /// </param>
     void UpdateProviders(params ReleaseInfoProviderInfo[] providers);
+
+    /// <summary>
+    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for a given plugin.
+    /// </summary>
+    /// <param name="plugin">
+    ///   The plugin.
+    /// </param>
+    /// <returns>
+    ///   The provider info.
+    /// </returns>
+    IReadOnlyList<ReleaseInfoProviderInfo> GetProviderInfo(IPlugin plugin);
 
     /// <summary>
     ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified ID.

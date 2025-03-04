@@ -39,10 +39,17 @@ public interface IConfigurationService
     ConfigurationProvider<TConfig> CreateProvider<TConfig>() where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Gets all configuration types registered with the system.
+    /// Gets all configuration infos registered with the system.
     /// </summary>
-    /// <returns>The configurations.</returns>
+    /// <returns>The configuration infos.</returns>
     IEnumerable<ConfigurationInfo> GetAllConfigurationInfos();
+
+    /// <summary>
+    /// Gets the configuration info for the specified plugin.
+    /// </summary>
+    /// <param name="plugin">The plugin.</param>
+    /// <returns>The configuration infos for the plugin.</returns>
+    IReadOnlyList<ConfigurationInfo> GetConfigurationInfo(IPlugin plugin);
 
     /// <summary>
     /// Gets the configuration info for the specified configuration ID.
@@ -118,7 +125,8 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    void Save(ConfigurationInfo info, IConfiguration json);
+    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    bool Save(ConfigurationInfo info, IConfiguration json);
 
     /// <summary>
     /// Saves the configuration for the specified configuration info. This will validate the configuration before saving it.
@@ -128,7 +136,8 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    void Save(ConfigurationInfo info, string json);
+    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    bool Save(ConfigurationInfo info, string json);
 
     /// <summary>
     /// Saves the currently loaded in-memory configuration to disk. This will validate the configuration before saving it.
@@ -137,7 +146,8 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    void Save<TConfig>() where TConfig : class, IConfiguration, new();
+    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    bool Save<TConfig>() where TConfig : class, IConfiguration, new();
 
     /// <summary>
     /// Saves the configuration. This will validate the configuration before saving it.
@@ -147,7 +157,8 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    void Save<TConfig>(TConfig config) where TConfig : class, IConfiguration, new();
+    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    bool Save<TConfig>(TConfig config) where TConfig : class, IConfiguration, new();
 
     /// <summary>
     /// Saves the configuration. This will validate the configuration before saving it.
@@ -157,7 +168,8 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    void Save<TConfig>(string json) where TConfig : class, IConfiguration, new();
+    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    bool Save<TConfig>(string json) where TConfig : class, IConfiguration, new();
 
     /// <summary>
     /// Gets the cached, serialized JSON schema for the specified configuration info.

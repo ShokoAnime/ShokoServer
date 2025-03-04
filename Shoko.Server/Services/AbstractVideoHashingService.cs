@@ -1,50 +1,62 @@
-
-#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Namotion.Reflection;
+using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Hashing;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.FileHelper;
+using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
 
 using IShokoEventHandler = Shoko.Plugin.Abstractions.IShokoEventHandler;
 
+#nullable enable
 namespace Shoko.Server.Services;
 
 public class AbstractVideoHashingService : IVideoHashingService
 {
-    private IServerSettings _settings => _settingsProvider.GetSettings();
+    private readonly ILogger<AbstractVideoHashingService> _logger;
 
-    private readonly ISettingsProvider _settingsProvider;
+    private readonly ConfigurationProvider<VideoHashingServiceSettings> _configurationProvider;
 
     private readonly IShokoEventHandler _shokoEventHandler;
 
-    private Dictionary<Guid, IHashProvider>? _hashProviders = null;
+    private readonly IPluginManager _pluginManager;
 
-    private readonly Guid _coreProviderID = GetID(typeof(CoreHashProvider));
+    private Dictionary<Guid, HashProviderInfo> _hashProviderInfos = [];
+
+    private readonly object _lock = new();
+
+    private bool _loaded = false;
+
+    private Guid _coreProviderID = Guid.Empty;
 
     public event EventHandler<FileEventArgs>? FileHashed;
 
     public event EventHandler? ProvidersUpdated;
 
+    public event EventHandler? Ready;
+
     public bool ParallelMode
     {
-        get => _settings.Plugins.HashingProviders.ParallelMode;
+        get => _configurationProvider.Load().ParallelMode;
         set
         {
-            if (_settings.Plugins.HashingProviders.ParallelMode == value)
+            var config = _configurationProvider.Load();
+            if (config.ParallelMode == value)
                 return;
 
-            _settings.Plugins.HashingProviders.ParallelMode = value;
-            _settingsProvider.SaveSettings(_settings);
+            config.ParallelMode = value;
+            _configurationProvider.Save(config);
             ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -57,10 +69,17 @@ public class AbstractVideoHashingService : IVideoHashingService
         .SelectMany(p => p.EnabledHashTypes)
         .ToHashSet();
 
-    public AbstractVideoHashingService(ISettingsProvider settingsProvider, IShokoEventHandler shokoEventHandler)
+    public AbstractVideoHashingService(
+        ILogger<AbstractVideoHashingService> logger,
+        ConfigurationProvider<VideoHashingServiceSettings> configurationProvider,
+        IPluginManager pluginManager,
+        IShokoEventHandler shokoEventHandler
+    )
     {
-        _settingsProvider = settingsProvider;
+        _logger = logger;
+        _configurationProvider = configurationProvider;
         _shokoEventHandler = shokoEventHandler;
+        _pluginManager = pluginManager;
 
         _shokoEventHandler.FileHashed += OnFileHashed;
     }
@@ -72,57 +91,98 @@ public class AbstractVideoHashingService : IVideoHashingService
 
     private void OnFileHashed(object? sender, FileEventArgs args) => FileHashed?.Invoke(this, args);
 
-    public void AddProviders(IEnumerable<IHashProvider> providers)
+    public void AddParts(IEnumerable<IHashProvider> providers)
     {
-        if (_hashProviders is not null)
-            return;
+        if (_loaded) return;
+        _loaded = true;
 
-        _hashProviders = providers.ToDictionary(GetID);
+        _logger.LogInformation("Initializing service.");
 
-        ProvidersUpdated?.Invoke(this, EventArgs.Empty);
+        lock (_lock)
+        {
+            var config = _configurationProvider.Load();
+            var order = config.Priority;
+            var enabled = config.EnabledHashes;
+            _coreProviderID = GetID(typeof(CoreHashProvider), _pluginManager.GetPluginInfo(typeof(CorePlugin))!);
+            _hashProviderInfos = providers
+                .Select((provider, priority) =>
+                {
+                    var pluginInfo = _pluginManager.GetPluginInfo(
+                        Loader.GetTypes<IPlugin>(provider.GetType().Assembly)
+                            .First(t => _pluginManager.GetPluginInfo(t) is not null)
+                    )!;
+                    var id = GetID(provider.GetType(), pluginInfo);
+                    var contextualType = provider.GetType().ToContextualType();
+                    var enabledHashes = enabled.TryGetValue(id, out var h) ? h : id == _coreProviderID ? ["ED2K"] : [];
+                    var description = PluginManager.GetDescription(contextualType);
+                    return new HashProviderInfo()
+                    {
+                        ID = id,
+                        Description = description,
+                        Provider = provider,
+                        PluginInfo = pluginInfo,
+                        EnabledHashTypes = enabledHashes,
+                        Priority = priority,
+                    };
+                })
+                .OrderBy(p => order.IndexOf(p.ID) is -1)
+                .ThenBy(p => order.IndexOf(p.ID))
+                .ThenBy(p => p.ID)
+                .ToDictionary(info => info.ID);
+        }
+
+        UpdateProviders(false);
+
+        _logger.LogInformation("Loaded {ProviderCount} providers.", _hashProviderInfos.Count);
+
+        Ready?.Invoke(this, EventArgs.Empty);
     }
 
     public IEnumerable<HashProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
-    {
-        if (_hashProviders is null)
-            yield break;
-
-        var order = _settings.Plugins.HashingProviders.Priority;
-        var enabled = _settings.Plugins.HashingProviders.EnabledHashes;
-        var orderedProviders = _hashProviders
-            .OrderBy(p => order.IndexOf(p.Key) is -1)
-            .ThenBy(p => order.IndexOf(p.Key))
-            .ThenBy(p => p.Key)
-            .Select((provider, index) => (provider, index));
-        foreach (var ((id, provider), priority) in orderedProviders)
-        {
-            var enabledHashes = enabled.TryGetValue(id, out var h) ? h : id == _coreProviderID ? ["ED2K"] : [];
-            if (onlyEnabled && enabledHashes.Count == 0)
-                continue;
-
-            yield return new()
+        => _hashProviderInfos.Values
+            .Where(info => !onlyEnabled || info.EnabledHashTypes.Count > 0)
+            .OrderBy(info => info.Priority)
+            // Create a copy so that we don't affect the original entries
+            .Select(info => new HashProviderInfo()
             {
-                ID = id,
-                Provider = provider,
-                EnabledHashTypes = enabledHashes,
-                Priority = priority,
-            };
-        }
-    }
+                ID = info.ID,
+                Description = info.Description,
+                Provider = info.Provider,
+                PluginInfo = info.PluginInfo,
+                EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
+                Priority = info.Priority
+            });
+
+    public IReadOnlyList<HashProviderInfo> GetProviderInfo(IPlugin plugin)
+        => _hashProviderInfos.Values
+            .Where(info => info.PluginInfo.ID == plugin.ID)
+            .OrderBy(info => info.Provider.Name)
+            .ThenBy(info => info.ID)
+            // Create a copy so that we don't affect the original entries
+            .Select(info => new HashProviderInfo()
+            {
+                ID = info.ID,
+                Description = info.Description,
+                Provider = info.Provider,
+                PluginInfo = info.PluginInfo,
+                EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
+                Priority = info.Priority
+            })
+            .ToList();
 
     public HashProviderInfo GetProviderInfo(IHashProvider provider)
     {
         ArgumentNullException.ThrowIfNull(provider);
-        if (_hashProviders is null)
+        if (!_loaded)
             throw new InvalidOperationException("Providers have not been added yet.");
 
-        return GetProviderInfo(GetID(provider))
+        return GetProviderInfo(GetID(provider.GetType()))
             ?? throw new ArgumentException($"Unregistered provider: '{provider.GetType().Name}'", nameof(provider));
     }
 
     public HashProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IHashProvider
     {
-        if (_hashProviders is null)
+        if (!_loaded)
             throw new InvalidOperationException("Providers have not been added yet.");
 
         return GetProviderInfo(GetID(typeof(TProvider)))
@@ -130,25 +190,25 @@ public class AbstractVideoHashingService : IVideoHashingService
     }
 
     public HashProviderInfo? GetProviderInfo(Guid providerID)
-    {
-        if (_hashProviders is null || !_hashProviders.TryGetValue(providerID, out var provider))
-            return null;
-
-        // We update the settings upon server start to ensure the priority and enabled states are accurate, so trust them.
-        var priority = _settings.Plugins.HashingProviders.Priority.IndexOf(providerID);
-        var enabled = _settings.Plugins.HashingProviders.EnabledHashes.TryGetValue(providerID, out var enabledHashes) ? enabledHashes : providerID == _coreProviderID ? ["ED2K"] : [];
-        return new()
-        {
-            ID = providerID,
-            Provider = provider,
-            EnabledHashTypes = enabled,
-            Priority = priority,
-        };
-    }
+        => _hashProviderInfos?.TryGetValue(providerID, out var providerInfo) ?? false
+            // Create a copy so that we don't affect the original entry
+            ? new()
+            {
+                ID = providerInfo.ID,
+                Description = providerInfo.Description,
+                Provider = providerInfo.Provider,
+                PluginInfo = providerInfo.PluginInfo,
+                EnabledHashTypes = providerInfo.EnabledHashTypes.ToHashSet(),
+                Priority = providerInfo.Priority,
+            }
+            : null;
 
     public void UpdateProviders(params HashProviderInfo[] providers)
+        => UpdateProviders(true, providers);
+
+    private void UpdateProviders(bool fireEvent, params HashProviderInfo[] providers)
     {
-        if (_hashProviders is null)
+        if (!_loaded)
             return;
 
         var existingProviders = GetAvailableProviders().ToList();
@@ -177,11 +237,11 @@ public class AbstractVideoHashingService : IVideoHashingService
         }
 
         var changed = false;
-        var settings = _settingsProvider.GetSettings();
+        var config = _configurationProvider.Load();
         var priority = existingProviders.Select(pI => pI.ID).ToList();
-        if (!settings.Plugins.HashingProviders.Priority.SequenceEqual(priority))
+        if (!config.Priority.SequenceEqual(priority))
         {
-            settings.Plugins.HashingProviders.Priority = priority;
+            config.Priority = priority;
             changed = true;
         }
 
@@ -193,22 +253,38 @@ public class AbstractVideoHashingService : IVideoHashingService
         enabled = enabled
             .Where(kp => kp.Value.Count > 0)
             .ToDictionary(kp => kp.Key, kp => kp.Value);
-        if (!settings.Plugins.HashingProviders.EnabledHashes.SequenceEqual(enabled))
+        if (!config.EnabledHashes.SequenceEqual(enabled))
         {
-            settings.Plugins.HashingProviders.EnabledHashes = enabled;
+            config.EnabledHashes = enabled;
             changed = true;
         }
 
         if (changed)
         {
-            _settingsProvider.SaveSettings(settings);
-            ProvidersUpdated?.Invoke(this, EventArgs.Empty);
+            lock (_lock)
+            {
+                _hashProviderInfos = existingProviders
+                    // Create a copy so that we don't affect the original entry
+                    .Select(info => new HashProviderInfo()
+                    {
+                        ID = info.ID,
+                        Description = info.Description,
+                        Provider = info.Provider,
+                        PluginInfo = info.PluginInfo,
+                        EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
+                        Priority = info.Priority,
+                    })
+                    .ToDictionary(info => info.ID);
+            }
+            _configurationProvider.Save(config);
+            if (fireEvent)
+                ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
 
     public async Task<IReadOnlyList<IHashDigest>> GetHashesForFile(FileInfo fileInfo, IReadOnlyList<IHashDigest>? existingHashes = null, CancellationToken cancellationToken = default)
     {
-        if (_hashProviders is null)
+        if (!_loaded)
             return [];
 
         existingHashes ??= [];
@@ -220,13 +296,16 @@ public class AbstractVideoHashingService : IVideoHashingService
 
     private async Task<IReadOnlyList<IHashDigest>> GetHashesForFileSequential(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IReadOnlyList<HashProviderInfo> providers, CancellationToken cancellationToken)
     {
-        var allHashes = new ConcurrentBag<IReadOnlyList<IHashDigest>>() { existingHashes };
+        var allHashes = new ConcurrentBag<(HashProviderInfo, IReadOnlyList<IHashDigest>)>() { };
         await Task.WhenAll(providers.Select(providerInfo => Task.Run(async () =>
         {
             var newHashes = await GetHashesForFileAndProvider(fileInfo, providerInfo, existingHashes, cancellationToken);
-            allHashes.Add(newHashes);
+            allHashes.Add((providerInfo, newHashes));
         }, cancellationToken)));
-        return allHashes
+        return allHashes.ToArray()
+            .OrderBy(tuple => tuple.Item1.Priority)
+            .Select(tuple => tuple.Item2)
+            .Prepend(existingHashes)
             .SelectMany(h => h)
             .Distinct()
             .Order()
@@ -261,19 +340,11 @@ public class AbstractVideoHashingService : IVideoHashingService
             .ToList();
     }
 
-    /// <summary>
-    /// Gets a unique ID for a release provider generated from its class name.
-    /// </summary>
-    /// <param name="provider">The provider.</param>
-    /// <returns><see cref="Guid" />.</returns>
-    internal static Guid GetID(IHashProvider provider)
-        => GetID(provider.GetType());
+    private Guid GetID(Type providerType)
+        => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).FirstOrDefault(t => _pluginManager.GetPluginInfo(t) is not null) is { } pluginType
+            ? GetID(providerType, _pluginManager.GetPluginInfo(pluginType)!)
+            : Guid.Empty;
 
-    /// <summary>
-    /// Gets a unique ID for a release provider generated from its class name.
-    /// </summary>
-    /// <param name="providerType">The provider type.</param>
-    /// <returns><see cref="Guid" />.</returns>
-    internal static Guid GetID(Type providerType)
-        => new(MD5.HashData(Encoding.Unicode.GetBytes(providerType.FullName!)));
+    private static Guid GetID(Type type, PluginInfo pluginInfo)
+        => UuidUtility.GetV5($"HashProvider={type.FullName!}", pluginInfo.ID);
 }

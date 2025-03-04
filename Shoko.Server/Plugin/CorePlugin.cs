@@ -1,6 +1,7 @@
 using System;
 using Shoko.Plugin.Abstractions;
 
+#nullable enable
 namespace Shoko.Server.Plugin;
 
 /// <summary>
@@ -10,10 +11,11 @@ namespace Shoko.Server.Plugin;
 /// </summary>
 public class CorePlugin : IPlugin
 {
-    public Guid ID => Guid.Parse("b6014d5b-bd38-5909-9203-7d4219676be7");
+    /// <inheritdoc/>
+    public Guid ID { get; private set; } = typeof(CorePlugin).FullName!.ToUuidV5();
 
     /// <inheritdoc/>
-    public string Name => "Shoko Core";
+    public string Name { get; private set; } = "Shoko Core";
 
     /// <inheritdoc/>
     public void Load() { }

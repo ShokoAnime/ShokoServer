@@ -29,6 +29,18 @@ public interface IConfigurationNewFactory<TConfig> : IConfigurationDefinition wh
 }
 
 /// <summary>
+/// Interface for allowing plugins to specify a custom save name for their configuration.
+/// </summary>
+public interface IConfigurationDefinitionWithCustomSaveName : IConfigurationDefinition
+{
+    /// <summary>
+    /// Gets the name of the file to use in the plugin's configuration folder inside <see cref="IApplicationPaths.PluginConfigurationsPath"/> for storing the configuration.
+    /// </summary>
+    /// <value>The file name.</value>
+    string Name { get; }
+}
+
+/// <summary>
 /// Interface for allowing plugins to specify a custom save location for their configuration.
 /// </summary>
 public interface IConfigurationDefinitionWithCustomSaveLocation : IConfigurationDefinition
