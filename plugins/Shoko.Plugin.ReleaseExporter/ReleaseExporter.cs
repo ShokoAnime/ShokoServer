@@ -12,6 +12,9 @@ using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.ReleaseExporter;
 
+/// <summary>
+/// Responsible for exporting releases to the file system and moving or deleting the releases when the video files are moved or deleted, or when the release for the video is deleted.
+/// </summary>
 public class ReleaseExporter : IHostedService
 {
     private readonly ILogger<ReleaseExporter> _logger;
@@ -24,6 +27,14 @@ public class ReleaseExporter : IHostedService
 
     private ReleaseExporterConfiguration Configuration { get; set; }
 
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReleaseExporter"/> class.
+    /// </summary>
+    /// <param name="videoReleaseService">The video release service.</param>
+    /// <param name="videoService">The video service.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="configProvider">The configuration provider.</param>
     public ReleaseExporter(IVideoReleaseService videoReleaseService, IVideoService videoService, ILogger<ReleaseExporter> logger, ConfigurationProvider<ReleaseExporterConfiguration> configProvider)
     {
         _logger = logger;
@@ -40,6 +51,9 @@ public class ReleaseExporter : IHostedService
         _videoService.VideoFileRelocated += OnVideoRelocated;
     }
 
+    /// <summary>
+    /// Disposing of the service.
+    /// </summary>
     ~ReleaseExporter()
     {
         _configProvider.Saved -= OnConfigurationSaved;
@@ -49,9 +63,11 @@ public class ReleaseExporter : IHostedService
         _videoService.VideoFileRelocated -= OnVideoRelocated;
     }
 
+    /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 
+    /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 

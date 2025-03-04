@@ -1,22 +1,23 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Release;
+using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
@@ -36,10 +37,12 @@ public class AbstractVideoReleaseService(
     ILogger<AbstractVideoReleaseService> logger,
     IUDPConnectionHandler udpConnection,
     ISettingsProvider settingsProvider,
+    ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     ISchedulerFactory schedulerFactory,
     IRequestFactory requestFactory,
     IUserService userService,
     IServiceProvider serviceProvider,
+    IPluginManager pluginManager,
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
@@ -59,7 +62,11 @@ public class AbstractVideoReleaseService(
 
     private IServerSettings _settings => settingsProvider.GetSettings();
 
-    private Dictionary<Guid, IReleaseInfoProvider>? _releaseInfoProviders = null;
+    private Dictionary<Guid, ReleaseInfoProviderInfo> _releaseInfoProviderInfos = [];
+
+    private readonly object _lock = new();
+
+    private bool _loaded = false;
 
     public event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
 
@@ -71,77 +78,118 @@ public class AbstractVideoReleaseService(
 
     public event EventHandler? ProvidersUpdated;
 
-    private bool? _autoMatchEnabled = null;
+    public event EventHandler? Ready;
 
-    public bool AutoMatchEnabled
-        => _autoMatchEnabled ??= GetAvailableProviders(true).Any();
+    private bool _autoMatchEnabled = false;
+
+    public bool AutoMatchEnabled => _autoMatchEnabled;
 
     public bool ParallelMode
     {
-        get => _settings.Plugins.ReleaseProviders.ParallelMode;
+        get => configurationProvider.Load().ParallelMode;
         set
         {
-            if (_settings.Plugins.ReleaseProviders.ParallelMode == value)
+            var config = configurationProvider.Load();
+            if (config.ParallelMode == value)
                 return;
 
-            _autoMatchEnabled = null;
-            _settings.Plugins.ReleaseProviders.ParallelMode = value;
-            settingsProvider.SaveSettings(_settings);
+            config.ParallelMode = value;
+            configurationProvider.Save(config);
             ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
 
-    public void AddProviders(IEnumerable<IReleaseInfoProvider> providers)
+    public void AddParts(IEnumerable<IReleaseInfoProvider> providers)
     {
-        if (_releaseInfoProviders is not null)
-            return;
+        if (_loaded) return;
+        _loaded = true;
 
-        _releaseInfoProviders = providers.ToDictionary(GetID);
+        logger.LogInformation("Initializing service.");
 
-        ProvidersUpdated?.Invoke(this, EventArgs.Empty);
+        lock (_lock)
+        {
+            var config = configurationProvider.Load();
+            var order = config.Priority;
+            var enabled = config.Enabled;
+            _releaseInfoProviderInfos = providers
+                .Select((provider, priority) =>
+                {
+                    var pluginInfo = pluginManager.GetPluginInfo(
+                        Loader.GetTypes<IPlugin>(provider.GetType().Assembly)
+                            .First(t => pluginManager.GetPluginInfo(t) is not null)
+                    )!;
+                    var id = GetID(provider.GetType(), pluginInfo);
+                    var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
+                    var description = PluginManager.GetDescription(provider.GetType());
+                    return new ReleaseInfoProviderInfo()
+                    {
+                        ID = id,
+                        Description = description,
+                        Provider = provider,
+                        PluginInfo = pluginInfo,
+                        Enabled = isEnabled,
+                        Priority = priority,
+                    };
+                })
+                .OrderBy(p => order.IndexOf(p.ID) is -1)
+                .ThenBy(p => order.IndexOf(p.ID))
+                .ThenBy(p => p.ID)
+                .ToDictionary(info => info.ID);
+            _autoMatchEnabled = _releaseInfoProviderInfos.Values.Any(p => p.Enabled);
+        }
+
+        UpdateProviders(false);
+
+        logger.LogInformation("Loaded {ProviderCount} providers.", _releaseInfoProviderInfos.Count);
+
+        Ready?.Invoke(this, EventArgs.Empty);
     }
 
     public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
-    {
-        if (_releaseInfoProviders is null)
-            yield break;
-
-        var order = _settings.Plugins.ReleaseProviders.Priority;
-        var enabled = _settings.Plugins.ReleaseProviders.Enabled;
-        var orderedProviders = _releaseInfoProviders
-            .OrderBy(p => order.IndexOf(p.Key) is -1)
-            .ThenBy(p => order.IndexOf(p.Key))
-            .ThenBy(p => p.Key)
-            .Select((provider, index) => (provider, index));
-        foreach (var ((id, provider), priority) in orderedProviders)
-        {
-            var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
-            if (onlyEnabled && !isEnabled)
-                continue;
-
-            yield return new()
+        => _releaseInfoProviderInfos.Values
+            .Where(info => !onlyEnabled || info.Enabled)
+            .OrderBy(info => info.Priority)
+            // Create a copy so that we don't affect the original entries
+            .Select(info => new ReleaseInfoProviderInfo()
             {
-                ID = id,
-                Provider = provider,
-                Enabled = isEnabled,
-                Priority = priority,
-            };
-        }
-    }
+                ID = info.ID,
+                Description = info.Description,
+                Provider = info.Provider,
+                PluginInfo = info.PluginInfo,
+                Enabled = info.Enabled,
+                Priority = info.Priority
+            });
+
+    public IReadOnlyList<ReleaseInfoProviderInfo> GetProviderInfo(IPlugin plugin)
+        => _releaseInfoProviderInfos.Values
+            .Where(info => info.PluginInfo.ID == plugin.ID)
+            .OrderBy(info => info.Provider.Name)
+            .ThenBy(info => info.ID)
+            // Create a copy so that we don't affect the original entries
+            .Select(info => new ReleaseInfoProviderInfo()
+            {
+                ID = info.ID,
+                Description = info.Description,
+                Provider = info.Provider,
+                PluginInfo = info.PluginInfo,
+                Enabled = info.Enabled,
+                Priority = info.Priority,
+            })
+            .ToList();
 
     public ReleaseInfoProviderInfo GetProviderInfo(IReleaseInfoProvider provider)
     {
         ArgumentNullException.ThrowIfNull(provider);
-        if (_releaseInfoProviders is null)
+        if (!_loaded)
             throw new InvalidOperationException("Providers have not been added yet.");
 
-        return GetProviderInfo(GetID(provider))
+        return GetProviderInfo(GetID(provider.GetType()))
             ?? throw new ArgumentException($"Unregistered provider: '{provider.GetType().Name}'", nameof(provider));
     }
 
     public ReleaseInfoProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider
     {
-        if (_releaseInfoProviders is null)
+        if (!_loaded)
             throw new InvalidOperationException("Providers have not been added yet.");
 
         return GetProviderInfo(GetID(typeof(TProvider)))
@@ -149,25 +197,25 @@ public class AbstractVideoReleaseService(
     }
 
     public ReleaseInfoProviderInfo? GetProviderInfo(Guid providerID)
-    {
-        if (_releaseInfoProviders is null || !_releaseInfoProviders.TryGetValue(providerID, out var provider))
-            return null;
-
-        // We update the settings upon server start to ensure the priority and enabled states are accurate, so trust them.
-        var priority = _settings.Plugins.ReleaseProviders.Priority.IndexOf(providerID);
-        var enabled = _settings.Plugins.ReleaseProviders.Enabled.TryGetValue(providerID, out var isEnabled) ? isEnabled : provider.Name is "AniDB";
-        return new()
-        {
-            ID = providerID,
-            Provider = provider,
-            Enabled = enabled,
-            Priority = priority,
-        };
-    }
+        => _releaseInfoProviderInfos?.TryGetValue(providerID, out var providerInfo) ?? false
+            // Create a copy so that we don't affect the original entry
+            ? new()
+            {
+                ID = providerInfo.ID,
+                Description = providerInfo.Description,
+                Provider = providerInfo.Provider,
+                PluginInfo = providerInfo.PluginInfo,
+                Enabled = providerInfo.Enabled,
+                Priority = providerInfo.Priority,
+            }
+            : null;
 
     public void UpdateProviders(params ReleaseInfoProviderInfo[] providers)
+        => UpdateProviders(true, providers);
+
+    private void UpdateProviders(bool fireEvent, params ReleaseInfoProviderInfo[] providers)
     {
-        if (_releaseInfoProviders is null)
+        if (!_loaded)
             return;
 
         var existingProviders = GetAvailableProviders().ToList();
@@ -195,26 +243,42 @@ public class AbstractVideoReleaseService(
         }
 
         var changed = false;
-        var settings = settingsProvider.GetSettings();
+        var config = configurationProvider.Load();
         var priority = existingProviders.Select(pI => pI.ID).ToList();
-        if (!settings.Plugins.ReleaseProviders.Priority.SequenceEqual(priority))
+        if (!config.Priority.SequenceEqual(priority))
         {
-            settings.Plugins.ReleaseProviders.Priority = priority;
+            config.Priority = priority;
             changed = true;
         }
 
         var enabled = existingProviders.ToDictionary(p => p.ID, p => p.Enabled);
-        if (!settings.Plugins.ReleaseProviders.Enabled.SequenceEqual(enabled))
+        if (!config.Enabled.OrderBy(p => p.Key).SequenceEqual(enabled.OrderBy(p => p.Key)))
         {
-            settings.Plugins.ReleaseProviders.Enabled = enabled;
+            config.Enabled = enabled;
             changed = true;
         }
 
         if (changed)
         {
-            _autoMatchEnabled = null;
-            settingsProvider.SaveSettings(settings);
-            ProvidersUpdated?.Invoke(this, EventArgs.Empty);
+            lock (_lock)
+            {
+                _releaseInfoProviderInfos = existingProviders
+                    // Create a copy so that we don't affect the original entry
+                    .Select(info => new ReleaseInfoProviderInfo()
+                    {
+                        ID = info.ID,
+                        Description = info.Description,
+                        Provider = info.Provider,
+                        PluginInfo = info.PluginInfo,
+                        Enabled = info.Enabled,
+                        Priority = info.Priority,
+                    })
+                    .ToDictionary(info => info.ID);
+                _autoMatchEnabled = _releaseInfoProviderInfos.Values.Any(p => p.Enabled);
+            }
+            configurationProvider.Save(config);
+            if (fireEvent)
+                ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -741,19 +805,11 @@ public class AbstractVideoReleaseService(
         }
     }
 
-    /// <summary>
-    /// Gets a unique ID for a release provider generated from its class name.
-    /// </summary>
-    /// <param name="provider">The provider.</param>
-    /// <returns><see cref="Guid" />.</returns>
-    internal static Guid GetID(IReleaseInfoProvider provider)
-        => GetID(provider.GetType());
+    private Guid GetID(Type providerType)
+        => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).FirstOrDefault(t => pluginManager.GetPluginInfo(t) is not null) is { } pluginType
+            ? GetID(providerType, pluginManager.GetPluginInfo(pluginType)!)
+            : Guid.Empty;
 
-    /// <summary>
-    /// Gets a unique ID for a release provider generated from its class name.
-    /// </summary>
-    /// <param name="providerType">The provider type.</param>
-    /// <returns><see cref="Guid" />.</returns>
-    internal static Guid GetID(Type providerType)
-        => new(MD5.HashData(Encoding.Unicode.GetBytes(providerType.FullName!)));
+    private static Guid GetID(Type type, PluginInfo pluginInfo)
+        => UuidUtility.GetV5($"ReleaseProvider={type.FullName!}", pluginInfo.ID);
 }

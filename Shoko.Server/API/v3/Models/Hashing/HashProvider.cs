@@ -1,43 +1,32 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Shoko.Plugin.Abstractions.Hashing;
+using Shoko.Server.API.v3.Models.Plugin;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Hashing;
 
-public class HashProvider
+public class HashProvider(HashProviderInfo info)
 {
-    public required Guid ID { get; set; }
+    public Guid ID { get; init; } = info.ID;
 
-    public required string Name { get; set; }
+    public Version Version { get; init; } = info.Version;
 
-    public required Version Version { get; set; }
+    public string Name { get; init; } = info.Name;
 
-    public required HashSet<string> AvailableHashTypes { get; set; }
+    public string? Description { get; init; } = string.IsNullOrEmpty(info.Description) ? null : info.Description;
 
-    public required HashSet<string> DefaultEnabledHashTypes { get; set; }
+    public int Priority { get; init; } = info.Priority;
 
-    public required HashSet<string> EnabledHashTypes { get; set; }
+    public HashSet<string> AvailableHashTypes { get; init; } = info.Provider.AvailableHashTypes.ToHashSet();
 
-    public required int Priority { get; set; }
+    public HashSet<string> DefaultEnabledHashTypes { get; init; } = info.Provider.DefaultEnabledHashTypes.ToHashSet();
 
-    public static class Input
-    {
-        public class UpdateMultipleProvidersBody
-        {
-            [Required]
-            public Guid ID { get; set; }
+    public HashSet<string> EnabledHashTypes { get; init; } = info.EnabledHashTypes.ToHashSet();
 
-            public HashSet<string>? EnabledHashTypes { get; set; }
-
-            public int? Priority { get; set; }
-        }
-
-        public class UpdateSingleProviderBody
-        {
-            public HashSet<string>? EnabledHashTypes { get; set; }
-
-            public int? Priority { get; set; }
-        }
-    }
+    /// <summary>
+    /// Information about the plugin that the configuration belongs to.
+    /// </summary>
+    public PluginInfo Plugin { get; init; } = new(info.PluginInfo);
 }

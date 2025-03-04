@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Configuration;
@@ -19,24 +20,33 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <summary>
 /// Controller responsible for managing configurations.
 /// </summary>
-/// <param name="settingsProvider"></param>
-/// <param name="configurationService"></param>
+/// <param name="settingsProvider">Settings provider.</param>
+/// <param name="pluginManager">Plugin manager.</param>
+/// <param name="configurationService">Configuration service.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize(Roles = "admin,init")]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class ConfigurationController(ISettingsProvider settingsProvider, IConfigurationService configurationService) : BaseController(settingsProvider)
+public class ConfigurationController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IConfigurationService configurationService) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get a list with information about all configurations.
     /// </summary>
+    /// <param name="pluginID">Optional. Plugin ID to get configurations for.</param>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<List<ConfigurationInfo>> GetAllConfigurations() => configurationService.GetAllConfigurationInfos()
-        .Select(i => new ConfigurationInfo(i))
-        .ToList();
+    public ActionResult<List<ConfigurationInfo>> GetConfigurations([FromQuery] Guid? pluginID = null)
+        => pluginID.HasValue
+            ? pluginManager.GetPluginInfo(pluginID.Value) is { } pluginInfo
+                ? configurationService.GetConfigurationInfo(pluginInfo.Plugin)
+                    .Select(i => new ConfigurationInfo(i))
+                    .ToList()
+                : []
+            : configurationService.GetAllConfigurationInfos()
+                .Select(i => new ConfigurationInfo(i))
+                .ToList();
 
     /// <summary>
     /// Get the current configuration with the given id.
