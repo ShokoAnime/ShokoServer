@@ -1,12 +1,10 @@
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.Config;
-using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;

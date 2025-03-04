@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Shoko.Models.Enums;
-using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Settings;
