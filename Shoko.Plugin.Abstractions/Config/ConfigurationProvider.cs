@@ -90,7 +90,8 @@ public class ConfigurationProvider<TConfig> where TConfig : class, IConfiguratio
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    public void Save()
+    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    public bool Save()
         => _service.Save<TConfig>();
 
     /// <summary>
@@ -100,6 +101,7 @@ public class ConfigurationProvider<TConfig> where TConfig : class, IConfiguratio
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    public void Save(TConfig config)
+    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    public bool Save(TConfig config)
         => _service.Save(config);
 }

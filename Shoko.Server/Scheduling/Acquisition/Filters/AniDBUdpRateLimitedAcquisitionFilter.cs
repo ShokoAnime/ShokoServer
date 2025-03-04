@@ -28,7 +28,8 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
         _connectionHandler = connectionHandler;
         _connectionHandler.AniDBStateUpdate += OnAniDBStateUpdate;
         _videoReleaseService = videoReleaseService;
-        _videoReleaseService.ProvidersUpdated += OnProvidersUpdated;
+        _videoReleaseService.Ready += OnProvidersReadyOrUpdated;
+        _videoReleaseService.ProvidersUpdated += OnProvidersReadyOrUpdated;
         _processJobIncluded = false;
 
         _typesWithProcessJob = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
@@ -39,10 +40,11 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
     ~AniDBUdpRateLimitedAcquisitionFilter()
     {
         _connectionHandler.AniDBStateUpdate -= OnAniDBStateUpdate;
-        _videoReleaseService.ProvidersUpdated -= OnProvidersUpdated;
+        _videoReleaseService.Ready -= OnProvidersReadyOrUpdated;
+        _videoReleaseService.ProvidersUpdated -= OnProvidersReadyOrUpdated;
     }
 
-    private void OnProvidersUpdated(object sender, EventArgs e)
+    private void OnProvidersReadyOrUpdated(object sender, EventArgs e)
     {
         _processJobIncluded = _videoReleaseService.GetAvailableProviders().Any(a => a.Provider.Name is "AniDB");
         StateChanged?.Invoke(null, EventArgs.Empty);
