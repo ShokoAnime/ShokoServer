@@ -1,38 +1,26 @@
 using System;
-using System.ComponentModel.DataAnnotations;
+using Shoko.Plugin.Abstractions.Release;
+using Shoko.Server.API.v3.Models.Plugin;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
-public class ReleaseInfoProvider
+public class ReleaseInfoProvider(ReleaseInfoProviderInfo info)
 {
-    public required Guid ID { get; set; }
+    public Guid ID { get; init; } = info.ID;
 
-    public required string Name { get; set; }
+    public Version Version { get; init; } = info.Version;
 
-    public required Version Version { get; set; }
+    public string Name { get; init; } = info.Name;
 
-    public required bool IsEnabled { get; set; }
+    public string Description { get; init; } = string.IsNullOrEmpty(info.Description) ? string.Empty : info.Description;
 
-    public required int Priority { get; set; }
+    public int Priority { get; init; } = info.Priority;
 
-    public static class Input
-    {
-        public class UpdateMultipleProvidersBody
-        {
-            [Required]
-            public Guid ID { get; set; }
+    public bool IsEnabled { get; init; } = info.Enabled;
 
-            public bool? IsEnabled { get; set; }
-
-            public int? Priority { get; set; }
-        }
-
-        public class UpdateSingleProviderBody
-        {
-            public bool? IsEnabled { get; set; }
-
-            public int? Priority { get; set; }
-        }
-    }
+    /// <summary>
+    /// Information about the plugin that the release info provider belongs to.
+    /// </summary>
+    public PluginInfo Plugin { get; init; } = new(info.PluginInfo);
 }

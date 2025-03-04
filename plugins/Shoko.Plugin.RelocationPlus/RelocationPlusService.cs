@@ -11,12 +11,20 @@ using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.RelocationPlus;
 
+/// <summary>
+/// Service responsible for relocating video extra files near the video files.
+/// </summary>
 public class RelocationPlusService : IHostedService
 {
     private readonly ILogger<RelocationPlusService> _logger;
 
     private readonly IVideoService _videoService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RelocationPlusService"/> class.
+    /// </summary>
+    /// <param name="videoService">The video service.</param>
+    /// <param name="logger">The logger.</param>
     public RelocationPlusService(IVideoService videoService, ILogger<RelocationPlusService> logger)
     {
         _logger = logger;
@@ -26,15 +34,20 @@ public class RelocationPlusService : IHostedService
         _videoService.VideoFileRelocated += OnVideoRelocated;
     }
 
+    /// <summary>
+    /// Dispose of the service.
+    /// </summary>
     ~RelocationPlusService()
     {
         _videoService.VideoFileDeleted -= OnVideoDeleted;
         _videoService.VideoFileRelocated -= OnVideoRelocated;
     }
 
+    /// <inheritdoc/>
     public Task StartAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 
+    /// <inheritdoc/>
     public Task StopAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 
