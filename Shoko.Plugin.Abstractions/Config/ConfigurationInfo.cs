@@ -1,5 +1,6 @@
 using System;
 using NJsonSchema;
+using Shoko.Plugin.Abstractions.Plugin;
 
 namespace Shoko.Plugin.Abstractions.Config;
 
@@ -19,9 +20,14 @@ public class ConfigurationInfo
     public required string Name { get; init; }
 
     /// <summary>
-    /// The plugin that the configuration belongs to.
+    /// Describes what the configuration is for.
     /// </summary>
-    public required IPlugin Plugin { get; init; }
+    public required string Description { get; init; }
+
+    /// <summary>
+    /// Information about the plugin that the configuration belongs to.
+    /// </summary>
+    public required PluginInfo PluginInfo { get; init; }
 
     /// <summary>
     /// The type of the configuration.

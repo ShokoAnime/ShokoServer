@@ -3,11 +3,17 @@ using Shoko.Plugin.Abstractions;
 
 namespace Shoko.Plugin.ReleaseExporter;
 
+/// <summary>
+/// Plugin responsible for importing releases to and exporting releases from the file system near the video files.
+/// </summary>
 public class Plugin : IPlugin
 {
-    public Guid ID => Guid.Parse("df4ea747-98e6-587a-be14-3a71f9403a3e");
+    /// <inheritdoc/>
+    public Guid ID { get; private set; } = typeof(Plugin).FullName!.ToUuidV5();
 
-    public string Name => "Release Importer/Exporter";
+    /// <inheritdoc/>
+    public string Name { get; private set; } = "Release Importer/Exporter";
 
+    /// <inheritdoc/>
     public void Load() { }
 }
