@@ -6,7 +6,7 @@ using Shoko.Plugin.Abstractions.Config.Attributes;
 namespace Shoko.Plugin.ReleaseExporter;
 
 /// <summary>
-/// Configuration for the release exporter.
+/// Configure how the export functionality works.
 /// </summary>
 [DisplaySections(["General", "File Settings"])]
 public class ReleaseExporterConfiguration : IConfiguration

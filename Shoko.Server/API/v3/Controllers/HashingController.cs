@@ -5,31 +5,41 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Plugin.Abstractions.Hashing;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Hashing;
+using Shoko.Server.API.v3.Models.Hashing.Input;
 using Shoko.Server.Settings;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
+/// <summary>
+/// Controller responsible for managing hashing. Interacts with the <see cref="IVideoHashingService"/>.
+/// </summary>
+/// <param name="settingsProvider"></param>
+/// <param name="pluginManager"></param>
+/// <param name="videoHashingService"></param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-[Authorize("admin")]
-public class HashingController(ISettingsProvider settingsProvider, IVideoHashingService videoHashingService) : BaseController(settingsProvider)
+[Authorize]
+public class HashingController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IVideoHashingService videoHashingService) : BaseController(settingsProvider)
 {
-    [HttpGet("Settings")]
-    public ActionResult<HashingSettings> GetHashSummary()
-        => new HashingSettings
+    [HttpGet("Summary")]
+    public ActionResult<HashingSummary> GetHashSummary()
+        => new HashingSummary
         {
             ParallelMode = videoHashingService.ParallelMode,
+            ProviderCount = videoHashingService.GetAvailableProviders().Count(),
             AllAvailableHashTypes = videoHashingService.AllAvailableHashTypes,
             AllEnabledHashTypes = videoHashingService.AllEnabledHashTypes,
         };
 
+    [Authorize("admin")]
     [HttpPost("Settings")]
-    public ActionResult UpdateHashingSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] HashingSettings.Input.UpdateHashingSettingsBody body)
+    public ActionResult UpdateHashingSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateHashingSettingsBody body)
     {
         if (body.ParallelMode != null)
             videoHashingService.ParallelMode = body.ParallelMode.Value;
@@ -40,30 +50,29 @@ public class HashingController(ISettingsProvider settingsProvider, IVideoHashing
     /// <summary>
     /// Gets all hash providers available, with their current enabled and priority states.
     /// </summary>
+    /// <param name="pluginID">Optional. Plugin ID to get hash providers for.</param>
     /// <returns>A list of <see cref="HashProvider"/>.</returns>
     [HttpGet("Provider")]
-    public ActionResult<List<HashProvider>> GetAvailableHashProviders()
-        => videoHashingService.GetAvailableProviders()
-        .Select(providerInfo => new HashProvider
-        {
-            ID = providerInfo.ID,
-            Name = providerInfo.Provider.Name,
-            Version = providerInfo.Provider.Version,
-            AvailableHashTypes = providerInfo.Provider.AvailableHashTypes.ToHashSet(),
-            DefaultEnabledHashTypes = providerInfo.Provider.DefaultEnabledHashTypes.ToHashSet(),
-            EnabledHashTypes = providerInfo.EnabledHashTypes,
-            Priority = providerInfo.Priority,
-        })
-        .ToList();
+    public ActionResult<List<HashProvider>> GetAvailableHashProviders([FromQuery] Guid? pluginID = null)
+        => pluginID.HasValue
+            ? pluginManager.GetPluginInfo(pluginID.Value) is { } pluginInfo
+                ? videoHashingService.GetProviderInfo(pluginInfo.Plugin)
+                    .Select(providerInfo => new HashProvider(providerInfo))
+                    .ToList()
+                : []
+            : videoHashingService.GetAvailableProviders()
+                .Select(providerInfo => new HashProvider(providerInfo))
+                .ToList();
 
     /// <summary>
     /// Update the enabled state and/or priority of one or more hash providers in the same request. 
     /// </summary>
     /// <param name="body">The providers to update.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [ProducesResponseType(200)]
     [HttpPost("Provider")]
-    public ActionResult UpdateMultipleHashProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<HashProvider.Input.UpdateMultipleProvidersBody> body)
+    public ActionResult UpdateMultipleHashProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<UpdateMultipleProvidersBody> body)
     {
         var providerInfoDict = videoHashingService.GetAvailableProviders().ToDictionary(p => p.ID);
         var changedProviders = new List<HashProviderInfo>();
@@ -120,16 +129,7 @@ public class HashingController(ISettingsProvider settingsProvider, IVideoHashing
         if (videoHashingService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Hash Provider '{providerID}' not found!");
 
-        return new HashProvider
-        {
-            ID = providerInfo.ID,
-            Name = providerInfo.Provider.Name,
-            Version = providerInfo.Provider.Version,
-            AvailableHashTypes = providerInfo.Provider.AvailableHashTypes.ToHashSet(),
-            DefaultEnabledHashTypes = providerInfo.Provider.DefaultEnabledHashTypes.ToHashSet(),
-            EnabledHashTypes = providerInfo.EnabledHashTypes,
-            Priority = providerInfo.Priority,
-        };
+        return new HashProvider(providerInfo);
     }
 
     /// <summary>
@@ -138,10 +138,11 @@ public class HashingController(ISettingsProvider settingsProvider, IVideoHashing
     /// <param name="providerID">The ID of the hash provider to update.</param>
     /// <param name="body">The provider to update.</param>
     /// <returns>The updated <see cref="HashProvider"/>.</returns>
+    [Authorize("admin")]
     [ProducesResponseType(404)]
     [ProducesResponseType(200)]
     [HttpPut("Provider/{providerID}")]
-    public ActionResult<HashProvider> UpdateHashProviderByID([FromRoute] Guid providerID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] HashProvider.Input.UpdateSingleProviderBody body)
+    public ActionResult<HashProvider> UpdateHashProviderByID([FromRoute] Guid providerID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateSingleProviderBody body)
     {
         if (videoHashingService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Hash Provider '{providerID}' not found!");
