@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using NLog.Web;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
 using Shoko.Server.Filters;
@@ -35,6 +36,8 @@ public class Startup
 {
     private readonly ILogger<Startup> _logger;
 
+    private readonly IPluginManager _pluginManager;
+
     private readonly ConfigurationService _configurationService;
 
     private readonly SettingsProvider _settingsProvider;
@@ -46,17 +49,19 @@ public class Startup
     public Startup(ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<Startup>();
-        _configurationService = new ConfigurationService(loggerFactory.CreateLogger<ConfigurationService>(), ApplicationPaths.Instance);
+        _pluginManager = new PluginManager();
+        _configurationService = new ConfigurationService(loggerFactory.CreateLogger<ConfigurationService>(), ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>(), _configurationService.CreateProvider<ServerSettings>());
     }
 
     // tried doing it without UseStartup<ServerStartup>(), but the documentation is lacking, and I couldn't get Configure() to work otherwise
-    private class ServerStartup(IConfigurationService configurationService, ISettingsProvider settingsProvider)
+    private class ServerStartup(IConfigurationService configurationService, ISettingsProvider settingsProvider, IPluginManager pluginManager)
     {
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton(configurationService);
             services.AddSingleton(settingsProvider);
+            services.AddSingleton(pluginManager);
 
             services.AddSingleton<IRelocationService, RelocationService>();
             services.AddSingleton<RenameFileService>();
@@ -100,7 +105,7 @@ public class Startup
             services.AddQuartz();
 
             services.AddAniDB();
-            services.AddPlugins();
+            services.AddPlugins(settingsProvider);
             services.AddAPI();
         }
 
@@ -124,8 +129,6 @@ public class Startup
             MessagePackSerializer.Typeless.DefaultOptions = MessagePackSerializer.Typeless.DefaultOptions.WithAllowAssemblyVersionMismatch(true)
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
 
-            _logger.LogInformation("Initializing Web Hosts...");
-            ServerState.Instance.ServerStartingStatus = "Initializing Web Hosts...";
             if (!await StartWebHost()) return;
 
             var shokoServer = Utils.ServiceContainer.GetRequiredService<ShokoServer>();
@@ -154,7 +157,11 @@ public class Startup
             {
                 ServiceProvider = Utils.ServiceContainer
             });
+
+            _logger.LogInformation("Starting Web Hosts.");
+            ServerState.Instance.ServerStartingStatus = "Starting Web Hosts.";
             await _webHost.StartAsync();
+            _logger.LogInformation("Web Hosts started.");
             return true;
         }
         catch (Exception e)
@@ -171,6 +178,8 @@ public class Startup
     {
         if (_webHost != null) return _webHost;
 
+        _logger.LogInformation("Initializing Web Hosts.");
+        ServerState.Instance.ServerStartingStatus = "Initializing Web Hosts.";
         var settings = _settingsProvider.GetSettings();
         var builder = new WebHostBuilder()
             .UseKestrel(options =>
@@ -179,7 +188,7 @@ public class Startup
             })
             .ConfigureApp()
             .ConfigureServiceProvider()
-            .UseStartup(_ => new ServerStartup(_configurationService, _settingsProvider))
+            .UseStartup(_ => new ServerStartup(_configurationService, _settingsProvider, _pluginManager))
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();
@@ -199,6 +208,8 @@ public class Startup
         Loader.InitPlugins(result.Services);
 
         Utils.ServiceContainer = result.Services;
+
+        _logger.LogInformation("Web Hosts initialized.");
 
         return result;
     }

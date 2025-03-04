@@ -1,7 +1,8 @@
-
 using System;
+using Shoko.Server.API.v3.Models.Plugin;
 using AbstractConfigurationInfo = Shoko.Plugin.Abstractions.Config.ConfigurationInfo;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Configuration;
 
 public class ConfigurationInfo(AbstractConfigurationInfo info)
@@ -12,22 +13,17 @@ public class ConfigurationInfo(AbstractConfigurationInfo info)
     public Guid ID { get; init; } = info.ID;
 
     /// <summary>
-    /// The ID of the plugin that the configuration belongs to.
-    /// </summary>
-    public Guid PluginID { get; init; } = info.Plugin.ID;
-
-    /// <summary>
     /// The display name of the configuration.
     /// </summary>
     public string Name { get; init; } = info.Name;
 
     /// <summary>
-    /// The name of the plugin that the configuration belongs to.
+    /// Describes what the configuration is for.
     /// </summary>
-    public string PluginName { get; init; } = info.Plugin.Name;
+    public string? Description { get; init; } = string.IsNullOrEmpty(info.Description) ? null : info.Description;
 
     /// <summary>
-    /// The version of the plugin that the configuration belongs to.
+    /// Information about the plugin that the configuration belongs to.
     /// </summary>
-    public Version PluginVersion { get; init; } = info.Plugin.GetType().Assembly.GetName().Version ?? new("0.0.0.0");
+    public PluginInfo Plugin { get; init; } = new(info.PluginInfo);
 }
