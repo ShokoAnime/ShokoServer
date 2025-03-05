@@ -169,15 +169,15 @@ public class AbstractMetadataService : IMetadataService
 
     /// <inheritdoc />
     public IEnumerable<IShokoEpisode> GetAllShokoEpisodes()
-        => _episodeRepository.GetAll().AsQueryable();
+        => _episodeRepository.GetAll();
 
     /// <inheritdoc />
     public IEnumerable<IShokoGroup> GetAllShokoGroups()
-        => _groupRepository.GetAll().AsQueryable();
+        => _groupRepository.GetAll();
 
     /// <inheritdoc />
     public IEnumerable<IShokoSeries> GetAllShokoSeries()
-        => _seriesRepository.GetAll().AsQueryable();
+        => _seriesRepository.GetAll();
 
     /// <inheritdoc />
     public IEpisode? GetEpisodeByProviderID(int providerID, IMetadataService.ProviderName providerName)

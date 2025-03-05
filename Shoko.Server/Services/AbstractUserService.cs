@@ -18,7 +18,7 @@ public class AbstractUserService : IUserService
 
     /// <inheritdoc/>
     public IEnumerable<IShokoUser> GetUsers()
-         => _userRepository.GetAll().AsQueryable();
+         => _userRepository.GetAll();
 
     /// <inheritdoc/>
     public IShokoUser? GetUserByID(int id)
