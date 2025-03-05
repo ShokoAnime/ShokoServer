@@ -326,7 +326,7 @@ public class ConfigurationService : IConfigurationService
 
             var errors = Validate(info, json);
             if (errors.Count > 0)
-                throw new ConfigurationValidationException(info, errors);
+                throw new ConfigurationValidationException("load", info, errors);
 
             config = Deserialize<TConfig>(json);
             _loadedConfigurations[info.ID] = config;
@@ -386,7 +386,7 @@ public class ConfigurationService : IConfigurationService
         json = AddSchemaProperty(info, json);
         var errors = Validate(info, json);
         if (errors.Count > 0)
-            throw new ConfigurationValidationException(info, errors);
+            throw new ConfigurationValidationException("save", info, errors);
 
         lock (info)
         {
