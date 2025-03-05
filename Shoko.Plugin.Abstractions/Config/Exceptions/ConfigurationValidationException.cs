@@ -8,7 +8,7 @@ namespace Shoko.Plugin.Abstractions.Config.Exceptions;
 /// <summary>
 /// Thrown when a plugin configuration fails validation.
 /// </summary>
-public class ConfigurationValidationException(ConfigurationInfo configurationInfo, IReadOnlyDictionary<string, IReadOnlyList<string>> validationErrors) : Exception($"Unable to save configuration for \"{configurationInfo.Name}\" due to {validationErrors.Sum(a => a.Value.Count)} validation errors occurring.")
+public class ConfigurationValidationException(string saveOrLoad, ConfigurationInfo configurationInfo, IReadOnlyDictionary<string, IReadOnlyList<string>> validationErrors) : Exception($"Unable to {saveOrLoad} configuration for \"{configurationInfo.Name}\" due to {validationErrors.Sum(a => a.Value.Count)} validation errors occurring.")
 {
     /// <summary>
     /// Information about the configuration that failed validation.
