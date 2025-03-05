@@ -52,7 +52,6 @@ public class ConfigurationService : IConfigurationService
 
     public ConfigurationService(ILogger<ConfigurationService> logger, IApplicationPaths applicationPaths, IPluginManager pluginManager)
     {
-        var serverSettingsDefinition = new ServerSettingsDefinition(new(this));
 
         _logger = logger;
         _applicationPaths = applicationPaths;
@@ -76,6 +75,10 @@ public class ConfigurationService : IConfigurationService
         };
         _systemTextJsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 
+        var serverSettingsDefinition = new ServerSettingsDefinition(new(this));
+        var serverSettingsName = PluginManager.GetDisplayName(typeof(ServerSettings));
+        var serverSettingsSchema = GetSchemaForType(typeof(ServerSettings));
+        serverSettingsSchema.Title = serverSettingsName;
         _configurationTypes = new()
         {
             {
@@ -83,13 +86,13 @@ public class ConfigurationService : IConfigurationService
                 new ConfigurationInfo()
                 {
                     ID = Guid.Empty,
-                    Name = PluginManager.GetDisplayName(typeof(ServerSettings)),
+                    Name = serverSettingsName,
                     Description = string.Empty,
                     Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
                     Type = typeof(ServerSettings),
                     // We're not going to be using this before .AddParts is called.
                     PluginInfo = null!,
-                    Schema = GetSchemaForType(typeof(ServerSettings)),
+                    Schema = serverSettingsSchema,
                 }
             },
         };
@@ -160,6 +163,7 @@ public class ConfigurationService : IConfigurationService
                     path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
                 }
                 var schema = GetSchemaForType(configurationType);
+                schema.Title = name;
                 return new ConfigurationInfo()
                 {
                     ID = id,
