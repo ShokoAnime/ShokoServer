@@ -149,6 +149,14 @@ public static class UuidUtility
         bytes[6] = (byte)((bytes[6] & 0x0f) | 0x30);
         bytes[8] = (byte)((bytes[8] & 0x3f) | 0x80);
 
+        // Swap the order of the bytes for the Guid constructor to work properly.
+        bytes = [
+            bytes[3], bytes[2], bytes[1], bytes[0],
+            bytes[5], bytes[4],
+            bytes[7], bytes[6],
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+        ];
+
         return new Guid(bytes);
     }
 
@@ -205,6 +213,14 @@ public static class UuidUtility
         // Version and variant
         bytes[6] = (byte)((bytes[6] & 0x0f) | 0x50);
         bytes[8] = (byte)((bytes[8] & 0x3f) | 0x80);
+
+        // Swap the order of the bytes for the Guid constructor to work properly.
+        bytes = [
+            bytes[3], bytes[2], bytes[1], bytes[0],
+            bytes[5], bytes[4],
+            bytes[7], bytes[6],
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+        ];
 
         return new Guid(bytes);
     }
