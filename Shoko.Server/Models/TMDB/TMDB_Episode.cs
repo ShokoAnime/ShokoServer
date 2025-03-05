@@ -56,7 +56,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// </summary>
     /// <remarks>
     /// Will be <code>null</code> if not linked. Will be <code>0</code> if no
-    /// TvDB link is found in TMDB. Otherwise it will be the TvDB episode ID.
+    /// TvDB link is found in TMDB. Otherwise, it will be the TvDB episode ID.
     /// </remarks>
     public int? TvdbEpisodeID { get; set; }
 
@@ -133,27 +133,6 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
-
-    #endregion
-
-    #region Constructors
-
-    /// <summary>
-    /// Constructor for NHibernate to work correctly while hydrating the rows
-    /// from the database.
-    /// </summary>
-    public TMDB_Episode() { }
-
-    /// <summary>
-    /// Constructor to create a new episode in the provider.
-    /// </summary>
-    /// <param name="episodeId">The TMDB episode id.</param>
-    public TMDB_Episode(int episodeId)
-    {
-        TmdbEpisodeID = episodeId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
 
     #endregion
 
@@ -262,7 +241,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     public virtual IEnumerable<TMDB_Overview_Episode> AllOverviews { get; set; }
 
     [NotMapped]
-    public TMDB_Image? DefaultThumbnail => Images.FirstOrDefault(a => a.IsPreferred && a.ImageType == ImageEntityType.Thumbnail);
+    public TMDB_Image? DefaultThumbnail => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Thumbnail });
 
     /// <summary>
     /// Get all images for the episode
@@ -287,6 +266,9 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         UserVotes = a.Image.UserVotes
     }).ToList();
 
+    /// <summary>
+    /// Gets the Image XRefs, which can be used to get all images for the episode
+    /// </summary>
     public virtual IEnumerable<TMDB_Image_Collection> ImageXRefs { get; set; }
 
     /// <summary>
@@ -303,14 +285,6 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
             .ToList();
-
-    IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => null;
-
-    IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType)
-        => entityType.HasValue
-            ? Images.Where(a => a.ImageType == entityType.Value).ToList()
-            : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     /// <summary>
     /// Get all cast members that have worked on this episode.
@@ -441,6 +415,15 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
             Value = overview.Value,
         })
         .ToList();
+
+    #endregion
+
+    #region IWithImages
+    IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
+        => null;
+
+    IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType)
+        => Images.Where(a => entityType == null || a.ImageType == entityType.Value).ToList();
 
     #endregion
 

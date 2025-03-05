@@ -126,7 +126,7 @@ public partial class TmdbController : BaseController
             return movies
                 .Search(
                     search,
-                    movie => movie.GetAllTitles()
+                    movie => movie.AllTitles
                         .WhereInLanguages(languages)
                         .Select(title => title.Value)
                         .Append(movie.EnglishTitle)
@@ -218,7 +218,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         var preferredTitle = movie.GetPreferredTitle();
-        return new(movie.GetAllTitles().ToDto(movie.EnglishTitle, preferredTitle, language));
+        return new(movie.AllTitles.ToDto(movie.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Movie/{movieID}/Overviews")]
@@ -234,7 +234,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         var preferredOverview = movie.GetPreferredOverview();
-        return new(movie.GetAllOverviews().ToDto(movie.EnglishTitle, preferredOverview, language));
+        return new(movie.AllOverviews.ToDto(movie.EnglishTitle, preferredOverview, language));
     }
 
     [HttpGet("Movie/{movieID}/Images")]
@@ -250,7 +250,7 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.GetImages()
+        return movie.Images
             .ToDto(language, includeDisabled: includeDisabled, preferredPoster: movie.DefaultPoster, preferredBackdrop: movie.DefaultBackdrop);
     }
 
@@ -325,7 +325,7 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.TmdbCompanies
+        return movie.Companies
             .Select(company => new Studio(company))
             .ToList();
     }

@@ -1,12 +1,8 @@
-using Shoko.Server.Repositories;
-
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Show_Network
 {
-    #region Properties
-
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -27,15 +23,7 @@ public class TMDB_Show_Network
     /// </summary>
     public int Ordering { get; set; }
 
-    #endregion
+    public virtual TMDB_Network? Network { get; set; }
 
-    #region Methods
-
-    public TMDB_Network? GetTmdbNetwork() =>
-        RepoFactory.TMDB_Network.GetByTmdbNetworkID(TmdbNetworkID);
-
-    public TMDB_Show? GetTmdbShow() =>
-        RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
-
-    #endregion
+    public virtual TMDB_Show? Show { get; set; }
 }

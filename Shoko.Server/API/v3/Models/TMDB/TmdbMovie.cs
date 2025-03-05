@@ -181,11 +181,11 @@ public class TmdbMovie
         ImdbMovieID = movie.ImdbMovieID;
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
-            Titles = movie.GetAllTitles()
+            Titles = movie.AllTitles
                 .ToDto(movie.EnglishTitle, preferredTitle, language);
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
-            Overviews = movie.GetAllOverviews()
+            Overviews = movie.AllOverviews
                 .ToDto(movie.EnglishOverview, preferredOverview, language);
         OriginalLanguage = movie.OriginalLanguageCode;
         IsRestricted = movie.IsRestricted;
@@ -205,11 +205,11 @@ public class TmdbMovie
                 .Select(contentRating => new ContentRating(contentRating))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Studios))
-            Studios = movie.TmdbCompanies
+            Studios = movie.Companies
                 .Select(company => new Studio(company))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
-            Images = movie.GetImages()
+            Images = movie.Images
                 .ToDto(language, preferredPoster: movie.DefaultPoster, preferredBackdrop: movie.DefaultBackdrop);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = movie.Cast

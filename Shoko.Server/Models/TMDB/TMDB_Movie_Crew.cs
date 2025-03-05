@@ -1,5 +1,4 @@
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -28,17 +27,16 @@ public class TMDB_Movie_Crew : TMDB_Crew, ICrew<IMovie>
 
     #region Methods
 
-    public TMDB_Movie? GetTmdbMovie() =>
-        RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
+    public virtual TMDB_Movie? Movie { get; set; }
 
     public override IMetadata<int>? GetTmdbParent() =>
-        GetTmdbMovie();
+        Movie;
 
     #endregion
 
     #region ICrew Implementation
 
-    IMovie? ICrew<IMovie>.ParentOfType => GetTmdbMovie();
+    IMovie? ICrew<IMovie>.ParentOfType => Movie;
 
     #endregion
 }

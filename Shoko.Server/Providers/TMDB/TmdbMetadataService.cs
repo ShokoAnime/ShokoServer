@@ -469,7 +469,12 @@ public class TmdbMetadataService
         using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "metadata", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
-            var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId) ?? new(movieId);
+            var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId) ?? new TMDB_Movie
+            {
+                TmdbMovieID = movieId,
+                CreatedAt = DateTime.Now,
+                LastUpdatedAt = DateTime.Now
+            };
             var newlyAdded = tmdbMovie.TMDB_MovieID == 0;
             if (!forceRefresh && tmdbMovie.CreatedAt != tmdbMovie.LastUpdatedAt && tmdbMovie.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
@@ -725,7 +730,12 @@ public class TmdbMetadataService
             if (movieXref is null)
             {
                 xrefsToAdd++;
-                xrefsToSave.Add(new(collectionId, movie.Id, index + 1));
+                xrefsToSave.Add(new TMDB_Collection_Movie
+                {
+                    TmdbCollectionID = collectionId,
+                    TmdbMovieID = movie.Id,
+                    Ordering = index + 1
+                });
             }
             else if (movieXref.Ordering != index + 1)
             {
@@ -1172,7 +1182,12 @@ public class TmdbMetadataService
                 if (!existingEpisodes.TryGetValue(reducedEpisode.Id, out var tmdbEpisode))
                 {
                     episodesToAdd++;
-                    tmdbEpisode = new(reducedEpisode.Id);
+                    tmdbEpisode = new TMDB_Episode
+                    {
+                        TmdbEpisodeID = reducedEpisode.Id,
+                        CreatedAt = DateTime.Now,
+                        LastUpdatedAt = DateTime.Now
+                    };
                 }
                 var newlyAddedEpisode = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
 

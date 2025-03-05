@@ -411,9 +411,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// Get all TMDB network cross-references linked to the show.
     /// </summary>
     /// <returns>All TMDB network cross-references linked to the show.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Show_Network> TmdbNetworkCrossReferences =>
-        RepoFactory.TMDB_Show_Network.GetByTmdbShowID(TmdbShowID);
+    public virtual IEnumerable<TMDB_Show_Network> NetworkXRefs { get; set; }
 
     /// <summary>
     /// Get all TMDB networks linked to the show.
@@ -421,8 +419,8 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// <returns>All TMDB networks linked to the show.</returns>
     [NotMapped]
     public IReadOnlyList<TMDB_Network> TmdbNetworks =>
-        TmdbNetworkCrossReferences
-            .Select(xref => xref.GetTmdbNetwork())
+        NetworkXRefs
+            .Select(xref => xref.Network)
             .WhereNotNull()
             .ToList();
 

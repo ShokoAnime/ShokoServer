@@ -185,27 +185,6 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #endregion
 
-    #region Constructors
-
-    /// <summary>
-    /// Constructor for NHibernate to work correctly while hydrating the rows
-    /// from the database.
-    /// </summary>
-    public TMDB_Movie() { }
-
-    /// <summary>
-    /// Constructor to create a new movie in the provider.
-    /// </summary>
-    /// <param name="movieId">The TMDB Movie id.</param>
-    public TMDB_Movie(int movieId)
-    {
-        TmdbMovieID = movieId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
-
-    #endregion
-
     #region Methods
 
     /// <summary>
@@ -272,14 +251,11 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     /// <param name="useFallback">Use a fallback title if no title was found in
     /// any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all movie titles if they're
-    /// already cached from a previous call to <seealso cref="GetAllTitles"/>.
-    /// </param>
     /// <returns>The preferred movie title, or null if no preferred title was
     /// found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
+    public TMDB_Title? GetPreferredTitle(bool useFallback = true)
     {
-        var titles = GetAllTitles(force);
+        var titles = AllTitles;
 
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
@@ -295,20 +271,10 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     }
 
     /// <summary>
-    /// Cached reference to all titles for the movie, so we won't have to hit
-    /// the database twice to get all titles _and_ the preferred title.
-    /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles = null;
-
-    /// <summary>
     /// Get all titles for the movie.
     /// </summary>
-    /// <param name="force">Forcefully re-fetch all movie titles if they're
-    /// already cached from a previous call. </param>
-    /// <returns>All titles for the movie.</returns>
-    public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID);
+    /// <value>All titles for the movie.</value>
+    public virtual IEnumerable<TMDB_Title> AllTitles { get; set; }
 
     /// <summary>
     /// Get the preferred overview using the preferred episode title preference
@@ -316,15 +282,11 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     /// <param name="useFallback">Use a fallback overview if no overview was
     /// found in any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all movie overviews if they're
-    /// already cached from a previous call to
-    /// <seealso cref="GetAllOverviews"/>.
-    /// </param>
     /// <returns>The preferred movie overview, or null if no preferred overview
     /// was found.</returns>
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
+    public TMDB_Overview? GetPreferredOverview(bool useFallback = true)
     {
-        var overviews = GetAllOverviews(force);
+        var overviews = AllOverviews;
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
@@ -337,38 +299,42 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     }
 
     /// <summary>
-    /// Cached reference to all overviews for the movie, so we won't have to hit
-    /// the database twice to get all overviews _and_ the preferred overview.
-    /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews = null;
-
-    /// <summary>
     /// Get all overviews for the movie.
     /// </summary>
-    /// <param name="force">Forcefully re-fetch all movie overviews if they're
-    /// already cached from a previous call.</param>
     /// <returns>All overviews for the movie.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Movie, TmdbMovieID);
+    public virtual IEnumerable<TMDB_Overview> AllOverviews { get; set; }
 
     [NotMapped]
-    public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
+    public TMDB_Image? DefaultPoster => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Poster });
 
     [NotMapped]
-    public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileName(BackdropPath)?.GetImageMetadata(true, ImageEntityType.Backdrop);
+    public TMDB_Image? DefaultBackdrop => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Backdrop });
 
     /// <summary>
-    /// Get all images for the movie, or all images for the given
-    /// <paramref name="entityType"/> provided for the movie.
+    /// Gets all image xrefs, which can be used to get all images for the movie
     /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the movie.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(TmdbMovieID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbMovieID(TmdbMovieID);
+    public virtual IEnumerable<TMDB_Image_Movie> ImageXRefs { get; set; }
+
+    /// <summary>
+    /// Get all images for the movie
+    /// </summary>
+    [NotMapped]
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
+    {
+        a.ImageType, Image = a.GetTmdbImage()
+    }).Where(a => a.Image != null).Select(a => new TMDB_Image
+    {
+        ImageType = a.ImageType,
+        RemoteFileName = a.Image!.RemoteFileName,
+        IsEnabled = a.Image.IsEnabled,
+        IsPreferred = a.Image.IsPreferred,
+        LanguageCode = a.Image.LanguageCode,
+        Height = a.Image.Height,
+        Width = a.Image.Width,
+        TMDB_ImageID = a.Image.TMDB_ImageID,
+        UserRating = a.Image.UserRating,
+        UserVotes = a.Image.UserVotes
+    }).ToList();
 
     /// <summary>
     /// Get all images for the movie, or all images for the given
@@ -380,7 +346,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// <returns>A read-only list of images that are linked to the movie.
     /// </returns>
     public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImageMetadata> preferredImages) =>
-        GetImages(entityType)
+        Images.Where(a => entityType == null || a.ImageType == entityType)
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
             .ToList();
@@ -390,17 +356,15 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     /// <returns>All TMDB company cross-references linked to the movie.
     /// </returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Company_Entity> TmdbCompanyCrossReferences =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(ForeignEntityType.Movie, TmdbMovieID);
+    public IEnumerable<TMDB_Company_Movie> CompanyXRefs { get; set; }
 
     /// <summary>
     /// Get all TMDB companies linked to the movie.
     /// </summary>
     /// <returns>All TMDB companies linked to the movie.</returns>
     [NotMapped]
-    public IReadOnlyList<TMDB_Company> TmdbCompanies =>
-        TmdbCompanyCrossReferences
+    public IReadOnlyList<TMDB_Company> Companies =>
+        CompanyXRefs
             .Select(xref => xref.Company)
             .WhereNotNull()
             .ToList();
@@ -410,8 +374,8 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     /// <returns>All TMDB studios linked to the movie.</returns>
     [NotMapped]
-    public IReadOnlyList<TMDB_Studio<TMDB_Movie>> TmdbStudios =>
-        TmdbCompanyCrossReferences
+    public IReadOnlyList<TMDB_Studio<TMDB_Movie>> Studios =>
+        CompanyXRefs
             .Select(xref => xref.Company is { } company ? new TMDB_Studio<TMDB_Movie>(company, this) : null)
             .WhereNotNull()
             .ToList();
@@ -420,17 +384,13 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// Get all cast members that have worked on this movie.
     /// </summary>
     /// <returns>All cast members that have worked on this movie.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Movie_Cast> Cast =>
-        RepoFactory.TMDB_Movie_Cast.GetByTmdbMovieID(TmdbMovieID);
+    public virtual IEnumerable<TMDB_Movie_Cast> Cast { get; set; }
 
     /// <summary>
     /// Get all crew members that have worked on this movie.
     /// </summary>
     /// <returns>All crew members that have worked on this movie.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Movie_Crew> Crew =>
-        RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(TmdbMovieID);
+    public virtual IEnumerable<TMDB_Movie_Crew> Crew { get; set; }
 
     /// <summary>
     /// Get the TMDB movie collection linked to the movie from the local
@@ -487,7 +447,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     string IWithTitles.PreferredTitle => GetPreferredTitle()!.Value;
 
-    IReadOnlyList<AnimeTitle> IWithTitles.Titles => GetAllTitles()
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles => AllTitles
         .Select(title => new AnimeTitle()
         {
             Language = title.Language,
@@ -506,7 +466,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     string IWithDescriptions.PreferredDescription => GetPreferredOverview()!.Value;
 
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => GetAllOverviews()
+    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => AllOverviews
         .Select(overview => new TextDescription()
         {
             CountryCode = overview.CountryCode,
@@ -523,21 +483,22 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
 
-    IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+    IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType) =>
+        Images.Where(a => entityType == null || a.ImageType == entityType).ToList();
 
     #endregion
 
     #region IWithCastAndCrew Implementation
 
-    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast.ToList();
 
-    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew.ToList();
 
     #endregion
 
     #region IWithStudios Implementation
 
-    IReadOnlyList<IStudio> IWithStudios.Studios => TmdbStudios;
+    IReadOnlyList<IStudio> IWithStudios.Studios => Studios;
 
     #endregion
 

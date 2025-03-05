@@ -81,7 +81,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
                     TmdbEpisodes is { Count: > 0 } tmdbEpisodes
                         ? tmdbEpisodes[0].AllTitles.ToList()
                         : TmdbMovies is { Count: 1 } tmdbMovies
-                            ? tmdbMovies[0].GetAllTitles()
+                            ? tmdbMovies[0].AllTitles.ToList()
                             : []
                 );
 
@@ -124,7 +124,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
                     TmdbEpisodes is { Count: > 0 } tmdbEpisodes
                         ? tmdbEpisodes[0].AllOverviews.ToList()
                         : TmdbMovies is { Count: 1 } tmdbMovies
-                            ? tmdbMovies[0].GetAllOverviews()
+                            ? tmdbMovies[0].AllOverviews.ToList()
                             : []
                 );
 

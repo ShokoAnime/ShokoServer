@@ -1,3 +1,4 @@
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.Models.TMDB;
@@ -42,7 +43,7 @@ public class Network
         ID = company.TmdbNetworkID;
         Name = company.Name;
         CountryOfOrigin = company.CountryOfOrigin;
-        Size = company.GetTmdbNetworkCrossReferences().Count;
+        Size = company.NetworkXRefs.Count();
         Source = DataSource.TMDB;
     }
 }

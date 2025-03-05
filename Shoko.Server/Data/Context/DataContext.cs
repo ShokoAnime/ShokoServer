@@ -349,6 +349,8 @@ public class DataContext : DbContext
 
             // Foreign Keys
             entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbEpisodeID).HasForeignKey(d => d.TmdbEntityID);
+            entity.HasMany(a => a.AllTitles).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbEpisodeID);
+            entity.HasMany(a => a.AllOverviews).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbEpisodeID);
             entity.HasOne(d => d.Season).WithMany(p => p.Episodes).HasForeignKey(d => d.TmdbSeasonID).HasPrincipalKey(a => a.TmdbSeasonID);
             entity.HasOne(d => d.Show).WithMany(p => p.Episodes).HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
             entity.HasMany(a => a.Cast).WithOne(a => a.Episode).HasForeignKey(a => a.TmdbEpisodeID).HasPrincipalKey(a => a.TmdbEpisodeID);
@@ -454,6 +456,12 @@ public class DataContext : DbContext
             entity.Property(e => e.ReleasedAt).HasColumnType("DATE").HasConversion<DateOnlyToString>();
             entity.Property(e => e.TmdbCollectionID).HasColumnName("TmdbCollectionID");
             entity.Property(e => e.TmdbMovieID).HasColumnName("TmdbMovieID");
+
+            entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbMovieID).HasForeignKey(d => d.TmdbEntityID);
+            entity.HasMany(a => a.AllTitles).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbMovieID);
+            entity.HasMany(a => a.AllOverviews).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbMovieID);
+            entity.HasMany(a => a.Cast).WithOne(a => a.Movie).HasForeignKey(a => a.TmdbMovieID).HasPrincipalKey(a => a.TmdbMovieID);
+            entity.HasMany(a => a.Crew).WithOne(a => a.Movie).HasForeignKey(a => a.TmdbMovieID).HasPrincipalKey(a => a.TmdbMovieID);
         });
 
         modelBuilder.Entity<TMDB_Movie_Cast>(entity =>
@@ -587,6 +595,9 @@ public class DataContext : DbContext
             entity.Property(e => e.TMDB_Show_NetworkID).HasColumnName("TMDB_Show_NetworkID");
             entity.Property(e => e.TmdbNetworkID).HasColumnName("TmdbNetworkID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
+
+            entity.HasOne(d => d.Network).WithMany(a => a.NetworkXRefs).HasPrincipalKey(a => a.TmdbNetworkID).HasForeignKey(d => d.TmdbNetworkID);
+            entity.HasOne(d => d.Show).WithMany(a => a.NetworkXRefs).HasPrincipalKey(a => a.TmdbShowID).HasForeignKey(d => d.TmdbShowID);
         });
 
         modelBuilder.Entity<TMDB_Title>(entity =>

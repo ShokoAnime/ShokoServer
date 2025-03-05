@@ -168,7 +168,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                     TmdbShows is { Count: > 0 } tmdbShows
                         ? tmdbShows[0].GetAllTitles()
                         : TmdbMovies is { Count: 1 } tmdbMovies
-                            ? tmdbMovies[0].GetAllTitles()
+                            ? tmdbMovies[0].AllTitles.ToList()
                             : []
                 );
 
@@ -279,7 +279,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                     TmdbShows is { Count: > 0 } tmdbShows
                         ? tmdbShows[0].GetAllOverviews()
                         : TmdbMovies is { Count: 1 } tmdbMovies
-                            ? tmdbMovies[0].GetAllOverviews()
+                            ? tmdbMovies[0].AllOverviews.ToList()
                             : []
                 );
 
@@ -646,7 +646,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             if (AniDB_Anime is ISeries anidbAnime)
                 list.AddRange(anidbAnime.Studios);
             foreach (var movie in TmdbMovies)
-                list.AddRange(movie.TmdbStudios);
+                list.AddRange(movie.Studios);
             foreach (var show in TmdbShows)
                 list.AddRange(show.TmdbStudios);
             return list;

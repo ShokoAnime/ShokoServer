@@ -1,14 +1,10 @@
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Network
 {
-    #region Properties
-
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -29,20 +25,6 @@ public class TMDB_Network
     /// </summary>
     public string CountryOfOrigin { get; set; } = string.Empty;
 
-    #endregion
+    public IEnumerable<TMDB_Show_Network> NetworkXRefs { get; set; }
 
-    #region Constructors
-
-    #endregion
-
-    #region Methods
-
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbNetworkIDAndType(TmdbNetworkID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbNetworkID(TmdbNetworkID);
-
-    public IReadOnlyList<TMDB_Show_Network> GetTmdbNetworkCrossReferences() =>
-        RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(TmdbNetworkID);
-
-    #endregion
 }
