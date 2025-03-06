@@ -1,4 +1,6 @@
 
+using System;
+
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 /// <summary>
@@ -49,6 +51,7 @@ public enum TitleLanguage
     /// <summary>
     /// Bangladeshi.
     /// </summary>
+    [Obsolete("Unused, check Bengali instead")]
     Bangladeshi,
 
     /// <summary>
