@@ -72,19 +72,19 @@ public class TMDB_ImageRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public IReadOnlyList<TMDB_Image> GetByType(ImageEntityType type, bool ofType = true)
         => RepoFactory.TMDB_Image_Entity.GetByImageType(type)
-            .Select(x => x.GetTmdbImage(ofType))
+            .Select(x => x.Image)
             .WhereNotNull()
             .ToList();
 
     public IReadOnlyList<TMDB_Image> GetByForeignID(int? id, ForeignEntityType foreignType, bool ofType = true)
         => RepoFactory.TMDB_Image_Entity.GetByForeignID(id, foreignType)
-            .Select(x => x.GetTmdbImage(ofType))
+            .Select(x => x.Image)
             .WhereNotNull()
             .ToList();
 
     public IReadOnlyList<TMDB_Image> GetByForeignIDAndType(int? id, ForeignEntityType foreignType, ImageEntityType type, bool ofType = true)
         => RepoFactory.TMDB_Image_Entity.GetByForeignIDAndType(id, foreignType, type)
-            .Select(x => x.GetTmdbImage(ofType))
+            .Select(x => x.Image)
             .WhereNotNull()
             .ToList();
 

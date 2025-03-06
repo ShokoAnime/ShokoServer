@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -11,8 +10,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public abstract class TMDB_Cast : ICast
 {
-    #region Properties
-
     /// <summary>
     /// TMDB Person ID for the cast member.
     /// </summary>
@@ -39,32 +36,15 @@ public abstract class TMDB_Cast : ICast
     /// </summary>
     public int Ordering { get; set; }
 
-    #endregion
-
-    #region Methods
-
-    public TMDB_Person? GetTmdbPerson() =>
-        RepoFactory.TMDB_Person.GetByTmdbPersonID(TmdbPersonID);
+    public virtual TMDB_Person? Person { get; set; }
 
     public abstract IMetadata<int>? GetTmdbParent();
-
-    #endregion
-
-    #region IMetadata Implementation
 
     string IMetadata<string>.ID => TmdbCreditID;
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
 
-    #endregion
-
-    #region IWithPortraitImage Implementation
-
     IImageMetadata? IWithPortraitImage.PortraitImage => null;
-
-    #endregion
-
-    #region ICast Implementation
 
     int? ICast.CreatorID => TmdbPersonID;
 
@@ -84,7 +64,6 @@ public abstract class TMDB_Cast : ICast
 
     ICharacter? ICast.Character => null;
 
-    ICreator? ICast.Creator => GetTmdbPerson();
+    ICreator? ICast.Creator => Person;
 
-    #endregion
 }

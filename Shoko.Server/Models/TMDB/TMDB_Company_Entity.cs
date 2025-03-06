@@ -4,13 +4,10 @@ using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public abstract class TMDB_Company_Entity
 {
-    #region Properties
-
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -42,16 +39,9 @@ public abstract class TMDB_Company_Entity
     /// </summary>
     public DateOnly? ReleasedAt { get; set; }
 
-    #endregion
-
-    #region Methods
-
     public virtual TMDB_Company? Company { get; set; }
-
     public virtual TMDB_Show? TVShow { get; set; }
     public virtual TMDB_Movie? Movie { get; set; }
-
-    #endregion
 }
 
 public class TMDB_Company_Show : TMDB_Company_Entity;

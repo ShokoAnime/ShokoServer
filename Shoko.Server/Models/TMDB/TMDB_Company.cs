@@ -1,11 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models.Interfaces;
-using Shoko.Server.Repositories;
 using TMDbLib.Objects.General;
 
 #nullable enable
@@ -13,8 +9,6 @@ namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Company
 {
-    #region Properties
-
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -35,20 +29,9 @@ public class TMDB_Company
     /// </summary>
     public string CountryOfOrigin { get; set; } = string.Empty;
 
-    #endregion
+    public virtual ICollection<TMDB_Image_Company> ImageXRefs { get; set; }
 
-    #region Constructors
-
-    public TMDB_Company() { }
-
-    public TMDB_Company(int companyId)
-    {
-        TmdbCompanyID = companyId;
-    }
-
-    #endregion
-
-    #region Methods
+    public virtual ICollection<TMDB_Company_Entity> XRefs { get; set; }
 
     public bool Populate(ProductionCompany company)
     {
@@ -66,12 +49,10 @@ public class TMDB_Company
         return updated;
     }
 
-    public virtual IEnumerable<TMDB_Image_Company> ImageXRefs { get; set; }
-
     [NotMapped]
     public IEnumerable<TMDB_Image> Images => ImageXRefs.Select(a => new
     {
-        a.ImageType, Image = a.GetTmdbImage()
+        a.ImageType, Image = a.Image
     }).Where(a => a.Image != null).Select(a => new TMDB_Image
     {
         ImageType = a.ImageType,
@@ -87,8 +68,4 @@ public class TMDB_Company
     });
 
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType) => Images.Where(a => a.ImageType == entityType).ToList();
-
-    public virtual IEnumerable<TMDB_Company_Entity> XRefs { get; set; }
-
-    #endregion
 }

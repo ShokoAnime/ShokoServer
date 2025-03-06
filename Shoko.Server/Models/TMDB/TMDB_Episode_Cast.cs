@@ -1,5 +1,4 @@
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -9,8 +8,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Episode_Cast : TMDB_Cast, ICast<IEpisode>
 {
-    #region Properties
-
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -39,20 +36,11 @@ public class TMDB_Episode_Cast : TMDB_Cast, ICast<IEpisode>
     /// </summary>
     public bool IsGuestRole { get; set; }
 
-    #endregion
-
-    #region Methods
-
     public virtual TMDB_Episode? Episode { get; set; }
 
     public override IMetadata<int>? GetTmdbParent() =>
         Episode;
 
-    #endregion
-
-    #region ICast Implementation
-
     IEpisode? ICast<IEpisode>.ParentOfType => Episode;
 
-    #endregion
 }

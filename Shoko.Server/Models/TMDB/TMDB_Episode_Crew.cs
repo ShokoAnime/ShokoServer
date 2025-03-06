@@ -8,8 +8,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Episode_Crew : TMDB_Crew, ICrew<IEpisode>
 {
-    #region Properties
-
     /// <summary>
     ///  Local ID.
     /// </summary>
@@ -33,19 +31,10 @@ public class TMDB_Episode_Crew : TMDB_Crew, ICrew<IEpisode>
     /// <inheritdoc />
     public override int TmdbParentID => TmdbEpisodeID;
 
-    #endregion
-
-    #region Methods
-
     public virtual TMDB_Episode? Episode { get; set; }
 
     public override IMetadata<int>? GetTmdbParent() => Episode;
 
-    #endregion
-
-    #region ICrew Implementation
-
     IEpisode? ICrew<IEpisode>.ParentOfType => Episode;
 
-    #endregion
 }

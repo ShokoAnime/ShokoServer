@@ -5,8 +5,6 @@ namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Movie_Cast : TMDB_Cast, ICast<IMovie>
 {
-    #region Properties
-
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -20,20 +18,10 @@ public class TMDB_Movie_Cast : TMDB_Cast, ICast<IMovie>
     /// <inheritdoc />
     public override int TmdbParentID => TmdbMovieID;
 
-    #endregion
-
-    #region Methods
-
     public virtual TMDB_Movie? Movie { get; set; }
 
     public override IMetadata<int>? GetTmdbParent() =>
         Movie;
 
-    #endregion
-
-    #region ICast Implementation
-
     IMovie? ICast<IMovie>.ParentOfType => Movie;
-
-    #endregion
 }

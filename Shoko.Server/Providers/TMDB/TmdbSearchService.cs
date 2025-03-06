@@ -401,7 +401,7 @@ public partial class TmdbSearchService
                         GenreIds = [],
                         MediaType = TMDbLib.Objects.General.MediaType.Tv,
                         OriginalLanguage = x.OriginalLanguageCode,
-                        OriginCountry = x.TmdbCompanies.Select(x => x.CountryOfOrigin).Distinct().ToList(),
+                        OriginCountry = x.Companies.Select(x => x.CountryOfOrigin).Distinct().ToList(),
                         Overview = x.EnglishOverview,
                         PosterPath = x.PosterPath,
                         Popularity = x.UserRating,

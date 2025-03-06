@@ -92,9 +92,9 @@ public class Role
 
     public Role(TMDB_Movie_Cast cast)
     {
-        var person = cast.GetTmdbPerson() ??
+        var person = cast.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Character = new()
         {
             Name = cast.CharacterName,
@@ -105,7 +105,7 @@ public class Role
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
@@ -113,9 +113,9 @@ public class Role
 
     public Role(TMDB_Show_Cast cast)
     {
-        var person = cast.GetTmdbPerson() ??
+        var person = cast.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Character = new()
         {
             Name = cast.CharacterName,
@@ -126,7 +126,7 @@ public class Role
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
@@ -134,9 +134,9 @@ public class Role
 
     public Role(TMDB_Season_Cast cast)
     {
-        var person = cast.GetTmdbPerson() ??
+        var person = cast.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Character = new()
         {
             Name = cast.CharacterName,
@@ -147,7 +147,7 @@ public class Role
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
@@ -155,9 +155,9 @@ public class Role
 
     public Role(TMDB_Episode_Cast cast)
     {
-        var person = cast.GetTmdbPerson() ??
+        var person = cast.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Character = new()
         {
             Name = cast.CharacterName,
@@ -168,7 +168,7 @@ public class Role
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
@@ -178,14 +178,14 @@ public class Role
     {
         var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Staff = new()
         {
             ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = crew.ToCreatorRole();
         RoleDetails = $"{crew.Department}, {crew.Job}";
@@ -195,14 +195,14 @@ public class Role
     {
         var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Staff = new()
         {
             ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = crew.ToCreatorRole();
         RoleDetails = $"{crew.Department}, {crew.Job}";
@@ -212,14 +212,14 @@ public class Role
     {
         var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Staff = new()
         {
             ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = crew.ToCreatorRole();
         RoleDetails = $"{crew.Department}, {crew.Job}";
@@ -229,14 +229,14 @@ public class Role
     {
         var person = crew.Person ??
             throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
-        var personImages = person.GetImages();
+        var personImage = person.Images.FirstOrDefault();
         Staff = new()
         {
             ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
+            Image = personImage != null ? new Image(personImage) : null,
         };
         RoleName = crew.ToCreatorRole();
         RoleDetails = $"{crew.Department}, {crew.Job}";

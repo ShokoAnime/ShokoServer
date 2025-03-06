@@ -13,11 +13,8 @@ namespace Shoko.Server.Models.TMDB;
 /// Alternate Season and Episode ordering using TMDB's "Episode Group" feature.
 /// Note: don't ask me why they called it that.
 /// </summary>
-// TODO Navigation properties
 public class TMDB_AlternateOrdering : TMDB_Base<string>
 {
-    #region Properties
-
     public override string Id => TmdbEpisodeGroupCollectionID;
 
     /// <summary>
@@ -83,20 +80,9 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
-    #region Constructors
-
-    public TMDB_AlternateOrdering() { }
-
-    public TMDB_AlternateOrdering(string collectionId)
-    {
-        TmdbEpisodeGroupCollectionID = collectionId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
-
-    #endregion
-    #region Methods
+    public virtual TMDB_Show? Show { get; set; }
+    public virtual ICollection<TMDB_AlternateOrdering_Season> AlternateOrderingSeasons { get; set; }
+    public virtual ICollection<TMDB_AlternateOrdering_Episode> AlternateOrderingEpisodes { get; set; }
 
     public bool Populate(TvGroupCollection collection, int showId)
     {
@@ -119,7 +105,7 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>
     /// <returns>All cast members that have worked on this season.</returns>
     [NotMapped]
     public IReadOnlyList<TMDB_Show_Cast> Cast =>
-        TmdbAlternateOrderingEpisodes
+        AlternateOrderingEpisodes
             .SelectMany(episode => episode.TmdbEpisode?.Cast ?? [])
             .WhereNotNull()
             .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
@@ -148,7 +134,7 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>
     /// <returns>All crew members that have worked on this season.</returns>
     [NotMapped]
     public IReadOnlyList<TMDB_Show_Crew> Crew =>
-        TmdbAlternateOrderingEpisodes
+        AlternateOrderingEpisodes
             .Select(episode => episode.TmdbEpisode?.Crew)
             .WhereNotNull()
             .SelectMany(list => list)
@@ -172,10 +158,4 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>
             .ThenBy(crew => crew.Job)
             .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
-
-    public virtual TMDB_Show? TmdbShow { get; set; }
-    public virtual IEnumerable<TMDB_AlternateOrdering_Season> TmdbAlternateOrderingSeasons { get; set; }
-    public virtual IEnumerable<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes { get; set; }
-
-    #endregion
 }

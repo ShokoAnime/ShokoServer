@@ -24,8 +24,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 {
-    #region Properties
-
     /// <summary>
     /// IEntityMetadata.Id.
     /// </summary>
@@ -134,7 +132,57 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
+    
+    /// <summary>
+    /// Get all titles for the episode.
+    /// </summary>
+    /// <value>All titles for the episode.</value>
+    public virtual ICollection<TMDB_Title_Episode> AllTitles { get; set; }
+
+    /// <summary>
+    /// Get all overviews for the episode.
+    /// </summary>
+    /// <value>All overviews for the episode.</value>
+    public virtual ICollection<TMDB_Overview_Episode> AllOverviews { get; set; }
+
+    /// <summary>
+    /// Gets the Image XRefs, which can be used to get all images for the episode
+    /// </summary>
+    public virtual ICollection<TMDB_Image_Collection> ImageXRefs { get; set; }
+
+    /// <summary>
+    /// Get all cast members that have worked on this episode.
+    /// </summary>
+    /// <returns>All cast members that have worked on this episode.</returns>
+    public virtual ICollection<TMDB_Episode_Cast> Cast { get; set; }
+
+    /// <summary>
+    /// Get all crew members that have worked on this episode.
+    /// </summary>
+    /// <returns>All crew members that have worked on this episode.</returns>
+    public virtual ICollection<TMDB_Episode_Crew> Crew { get; set; }
+
+    /// <summary>
+    /// Get the TMDB season associated with the episode, or null if the season
+    /// have been purged from the local database for whatever reason.
+    /// </summary>
+    /// <returns>The TMDB season, or null.</returns>
+    public virtual TMDB_Season? Season { get; set; }
+
+    /// <summary>
+    /// Get the TMDB show associated with the episode, or null if the show have
+    /// been purged from the local database for whatever reason.
+    /// </summary>
+    /// <returns>The TMDB show, or null.</returns>
+    public virtual TMDB_Show? Show { get; set; }
+
+    /// <summary>
+    /// Get all alternate ordering entries for the episode available from the
+    /// local database. You need to have alternate orderings enabled in the
+    /// settings file for these to be populated.
+    /// </summary>
+    /// <returns>All alternate ordering entries for the episode.</returns>
+    public virtual ICollection<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes { get; set; }
 
     #region Methods
 
@@ -228,18 +276,6 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         return useFallback ? new TMDB_Overview_Episode { ParentID = TmdbEpisodeID, Value = EnglishOverview, LanguageCode = "en", CountryCode = "US" } : null;
     }
 
-    /// <summary>
-    /// Get all titles for the episode.
-    /// </summary>
-    /// <value>All titles for the episode.</value>
-    public virtual IEnumerable<TMDB_Title_Episode> AllTitles { get; set; }
-
-    /// <summary>
-    /// Get all overviews for the episode.
-    /// </summary>
-    /// <value>All overviews for the episode.</value>
-    public virtual IEnumerable<TMDB_Overview_Episode> AllOverviews { get; set; }
-
     [NotMapped]
     public TMDB_Image? DefaultThumbnail => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Thumbnail });
 
@@ -251,7 +287,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     [NotMapped]
     public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
     {
-        a.ImageType, Image = a.GetTmdbImage()
+        a.ImageType, Image = a.Image
     }).Where(a => a.Image != null).Select(a => new TMDB_Image
     {
         ImageType = a.ImageType,
@@ -267,11 +303,6 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
     }).ToList();
 
     /// <summary>
-    /// Gets the Image XRefs, which can be used to get all images for the episode
-    /// </summary>
-    public virtual IEnumerable<TMDB_Image_Collection> ImageXRefs { get; set; }
-
-    /// <summary>
     /// Get all images for the episode, or all images for the given
     /// <paramref name="entityType"/> provided for the episode.
     /// </summary>
@@ -285,40 +316,6 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
             .ToList();
-
-    /// <summary>
-    /// Get all cast members that have worked on this episode.
-    /// </summary>
-    /// <returns>All cast members that have worked on this episode.</returns>
-    public virtual IEnumerable<TMDB_Episode_Cast> Cast { get; set; }
-
-    /// <summary>
-    /// Get all crew members that have worked on this episode.
-    /// </summary>
-    /// <returns>All crew members that have worked on this episode.</returns>
-    public virtual IEnumerable<TMDB_Episode_Crew> Crew { get; set; }
-
-    /// <summary>
-    /// Get the TMDB season associated with the episode, or null if the season
-    /// have been purged from the local database for whatever reason.
-    /// </summary>
-    /// <returns>The TMDB season, or null.</returns>
-    public virtual TMDB_Season? Season { get; set; }
-
-    /// <summary>
-    /// Get the TMDB show associated with the episode, or null if the show have
-    /// been purged from the local database for whatever reason.
-    /// </summary>
-    /// <returns>The TMDB show, or null.</returns>
-    public virtual TMDB_Show? Show { get; set; }
-
-    /// <summary>
-    /// Get all alternate ordering entries for the episode available from the
-    /// local database. You need to have alternate orderings enabled in the
-    /// settings file for these to be populated.
-    /// </summary>
-    /// <returns>All alternate ordering entries for the episode.</returns>
-    public virtual IEnumerable<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes { get; set; }
 
     /// <summary>
     /// Get the alternate ordering entry for the episode with the given

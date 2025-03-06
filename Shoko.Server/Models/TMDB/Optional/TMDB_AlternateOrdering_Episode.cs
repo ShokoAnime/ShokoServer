@@ -7,8 +7,6 @@ namespace Shoko.Server.Models.TMDB;
 // TODO Navigation properties
 public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>
 {
-    #region Properties
-
     public override string Id => $"{TmdbEpisodeGroupID}:{TmdbEpisodeID}";
 
     /// <summary>
@@ -57,21 +55,11 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
-    #region Constructors
-
-    public TMDB_AlternateOrdering_Episode() { }
-
-    public TMDB_AlternateOrdering_Episode(string episodeGroupId, int episodeId)
-    {
-        TmdbEpisodeGroupID = episodeGroupId;
-        TmdbEpisodeID = episodeId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
-
-    #endregion
-    #region Methods
+    
+    public virtual TMDB_Show? TmdbShow { get; set; }
+    public virtual TMDB_Episode? TmdbEpisode { get; set; }
+    public virtual TMDB_AlternateOrdering? TmdbAlternateOrdering { get; set; }
+    public virtual TMDB_AlternateOrdering_Season? TmdbAlternateOrderingSeason { get; set; }
 
     public bool Populate(string collectionId, int showId, int seasonNumber, int episodeNumber)
     {
@@ -85,11 +73,4 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>
 
         return updates.Any(updated => updated);
     }
-
-    public virtual TMDB_Show? TmdbShow { get; set; }
-    public virtual TMDB_Episode? TmdbEpisode { get; set; }
-    public virtual TMDB_AlternateOrdering? TmdbAlternateOrdering { get; set; }
-    public virtual TMDB_AlternateOrdering_Season? TmdbAlternateOrderingSeason { get; set; }
-
-    #endregion
 }

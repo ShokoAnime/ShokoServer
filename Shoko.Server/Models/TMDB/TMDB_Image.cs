@@ -13,8 +13,6 @@ namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Image : Image_Base
 {
-    #region Properties
-
     /// <inheritdoc/>
     public override int ID => TMDB_ImageID;
 
@@ -93,19 +91,11 @@ public class TMDB_Image : Image_Base
     /// </remarks>
     public int UserVotes { get; set; }
 
-    #endregion
-
-    #region Constructors
-
     public TMDB_Image()
     {
         Source = DataSourceEnum.TMDB;
         ImageType = ImageEntityType.None;
     }
-
-    #endregion
-
-    #region Methods
 
     public bool Populate(ImageData data)
     {
@@ -158,5 +148,4 @@ public class TMDB_Image : Image_Base
                 ImageType = imageType ?? ImageType
             };
 
-    #endregion
 }

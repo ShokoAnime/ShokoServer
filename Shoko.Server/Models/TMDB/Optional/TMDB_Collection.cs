@@ -6,7 +6,6 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.Collections;
@@ -19,7 +18,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
 {
-    #region Properties
 
     /// <summary>
     /// IEntityMetadata.Id
@@ -63,30 +61,25 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
-
-    #region Constructors
+    /// <summary>
+    /// Get all titles for the movie collection.
+    /// </summary>
+    /// <value>All titles for the movie collection.</value>
+    public virtual ICollection<TMDB_Title> Titles { get; set; }
 
     /// <summary>
-    /// Constructor for NHibernate to work correctly while hydrating the rows
-    /// from the database.
+    /// Get all overviews for the movie collection.
     /// </summary>
-    public TMDB_Collection() { }
+    /// <value>All overviews for the movie collection.</value>
+    public virtual ICollection<TMDB_Overview> Overviews { get; set; }
+
+    public virtual ICollection<TMDB_Image_Collection> ImageXRefs { get; set; }
 
     /// <summary>
-    /// Constructor to create a new movie collection in the provider.
+    /// Get all local TMDB movies associated with the movie collection.
     /// </summary>
-    /// <param name="collectionId">The TMDB movie collection id.</param>
-    public TMDB_Collection(int collectionId)
-    {
-        TmdbCollectionID = collectionId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
-
-    #endregion
-
-    #region Methods
+    /// <value>The TMDB movies.</value>
+    public virtual ICollection<TMDB_Movie> Movies { get; set; }
 
     /// <summary>
     /// Populate the fields from the raw data.
@@ -160,18 +153,6 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     }
 
     /// <summary>
-    /// Get all titles for the movie collection.
-    /// </summary>
-    /// <value>All titles for the movie collection.</value>
-    public virtual IEnumerable<TMDB_Title> Titles { get; set; }
-
-    /// <summary>
-    /// Get all overviews for the movie collection.
-    /// </summary>
-    /// <value>All overviews for the movie collection.</value>
-    public virtual IEnumerable<TMDB_Overview> Overviews { get; set; }
-
-    /// <summary>
     /// Get all images for the movie collection, or all images for the given
     /// </summary>
     /// <value>
@@ -180,7 +161,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     [NotMapped]
     public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
     {
-        a.ImageType, Image = a.GetTmdbImage()
+        a.ImageType, Image = a.Image
     }).Where(a => a.Image != null).Select(a => new TMDB_Image
     {
         ImageType = a.ImageType,
@@ -195,18 +176,6 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
         UserVotes = a.Image.UserVotes
     });
 
-    public virtual IEnumerable<TMDB_Image_Collection> ImageXRefs { get; set; }
-
-    /// <summary>
-    /// Get all local TMDB movies associated with the movie collection.
-    /// </summary>
-    /// <value>The TMDB movies.</value>
-    public virtual IEnumerable<TMDB_Movie> Movies { get; set; }
-
-    #endregion
-
-    #region IEntityMetadata
-
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Collection;
 
     DataSourceEnum IEntityMetadata.DataSource => DataSourceEnum.TMDB;
@@ -219,5 +188,4 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
 
     DateOnly? IEntityMetadata.ReleasedAt => null;
 
-    #endregion
 }

@@ -918,7 +918,7 @@ public partial class TmdbController : BaseController
             return shows
                 .Search(
                     search,
-                    show => show.GetAllTitles()
+                    show => show.AllTitles
                         .WhereInLanguages(languages)
                         .Select(title => title.Value)
                         .Append(show.EnglishTitle)
@@ -1026,7 +1026,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         var preferredTitle = show.GetPreferredTitle();
-        return new(show.GetAllTitles().ToDto(show.EnglishTitle, preferredTitle, language));
+        return new(show.AllTitles.ToDto(show.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Show/{showID}/Overviews")]
@@ -1042,7 +1042,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         var preferredOverview = show.GetPreferredOverview();
-        return new(show.GetAllOverviews().ToDto(show.EnglishOverview, preferredOverview, language));
+        return new(show.AllOverviews.ToDto(show.EnglishOverview, preferredOverview, language));
     }
 
     [HttpGet("Show/{showID}/Images")]
@@ -1058,7 +1058,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.GetImages()
+        return show.Images
             .ToDto(language, includeDisabled: includeDisabled, preferredPoster: show.DefaultPoster, preferredBackdrop: show.DefaultBackdrop);
     }
 
@@ -1088,7 +1088,7 @@ public partial class TmdbController : BaseController
         {
             new(show, alternateOrdering),
         };
-        foreach (var altOrder in show.TmdbAlternateOrdering)
+        foreach (var altOrder in show.AlternateOrderings)
             ordering.Add(new(show, altOrder, alternateOrdering));
         return ordering
             .OrderByDescending(o => o.IsDefault)
@@ -1229,7 +1229,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.TmdbCompanies
+        return show.Companies
             .Select(company => new Studio(company))
             .ToList();
     }
@@ -1245,7 +1245,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.TmdbNetworks
+        return show.Networks
             .Select(network => new Network(network))
             .ToList();
     }
@@ -1325,7 +1325,7 @@ public partial class TmdbController : BaseController
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-                return alternateOrdering.TmdbAlternateOrderingSeasons
+                return alternateOrdering.AlternateOrderingSeasons
                     .ToListResult(season => new TmdbSeason(season, include?.CombineFlags()), page, pageSize);
             }
 
@@ -1408,7 +1408,7 @@ public partial class TmdbController : BaseController
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-                var altEpisodes = alternateOrdering.TmdbAlternateOrderingEpisodes
+                var altEpisodes = alternateOrdering.AlternateOrderingEpisodes
                     .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
                     .Where(tuple => tuple.episode is not null)
                     .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
@@ -1828,7 +1828,7 @@ public partial class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         var preferredTitle = season.GetPreferredTitle();
-        return new(season.GetAllTitles().ToDto(season.EnglishTitle, preferredTitle, language));
+        return new(season.AllTitles.ToDto(season.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Season/{seasonID}/Overviews")]
@@ -1856,7 +1856,7 @@ public partial class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         var preferredOverview = season.GetPreferredOverview();
-        return new(season.GetAllOverviews().ToDto(season.EnglishOverview, preferredOverview, language));
+        return new(season.AllOverviews.ToDto(season.EnglishOverview, preferredOverview, language));
     }
 
     [HttpGet("Season/{seasonID}/Images")]
@@ -1884,7 +1884,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetImages()
+        return season.Images
             .ToDto(language, includeDisabled: includeDisabled, preferredPoster: season.DefaultPoster);
     }
 
@@ -1967,7 +1967,7 @@ public partial class TmdbController : BaseController
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
             var altOrder = altOrderSeason.TmdbAlternateOrdering;
-            var altShow = altOrder?.TmdbShow;
+            var altShow = altOrder?.Show;
             if (altShow is null)
                 return NotFound(ShowNotFoundBySeasonID);
 
@@ -1981,7 +1981,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        var show = season.TmdbShow;
+        var show = season.Show;
         if (show is null)
             return NotFound(ShowNotFoundBySeasonID);
 
@@ -2030,7 +2030,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        var show = season.TmdbShow;
+        var show = season.Show;
         if (show is null)
             return NotFound(ShowNotFoundBySeasonID);
 

@@ -9,8 +9,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Season_Crew : TMDB_Crew
 {
-    #region Properties
-
     /// <summary>
     /// TMDB Show ID for the show this job belongs to.
     /// </summary>
@@ -29,16 +27,7 @@ public class TMDB_Season_Crew : TMDB_Crew
     /// </summary>
     public int EpisodeCount { get; set; }
 
-    #endregion
+    public TMDB_Season? GetTmdbSeason() => RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID);
 
-    #region Methods
-
-    public TMDB_Season? GetTmdbSeason() =>
-        RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID);
-
-    public override IMetadata<int>? GetTmdbParent() =>
-        GetTmdbSeason();
-
-
-    #endregion
+    public override IMetadata<int>? GetTmdbParent() => GetTmdbSeason();
 }

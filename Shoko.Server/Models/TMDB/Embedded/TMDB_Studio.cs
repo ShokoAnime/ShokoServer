@@ -20,7 +20,7 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
 
     public string Name { get; private set; }
 
-    public TEntity Parent { get; private set; }
+    public TEntity? Parent { get; private set; }
 
     #region Constructor
 

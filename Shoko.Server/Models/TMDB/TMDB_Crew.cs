@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -11,8 +10,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public abstract class TMDB_Crew : ICrew
 {
-    #region Properties
-
     /// <summary>
     /// TMDB Person ID for the crew member.
     /// </summary>
@@ -39,25 +36,13 @@ public abstract class TMDB_Crew : ICrew
     /// </summary>
     public string Department { get; set; } = string.Empty;
 
-    #endregion
-
-    #region Methods
-
     public virtual TMDB_Person? Person { get; set; }
 
     public abstract IMetadata<int>? GetTmdbParent();
 
-    #endregion
-
-    #region IMetadata Implementation
-
     string IMetadata<string>.ID => TmdbCreditID;
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
-
-    #endregion
-
-    #region ICrew Implementation
 
     int ICrew.CreatorID => TmdbPersonID;
 
@@ -74,6 +59,4 @@ public abstract class TMDB_Crew : ICrew
     IMetadata<int>? ICrew.Parent => GetTmdbParent();
 
     ICreator? ICrew.Creator => Person;
-
-    #endregion
 }

@@ -187,12 +187,12 @@ public class TmdbShow
         TvdbID = show.TvdbShowID;
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
-            Titles = show.GetAllTitles()
+            Titles = show.AllTitles
                 .ToDto(show.EnglishOverview, preferredTitle, language);
 
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
-            Overviews = show.GetAllOverviews()
+            Overviews = show.AllOverviews
                 .ToDto(show.EnglishTitle, preferredOverview, language);
         OriginalLanguage = show.OriginalLanguageCode;
         IsRestricted = show.IsRestricted;
@@ -207,15 +207,15 @@ public class TmdbShow
         if (include.HasFlag(IncludeDetails.ContentRatings))
             ContentRatings = show.ContentRatings.ToDto(language);
         if (include.HasFlag(IncludeDetails.Studios))
-            Studios = show.TmdbCompanies
+            Studios = show.Companies
                 .Select(company => new Studio(company))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Networks))
-            Networks = show.TmdbNetworks
+            Networks = show.Networks
                 .Select(network => new Network(network))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
-            Images = show.GetImages()
+            Images = show.Images
                 .ToDto(language, preferredPoster: show.DefaultPoster, preferredBackdrop: show.DefaultBackdrop);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = (alternateOrdering is null ? show.Cast : alternateOrdering.Cast)
@@ -244,7 +244,7 @@ public class TmdbShow
             {
                 new(show, alternateOrdering),
             };
-            foreach (var altOrder in show.TmdbAlternateOrdering)
+            foreach (var altOrder in show.AlternateOrderings)
                 ordering.Add(new(show, altOrder, alternateOrdering));
             Ordering = ordering
                 .OrderByDescending(o => o.IsDefault)

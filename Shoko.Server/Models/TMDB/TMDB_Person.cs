@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.People;
@@ -20,8 +20,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 {
-    #region Properties
-
     /// <summary>
     /// IEntityMetadata.Id.
     /// </summary>
@@ -71,7 +69,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     public DateOnly? BirthDay { get; set; }
 
     /// <summary>
-    /// The date of death, if the person is dead and we know the date.
+    /// The date of death, if the person is dead, and we know the date.
     /// </summary>
     public DateOnly? DeathDay { get; set; }
 
@@ -90,30 +88,45 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
-
-    #region Constructors
+    /// <summary>
+    /// Get all biographies for the person.
+    /// </summary>
+    /// <value>All biographies for the person.</value>
+    public virtual ICollection<TMDB_Overview> AllBiographies { get; set; }
 
     /// <summary>
-    /// Constructor for NHibernate to work correctly while hydrating the rows
-    /// from the database.
+    /// Gets all image xrefs, which can be used to get all images for the person
     /// </summary>
-    public TMDB_Person() { }
+    public virtual ICollection<TMDB_Image_Person> ImageXRefs { get; set; }
+
+    public virtual ICollection<TMDB_Episode_Cast> EpisodeRoles { get; set; }
+
+    public virtual ICollection<TMDB_Movie_Cast> MovieRoles { get; set; }
+
+    public virtual ICollection<TMDB_Episode_Crew> EpisodeCrew { get; set; }
+
+    public virtual ICollection<TMDB_Movie_Crew> MovieCrew { get; set; }
 
     /// <summary>
-    /// Constructor to create a new person in the provider.
+    /// Get all images for the person
     /// </summary>
-    /// <param name="personId">The TMDB Person id.</param>
-    public TMDB_Person(int personId)
+    [NotMapped]
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
     {
-        TmdbPersonID = personId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
-
-    #endregion
-
-    #region Methods
+        a.ImageType, Image = a.Image
+    }).Where(a => a.Image != null).Select(a => new TMDB_Image
+    {
+        ImageType = a.ImageType,
+        RemoteFileName = a.Image!.RemoteFileName,
+        IsEnabled = a.Image.IsEnabled,
+        IsPreferred = a.Image.IsPreferred,
+        LanguageCode = a.Image.LanguageCode,
+        Height = a.Image.Height,
+        Width = a.Image.Width,
+        TMDB_ImageID = a.Image.TMDB_ImageID,
+        UserRating = a.Image.UserRating,
+        UserVotes = a.Image.UserVotes
+    });
 
     /// <summary>
     /// Populate the fields from the raw data.
@@ -144,15 +157,11 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     /// </summary>
     /// <param name="useFallback">Use a fallback biography if no biography was
     /// found in any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all person biographies if
-    /// they're already cached from a previous call to
-    /// <seealso cref="GetAllBiographies"/>.
-    /// </param>
     /// <returns>The preferred person biography, or null if no preferred biography
     /// was found.</returns>
-    public TMDB_Overview? GetPreferredBiography(bool useFallback = false, bool force = false)
+    public TMDB_Overview? GetPreferredBiography(bool useFallback = false)
     {
-        var biographies = GetAllBiographies(force);
+        var biographies = AllBiographies;
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
@@ -163,36 +172,6 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
         return useFallback ? new TMDB_Overview_Person { ParentID = TmdbPersonID, Value = EnglishBiography,LanguageCode = "en", CountryCode = "US"} : null;
     }
-
-    /// <summary>
-    /// Cached reference to all biographies for the person, so we won't have to hit
-    /// the database twice to get all biographies _and_ the preferred biography.
-    /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allBiographies = null;
-
-    /// <summary>
-    /// Get all biographies for the person.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all person biographies if they're
-    /// already cached from a previous call.</param>
-    /// <returns>All biographies for the person.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllBiographies(bool force = false) => force
-        ? _allBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID)
-        : _allBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID);
-
-    /// <summary>
-    /// Get all images for the person, or all images for the given
-    /// <paramref name="entityType"/> provided for the person.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the person.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbPersonIDAndType(TmdbPersonID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbPersonID(TmdbPersonID);
-
-    #endregion
 
     #region IEntityMetadata Implementation
 
@@ -235,7 +214,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     #region IWithPortraitImage Implementation
 
-    IImageMetadata? IWithPortraitImage.PortraitImage => GetImages(ImageEntityType.Person) is { Count: > 0 } images ? images[0] : null;
+    IImageMetadata? IWithPortraitImage.PortraitImage => Images.FirstOrDefault(a => a.ImageType == ImageEntityType.Person);
 
     #endregion
 
@@ -247,14 +226,11 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     CreatorType ICreator.Type => CreatorType.Person;
 
-    IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles =>
-        RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(TmdbPersonID);
+    IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles => EpisodeRoles;
 
-    IEnumerable<ICast<IMovie>> ICreator.MovieCastRoles =>
-        RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(TmdbPersonID);
+    IEnumerable<ICast<IMovie>> ICreator.MovieCastRoles => MovieRoles;
 
-    IEnumerable<ICast<ISeries>> ICreator.SeriesCastRoles =>
-        RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(TmdbPersonID)
+    IEnumerable<ICast<ISeries>> ICreator.SeriesCastRoles => EpisodeRoles
             .GroupBy(cast => new { cast.TmdbShowID, cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
             .Select(group =>
             {
@@ -275,14 +251,11 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
             .ThenBy(cast => cast.Ordering)
             .ThenBy(cast => cast.TmdbPersonID);
 
-    IEnumerable<ICrew<IEpisode>> ICreator.EpisodeCrewRoles =>
-        RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(TmdbPersonID);
+    IEnumerable<ICrew<IEpisode>> ICreator.EpisodeCrewRoles => EpisodeCrew;
 
-    IEnumerable<ICrew<IMovie>> ICreator.MovieCrewRoles =>
-        RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(TmdbPersonID);
+    IEnumerable<ICrew<IMovie>> ICreator.MovieCrewRoles => MovieCrew;
 
-    IEnumerable<ICrew<ISeries>> ICreator.SeriesCrewRoles =>
-        RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(TmdbPersonID)
+    IEnumerable<ICrew<ISeries>> ICreator.SeriesCrewRoles => EpisodeCrew
             .GroupBy(cast => new { cast.TmdbShowID, cast.TmdbPersonID, cast.Department, cast.Job })
             .Select(group =>
             {

@@ -715,7 +715,12 @@ public class TmdbMetadataService
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
 
-            var tmdbCollection = _tmdbCollections.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
+            var tmdbCollection = _tmdbCollections.GetByTmdbCollectionID(collectionId) ?? new TMDB_Collection
+            {
+                TmdbCollectionID = collectionId,
+                CreatedAt = DateTime.Now,
+                LastUpdatedAt = DateTime.Now
+            };
             var updated = tmdbCollection.Populate(collection);
             updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
 
@@ -1042,7 +1047,12 @@ public class TmdbMetadataService
         using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
-            var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
+            var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new TMDB_Show
+            {
+                TmdbShowID = showId,
+                CreatedAt = DateTime.Now,
+                LastUpdatedAt = DateTime.Now
+            };
             var newlyAdded = tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
             var xrefs = _xrefAnidbTmdbShows.GetByTmdbShowID(showId);
             if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt > DateTime.Now.AddHours(-1))
@@ -1160,7 +1170,7 @@ public class TmdbMetadataService
             if (!existingSeasons.TryGetValue(reducedSeason.Id, out var tmdbSeason))
             {
                 seasonsToAdd++;
-                tmdbSeason = new(reducedSeason.Id);
+                tmdbSeason = new TMDB_Season { TmdbSeasonID = show.Id };
             }
 
             var seasonUpdated = tmdbSeason.Populate(show, season);
@@ -1390,7 +1400,12 @@ public class TmdbMetadataService
             if (!existingOrdering.TryGetValue(collection.Id, out var tmdbOrdering))
             {
                 orderingToAdd++;
-                tmdbOrdering = new(collection.Id);
+                tmdbOrdering = new TMDB_AlternateOrdering
+                {
+                    TmdbEpisodeGroupCollectionID = collection.Id,
+                    CreatedAt = DateTime.Now,
+                    LastUpdatedAt = DateTime.Now
+                };
             }
 
             var orderingUpdated = tmdbOrdering.Populate(collection, show.Id);
@@ -1402,7 +1417,12 @@ public class TmdbMetadataService
                 if (!existingSeasons.TryGetValue(episodeGroup.Id, out var tmdbSeason))
                 {
                     seasonsToAdd++;
-                    tmdbSeason = new(episodeGroup.Id);
+                    tmdbSeason = new TMDB_AlternateOrdering_Season
+                    {
+                        TmdbEpisodeGroupID = episodeGroup.Id,
+                        CreatedAt = DateTime.Now,
+                        LastUpdatedAt = DateTime.Now
+                    };
                 }
 
                 var seasonUpdated = tmdbSeason.Populate(episodeGroup, collection.Id, show.Id, episodeGroup.Order);
@@ -1425,7 +1445,13 @@ public class TmdbMetadataService
                     if (!existingEpisodes.TryGetValue($"{episodeGroup.Id}:{episodeId}", out var tmdbEpisode))
                     {
                         episodesToAdd++;
-                        tmdbEpisode = new(episodeGroup.Id, episodeId);
+                        tmdbEpisode = new TMDB_AlternateOrdering_Episode
+                        {
+                            TmdbEpisodeGroupCollectionID = episodeGroup.Id,
+                            TmdbEpisodeID = episodeId,
+                            CreatedAt = DateTime.Now,
+                            LastUpdatedAt = DateTime.Now
+                        };
                     }
 
                     var episodeUpdated = tmdbEpisode.Populate(collection.Id, show.Id, episodeGroup.Order, episodeNumber);
@@ -2254,7 +2280,7 @@ public class TmdbMetadataService
 
     private async Task UpdateCompany(ProductionCompany company)
     {
-        var tmdbCompany = _tmdbCompany.GetByTmdbCompanyID(company.Id) ?? new(company.Id);
+        var tmdbCompany = _tmdbCompany.GetByTmdbCompanyID(company.Id) ?? new TMDB_Company { TmdbCompanyID = company.Id };
         var updated = tmdbCompany.Populate(company);
         if (updated)
         {
@@ -2324,7 +2350,7 @@ public class TmdbMetadataService
     {
         using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Update").ConfigureAwait(false))
         {
-            var tmdbPerson = _tmdbPeople.GetByTmdbPersonID(personId) ?? new(personId);
+            var tmdbPerson = _tmdbPeople.GetByTmdbPersonID(personId) ?? new TMDB_Person { TmdbPersonID = personId };
             if (!forceRefresh && tmdbPerson.TMDB_PersonID is not 0 && tmdbPerson.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
                 _logger.LogDebug("Skipping update for staff. (Person={PersonId})", personId);

@@ -11,8 +11,6 @@ namespace Shoko.Server.Models.TMDB;
 // TODO Navigation properties
 public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
 {
-    #region Properties
-
     public override string Id => TmdbEpisodeGroupID;
 
     /// <summary>
@@ -73,20 +71,10 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
-    #region Constructors
-
-    public TMDB_AlternateOrdering_Season() { }
-
-    public TMDB_AlternateOrdering_Season(string episodeGroupId)
-    {
-        TmdbEpisodeGroupID = episodeGroupId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
-
-    #endregion
-    #region Methods
+    
+    public virtual TMDB_Show? TmdbShow { get; set; }
+    public virtual TMDB_AlternateOrdering? TmdbAlternateOrdering { get; set; }
+    public virtual ICollection<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes { get; set; }
 
     public bool Populate(TvGroup episodeGroup, string collectionId, int showId, int seasonNumber)
     {
@@ -159,10 +147,4 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
             .ThenBy(crew => crew.Job)
             .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
-
-    public virtual TMDB_Show? TmdbShow { get; set; }
-    public virtual TMDB_AlternateOrdering? TmdbAlternateOrdering { get; set; }
-    public virtual IEnumerable<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes { get; set; }
-
-    #endregion
 }

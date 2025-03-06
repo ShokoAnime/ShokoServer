@@ -25,6 +25,6 @@ public class TMDB_Network
     /// </summary>
     public string CountryOfOrigin { get; set; } = string.Empty;
 
-    public IEnumerable<TMDB_Show_Network> NetworkXRefs { get; set; }
+    public ICollection<TMDB_Show_Network> NetworkXRefs { get; set; }
 
 }

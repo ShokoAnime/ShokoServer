@@ -23,8 +23,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 {
-    #region Properties
-
     /// <summary>
     /// IEntityMetadata.Id.
     /// </summary>
@@ -183,9 +181,119 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
+    /// <summary>
+    /// Get all titles for the movie.
+    /// </summary>
+    /// <value>All titles for the movie.</value>
+    public virtual ICollection<TMDB_Title> AllTitles { get; set; }
 
-    #region Methods
+    /// <summary>
+    /// Get all overviews for the movie.
+    /// </summary>
+    /// <returns>All overviews for the movie.</returns>
+    public virtual ICollection<TMDB_Overview> AllOverviews { get; set; }
+
+    /// <summary>
+    /// Gets all image xrefs, which can be used to get all images for the movie
+    /// </summary>
+    public virtual ICollection<TMDB_Image_Movie> ImageXRefs { get; set; }
+
+    /// <summary>
+    /// Get all TMDB company cross-references linked to the movie.
+    /// </summary>
+    /// <returns>All TMDB company cross-references linked to the movie.
+    /// </returns>
+    public ICollection<TMDB_Company_Movie> CompanyXRefs { get; set; }
+
+    /// <summary>
+    /// Get all cast members that have worked on this movie.
+    /// </summary>
+    /// <returns>All cast members that have worked on this movie.</returns>
+    public virtual ICollection<TMDB_Movie_Cast> Cast { get; set; }
+
+    /// <summary>
+    /// Get all crew members that have worked on this movie.
+    /// </summary>
+    /// <returns>All crew members that have worked on this movie.</returns>
+    public virtual ICollection<TMDB_Movie_Crew> Crew { get; set; }
+
+    /// <summary>
+    /// Get the TMDB movie collection linked to the movie from the local
+    /// database, if any. You need to have movie collections enabled in the
+    /// settings file for this to be populated.
+    /// </summary>
+    /// <returns>The TMDB movie collection if found, or null.</returns>
+    public virtual TMDB_Collection? TmdbCollection { get; set; }
+    
+    [NotMapped]
+    public TMDB_Image? DefaultPoster => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Poster });
+
+    [NotMapped]
+    public TMDB_Image? DefaultBackdrop => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Backdrop });
+
+    /// <summary>
+    /// Get all images for the movie
+    /// </summary>
+    [NotMapped]
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
+    {
+        a.ImageType, Image = a.Image
+    }).Where(a => a.Image != null).Select(a => new TMDB_Image
+    {
+        ImageType = a.ImageType,
+        RemoteFileName = a.Image!.RemoteFileName,
+        IsEnabled = a.Image.IsEnabled,
+        IsPreferred = a.Image.IsPreferred,
+        LanguageCode = a.Image.LanguageCode,
+        Height = a.Image.Height,
+        Width = a.Image.Width,
+        TMDB_ImageID = a.Image.TMDB_ImageID,
+        UserRating = a.Image.UserRating,
+        UserVotes = a.Image.UserVotes
+    }).ToList();
+
+    /// <summary>
+    /// Get all TMDB companies linked to the movie.
+    /// </summary>
+    /// <returns>All TMDB companies linked to the movie.</returns>
+    [NotMapped]
+    public IReadOnlyList<TMDB_Company> Companies =>
+        CompanyXRefs
+            .Select(xref => xref.Company)
+            .WhereNotNull()
+            .ToList();
+
+    /// <summary>
+    /// Get all TMDB studios linked to the movie.
+    /// </summary>
+    /// <returns>All TMDB studios linked to the movie.</returns>
+    [NotMapped]
+    public IReadOnlyList<TMDB_Studio<TMDB_Movie>> Studios =>
+        CompanyXRefs
+            .Select(xref => xref.Company is { } company ? new TMDB_Studio<TMDB_Movie>(company, this) : null)
+            .WhereNotNull()
+            .ToList();
+
+    /// <summary>
+    /// Get AniDB/TMDB cross-references for the movie.
+    /// </summary>
+    /// <returns>A read-only list of AniDB/TMDB cross-references for the movie.</returns>
+    [NotMapped]
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> CrossReferences =>
+        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
+
+    /// <summary>
+    /// Get all file cross-references associated with the movie.
+    /// </summary>
+    /// <returns>A read-only list of file cross-references associated with the
+    /// movie.</returns>
+    [NotMapped]
+    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
+        CrossReferences
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
+            .WhereNotNull()
+            .ToList();
 
     /// <summary>
     /// Populate the fields from the raw data.
@@ -271,12 +379,6 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     }
 
     /// <summary>
-    /// Get all titles for the movie.
-    /// </summary>
-    /// <value>All titles for the movie.</value>
-    public virtual IEnumerable<TMDB_Title> AllTitles { get; set; }
-
-    /// <summary>
     /// Get the preferred overview using the preferred episode title preference
     /// from the application settings.
     /// </summary>
@@ -299,44 +401,6 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     }
 
     /// <summary>
-    /// Get all overviews for the movie.
-    /// </summary>
-    /// <returns>All overviews for the movie.</returns>
-    public virtual IEnumerable<TMDB_Overview> AllOverviews { get; set; }
-
-    [NotMapped]
-    public TMDB_Image? DefaultPoster => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Poster });
-
-    [NotMapped]
-    public TMDB_Image? DefaultBackdrop => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Backdrop });
-
-    /// <summary>
-    /// Gets all image xrefs, which can be used to get all images for the movie
-    /// </summary>
-    public virtual IEnumerable<TMDB_Image_Movie> ImageXRefs { get; set; }
-
-    /// <summary>
-    /// Get all images for the movie
-    /// </summary>
-    [NotMapped]
-    public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
-    {
-        a.ImageType, Image = a.GetTmdbImage()
-    }).Where(a => a.Image != null).Select(a => new TMDB_Image
-    {
-        ImageType = a.ImageType,
-        RemoteFileName = a.Image!.RemoteFileName,
-        IsEnabled = a.Image.IsEnabled,
-        IsPreferred = a.Image.IsPreferred,
-        LanguageCode = a.Image.LanguageCode,
-        Height = a.Image.Height,
-        Width = a.Image.Width,
-        TMDB_ImageID = a.Image.TMDB_ImageID,
-        UserRating = a.Image.UserRating,
-        UserVotes = a.Image.UserVotes
-    }).ToList();
-
-    /// <summary>
     /// Get all images for the movie, or all images for the given
     /// <paramref name="entityType"/> provided for the movie.
     /// </summary>
@@ -350,78 +414,6 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
             .ToList();
-
-    /// <summary>
-    /// Get all TMDB company cross-references linked to the movie.
-    /// </summary>
-    /// <returns>All TMDB company cross-references linked to the movie.
-    /// </returns>
-    public IEnumerable<TMDB_Company_Movie> CompanyXRefs { get; set; }
-
-    /// <summary>
-    /// Get all TMDB companies linked to the movie.
-    /// </summary>
-    /// <returns>All TMDB companies linked to the movie.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Company> Companies =>
-        CompanyXRefs
-            .Select(xref => xref.Company)
-            .WhereNotNull()
-            .ToList();
-
-    /// <summary>
-    /// Get all TMDB studios linked to the movie.
-    /// </summary>
-    /// <returns>All TMDB studios linked to the movie.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Studio<TMDB_Movie>> Studios =>
-        CompanyXRefs
-            .Select(xref => xref.Company is { } company ? new TMDB_Studio<TMDB_Movie>(company, this) : null)
-            .WhereNotNull()
-            .ToList();
-
-    /// <summary>
-    /// Get all cast members that have worked on this movie.
-    /// </summary>
-    /// <returns>All cast members that have worked on this movie.</returns>
-    public virtual IEnumerable<TMDB_Movie_Cast> Cast { get; set; }
-
-    /// <summary>
-    /// Get all crew members that have worked on this movie.
-    /// </summary>
-    /// <returns>All crew members that have worked on this movie.</returns>
-    public virtual IEnumerable<TMDB_Movie_Crew> Crew { get; set; }
-
-    /// <summary>
-    /// Get the TMDB movie collection linked to the movie from the local
-    /// database, if any. You need to have movie collections enabled in the
-    /// settings file for this to be populated.
-    /// </summary>
-    /// <returns>The TMDB movie collection if found, or null.</returns>
-    public virtual TMDB_Collection? TmdbCollection { get; set; }
-
-    /// <summary>
-    /// Get AniDB/TMDB cross-references for the movie.
-    /// </summary>
-    /// <returns>A read-only list of AniDB/TMDB cross-references for the movie.</returns>
-    [NotMapped]
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> CrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
-
-    /// <summary>
-    /// Get all file cross-references associated with the movie.
-    /// </summary>
-    /// <returns>A read-only list of file cross-references associated with the
-    /// movie.</returns>
-    [NotMapped]
-    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
-        CrossReferences
-            .DistinctBy(xref => xref.AnidbEpisodeID)
-            .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
-            .WhereNotNull()
-            .ToList();
-
-    #endregion
 
     #region IEntityMetadata
 

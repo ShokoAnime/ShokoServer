@@ -9,8 +9,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Show_Cast : TMDB_Cast, ICast<ISeries>
 {
-    #region Properties
-
     /// <summary>
     /// TMDB Show ID for the show this role belongs to.
     /// </summary>
@@ -29,21 +27,10 @@ public class TMDB_Show_Cast : TMDB_Cast, ICast<ISeries>
     /// </summary>
     public int SeasonCount { get; set; }
 
-    #endregion
+    public TMDB_Show? GetTmdbShow() => RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
-    #region Methods
-
-    public TMDB_Show? GetTmdbShow() =>
-        RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
-
-    public override IMetadata<int>? GetTmdbParent() =>
-        GetTmdbShow();
-
-    #endregion
-
-    #region ICast Implementation
+    public override IMetadata<int>? GetTmdbParent() => GetTmdbShow();
 
     ISeries? ICast<ISeries>.ParentOfType => GetTmdbShow();
 
-    #endregion
 }

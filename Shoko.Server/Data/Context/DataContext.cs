@@ -201,9 +201,9 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
 
             // Foreign Keys
-            entity.HasOne(d => d.TmdbShow).WithMany(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
-            entity.HasMany(d => d.TmdbAlternateOrderingEpisodes).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID).HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
-            entity.HasMany(d => d.TmdbAlternateOrderingSeasons).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID).HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
+            entity.HasOne(d => d.Show).WithMany(p => p.AlternateOrderings).HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(d => d.AlternateOrderingEpisodes).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID).HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
+            entity.HasMany(d => d.AlternateOrderingSeasons).WithOne(p => p.TmdbAlternateOrdering).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID).HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
         });
 
         modelBuilder.Entity<TMDB_AlternateOrdering_Episode>(entity =>
@@ -222,7 +222,7 @@ public class DataContext : DbContext
             entity.HasOne(d => d.TmdbEpisode).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeID)
                 .HasPrincipalKey(a => a.TmdbEpisodeID);
             entity.HasOne(d => d.TmdbShow).WithMany().HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
-            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
+            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.AlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
                 .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
             entity.HasOne(d => d.TmdbAlternateOrderingSeason).WithMany(p => p.TmdbAlternateOrderingEpisodes).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
                 .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
@@ -248,7 +248,7 @@ public class DataContext : DbContext
 
             // Foreign Keys
             entity.HasOne(d => d.TmdbShow).WithMany().HasForeignKey(d => d.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
-            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.TmdbAlternateOrderingSeasons).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
+            entity.HasOne(d => d.TmdbAlternateOrdering).WithMany(p => p.AlternateOrderingSeasons).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
                 .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
             entity.HasMany(d => d.TmdbAlternateOrderingEpisodes).WithOne(p => p.TmdbAlternateOrderingSeason).HasForeignKey(d => d.TmdbEpisodeGroupCollectionID)
                 .HasPrincipalKey(a => a.TmdbEpisodeGroupCollectionID);
@@ -377,6 +377,9 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbPersonID).HasColumnName("TmdbPersonID");
             entity.Property(e => e.TmdbSeasonID).HasColumnName("TmdbSeasonID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
+
+            entity.HasOne(a => a.Person).WithMany().HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasOne(a => a.Episode).WithMany().HasForeignKey(a => a.TmdbEpisodeID).HasPrincipalKey(a => a.TmdbEpisodeID);
         });
 
         modelBuilder.Entity<TMDB_Episode_Crew>(entity =>
@@ -399,6 +402,9 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbPersonID).HasColumnName("TmdbPersonID");
             entity.Property(e => e.TmdbSeasonID).HasColumnName("TmdbSeasonID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
+
+            entity.HasOne(a => a.Person).WithMany().HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasOne(a => a.Episode).WithMany().HasForeignKey(a => a.TmdbEpisodeID).HasPrincipalKey(a => a.TmdbEpisodeID);
         });
 
         modelBuilder.Entity<TMDB_Image>(entity =>
@@ -429,6 +435,8 @@ public class DataContext : DbContext
             entity.Property(e => e.ReleasedAt).HasColumnType("DATE").HasConversion<DateOnlyToString>();
             entity.Property(e => e.RemoteFileName).IsRequired();
             entity.Property(e => e.TmdbEntityID).HasColumnName("TmdbEntityID");
+
+            entity.HasOne(a => a.Image).WithMany().HasForeignKey(a => a.RemoteFileName).HasPrincipalKey(a => a.RemoteFileName);
         });
 
         modelBuilder.Entity<TMDB_Movie>(entity =>
@@ -477,6 +485,9 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbCreditID).IsRequired().HasColumnName("TmdbCreditID");
             entity.Property(e => e.TmdbMovieID).HasColumnType("INT").HasColumnName("TmdbMovieID");
             entity.Property(e => e.TmdbPersonID).HasColumnType("INT").HasColumnName("TmdbPersonID");
+
+            entity.HasOne(a => a.Person).WithMany().HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasOne(a => a.Movie).WithMany().HasForeignKey(a => a.TmdbMovieID).HasPrincipalKey(a => a.TmdbMovieID);
         });
 
         modelBuilder.Entity<TMDB_Movie_Crew>(entity =>
@@ -493,6 +504,9 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbCreditID).IsRequired().HasColumnName("TmdbCreditID");
             entity.Property(e => e.TmdbMovieID).HasColumnName("TmdbMovieID");
             entity.Property(e => e.TmdbPersonID).HasColumnName("TmdbPersonID");
+
+            entity.HasOne(a => a.Person).WithMany().HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasOne(a => a.Movie).WithMany().HasForeignKey(a => a.TmdbMovieID).HasPrincipalKey(a => a.TmdbMovieID);
         });
 
         modelBuilder.Entity<TMDB_Network>(entity =>
@@ -542,6 +556,13 @@ public class DataContext : DbContext
             entity.Property(e => e.EnglishName).IsRequired();
             entity.Property(e => e.LastUpdatedAt).HasColumnType("DATETIME");
             entity.Property(e => e.TmdbPersonID).HasColumnName("TmdbPersonID");
+
+            entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbPersonID).HasForeignKey(d => d.TmdbEntityID);
+            entity.HasMany(a => a.AllBiographies).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasMany(a => a.EpisodeRoles).WithOne(a => a.Person).HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasMany(a => a.MovieRoles).WithOne(a => a.Person).HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasMany(a => a.EpisodeCrew).WithOne(a => a.Person).HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
+            entity.HasMany(a => a.MovieCrew).WithOne(a => a.Person).HasForeignKey(a => a.TmdbPersonID).HasPrincipalKey(a => a.TmdbPersonID);
         });
 
         modelBuilder.Entity<TMDB_Season>(entity =>
@@ -560,6 +581,12 @@ public class DataContext : DbContext
             entity.Property(e => e.PosterPath).HasDefaultValueSql("NULL");
             entity.Property(e => e.TmdbSeasonID).HasColumnName("TmdbSeasonID");
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
+
+            entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbSeasonID).HasForeignKey(d => d.TmdbEntityID);
+            entity.HasMany(a => a.AllTitles).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbSeasonID);
+            entity.HasMany(a => a.AllOverviews).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbSeasonID);
+            entity.HasOne(a => a.Show).WithMany(a => a.Seasons).HasForeignKey(a => a.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(a => a.Episodes).WithOne().HasForeignKey(a => a.TmdbSeasonID).HasPrincipalKey(a => a.TmdbSeasonID);
         });
 
         modelBuilder.Entity<TMDB_Show>(entity =>
@@ -586,6 +613,15 @@ public class DataContext : DbContext
             entity.Property(e => e.ProductionCountries).HasDefaultValueSql("NULL").HasConversion<ProductionCountriesToString, ProductionCountriesComparer>();
             entity.Property(e => e.TmdbShowID).HasColumnName("TmdbShowID");
             entity.Property(e => e.TvdbShowID).HasDefaultValueSql("NULL").HasColumnName("TvdbShowID");
+
+            entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbShowID).HasForeignKey(d => d.TmdbEntityID);
+            entity.HasMany(a => a.AllTitles).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(a => a.AllOverviews).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(a => a.Episodes).WithOne().HasForeignKey(a => a.TmdbSeasonID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(a => a.Seasons).WithOne().HasForeignKey(a => a.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(a => a.CompanyXRefs).WithOne().HasForeignKey(a => a.TmdbEntityID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(a => a.NetworkXRefs).WithOne().HasForeignKey(a => a.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
+            entity.HasMany(a => a.AlternateOrderings).WithOne(a => a.Show).HasForeignKey(a => a.TmdbShowID).HasPrincipalKey(a => a.TmdbShowID);
         });
 
         modelBuilder.Entity<TMDB_Show_Network>(entity =>

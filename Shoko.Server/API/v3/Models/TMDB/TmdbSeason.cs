@@ -117,14 +117,14 @@ public class TmdbSeason
         AlternateOrderingID = null;
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
-            Titles = season.GetAllTitles()
+            Titles = season.AllTitles
                 .ToDto(season.EnglishTitle, preferredTitle, language);
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
-            Overviews = season.GetAllOverviews()
+            Overviews = season.AllOverviews
                 .ToDto(season.EnglishOverview, preferredOverview, language);
         if (include.HasFlag(IncludeDetails.Images))
-            Images = season.GetImages()
+            Images = season.Images
                 .ToDto(language, preferredPoster: season.DefaultPoster);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = season.Cast

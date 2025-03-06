@@ -1,5 +1,3 @@
-
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Collection_Movie

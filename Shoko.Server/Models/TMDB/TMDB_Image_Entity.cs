@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
 #nullable enable
@@ -9,8 +8,6 @@ namespace Shoko.Server.Models.TMDB;
 
 public abstract class TMDB_Image_Entity
 {
-    #region Properties
-
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -47,7 +44,7 @@ public abstract class TMDB_Image_Entity
     /// </summary>
     public DateOnly? ReleasedAt { get; set; }
 
-    #endregion
+    public virtual TMDB_Image? Image { get; set; }
 
     public bool Populate(int index, DateOnly? releasedAt = null)
     {
@@ -66,11 +63,6 @@ public abstract class TMDB_Image_Entity
 
         return updated;
     }
-
-    public TMDB_Image? GetTmdbImage(bool ofType = true) =>
-        RepoFactory.TMDB_Image.GetByRemoteFileName(RemoteFileName) is { } image
-            ? (ofType ? image.GetImageMetadata(imageType: ImageType) : image)
-            : null;
 }
 
 public class TMDB_Image_Collection : TMDB_Image_Entity;

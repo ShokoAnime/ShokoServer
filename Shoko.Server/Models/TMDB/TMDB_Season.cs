@@ -6,7 +6,6 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
@@ -19,8 +18,6 @@ namespace Shoko.Server.Models.TMDB;
 /// </summary>
 public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
 {
-    #region Properties
-
     /// <summary>
     /// IEntityMetadata.Id
     /// </summary>
@@ -83,30 +80,111 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
-    #endregion
-
-    #region Constructors
+    /// <summary>
+    /// Get all titles for the season
+    /// </summary>
+    public virtual ICollection<TMDB_Title> AllTitles { get; set; }
 
     /// <summary>
-    /// Constructor for NHibernate to work correctly while hydrating the rows
-    /// from the database.
+    /// Get all overviews for the season
     /// </summary>
-    public TMDB_Season() { }
+    public virtual ICollection<TMDB_Overview> AllOverviews { get; set; }
 
     /// <summary>
-    /// Constructor to create a new season in the provider.
+    /// Gets all image xrefs, which can be used to get all images for the season
     /// </summary>
-    /// <param name="seasonId">The TMDB Season id.</param>
-    public TMDB_Season(int seasonId)
+    public virtual ICollection<TMDB_Image_Movie> ImageXRefs { get; set; }
+
+    /// <summary>
+    /// Get the TMDB show associated with the season, or null if the show have
+    /// been purged from the local database for whatever reason.
+    /// </summary>
+    /// <returns>The TMDB show, or null.</returns>
+    public virtual TMDB_Show? Show { get; set; }
+
+    /// <summary>
+    /// Get all local TMDB episodes associated with the season, or an empty list
+    /// if the season have been purged from the local database for whatever
+    /// reason.
+    /// </summary>
+    /// <returns>The TMDB episodes.</returns>
+    public virtual ICollection<TMDB_Episode> Episodes { get; set; }
+
+    /// <summary>
+    /// Get all images for the movie
+    /// </summary>
+    [NotMapped]
+    public IEnumerable<TMDB_Image> Images => ImageXRefs.OrderBy(a => a.ImageType).ThenBy(a => a.Ordering).Select(a => new
     {
-        TmdbSeasonID = seasonId;
-        CreatedAt = DateTime.Now;
-        LastUpdatedAt = CreatedAt;
-    }
+        a.ImageType, Image = a.Image
+    }).Where(a => a.Image != null).Select(a => new TMDB_Image
+    {
+        ImageType = a.ImageType,
+        RemoteFileName = a.Image!.RemoteFileName,
+        IsEnabled = a.Image.IsEnabled,
+        IsPreferred = a.Image.IsPreferred,
+        LanguageCode = a.Image.LanguageCode,
+        Height = a.Image.Height,
+        Width = a.Image.Width,
+        TMDB_ImageID = a.Image.TMDB_ImageID,
+        UserRating = a.Image.UserRating,
+        UserVotes = a.Image.UserVotes
+    }).ToList();
 
-    #endregion
+    [NotMapped]
+    public TMDB_Image? DefaultPoster => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Poster });
 
-    #region Methods
+    /// <summary>
+    /// Get all cast members that have worked on this season.
+    /// </summary>
+    /// <returns>All cast members that have worked on this season.</returns>
+    [NotMapped]
+    public IReadOnlyList<TMDB_Season_Cast> Cast => Episodes.SelectMany(a => a.Cast)
+            .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                return new TMDB_Season_Cast()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    TmdbSeasonID = firstEpisode.TmdbSeasonID,
+                    IsGuestRole = firstEpisode.IsGuestRole,
+                    CharacterName = firstEpisode.CharacterName,
+                    Ordering = firstEpisode.Ordering,
+                    EpisodeCount = episodes.Count,
+                };
+            })
+            .OrderBy(crew => crew.Ordering)
+            .ThenBy(crew => crew.TmdbPersonID)
+            .ToList();
+
+    /// <summary>
+    /// Get all crew members that have worked on this season.
+    /// </summary>
+    /// <returns>All crew members that have worked on this season.</returns>
+    [NotMapped]
+    public IReadOnlyList<TMDB_Season_Crew> Crew => Episodes.SelectMany(a => a.Crew)
+            .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                return new TMDB_Season_Crew()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    TmdbSeasonID = firstEpisode.TmdbSeasonID,
+                    Department = firstEpisode.Department,
+                    Job = firstEpisode.Job,
+                    EpisodeCount = episodes.Count,
+                };
+            })
+            .OrderBy(crew => crew.Department)
+            .ThenBy(crew => crew.Job)
+            .ThenBy(crew => crew.TmdbPersonID)
+            .ToList();
 
     /// <summary>
     /// Populate the fields from the raw data.
@@ -137,14 +215,11 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
     /// </summary>
     /// <param name="useFallback">Use a fallback title if no title was found in
     /// any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all season titles if they're
-    /// already cached from a previous call to <seealso cref="GetAllTitles"/>.
-    /// </param>
     /// <returns>The preferred season title, or null if no preferred title was
     /// found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
+    public TMDB_Title? GetPreferredTitle(bool useFallback = true)
     {
-        var titles = GetAllTitles(force);
+        var titles = AllTitles;
 
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
@@ -159,25 +234,9 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
         return useFallback ? new TMDB_Title_Season { ParentID = TmdbSeasonID, Value = EnglishTitle, LanguageCode = "en", CountryCode = "US"} : null;
     }
 
-    /// <summary>
-    /// Cached reference to all titles for the season, so we won't have to hit
-    /// the database twice to get all titles _and_ the preferred title.
-    /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles = null;
-
-    /// <summary>
-    /// Get all titles for the season.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all season titles if they're
-    /// already cached from a previous call. </param>
-    /// <returns>All titles for the season.</returns>
-    public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
-
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
+    public TMDB_Overview? GetPreferredOverview(bool useFallback = true)
     {
-        var overviews = GetAllOverviews(force);
+        var overviews = AllOverviews;
 
         foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
         {
@@ -188,113 +247,6 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
 
         return useFallback ? new TMDB_Overview_Season {ParentID = TmdbSeasonID, Value = EnglishOverview, LanguageCode = "en", CountryCode = "US"} : null;
     }
-
-    /// <summary>
-    /// Cached reference to all overviews for the season, so we won't have to
-    /// hit the database twice to get all overviews _and_ the preferred
-    /// overview.
-    /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews = null;
-
-    /// <summary>
-    /// Get all overviews for the season.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all season overviews if they're
-    /// already cached from a previous call.</param>
-    /// <returns>All overviews for the season.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
-
-    [NotMapped]
-    public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
-
-    /// <summary>
-    /// Get all images for the season, or all images for the given
-    /// <paramref name="entityType"/> provided for the season.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the season.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbSeasonIDAndType(TmdbSeasonID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbSeasonID(TmdbSeasonID);
-
-    /// <summary>
-    /// Get all cast members that have worked on this season.
-    /// </summary>
-    /// <returns>All cast members that have worked on this season.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Season_Cast> Cast =>
-        RepoFactory.TMDB_Episode_Cast.GetByTmdbSeasonID(TmdbSeasonID)
-            .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
-            .Select(group =>
-            {
-                var episodes = group.ToList();
-                var firstEpisode = episodes.First();
-                return new TMDB_Season_Cast()
-                {
-                    TmdbPersonID = firstEpisode.TmdbPersonID,
-                    TmdbShowID = firstEpisode.TmdbShowID,
-                    TmdbSeasonID = firstEpisode.TmdbSeasonID,
-                    IsGuestRole = firstEpisode.IsGuestRole,
-                    CharacterName = firstEpisode.CharacterName,
-                    Ordering = firstEpisode.Ordering,
-                    EpisodeCount = episodes.Count,
-                };
-            })
-            .OrderBy(crew => crew.Ordering)
-            .ThenBy(crew => crew.TmdbPersonID)
-            .ToList();
-
-    /// <summary>
-    /// Get all crew members that have worked on this season.
-    /// </summary>
-    /// <returns>All crew members that have worked on this season.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Season_Crew> Crew =>
-        RepoFactory.TMDB_Episode_Crew.GetByTmdbSeasonID(TmdbSeasonID)
-            .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
-            .Select(group =>
-            {
-                var episodes = group.ToList();
-                var firstEpisode = episodes.First();
-                return new TMDB_Season_Crew()
-                {
-                    TmdbPersonID = firstEpisode.TmdbPersonID,
-                    TmdbShowID = firstEpisode.TmdbShowID,
-                    TmdbSeasonID = firstEpisode.TmdbSeasonID,
-                    Department = firstEpisode.Department,
-                    Job = firstEpisode.Job,
-                    EpisodeCount = episodes.Count,
-                };
-            })
-            .OrderBy(crew => crew.Department)
-            .ThenBy(crew => crew.Job)
-            .ThenBy(crew => crew.TmdbPersonID)
-            .ToList();
-
-    /// <summary>
-    /// Get the TMDB show associated with the season, or null if the show have
-    /// been purged from the local database for whatever reason.
-    /// </summary>
-    /// <returns>The TMDB show, or null.</returns>
-    [NotMapped]
-    public TMDB_Show? TmdbShow =>
-        RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
-
-    /// <summary>
-    /// Get all local TMDB episodes associated with the season, or an empty list
-    /// if the season have been purged from the local database for whatever
-    /// reason.
-    /// </summary>
-    /// <returns>The TMDB episodes.</returns>
-    [NotMapped]
-    public IReadOnlyList<TMDB_Episode> Episodes =>
-        RepoFactory.TMDB_Episode.GetByTmdbSeasonID(TmdbSeasonID);
-
-    #endregion
 
     #region IEntityMetadata Implementation
 

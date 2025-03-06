@@ -181,7 +181,7 @@ public class TmdbImageService
 
         var count = visitedImages.Count;
         var storedImages = _tmdbImageEntities.GetByForeignIDAndType(foreignId, foreignType, imageType)
-            .Select(e => (Image: e.GetTmdbImage(), Entity: e))
+            .Select(e => (Image: e.Image, Entity: e))
             .Where(x => x.Image is null || !visitedImages.Contains(x.Image.RemoteFileName))
             .OrderByDescending(x => x.Entity.RemoteFileName.Equals(defaultForType))
             .ThenBy(x => x.Image is null ? int.MinValue : languages.IndexOf(x.Image.Language) is var index && index >= 0 ? index : int.MaxValue)
