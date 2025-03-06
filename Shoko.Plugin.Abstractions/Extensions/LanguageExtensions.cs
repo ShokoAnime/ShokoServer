@@ -70,7 +70,7 @@ public static class LanguageExtensions
             "ZH-HANS" => TitleLanguage.ChineseSimplified,
             "ZH-HANT" => TitleLanguage.ChineseTraditional,
             "AF" or "AFR" => TitleLanguage.Afrikaans,
-            "SQ" or "SQI" => TitleLanguage.Albanian,
+            "SQ" or "AL" or "SQI" => TitleLanguage.Albanian,
             "AM" or "AMH" => TitleLanguage.Amharic,
             "HY" or "HYE" => TitleLanguage.Armenian,
             "AZ" or "AZE" => TitleLanguage.Azerbaijani,
