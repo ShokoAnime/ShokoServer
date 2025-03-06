@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Extensions;
@@ -27,6 +26,7 @@ public static class LanguageExtensions
             "X-JAT" => TitleLanguage.Romaji,
             "JA" or "JPN" => TitleLanguage.Japanese,
             "AR" or "ARA" => TitleLanguage.Arabic,
+            // AniDB incorrectly maps BD to Bengali
             "BD" or "BN" or "BAN" or "BGD" => TitleLanguage.Bengali,
             "BG" or "BUL" => TitleLanguage.Bulgarian,
             // CA isn't actually french canadian, but we have it mapped as such
@@ -70,6 +70,7 @@ public static class LanguageExtensions
             "ZH-HANS" => TitleLanguage.ChineseSimplified,
             "ZH-HANT" => TitleLanguage.ChineseTraditional,
             "AF" or "AFR" => TitleLanguage.Afrikaans,
+            // AniDB incorrectly maps AL to Albanian
             "SQ" or "AL" or "SQI" => TitleLanguage.Albanian,
             "AM" or "AMH" => TitleLanguage.Amharic,
             "HY" or "HYE" => TitleLanguage.Armenian,
@@ -110,6 +111,7 @@ public static class LanguageExtensions
             "MT" or "MLT" => TitleLanguage.Maltese,
             "MI" or "MRI" => TitleLanguage.Maori,
             "MR" or "MAR" => TitleLanguage.Marathi,
+            // AniDB incorrectly maps MY to Malaysian, and uses BUR for Burmese instead
             "MYA" or "BUR" => TitleLanguage.MyanmarBurmese,
             "NE" or "NEP" => TitleLanguage.Nepali,
             "OR" or "ORI" => TitleLanguage.Oriya,
@@ -176,7 +178,6 @@ public static class LanguageExtensions
             TitleLanguage.EnglishNewZealand => "English (New Zealand)",
             TitleLanguage.Romaji => "Japanese (Romaji / Transcription)",
             TitleLanguage.Japanese => "Japanese (Kanji)",
-            TitleLanguage.Bangladeshi => "Bangladesh",
             TitleLanguage.FrenchCanadian => "Canadian-French",
             TitleLanguage.BrazilianPortuguese => "Brazilian Portuguese",
             TitleLanguage.Chinese => "Chinese (any)",
@@ -202,7 +203,6 @@ public static class LanguageExtensions
             TitleLanguage.Romaji => "x-jat",
             TitleLanguage.Japanese => "ja",
             TitleLanguage.Arabic => "ar",
-            TitleLanguage.Bangladeshi => "bd",
             TitleLanguage.Bulgarian => "bg",
             TitleLanguage.FrenchCanadian => "fr-CA",
             TitleLanguage.Czech => "cz",
