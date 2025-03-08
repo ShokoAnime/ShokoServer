@@ -27,7 +27,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 135;
+    public override int RequiredVersion => 136;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -446,7 +446,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(36, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new(37, 1, DatabaseFixes.PopulateTagWeight),
         new(38, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new(39, 1, DatabaseFixes.FixHashes),
+        new(39, 1, DatabaseFixes.NoOperation),
         new(40, 1, "DROP TABLE LogMessage;"),
         new(41, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder text NULL"),
         new(42, 1, "ALTER TABLE JMMUser ADD PlexUsers text NULL"),
@@ -653,7 +653,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(95, 1, "UPDATE VideoLocal SET DateTimeImported = DateTimeCreated WHERE EXISTS(SELECT Hash FROM CrossRef_File_Episode xref WHERE xref.Hash = VideoLocal.Hash)"),
         new(96, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INTEGER PRIMARY KEY AUTOINCREMENT, FileSize INTEGER NOT NULL, Hash TEXT NOT NULL, HasResponse INTEGER NOT NULL, UpdatedAt timestamp NOT NULL )"),
         new(96, 2, "CREATE INDEX IX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
-        new(96, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new(96, 3, DatabaseFixes.NoOperation),
         new(97, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
         new(97, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
         new(97, 3, "ALTER TABLE AniDB_Anime ADD VNDBID INT NULL"),
@@ -862,6 +862,10 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(134, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(135, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(135, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
+        new(136, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INTEGER PRIMARY KEY AUTOINCREMENT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, ID TEXT, ProviderName TEXT NOT NULL, ReleaseURI TEXT, Revision INTEGER NOT NULL, ProvidedFileSize INTEGER, Comment TEXT, OriginalFilename TEXT, IsCensored INTEGER, IsCorrupted INTEGER NOT NULL, Source INTEGER NOT NULL, GroupID TEXT, GroupSource TEXT, GroupName TEXT, GroupShortName TEXT, Hashes BLOB NULL, AudioLanguages TEXT, SubtitleLanguages TEXT, CrossReferences TEXT NOT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME NOT NULL, CreatedAt DATETIME NOT NULL);"),
+        new(136, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INTEGER PRIMARY KEY AUTOINCREMENT, AttemptProviderNames TEXT NOT NULL, ProviderName TEXT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, AttemptStartedAt DATETIME NOT NULL, AttemptEndedAt DATETIME NOT NULL);"),
+        new(136, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, Type INTEGER NOT NULL, Value TEXT NOT NULL, Metadata TEXT);"),
+        new(136, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

@@ -6,12 +6,14 @@ using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Quartz;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Extensions;
@@ -51,6 +53,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
     private readonly IUserDataService _userDataService;
+    private readonly IVideoReleaseService _videoReleaseService;
 
     public ShokoServiceImplementation(
         TraktTVHelper traktHelper,
@@ -65,7 +68,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         JobFactory jobFactory,
         AnimeEpisodeService episodeService,
         IUserDataService userDataService,
-        VideoLocalService videoLocalService
+        VideoLocalService videoLocalService,
+        IVideoReleaseService videoReleaseService
     )
     {
         _traktHelper = traktHelper;
@@ -81,6 +85,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _episodeService = episodeService;
         _userDataService = userDataService;
         _videoLocalService = videoLocalService;
+        _videoReleaseService = videoReleaseService;
     }
 
     #region Bookmarks
@@ -437,15 +442,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
             if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
             {
-                settings.FileQualityPreferences =
-                    SettingsProvider.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                settings.FileQualityPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
             }
 
             settings.Import.RunOnStart = contractIn.RunImportOnStart;
             settings.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
-            settings.Import.Hasher.CRC = contractIn.Hash_CRC32;
-            settings.Import.Hasher.MD5 = contractIn.Hash_MD5;
-            settings.Import.Hasher.SHA1 = contractIn.Hash_SHA1;
             settings.Plugins.Renamer.RenameOnImport = contractIn.Import_RenameOnImport;
             settings.Plugins.Renamer.MoveOnImport = contractIn.Import_MoveOnImport;
             settings.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
@@ -675,7 +676,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.AniDB_File.GetAll().Select(a => a.File_Source).Distinct().OrderBy(a => a).ToList();
+            return RepoFactory.StoredReleaseInfo.GetAll()
+                .Select(a => a.LegacySource)
+                .WhereNotDefault()
+                .Distinct()
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -689,8 +695,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_Languages_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
-                .OrderBy(a => a).ToList();
+            return RepoFactory.StoredReleaseInfo.GetAll()
+                .SelectMany(a => a.AudioLanguages ?? [])
+                .Distinct()
+                .Select(a => a.GetString())
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -704,8 +714,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_Subtitles_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
-                .OrderBy(a => a).ToList();
+            return RepoFactory.StoredReleaseInfo.GetAll()
+                .SelectMany(a => a.SubtitleLanguages ?? [])
+                .Distinct()
+                .Select(a => a.GetString())
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -1206,15 +1220,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 foreach (var h in hashes)
                 {
                     var vid = vids.First(a => a.Hash == h);
-                    AniDB_File anifile = vid.AniDBFile;
-                    if (anifile != null)
+                    if (vid.ReleaseGroup is { Source: "AniDB" } group && int.TryParse(group.ID, out var groupId))
                     {
-                        if (!userReleaseGroups.ContainsKey(anifile.GroupID))
-                        {
-                            userReleaseGroups[anifile.GroupID] = 0;
-                        }
+                        if (!userReleaseGroups.ContainsKey(groupId))
+                            userReleaseGroups[groupId] = 0;
 
-                        userReleaseGroups[anifile.GroupID] = userReleaseGroups[anifile.GroupID] + 1;
+                        userReleaseGroups[groupId] = userReleaseGroups[groupId] + 1;
                     }
                 }
             }

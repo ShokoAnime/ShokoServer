@@ -9,7 +9,7 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
 {
-    private PocoIndex<int, CustomTag, string?>? _names;
+    private PocoIndex<int, CustomTag, string>? _names;
 
     protected override int SelectKey(CustomTag entity)
         => entity.CustomTagID;
@@ -22,7 +22,7 @@ public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
 
     public override void PopulateIndexes()
     {
-        _names = new PocoIndex<int, CustomTag, string?>(Cache, a => a.TagName);
+        _names = Cache.CreateIndex(a => a.TagName);
     }
 
     public List<CustomTag> GetByAnimeID(int animeID)

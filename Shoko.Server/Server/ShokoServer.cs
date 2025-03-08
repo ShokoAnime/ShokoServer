@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Server.Databases;
-using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
@@ -84,8 +83,6 @@ public class ShokoServer
 
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
         //CommandHelper.LoadCommands(Utils.ServiceContainer);
-
-        Loader.InitPlugins(Utils.ServiceContainer);
 
         _settingsProvider.DebugSettingsToLog();
 
@@ -172,8 +169,11 @@ public class ShokoServer
         ServerState.Instance.ServerStartingStatus = "Complete!";
         ServerState.Instance.ServerOnline = true;
         var settings = _settingsProvider.GetSettings();
-        settings.FirstRun = false;
-        _settingsProvider.SaveSettings();
+        if (settings.FirstRun)
+        {
+            settings.FirstRun = false;
+            _settingsProvider.SaveSettings(settings);
+        }
 
         DBSetupCompleted?.Invoke(this, EventArgs.Empty);
         ShokoEventHandler.Instance.OnStarted();
