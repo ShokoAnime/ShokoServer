@@ -33,13 +33,17 @@ public class AbstractVideoService : IVideoService
 
     private readonly VideoLocalRepository _videoLocalRepository;
 
+    private readonly ImportFolderRepository _importFolderRepository;
+
     public AbstractVideoService(
         VideoLocal_PlaceRepository placeRepository,
-        VideoLocalRepository videoLocalRepository
+        VideoLocalRepository videoLocalRepository,
+        ImportFolderRepository importFolderRepository
     )
     {
         _placeRepository = placeRepository;
         _videoLocalRepository = videoLocalRepository;
+        _importFolderRepository = importFolderRepository;
         ShokoEventHandler.Instance.FileDetected += OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
         ShokoEventHandler.Instance.FileHashed += OnFileHashed;
@@ -148,5 +152,9 @@ public class AbstractVideoService : IVideoService
             HashAlgorithmName.CRC32 => _videoLocalRepository.GetByCrc32AndSize(hash, fileSize),
             _ => _videoLocalRepository.GetByEd2kAndSize(hash, fileSize),
         };
+
+    /// <inheritdoc/>
+    public IEnumerable<IImportFolder> GetAllManagedFolders()
+        => _importFolderRepository.GetAll();
 }
 

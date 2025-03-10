@@ -52,7 +52,7 @@
         {
             "id": "pluginNames",
             "type": "promptString",
-            "default": "ReleaseExporter;RelocationPlus",
+            "default": "ReleaseExporter;RelocationPlus;ConfigurationHell",
             "description": "The plugins to build."
         },
         // Open the command prompt (by pressing F1), remove the ">" and paste in "ext install augustocdias.tasks-shell-input" and hit enter.
