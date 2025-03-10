@@ -84,12 +84,10 @@ public class ShokofinConfigurationDefinition
     {
         var config = new ShokofinConfiguration();
         foreach (var user in _userService.GetUsers())
-        {
-            // Add user config
-        }
+            config.Users.Add(new() { Key = user.Username });
         foreach (var folder in _videoService.GetAllManagedFolders())
         {
-            // Add folder config
+            config.Library.ManagedFolders.Add(new() { Key = folder.Name, Paths = [$"{folder.Path} | {folder.Name} ({folder.ID})"] });
         }
         return config;
     }
