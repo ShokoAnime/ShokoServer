@@ -45,9 +45,9 @@ public class VideoLocalService
         _aniDBEpisode = aniDBEpisode;
     }
 
-    public SVR_VideoLocal_User GetOrCreateUserRecord(VideoLocal vl, int userID)
+    public VideoLocal_User GetOrCreateUserRecord(VideoLocal vl, int userID)
     {
-        SVR_VideoLocal_User userRecord;
+        VideoLocal_User userRecord;
         var lockObj = _userLock.GetOrAdd(vl.VideoLocalID, _ => new object());
         try
         {
@@ -55,7 +55,7 @@ public class VideoLocalService
             userRecord = _vlUsers.GetByUserIDAndVideoLocalID(userID, vl.VideoLocalID);
             if (userRecord != null)
                 return userRecord;
-            userRecord = new SVR_VideoLocal_User(userID, vl.VideoLocalID);
+            userRecord = new() { JMMUserID = userID, VideoLocalID = vl.VideoLocalID, LastUpdated = DateTime.Now };
             _vlUsers.Save(userRecord);
         }
         finally

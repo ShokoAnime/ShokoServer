@@ -12,10 +12,10 @@ public class FileRenamedEventArgs : FileEventArgs
 {
     /// <summary>
     /// The previous relative path of the file from the
-    /// <see cref="FileEventArgs.ImportFolder"/>'s base location.
+    /// <see cref="FileEventArgs.ManagedFolder"/>'s base location.
     /// </summary>
     public string PreviousRelativePath =>
-        RelativePath.Substring(0, RelativePath.Length - FileName.Length) + PreviousFileName;
+        RelativePath[..^FileName.Length] + PreviousFileName;
 
     /// <summary>
     /// The new file name after the rename operation.
@@ -30,13 +30,13 @@ public class FileRenamedEventArgs : FileEventArgs
     /// <summary>
     /// The absolute path leading to the previous location of the file. Uses an OS dependent directory separator.
     /// </summary>
-    public string PreviousPath => Path.Join(ImportFolder.Path, PreviousRelativePath);
+    public string PreviousPath => Path.Join(ManagedFolder.Path, PreviousRelativePath);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileRenamedEventArgs"/> class.
     /// </summary>
     /// <param name="relativePath">Relative path to the file.</param>
-    /// <param name="importFolder">Import folder.</param>
+    /// <param name="managedFolder">The managed folder that the file is in.</param>
     /// <param name="fileName">New file name.</param>
     /// <param name="previousFileName">Previous file name.</param>
     /// <param name="fileInfo">File info.</param>
@@ -44,8 +44,8 @@ public class FileRenamedEventArgs : FileEventArgs
     /// <param name="episodeInfo">Episode info.</param>
     /// <param name="seriesInfo">Series info.</param>
     /// <param name="groupInfo">Group info.</param>
-    public FileRenamedEventArgs(string relativePath, IImportFolder importFolder, string fileName, string previousFileName, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> seriesInfo, IEnumerable<IShokoGroup> groupInfo)
-        : base(relativePath, importFolder, fileInfo, videoInfo, episodeInfo, seriesInfo, groupInfo)
+    public FileRenamedEventArgs(string relativePath, IManagedFolder managedFolder, string fileName, string previousFileName, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> seriesInfo, IEnumerable<IShokoGroup> groupInfo)
+        : base(relativePath, managedFolder, fileInfo, videoInfo, episodeInfo, seriesInfo, groupInfo)
     {
         FileName = fileName;
         PreviousFileName = previousFileName;
