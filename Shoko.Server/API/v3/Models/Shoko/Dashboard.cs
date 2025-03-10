@@ -139,7 +139,7 @@ public static class Dashboard
     public class Episode
     {
         public Episode(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null,
-            VideoLocal file = null, SVR_VideoLocal_User userRecord = null)
+            VideoLocal file = null, VideoLocal_User userRecord = null)
         {
             IDs = new EpisodeDetailsIDs()
             {

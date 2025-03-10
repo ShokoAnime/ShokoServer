@@ -97,7 +97,7 @@ public class RelocationPlusService : IHostedService
 
     private void OnVideoDeleted(object? sender, FileEventArgs eventArgs)
     {
-        var file = Path.Join(eventArgs.ImportFolder.Path, eventArgs.RelativePath);
+        var file = Path.Join(eventArgs.ManagedFolder.Path, eventArgs.RelativePath);
         if (string.IsNullOrEmpty(file))
             return;
 

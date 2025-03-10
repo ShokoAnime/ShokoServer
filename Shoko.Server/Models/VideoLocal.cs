@@ -93,7 +93,7 @@ public class VideoLocal : IHashes, IVideo
 
     public MediaContainer? MediaInfo { get; set; }
 
-    public IReadOnlyList<SVR_VideoLocal_Place> Places =>
+    public IReadOnlyList<VideoLocal_Place> Places =>
         VideoLocalID is 0 ? [] : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
     public StoredReleaseInfo? ReleaseInfo =>
@@ -108,22 +108,14 @@ public class VideoLocal : IHashes, IVideo
     public IReadOnlyList<SVR_CrossRef_File_Episode> EpisodeCrossReferences =>
         string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash);
 
-    public SVR_VideoLocal_Place? FirstValidPlace
-        => Places
-            .Where(p => !string.IsNullOrEmpty(p?.FullServerPath))
-            .MinBy(a => a.ImportFolderType);
+    public VideoLocal_Place? FirstValidPlace
+        => Places.FirstOrDefault(p => !string.IsNullOrEmpty(p?.Path));
 
-    public SVR_VideoLocal_Place? FirstResolvedPlace
-        => Places
-            .Select(location => (location, importFolder: location.ImportFolder, fullPath: location.FullServerPath))
-            .Where(tuple => tuple.importFolder is not null && !string.IsNullOrEmpty(tuple.fullPath))
-            .OrderBy(a => a.importFolder!.ImportFolderType)
-            .FirstOrDefault(p => File.Exists(p.fullPath)).location;
+    public VideoLocal_Place? FirstResolvedPlace
+        => Places.FirstOrDefault(place => place.IsAvailable);
 
     public override string ToString()
-    {
-        return $"{FileName} --- {Hash}";
-    }
+        => $"{FileName} --- {Hash}";
 
     public string ToStringDetailed()
     {
@@ -200,7 +192,7 @@ public class VideoLocal : IHashes, IVideo
         if (FirstResolvedPlace is not { } fileLocation)
             return null;
 
-        var filePath = fileLocation.FullServerPath;
+        var filePath = fileLocation.Path;
         if (string.IsNullOrEmpty(filePath))
             return null;
 

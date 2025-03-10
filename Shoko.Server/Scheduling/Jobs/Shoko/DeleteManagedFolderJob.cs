@@ -9,38 +9,41 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
-[JobKeyMember("DeleteImportFolder")]
+[JobKeyMember("DeleteManagedFolder")]
 [JobKeyGroup(JobKeyGroup.Actions)]
-internal class DeleteImportFolderJob : BaseJob
+internal class DeleteManagedFolderJob : BaseJob
 {
     private readonly ActionService _actionService;
-    private string _importFolder;
 
-    public int ImportFolderID { get; set; }
-    public override string TypeName => "Delete Import Folder";
-    public override string Title => "Deleting Import Folder";
+    private string _managedFolder;
+
+    public int ManagedFolderID { get; set; }
+
+    public override string TypeName => "Delete Managed Folder";
+
+    public override string Title => "Deleting Managed Folder";
 
     public override void PostInit()
     {
-        _importFolder = RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName;
+        _managedFolder = RepoFactory.ShokoManagedFolder?.GetByID(ManagedFolderID)?.Name;
     }
 
     public override Dictionary<string, object> Details => new()
     {
         {
-            "Import Folder", _importFolder ?? ImportFolderID.ToString()
+            "Managed Folder", _managedFolder ?? ManagedFolderID.ToString()
         }
     };
 
     public override async Task Process()
     {
-        await _actionService.DeleteImportFolder(ImportFolderID);
+        await _actionService.DeleteManagedFolder(ManagedFolderID);
     }
 
-    public DeleteImportFolderJob(ActionService actionService)
+    public DeleteManagedFolderJob(ActionService actionService)
     {
         _actionService = actionService;
     }
 
-    protected DeleteImportFolderJob() { }
+    protected DeleteManagedFolderJob() { }
 }

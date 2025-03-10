@@ -21,21 +21,21 @@ public class RelocationService : IRelocationService
         _logger = logger;
     }
 
-    public IImportFolder? GetFirstDestinationWithSpace(RelocationEventArgs args)
+    public IManagedFolder? GetFirstDestinationWithSpace(RelocationEventArgs args)
     {
         if (_settingsProvider.GetSettings().Import.SkipDiskSpaceChecks)
             return args.AvailableFolders.FirstOrDefault(fldr => fldr.DropFolderType.HasFlag(DropFolderType.Destination));
 
         return args.AvailableFolders.Where(fldr => fldr.DropFolderType.HasFlag(DropFolderType.Destination) && Directory.Exists(fldr.Path))
-            .FirstOrDefault(fldr => ImportFolderHasSpace(fldr, args.File));
+            .FirstOrDefault(fldr => ManagedFolderHasSpace(fldr, args.File));
     }
 
-    public bool ImportFolderHasSpace(IImportFolder folder, IVideoFile file)
+    public bool ManagedFolderHasSpace(IManagedFolder folder, IVideoFile file)
     {
-        return folder.ID == file.ImportFolderID || folder.AvailableFreeSpace >= file.Size;
+        return folder.ID == file.ManagedFolderID || folder.AvailableFreeSpace >= file.Size;
     }
 
-    public (IImportFolder ImportFolder, string RelativePath)? GetExistingSeriesLocationWithSpace(RelocationEventArgs args)
+    public (IManagedFolder ManagedFolder, string RelativePath)? GetExistingSeriesLocationWithSpace(RelocationEventArgs args)
     {
         var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
         if (series is null)
@@ -61,15 +61,15 @@ public class RelocationService : IRelocationService
 
                 var place = vid.Locations.FirstOrDefault(b =>
                     // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-                    b.ImportFolder is not null &&
-                    !b.ImportFolder.DropFolderType.HasFlag(DropFolderType.Source) &&
+                    b.ManagedFolder is not null &&
+                    !b.ManagedFolder.DropFolderType.HasFlag(DropFolderType.Source) &&
                     !string.IsNullOrWhiteSpace(b.RelativePath));
                 if (place is null) continue;
 
-                var placeFld = place.ImportFolder;
+                var placeFld = place.ManagedFolder;
 
                 // check space
-                if (!skipDiskSpaceChecks && !ImportFolderHasSpace(placeFld, args.File))
+                if (!skipDiskSpaceChecks && !ManagedFolderHasSpace(placeFld, args.File))
                     continue;
 
                 var placeDir = Path.GetDirectoryName(place.Path);
