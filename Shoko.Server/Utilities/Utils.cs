@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using NLog;
 using NLog.Config;
 using NLog.Filters;
@@ -19,7 +20,7 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
-public static class Utils
+public static partial class Utils
 {
     public static ShokoServer ShokoServer { get; set; }
 
@@ -308,5 +309,27 @@ public static class Utils
 
         return Encoding.ASCII;
 #pragma warning restore SYSLIB0001
+    }
+
+    [GeneratedRegex(@"(?<=^|/)\.{1,}\/")]
+    private static partial Regex MultiDotRegex();
+
+    [GeneratedRegex(@"\/{2,}")]
+    private static partial Regex MultiSlashRegex();
+
+    public static string CleanPath(string value, bool osDependent = false, bool cleanStart = false)
+    {
+        value ??= string.Empty;
+        value = value.Replace(Path.DirectorySeparatorChar, '/')
+            .Replace(Path.AltDirectorySeparatorChar, '/')
+            .Replace(MultiDotRegex(), "")
+            .Replace(MultiSlashRegex(), "/");
+        if (value.EndsWith('/'))
+            value = value[..^1];
+        if (cleanStart && value.StartsWith('/'))
+            value = value[1..];
+        if (osDependent)
+            value = value.Replace('/', Path.DirectorySeparatorChar);
+        return value;
     }
 }

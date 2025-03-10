@@ -76,7 +76,7 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Queues a task to import only new files found in the import folder
+    /// Queues a task to import only new files found in the managed folders
     /// </summary>
     /// <returns></returns>
     [HttpGet("ImportNewFiles")]
@@ -339,7 +339,7 @@ public class ActionController : BaseController
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
             .Select(file => (Video: file, AniDB: file.ReleaseInfo))
             .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
-            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
+            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
         var scheduler = await _schedulerFactory.GetScheduler();

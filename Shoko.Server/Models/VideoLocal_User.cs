@@ -1,5 +1,4 @@
 using System;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Server.Repositories;
@@ -7,16 +6,21 @@ using Shoko.Server.Repositories;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_VideoLocal_User : VideoLocal_User, IVideoUserData
+public class VideoLocal_User : IVideoUserData
 {
-    public SVR_VideoLocal_User() { }
+    public int VideoLocal_UserID { get; set; }
 
-    public SVR_VideoLocal_User(int userID, int fileID)
-    {
-        JMMUserID = userID;
-        VideoLocalID = fileID;
-        LastUpdated = DateTime.Now;
-    }
+    public int JMMUserID { get; set; }
+
+    public int VideoLocalID { get; set; }
+
+    public DateTime? WatchedDate { get; set; }
+
+    public long ResumePosition { get; set; }
+
+    public DateTime LastUpdated { get; set; }
+
+    public int WatchedCount { get; set; }
 
     /// <summary>
     /// Where to resume the playback of the <see cref="Models.VideoLocal"/>
@@ -28,7 +32,8 @@ public class SVR_VideoLocal_User : VideoLocal_User, IVideoUserData
         set => ResumePosition = value.HasValue ? (long)Math.Round(value.Value.TotalMilliseconds) : 0;
     }
 
-    public SVR_JMMUser User => RepoFactory.JMMUser.GetByID(JMMUserID);
+    public SVR_JMMUser User
+        => RepoFactory.JMMUser.GetByID(JMMUserID);
 
     /// <summary>
     /// Get the related <see cref="Models.VideoLocal"/>.

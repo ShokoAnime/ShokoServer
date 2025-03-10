@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -10,10 +9,10 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
-public class ImportFolder : BaseModel
+public class ManagedFolder : BaseModel
 {
     /// <summary>
-    /// Import Folder ID
+    /// Managed Folder ID
     /// </summary>
     public int ID { get; set; }
 
@@ -24,23 +23,23 @@ public class ImportFolder : BaseModel
     public bool WatchForNewFiles { get; set; }
 
     /// <summary>
-    /// Whether the import folder is a drop folder
+    /// Whether the managed folder is a drop folder
     /// </summary>
     public DropFolderType DropFolderType { get; set; }
 
     /// <summary>
-    /// Path on the server where the import folder exists. For docker, it's inside the container, so it'll look excessively simple
+    /// Path on the server where the managed folder exists. For docker, it's inside the container, so it'll look excessively simple
     /// </summary>
     public string Path { get; set; }
 
     /// <summary>
-    /// Total FileSize of the contents of the ImportFolder
+    /// Total FileSize of the contents of the managed folder
     /// </summary>
     public long FileSize { get; set; }
 
-    public ImportFolder() { }
+    public ManagedFolder() { }
 
-    public ImportFolder(SVR_ImportFolder folder)
+    public ManagedFolder(ShokoManagedFolder folder)
     {
         var places = folder.Places;
         var series = places
@@ -55,44 +54,33 @@ public class ImportFolder : BaseModel
             .WhereNotNull()
             .Sum(b => b.FileSize);
 
-        DropFolderType type;
-        if (folder.FolderIsDropDestination && folder.FolderIsDropSource)
-        {
+        var type = DropFolderType.None;
+        if (folder.IsDropDestination && folder.IsDropSource)
             type = DropFolderType.Both;
-        }
-        else if (folder.FolderIsDropDestination)
-        {
+        else if (folder.IsDropDestination)
             type = DropFolderType.Destination;
-        }
-        else if (folder.FolderIsDropSource)
-        {
+        else if (folder.IsDropSource)
             type = DropFolderType.Source;
-        }
-        else
-        {
-            type = DropFolderType.None;
-        }
 
-        ID = folder.ImportFolderID;
-        Name = folder.ImportFolderName;
-        Path = folder.ImportFolderLocation;
-        WatchForNewFiles = folder.FolderIsWatched;
+        ID = folder.ID;
+        Name = folder.Name;
+        Path = folder.Path;
+        WatchForNewFiles = folder.IsWatched;
         DropFolderType = type;
         Size = series;
         FileSize = size;
     }
 
-    public SVR_ImportFolder GetServerModel()
+    public ShokoManagedFolder GetServerModel()
     {
-        return new SVR_ImportFolder
+        return new ShokoManagedFolder
         {
-            ImportFolderID = ID,
-            ImportFolderName = Name,
-            ImportFolderType = (int)ImportFolderType.HDD,
-            ImportFolderLocation = Path,
-            IsWatched = WatchForNewFiles ? 1 : 0,
-            IsDropDestination = DropFolderType.HasFlag(DropFolderType.Destination) ? 1 : 0,
-            IsDropSource = DropFolderType.HasFlag(DropFolderType.Source) ? 1 : 0
+            ID = ID,
+            Name = Name,
+            Path = Path,
+            IsWatched = WatchForNewFiles,
+            IsDropDestination = DropFolderType.HasFlag(DropFolderType.Destination),
+            IsDropSource = DropFolderType.HasFlag(DropFolderType.Source),
         };
     }
 }
@@ -104,5 +92,5 @@ public enum DropFolderType
     None = 0,
     Source = 1,
     Destination = 2,
-    Both = Source | Destination
+    Both = Source | Destination,
 }

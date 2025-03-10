@@ -555,9 +555,9 @@ public static class ModelHelper
         else if (!skipSort)
             enumerable = File.OrderBy(enumerable, new()
             {
-                // First sort by import folder from A-Z.
-                File.FileSortCriteria.ImportFolderName.ToString(),
-                // Then by the relative path inside the import folder, from A-Z.
+                // First sort by managed folder from A-Z.
+                File.FileSortCriteria.ManagedFolderName.ToString(),
+                // Then by the relative path inside the managed folder, from A-Z.
                 File.FileSortCriteria.RelativePath.ToString(),
             });
 

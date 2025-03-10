@@ -431,7 +431,7 @@ public class AnimeSeriesService
             {
                 var users = xref?.SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID));
                 return users?.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ??
-                       Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
+                       Array.Empty<(int EpisodeID, VideoLocal_User VideoLocalUser)>();
             }
         ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID),
             b => b.VideoLocalUser);
@@ -462,7 +462,7 @@ public class AnimeSeriesService
                 ep.EpisodeTypeEnum is EpisodeType.Episode or EpisodeType.Special).ForAll(
                 ep =>
                 {
-                    SVR_VideoLocal_User vlUser = null;
+                    VideoLocal_User vlUser = null;
                     if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
                     {
                         vlUser = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]

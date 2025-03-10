@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Quartz;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
@@ -85,9 +86,9 @@ public class Common : BaseController
     /// Handle /api/folder/list
     /// List all saved Import Folders
     /// </summary>
-    /// <returns><see cref="List{ImportFolder}"/></returns>
+    /// <returns><see cref="List{CL_ImportFolder}"/></returns>
     [HttpGet("folder/list")]
-    public ActionResult<IEnumerable<ImportFolder>> GetFolders()
+    public ActionResult<IEnumerable<CL_ImportFolder>> GetFolders()
     {
         return _service.GetImportFolders();
     }
@@ -109,7 +110,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpPost("folder/add")]
-    public ActionResult<ImportFolder> AddFolder(ImportFolder folder)
+    public ActionResult<CL_ImportFolder> AddFolder(CL_ImportFolder folder)
     {
         if (!ModelState.IsValid)
         {
@@ -118,8 +119,8 @@ public class Common : BaseController
 
         try
         {
-            var result = RepoFactory.ImportFolder.SaveImportFolder(folder);
-            return result;
+            var result = RepoFactory.ShokoManagedFolder.SaveFolder(folder);
+            return result.ToClient();
         }
         catch (Exception e)
         {
@@ -133,7 +134,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpPost("folder/edit")]
-    public ActionResult<ImportFolder> EditFolder(ImportFolder folder)
+    public ActionResult<CL_ImportFolder> EditFolder(CL_ImportFolder folder)
     {
         if (string.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
         {
@@ -143,19 +144,8 @@ public class Common : BaseController
 
         try
         {
-            if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-            {
-                return new APIMessage(StatusCodes.Status409Conflict,
-                    "The Folder Can't be both Destination and Source Simultaneously");
-            }
-
-            if (folder.ImportFolderID == 0)
-            {
-                return new APIMessage(StatusCodes.Status409Conflict, "The Import Folder must have an ID");
-            }
-
-            ImportFolder response = RepoFactory.ImportFolder.SaveImportFolder(folder);
-            return response;
+            var response = RepoFactory.ShokoManagedFolder.SaveFolder(folder);
+            return response.ToClient();
         }
         catch (Exception e)
         {
@@ -176,11 +166,11 @@ public class Common : BaseController
             return new APIMessage(400, "folderId missing");
         }
 
-        var importFolder = RepoFactory.ImportFolder.GetByID(folderId);
+        var importFolder = RepoFactory.ShokoManagedFolder.GetByID(folderId);
         if (importFolder == null)
             return new APIMessage(404, "ImportFolder missing");
 
-        var res = await _actionService.DeleteImportFolder(importFolder.ImportFolderID);
+        var res = await _actionService.DeleteManagedFolder(importFolder.ID);
         return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
     }
 
@@ -388,7 +378,7 @@ public class Common : BaseController
         }
 
         var pl = vl.FirstResolvedPlace;
-        if (pl?.FullServerPath == null)
+        if (pl?.Path == null)
         {
             return NotFound("videolocal_place not found");
         }
@@ -397,7 +387,7 @@ public class Common : BaseController
         await scheduler.StartJobNow<HashFileJob>(
             c =>
             {
-                c.FilePath = pl.FullServerPath;
+                c.FilePath = pl.Path;
                 c.ForceHash = true;
             }
         );
@@ -419,7 +409,7 @@ public class Common : BaseController
             foreach (var vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
             {
                 var pl = vl.FirstResolvedPlace;
-                if (pl?.FullServerPath == null)
+                if (pl?.Path == null)
                 {
                     continue;
                 }
@@ -427,7 +417,7 @@ public class Common : BaseController
                 await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
-                        c.FilePath = pl.FullServerPath;
+                        c.FilePath = pl.Path;
                         c.ForceHash = true;
                     }
                 );
@@ -455,7 +445,7 @@ public class Common : BaseController
             foreach (var vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
             {
                 var pl = vl.FirstResolvedPlace;
-                if (pl?.FullServerPath == null)
+                if (pl?.Path == null)
                 {
                     continue;
                 }
@@ -463,7 +453,7 @@ public class Common : BaseController
                 await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
-                        c.FilePath = pl.FullServerPath;
+                        c.FilePath = pl.Path;
                         c.ForceHash = true;
                     }
                 );
@@ -835,7 +825,7 @@ public class Common : BaseController
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(_tuple => new
             {
-                Path = _tuple.vid.FirstResolvedPlace?.FullServerPath,
+                Path = _tuple.vid.FirstResolvedPlace?.Path,
                 Video = _tuple.vid
             })
             .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
@@ -2071,7 +2061,7 @@ public class Common : BaseController
         bool allpic, int pic, TagFilter.Filter tagfilter)
     {
         var allseries = new List<Serie>();
-        var vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+        var vlpall = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id)
             .Select(a => a.VideoLocal)
             .ToList();
 
@@ -2133,7 +2123,7 @@ public class Common : BaseController
         long filesize = 0;
         var size = 0;
         var output = new Dictionary<int, SeriesInfo>();
-        var vlps = RepoFactory.VideoLocalPlace.GetByImportFolder(id);
+        var vlps = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id);
         // each place counts in the filesize, so we use it
         foreach (var place in vlps)
         {
@@ -2144,7 +2134,7 @@ public class Common : BaseController
                 continue;
             }
 
-            if (string.IsNullOrEmpty(place.FilePath))
+            if (string.IsNullOrEmpty(place.RelativePath))
             {
                 continue;
             }
@@ -2153,7 +2143,7 @@ public class Common : BaseController
             var seriesList = vl.AnimeEpisodes.Select(a => a.AnimeSeries).DistinctBy(a => a.AnimeSeriesID)
                 .ToList();
 
-            var path = (Path.GetDirectoryName(place.FilePath) ?? string.Empty) + "/";
+            var path = (Path.GetDirectoryName(place.RelativePath) ?? string.Empty) + "/";
             foreach (var series in seriesList)
             {
                 if (output.TryGetValue(series.AnimeSeriesID, out var value))
@@ -2208,7 +2198,7 @@ public class Common : BaseController
     {
         var tempDict = new Dictionary<string, long>();
         var allseries = new List<object>();
-        var vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+        var vlpall = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id)
             .Select(a => a.VideoLocal)
             .ToList();
 
@@ -3216,7 +3206,7 @@ public class Common_v2_1 : BaseController
         }
 
         var items = RepoFactory.VideoLocalPlace.GetAll()
-            .Where(v => filename.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
+            .Where(v => filename.Equals(v.RelativePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                 StringComparison.InvariantCultureIgnoreCase))
             .Where(a => a.VideoLocal is not null)
             .Select(a => a.VideoLocal.AnimeEpisodes)
