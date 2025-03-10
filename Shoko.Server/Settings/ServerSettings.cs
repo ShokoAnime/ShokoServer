@@ -10,7 +10,7 @@ namespace Shoko.Server.Settings;
 /// Shoko Core Settings.
 /// </summary>
 [Display(Name = "Shoko Core")]
-public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration
+public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHiddenConfiguration
 {
     /// <summary>
     /// Settings version. Will be incremented by the system. DO NOT TOUCH.
