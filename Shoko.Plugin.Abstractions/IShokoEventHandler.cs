@@ -63,4 +63,14 @@ public interface IShokoEventHandler
     /// Fired when an avdump event occurs.
     /// </summary>
     event EventHandler<AVDumpEventArgs> AVDumpEvent;
+
+    /// <summary>
+    /// Fired when the the server has fully started and all services are usable.
+    /// </summary>
+    event EventHandler Started;
+
+    /// <summary>
+    /// Fired when the the server is shutting down.
+    /// </summary>
+    event EventHandler Shutdown;
 }
