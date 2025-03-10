@@ -114,13 +114,14 @@ public class AbstractVideoReleaseService(
             _releaseInfoProviderInfos = providers
                 .Select((provider, priority) =>
                 {
+                    var pluginType = provider.GetType();
                     var pluginInfo = pluginManager.GetPluginInfo(
-                        Loader.GetTypes<IPlugin>(provider.GetType().Assembly)
+                        Loader.GetTypes<IPlugin>(pluginType.Assembly)
                             .First(t => pluginManager.GetPluginInfo(t) is not null)
                     )!;
-                    var id = GetID(provider.GetType(), pluginInfo);
+                    var id = GetID(pluginType, pluginInfo);
                     var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
-                    var description = PluginManager.GetDescription(provider.GetType());
+                    var description = pluginType.GetDescription();
                     return new ReleaseInfoProviderInfo()
                     {
                         ID = id,
