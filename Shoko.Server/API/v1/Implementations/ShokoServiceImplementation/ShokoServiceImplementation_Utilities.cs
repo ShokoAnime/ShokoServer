@@ -472,7 +472,6 @@ public partial class ShokoServiceImplementation
     {
         var result = new List<CL_MissingEpisode>();
 
-        var airState = (AiringState)airingState;
 
         try
         {
@@ -484,8 +483,8 @@ public partial class ShokoServiceImplementation
 
                 var finishedAiring = ser.AniDB_Anime.GetFinishedAiring();
 
-                if (!finishedAiring && airState == AiringState.FinishedAiring) return Array.Empty<CL_MissingEpisode>();
-                if (finishedAiring && airState == AiringState.StillAiring) return Array.Empty<CL_MissingEpisode>();
+                if (!finishedAiring && airingState == 2 /* Finished airing */) return Array.Empty<CL_MissingEpisode>();
+                if (finishedAiring && airingState == 1 /* Still airing */ ) return Array.Empty<CL_MissingEpisode>();
 
                 if (missingEps <= 0) return Array.Empty<CL_MissingEpisode>();
 
@@ -598,7 +597,7 @@ public partial class ShokoServiceImplementation
                         if (v == null) break;
                         foreach (var p in v.Places)
                         {
-                            if (System.IO.File.Exists(p.FullServerPath))
+                            if (System.IO.File.Exists(p.Path))
                             {
                                 fileMissing = false;
                                 break;
@@ -805,10 +804,10 @@ public partial class ShokoServiceImplementation
         var dupFiles = new List<CL_DuplicateFile>();
         try
         {
-            var files = RepoFactory.VideoLocalPlace.GetAll().GroupBy(a => a.VideoLocalID).Where(a => a.Count() > 1).ToList();
+            var files = RepoFactory.VideoLocalPlace.GetAll().GroupBy(a => a.VideoID).Where(a => a.Count() > 1).ToList();
             foreach (var group in files)
             {
-                var groupFiles = group.OrderBy(a => a.VideoLocal_Place_ID).ToList();
+                var groupFiles = group.OrderBy(a => a.ID).ToList();
                 var first = groupFiles.First();
                 var vl = first.VideoLocal;
                 SVR_AniDB_Anime anime = null;
@@ -826,14 +825,14 @@ public partial class ShokoServiceImplementation
                     dupFiles.Add(new CL_DuplicateFile
                     {
                         Hash = vl.Hash,
-                        File1VideoLocalPlaceID = first.VideoLocal_Place_ID,
-                        ImportFolder1 = first.ImportFolder,
-                        ImportFolderIDFile1 = first.ImportFolderID,
-                        FilePathFile1 = first.FilePath,
-                        File2VideoLocalPlaceID = other.VideoLocal_Place_ID,
-                        ImportFolder2 = other.ImportFolder,
-                        ImportFolderIDFile2 = other.ImportFolderID,
-                        FilePathFile2 = other.FilePath,
+                        File1VideoLocalPlaceID = first.ID,
+                        ImportFolder1 = first.ManagedFolder?.ToClient(),
+                        ImportFolderIDFile1 = first.ManagedFolderID,
+                        FilePathFile1 = first.RelativePath,
+                        File2VideoLocalPlaceID = other.ID,
+                        ImportFolder2 = other.ManagedFolder?.ToClient(),
+                        ImportFolderIDFile2 = other.ManagedFolderID,
+                        FilePathFile2 = other.RelativePath,
                         AnimeID = anime?.AnimeID,
                         AnimeName = anime?.MainTitle,
                         EpisodeType = episode?.EpisodeType,
@@ -1174,7 +1173,7 @@ public partial class ShokoServiceImplementation
             return "Unable to get VideoLocal with id: " + vidLocalID;
         }
 
-        var filePath = video.FirstResolvedPlace?.FullServerPath;
+        var filePath = video.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
         {
             return "Unable to get file location for VideoLocal with id: " + video.VideoLocalID;
