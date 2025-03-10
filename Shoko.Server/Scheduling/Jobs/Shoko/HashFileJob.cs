@@ -38,7 +38,7 @@ public class HashFileJob : BaseJob
 
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    private readonly ImportFolderRepository _importFolders;
+    private readonly ShokoManagedFolderRepository _managedFolders;
 
     public string FilePath { get; set; }
 
@@ -63,14 +63,14 @@ public class HashFileJob : BaseJob
 
     protected HashFileJob() { }
 
-    public HashFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, IVideoReleaseService videoReleaseService, VideoLocal_PlaceService vlPlaceService, ImportFolderRepository importFolders)
+    public HashFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, IVideoReleaseService videoReleaseService, VideoLocal_PlaceService vlPlaceService, ShokoManagedFolderRepository managedFolders)
     {
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
         _videoHashingService = videoHashingService;
         _videoReleaseService = videoReleaseService;
         _vlPlaceService = vlPlaceService;
-        _importFolders = importFolders;
+        _managedFolders = managedFolders;
     }
 
     public override async Task Process()
@@ -131,7 +131,7 @@ public class HashFileJob : BaseJob
         RepoFactory.VideoLocalHashDigest.Save(toSave);
         RepoFactory.VideoLocalHashDigest.Delete(toRemove);
 
-        videoLocation.VideoLocalID = video.VideoLocalID;
+        videoLocation.VideoID = video.VideoLocalID;
         RepoFactory.VideoLocalPlace.Save(videoLocation);
 
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -165,7 +165,7 @@ public class HashFileJob : BaseJob
             });
     }
 
-    private (VideoLocal?, SVR_VideoLocal_Place?, SVR_ImportFolder?) GetVideoLocal(string resolvedFilePath)
+    private (VideoLocal?, VideoLocal_Place?, ShokoManagedFolder?) GetVideoLocal(string resolvedFilePath)
     {
         if (!File.Exists(resolvedFilePath))
         {
@@ -174,16 +174,16 @@ public class HashFileJob : BaseJob
         }
 
         // hash and read media info for file
-        var (folder, filePath) = _importFolders.GetFromFullPath(FilePath);
+        var (folder, filePath) = _managedFolders.GetFromAbsolutePath(FilePath);
         if (folder == null)
         {
-            _logger.LogError("Unable to locate Import Folder for {FileName}", FilePath);
+            _logger.LogError("Unable to locate Managed Folder for {FileName}", FilePath);
             return default;
         }
 
         // check if we have already processed this file
-        var importFolderID = folder.ImportFolderID;
-        var videoLocation = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, importFolderID);
+        var folderID = folder.ID;
+        var videoLocation = RepoFactory.VideoLocalPlace.GetByRelativePathAndManagedFolderID(filePath, folderID);
         var filename = Path.GetFileName(filePath);
 
         VideoLocal? vlocal = null;
@@ -195,7 +195,7 @@ public class HashFileJob : BaseJob
                 _logger.LogTrace("VideoLocal record found in database: {Filename}", FilePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
-                if (videoLocation.FullServerPath == null)
+                if (videoLocation.Path == null)
                 {
                     if (vlocal.Places.Count == 1)
                     {
@@ -224,22 +224,21 @@ public class HashFileJob : BaseJob
         if (videoLocation == null)
         {
             _logger.LogTrace("No existing VideoLocal_Place, creating a new record");
-            videoLocation = new SVR_VideoLocal_Place
+            videoLocation = new VideoLocal_Place
             {
-                FilePath = filePath,
-                ImportFolderID = importFolderID,
-                ImportFolderType = folder.ImportFolderType,
+                RelativePath = filePath,
+                ManagedFolderID = folderID,
             };
-            if (vlocal.VideoLocalID != 0) videoLocation.VideoLocalID = vlocal.VideoLocalID;
+            if (vlocal.VideoLocalID != 0) videoLocation.VideoID = vlocal.VideoLocalID;
         }
 
         return (vlocal, videoLocation, folder);
     }
 
-    private long GetFileSize(SVR_ImportFolder folder, string resolvedFilePath, ref Exception? e)
+    private long GetFileSize(ShokoManagedFolder folder, string resolvedFilePath, ref Exception? e)
     {
         var settings = _settingsProvider.GetSettings();
-        var access = folder.IsDropSource == 1 ? FileAccess.ReadWrite : FileAccess.Read;
+        var access = folder.IsDropSource ? FileAccess.ReadWrite : FileAccess.Read;
 
         if (settings.Import.FileLockChecking)
         {
@@ -328,7 +327,7 @@ public class HashFileJob : BaseJob
         return false;
     }
 
-    private async Task<bool> ProcessDuplicates(VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
+    private async Task<bool> ProcessDuplicates(VideoLocal vlocal, VideoLocal_Place vlocalplace)
     {
         if (vlocal == null) return false;
         // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
@@ -337,19 +336,19 @@ public class HashFileJob : BaseJob
         // remove missing files
         var preps = vlocal.Places.Where(a =>
         {
-            if (string.Equals(a.FullServerPath, vlocalplace.FullServerPath)) return false;
-            if (a.FullServerPath == null) return true;
-            return !File.Exists(a.FullServerPath);
+            if (string.Equals(a.Path, vlocalplace.Path)) return false;
+            if (a.Path == null) return true;
+            return !File.Exists(a.Path);
         }).ToList();
         RepoFactory.VideoLocalPlace.Delete(preps);
 
-        var dupPlace = vlocal.Places.FirstOrDefault(a => !string.Equals(a.FullServerPath, vlocalplace.FullServerPath));
+        var dupPlace = vlocal.Places.FirstOrDefault(a => !string.Equals(a.Path, vlocalplace.Path));
         if (dupPlace == null) return false;
 
         _logger.LogWarning("Found Duplicate File");
         _logger.LogWarning("---------------------------------------------");
-        _logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);
-        _logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
+        _logger.LogWarning("New File: {FullServerPath}", vlocalplace.Path);
+        _logger.LogWarning("Existing File: {FullServerPath}", dupPlace.Path);
         _logger.LogWarning("---------------------------------------------");
 
         var settings = _settingsProvider.GetSettings();

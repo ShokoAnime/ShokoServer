@@ -10,14 +10,14 @@ namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
 public class RelocateBody
 {
     /// <summary>
-    /// The id of the <see cref="ImportFolder"/> where this file should
+    /// The id of the <see cref="ManagedFolder"/> where this file should
     /// be relocated to.
     /// </summary>
     [Required]
-    public int ImportFolderID { get; set; }
+    public int ManagedFolderID { get; set; }
 
     /// <summary>
-    /// The new relative path from the <see cref="ImportFolder"/>'s path
+    /// The new relative path from the <see cref="ManagedFolder"/>'s path
     /// on the server.
     /// </summary>
     [Required]

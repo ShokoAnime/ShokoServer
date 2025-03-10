@@ -60,13 +60,13 @@ public class RepoFactory
     public static FileNameHashRepository FileNameHash;
     public static FilterPresetRepository FilterPreset;
     public static IgnoreAnimeRepository IgnoreAnime;
-    public static ImportFolderRepository ImportFolder;
     public static JMMUserRepository JMMUser;
     public static PlaylistRepository Playlist;
     public static RenamerConfigRepository RenamerConfig;
     public static ScanFileRepository ScanFile;
     public static ScanRepository Scan;
     public static ScheduledUpdateRepository ScheduledUpdate;
+    public static ShokoManagedFolderRepository ShokoManagedFolder;
     public static StoredReleaseInfoRepository StoredReleaseInfo;
     public static StoredReleaseInfo_MatchAttemptRepository StoredReleaseInfo_MatchAttempt;
     public static TMDB_AlternateOrdering_EpisodeRepository TMDB_AlternateOrdering_Episode;
@@ -142,13 +142,13 @@ public class RepoFactory
         FileNameHashRepository fileNameHash,
         FilterPresetRepository filterPreset,
         IgnoreAnimeRepository ignoreAnime,
-        ImportFolderRepository importFolder,
         JMMUserRepository jmmUser,
         PlaylistRepository playlist,
         RenamerConfigRepository renamerConfig,
         ScanFileRepository scanFile,
         ScanRepository scan,
         ScheduledUpdateRepository scheduledUpdate,
+        ShokoManagedFolderRepository shokoManagedFolder,
         StoredReleaseInfoRepository storedReleaseInfo,
         StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempt,
         TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisode,
@@ -224,13 +224,13 @@ public class RepoFactory
         FileNameHash = fileNameHash;
         FilterPreset = filterPreset;
         IgnoreAnime = ignoreAnime;
-        ImportFolder = importFolder;
         JMMUser = jmmUser;
         Playlist = playlist;
         RenamerConfig = renamerConfig;
         Scan = scan;
         ScanFile = scanFile;
         ScheduledUpdate = scheduledUpdate;
+        ShokoManagedFolder = shokoManagedFolder;
         StoredReleaseInfo = storedReleaseInfo;
         StoredReleaseInfo_MatchAttempt = storedReleaseInfoMatchAttempt;
         TMDB_AlternateOrdering = tmdbAlternateOrdering;

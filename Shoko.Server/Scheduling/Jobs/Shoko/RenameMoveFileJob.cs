@@ -32,7 +32,7 @@ public class RenameMoveFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
@@ -52,23 +52,23 @@ public class RenameMoveFileJob : BaseJob
 
         foreach (var location in _vlocal.Places)
         {
-            var locationPath = location.FullServerPath;
-            var importFolder = location.ImportFolder;
-            if (string.IsNullOrEmpty(locationPath) || importFolder == null)
+            var locationPath = location.Path;
+            var folder = location.ManagedFolder;
+            if (string.IsNullOrEmpty(locationPath) || folder is null)
             {
-                _logger.LogTrace("Invalid path or import folder, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _vlocal.VideoLocalID, location.VideoLocal_Place_ID);
+                _logger.LogTrace("Invalid path or managed folder, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _vlocal.VideoLocalID, location.ID);
                 continue;
             }
 
-            if (importFolder.IsDropDestination != 1 && importFolder.IsDropSource != 1)
+            if (!folder.IsDropDestination && !folder.IsDropSource)
             {
-                _logger.LogTrace("Not in a drop destination or source, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _vlocal.VideoLocalID, location.VideoLocal_Place_ID);
+                _logger.LogTrace("Not in a drop destination or source, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _vlocal.VideoLocalID, location.ID);
                 continue;
             }
 
             var result = await _vlPlaceService.AutoRelocateFile(location);
             if (!result.Success)
-                _logger.LogTrace(result.Exception, "Unable to move/rename file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.ErrorMessage, _vlocal.VideoLocalID, location.VideoLocal_Place_ID);
+                _logger.LogTrace(result.Exception, "Unable to move/rename file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.ErrorMessage, _vlocal.VideoLocalID, location.ID);
         }
     }
 

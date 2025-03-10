@@ -48,7 +48,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         string newFilename = null;
         var success = true;
-        (IImportFolder dest, string folder) destination = default;
+        (IManagedFolder dest, string folder) destination = default;
         Exception ex = null;
         try
         {
@@ -76,7 +76,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return new Shoko.Plugin.Abstractions.Events.RelocationResult
         {
             FileName = newFilename,
-            DestinationImportFolder = destination.dest,
+            DestinationFolder = destination.dest,
             Path = destination.folder
         };
     }
@@ -1385,12 +1385,12 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     private (bool success, string name) GetNewFileName(RelocationEventArgs args, WebAOMSettings settings, string script)
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
-        var sourceFolder = RepoFactory.ImportFolder.GetAll()
-            .FirstOrDefault(a => args.File.Path.StartsWith(a.ImportFolderLocation));
-        if (sourceFolder == null) return (false, "Unable to Get Import Folder");
+        var sourceFolder = RepoFactory.ShokoManagedFolder.GetAll()
+            .FirstOrDefault(a => args.File.Path.StartsWith(a.Path));
+        if (sourceFolder == null) return (false, "Unable to Get Managed Folder");
 
-        var place = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(
-            args.File.Path.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
+        var place = RepoFactory.VideoLocalPlace.GetByRelativePathAndManagedFolderID(
+            args.File.Path.Replace(sourceFolder.Path, ""), sourceFolder.ID);
         var vid = place?.VideoLocal;
         var lines = script.Split(Environment.NewLine.ToCharArray());
 
@@ -1447,7 +1447,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (string.IsNullOrEmpty(newFileName)) return (false, "The new filename is empty (script error)");
 
-        var pathToVid = place.FilePath;
+        var pathToVid = place.RelativePath;
         if (string.IsNullOrEmpty(pathToVid)) return (false, "Unable to get the file's old filename");
 
         var ext = Path.GetExtension(pathToVid); // Prefer VideoLocal_Place as this is more accurate.
@@ -2096,7 +2096,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    public (IImportFolder dest, string folder) GetDestinationFolder(RelocationEventArgs<WebAOMSettings> args)
+    public (IManagedFolder dest, string folder) GetDestinationFolder(RelocationEventArgs<WebAOMSettings> args)
     {
         if (args.Settings.GroupAwareSorting)
             return GetGroupAwareDestination(args);
@@ -2104,7 +2104,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return GetFlatFolderDestination(args);
     }
 
-    private (IImportFolder dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
+    private (IManagedFolder dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
     {
         if (args?.Episodes == null || args.Episodes.Count == 0)
         {
@@ -2156,12 +2156,12 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return (destFolder, path);
     }
 
-    private static bool ValidDestinationFolder(IImportFolder dest)
+    private static bool ValidDestinationFolder(IManagedFolder dest)
     {
         return dest.DropFolderType.HasFlag(DropFolderType.Destination);
     }
 
-    private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
+    private (IManagedFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
         if (_relocationService.GetExistingSeriesLocationWithSpace(args) is { } existingSeriesLocation)
             return existingSeriesLocation;

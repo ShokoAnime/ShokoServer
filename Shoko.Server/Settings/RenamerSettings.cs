@@ -28,7 +28,7 @@ public class RenamerSettings
 
     /// <summary>
     /// Indicates that we can relocate a video file that lives inside a
-    /// drop destination import folder that's not also a drop source on import.
+    /// drop destination managed folder that's not also a drop source on import.
     /// </summary>
     public bool AllowRelocationInsideDestinationOnImport { get; set; } = true;
 
