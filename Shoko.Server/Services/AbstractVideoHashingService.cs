@@ -114,7 +114,7 @@ public class AbstractVideoHashingService : IVideoHashingService
                     var id = GetID(provider.GetType(), pluginInfo);
                     var contextualType = provider.GetType().ToContextualType();
                     var enabledHashes = enabled.TryGetValue(id, out var h) ? h : id == _coreProviderID ? ["ED2K"] : [];
-                    var description = PluginManager.GetDescription(contextualType);
+                    var description = contextualType.GetDescription();
                     return new HashProviderInfo()
                     {
                         ID = id,

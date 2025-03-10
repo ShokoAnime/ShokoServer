@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using Shoko.Plugin.Abstractions;
@@ -44,7 +43,7 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public event EventHandler? Started;
 
-    public event EventHandler<CancelEventArgs>? Shutdown;
+    public event EventHandler? Shutdown;
 
     private static ShokoEventHandler? _instance;
 
@@ -290,10 +289,8 @@ public class ShokoEventHandler : IShokoEventHandler
         Started?.Invoke(null, EventArgs.Empty);
     }
 
-    public bool OnShutdown()
+    public void OnShutdown()
     {
-        var args = new CancelEventArgs();
-        Shutdown?.Invoke(null, args);
-        return !args.Cancel;
+        Shutdown?.Invoke(null, EventArgs.Empty);
     }
 }

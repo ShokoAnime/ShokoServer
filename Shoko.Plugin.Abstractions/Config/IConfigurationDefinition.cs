@@ -1,5 +1,6 @@
-
 using System;
+using System.Collections.Generic;
+using Namotion.Reflection;
 
 namespace Shoko.Plugin.Abstractions.Config;
 
@@ -18,14 +19,72 @@ public interface IConfigurationDefinition
 /// <summary>
 /// Interface for creating new configurations with more complex rules for how it should be initialized.
 /// </summary>
+public interface IConfigurationDefinitionNewFactory : IConfigurationDefinition { }
+
+/// <summary>
+/// Interface for creating new configurations with more complex rules for how it should be initialized.
+/// </summary>
 /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-public interface IConfigurationNewFactory<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
+public interface IConfigurationNewFactory<TConfig> : IConfigurationDefinitionNewFactory where TConfig : class, IConfiguration, new()
 {
     /// <summary>
     /// Create a new configuration with more complex rules for how it should be initialized.
     /// </summary>
     /// <returns>The new configuration.</returns>
     TConfig New();
+}
+
+/// <summary>
+/// Interface for allowing plugins to specify a custom validation for their configuration which will be called after JSON schema validation.
+/// </summary>
+public interface IConfigurationDefinitionWithCustomValidation : IConfigurationDefinition { }
+
+/// <summary>
+/// Interface for allowing plugins to specify a custom validation for their configuration which will be called after JSON schema validation.
+/// </summary>
+/// <typeparam name="TConfig">The type of the configuration.</typeparam>
+public interface IConfigurationDefinitionWithCustomValidation<TConfig> : IConfigurationDefinitionWithCustomValidation where TConfig : class, IConfiguration, new()
+{
+    /// <summary>
+    /// Validate the configuration. This will only be called if the JSON schema validation was successful.
+    /// </summary>
+    /// <param name="config">The configuration.</param>
+    /// <returns>A dictionary of validation errors.</returns>
+    IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(TConfig config);
+}
+
+/// <summary>
+/// Interface for allowing plugins to specify a custom action for their configuration.
+/// </summary>
+public interface IConfigurationDefinitionWithCustomActions : IConfigurationDefinition { }
+
+/// <summary>
+/// Interface for allowing plugins to specify a custom action for their configuration.
+/// </summary>
+public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigurationDefinitionWithCustomActions where TConfig : class, IConfiguration, new()
+{
+    /// <summary>
+    /// Perform an action on the configuration.
+    /// </summary>
+    /// <param name="config">The configuration.</param>
+    /// <param name="type">The contextual type of the class or sub-class.</param>
+    /// <param name="path">The path to the configuration.</param>
+    /// <param name="action">The action to perform.</param>
+    /// <returns>The result of the action.</returns>
+    ConfigurationActionResult PerformAction(TConfig config, ContextualType type, string path, string action);
+}
+
+/// <summary>
+/// Interface for allowing plugins to apply migrations to their configuration before loading it from disk.
+/// </summary>
+public interface IConfigurationDefinitionWithMigrations : IConfigurationDefinition
+{
+    /// <summary>
+    /// Apply migrations on the configuration before loading it from disk.
+    /// </summary>
+    /// <param name="config">The serialized configuration.</param>
+    /// <returns>The modified serialized configuration.</returns>
+    string ApplyMigrations(string config);
 }
 
 /// <summary>
@@ -50,17 +109,4 @@ public interface IConfigurationDefinitionWithCustomSaveLocation : IConfiguration
     /// </summary>
     /// <value>The relative path.</value>
     string RelativePath { get; }
-}
-
-/// <summary>
-/// Interface for allowing plugins to apply migrations to their configuration before loading it from disk.
-/// </summary>
-public interface IConfigurationDefinitionsWithMigrations : IConfigurationDefinition
-{
-    /// <summary>
-    /// Apply migrations on the configuration before loading it from disk.
-    /// </summary>
-    /// <param name="config">The serialized configuration.</param>
-    /// <returns>The modified serialized configuration.</returns>
-    string ApplyMigrations(string config);
 }
