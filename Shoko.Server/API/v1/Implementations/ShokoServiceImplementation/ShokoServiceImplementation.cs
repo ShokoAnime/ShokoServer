@@ -542,7 +542,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public void ScanFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<ScanFolderJob>(a => a.ImportFolderID = importFolderID).GetAwaiter().GetResult();
+        scheduler.StartJob<ScanFolderJob>(a => a.ManagedFolderID = importFolderID).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/RemoveMissing")]

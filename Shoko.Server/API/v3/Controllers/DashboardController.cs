@@ -397,7 +397,7 @@ public class DashboardController : BaseController
     public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode,
         SVR_AnimeSeries series, SVR_AniDB_Anime anime = null, VideoLocal file = null)
     {
-        SVR_VideoLocal_User userRecord;
+        VideoLocal_User userRecord;
         var animeEpisode = episode.AniDB_Episode;
         anime ??= series.AniDB_Anime;
 

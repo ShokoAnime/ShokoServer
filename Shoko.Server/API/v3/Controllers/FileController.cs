@@ -143,7 +143,7 @@ public class FileController : BaseController
     {
         // Search.
         var searched = RepoFactory.VideoLocal.GetAll()
-            .Search(query, tuple => tuple.Places.Select(place => place?.FilePath).Where(path => path != null), fuzzy)
+            .Search(query, tuple => tuple.Places.Select(place => place?.RelativePath).Where(path => path != null), fuzzy)
             .Select(result => result.Result)
             .ToList();
         return ModelHelper.FilterFiles(searched, User, pageSize, page, include, exclude, include_only, sortOrder,
@@ -548,7 +548,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbReleaseNotFoundForFileID);
 
-        var filePath = file.FirstResolvedPlace?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -612,7 +612,7 @@ public class FileController : BaseController
         var bestLocation = file.Places.FirstOrDefault(a => a.FileName.Equals(filename));
         bestLocation ??= file.FirstValidPlace;
 
-        var fileInfo = bestLocation.GetFile();
+        var fileInfo = bestLocation.FileInfo;
         if (fileInfo == null)
             return InternalError("Unable to find physical file for reading the stream data.");
 
@@ -668,7 +668,7 @@ public class FileController : BaseController
 
         foreach (var place in file.Places)
         {
-            var path = place.GetFile()?.Directory?.FullName;
+            var path = place.FileInfo?.Directory?.FullName;
             if (path == null) continue;
             path = Path.Combine(path, filename);
             var subFile = new FileInfo(path);
@@ -937,7 +937,7 @@ public class FileController : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             ModelState.AddModelError("Settings", "Missing AVDump API key");
 
-        var filePath = file.FirstResolvedPlace?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
             ModelState.AddModelError("File", FileNoPath);
 
@@ -972,7 +972,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var filePath = file.FirstResolvedPlace?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -1010,7 +1010,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var filePath = file.FirstResolvedPlace?.FullServerPath;
+        var filePath = file.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
@@ -1438,7 +1438,7 @@ public class FileController : BaseController
             .Replace('\\', Path.DirectorySeparatorChar);
         var results = RepoFactory.VideoLocalPlace.GetAll()
             .AsParallel()
-            .Where(location => location.FullServerPath?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
+            .Where(location => location.Path?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
             .Select(location => location.VideoLocal)
             .Where(file =>
             {
@@ -1488,7 +1488,7 @@ public class FileController : BaseController
         }
 
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => regex.IsMatch(a.FullServerPath)).Select(a => a.VideoLocal)
+            .Where(a => regex.IsMatch(a.Path)).Select(a => a.VideoLocal)
             .Distinct()
             .Where(a =>
             {

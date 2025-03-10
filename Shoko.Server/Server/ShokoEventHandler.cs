@@ -49,12 +49,12 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public static ShokoEventHandler Instance => _instance ??= new();
 
-    public void OnFileDetected(SVR_ImportFolder folder, FileInfo file)
+    public void OnFileDetected(IManagedFolder folder, FileInfo file)
     {
-        FileDetected?.Invoke(null, new(file.FullName[folder.ImportFolderLocation.Length..], file, folder));
+        FileDetected?.Invoke(null, new(file.FullName[folder.Path.Length..], file, folder));
     }
 
-    public void OnFileHashed(SVR_ImportFolder folder, IVideoFile vlp, IVideo vl)
+    public void OnFileHashed(IManagedFolder folder, IVideoFile vlp, IVideo vl)
     {
         var relativePath = vlp.RelativePath;
         var xrefs = vl.CrossReferences;
@@ -75,7 +75,7 @@ public class ShokoEventHandler : IShokoEventHandler
         FileHashed?.Invoke(null, new(relativePath, folder, vlp, vl, episodes, series, groups));
     }
 
-    public void OnFileDeleted(SVR_ImportFolder folder, IVideoFile vlp, IVideo vl)
+    public void OnFileDeleted(IManagedFolder folder, IVideoFile vlp, IVideo vl)
     {
         var path = vlp.RelativePath;
         var xrefs = vl.CrossReferences;
@@ -96,7 +96,7 @@ public class ShokoEventHandler : IShokoEventHandler
         FileDeleted?.Invoke(null, new(path, folder, vlp, vl, episodes, series, groups));
     }
 
-    public void OnFileMoved(IImportFolder oldFolder, IImportFolder newFolder, string oldPath, string newPath, IVideoFile vlp)
+    public void OnFileMoved(IManagedFolder oldFolder, IManagedFolder newFolder, string oldPath, string newPath, IVideoFile vlp)
     {
         var vl = vlp.Video!;
         var xrefs = vl.CrossReferences;
@@ -117,7 +117,7 @@ public class ShokoEventHandler : IShokoEventHandler
         FileMoved?.Invoke(null, new(newPath, newFolder, oldPath, oldFolder, vlp, vl, episodes, series, groups));
     }
 
-    public void OnFileRenamed(IImportFolder folder, string oldName, string newName, IVideoFile vlp)
+    public void OnFileRenamed(IManagedFolder folder, string oldName, string newName, IVideoFile vlp)
     {
         var path = vlp.RelativePath;
         var vl = vlp.Video!;

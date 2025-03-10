@@ -22,10 +22,10 @@ public class RelocationEventArgs : CancelEventArgs
     public bool RenameEnabled { get; set; }
 
     /// <summary>
-    /// The available import folders to choose as a destination. You can set the <see cref="RelocationResult.DestinationImportFolder"/> to one of these.
+    /// The available managed folders to choose as a destination. You can set the <see cref="RelocationResult.DestinationFolder"/> to one of these.
     /// If a Folder has <see cref="DropFolderType.Excluded"/> set, then it won't be in this list.
     /// </summary>
-    public IReadOnlyList<IImportFolder> AvailableFolders { get; set; }
+    public IReadOnlyList<IManagedFolder> AvailableFolders { get; set; }
 
     /// <summary>
     /// Information about the file and video, such as MediaInfo, current location, size, etc

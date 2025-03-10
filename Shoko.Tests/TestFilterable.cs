@@ -51,8 +51,8 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> SubtitleLanguages { get; init; }
     public IReadOnlySet<string> SharedSubtitleLanguages { get; init; }
     public IReadOnlySet<string> Resolutions { get; init; }
-    public IReadOnlySet<string> ImportFolderIDs { get; init; }
-    public IReadOnlySet<string> ImportFolderNames { get; init; }
+    public IReadOnlySet<string> ManagedFolderIDs { get; init; }
+    public IReadOnlySet<string> ManagedFolderNames { get; init; }
     public IReadOnlySet<string> FilePaths { get; init; }
     public IReadOnlySet<string> CharacterIDs { get; init; }
     public IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>> CharacterAppearances { get; init; }

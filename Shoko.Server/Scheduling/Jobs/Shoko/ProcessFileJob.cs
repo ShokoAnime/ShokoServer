@@ -54,7 +54,7 @@ public class ProcessFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
     public override async Task Process()

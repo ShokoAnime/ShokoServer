@@ -90,7 +90,7 @@ public class AVDumpController : BaseController
                 continue;
             }
 
-            var filePath = file.FirstResolvedPlace?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
             {
                 ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a valid path for file with id {fileID}");

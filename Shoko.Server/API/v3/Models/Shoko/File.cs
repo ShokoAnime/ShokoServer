@@ -126,7 +126,7 @@ public partial class File
         this(RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths)
     { }
 
-    public File(SVR_VideoLocal_User? userRecord, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    public File(VideoLocal_User? userRecord, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
         var mediaInfo = file.MediaInfo as IMediaInfo;
         ID = file.VideoLocalID;
@@ -171,35 +171,37 @@ public partial class File
         public int FileID { get; set; }
 
         /// <summary>
-        /// The Import Folder that this file resides in 
+        /// The Managed Folder that this file resides in 
         /// </summary>
-        public int ImportFolderID { get; set; }
+        public int ManagedFolderID { get; set; }
 
         /// <summary>
-        /// The relative path from the import folder's path on the server. The Filename can be easily extracted from this. Using the ImportFolder, you can get the full server path of the file or map it if the client has remote access to the filesystem. 
+        /// The relative path from the managed folder's path on the server. The
+        /// file name can be easily extracted from this.
         /// </summary>
         public string RelativePath { get; set; }
 
         /// <summary>
-        /// The absolute path for the file on the server.
+        /// The absolute path for the file on the server. OS dependent to the
+        /// server's environment.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? AbsolutePath { get; set; }
 
         /// <summary>
-        /// Can the server access the file right now
+        /// Indicates the server access the file right now.
         /// </summary>
         [JsonRequired]
         public bool IsAccessible { get; set; }
 
-        public Location(SVR_VideoLocal_Place location, bool includeAbsolutePaths)
+        public Location(VideoLocal_Place location, bool includeAbsolutePaths)
         {
-            ID = location.VideoLocal_Place_ID;
-            FileID = location.VideoLocalID;
-            ImportFolderID = location.ImportFolderID;
-            RelativePath = location.FilePath;
-            AbsolutePath = includeAbsolutePaths ? location.FullServerPath : null;
-            IsAccessible = location.GetFile() != null;
+            ID = location.ID;
+            FileID = location.VideoID;
+            ManagedFolderID = location.ManagedFolderID;
+            RelativePath = location.RelativePath;
+            AbsolutePath = includeAbsolutePaths ? location.Path : null;
+            IsAccessible = location.IsAvailable;
         }
 
         /// <summary>
@@ -303,7 +305,7 @@ public partial class File
             LastUpdatedAt = DateTime.UtcNow;
         }
 
-        public FileUserStats(SVR_VideoLocal_User userStats)
+        public FileUserStats(VideoLocal_User userStats)
         {
             ResumePosition = userStats.ResumePositionTimeSpan;
             WatchedCount = userStats.WatchedCount;
@@ -311,7 +313,7 @@ public partial class File
             LastUpdatedAt = userStats.LastUpdated.ToUniversalTime();
         }
 
-        public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, VideoLocal? file = null)
+        public FileUserStats MergeWithExisting(VideoLocal_User existing, VideoLocal? file = null)
         {
             // Get the file associated with the user entry.
             file ??= existing.VideoLocal!;
@@ -518,8 +520,8 @@ public partial class File
     public enum FileSortCriteria
     {
         None = 0,
-        ImportFolderName = 1,
-        ImportFolderID = 2,
+        ManagedFolderName = 1,
+        ManagedFolderID = 2,
         AbsolutePath = 3,
         RelativePath = 4,
         FileSize = 5,
@@ -536,13 +538,13 @@ public partial class File
         FileID = 16,
     }
 
-    private static Func<(VideoLocal Video, SVR_VideoLocal_Place? Location, IReadOnlyList<SVR_VideoLocal_Place>? Locations, SVR_VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+    private static Func<(VideoLocal Video, VideoLocal_Place? Location, IReadOnlyList<VideoLocal_Place>? Locations, VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
         criteria switch
         {
-            FileSortCriteria.ImportFolderName => (tuple) => tuple.Location?.ImportFolder?.ImportFolderName ?? string.Empty,
-            FileSortCriteria.ImportFolderID => (tuple) => tuple.Location?.ImportFolderID,
-            FileSortCriteria.AbsolutePath => (tuple) => tuple.Location?.FullServerPath,
-            FileSortCriteria.RelativePath => (tuple) => tuple.Location?.FilePath,
+            FileSortCriteria.ManagedFolderName => (tuple) => tuple.Location?.ManagedFolder?.Name ?? string.Empty,
+            FileSortCriteria.ManagedFolderID => (tuple) => tuple.Location?.ManagedFolderID,
+            FileSortCriteria.AbsolutePath => (tuple) => tuple.Location?.Path,
+            FileSortCriteria.RelativePath => (tuple) => tuple.Location?.RelativePath,
             FileSortCriteria.FileSize => (tuple) => tuple.Video.FileSize,
             FileSortCriteria.FileName => (tuple) => tuple.Location?.FileName,
             FileSortCriteria.FileID => (tuple) => tuple.Video.VideoLocalID,
@@ -558,7 +560,7 @@ public partial class File
             _ => null,
         };
 
-    public static IEnumerable<(VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> OrderBy(IEnumerable<(VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)> enumerable, List<string> sortCriterias)
+    public static IEnumerable<(VideoLocal, VideoLocal_Place?, IReadOnlyList<VideoLocal_Place>?, VideoLocal_User?)> OrderBy(IEnumerable<(VideoLocal, VideoLocal_Place?, IReadOnlyList<VideoLocal_Place>?, VideoLocal_User?)> enumerable, List<string> sortCriterias)
     {
         var first = true;
         return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
@@ -577,7 +579,7 @@ public partial class File
             }
 
             // All other criteria in the list.
-            var ordered = (IOrderedEnumerable<(VideoLocal, SVR_VideoLocal_Place?, IReadOnlyList<SVR_VideoLocal_Place>?, SVR_VideoLocal_User?)>)current;
+            var ordered = (IOrderedEnumerable<(VideoLocal, VideoLocal_Place?, IReadOnlyList<VideoLocal_Place>?, VideoLocal_User?)>)current;
             return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
         });
     }

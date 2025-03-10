@@ -38,7 +38,7 @@ namespace Shoko.Server.API.v3.Controllers;
 public class RenamerController : BaseController
 {
     private readonly ILogger<RenamerController> _logger;
-    private readonly ImportFolderRepository _importFolderRepository;
+    private readonly ShokoManagedFolderRepository _managedFolderRepository;
     private readonly VideoLocalRepository _vlRepository;
     private readonly VideoLocal_PlaceRepository _vlpRepository;
     private readonly VideoLocal_PlaceService _vlpService;
@@ -46,7 +46,7 @@ public class RenamerController : BaseController
     private readonly RenameFileService _renameFileService;
     private readonly ISettingsProvider _settingsProvider;
 
-    public RenamerController(ILogger<RenamerController> logger, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerConfigRepository renamerConfigRepository, RenameFileService renameFileService, ImportFolderRepository importFolderRepository, VideoLocal_PlaceRepository vlpRepository) : base(settingsProvider)
+    public RenamerController(ILogger<RenamerController> logger, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlpService, VideoLocalRepository vlRepository, RenamerConfigRepository renamerConfigRepository, RenameFileService renameFileService, ShokoManagedFolderRepository managedFolderRepository, VideoLocal_PlaceRepository vlpRepository) : base(settingsProvider)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
@@ -54,7 +54,7 @@ public class RenamerController : BaseController
         _vlRepository = vlRepository;
         _renamerConfigRepository = renamerConfigRepository;
         _renameFileService = renameFileService;
-        _importFolderRepository = importFolderRepository;
+        _managedFolderRepository = managedFolderRepository;
         _vlpRepository = vlpRepository;
     }
 
@@ -545,7 +545,7 @@ public class RenamerController : BaseController
                     IsSuccess = false,
                     IsPreview = true,
                     ErrorMessage = vlp is not null
-                        ? $"Unable to find any resolvable File.Location for File with ID {vlID}. Found valid but non-resolvable File.Location \"{vlp.FullServerPath}\" with ID {vlp.VideoLocal_Place_ID}."
+                        ? $"Unable to find any resolvable File.Location for File with ID {vlID}. Found valid but non-resolvable File.Location \"{vlp.Path}\" with ID {vlp.ID}."
                         : $"Unable to find any resolvable File.Location for File with ID {vlID}.",
                 };
                 continue;
@@ -561,10 +561,10 @@ public class RenamerController : BaseController
                 IsRelocated = result.Moved || result.Renamed,
                 ConfigName = config.ID > 0 ? config.Name : null,
                 AbsolutePath = result.AbsolutePath,
-                ImportFolderID = result.ImportFolder?.ID,
+                ManagedFolderID = result.ManagedFolder?.ID,
                 RelativePath = result.RelativePath,
                 ErrorMessage = result.ErrorMessage,
-                FileLocationID = vlp.VideoLocal_Place_ID
+                FileLocationID = vlp.ID
             };
         }
     }
@@ -583,26 +583,25 @@ public class RenamerController : BaseController
         if (fileLocation == null)
             return NotFound(FileController.FileLocationNotFoundWithLocationID);
 
-        var importFolder = _importFolderRepository.GetByID(body.ImportFolderID);
-        if (importFolder == null)
-            return BadRequest($"Unknown import folder with the given id `{body.ImportFolderID}`.");
+        if (_managedFolderRepository.GetByID(body.ManagedFolderID) is not { } folder)
+            return BadRequest($"Unknown managed folder with the given id `{body.ManagedFolderID}`.");
 
-        // Sanitize relative path and reject paths leading to outside the import folder.
-        var fullPath = Path.GetFullPath(Path.Combine(importFolder.ImportFolderLocation, body.RelativePath));
-        if (!fullPath.StartsWith(importFolder.ImportFolderLocation, StringComparison.OrdinalIgnoreCase))
-            return BadRequest("The provided relative path leads outside the import folder.");
-        var sanitizedRelativePath = Path.GetRelativePath(importFolder.ImportFolderLocation, fullPath);
+        // Sanitize relative path and reject paths leading to outside the managed folder.
+        var fullPath = Path.GetFullPath(Path.Combine(folder.Path, body.RelativePath));
+        if (!fullPath.StartsWith(folder.Path, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("The provided relative path leads outside the managed folder.");
+        var sanitizedRelativePath = Path.GetRelativePath(folder.Path, fullPath);
 
-        // Store the old import folder id and relative path for comparison.
-        var oldImportFolderId = fileLocation.ImportFolderID;
-        var oldRelativePath = fileLocation.FilePath;
+        // Store the old managed folder id and relative path for comparison.
+        var oldFolderId = fileLocation.ManagedFolderID;
+        var oldRelativePath = fileLocation.RelativePath;
 
         // Rename and move the file.
         var result = await _vlpService.DirectlyRelocateFile(
             fileLocation,
             new DirectRelocateRequest
             {
-                ImportFolder = importFolder,
+                ManagedFolder = folder,
                 RelativePath = sanitizedRelativePath,
                 DeleteEmptyDirectories = body.DeleteEmptyDirectories,
                 AllowRelocationInsideDestination = true,
@@ -611,19 +610,19 @@ public class RenamerController : BaseController
         if (!result.Success)
             return new RelocationResult
             {
-                FileID = fileLocation.VideoLocalID,
-                FileLocationID = fileLocation.VideoLocal_Place_ID,
+                FileID = fileLocation.VideoID,
+                FileLocationID = fileLocation.ID,
                 IsSuccess = false,
                 ErrorMessage = result.ErrorMessage,
             };
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
-        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ID;
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldFolderId != result.ManagedFolder.ID;
         return new RelocationResult
         {
-            FileID = fileLocation.VideoLocalID,
-            FileLocationID = fileLocation.VideoLocal_Place_ID,
-            ImportFolderID = result.ImportFolder.ID,
+            FileID = fileLocation.VideoID,
+            FileLocationID = fileLocation.ID,
+            ManagedFolderID = result.ManagedFolder.ID,
             IsSuccess = true,
             IsRelocated = relocated,
             RelativePath = result.RelativePath,
@@ -732,22 +731,22 @@ public class RenamerController : BaseController
                     ConfigName = configName,
                     IsSuccess = false,
                     ErrorMessage = vlp is not null
-                        ? $"Unable to find any resolvable File.Location for File with ID {vlID}. Found valid but non-resolvable File.Location \"{vlp.FullServerPath}\" with ID {vlp.VideoLocal_Place_ID}."
+                        ? $"Unable to find any resolvable File.Location for File with ID {vlID}. Found valid but non-resolvable File.Location \"{vlp.Path}\" with ID {vlp.ID}."
                         : $"Unable to find any resolvable File.Location for File with ID {vlID}.",
                 };
                 continue;
             }
 
-            // Store the old import folder id and relative path for comparison.
-            var oldImportFolderId = vlp.ImportFolderID;
-            var oldRelativePath = vlp.FilePath;
+            // Store the old managed folder id and relative path for comparison.
+            var oldFolderId = vlp.ManagedFolderID;
+            var oldRelativePath = vlp.RelativePath;
             var result = await _vlpService.AutoRelocateFile(vlp, request);
             if (!result.Success)
             {
                 yield return new RelocationResult
                 {
-                    FileID = vlp.VideoLocalID,
-                    FileLocationID = vlp.VideoLocal_Place_ID,
+                    FileID = vlp.VideoID,
+                    FileLocationID = vlp.ID,
                     ConfigName = configName,
                     IsSuccess = false,
                     ErrorMessage = result.ErrorMessage,
@@ -756,9 +755,9 @@ public class RenamerController : BaseController
             }
 
             Renamer.RelocationResult? otherResult = null;
-            foreach (var otherVlp in vl.Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath) && System.IO.File.Exists(p.FullServerPath)))
+            foreach (var otherVlp in vl.Places.Where(p => !string.IsNullOrEmpty(p?.Path) && System.IO.File.Exists(p.Path)))
             {
-                if (otherVlp.VideoLocal_Place_ID == vlp.VideoLocal_Place_ID)
+                if (otherVlp.ID == vlp.ID)
                     continue;
 
                 otherResult = await _vlpService.AutoRelocateFile(otherVlp, request);
@@ -769,8 +768,8 @@ public class RenamerController : BaseController
             {
                 yield return new RelocationResult
                 {
-                    FileID = vlp.VideoLocalID,
-                    FileLocationID = vlp.VideoLocal_Place_ID,
+                    FileID = vlp.VideoID,
+                    FileLocationID = vlp.ID,
                     ConfigName = configName,
                     IsSuccess = false,
                     ErrorMessage = result.ErrorMessage,
@@ -779,12 +778,12 @@ public class RenamerController : BaseController
             }
 
             // Check if it was actually relocated, or if we landed on the same location as earlier.
-            var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ID;
+            var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldFolderId != result.ManagedFolder.ID;
             yield return new RelocationResult
             {
-                FileID = vlp.VideoLocalID,
-                FileLocationID = vlp.VideoLocal_Place_ID,
-                ImportFolderID = result.ImportFolder.ID,
+                FileID = vlp.VideoID,
+                FileLocationID = vlp.ID,
+                ManagedFolderID = result.ManagedFolder.ID,
                 ConfigName = configName,
                 IsSuccess = true,
                 IsRelocated = relocated,

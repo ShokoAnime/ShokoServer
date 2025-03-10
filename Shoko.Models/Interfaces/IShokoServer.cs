@@ -391,10 +391,10 @@ namespace Shoko.Models.Interfaces
         #region Folders
 
         [Rest("Folder", Verbs.Get)]
-        List<ImportFolder> GetImportFolders();
+        List<CL_ImportFolder> GetImportFolders();
 
         [Rest("Folder", Verbs.Post)]
-        CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract);
+        CL_Response<CL_ImportFolder> SaveImportFolder(CL_ImportFolder contract);
 
         [Rest("Folder/{importFolderID}", Verbs.Delete)]
         string DeleteImportFolder(int importFolderID);

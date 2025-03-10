@@ -44,7 +44,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
             .ToListResult(episode =>
             {
                 var duplicateFiles = episode.VideoLocals
-                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID).ToList()))
+                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID).ToList()))
                     .Where(tuple => tuple.locations.Count > 0)
                     .ToList();
                 var dto = new Episode(HttpContext, episode, includeDataFrom);
@@ -68,10 +68,10 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
-                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoLocalID, file.VideoLocal_Place_ID))
+                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
+                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
             )
-            .GroupBy(tuple => tuple.VideoLocalID, tuple => (tuple.VideoLocal_Place_ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
+            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
     }
@@ -135,7 +135,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
             .ToListResult(episode =>
             {
                 var duplicateFiles = episode.VideoLocals
-                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID).ToList()))
+                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID).ToList()))
                     .Where(tuple => tuple.locations.Count > 0)
                     .ToList();
                 var dto = new Episode(HttpContext, episode, includeDataFrom);
@@ -169,10 +169,10 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
-                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoLocalID, file.VideoLocal_Place_ID))
+                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
+                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
             )
-            .GroupBy(tuple => tuple.VideoLocalID, tuple => (tuple.VideoLocal_Place_ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
+            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
     }

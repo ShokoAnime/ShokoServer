@@ -21,7 +21,7 @@ namespace Shoko.Models.Client
 
         public int File1VideoLocalPlaceID { get; set; }
         public int File2VideoLocalPlaceID { get; set; }
-        public ImportFolder ImportFolder1 { get; set; }
-        public ImportFolder ImportFolder2 { get; set; }
+        public CL_ImportFolder ImportFolder1 { get; set; }
+        public CL_ImportFolder ImportFolder2 { get; set; }
     }
 }

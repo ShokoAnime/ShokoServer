@@ -57,8 +57,8 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             return null;
 
         var eps = RepoFactory.VideoLocalPlace.GetAll()
-            .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(), StringComparison.InvariantCultureIgnoreCase))
-            .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID))
+            .Where(v => name.Equals(v?.RelativePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(), StringComparison.InvariantCultureIgnoreCase))
+            .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoID))
             .WhereNotNull()
             .SelectMany(a => GetByHash(a.Hash))
             .OrderBy(a => a.AniDB_Episode?.EpisodeTypeEnum is EpisodeType.Episode)

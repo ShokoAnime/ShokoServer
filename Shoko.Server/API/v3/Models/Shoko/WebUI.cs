@@ -243,11 +243,11 @@ public class WebUI
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
                         groupByDetails.FileSource = release?.Source ?? ReleaseSource.Unknown;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
-                        groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath)!;
+                        groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.Path)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
                         groupByDetails.FileIsDeprecated = release?.IsCorrupted ?? false;
-                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
-                        groupByDetails.ImportFolder = location.ImportFolderID;
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ManagedFolder))
+                        groupByDetails.ManagedFolder = location.ManagedFolderID;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ED2K))
                         groupByDetails.ED2K = $"{file.Hash}+{file.FileSize}";
 
@@ -399,7 +399,7 @@ public class WebUI
                         FileSource = details.FileSource,
                         FileLocation = details.FileLocation,
                         FileIsDeprecated = details.FileIsDeprecated,
-                        ImportFolder = details.ImportFolder,
+                        ManagedFolder = details.ManagedFolder,
                         ED2K = details.ED2K,
                         VideoCodecs = details.VideoCodecs,
                         VideoBitDepth = details.VideoBitDepth,
@@ -425,7 +425,7 @@ public class WebUI
                             : null,
                         Locations = withLocationDetails
                             ? list.Select(episode => new File.Location(episode.Location, false))
-                                .OrderBy(location => location.ImportFolderID)
+                                .OrderBy(location => location.ManagedFolderID)
                                 .ThenBy(location => location.FileID)
                                 .ThenBy(location => location.RelativePath)
                                 .ToList()
@@ -466,7 +466,7 @@ public class WebUI
             SubtitleStreamCount = 4096,
             VideoHasChapters = 8192,
             FileIsDeprecated = 16384,
-            ImportFolder = 32768,
+            ManagedFolder = 32768,
             ED2K = 65536,
             MultipleLocations = 131072,
         }
@@ -518,10 +518,10 @@ public class WebUI
             public bool? FileIsDeprecated { get; set; }
 
             /// <summary>
-            /// The import folder ID of the files in this range.
+            /// The managed folder ID of the files in this range.
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public int? ImportFolder { get; set; }
+            public int? ManagedFolder { get; set; }
 
             /// <summary>
             /// The ED2K hash + file size of the file in this range.
@@ -793,7 +793,7 @@ public class WebUI
 
             public bool? FileIsDeprecated { get; set; }
 
-            public int? ImportFolder { get; set; }
+            public int? ManagedFolder { get; set; }
 
             public string? ED2K { get; set; }
 
@@ -814,7 +814,7 @@ public class WebUI
                     FileSource == other.FileSource &&
                     FileLocation == other.FileLocation &&
                     FileIsDeprecated == other.FileIsDeprecated &&
-                    ImportFolder == other.ImportFolder &&
+                    ManagedFolder == other.ManagedFolder &&
                     ED2K == other.ED2K &&
 
                     VideoCodecs == other.VideoCodecs &&
@@ -844,7 +844,7 @@ public class WebUI
                         FileSource,
                         FileLocation,
                         FileIsDeprecated,
-                        ImportFolder,
+                        ManagedFolder,
                         ED2K
                     ),
                     HashCode.Combine(
@@ -881,7 +881,7 @@ public class WebUI
             public required int FileID { get; init; }
 
             [JsonIgnore]
-            public required SVR_VideoLocal_Place Location { get; init; }
+            public required VideoLocal_Place Location { get; init; }
 
             /// <summary>
             /// AniDB Episode Type.

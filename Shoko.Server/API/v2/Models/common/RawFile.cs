@@ -17,7 +17,7 @@ namespace Shoko.Server.API.v2.Models.common;
 [DataContract]
 public class RawFile : BaseDirectory
 {
-    private Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     public override string type => "file";
 
@@ -149,10 +149,10 @@ public class RawFile : BaseDirectory
         var place = vl.FirstValidPlace;
         if (place != null)
         {
-            filename = place.FilePath;
-            server_path = place.FullServerPath;
-            videolocal_place_id = place.VideoLocal_Place_ID;
-            import_folder_id = place.ImportFolderID;
+            filename = place.RelativePath;
+            server_path = place.Path;
+            videolocal_place_id = place.ID;
+            import_folder_id = place.ManagedFolderID;
         }
 
         url = APIV2Helper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
@@ -207,7 +207,7 @@ public class RawFile : BaseDirectory
         }
         catch (Exception ex)
         {
-            logger.Error(ex);
+            _logger.Error(ex);
         }
 
         media = new_media;

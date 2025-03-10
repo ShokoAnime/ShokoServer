@@ -175,7 +175,7 @@ public static class ModelClients
         {
             CrossRef_AniDB_OtherID = xref.CrossRef_AniDB_TMDB_MovieID,
             AnimeID = xref.AnidbAnimeID,
-            CrossRefType = (int)CrossRefType.MovieDB,
+            CrossRefType = 1 /* TMDB */,
             CrossRefID = xref.TmdbMovieID.ToString(),
             CrossRefSource = (int)CrossRefSource.User,
         };
@@ -425,15 +425,38 @@ public static class ModelClients
                 .ToDictionary(a => a.LanguageCode, a => a.Title),
         };
 
-    public static CL_VideoLocal_Place ToClient(this SVR_VideoLocal_Place vlp)
+    public static CL_VideoLocal_Place ToClient(this VideoLocal_Place vlp)
         => new()
         {
-            FilePath = vlp.FilePath,
-            ImportFolderID = vlp.ImportFolderID,
-            ImportFolderType = vlp.ImportFolderType,
-            VideoLocalID = vlp.VideoLocalID,
-            ImportFolder = vlp.ImportFolder,
-            VideoLocal_Place_ID = vlp.VideoLocal_Place_ID
+            VideoLocal_Place_ID = vlp.ID,
+            ImportFolderID = vlp.ManagedFolderID,
+            FilePath = vlp.RelativePath,
+            ImportFolderType = 1 /* HDD */,
+            VideoLocalID = vlp.VideoID,
+            ImportFolder = vlp.ManagedFolder?.ToClient(),
+        };
+
+    public static CL_ImportFolder ToClient(this ShokoManagedFolder mf)
+        => new()
+        {
+            ImportFolderID = mf.ID,
+            ImportFolderLocation = mf.Path,
+            ImportFolderName = mf.Name,
+            ImportFolderType = 1 /* HDD */,
+            IsDropDestination = mf.IsDropDestination ? 1 : 0,
+            IsDropSource = mf.IsDropSource ? 1 : 0,
+            IsWatched = mf.IsWatched ? 1 : 0,
+        };
+
+    public static ShokoManagedFolder ToServer(this CL_ImportFolder mf)
+        => new()
+        {
+            ID = mf.ImportFolderID,
+            Path = mf.ImportFolderLocation,
+            Name = mf.ImportFolderName,
+            IsDropDestination = mf.IsDropDestination == 1,
+            IsDropSource = mf.IsDropSource == 1,
+            IsWatched = mf.IsWatched == 1,
         };
 
     public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)

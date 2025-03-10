@@ -11,7 +11,7 @@ namespace Shoko.Server.Renamer;
 /// </summary>
 /// <remarks>
 /// Possible states of the outcome:
-///   Success: Success set to true, with valid ImportFolder and RelativePath
+///   Success: Success set to true, with valid <see cref="ManagedFolder"/> and <see cref="RelativePath"/>
 ///     values.
 ///
 ///   Failure: Success set to false and ErrorMessage containing the reason.
@@ -21,11 +21,11 @@ public record RelocationResult
 {
     /// <summary>
     /// The relocation was successful.
-    /// If true then the <see cref="ImportFolder"/> and
+    /// If true then the <see cref="ManagedFolder"/> and
     /// <see cref="RelativePath"/> should be set to valid values, otherwise
     /// if false then the <see cref="ErrorMessage"/> should be set.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(ImportFolder), nameof(RelativePath))]
+    [MemberNotNullWhen(true, nameof(ManagedFolder), nameof(RelativePath))]
     [MemberNotNullWhen(false, nameof(ErrorMessage))]
     public bool Success { get; set; } = false;
 
@@ -56,13 +56,13 @@ public record RelocationResult
     public bool Renamed { get; set; } = false;
 
     /// <summary>
-    /// The destination import folder if the relocation result were
+    /// The destination managed folder if the relocation result were
     /// successful.
     /// </summary>
-    public IImportFolder? ImportFolder { get; set; } = null;
+    public IManagedFolder? ManagedFolder { get; set; } = null;
 
     /// <summary>
-    /// The relative path from the <see cref="ImportFolder"/> to where
+    /// The relative path from the <see cref="ManagedFolder"/> to where
     /// the file resides.
     /// </summary>
     public string? RelativePath { get; set; } = null;
@@ -73,5 +73,5 @@ public record RelocationResult
     /// </summary>
     /// <returns>The combined path.</returns>
     internal string? AbsolutePath
-        => Success && !string.IsNullOrEmpty(RelativePath) ? Path.Combine(ImportFolder?.Path ?? string.Empty, RelativePath) : null;
+        => Success && !string.IsNullOrEmpty(RelativePath) ? Path.Combine(ManagedFolder?.Path ?? string.Empty, RelativePath) : null;
 }

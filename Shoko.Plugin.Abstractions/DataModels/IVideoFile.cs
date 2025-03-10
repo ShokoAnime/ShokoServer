@@ -8,19 +8,19 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 public interface IVideoFile
 {
     /// <summary>
-    /// The video file location (VideoLocal_Place) id.
+    /// The video file location id.
     /// </summary>
     int ID { get; }
 
     /// <summary>
-    /// The video (VideoLocal) id.
+    /// The video id.
     /// </summary>
     int VideoID { get; }
 
     /// <summary>
-    /// The import folder id.
+    /// The managed folder id.
     /// </summary>
-    int ImportFolderID { get; }
+    int ManagedFolderID { get; }
 
     /// <summary>
     /// True if the file currently exists on disk and is usable by Shoko.
@@ -38,13 +38,13 @@ public interface IVideoFile
     string Path { get; }
 
     /// <summary>
-    /// The relative path from the <see cref="ImportFolder"/> to the location of the file. Will always use forward slash as a directory
+    /// The relative path from the <see cref="ManagedFolder"/> to the location of the file. Will always use forward slash as a directory
     /// separator, and will always start with a leading slash.
     /// <br/>
     /// E.g.
-    /// "C:\absolute\relative\path.ext" becomes "/relative/path.ext" if "C:\absolute" is the import folder.
+    /// "C:\absolute\relative\path.ext" becomes "/relative/path.ext" if "C:\absolute" is the managed folder.
     /// or
-    /// "/absolute/relative/path.ext" becomes "/relative/path.ext" if "/absolute" is the import folder.
+    /// "/absolute/relative/path.ext" becomes "/relative/path.ext" if "/absolute" is the managed folder.
     /// </summary>
     string RelativePath { get; }
 
@@ -60,9 +60,9 @@ public interface IVideoFile
     IVideo Video { get; }
 
     /// <summary>
-    /// The import folder tied to the video file location.
+    /// The managed folder tied to the video file location.
     /// </summary>
-    IImportFolder ImportFolder { get; }
+    IManagedFolder ManagedFolder { get; }
 
     /// <summary>
     /// Get the stream for the video file, if the file is still available.

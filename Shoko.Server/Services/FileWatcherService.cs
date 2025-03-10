@@ -20,23 +20,27 @@ public class FileWatcherService
     private readonly ILogger<FileWatcherService> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly ImportFolderRepository _importFolder;
+    private readonly ShokoManagedFolderRepository _managedFolders;
 
-    public FileWatcherService(ILogger<FileWatcherService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, ImportFolderRepository importFolder)
+    public FileWatcherService(ILogger<FileWatcherService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, ShokoManagedFolderRepository managedFolders)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
-        _importFolder = importFolder;
-        importFolder.ImportFolderSaved += ImportFolderSaved;
+        _managedFolders = managedFolders;
+        _managedFolders.ManagedFolderAdded += ManagedFoldersChanged;
+        _managedFolders.ManagedFolderUpdated += ManagedFoldersChanged;
+        _managedFolders.ManagedFolderRemoved += ManagedFoldersChanged;
     }
 
     ~FileWatcherService()
     {
-        _importFolder.ImportFolderSaved -= ImportFolderSaved;
+        _managedFolders.ManagedFolderAdded -= ManagedFoldersChanged;
+        _managedFolders.ManagedFolderUpdated -= ManagedFoldersChanged;
+        _managedFolders.ManagedFolderRemoved -= ManagedFoldersChanged;
     }
 
-    private void ImportFolderSaved(object sender, EventArgs e)
+    private void ManagedFoldersChanged(object sender, EventArgs e)
     {
         StopWatchingFiles();
         StartWatchingFiles();
@@ -44,27 +48,27 @@ public class FileWatcherService
 
     public void StartWatchingFiles()
     {
-        _fileWatchers = new List<RecoveringFileSystemWatcher>();
+        _fileWatchers = [];
         var settings = _settingsProvider.GetSettings();
 
-        foreach (var share in _importFolder.GetAll())
+        foreach (var share in _managedFolders.GetAll())
         {
             try
             {
-                if (!share.FolderIsWatched)
+                if (!share.IsWatched)
                 {
-                    _logger.LogInformation("ImportFolder found but not watching: {Name} || {Location}", share.ImportFolderName,
-                        share.ImportFolderLocation);
+                    _logger.LogInformation("Managed folder found but not watching: {Name} || {Location}", share.Name,
+                        share.Path);
                     continue;
                 }
 
-                _logger.LogInformation("Watching ImportFolder: {ImportFolderName} || {ImportFolderLocation}", share.ImportFolderName, share.ImportFolderLocation);
+                _logger.LogInformation("Watching managed folder: {Name} || {Path}", share.Name, share.Path);
 
-                if (!Directory.Exists(share.ImportFolderLocation)) continue;
+                if (!Directory.Exists(share.Path)) continue;
 
-                _logger.LogInformation("Parsed ImportFolderLocation: {ImportFolderLocation}", share.ImportFolderLocation);
+                _logger.LogInformation("Parsed Path: {Path}", share.Path);
 
-                var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation,
+                var fsw = new RecoveringFileSystemWatcher(share.Path,
                     filters: settings.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')),
                     pathExclusions: settings.Import.Exclude);
                 fsw.Options = new FileSystemWatcherLockOptions
@@ -72,7 +76,7 @@ public class FileWatcherService
                     Enabled = settings.Import.FileLockChecking,
                     Aggressive = settings.Import.AggressiveFileLockChecking,
                     WaitTimeMilliseconds = settings.Import.FileLockWaitTimeMS,
-                    FileAccessMode = share.IsDropSource == 1 ? FileAccess.ReadWrite : FileAccess.Read,
+                    FileAccessMode = share.IsDropSource ? FileAccess.ReadWrite : FileAccess.Read,
                     AggressiveWaitTimeSeconds = settings.Import.AggressiveFileLockWaitTimeSeconds
                 };
                 fsw.FileAdded += FileAdded;
@@ -92,10 +96,10 @@ public class FileWatcherService
         if (!Utils.IsVideo(path)) return;
 
         _logger.LogInformation("Found file {Path}", path);
-        var tup = _importFolder.GetFromFullPath(path);
-        if (tup == default)
+        var tuple = _managedFolders.GetFromAbsolutePath(path);
+        if (tuple == default)
         {
-            _logger.LogWarning("File path could not be parsed into an import folder location: {Path}", path);
+            _logger.LogWarning("File path could not be parsed into an managed folder location: {Path}", path);
             return;
         }
 
@@ -103,7 +107,7 @@ public class FileWatcherService
         {
             try
             {
-                ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
+                ShokoEventHandler.Instance.OnFileDetected(tuple.folder, new FileInfo(path));
             }
             catch (Exception e)
             {

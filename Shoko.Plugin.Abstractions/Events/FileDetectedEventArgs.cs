@@ -10,7 +10,7 @@ namespace Shoko.Plugin.Abstractions.Events;
 public class FileDetectedEventArgs : EventArgs
 {
     /// <summary>
-    /// The relative path from the <see cref="ImportFolder"/>'s root. Uses an OS dependent directory separator.
+    /// The relative path from the <see cref="ManagedFolder"/>'s root. Uses an OS dependent directory separator.
     /// </summary>
     public string RelativePath { get; }
 
@@ -20,17 +20,17 @@ public class FileDetectedEventArgs : EventArgs
     public FileInfo FileInfo { get; }
 
     /// <summary>
-    /// The import folder that the file is in.
+    /// The managed folder that the file is in.
     /// </summary>
-    public IImportFolder ImportFolder { get; }
+    public IManagedFolder ManagedFolder { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileDetectedEventArgs"/> class.
     /// </summary>
-    /// <param name="relativePath">The relative path from the <see cref="ImportFolder"/>'s root. Uses an OS dependent directory separator.</param>
+    /// <param name="relativePath">The relative path from the <see cref="ManagedFolder"/>'s root. Uses an OS dependent directory separator.</param>
     /// <param name="fileInfo">The raw <see cref="System.IO.FileInfo"/> for the file. Don't go and accidentally delete the file now, okay?</param>
-    /// <param name="importFolder">The import folder that the file is in.</param>
-    public FileDetectedEventArgs(string relativePath, FileInfo fileInfo, IImportFolder importFolder)
+    /// <param name="managedFolder">The managed folder that the file is in.</param>
+    public FileDetectedEventArgs(string relativePath, FileInfo fileInfo, IManagedFolder managedFolder)
     {
         relativePath = relativePath
             .Replace('/', Path.DirectorySeparatorChar)
@@ -39,6 +39,6 @@ public class FileDetectedEventArgs : EventArgs
             relativePath = Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
         FileInfo = fileInfo;
-        ImportFolder = importFolder;
+        ManagedFolder = managedFolder;
     }
 }

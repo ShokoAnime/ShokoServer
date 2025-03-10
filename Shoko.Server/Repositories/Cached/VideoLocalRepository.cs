@@ -127,7 +127,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
                 using var transaction = session.BeginTransaction();
                 foreach (var place in places)
                 {
-                    place.VideoLocalID = to.VideoLocalID;
+                    place.VideoID = to.VideoLocalID;
                     RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(session, place);
                 }
 
@@ -153,9 +153,9 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         }
     }
 
-    public IReadOnlyList<VideoLocal> GetByImportFolder(int importFolderID)
-        => RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID)
-            .Select(a => GetByID(a.VideoLocalID))
+    public IReadOnlyList<VideoLocal> GetByManagedFolderID(int importFolderID)
+        => RepoFactory.VideoLocalPlace.GetByManagedFolderID(importFolderID)
+            .Select(a => GetByID(a.VideoID))
             .WhereNotNull()
             .Distinct()
             .ToList();
@@ -300,7 +300,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Filename");
 
         return ReadLock(() => Cache.Values
-            .Where(p => p.Places.Any(a => a.FilePath.FuzzyMatch(fileName)))
+            .Where(p => p.Places.Any(a => a.RelativePath.FuzzyMatch(fileName)))
             .ToList()
         );
     }
@@ -474,7 +474,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             {
                 var place = local?.FirstValidPlace;
                 if (place == null) return null;
-                return place.FullServerPath ?? place.FilePath;
+                return place.Path ?? place.RelativePath;
             })
             .ThenBy(local => local?.VideoLocalID ?? 0)
             .WhereNotNull()
@@ -498,7 +498,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             {
                 var place = local?.FirstValidPlace;
                 if (place == null) return null;
-                return place.FullServerPath ?? place.FilePath;
+                return place.Path ?? place.RelativePath;
             })
             .ThenBy(local => local?.VideoLocalID ?? 0)
             .WhereNotNull()

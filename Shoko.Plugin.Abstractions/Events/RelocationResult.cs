@@ -35,7 +35,7 @@ public class RelocationResult
     public string? Path { get; set; }
 
     /// <summary>
-    /// The new import folder where the file should live.
+    /// The new managed folder where the file should live.
     /// </summary>
     /// <remarks>
     /// This should be set from <see cref="RelocationEventArgs.AvailableFolders"/>,
@@ -43,7 +43,7 @@ public class RelocationResult
     /// renamer doesn't support moving, or c) the move operation will be skipped
     /// as indicated by <see cref="SkipMove"/>.
     /// </remarks>
-    public IImportFolder? DestinationImportFolder { get; set; }
+    public IManagedFolder? DestinationFolder { get; set; }
 
     /// <summary>
     /// Indicates that the result does not contain a path and destination, and

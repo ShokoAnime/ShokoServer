@@ -209,14 +209,14 @@ public interface IFilterable
     IReadOnlySet<string> Resolutions { get; }
 
     /// <summary>
-    /// Import Folder IDs
+    /// Managed Folder IDs
     /// </summary>
-    IReadOnlySet<string> ImportFolderIDs { get; }
+    IReadOnlySet<string> ManagedFolderIDs { get; }
 
     /// <summary>
-    /// Import Folder Names
+    /// Managed Folder Names
     /// </summary>
-    IReadOnlySet<string> ImportFolderNames { get; }
+    IReadOnlySet<string> ManagedFolderNames { get; }
 
     /// <summary>
     /// Relative File Paths

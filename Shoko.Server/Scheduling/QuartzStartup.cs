@@ -123,7 +123,7 @@ public static class QuartzStartup
     private static void AddJobs(this IServiceCollection services)
     {
         services.AddTransient<ScanFolderJob>();
-        services.AddTransient<DeleteImportFolderJob>();
+        services.AddTransient<DeleteManagedFolderJob>();
         services.AddTransient<ScanDropFoldersJob>();
         services.AddTransient<RemoveMissingFilesJob>();
         services.AddTransient<MediaInfoAllFilesJob>();

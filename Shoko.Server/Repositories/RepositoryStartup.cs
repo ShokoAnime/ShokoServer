@@ -85,7 +85,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<StoredReleaseInfoRepository>();
         services.AddCachedRepository<StoredReleaseInfo_MatchAttemptRepository>();
         services.AddCachedRepository<FilterPresetRepository>();
-        services.AddCachedRepository<ImportFolderRepository>();
+        services.AddCachedRepository<ShokoManagedFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();
         services.AddCachedRepository<TMDB_EpisodeRepository>();
         services.AddCachedRepository<TMDB_ImageRepository>();

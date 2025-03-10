@@ -13,21 +13,26 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 internal class ScanFolderJob : BaseJob
 {
     private readonly ActionService _actionService;
-    private string _importFolder;
+
+    private string _managedFolder;
 
     [JobKeyMember]
-    public int ImportFolderID { get; set; }
-    public override string TypeName => "Scan Import Folder";
-    public override string Title => "Scanning Import Folder";
+    public int ManagedFolderID { get; set; }
+
+    public override string TypeName => "Scan Managed Folder";
+
+    public override string Title => "Scanning Managed Folder";
+
+    public override Dictionary<string, object> Details => new() { { "Managed Folder", _managedFolder ?? ManagedFolderID.ToString() } };
+
     public override void PostInit()
     {
-        _importFolder = RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName;
+        _managedFolder = RepoFactory.ShokoManagedFolder?.GetByID(ManagedFolderID)?.Name;
     }
-    public override Dictionary<string, object> Details => new() { { "Import Folder", _importFolder ?? ImportFolderID.ToString() } };
 
     public override async Task Process()
     {
-        await _actionService.RunImport_ScanFolder(ImportFolderID);
+        await _actionService.RunImport_ScanFolder(ManagedFolderID);
     }
 
     public ScanFolderJob(ActionService actionService)
