@@ -192,6 +192,7 @@ public class DashboardController : BaseController
             OVA = series.GetValueOrDefault(AnimeType.OVA, 0),
             Web = series.GetValueOrDefault(AnimeType.Web, 0),
             Other = series.GetValueOrDefault(AnimeType.Other, 0),
+            MusicVideo = series.GetValueOrDefault(AnimeType.MusicVideo, 0),
             None = series.GetValueOrDefault(AnimeType.None, 0)
         };
     }

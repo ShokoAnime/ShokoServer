@@ -118,6 +118,11 @@ public static class Dashboard
         public int Other { get; set; }
 
         /// <summary>
+        /// The Number of Music Videos
+        /// </summary>
+        public int MusicVideo { get; set; }
+
+        /// <summary>
         /// Series that don't have AniDB Records. This is very bad, and usually means there was an error in the import process. It can also happen if the API is hit at just the right time.
         /// </summary>
         public int None { get; set; }
