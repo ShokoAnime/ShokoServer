@@ -3,17 +3,16 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings;
 
-public class ImportFolderMap : ClassMap<SVR_ImportFolder>
+public class ShokoManagedFolderMap : ClassMap<ShokoManagedFolder>
 {
-    public ImportFolderMap()
+    public ShokoManagedFolderMap()
     {
         Table("ImportFolder");
         Not.LazyLoad();
-        Id(x => x.ImportFolderID);
+        Id(x => x.ID).Column("ImportFolderID");
 
-        Map(x => x.ImportFolderType).Not.Nullable();
-        Map(x => x.ImportFolderLocation).Not.Nullable();
-        Map(x => x.ImportFolderName).Not.Nullable();
+        Map(x => x.Path).Column("ImportFolderLocation").Not.Nullable();
+        Map(x => x.Name).Column("ImportFolderName").Not.Nullable();
         Map(x => x.IsDropDestination).Not.Nullable();
         Map(x => x.IsDropSource).Not.Nullable();
         Map(x => x.IsWatched).Not.Nullable();

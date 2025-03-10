@@ -528,9 +528,9 @@ public class ShokofinConfiguration : IConfiguration
             public string Key { get; set; } = string.Empty;
 
             /// <summary>
-            /// The Shoko Import Folders the Media Folders are mapped to.
+            /// The Shoko Managed Folders the Media Folders are mapped to.
             /// </summary>
-            [Display(Name = "Import Folder Mapping"), Visibility(DisplayVisibility.ReadOnly)]
+            [Display(Name = "Managed Folder Mapping"), Visibility(DisplayVisibility.ReadOnly)]
             public List<string> Paths { get; set; } = [];
 
             /// <summary>

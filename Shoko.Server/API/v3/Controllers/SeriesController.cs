@@ -682,7 +682,7 @@ public class SeriesController : BaseController
     {
         startDate = startDate?.ToLocalTime();
         endDate = endDate?.ToLocalTime();
-        IEnumerable<SVR_VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
+        IEnumerable<VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
         if (startDate.HasValue && endDate.HasValue)
         {
             userDataQuery = userDataQuery
@@ -2347,7 +2347,7 @@ public class SeriesController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
-            var filePath = file.FirstResolvedPlace?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
@@ -2385,7 +2385,7 @@ public class SeriesController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
-            var filePath = file.FirstResolvedPlace?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
@@ -2981,12 +2981,12 @@ public class SeriesController : BaseController
 
         query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar)
             .TrimEnd(Path.DirectorySeparatorChar);
-        // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
+        // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing managed folders
         return RepoFactory.VideoLocalPlace.GetAll()
             .Where(a =>
             {
-                if (a.FullServerPath == null) return false;
-                var dir = Path.GetDirectoryName(a.FullServerPath);
+                if (a.Path == null) return false;
+                var dir = Path.GetDirectoryName(a.Path);
                 return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
             })
             .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<SVR_AnimeEpisode>())
