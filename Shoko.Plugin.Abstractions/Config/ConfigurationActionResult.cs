@@ -14,6 +14,11 @@ public class ConfigurationActionResult
     public bool ShowDefaultSaveMessage { get; init; } = false;
 
     /// <summary>
+    /// Indicates that the configuration should be refreshed.
+    /// </summary>
+    public bool RefreshConfiguration { get; init; } = true;
+
+    /// <summary>
     /// Any additional messages to show to the user.
     /// </summary>
     public IReadOnlyList<ConfigurationActionResultMessage> Messages { get; init; } = [];

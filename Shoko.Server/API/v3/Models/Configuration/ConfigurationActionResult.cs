@@ -18,6 +18,11 @@ public class ConfigurationActionResult(AbstractConfigurationActionResult actionR
     public bool ShowDefaultSaveMessage { get; init; } = actionResult.ShowDefaultSaveMessage;
 
     /// <summary>
+    /// Indicates that the configuration should be refreshed.
+    /// </summary>
+    public bool RefreshConfiguration { get; init; } = actionResult.RefreshConfiguration;
+
+    /// <summary>
     /// Any additional messages to show to the user.
     /// </summary>
     public List<ConfigurationActionResultMessage> Messages { get; init; } = actionResult.Messages.Select(m => new ConfigurationActionResultMessage(m)).ToList();
