@@ -27,6 +27,16 @@ public static class StringExtensions
     public static string Replace(this string input, Regex regex, string replacement, int count)
         => regex.Replace(input, replacement, count);
 
+    public static string[] Split(this string input, Regex regex, StringSplitOptions options = StringSplitOptions.None)
+    {
+        IEnumerable<string> list = regex.Split(input);
+        if (options.HasFlag(StringSplitOptions.TrimEntries))
+            list = list.Select(x => x.Trim());
+        if (options.HasFlag(StringSplitOptions.RemoveEmptyEntries))
+            list = list.Where(x => !string.IsNullOrEmpty(x));
+        return list is string[] result ? result : list.ToArray();
+    }
+
     public static void Deconstruct<T>(this IEnumerable<T> enumerable, out T first, out T second)
     {
         var list = enumerable is IReadOnlyList<T> readonlyList ? readonlyList : enumerable.ToList();

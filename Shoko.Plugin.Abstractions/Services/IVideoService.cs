@@ -38,7 +38,7 @@ public interface IVideoService
     event EventHandler<FileMovedEventArgs> VideoFileRelocated;
 
     /// <summary>
-    /// Gets all video files as a queryable list.
+    /// Gets all video files.
     /// </summary>
     /// <returns>All video files.</returns>
     IEnumerable<IVideoFile> GetAllVideoFiles();
@@ -70,9 +70,9 @@ public interface IVideoService
     #region Video
 
     /// <summary>
-    /// Gets all videos as a queryable list.
+    /// Gets all videos.
     /// </summary>
-    /// <returns>A queryable list of videos.</returns>
+    /// <returns>A list of videos.</returns>
     IEnumerable<IVideo> GetAllVideos();
 
     /// <summary>
@@ -105,6 +105,16 @@ public interface IVideoService
     /// <param name="algorithm">The algorithm used to create the hash. Defaults to <see cref="HashAlgorithmName.ED2K"/>.</param>
     /// <returns>The video if found, otherwise <see langword="null"/>.</returns>
     IVideo? GetVideoByHashAndSize(string hash, long fileSize, HashAlgorithmName algorithm = HashAlgorithmName.ED2K);
+
+    #endregion
+
+    #region Managed Folders
+
+    /// <summary>
+    /// Gets all managed folders.
+    /// </summary>
+    /// <returns>A list of managed folders.</returns>
+    IEnumerable<IImportFolder> GetAllManagedFolders();
 
     #endregion
 }

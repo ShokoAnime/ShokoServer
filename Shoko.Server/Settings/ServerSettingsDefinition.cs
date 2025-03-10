@@ -9,7 +9,7 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Settings;
 
-public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWithCustomSaveLocation, IConfigurationDefinitionsWithMigrations
+public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWithCustomSaveLocation, IConfigurationDefinitionWithMigrations
 {
     private readonly ConfigurationProvider<ServerSettings> _configurationProvider;
 

@@ -8,6 +8,7 @@ using NLog;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Hashing;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
@@ -169,6 +170,9 @@ public static class Loader
             Plugins.Add(pluginType, plugin);
             s_logger.Info($"Initialized plugin \"{plugin.Name}\". ({assemblyInfo.Name}, v{assemblyInfo.Version}).");
         }
+
+        var pluginManager = provider.GetRequiredService<IPluginManager>();
+        pluginManager.AddParts(Plugins.Values);
 
         var configurationService = provider.GetRequiredService<IConfigurationService>();
         configurationService.AddParts(GetTypes<IConfiguration>(), GetExports<IConfigurationDefinition>(provider));
