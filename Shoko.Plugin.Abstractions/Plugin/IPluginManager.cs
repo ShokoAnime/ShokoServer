@@ -9,6 +9,18 @@ namespace Shoko.Plugin.Abstractions.Plugin;
 public interface IPluginManager
 {
     /// <summary>
+    ///   Adds the needed parts for the service to function.
+    /// </summary>
+    /// <remarks>
+    ///   This should be called once per instance of the service, and will be
+    ///   called during start-up. Calling it multiple times will have no effect.
+    /// </remarks>
+    /// <param name="plugins">
+    ///   The plugins.
+    /// </param>
+    void AddParts(IEnumerable<IPlugin> plugins);
+
+    /// <summary>
     /// Gets information about all registered plugins.
     /// </summary>
     /// <returns>A list of <see cref="PluginInfo"/>s.</returns>
