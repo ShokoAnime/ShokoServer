@@ -124,7 +124,6 @@ public class ShokofinConfiguration : IConfiguration
         /// <summary>
         /// API Key.
         /// </summary>
-        [Display(Name = "API Key")]
         [Visibility(DisplayVisibility.Hidden)]
         public string? ApiKey { get; set; }
     }
