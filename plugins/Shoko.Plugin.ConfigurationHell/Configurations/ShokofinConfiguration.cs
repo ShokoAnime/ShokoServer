@@ -15,7 +15,7 @@ namespace Shoko.Plugin.ConfigurationHell.Configurations;
 /// as a Shoko IConfiguration implementation.
 /// </summary>
 [SectionType(DisplaySectionType.Tab)]
-[HideSaveAction]
+[HideDefaultSaveAction]
 public class ShokofinConfiguration : IConfiguration
 {
     #region Connection Settings
