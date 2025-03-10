@@ -866,6 +866,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(136, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INTEGER PRIMARY KEY AUTOINCREMENT, AttemptProviderNames TEXT NOT NULL, ProviderName TEXT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, AttemptStartedAt DATETIME NOT NULL, AttemptEndedAt DATETIME NOT NULL);"),
         new(136, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, Type INTEGER NOT NULL, Value TEXT NOT NULL, Metadata TEXT);"),
         new(136, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new(136, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
+        new(136, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

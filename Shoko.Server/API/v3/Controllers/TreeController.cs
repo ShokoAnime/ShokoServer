@@ -30,63 +30,6 @@ public class TreeController : BaseController
 {
     private readonly FilterFactory _filterFactory;
     private readonly FilterEvaluator _filterEvaluator;
-    #region Import Folder
-
-    /// <summary>
-    /// Get all <see cref="File"/>s in the <see cref="ImportFolder"/> with the given <paramref name="folderID"/>.
-    /// </summary>
-    /// <param name="folderID">Import folder ID</param>
-    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
-    /// <param name="page">The page index.</param>
-    /// <param name="folderPath">Filter the list to only contain files starting with the given parent folder path.</param>
-    /// <param name="include">Include items that are not included by default</param>
-    /// <returns></returns>
-    [HttpGet("ImportFolder/{folderID}/File")]
-    public ActionResult<ListResult<File>> GetFilesInImportFolder([FromRoute, Range(1, int.MaxValue)] int folderID,
-        [FromQuery, Range(0, 10000)] int pageSize = 200,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] string folderPath = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
-    {
-        include ??= [];
-
-        var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
-        if (importFolder == null)
-            return NotFound("Import folder not found: " + folderID);
-
-        IEnumerable<SVR_VideoLocal_Place> locations = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolder.ImportFolderID);
-
-        // Filter the list to only files matching a certain sub-path.
-        if (!string.IsNullOrEmpty(folderPath))
-        {
-            folderPath = folderPath
-                .Replace('\\', System.IO.Path.DirectorySeparatorChar)
-                .Replace('/', System.IO.Path.DirectorySeparatorChar);
-
-            // Remove leading separator.
-            if (folderPath.Length > 0 && folderPath[0] == System.IO.Path.DirectorySeparatorChar)
-                folderPath = folderPath[1..];
-
-            // Append tailing separator if the string is not empty, since we're searching for the folder path.
-            if (folderPath.Length > 0 && folderPath[^1] != System.IO.Path.DirectorySeparatorChar)
-                folderPath += System.IO.Path.DirectorySeparatorChar;
-
-            // Only filter if we still have a path to filter.
-            if (!string.IsNullOrEmpty(folderPath))
-                locations = locations
-                    .Where(place => place.FilePath.StartsWith(folderPath));
-        }
-
-        return locations
-            .GroupBy(place => place.VideoLocalID)
-            .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
-            .WhereNotNull()
-            .OrderBy(file => file.DateTimeCreated)
-            .ToListResult(file => new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
-    }
-
-    #endregion
     #region Filter
 
     /// <summary>

@@ -639,7 +639,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             scheduler.StartJobNow<HashFileJob>(
                 c =>
                 {
-                    c.FilePath = pl.FullServerPath;
+                    c.FilePath = pl.Path;
                     c.ForceHash = true;
                 }
             ).GetAwaiter().GetResult();
@@ -739,8 +739,8 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             // Try sorted first, then try unsorted if failed
             var list = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
-                    a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath != null)
-                .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
+                    a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.Path))?.Path != null)
+                .DistinctBy(a => a?.Places?.FirstOrDefault()?.Path)
                 .ToList();
             list.Sort(FileQualityFilter.CompareTo);
             return list.Select(a => _videoLocalService.GetV1Contract(a, userID)).ToList();
@@ -752,8 +752,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 // Two checks because the Where doesn't guarantee that First will not be null, only that a not-null value exists
                 var list = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
-                        a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath != null)
-                    .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
+                        a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.Path))?.Path != null)
+                    .DistinctBy(a => a?.Places?.FirstOrDefault()?.Path)
                     .Select(a => _videoLocalService.GetV1Contract(a, userID))
                     .ToList();
                 return list;
@@ -1206,7 +1206,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var limit = 0;
             var list = new List<CL_AnimeSeries_User>();
 
-            foreach (var vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
+            foreach (var vi in RepoFactory.VideoLocal.GetByManagedFolderID(FolderID))
             {
                 foreach (var ae in GetEpisodesForFile(vi.VideoLocalID, userID))
                 {
@@ -3445,27 +3445,27 @@ public partial class ShokoServiceImplementation : IShokoServer
     #region Import Folders
 
     [HttpGet("Folder")]
-    public List<ImportFolder> GetImportFolders()
+    public List<CL_ImportFolder> GetImportFolders()
     {
         try
         {
-            return RepoFactory.ImportFolder.GetAll().Cast<ImportFolder>().ToList();
+            return RepoFactory.ShokoManagedFolder.GetAll().Select(a => a.ToClient()).ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "{Ex}", ex);
         }
 
-        return new List<ImportFolder>();
+        return new List<CL_ImportFolder>();
     }
 
     [HttpPost("Folder")]
-    public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
+    public CL_Response<CL_ImportFolder> SaveImportFolder(CL_ImportFolder contract)
     {
-        var folder = new CL_Response<ImportFolder>();
+        var folder = new CL_Response<CL_ImportFolder>();
         try
         {
-            folder.Result = RepoFactory.ImportFolder.SaveImportFolder(contract);
+            folder.Result = RepoFactory.ShokoManagedFolder.SaveFolder(contract).ToClient();
         }
         catch (Exception e)
         {
@@ -3480,7 +3480,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     public string DeleteImportFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob<DeleteImportFolderJob>(a => a.ImportFolderID = importFolderID).GetAwaiter().GetResult();
+        scheduler.StartJob<DeleteManagedFolderJob>(a => a.ManagedFolderID = importFolderID).GetAwaiter().GetResult();
         return string.Empty;
     }
 
