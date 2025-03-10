@@ -48,6 +48,7 @@ public static class APIv3_Extensions
             AbstractAnimeType.TVSpecial => AnimeType.TVSpecial,
             AbstractAnimeType.Web => AnimeType.Web,
             AbstractAnimeType.Other => AnimeType.Other,
+            AbstractAnimeType.MusicVideo => AnimeType.MusicVideo,
             _ => AnimeType.Unknown,
         };
 

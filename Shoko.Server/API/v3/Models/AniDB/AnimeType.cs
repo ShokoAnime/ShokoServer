@@ -43,5 +43,10 @@ public enum AnimeType
     /// <summary>
     /// Original Video Animations, AKA standalone releases that don't air on TV or the web.
     /// </summary>
-    OVA = 6
+    OVA = 6,
+
+    /// <summary>
+    /// Music Video
+    /// </summary>
+    MusicVideo = 7,
 }
