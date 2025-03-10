@@ -307,6 +307,9 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     [GeneratedRegex(@"(?<!\\)\.")]
     private static partial Regex SplitPathToPartsRegex();
 
+    [GeneratedRegex(@"(?<!\\)""")]
+    private static partial Regex InvalidQuoteRegex();
+
     private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new()
     {
         var schema = info.Schema;
@@ -314,45 +317,34 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         var parts = path.Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         while (parts.Length > 0)
         {
+            // `part` can be in the format 'Part', '[0]', or '["Part"]', where
+            // the first is a property name, the second is an array index, and
+            // the third is a dictionary key.
             var part = parts[0];
             parts = parts[1..];
-            var lookupPath = new List<(string type, string value, int index)>();
-            var searchFromIndex = 0;
-            while (searchFromIndex < part.Length && part.IndexOf('[', searchFromIndex) is { } bracketStart && bracketStart > 0)
+            if (part[0] == '[')
             {
-                if (part[bracketStart - 1] != '\\')
-                {
-                    searchFromIndex = bracketStart + 1;
-                    continue;
-                }
-
-                var bracketEnd = part.IndexOf(']', searchFromIndex);
-                if (bracketEnd == -1)
+                if (part[^1] != ']' || part.Length < 3 || part[^2] != '\\')
                     throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
 
-                if (int.TryParse(part[(bracketStart + 1)..bracketEnd], out var index))
+                // Dictionary
+                if (part[1] == '"')
                 {
-                    lookupPath.Add(("index", index.ToString(), bracketStart));
+                    // Make sure the dictionary key is a valid string
+                    if (part[^2] != '"' || path.Length < 5 || path[^3] != '\\' || InvalidQuoteRegex().IsMatch(part[2..^2]))
+                        throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+
+                    if (schema.PatternProperties.Count != 1 || !type.IsAssignableToTypeName("IReadOnlyDictionary", TypeNameStyle.Name))
+                        throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+
+                    schema = schema.PatternProperties.Values.First() is { } patternSchema
+                        ? patternSchema.Reference is { } referencedSchema2
+                            ? referencedSchema2 : patternSchema
+                        : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+                    type = type.GenericArguments[1];
                 }
+                // Array
                 else
-                {
-                    var fieldName = part[(bracketStart + 1)..bracketEnd];
-                    lookupPath.Add(("field", fieldName, bracketStart));
-                }
-                searchFromIndex = bracketEnd + 1;
-            }
-            if (lookupPath.Count > 0)
-                part = part[..lookupPath[0].index];
-
-            schema = schema.Properties.TryGetValue(part, out var propertySchema)
-                ? propertySchema.Reference is { } referencedSchema0 ? referencedSchema0 : propertySchema
-                : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
-            type = type.Properties.FirstOrDefault(x => x.Name == part)?.PropertyType ??
-                throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
-
-            foreach (var (lookupType, value, index) in lookupPath)
-            {
-                if (lookupType is "index")
                 {
                     if (
                         schema.Item is null ||
@@ -364,17 +356,15 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     schema = schema.Item.Reference is { } referencedSchema1 ? referencedSchema1 : schema.Item;
                     type = type.GenericArguments[0];
                 }
-                else
-                {
-                    if (schema.PatternProperties.Count != 1 || !type.IsAssignableToTypeName("IReadOnlyDictionary", TypeNameStyle.Name))
-                        throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
-
-                    schema = schema.PatternProperties.Values.First() is { } patternSchema
-                        ? patternSchema.Reference is { } referencedSchema2
-                            ? referencedSchema2 : patternSchema
-                        : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
-                    type = type.GenericArguments[1];
-                }
+            }
+            // Classes
+            else
+            {
+                schema = schema.Properties.TryGetValue(part, out var propertySchema)
+                    ? propertySchema.Reference is { } referencedSchema0 ? referencedSchema0 : propertySchema
+                    : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+                type = type.Properties.FirstOrDefault(x => x.Name == part)?.PropertyType ??
+                    throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
             }
         }
 
