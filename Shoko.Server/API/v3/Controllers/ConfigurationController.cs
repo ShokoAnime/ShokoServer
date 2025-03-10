@@ -218,21 +218,32 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
             return NotFound($"Configuration '{id}' not found!");
 
-        var data = body?.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
-        if (!string.IsNullOrEmpty(data))
-        {
-            var errors = configurationService.Validate(configInfo, data);
-            if (errors.Count is > 0)
-            {
-                foreach (var (propertyPath, messages) in errors)
-                    foreach (var message in messages)
-                        ModelState.AddModelError(propertyPath, message);
-                return ValidationProblem(ModelState);
-            }
-        }
 
-        var config = string.IsNullOrEmpty(data) ? configurationService.Load(configInfo) : configurationService.Deserialize(configInfo, data);
-        var result = configurationService.PerformAction(configInfo, config, path, action);
-        return Ok(new ConfigurationActionResult(result));
+        try
+        {
+            var data = body?.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
+            if (!string.IsNullOrEmpty(data))
+            {
+                var errors = configurationService.Validate(configInfo, data);
+                if (errors.Count is > 0)
+                {
+                    foreach (var (propertyPath, messages) in errors)
+                        foreach (var message in messages)
+                            ModelState.AddModelError(propertyPath, message);
+                    return ValidationProblem(ModelState);
+                }
+            }
+
+            var config = string.IsNullOrEmpty(data) ? configurationService.Load(configInfo) : configurationService.Deserialize(configInfo, data);
+            var result = configurationService.PerformAction(configInfo, config, path, action);
+            return Ok(new ConfigurationActionResult(result));
+        }
+        catch (ConfigurationValidationException ex)
+        {
+            foreach (var (propertyPath, messages) in ex.ValidationErrors)
+                foreach (var message in messages)
+                    ModelState.AddModelError(propertyPath, message);
+            return ValidationProblem(ModelState);
+        }
     }
 }
