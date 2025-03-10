@@ -106,6 +106,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.ReleaseExporte
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.RelocationPlus", "plugins\Shoko.Plugin.RelocationPlus\Shoko.Plugin.RelocationPlus.csproj", "{21E30B57-12DF-4887-9607-2E0608D11973}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "plugins", "plugins", "{2F30A752-AA28-45BC-AE99-D32C64F7EE7A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.ConfigurationHell", "plugins\Shoko.Plugin.ConfigurationHell\Shoko.Plugin.ConfigurationHell.csproj", "{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -251,6 +255,20 @@ Global
 		{21E30B57-12DF-4887-9607-2E0608D11973}.ApiLogging|x64.Build.0 = Debug|x64
 		{21E30B57-12DF-4887-9607-2E0608D11973}.Benchmarks|Any CPU.ActiveCfg = Debug|Any CPU
 		{21E30B57-12DF-4887-9607-2E0608D11973}.Benchmarks|Any CPU.Build.0 = Debug|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Debug|x64.ActiveCfg = Debug|x64
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Debug|x64.Build.0 = Debug|x64
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Release|x64.ActiveCfg = Release|x64
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Release|x64.Build.0 = Release|x64
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.ApiLogging|Any CPU.ActiveCfg = Debug|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.ApiLogging|Any CPU.Build.0 = Debug|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.ApiLogging|x64.ActiveCfg = Debug|x64
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.ApiLogging|x64.Build.0 = Debug|x64
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Benchmarks|Any CPU.ActiveCfg = Debug|Any CPU
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA}.Benchmarks|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -264,6 +282,7 @@ Global
 		{1148AE1A-8E8D-4CB9-8309-075377B04353} = {00DED27E-E274-4202-9527-4E7D07E384FC}
 		{B64164CA-4140-4985-BD98-A4A8FEB3DC3F} = {1148AE1A-8E8D-4CB9-8309-075377B04353}
 		{EF538055-F3B7-4E6C-8D97-C9C6C19F7AAD} = {B64164CA-4140-4985-BD98-A4A8FEB3DC3F}
+		{E319E3FF-EDC5-4A24-A63A-F4AEAC950FFA} = {2F30A752-AA28-45BC-AE99-D32C64F7EE7A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1486091B-315E-44FE-8C38-3F9D6E97919B}

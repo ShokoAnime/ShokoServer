@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -81,7 +82,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <param name="body">Configuration data</param>
     /// <returns></returns>
     [HttpPut("{id:guid}")]
-    public ActionResult UpdateConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JValue body)
+    public ActionResult UpdateConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JToken body)
     {
         if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
             return NotFound($"Configuration '{id}' not found!");
@@ -180,17 +181,18 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// Validate the configuration with the given id.
     /// </summary>
     /// <param name="id">Configuration id</param>
-    /// <param name="data">Configuration data</param>
+    /// <param name="body">Configuration data</param>
     /// <returns></returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [HttpPost("{id:guid}/Validate")]
-    public ActionResult ValidateConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] string data)
+    public ActionResult ValidateConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JToken body)
     {
         if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
             return NotFound($"Configuration '{id}' not found!");
 
-        var errors = configurationService.Validate(configInfo, data);
+        var json = body.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
+        var errors = configurationService.Validate(configInfo, json);
         if (errors.Count is 0)
             return Ok();
 
@@ -198,5 +200,39 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             foreach (var message in messages)
                 ModelState.AddModelError(path, message);
         return ValidationProblem(ModelState);
+    }
+
+    /// <summary>
+    /// Perform an action on the configuration with the given id.
+    /// </summary>
+    /// <param name="id">Configuration id</param>
+    /// <param name="body">Optional. Configuration data to perform the action on.</param>
+    /// <param name="action">Action to perform</param>
+    /// <param name="path">Path to the configuration</param>
+    /// <returns></returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("{id:guid}/PerformAction")]
+    public ActionResult<ConfigurationActionResult> PerformActionOnConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body, [Required, FromQuery] string action, [Required, FromQuery] string path)
+    {
+        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
+            return NotFound($"Configuration '{id}' not found!");
+
+        var data = body?.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
+        if (!string.IsNullOrEmpty(data))
+        {
+            var errors = configurationService.Validate(configInfo, data);
+            if (errors.Count is > 0)
+            {
+                foreach (var (propertyPath, messages) in errors)
+                    foreach (var message in messages)
+                        ModelState.AddModelError(propertyPath, message);
+                return ValidationProblem(ModelState);
+            }
+        }
+
+        var config = string.IsNullOrEmpty(data) ? configurationService.Load(configInfo) : configurationService.Deserialize(configInfo, data);
+        var result = configurationService.PerformAction(configInfo, config, path, action);
+        return Ok(new ConfigurationActionResult(result));
     }
 }

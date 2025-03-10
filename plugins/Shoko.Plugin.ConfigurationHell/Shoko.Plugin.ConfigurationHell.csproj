@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8</TargetFramework>
+        <OutputType>Library</OutputType>
+        <LangVersion>latest</LangVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <Title>Configuration Service Benchmark/Test Plugin</Title>
+        <Authors>revam</Authors>
+        <Version>1.0.0</Version>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;x64</Platforms>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj">
+            <Private>false</Private>
+        </ProjectReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" PrivateAssets="All" />
+        <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
+    </ItemGroup>
+</Project>

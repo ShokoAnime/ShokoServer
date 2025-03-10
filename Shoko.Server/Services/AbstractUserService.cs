@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Repositories.Cached;

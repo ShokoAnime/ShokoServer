@@ -1,20 +1,27 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
+using System.Text.RegularExpressions;
 using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
 using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using NJsonSchema;
 using NJsonSchema.Generation;
+using NJsonSchema.Generation.TypeMappers;
 using NJsonSchema.NewtonsoftJson.Generation;
 using NJsonSchema.Validation;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
+using Shoko.Plugin.Abstractions.Config.Attributes;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Plugin;
@@ -26,7 +33,7 @@ using Shoko.Server.Settings;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class ConfigurationService : IConfigurationService
+public partial class ConfigurationService : IConfigurationService, ISchemaProcessor, ISchemaNameGenerator
 {
     private readonly ILogger<ConfigurationService> _logger;
 
@@ -39,8 +46,6 @@ public class ConfigurationService : IConfigurationService
     private readonly System.Text.Json.JsonSerializerOptions _systemTextJsonSerializerOptions;
 
     private Dictionary<Guid, ConfigurationInfo> _configurationTypes;
-
-    private Dictionary<Guid, IConfigurationDefinition> _configurationDefinitions;
 
     private Dictionary<ConfigurationInfo, string> _serializedSchemas;
 
@@ -76,9 +81,8 @@ public class ConfigurationService : IConfigurationService
         _systemTextJsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 
         var serverSettingsDefinition = new ServerSettingsDefinition(new(this));
-        var serverSettingsName = PluginManager.GetDisplayName(typeof(ServerSettings));
+        var serverSettingsName = TypeReflectionExtensions.GetDisplayName(typeof(ServerSettings));
         var serverSettingsSchema = GetSchemaForType(typeof(ServerSettings));
-        serverSettingsSchema.Title = serverSettingsName;
         _configurationTypes = new()
         {
             {
@@ -86,20 +90,17 @@ public class ConfigurationService : IConfigurationService
                 new ConfigurationInfo()
                 {
                     ID = Guid.Empty,
+                    Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
                     Name = serverSettingsName,
                     Description = string.Empty,
-                    Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
+                    Definition = serverSettingsDefinition,
                     Type = typeof(ServerSettings),
+                    ContextualType = typeof(ServerSettings).ToContextualType(),
+                    Schema = serverSettingsSchema,
                     // We're not going to be using this before .AddParts is called.
                     PluginInfo = null!,
-                    Schema = serverSettingsSchema,
                 }
             },
-        };
-
-        _configurationDefinitions = new()
-        {
-            { Guid.Empty,  serverSettingsDefinition },
         };
 
         _serializedSchemas = _configurationTypes.Values
@@ -120,25 +121,27 @@ public class ConfigurationService : IConfigurationService
 
         _logger.LogInformation("Initializing service.");
 
+        // Dispose of older definitions.
+        foreach (var definition in _configurationTypes.Values.Select(info => info.Definition).OfType<IDisposable>())
+            definition.Dispose();
+
         var configurationDefinitionDict = configurationDefinitions.ToDictionary(GetID);
         _configurationTypes = configurationTypes
             .Select(configurationType =>
             {
-                var pluginInfo = _pluginManager.GetPluginInfo(
-                    Loader.GetTypes<IPlugin>(configurationType.Assembly)
-                        .First(t => _pluginManager.GetPluginInfo(t) is not null)
-                )!;
+                var pluginInfo = _pluginManager.GetPluginInfo(Loader.GetTypes<IPlugin>(configurationType.Assembly).First(t => _pluginManager.GetPluginInfo(t) is not null))!;
+                var id = GetID(configurationType, pluginInfo);
+                var definition = configurationDefinitionDict.GetValueOrDefault(id);
                 var contextualType = configurationType.ToContextualType();
-                var name = PluginManager.GetDisplayName(contextualType);
+                var description = TypeReflectionExtensions.GetDescription(contextualType);
+                var name = TypeReflectionExtensions.GetDisplayName(contextualType);
                 foreach (var suffix in _configurationSuffixSet)
                 {
                     var endWith = $" {suffix}";
                     if (name.EndsWith(endWith, StringComparison.OrdinalIgnoreCase))
                         name = name[..^endWith.Length];
                 }
-                var description = PluginManager.GetDescription(contextualType);
-                var id = GetID(configurationType, pluginInfo);
-                var definition = configurationDefinitionDict.GetValueOrDefault(id);
+
                 string path;
                 if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
                 {
@@ -162,15 +165,17 @@ public class ConfigurationService : IConfigurationService
                         .ToLower();
                     path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
                 }
+
                 var schema = GetSchemaForType(configurationType);
-                schema.Title = name;
                 return new ConfigurationInfo()
                 {
                     ID = id,
+                    Path = path,
                     Name = name,
                     Description = description,
-                    Path = path,
                     Type = configurationType,
+                    ContextualType = contextualType,
+                    Definition = definition,
                     Schema = schema,
                     PluginInfo = pluginInfo,
                 };
@@ -178,18 +183,10 @@ public class ConfigurationService : IConfigurationService
             .WhereNotNull()
             .ToDictionary(info => info.ID);
 
-        // Dispose of older definitions.
-        foreach (var definition in _configurationDefinitions.Values.OfType<IDisposable>())
-            definition.Dispose();
-
-        _configurationDefinitions = configurationDefinitionDict
-            .Where(kvp => _configurationTypes.ContainsKey(kvp.Key))
-            .ToDictionary(kvp => kvp.Key, kvp => (IConfigurationDefinition)kvp.Value);
-
         _serializedSchemas = _configurationTypes.Values
             .ToDictionary(info => info, info => AddSchemaPropertyToSchema(info.Schema.ToJson()));
 
-        _logger.LogTrace("Loaded {ConfigurationCount} configurations & {ProviderCount} configuration providers.", _configurationTypes.Count, _configurationDefinitions.Count);
+        _logger.LogTrace("Loaded {ConfigurationCount} configurations.", _configurationTypes.Count);
     }
 
     public ConfigurationProvider<TConfig> CreateProvider<TConfig>() where TConfig : class, IConfiguration, new()
@@ -220,6 +217,26 @@ public class ConfigurationService : IConfigurationService
 
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, string json)
     {
+        try
+        {
+            return (IReadOnlyDictionary<string, IReadOnlyList<string>>)typeof(ConfigurationService)
+                .GetMethod(nameof(ValidateInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(info.Type)
+                .Invoke(this, [info, json, null])!;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
+
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
+        => ValidateInternal(GetConfigurationInfo<TConfig>(), SerializeInternal(config), config);
+
+    private Dictionary<string, IReadOnlyList<string>> ValidateInternal<TConfig>(ConfigurationInfo info, string json, TConfig? config = null) where TConfig : class, IConfiguration, new()
+    {
         var results = info.Schema.Validate(json);
         var errorDict = new Dictionary<string, List<string>>();
         foreach (var error in results)
@@ -235,6 +252,14 @@ public class ConfigurationService : IConfigurationService
             errorList.Add(GetErrorMessage(error));
         }
 
+        if (errorDict.Count is 0 && info.Definition is IConfigurationDefinitionWithCustomValidation<TConfig> { } provider)
+        {
+            config ??= DeserializeInternal<TConfig>(json);
+
+            _logger.LogTrace("Calling custom validation for {Type}.", info.Name);
+            errorDict = provider.Validate(config).ToDictionary(a => a.Key, a => a.Value.ToList());
+        }
+
         if (errorDict.Count > 0)
         {
             _logger.LogTrace("Configuration validation failed for {Type} with {ErrorCount} errors.", info.Name, errorDict.Sum(a => a.Value.Count));
@@ -247,8 +272,122 @@ public class ConfigurationService : IConfigurationService
             .ToDictionary();
     }
 
-    public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
-        => Validate(GetConfigurationInfo<TConfig>(), Serialize(config));
+    private static string GetErrorMessage(ValidationError validationError)
+    {
+        return validationError.Kind switch
+        {
+            _ => TypeReflectionExtensions.GetDisplayName(validationError.Kind.ToString()),
+        };
+    }
+
+    #endregion
+
+    #region Custom Actions
+
+    public ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action)
+    {
+        try
+        {
+            return (ConfigurationActionResult)typeof(ConfigurationService)
+                .GetMethod(nameof(PerformActionInternal), BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(configuration.GetType())
+                .Invoke(this, [info, configuration, path, action])!;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
+
+    public ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new()
+        => PerformActionInternal(GetConfigurationInfo<TConfig>(), configuration, path, action);
+
+    [GeneratedRegex(@"(?<!\\)\.")]
+    private static partial Regex SplitPathToPartsRegex();
+
+    private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new()
+    {
+        var schema = info.Schema;
+        var type = info.ContextualType;
+        var parts = path.Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        while (parts.Length > 0)
+        {
+            var part = parts[0];
+            parts = parts[1..];
+            var lookupPath = new List<(string type, string value, int index)>();
+            var searchFromIndex = 0;
+            while (searchFromIndex < part.Length && part.IndexOf('[', searchFromIndex) is { } bracketStart && bracketStart > 0)
+            {
+                if (part[bracketStart - 1] != '\\')
+                {
+                    searchFromIndex = bracketStart + 1;
+                    continue;
+                }
+
+                var bracketEnd = part.IndexOf(']', searchFromIndex);
+                if (bracketEnd == -1)
+                    throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+
+                if (int.TryParse(part[(bracketStart + 1)..bracketEnd], out var index))
+                {
+                    lookupPath.Add(("index", index.ToString(), bracketStart));
+                }
+                else
+                {
+                    var fieldName = part[(bracketStart + 1)..bracketEnd];
+                    lookupPath.Add(("field", fieldName, bracketStart));
+                }
+                searchFromIndex = bracketEnd + 1;
+            }
+            if (lookupPath.Count > 0)
+                part = part[..lookupPath[0].index];
+
+            schema = schema.Properties.TryGetValue(part, out var propertySchema)
+                ? propertySchema.Reference is { } referencedSchema0 ? referencedSchema0 : propertySchema
+                : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+            type = type.Properties.FirstOrDefault(x => x.Name == part)?.PropertyType ??
+                throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+
+            foreach (var (lookupType, value, index) in lookupPath)
+            {
+                if (lookupType is "index")
+                {
+                    if (
+                        schema.Item is null ||
+                        type.GenericArguments.Length == 0 ||
+                        !type.IsAssignableToTypeName("IEnumerable", TypeNameStyle.Name)
+                    )
+                        throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+
+                    schema = schema.Item.Reference is { } referencedSchema1 ? referencedSchema1 : schema.Item;
+                    type = type.GenericArguments[0];
+                }
+                else
+                {
+                    if (schema.PatternProperties.Count != 1 || !type.IsAssignableToTypeName("IReadOnlyDictionary", TypeNameStyle.Name))
+                        throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+
+                    schema = schema.PatternProperties.Values.First() is { } patternSchema
+                        ? patternSchema.Reference is { } referencedSchema2
+                            ? referencedSchema2 : patternSchema
+                        : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+                    type = type.GenericArguments[1];
+                }
+            }
+        }
+
+        var attributes = type.GetAttributes<CustomActionAttribute>(false).ToList();
+        if (attributes.Count == 0)
+            throw new InvalidConfigurationActionException($"No actions attribute found for path \"{path}\"", nameof(path));
+        if (!attributes.Any(x => x.Name == action))
+            throw new InvalidConfigurationActionException($"Invalid action \"{action}\" for path \"{path}\"", nameof(action));
+
+        if (info.Definition is IConfigurationDefinitionWithCustomActions<TConfig> provider)
+            return provider.PerformAction(configuration, type, path, action);
+        return new();
+    }
 
     #endregion
 
@@ -277,7 +416,7 @@ public class ConfigurationService : IConfigurationService
     private TConfig NewInternal<TConfig>() where TConfig : class, IConfiguration, new()
     {
         var info = GetConfigurationInfo<TConfig>();
-        if (_configurationDefinitions!.GetValueOrDefault(info.ID) is IConfigurationNewFactory<TConfig> provider)
+        if (info.Definition is IConfigurationNewFactory<TConfig> provider)
             return provider.New();
 
         return new TConfig();
@@ -323,7 +462,7 @@ public class ConfigurationService : IConfigurationService
         lock (info)
         {
             var json = File.ReadAllText(info.Path);
-            if (_configurationDefinitions!.GetValueOrDefault(info.ID) is IConfigurationDefinitionsWithMigrations { } provider)
+            if (info.Definition is IConfigurationDefinitionWithMigrations { } provider)
                 json = provider.ApplyMigrations(json);
 
             EnsureSchemaExists(info);
@@ -332,7 +471,7 @@ public class ConfigurationService : IConfigurationService
             if (errors.Count > 0)
                 throw new ConfigurationValidationException("load", info, errors);
 
-            config = Deserialize<TConfig>(json);
+            config = DeserializeInternal<TConfig>(json);
             _loadedConfigurations[info.ID] = config;
             return copy ? config.DeepClone() : config;
         }
@@ -380,7 +519,7 @@ public class ConfigurationService : IConfigurationService
         => Save(Load<TConfig>());
 
     public bool Save<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
-        => SaveInternal(GetConfigurationInfo<TConfig>(), Serialize(config), config);
+        => SaveInternal(GetConfigurationInfo<TConfig>(), SerializeInternal(config), config);
 
     public bool Save<TConfig>(string json) where TConfig : class, IConfiguration, new()
         => SaveInternal<TConfig>(GetConfigurationInfo<TConfig>(), json);
@@ -414,7 +553,7 @@ public class ConfigurationService : IConfigurationService
             File.WriteAllText(info.Path, json);
             _logger.LogTrace("Saved configuration for {Name}.", info.Name);
 
-            _loadedConfigurations[info.ID] = config ?? Deserialize<TConfig>(json);
+            _loadedConfigurations[info.ID] = config ?? DeserializeInternal<TConfig>(json);
         }
 
         Saved?.Invoke(this, new ConfigurationSavedEventArgs() { ConfigurationInfo = info });
@@ -505,35 +644,400 @@ public class ConfigurationService : IConfigurationService
         return schema;
     }
 
+    private Type? _currentType = null;
+
+    private readonly Dictionary<string, (Dictionary<string, object?> ClassUIDefinition, Dictionary<string, Dictionary<string, object?>> PropertyUIDefinitions)> _schemaCache = [];
+
+    private readonly Dictionary<JsonSchema, string> _schemaKeys = [];
+
+    private JsonSchema GetSchemaForType(Type type)
+    {
+        var generator = type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
+            ? GetNewtonsoftSchemaForType()
+            : GetSystemTextJsonSchemaForType();
+        generator.Settings.SchemaProcessors.Add(this);
+
+        // Handle built-in types because apparently NJsonSchema doesn't.
+        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(Version), s =>
+        {
+            s.Type = JsonObjectType.String;
+            s.Format = "version";
+        }));
+        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(DateTime), s =>
+        {
+            s.Type = JsonObjectType.String;
+            s.Format = "date-time";
+        }));
+        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(DateOnly), s =>
+        {
+            s.Type = JsonObjectType.String;
+            s.Format = "date";
+        }));
+        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(TimeSpan), s =>
+        {
+            s.Type = JsonObjectType.String;
+            s.Format = "date-span";
+        }));
+        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(TimeOnly), s =>
+        {
+            s.Type = JsonObjectType.String;
+            s.Format = "time";
+        }));
+
+        _schemaCache.Clear();
+        _schemaKeys.Clear();
+        _currentType = type;
+        var schema = generator.Generate(type);
+        var schemaDefinitions = schema.Definitions.Values.Where(s => !s.IsEnumeration).Prepend(schema).ToList();
+        // Post-process the schema; add the UI definitions at the correct locations.
+        foreach (var subSchema in schemaDefinitions)
+        {
+            if (!_schemaKeys.TryGetValue(subSchema, out var schemaKey))
+                continue;
+
+            if (!_schemaCache.TryGetValue(schemaKey, out var schemaTuple))
+                continue;
+            var (classDefinition, propertyDict) = schemaTuple;
+            if (classDefinition.Count > 0)
+            {
+                if (classDefinition.TryGetValue("label", out var classLabel))
+                {
+                    classDefinition.Remove("label");
+                    subSchema.Title = (string)classLabel!;
+                }
+                subSchema.ExtensionData ??= new Dictionary<string, object?>();
+                subSchema.ExtensionData.Add("x-uiDefinition", classDefinition);
+            }
+            foreach (var tuple in subSchema.Properties)
+            {
+                var (propertyKey, schemaValue) = tuple;
+                if (schemaValue.Item is not null)
+                    propertyKey += "+List";
+                if (!propertyDict.TryGetValue(propertyKey, out var propertyDefinition))
+                    continue;
+
+
+                if (propertyDefinition.TryGetValue("label", out var propertyLabel
+                ))
+                {
+                    propertyDefinition.Remove("label");
+                    schemaValue.Title = (string)propertyLabel!;
+                }
+                schemaValue.ExtensionData ??= new Dictionary<string, object?>();
+                schemaValue.ExtensionData.Add("x-uiDefinition", propertyDefinition);
+            }
+        }
+        _schemaCache.Clear();
+        _schemaKeys.Clear();
+        _currentType = null;
+        return schema;
+    }
+
+    private JsonSchemaGenerator GetNewtonsoftSchemaForType()
+    {
+        var generator = new JsonSchemaGenerator(new NewtonsoftJsonSchemaGeneratorSettings
+        {
+            SerializerSettings = _newtonsoftJsonSerializerSettings,
+            SchemaType = SchemaType.JsonSchema,
+            GenerateEnumMappingDescription = true,
+            FlattenInheritanceHierarchy = true,
+            AllowReferencesWithProperties = true,
+            SchemaNameGenerator = this,
+        });
+        return generator;
+    }
+
+    private JsonSchemaGenerator GetSystemTextJsonSchemaForType()
+    {
+        var generator = new JsonSchemaGenerator(new SystemTextJsonSchemaGeneratorSettings
+        {
+            SerializerOptions = _systemTextJsonSerializerOptions,
+            SchemaType = SchemaType.JsonSchema,
+            GenerateEnumMappingDescription = true,
+            FlattenInheritanceHierarchy = true,
+            AllowReferencesWithProperties = true,
+            SchemaNameGenerator = this,
+        });
+        return generator;
+    }
+
+    #region Schema | ISchemaProcessor Implementation
+
+    void ISchemaProcessor.Process(SchemaProcessorContext context)
+    {
+        var schema = context.Schema.ActualSchema;
+        var contextualType = context.ContextualType;
+        if (contextualType.Context is ContextualPropertyInfo info)
+        {
+            var uiDict = new Dictionary<string, object?>();
+            var schemaKey = info.MemberInfo.ReflectedType!.FullName!;
+            _schemaCache.TryAdd(schemaKey, ([], []));
+            var propertyKey = GetPropertyKey(info);
+            if (schema.Item is not null)
+                propertyKey += "+List";
+            if (!_schemaCache[schemaKey].PropertyUIDefinitions.TryAdd(propertyKey, uiDict))
+                uiDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey];
+
+            if (info.GetAttribute<KeyAttribute>(false) is { })
+                uiDict.Add("primaryKey", true);
+
+            if (info.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrWhiteSpace(displayAttribute.Name))
+                uiDict.TryAdd("label", displayAttribute.Name);
+            else
+                uiDict.TryAdd("label", TypeReflectionExtensions.GetDisplayName(info.Name));
+
+            if (info.GetAttribute<VisibilityAttribute>(false) is { } visibilityAttribute)
+            {
+                var visibilityDict = new Dictionary<string, object?>()
+                {
+                    { "default", visibilityAttribute.Visibility.ToString().ToLower() switch { "readonly" => "read-only", string def => def } },
+                };
+                if (visibilityAttribute.HasToggle)
+                {
+                    var toggleDict = new Dictionary<string, object?>()
+                    {
+                        { "path", visibilityAttribute.ToggleWhenMemberIsSet },
+                        { "value", Convert(_currentType!, visibilityAttribute.ToggleWhenSetTo) },
+                        { "visibility", visibilityAttribute.ToggleVisibilityTo.ToString().ToLower() switch { "readonly" => "read-only", string def => def } }
+                    };
+                    visibilityDict.Add("toggle", toggleDict);
+                }
+                uiDict.Add("visibility", visibilityDict);
+            }
+
+            if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
+            {
+                var badgeDict = new Dictionary<string, object?>
+                {
+                    { "name", badgeAttribute.Name },
+                    { "theme", JsonConvert.DeserializeObject<string?>(JsonConvert.SerializeObject(badgeAttribute.Theme, Formatting.None, _newtonsoftJsonSerializerSettings)) }
+                };
+                uiDict.Add("badge", badgeDict);
+            }
+
+            if (schema.IsEnumeration)
+            {
+                schema.Enumeration.Clear();
+                schema.EnumerationNames.Clear();
+
+                var enumList = new List<Dictionary<string, object?>>();
+                var enumValueConverter = context.Settings.ReflectionService.GetEnumValueConverter(context.Settings);
+                foreach (var enumName in Enum.GetNames(contextualType.Type))
+                {
+                    string? value = null;
+                    var field = contextualType.GetField(enumName)!;
+                    var title = TypeReflectionExtensions.GetDisplayName(field);
+                    var description = TypeReflectionExtensions.GetDescription(field);
+                    if (field.GetAttribute<EnumMemberAttribute>(false) is { } enumMemberAttribute && !string.IsNullOrEmpty(enumMemberAttribute.Value))
+                        value = enumMemberAttribute.Value;
+                    else
+                        value = enumValueConverter(Enum.Parse(contextualType.Type, enumName));
+
+                    schema.Enumeration.Add(value);
+                    schema.EnumerationNames.Add(enumName);
+                    enumList.Add(new()
+                    {
+                        { "title", title },
+                        { "description", description },
+                        { "value", value },
+                    });
+                }
+                uiDict.Add("elementType", "enum");
+                uiDict.Add("enumDefinitions", enumList);
+                uiDict.Add("enumIsFlag", schema.IsFlagEnumerable);
+            }
+            else if (schema.Item is { Reference: not null } itemSchema)
+            {
+                if (_schemaKeys.TryGetValue(itemSchema.Reference.ActualSchema, out var referencedSchemaKey))
+                {
+                    var referencedDict = _schemaCache[referencedSchemaKey].ClassUIDefinition;
+                    foreach (var (key, value) in referencedDict)
+                        if (key is "elementType" && value is not "auto")
+                            uiDict.TryAdd(key, value + "+list");
+                        else if (key is "sectionType" or "primaryKey")
+                            uiDict.TryAdd(key, value);
+                }
+
+                var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
+                if (innerDict["elementType"] is not "auto")
+                    uiDict.TryAdd("elementType", innerDict["elementType"] + "+list");
+                foreach (var (key, value) in innerDict)
+                    uiDict.TryAdd(key, value);
+
+                // TODO: ADD LIST STYLES
+            }
+            else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
+            {
+                uiDict.Add("elementType", "code-block");
+                uiDict.Add("codeLanguage", codeBlockAttribute.Language.ToString());
+            }
+            else if (info.GetAttribute<TextAreaAttribute>(false) is not null)
+            {
+                uiDict.Add("elementType", "text-area");
+            }
+            else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null)
+            {
+                uiDict.Add("elementType", "password");
+            }
+            else
+            {
+                uiDict.TryAdd("elementType", "auto");
+            }
+        }
+
+        // Add a reference to the class schema and generate the schema if it's not done yet.
+        if (schema.Properties.Count > 0 && (!contextualType.Type.FullName?.StartsWith("System.") ?? false))
+        {
+            var schemaKey = contextualType.Type.FullName!;
+            _schemaKeys.TryAdd(schema, schemaKey);
+            _schemaCache.TryAdd(schemaKey, ([], []));
+
+            // Only generate the class schema once per type.
+            if (_schemaCache[schemaKey].ClassUIDefinition is { Count: 0 } uiDict)
+            {
+                if (contextualType.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrWhiteSpace(displayAttribute.Name))
+                    uiDict.Add("label", displayAttribute.Name);
+
+                var propertyDefinitions = _schemaCache[schemaKey].PropertyUIDefinitions;
+                var primaryKey = propertyDefinitions.FirstOrDefault(x => x.Value.ContainsKey("primaryKey")).Key;
+                if (!string.IsNullOrEmpty(primaryKey))
+                    uiDict.Add("primaryKey", primaryKey);
+
+                var actions = contextualType.GetAttributes<CustomActionAttribute>(false).ToList();
+                var hideSaveAction = contextualType.GetAttribute<HideSaveActionAttribute>(false) is not null;
+                if (hideSaveAction || actions.Count > 0)
+                {
+                    var actionList = new List<Dictionary<string, object?>>();
+                    var actionsDict = new Dictionary<string, object?>
+                    {
+                        { "hideSaveAction", hideSaveAction },
+                        { "customActions", actionList },
+                    };
+                    foreach (var action in actions)
+                    {
+                        var actionDict = new Dictionary<string, object?>
+                        {
+                            { "title", action.Name },
+                            { "description", action.Description ?? string.Empty },
+                            { "theme", JsonConvert.DeserializeObject<string?>(JsonConvert.SerializeObject(action.Theme, Formatting.None, _newtonsoftJsonSerializerSettings)) },
+                        };
+                        if (action.HasToggle)
+                        {
+                            actionDict.Add("toggle", new Dictionary<string, object?>
+                            {
+                                { "path", action.ToggleWhenMemberIsSet },
+                                { "value", Convert(_currentType!, action.ToggleWhenSetTo) },
+                            });
+                            actionDict.Add("hideByDefault", action.HideByDefault);
+                        }
+                        else
+                        {
+                            actionDict.Add("toggle", null);
+                            actionDict.Add("hideByDefault", false);
+                        }
+                        actionDict.Add("disableIfNoChanges", action.DisableIfNoChanges);
+                        actionList.Add(actionDict);
+                    }
+                    uiDict.Add("actions", actionsDict);
+                }
+
+                uiDict.Add("elementType", "sections");
+                if (contextualType.GetAttribute<SectionTypeAttribute>(false) is { } sectionTypeAttribute)
+                    uiDict.Add("sectionType", sectionTypeAttribute.SectionType.ToString().ToLower() switch { "fieldset" => "field-set", string def => def });
+                else
+                    uiDict.Add("sectionType", "field-set");
+            }
+        }
+    }
+
+    private static string GetPropertyKey(ContextualPropertyInfo info)
+    {
+        if (info.GetAttribute<JsonPropertyAttribute>(false) is { } jsonPropertyAttribute)
+            return jsonPropertyAttribute.PropertyName ?? info.Name;
+        if (info.GetAttribute<System.Text.Json.Serialization.JsonPropertyNameAttribute>(false) is { } jsonPropertyNameAttribute)
+            return jsonPropertyNameAttribute.Name ?? info.Name;
+        return info.Name;
+    }
+
     #endregion
 
-    #region Serialization/Deserialization
+    #region Schema | ISchemaNameGenerator Implementation
 
-    private TConfig Deserialize<TConfig>(string json) where TConfig : class, IConfiguration, new()
+    string ISchemaNameGenerator.Generate(Type type)
+    {
+        var contextualType = type.ToContextualType();
+        if (contextualType.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrEmpty(displayAttribute.Name))
+            return displayAttribute.Name;
+
+        var name = TypeReflectionExtensions.GetDisplayName(type);
+        foreach (var suffix in _configurationSuffixSet)
+        {
+            var endWith = $" {suffix}";
+            if (name.EndsWith(endWith, StringComparison.OrdinalIgnoreCase))
+                name = name[..^endWith.Length];
+        }
+        return name;
+    }
+
+    #endregion
+
+    #endregion
+
+    #region De-/Serialization
+
+    public IConfiguration Deserialize(ConfigurationInfo info, string json)
+    {
+        try
+        {
+            return (IConfiguration)typeof(ConfigurationService)
+                .GetMethod(nameof(DeserializeInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(info.Type)
+                .Invoke(this, [json])!;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
+
+    private TConfig DeserializeInternal<TConfig>(string json) where TConfig : class, IConfiguration, new()
         => typeof(TConfig).IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JsonConvert.DeserializeObject<TConfig>(json, _newtonsoftJsonSerializerSettings)!
             : System.Text.Json.JsonSerializer.Deserialize<TConfig>(json, _systemTextJsonSerializerOptions)!;
 
     public string Serialize(IConfiguration config)
-        => config.GetType().IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
-            ? JsonConvert.SerializeObject(config, _newtonsoftJsonSerializerSettings)
-            : System.Text.Json.JsonSerializer.Serialize(config, _systemTextJsonSerializerOptions)!;
+    {
+        try
+        {
+            return (string)typeof(ConfigurationService)
+                .GetMethod(nameof(SerializeInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(config.GetType())
+                .Invoke(this, [config])!;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
 
-    private string Serialize<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
+    private string SerializeInternal<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
         => typeof(TConfig).IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JsonConvert.SerializeObject(config, _newtonsoftJsonSerializerSettings)
             : System.Text.Json.JsonSerializer.Serialize(config, _systemTextJsonSerializerOptions)!;
 
-    private JsonSchema GetSchemaForType(Type type)
-        => type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
-            ? new JsonSchemaGenerator(new NewtonsoftJsonSchemaGeneratorSettings { SerializerSettings = _newtonsoftJsonSerializerSettings }).Generate(type)
-            : new JsonSchemaGenerator(new SystemTextJsonSchemaGeneratorSettings() { SerializerOptions = _systemTextJsonSerializerOptions }).Generate(type);
+    // For the values that needs to be converted by the right library in the right way
+    private JToken? Convert(Type type, object? value)
+        => value is null ? null : type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
+            ? JToken.Parse(JsonConvert.SerializeObject(value, Formatting.None, _newtonsoftJsonSerializerSettings))
+            : JToken.Parse(System.Text.Json.JsonSerializer.Serialize(value, _systemTextJsonSerializerOptions));
 
     #endregion
 
-    #region Static Helper Methods
-
-    #endregion
+    #region ID Helpers
 
     /// <summary>
     /// Gets a unique ID for a configuration generated from its class name.
@@ -550,11 +1054,5 @@ public class ConfigurationService : IConfigurationService
     private static Guid GetID(Type type, PluginInfo pluginInfo)
         => UuidUtility.GetV5($"Configuration={type.FullName!}", pluginInfo.ID);
 
-    private static string GetErrorMessage(ValidationError validationError)
-    {
-        return validationError.Kind switch
-        {
-            _ => PluginManager.GetDisplayName(validationError.Kind.ToString()),
-        };
-    }
+    #endregion
 }

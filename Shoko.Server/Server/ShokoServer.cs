@@ -58,17 +58,17 @@ public class ShokoServer
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
-        ShokoEventHandler.Instance.Shutdown += OnShutDown;
+        ShokoEventHandler.Instance.Shutdown += OnShutdown;
     }
 
-    private void OnShutDown(object sender, CancelEventArgs e)
+    private void OnShutdown(object sender, EventArgs e)
     {
         ShutDown();
     }
 
     ~ShokoServer()
     {
-        ShokoEventHandler.Instance.Shutdown -= OnShutDown;
+        ShokoEventHandler.Instance.Shutdown -= OnShutdown;
     }
 
     public bool StartUpServer()

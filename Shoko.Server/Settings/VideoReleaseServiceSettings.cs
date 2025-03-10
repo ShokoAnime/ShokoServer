@@ -11,7 +11,7 @@ namespace Shoko.Server.Settings;
 /// These are separate from the <see cref="ServerSettings"/> to prevent
 /// clients from modifying them through the settings endpoint.
 /// </summary>
-public class VideoReleaseServiceSettings : INewtonsoftJsonConfiguration
+public class VideoReleaseServiceSettings : INewtonsoftJsonConfiguration, IHiddenConfiguration
 {
     /// <summary>
     /// Whether or not to use parallel mode for the service.

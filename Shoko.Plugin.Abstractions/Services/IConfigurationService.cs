@@ -82,6 +82,32 @@ public interface IConfigurationService
     IReadOnlyDictionary<string, IReadOnlyList<string>> Validate<TConfig>(TConfig config) where TConfig : class, IConfiguration, new();
 
     /// <summary>
+    /// Perform an action on the configuration.
+    /// </summary>
+    /// <param name="info">The configuration info.</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="path">The path to the configuration.</param>
+    /// <param name="action">The action to perform.</param>
+    /// <exception cref="InvalidConfigurationActionException">
+    /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
+    /// </exception>
+    /// <returns>The result of the action.</returns>
+    ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action);
+
+    /// <summary>
+    /// Perform an action on the configuration.
+    /// </summary>
+    /// <typeparam name="TConfig"></typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="path">The path to the configuration.</param>
+    /// <param name="action">The action to perform.</param>
+    /// <exception cref="InvalidConfigurationActionException">
+    /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
+    /// </exception>
+    /// <returns>The result of the action.</returns>
+    ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new();
+
+    /// <summary>
     /// Creates a new configuration for the specified configuration info without saving it and without storing it in the in-memory cache.
     /// </summary>
     /// <param name="info">The configuration info.</param>
@@ -184,4 +210,12 @@ public interface IConfigurationService
     /// <param name="config">The configuration to serialize.</param>
     /// <returns>The serialized JSON configuration.</returns>
     string Serialize(IConfiguration config);
+
+    /// <summary>
+    /// Deserializes the specified JSON configuration.
+    /// </summary>
+    /// <param name="info">The configuration info.</param>
+    /// <param name="json">The JSON configuration to deserialize.</param>
+    /// <returns>The deserialized configuration.</returns>
+    IConfiguration Deserialize(ConfigurationInfo info, string json);
 }
