@@ -904,7 +904,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     uiDict.Add("primaryKey", primaryKey);
 
                 var actions = contextualType.GetAttributes<CustomActionAttribute>(false).ToList();
-                var hideSaveAction = contextualType.GetAttribute<HideSaveActionAttribute>(false) is not null;
+                var hideSaveAction = contextualType.GetAttribute<HideDefaultSaveActionAttribute>(false) is not null;
                 if (hideSaveAction || actions.Count > 0)
                 {
                     var actionList = new List<Dictionary<string, object?>>();
