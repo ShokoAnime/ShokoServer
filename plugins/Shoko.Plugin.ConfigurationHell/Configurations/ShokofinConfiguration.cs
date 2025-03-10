@@ -356,15 +356,15 @@ public class ShokofinConfiguration : IConfiguration
             /// <summary>
             /// Determines how to order seasons within shows when using groups for shows.
             /// </summary>
+            [Badge("Experimental", Theme = DisplayColorTheme.Dangerous)]
             [Visibility(
                 DisplayVisibility.Disabled,
                 ToggleWhenMemberIsSet = nameof(LibraryStructure),
                 ToggleWhenSetTo = LibraryStructureType.Shoko_Groups,
                 ToggleVisibilityTo = DisplayVisibility.Visible
             )]
-            [Badge("Experimental", Theme = DisplayColorTheme.Dangerous)]
-            [DefaultValue(SeasonOrderingType.Default)]
             [Display(Name = "Shoko Group's Season Ordering")]
+            [DefaultValue(SeasonOrderingType.Default)]
             public SeasonOrderingType SeasonOrdering { get; set; } = SeasonOrderingType.Default;
 
             /// <summary>
@@ -469,6 +469,92 @@ public class ShokofinConfiguration : IConfiguration
         }
 
         #endregion
+
+        #region Library | Managed Folders
+
+        /// <summary>
+        /// Adjust default settings for new libraries.
+        /// </summary>
+        [Display(Name = "New Library Settings")]
+        public ManagedFolderDefaultSettings ManagedFoldersDefaults { get; set; } = new();
+
+        /// <summary>
+        /// Default settings for new libraries.
+        /// </summary>
+        public class ManagedFolderDefaultSettings
+        {
+            /// <summary>
+            /// Enables the use of the VFS for any new libraries managed by the plugin.
+            /// </summary>
+            [Display(Name = "Use Virtual File System (VFS)")]
+            [DefaultValue(true)]
+            public bool UseVFS { get; set; } = true;
+
+            /// <summary>
+            /// Adjust how the plugin filters out unrecognized media in your new libraries. This option only applies if the VFS is not used.
+            /// </summary>
+            [Visibility(
+                DisplayVisibility.Visible,
+                ToggleWhenMemberIsSet = nameof(UseVFS),
+                ToggleWhenSetTo = true,
+                ToggleVisibilityTo = DisplayVisibility.Disabled
+            )]
+            [Display(Name = "Disable filtering on non-VFS libraries")]
+            [DefaultValue(false)]
+            public bool UseLegacyFiltering { get; set; } = false;
+        }
+
+        /// <summary>
+        /// Adjust existing settings on a per library basis.
+        /// </summary>
+        [Display(Name = "Existing Library Settings")]
+        public List<ManagedFolderSettings> ManagedFolders { get; set; } = [];
+
+        /// <summary>
+        /// Managed media folder settings.
+        /// </summary>
+        [CustomAction(
+            "Remove",
+            Description = "This will delete the saved settings and reset the mapping for the library.",
+            Theme = DisplayColorTheme.Dangerous
+        )]
+        [CustomAction("Save", Theme = DisplayColorTheme.Primary, DisableIfNoChanges = true)]
+        public class ManagedFolderSettings
+        {
+            /// <summary>
+            /// The key of the library this settings are for.
+            /// </summary>
+            [Key, Required]
+            public string Key { get; set; } = string.Empty;
+
+            /// <summary>
+            /// The Shoko Import Folders the Media Folders are mapped to.
+            /// </summary>
+            [Display(Name = "Import Folder Mapping"), Visibility(DisplayVisibility.ReadOnly)]
+            public List<string> Paths { get; set; } = [];
+
+            /// <summary>
+            /// Enables the use of the VFS for the library.
+            /// </summary>
+            [Display(Name = "Use Virtual File System (VFS)")]
+            [DefaultValue(true)]
+            public bool UseVFS { get; set; } = true;
+
+            /// <summary>
+            /// Adjust how the plugin filters out unrecognized media in the library. This option only applies if the VFS is not used.
+            /// </summary>
+            [Visibility(
+                DisplayVisibility.Visible,
+                ToggleWhenMemberIsSet = nameof(UseVFS),
+                ToggleWhenSetTo = true,
+                ToggleVisibilityTo = DisplayVisibility.Disabled
+            )]
+            [Display(Name = "Disable filtering on non-VFS libraries")]
+            [DefaultValue(false)]
+            public bool UseLegacyFiltering { get; set; } = false;
+        }
+
+        #endregion
     }
 
     #endregion
@@ -548,25 +634,25 @@ public class ShokofinConfiguration : IConfiguration
             /// <summary>
             /// Gets or sets a value indicating whether to resolve links before the VFS.
             /// </summary>
-            [DefaultValue(false)]
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
             [Display(Name = "Resolve Links Before VFS")]
+            [DefaultValue(false)]
             public bool ResolveLinksBeforeVFS { get; set; } = false;
 
             /// <summary>
             /// Gets or sets a value indicating whether to attach the VFS to libraries.
             /// </summary>
-            [DefaultValue(true)]
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
             [Display(Name = "Attach VFS to Libraries")]
+            [DefaultValue(true)]
             public bool AttachToLibraries { get; set; } = true;
 
             /// <summary>
             /// Gets or sets a value indicating whether to perform iterative file checks.
             /// </summary>
-            [DefaultValue(false)]
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
             [Display(Name = "Iterative File Checks")]
+            [DefaultValue(false)]
             public bool PerformIterativeFileChecks { get; set; } = false;
 
             /// <summary>
@@ -649,20 +735,12 @@ public class ShokofinConfiguration : IConfiguration
     public class UserSettings
     {
         /// <summary>
-        /// The displayed key in the UI for the user.
+        /// The "Jellyfin" username displayed in the UI.
         /// </summary>
         [Key]
         [Required]
-        [JsonInclude]
         [Visibility(DisplayVisibility.Hidden)]
-        public string Key => $"{Username} ({UserId})";
-
-        /// <summary>
-        /// The Jellyfin user id this configuration is for.
-        /// </summary>
-        [Required]
-        [Visibility(DisplayVisibility.Hidden)]
-        public Guid UserId { get; set; } = Guid.Empty;
+        public string Key { get; set; } = string.Empty;
 
         /// <summary>
         /// Enables watch-state synchronization for the user.
