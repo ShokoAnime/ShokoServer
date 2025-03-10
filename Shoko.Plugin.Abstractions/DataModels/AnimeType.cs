@@ -35,4 +35,9 @@ public enum AnimeType
     /// Other misc. types of series not listed in this enum.
     /// </summary>
     Other = 5,
+
+    /// <summary>
+    /// A music video.
+    /// </summary>
+    MusicVideo = 6,
 }

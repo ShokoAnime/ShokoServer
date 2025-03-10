@@ -90,6 +90,7 @@ public class HttpAnimeParser
             "tv series" => AnimeType.TVSeries,
             "tv special" => AnimeType.TVSpecial,
             "web" => AnimeType.Web,
+            "music video" => AnimeType.MusicVideo,
             _ => AnimeType.Other
         };
 

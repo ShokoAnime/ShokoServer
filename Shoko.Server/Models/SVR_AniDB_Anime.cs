@@ -46,6 +46,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
         AnimeTypeEnum.TVSpecial => "tv special",
         AnimeTypeEnum.Web => "web",
         AnimeTypeEnum.Other => "other",
+        AnimeTypeEnum.MusicVideo => "music video",
         _ => null,
     };
 

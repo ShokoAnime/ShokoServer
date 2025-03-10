@@ -262,7 +262,8 @@ public enum AnimeType
     TVSeries = 2,
     TVSpecial = 3,
     Web = 4,
-    Other = 5
+    Other = 5,
+    MusicVideo = 6,
 }
 
 public enum CreatorType
