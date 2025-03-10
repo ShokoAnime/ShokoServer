@@ -13,10 +13,12 @@ using Microsoft.Extensions.Logging;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -124,7 +126,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("ReleaseGroups")]
     public List<string> GetAllReleaseGroups()
     {
-        return RepoFactory.AniDB_ReleaseGroup.GetUsedReleaseGroups().Select(r => r.GroupName).ToList();
+        return RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups().Select(r => r.Name).ToList();
     }
 
     [HttpGet("File/DeleteMultipleFilesWithPreferences/{userID}")]
@@ -138,7 +140,7 @@ public partial class ShokoServiceImplementation
                     .Where(b => b != null)
                     .ToList();
 
-            var videosToDelete = new List<SVR_VideoLocal>();
+            var videosToDelete = new List<VideoLocal>();
 
             foreach (var ep in eps)
             {
@@ -188,7 +190,7 @@ public partial class ShokoServiceImplementation
                 .Where(b => b != null)
                 .ToList();
 
-        var videosToDelete = new List<SVR_VideoLocal>();
+        var videosToDelete = new List<VideoLocal>();
 
         foreach (var ep in eps)
         {
@@ -214,7 +216,7 @@ public partial class ShokoServiceImplementation
                 .Where(b => b != null)
                 .ToList();
 
-        var videosToDelete = new List<SVR_VideoLocal>();
+        var videosToDelete = new List<VideoLocal>();
 
         foreach (var ep in eps)
         {
@@ -571,20 +573,17 @@ public partial class ShokoServiceImplementation
                     // let's check if the file on AniDB actually exists in the user's local collection
                     var hash = string.Empty;
 
-                    AniDB_File anifile = myitem.FileID == null ? null : RepoFactory.AniDB_File.GetByFileID(myitem.FileID.Value);
+                    var anifile = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myitem.FileID}");
                     if (anifile != null)
-                        hash = anifile.Hash;
+                        hash = anifile.ED2K;
                     else
                     {
                         // look for manually linked files
-                        var xrefs = myitem.EpisodeID == null ? null : RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
+                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
                         foreach (var xref in xrefs)
                         {
-                            if (xref.CrossRefSource != (int)CrossRefSource.AniDB)
-                            {
-                                hash = xref.Hash;
-                                break;
-                            }
+                            hash = xref.Hash;
+                            break;
                         }
                     }
 
@@ -750,19 +749,7 @@ public partial class ShokoServiceImplementation
     [NonAction]
     public List<CL_VideoLocal> GetManuallyLinkedFiles(int userID)
     {
-        var contracts = new List<CL_VideoLocal>();
-        try
-        {
-            foreach (var vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
-            {
-                contracts.Add(_videoLocalService.GetV1Contract(vid, userID));
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-        }
-        return contracts;
+        return [];
     }
 
     [HttpGet("File/Unrecognised/{userID}")]
@@ -783,6 +770,9 @@ public partial class ShokoServiceImplementation
     [HttpPost("File/Unlinked/Rescan")]
     public void RescanUnlinkedFiles()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return;
+
         try
         {
             // files which have been hashed, but don't have an associated episode
@@ -795,7 +785,7 @@ public partial class ShokoServiceImplementation
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 ).GetAwaiter().GetResult();
             }
@@ -807,30 +797,7 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpGet("File/Rescan/ManuallyLinked")]
-    public void RescanManuallyLinkedFiles()
-    {
-        try
-        {
-            // files which have been hashed, but don't have an associated episode
-            var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
-
-            var scheduler = _schedulerFactory.GetScheduler().Result;
-            foreach (var vl in files.Where(a => !string.IsNullOrEmpty(a.Hash)))
-            {
-                scheduler.StartJob<ProcessFileJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
-                    }
-                ).GetAwaiter().GetResult();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.Message);
-        }
-    }
+    public void RescanManuallyLinkedFiles() { }
 
     [HttpGet("File/Duplicated")]
     public List<CL_DuplicateFile> GetAllDuplicateFiles()
@@ -913,21 +880,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("File/ManuallyLinked/{userID}")]
     public List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID)
     {
-        var manualFiles = new List<CL_VideoLocal>();
-        try
-        {
-            foreach (var vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
-            {
-                manualFiles.Add(_videoLocalService.GetV1Contract(vid, userID));
-            }
-
-            return manualFiles;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-            return manualFiles;
-        }
+        return [];
     }
 
     [HttpGet("Episode/ForMultipleFiles/{userID}/{onlyFinishedSeries}/{ignoreVariations}")]
@@ -1038,24 +991,25 @@ public partial class ShokoServiceImplementation
                 _logger.LogTrace("GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {GroupMatches}", groupMatches);
 
                 // get the anidb file info
-                var aniFile = vid.AniDBFile;
-                if (aniFile != null)
+                if (vid.ReleaseInfo is { } releaseInfo)
                 {
-                    _logger.LogTrace($"GetFilesByGroupAndResolution -- aniFile is not null");
-                    _logger.LogTrace("GetFilesByGroupAndResolution -- aniFile.File_Source: {FileSource}", aniFile.File_Source);
-                    _logger.LogTrace("GetFilesByGroupAndResolution -- aniFile.Anime_GroupName: {GroupName}", aniFile.Anime_GroupName);
-                    _logger.LogTrace("GetFilesByGroupAndResolution -- aniFile.Anime_GroupNameShort: {GroupNameShort}", aniFile.Anime_GroupNameShort);
-                    sourceMatches = string.Equals(videoSource, aniFile.File_Source, StringComparison.InvariantCultureIgnoreCase) || !sourceMatches &&
-                        (aniFile.File_Source?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) &&
-                        string.Equals("unknown", videoSource, StringComparison.InvariantCultureIgnoreCase);
+                    _logger.LogTrace($"GetFilesByGroupAndResolution -- releaseInfo is not null");
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- releaseInfo.Source: {FileSource}", releaseInfo.LegacySource);
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- releaseInfo.GroupName: {GroupName}", releaseInfo.GroupName);
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- releaseInfo.GroupNameShort: {GroupNameShort}", releaseInfo.GroupShortName);
+                    sourceMatches = string.Equals(videoSource, releaseInfo.LegacySource, StringComparison.InvariantCultureIgnoreCase) || (
+                        !sourceMatches &&
+                        releaseInfo.LegacySource.Contains("unk", StringComparison.InvariantCultureIgnoreCase) &&
+                        string.Equals("unknown", videoSource, StringComparison.InvariantCultureIgnoreCase)
+                    );
 
-                    if (!string.IsNullOrEmpty(aniFile.Anime_GroupName) || !string.IsNullOrEmpty(aniFile.Anime_GroupNameShort))
-                        groupMatches = string.Equals(relGroupName, aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
-                                       string.Equals(relGroupName, aniFile.Anime_GroupNameShort, StringComparison.InvariantCultureIgnoreCase);
+                    if (!string.IsNullOrEmpty(releaseInfo.GroupName) || !string.IsNullOrEmpty(releaseInfo.GroupShortName))
+                        groupMatches = string.Equals(relGroupName, releaseInfo.GroupName, StringComparison.InvariantCultureIgnoreCase) ||
+                                       string.Equals(relGroupName, releaseInfo.GroupShortName, StringComparison.InvariantCultureIgnoreCase);
 
-                    if (!"raw".Equals(aniFile.Anime_GroupNameShort) &&
-                        ((aniFile.Anime_GroupName?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                         (aniFile.Anime_GroupNameShort?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false)) || aniFile.Anime_GroupName == null)
+                    if (!"raw".Equals(releaseInfo.GroupShortName) &&
+                        ((releaseInfo.GroupName?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                         (releaseInfo.GroupShortName?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false)) || releaseInfo.GroupName == null)
                         groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName) || relGroupName == null || "null".EqualsInvariantIgnoreCase(relGroupName);
 
                     _logger.LogTrace("GetFilesByGroupAndResolution -- sourceMatches (aniFile): {Matches}", sourceMatches);
@@ -1096,14 +1050,12 @@ public partial class ShokoServiceImplementation
             {
                 var eps = vid.AnimeEpisodes;
                 if (eps.Count == 0) continue;
-                // get the anibd file info
-                var aniFile = vid.AniDBFile;
-                if (aniFile != null)
+                if (vid.ReleaseInfo is IReleaseInfo releaseInfo && releaseInfo.Group is { } group)
                 {
-                    var groupMatches = string.Equals(grpName, aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
-                                       string.Equals(grpName, aniFile.Anime_GroupNameShort, StringComparison.InvariantCultureIgnoreCase);
-                    if ("unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) || "unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort) ||
-                        string.IsNullOrEmpty(aniFile.Anime_GroupName) && string.IsNullOrEmpty(aniFile.Anime_GroupNameShort))
+                    var groupMatches = string.Equals(grpName, group.Name, StringComparison.InvariantCultureIgnoreCase) ||
+                                       string.Equals(grpName, group.ShortName, StringComparison.InvariantCultureIgnoreCase);
+                    if ("unknown".EqualsInvariantIgnoreCase(group.Name) || "unknown".EqualsInvariantIgnoreCase(group.ShortName) ||
+                        string.IsNullOrEmpty(group.Name) && string.IsNullOrEmpty(group.ShortName))
                         groupMatches = string.Equals(grpName, Constants.NO_GROUP_INFO) || "unknown".EqualsInvariantIgnoreCase(grpName);
                     // match based on group / video source / video res
                     if (groupMatches)
@@ -1139,14 +1091,14 @@ public partial class ShokoServiceImplementation
         var lookup = files.ToLookup(a =>
         {
             // Fallback on groupID, this will make it easier to distinguish for deletion and grouping
-            var anidbFile = a.AniDBFile;
+            var releaseInfo = a.ReleaseInfo;
             return new
             {
-                GroupName = anidbFile?.Anime_GroupName ?? Constants.NO_GROUP_INFO,
-                GroupNameShort = anidbFile?.Anime_GroupNameShort ?? Constants.NO_GROUP_INFO,
-                File_Source = anidbFile == null
+                GroupName = releaseInfo?.GroupName ?? Constants.NO_GROUP_INFO,
+                GroupNameShort = releaseInfo?.GroupShortName ?? Constants.NO_GROUP_INFO,
+                File_Source = releaseInfo == null
                     ? string.Intern("Manual Link")
-                    : anidbFile.File_Source ?? string.Intern("unknown"),
+                    : releaseInfo.LegacySource,
                 a.VideoResolution
             };
         });
@@ -1156,7 +1108,7 @@ public partial class ShokoServiceImplementation
             var contract = new CL_GroupVideoQuality();
             var videoLocals = key.ToList();
             var eps = videoLocals.Select(a => (a?.AnimeEpisodes).FirstOrDefault()).Where(a => a != null).ToList();
-            var ani = videoLocals.First().AniDBFile;
+            var ani = videoLocals.First().ReleaseInfo;
             contract.AudioStreamCount = videoLocals.First()
                 .MediaInfo?.AudioStreams.Count ?? 0;
             contract.IsChaptered =

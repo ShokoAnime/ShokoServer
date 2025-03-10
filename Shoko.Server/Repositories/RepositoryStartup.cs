@@ -22,7 +22,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
         services.AddDirectRepository<AniDB_Anime_SimilarRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
-        services.AddDirectRepository<AniDB_FileUpdateRepository>();
         services.AddDirectRepository<AniDB_GroupStatusRepository>();
         services.AddDirectRepository<BookmarkedAnimeRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
@@ -65,8 +64,6 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_EpisodeRepository>();
         services.AddCachedRepository<AniDB_Episode_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
-        services.AddCachedRepository<AniDB_FileRepository>();
-        services.AddCachedRepository<AniDB_ReleaseGroupRepository>();
         services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
         services.AddCachedRepository<AniDB_VoteRepository>();
@@ -84,9 +81,9 @@ public static class RepositoryStartup
         services.AddCachedRepository<CrossRef_AniDB_TraktV2Repository>();
         services.AddCachedRepository<CrossRef_CustomTagRepository>();
         services.AddCachedRepository<CrossRef_File_EpisodeRepository>();
-        services.AddCachedRepository<CrossRef_Languages_AniDB_FileRepository>();
-        services.AddCachedRepository<CrossRef_Subtitles_AniDB_FileRepository>();
         services.AddCachedRepository<CustomTagRepository>();
+        services.AddCachedRepository<StoredReleaseInfoRepository>();
+        services.AddCachedRepository<StoredReleaseInfo_MatchAttemptRepository>();
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ImportFolderRepository>();
         services.AddCachedRepository<JMMUserRepository>();
@@ -99,6 +96,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<VideoLocalRepository>();
         services.AddCachedRepository<VideoLocal_PlaceRepository>();
         services.AddCachedRepository<VideoLocal_UserRepository>();
+        services.AddCachedRepository<VideoLocal_HashDigestRepository>();
 
         return services;
     }

@@ -10,6 +10,7 @@ using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -36,6 +37,8 @@ public class ActionService(
     ISchedulerFactory _schedulerFactory,
     IRequestFactory _requestFactory,
     ISettingsProvider _settingsProvider,
+    IVideoReleaseService _videoReleaseService,
+    VideoLocalService _videoService,
     VideoLocal_PlaceService _placeService,
     TmdbMetadataService _tmdbService,
     AnimeSeriesService _seriesService,
@@ -50,7 +53,7 @@ public class ActionService(
         // files which have not been hashed yet
         // or files which do not have a VideoInfo record
         var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
-        var dictFilesToHash = new Dictionary<int, SVR_VideoLocal>();
+        var dictFilesToHash = new Dictionary<int, VideoLocal>();
         foreach (var vl in filesToHash)
         {
             dictFilesToHash[vl.VideoLocalID] = vl;
@@ -78,6 +81,9 @@ public class ActionService(
             }
         }
 
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return;
+
         // files which have been hashed, but don't have an associated episode
         var settings = _settingsProvider.GetSettings();
         var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
@@ -85,7 +91,7 @@ public class ActionService(
         {
             if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+                var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                 if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                     continue;
             }
@@ -94,7 +100,7 @@ public class ActionService(
                 c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         }
@@ -528,7 +534,7 @@ public class ActionService(
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
-        var toRemove = new List<SVR_VideoLocal>();
+        var toRemove = new List<VideoLocal>();
         var comparer = new VideoLocalComparer();
 
         foreach (var hash in locals.Keys)
@@ -618,39 +624,7 @@ public class ActionService(
                 .DistinctBy(a => a.AnimeSeriesID));
 
             if (removeMyList)
-            {
-                if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
-                {
-                    var xrefs = v.EpisodeCrossReferences;
-                    foreach (var xref in xrefs)
-                    {
-                        if (xref.AnimeID is 0)
-                            continue;
-
-                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep == null)
-                        {
-                            continue;
-                        }
-
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.AnimeID = xref.AnimeID;
-                            c.EpisodeType = ep.EpisodeTypeEnum;
-                            c.EpisodeNumber = ep.EpisodeNumber;
-                        });
-                    }
-                }
-                else
-                {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.Hash = v.Hash;
-                            c.FileSize = v.FileSize;
-                        }
-                    );
-                }
-            }
+                await _videoService.ScheduleRemovalFromMyList(v);
 
             BaseRepository.Lock(session, v, (s, vl) =>
             {
@@ -731,57 +705,50 @@ public class ActionService(
         await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task<int> UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)
+    public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var vidsToUpdate = new HashSet<int>();
-        var groupsToUpdate = new HashSet<int>();
-        if (outOfDate)
-        {
-            var files = RepoFactory.VideoLocal.GetByInternalVersion(1);
+        var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
+            .Where(r =>
+                !string.IsNullOrEmpty(r.GroupID) &&
+                r.GroupSource is "AniDB" &&
+                int.TryParse(r.GroupID, out var groupID) && (
+                    string.IsNullOrEmpty(r.GroupName) ||
+                    string.IsNullOrEmpty(r.GroupShortName)
+                )
+            )
+            .DistinctBy(a => a.GroupID)
+            .Select(a => int.Parse(a.GroupID))
+            .ToHashSet();
+        var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : RepoFactory.StoredReleaseInfo.GetAll()
+            .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
+            .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
+            .WhereNotNull()
+            .Select(a => a.VideoLocalID)
+            .ToList();
 
-            foreach (var file in files)
+        if (!countOnly)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+
+            _logger.LogInformation("Queuing {Count} GetFile commands", missingFiles.Count);
+            foreach (var id in missingFiles)
             {
-                vidsToUpdate.Add(file.VideoLocalID);
-            }
-        }
-
-        if (missingInfo)
-        {
-            var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll().Select(group => group.GroupID).ToHashSet();
-            var missingGroups = RepoFactory.AniDB_File.GetAll().Select(a => a.GroupID).Where(a => a != 0 && !anidbReleaseGroupIDs.Contains(a)).ToList();
-            groupsToUpdate.UnionWith(missingGroups);
-
-            var missingFiles = RepoFactory.AniDB_File.GetAll()
-                .Where(a => a.GroupID == 0)
-                .Select(a => RepoFactory.VideoLocal.GetByEd2k(a.Hash))
-                .Where(f => f != null)
-                .Select(a => a.VideoLocalID)
-                .ToList();
-            vidsToUpdate.UnionWith(missingFiles);
-        }
-
-        if (!dryRun)
-        {
-            _logger.LogInformation("Queuing {Count} GetFile commands", vidsToUpdate.Count);
-            foreach (var id in vidsToUpdate)
-            {
-                await scheduler.StartJob<GetAniDBFileJob>(c =>
+                await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = id;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 });
             }
 
-            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", groupsToUpdate.Count);
-            foreach (var a in groupsToUpdate)
+            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
+            foreach (var a in incorrectGroups)
             {
                 await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
             }
         }
 
-        return vidsToUpdate.Count;
+        return missingFiles.Count;
     }
 
     public async Task CheckForUnreadNotifications(bool ignoreSchedule)
@@ -967,26 +934,26 @@ public class ActionService(
         }
 
         // files which have been hashed, but don't have an associated episode
-        var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-        foreach (var vl in filesWithoutEpisode)
+        if (_videoReleaseService.AutoMatchEnabled)
         {
-            if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
+            var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            foreach (var vl in filesWithoutEpisode)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
-                if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                    continue;
-            }
-
-            await scheduler.StartJob<ProcessFileJob>(c =>
+                if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
                 {
-                    c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
+                    var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
+                    if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
+                        continue;
                 }
-            );
+
+                await scheduler.StartJob<ProcessFileJob>(c =>
+                    {
+                        c.VideoLocalID = vl.VideoLocalID;
+                        c.ForceRecheck = true;
+                    }
+                );
+            }
         }
-
-        // now check for any files which have been manually linked and are less than 30 days old
-
 
         schedule ??= new ScheduledUpdate
         {
@@ -1003,7 +970,7 @@ public class ActionService(
         try
         {
             var filesAll = RepoFactory.VideoLocal.GetAll();
-            IReadOnlyList<SVR_VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+            IReadOnlyList<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
 
             foreach (var vl in filesAll)
             {

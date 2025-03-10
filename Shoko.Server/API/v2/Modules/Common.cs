@@ -22,6 +22,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -52,6 +53,7 @@ public class Common : BaseController
     private readonly QueueHandler _queueHandler;
     private readonly IUserDataService _userDataService;
     private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly IVideoReleaseService _videoReleaseService;
 
     public Common(
         ISchedulerFactory schedulerFactory,
@@ -62,7 +64,8 @@ public class Common : BaseController
         AnimeSeriesService seriesService,
         AnimeGroupService groupService,
         IUserDataService userDataService,
-        VideoLocal_UserRepository vlUsers) : base(settingsProvider)
+        VideoLocal_UserRepository vlUsers,
+        IVideoReleaseService videoReleaseService) : base(settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
@@ -72,6 +75,7 @@ public class Common : BaseController
         _groupService = groupService;
         _userDataService = userDataService;
         _vlUsers = vlUsers;
+        _videoReleaseService = videoReleaseService;
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
@@ -273,21 +277,17 @@ public class Common : BaseController
         {
             var vid = RepoFactory.VideoLocal.GetByID(id);
             if (vid == null)
-            {
                 return NotFound();
-            }
 
-            if (string.IsNullOrEmpty(vid.Hash))
-            {
-                return BadRequest("Could not Update a cloud file without hash, hash it locally first");
-            }
+            if (!_videoReleaseService.AutoMatchEnabled)
+                return Ok();
 
             var scheduler = await _schedulerFactory.GetScheduler();
             await scheduler.StartJobNow<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
             return Ok();
@@ -305,6 +305,9 @@ public class Common : BaseController
     [HttpGet("rescanunlinked")]
     public async Task<ActionResult> RescanUnlinked()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return Ok();
+
         try
         {
             // files which have been hashed, but don't have an associated episode
@@ -317,7 +320,7 @@ public class Common : BaseController
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
             }
@@ -337,6 +340,9 @@ public class Common : BaseController
     [HttpGet("rescanmanuallinks")]
     public async Task<ActionResult> RescanManualLinks()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return Ok();
+
         try
         {
             // files which have been hashed, but don't have an associated episode
@@ -349,7 +355,7 @@ public class Common : BaseController
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
             }
@@ -794,10 +800,10 @@ public class Common : BaseController
         JMMUser user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
-            .ToDictionary(a => a, a => a.AniDBFile);
+            .ToDictionary(a => a, a => a.ReleaseInfo);
         return allVideos.Keys.Select(vid => new { vid, anidb = allVideos[vid] })
-            .Where(tuple => tuple.anidb != null)
-            .Where(tuple => !tuple.anidb.IsDeprecated)
+            .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            .Where(tuple => !tuple.anidb.IsCorrupted)
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
@@ -813,8 +819,9 @@ public class Common : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             return BadRequest("Missing AVDump API key");
 
-        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
-            .ToDictionary(a => a, a => a.AniDBFile);
+        var allVideos = RepoFactory.VideoLocal.GetAll()
+            .Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
+            .ToDictionary(a => a, a => a.ReleaseInfo);
         var logger = LogManager.GetCurrentClassLogger();
 
         var list = allVideos.Keys
@@ -823,8 +830,8 @@ public class Common : BaseController
                 vid,
                 anidb = allVideos[vid],
             })
-            .Where(tuple => tuple.anidb != null)
-            .Where(tuple => !tuple.anidb.IsDeprecated)
+            .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            .Where(tuple => !tuple.anidb.IsCorrupted)
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(_tuple => new
             {
@@ -852,7 +859,7 @@ public class Common : BaseController
         JMMUser user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
-            .Where(a => !a.IsEmpty() && a.AniDBFile != null && a.AniDBFile.IsDeprecated).ToList();
+            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true }).ToList();
         return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
 

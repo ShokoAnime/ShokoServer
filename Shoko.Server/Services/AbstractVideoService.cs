@@ -27,33 +27,26 @@ public class AbstractVideoService : IVideoService
     public event EventHandler<FileEventArgs>? VideoFileHashed;
 
     /// <inheritdoc/>
-    public event EventHandler<FileEventArgs>? VideoFileMatched;
-
-    /// <inheritdoc/>
-    public event EventHandler<FileNotMatchedEventArgs>? VideoFileNotMatched;
-
-    /// <inheritdoc/>
-    public event EventHandler<FileRenamedEventArgs>? VideoFileRenamed;
-
-    /// <inheritdoc/>
-    public event EventHandler<FileMovedEventArgs>? VideoFileMoved;
+    public event EventHandler<FileMovedEventArgs>? VideoFileRelocated;
 
     private readonly VideoLocal_PlaceRepository _placeRepository;
 
     private readonly VideoLocalRepository _videoLocalRepository;
 
+    private readonly ImportFolderRepository _importFolderRepository;
+
     public AbstractVideoService(
         VideoLocal_PlaceRepository placeRepository,
-        VideoLocalRepository videoLocalRepository
+        VideoLocalRepository videoLocalRepository,
+        ImportFolderRepository importFolderRepository
     )
     {
         _placeRepository = placeRepository;
         _videoLocalRepository = videoLocalRepository;
+        _importFolderRepository = importFolderRepository;
         ShokoEventHandler.Instance.FileDetected += OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
         ShokoEventHandler.Instance.FileHashed += OnFileHashed;
-        ShokoEventHandler.Instance.FileMatched += OnFileMatched;
-        ShokoEventHandler.Instance.FileNotMatched += OnFileNotMatched;
         ShokoEventHandler.Instance.FileRenamed += OnFileRenamed;
         ShokoEventHandler.Instance.FileMoved += OnFileMoved;
     }
@@ -63,45 +56,44 @@ public class AbstractVideoService : IVideoService
         ShokoEventHandler.Instance.FileDetected -= OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted -= OnFileDeleted;
         ShokoEventHandler.Instance.FileHashed -= OnFileHashed;
-        ShokoEventHandler.Instance.FileMatched -= OnFileMatched;
-        ShokoEventHandler.Instance.FileNotMatched -= OnFileNotMatched;
         ShokoEventHandler.Instance.FileRenamed -= OnFileRenamed;
         ShokoEventHandler.Instance.FileMoved -= OnFileMoved;
     }
 
-    private void OnFileDetected(object? sender, FileDetectedEventArgs e)
+    private void OnFileDetected(object? sender, FileDetectedEventArgs eventArgs)
     {
-        VideoFileDetected?.Invoke(this, e);
+        VideoFileDetected?.Invoke(this, eventArgs);
     }
 
-    private void OnFileDeleted(object? sender, FileEventArgs e)
+    private void OnFileDeleted(object? sender, FileEventArgs eventArgs)
     {
-        VideoFileDeleted?.Invoke(this, e);
+        VideoFileDeleted?.Invoke(this, eventArgs);
     }
 
-    private void OnFileHashed(object? sender, FileEventArgs e)
+    private void OnFileHashed(object? sender, FileEventArgs eventArgs)
     {
-        VideoFileHashed?.Invoke(this, e);
+        VideoFileHashed?.Invoke(this, eventArgs);
     }
 
-    private void OnFileMatched(object? sender, FileEventArgs e)
+    private void OnFileRenamed(object? sender, FileRenamedEventArgs eventArgs)
     {
-        VideoFileMatched?.Invoke(this, e);
+        var moveEventArgs = new FileMovedEventArgs(
+            eventArgs.RelativePath,
+            eventArgs.ImportFolder,
+            eventArgs.PreviousRelativePath,
+            eventArgs.ImportFolder,
+            eventArgs.File,
+            eventArgs.Video,
+            eventArgs.Episodes,
+            eventArgs.Series,
+            eventArgs.Groups
+        );
+        VideoFileRelocated?.Invoke(this, moveEventArgs);
     }
 
-    private void OnFileNotMatched(object? sender, FileNotMatchedEventArgs e)
+    private void OnFileMoved(object? sender, FileMovedEventArgs eventArgs)
     {
-        VideoFileNotMatched?.Invoke(this, e);
-    }
-
-    private void OnFileRenamed(object? sender, FileRenamedEventArgs e)
-    {
-        VideoFileRenamed?.Invoke(this, e);
-    }
-
-    private void OnFileMoved(object? sender, FileMovedEventArgs e)
-    {
-        VideoFileMoved?.Invoke(this, e);
+        VideoFileRelocated?.Invoke(this, eventArgs);
     }
 
     /// <inheritdoc/>
@@ -160,5 +152,9 @@ public class AbstractVideoService : IVideoService
             HashAlgorithmName.CRC32 => _videoLocalRepository.GetByCrc32AndSize(hash, fileSize),
             _ => _videoLocalRepository.GetByEd2kAndSize(hash, fileSize),
         };
+
+    /// <inheritdoc/>
+    public IEnumerable<IImportFolder> GetAllManagedFolders()
+        => _importFolderRepository.GetAll();
 }
 

@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -13,6 +15,8 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 public class ProcessFileMovedMessageJob : BaseJob
 {
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IVideoReleaseService _videoReleaseService;
+
     public override string TypeName => "Handle Moved File Message";
     public override string Title => "Handling Moved File Message";
     public int MessageID { get; set; }
@@ -36,32 +40,37 @@ public class ProcessFileMovedMessageJob : BaseJob
             throw new Exception("Could not parse file ID from message title");
         }
 
-        var file = RepoFactory.AniDB_File.GetByFileID(fileId);
+        var file = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
         if (file == null)
         {
             _logger.LogWarning("Could not find file with AniDB ID: {ID}", fileId);
             return;
         }
 
-        var vlocal = RepoFactory.VideoLocal.GetByEd2k(file.Hash);
+        var vlocal = RepoFactory.VideoLocal.GetByEd2k(file.ED2K);
         if (vlocal == null)
         {
-            _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.Hash);
+            _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.ED2K);
             return;
         }
+
+        // If auto-match is not available then just ignore the file move, since
+        // it seems like we don't care about changes like that.
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return;
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<ProcessFileJob>(
             c =>
             {
                 c.VideoLocalID = vlocal.VideoLocalID;
-                c.ForceAniDB = true;
+                c.ForceRecheck = true;
             }
         ).ContinueWith(t =>
         {
             if (!t.IsFaulted)
             {
-                // This runs after ProcessFileJob is successfully done, which might be at a later point in time
+                // This runs after the file processing job is successfully done, which might be at a later point in time
                 // Let us refetch the message to make sure we have the latest data and then mark it as handled
                 var msg = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
                 if (msg == null) return;
@@ -72,9 +81,10 @@ public class ProcessFileMovedMessageJob : BaseJob
         });
     }
 
-    public ProcessFileMovedMessageJob(ISchedulerFactory schedulerFactory)
+    public ProcessFileMovedMessageJob(ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
     {
         _schedulerFactory = schedulerFactory;
+        _videoReleaseService = videoReleaseService;
     }
 
     protected ProcessFileMovedMessageJob()

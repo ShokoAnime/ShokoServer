@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Repositories.Cached;
@@ -18,7 +17,7 @@ public class AbstractUserService : IUserService
 
     /// <inheritdoc/>
     public IEnumerable<IShokoUser> GetUsers()
-         => _userRepository.GetAll().AsQueryable();
+         => _userRepository.GetAll();
 
     /// <inheritdoc/>
     public IShokoUser? GetUserByID(int id)

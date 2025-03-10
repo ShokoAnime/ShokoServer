@@ -103,7 +103,7 @@ public class RawFile : BaseDirectory
 
         public RecentFile() { }
 
-        public RecentFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
+        public RecentFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
             vl, level, uid, e)
         {
         }
@@ -113,7 +113,7 @@ public class RawFile : BaseDirectory
     {
     }
 
-    public RawFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null)
+    public RawFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null)
     {
         if (vl == null)
         {
@@ -131,12 +131,11 @@ public class RawFile : BaseDirectory
         updated = vl.DateTimeUpdated;
         duration = vl.Duration;
 
-        var releaseGroup = vl.ReleaseGroup;
-        if (releaseGroup != null)
+        if (vl.ReleaseGroup is { Source: "AniDB " } releaseGroup)
         {
-            group_full = releaseGroup.GroupName;
-            group_short = releaseGroup.GroupNameShort;
-            group_id = releaseGroup.AniDB_ReleaseGroupID;
+            group_full = releaseGroup.Name;
+            group_short = releaseGroup.ShortName;
+            group_id = int.Parse(releaseGroup.ID);
         }
 
         size = vl.FileSize;
