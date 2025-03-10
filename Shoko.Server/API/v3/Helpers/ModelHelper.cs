@@ -482,6 +482,12 @@ public static class ModelHelper
                 case AnimeType.OVA:
                     sizes.SeriesTypes.OVA++;
                     break;
+                case AnimeType.MusicVideo:
+                    sizes.SeriesTypes.MusicVideo++;
+                    break;
+                default:
+                    sizes.SeriesTypes.Unknown++;
+                    break;
             }
         }
 

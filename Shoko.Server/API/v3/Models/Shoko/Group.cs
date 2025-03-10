@@ -440,5 +440,6 @@ public class GroupSizes : SeriesSizes
         public int Web { get; set; }
         public int Movie { get; set; }
         public int OVA { get; set; }
+        public int MusicVideo { get; set; }
     }
 }
