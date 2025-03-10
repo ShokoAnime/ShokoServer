@@ -91,7 +91,8 @@ public class HttpAnimeParser
             "tv special" => AnimeType.TVSpecial,
             "web" => AnimeType.Web,
             "music video" => AnimeType.MusicVideo,
-            _ => AnimeType.Other
+            "other" => AnimeType.Other,
+            _ => AnimeType.Unknown,
         };
 
         var episodeCount = TryGetProperty(docAnime, "anime", "episodecount");

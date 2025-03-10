@@ -7,6 +7,11 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 public enum AnimeType
 {
     /// <summary>
+    /// The entry have not yet been assigned a type.
+    /// </summary>
+    Unknown = -1,
+
+    /// <summary>
     /// A movie. A self-contained story.
     /// </summary>
     Movie = 0,

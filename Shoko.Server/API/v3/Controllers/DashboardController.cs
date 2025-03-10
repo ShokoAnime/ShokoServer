@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -180,8 +180,9 @@ public class DashboardController : BaseController
     [HttpGet("SeriesSummary")]
     public Dashboard.SeriesSummary GetSeriesSummary()
     {
-        var series = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a))
-            .GroupBy(a => (AnimeType)(a.AniDB_Anime?.AnimeType ?? -1))
+        var series = RepoFactory.AnimeSeries.GetAll()
+            .Where(User.AllowedSeries)
+            .GroupBy(a => a.AniDB_Anime?.AbstractAnimeType ?? ((AnimeType)(-99)))
             .ToDictionary(a => a.Key, a => a.Count());
 
         return new Dashboard.SeriesSummary
@@ -193,7 +194,8 @@ public class DashboardController : BaseController
             Web = series.GetValueOrDefault(AnimeType.Web, 0),
             Other = series.GetValueOrDefault(AnimeType.Other, 0),
             MusicVideo = series.GetValueOrDefault(AnimeType.MusicVideo, 0),
-            None = series.GetValueOrDefault(AnimeType.None, 0)
+            Unknown = series.GetValueOrDefault(AnimeType.Unknown, 0),
+            None = series.GetValueOrDefault((AnimeType)(-99), 0),
         };
     }
 

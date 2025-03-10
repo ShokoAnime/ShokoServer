@@ -91,7 +91,7 @@ namespace Shoko.Models.Enums
 
     public enum AnimeType
     {
-        None = -1, // Not on AniDB, but for ease of processing
+        Unknown = -1, // Not on AniDB or not yet assigned a type.
         Movie = 0,
         OVA = 1,
         TVSeries = 2,

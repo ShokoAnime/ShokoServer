@@ -123,6 +123,11 @@ public static class Dashboard
         public int MusicVideo { get; set; }
 
         /// <summary>
+        /// The entry have not yet been assigned a type.
+        /// </summary>
+        public int Unknown { get; set; }
+
+        /// <summary>
         /// Series that don't have AniDB Records. This is very bad, and usually means there was an error in the import process. It can also happen if the API is hit at just the right time.
         /// </summary>
         public int None { get; set; }
