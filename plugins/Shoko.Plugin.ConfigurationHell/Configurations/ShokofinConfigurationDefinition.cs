@@ -120,6 +120,16 @@ public class ShokofinConfigurationDefinition
     // Fake connect
     private ConfigurationActionResult ConnectToShoko(ShokofinConfiguration config)
     {
+        var validationErrors = new Dictionary<string, IReadOnlyList<string>>();
+        if (config.Connection.Host is not "http://localhost:8111")
+            validationErrors.Add("Connection.Host", ["Host must be exactly 'http://localhost:8111'"]);
+        if (config.Connection.Username is not "Default")
+            validationErrors.Add("Connection.Username", ["Username must be exactly 'Default'"]);
+        if (config.Connection.Password is not null and not "")
+            validationErrors.Add("Connection.Password", ["Password must be empty."]);
+        if (validationErrors.Count > 0)
+            throw new ConfigurationValidationException("validate", _configurationProvider.ConfigurationInfo, validationErrors);
+
         config.Connection.ApiKey = "fake";
         config.Connection.Password = null;
         config.Connection.ServerVersion = typeof(ConfigurationActionResult).Assembly.GetName().Version ?? new Version(0, 0);
