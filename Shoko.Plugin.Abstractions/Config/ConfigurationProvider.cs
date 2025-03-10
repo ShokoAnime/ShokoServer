@@ -10,7 +10,7 @@ namespace Shoko.Plugin.Abstractions.Config;
 /// Configuration provider for a specific configuration type.
 /// </summary>
 /// <typeparam name="TConfig">The type of the configuration to provide for.</typeparam>
-public class ConfigurationProvider<TConfig> where TConfig : class, IConfiguration, new()
+public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class, IConfiguration, new()
 {
     private readonly IConfigurationService _service;
 
@@ -40,9 +40,10 @@ public class ConfigurationProvider<TConfig> where TConfig : class, IConfiguratio
     /// <summary>
     /// Finalizes an instance of the <see cref="ConfigurationProvider{TConfig}"/> class.
     /// </summary>
-    ~ConfigurationProvider()
+    public void Dispose()
     {
         _service.Saved -= OnSaved;
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -65,6 +66,31 @@ public class ConfigurationProvider<TConfig> where TConfig : class, IConfiguratio
     /// <returns>A read-only dictionary of validation errors per property path.</returns>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(TConfig config)
         => _service.Validate(config);
+
+    /// <summary>
+    /// Perform an action on the configuration on the saved configuration.
+    /// </summary>
+    /// <param name="path">The path to the configuration.</param>
+    /// <param name="action">The action to perform.</param>
+    /// <exception cref="InvalidConfigurationActionException">
+    /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
+    /// </exception>
+    /// <returns>The result of the action.</returns>
+    public ConfigurationActionResult PerformAction(string path, string action)
+        => _service.PerformAction(Load(), path, action);
+
+    /// <summary>
+    /// Perform an action on the configuration on a configuration instance.
+    /// </summary>
+    /// <param name="config">The configuration instance to perform the action on.</param>
+    /// <param name="path">The path to the configuration.</param>
+    /// <param name="action">The action to perform.</param>
+    /// <exception cref="InvalidConfigurationActionException">
+    /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
+    /// </exception>
+    /// <returns>The result of the action.</returns>
+    public ConfigurationActionResult PerformAction(TConfig config, string path, string action)
+        => _service.PerformAction(config, path, action);
 
     /// <summary>
     /// Creates a new configuration instance.
