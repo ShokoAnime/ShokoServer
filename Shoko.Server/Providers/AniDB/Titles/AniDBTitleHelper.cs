@@ -78,7 +78,7 @@ public class AniDBTitleHelper
         return null;
     }
 
-    public IEnumerable<ResponseAniDBTitles.Anime> SearchTitle(string query, bool fuzzy = true)
+    public IEnumerable<SeriesSearch.SearchResult<ResponseAniDBTitles.Anime>> SearchTitle(string query, bool fuzzy = true)
     {
         try
         {
@@ -100,7 +100,7 @@ public class AniDBTitleHelper
                             .ToList(),
                         fuzzy
                     )
-                    .Select(a => a.Result).ToList() ?? [];
+                    .ToList() ?? [];
             }
             finally
             {
@@ -112,7 +112,7 @@ public class AniDBTitleHelper
             Console.WriteLine(e);
         }
 
-        return new List<ResponseAniDBTitles.Anime>();
+        return [];
     }
 
     private void CreateCache()
