@@ -55,11 +55,6 @@ public interface IShokoEventHandler
     event EventHandler<MovieInfoUpdatedEventArgs> MovieUpdated;
 
     /// <summary>
-    /// Fired when the core settings has been saved.
-    /// </summary>
-    event EventHandler<SettingsSavedEventArgs> SettingsSaved;
-
-    /// <summary>
     /// Fired when an avdump event occurs.
     /// </summary>
     event EventHandler<AVDumpEventArgs> AVDumpEvent;
