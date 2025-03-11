@@ -4,5 +4,5 @@ namespace Shoko.Server.Providers.AniDB.Interfaces;
 
 public interface IHttpConnectionHandler : IConnectionHandler
 {
-    HttpResponse<string> GetHttp(string url);
+    HttpResponse<string> GetHttp(string url, bool force = false);
 }
