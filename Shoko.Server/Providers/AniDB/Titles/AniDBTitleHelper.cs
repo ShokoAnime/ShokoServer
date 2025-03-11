@@ -22,6 +22,9 @@ public class AniDBTitleHelper
     private readonly string _cacheFilePath = Path.Combine(Utils.ApplicationPath, "anime-titles.xml");
     private readonly string _cacheFilePathTemp = Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".temp";
     private readonly string _cacheFilePathBak = Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".bak";
+
+    private DateTime? _nextUpdate = null;
+
     private ResponseAniDBTitles _cache;
 
     public AniDBTitleHelper(ISettingsProvider settingsProvider)
@@ -33,7 +36,7 @@ public class AniDBTitleHelper
     {
         try
         {
-            if (_cache == null) CreateCache();
+            CreateCache();
 
             try
             {
@@ -57,7 +60,7 @@ public class AniDBTitleHelper
     {
         try
         {
-            if (_cache == null) CreateCache();
+            CreateCache();
 
             try
             {
@@ -82,8 +85,7 @@ public class AniDBTitleHelper
     {
         try
         {
-            if (_cache == null) CreateCache();
-
+            CreateCache();
 
             try
             {
@@ -117,6 +119,9 @@ public class AniDBTitleHelper
 
     private void CreateCache()
     {
+        if (_cache != null && _nextUpdate.HasValue && DateTime.Now < _nextUpdate.Value)
+            return;
+
         _accessLock.EnterWriteLock();
         if (!File.Exists(_cacheFilePath))
         {
@@ -153,7 +158,16 @@ public class AniDBTitleHelper
         // Load the file
         using var stream = new FileStream(_cacheFilePath, FileMode.Open);
         var serializer = new XmlSerializer(typeof(ResponseAniDBTitles));
-        if (serializer.Deserialize(stream) is ResponseAniDBTitles rawData) _cache = rawData;
+        if (serializer.Deserialize(stream) is ResponseAniDBTitles rawData)
+        {
+            _cache = rawData;
+
+            // Set the next update to run in 24 hours, unless we somehow failed
+            // to download it in the last 24 hours, then set it to 4 hours.
+            _nextUpdate = File.GetLastWriteTime(_cacheFilePath).AddHours(24);
+            if (_nextUpdate.Value < DateTime.Now)
+                _nextUpdate = DateTime.Now.AddHours(4);
+        }
     }
 
     private void Decompress()
@@ -195,7 +209,7 @@ public class AniDBTitleHelper
                     RemoteCertificateValidationCallback = delegate { return true; }
                 }
             });
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0");
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0");
             httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
             httpClient.DefaultRequestHeaders.Add("Accept-Language", "de,en-US;q=0.7,en;q=0.3");
             httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip,deflate");
