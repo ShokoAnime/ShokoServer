@@ -91,7 +91,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using (var transaction = session.BeginTransaction())
         {
-            list = Cache.Values.Where(a => a.IsEmpty()).ToList();
+            list = Cache.Values.Where(a => a.IsEmpty() || a.Places.Count == 0).ToList();
             count = 0;
             max = list.Count;
             foreach (var remove in list)
