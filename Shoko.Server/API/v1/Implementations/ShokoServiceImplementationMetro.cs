@@ -1163,7 +1163,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         {
             var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
             {
-                c.ForceRefresh = true;
+                c.UseCache = false;
                 c.DownloadRelations = false;
                 c.AnimeID = animeID;
                 c.CreateSeriesEntry = false;

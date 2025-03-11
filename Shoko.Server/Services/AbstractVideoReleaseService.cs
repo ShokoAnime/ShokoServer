@@ -762,7 +762,7 @@ public class AbstractVideoReleaseService(
                 await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = animeID;
-                    c.ForceRefresh = true;
+                    c.UseCache = false;
                     c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
                     c.CreateSeriesEntry = true;
                 }).ConfigureAwait(false);
@@ -775,7 +775,7 @@ public class AbstractVideoReleaseService(
                 await scheduler.StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = animeID;
-                    c.ForceRefresh = true;
+                    c.UseCache = false;
                     c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
                     c.CreateSeriesEntry = true;
                 }).ConfigureAwait(false);

@@ -83,8 +83,10 @@ public class AnimeSeriesService
             {
                 c.AnimeID = animeID;
                 c.DownloadRelations = downloadRelations;
-                c.ForceRefresh = force;
-                c.CacheOnly = !force && cacheOnly;
+                c.UseRemote = !cacheOnly;
+                c.IgnoreTimeCheck = force;
+                c.UseCache = !force;
+                c.DeferToRemoteIfUnsuccessful = force || !cacheOnly;
                 c.CreateSeriesEntry = createSeriesEntry;
                 c.SkipTmdbUpdate = skipTmdbUpdate;
             });
@@ -104,8 +106,10 @@ public class AnimeSeriesService
         {
             c.AnimeID = animeID;
             c.DownloadRelations = downloadRelations;
-            c.ForceRefresh = force;
-            c.CacheOnly = !force && cacheOnly;
+            c.UseRemote = !cacheOnly;
+            c.IgnoreTimeCheck = force;
+            c.UseCache = !force;
+            c.DeferToRemoteIfUnsuccessful = force || !cacheOnly;
             c.CreateSeriesEntry = createSeriesEntry;
             c.SkipTmdbUpdate = skipTmdbUpdate;
         });

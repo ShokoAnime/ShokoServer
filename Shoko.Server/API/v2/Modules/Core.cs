@@ -301,7 +301,7 @@ public class Core : BaseController
                     c =>
                     {
                         c.AnimeID = animeID;
-                        c.ForceRefresh = true;
+                        c.UseCache = false;
                     }
                 );
                 updatedAnime++;

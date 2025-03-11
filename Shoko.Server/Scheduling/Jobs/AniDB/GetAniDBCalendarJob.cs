@@ -98,7 +98,7 @@ public class GetAniDBCalendarJob : BaseJob
                     {
                         c.AnimeID = cal.AnimeID;
                         c.DownloadRelations = settings.AniDb.DownloadRelatedAnime;
-                        c.ForceRefresh = true;
+                        c.UseCache = false;
                         c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     });
             }
@@ -120,7 +120,7 @@ public class GetAniDBCalendarJob : BaseJob
                 {
                     c.AnimeID = cal.AnimeID;
                     c.DownloadRelations = settings.AniDb.DownloadRelatedAnime;
-                    c.ForceRefresh = true;
+                    c.UseCache = false;
                     c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                 });
         }

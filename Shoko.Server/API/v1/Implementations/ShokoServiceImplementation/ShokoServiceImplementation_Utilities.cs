@@ -371,7 +371,7 @@ public partial class ShokoServiceImplementation
                 var command = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = aid;
-                    c.ForceRefresh = false;
+                    c.PreferCacheOverRemote = true;
                     c.DownloadRelations = false;
                 });
                 var anime = command.Process().Result;
@@ -402,8 +402,9 @@ public partial class ShokoServiceImplementation
             {
                 // title search so look at the web cache
                 var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
-                foreach (var tit in titleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
+                foreach (var result in titleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
                 {
+                    var tit = result.Result;
                     var res = new CL_AnimeSearch
                     {
                         AnimeID = tit.AnimeID,
