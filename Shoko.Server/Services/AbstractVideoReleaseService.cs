@@ -286,6 +286,18 @@ public class AbstractVideoReleaseService(
     public IReleaseInfo? GetCurrentReleaseForVideo(IVideo video)
         => releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
 
+    public async Task ScheduleFindReleaseForVideo(IVideo video, bool prioritize = false, bool force = false)
+    {
+        if (!force && releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
+            return;
+
+        var scheduler = await schedulerFactory.GetScheduler();
+        if (prioritize)
+            await scheduler.StartJobNow<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck) = (video.ID, true));
+        else
+            await scheduler.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck) = (video.ID, true));
+    }
+
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, CancellationToken cancellationToken = default)
     {
         // We don't want the search started/completed events to interrupt the search, so wrap them both in a try…catch block.
@@ -321,7 +333,8 @@ public class AbstractVideoReleaseService(
             cancellationToken.ThrowIfCancellationRequested();
             var matchAttempt = new StoredReleaseInfo_MatchAttempt()
             {
-                ProviderName = selectedProvider?.Provider.Name,
+                ProviderName = selectedProvider?.Name,
+                ProviderID = selectedProvider?.ID,
                 ED2K = video.Hashes.ED2K,
                 FileSize = video.Size,
                 AttemptStartedAt = startedAt,
@@ -547,6 +560,9 @@ public class AbstractVideoReleaseService(
 
         ReleaseDeleted?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
     }
+
+    public IReadOnlyList<IReleaseMatchAttempt> GetReleaseMatchAttemptsForVideo(IVideo video)
+        => releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
 
     private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
     {

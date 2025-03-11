@@ -13,6 +13,7 @@ public class StoredReleaseInfo_MatchAttemptMap : ClassMap<StoredReleaseInfo_Matc
         Id(x => x.StoredReleaseInfo_MatchAttemptID);
 
         Map(x => x.ProviderName);
+        Map(x => x.ProviderID);
         Map(x => x.ED2K).Not.Nullable();
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.EmbeddedAttemptProviderNames).Column("AttemptProviderNames").Not.Nullable();

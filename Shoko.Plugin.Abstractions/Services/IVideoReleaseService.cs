@@ -179,6 +179,26 @@ public interface IVideoReleaseService
     IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
 
     /// <summary>
+    ///   Schedule a call to find a release for the specified video in the queue.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to find a release for.
+    /// </param>
+    /// <param name="force">
+    ///   If set to <c>false</c>, then it will only schedule the job if the video
+    ///   doesn't already have a release associated with it.
+    /// </param>
+    /// <param name="prioritize">
+    ///   If set to <c>true</c>, then this video will be given higher than
+    ///   default priority in the queue.
+    /// </param>
+    /// <returns>
+    ///   A <see cref="Task"/> representing the asynchronous operation of scheduling
+    ///   the job in the queue.
+    /// </returns>
+    Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool prioritize = false);
+
+    /// <summary>
     ///   If parallel mode is disabled, then it will run all enabled
     ///   <see cref="IReleaseInfoProvider"/>s, in priority order, until a
     ///   release is found or all providers are exhausted. If parallel mode is
@@ -257,4 +277,15 @@ public interface IVideoReleaseService
     ///   A task that represents the asynchronous operation.
     /// </returns>
     Task ClearReleaseForVideo(IVideo video);
+
+    /// <summary>
+    ///   Gets the release match attempts for the specified video.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to get the release match attempts for.
+    /// </param>
+    /// <returns>
+    ///   The release match attempts.
+    /// </returns>
+    IReadOnlyList<IReleaseMatchAttempt> GetReleaseMatchAttemptsForVideo(IVideo video);
 }
