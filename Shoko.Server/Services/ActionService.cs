@@ -490,8 +490,7 @@ public class ActionService(
             await scheduler.StartJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = anime.AnimeID;
-                c.ForceRefresh = true;
-                c.CacheOnly = false;
+                c.UseCache = false;
                 c.DownloadRelations = false;
                 c.CreateSeriesEntry = false;
                 c.SkipTmdbUpdate = true;
