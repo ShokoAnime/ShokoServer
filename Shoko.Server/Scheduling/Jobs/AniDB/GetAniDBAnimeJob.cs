@@ -44,13 +44,61 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     private readonly AnimeSeriesService _seriesService;
     private string _animeName;
 
+    /// <summary>
+    /// The ID of the AniDB anime to update.
+    /// </summary>
     public int AnimeID { get; set; }
-    public bool ForceRefresh { get; set; }
-    public bool CacheOnly { get; set; }
+
+    /// <summary>
+    /// Use the remote AniDB HTTP API.
+    /// </summary>
+    public bool UseRemote { get; set; } = true;
+
+    /// <summary>
+    /// Use the local AniDB HTTP cache.
+    /// </summary>
+    public bool UseCache { get; set; } = true;
+
+    /// <summary>
+    /// Prefer the local AniDB HTTP cache over the remote AniDB HTTP API.
+    /// </summary>
+    public bool PreferCacheOverRemote { get; set; }
+
+    /// <summary>
+    /// Defer to a later remote update if the current update fails.
+    /// </summary>
+    public bool DeferToRemoteIfUnsuccessful { get; set; } = true;
+
+    /// <summary>
+    /// Ignore the time check and forces a refresh even if the anime was
+    /// recently updated.
+    /// </summary>
+    public bool IgnoreTimeCheck { get; set; }
+
+    /// <summary>
+    /// Ignore any active HTTP bans and forcefully asks the server for the data.
+    /// </summary>
+    public bool IgnoreHttpBans { get; set; }
+
+    /// <summary>
+    /// Download related anime until the maximum depth is reached.
+    /// </summary>
     public bool DownloadRelations { get; set; }
-    public int RelDepth { get; set; }
+
+    /// <summary>
+    /// Create a Shoko series entry if one does not exist.
+    /// </summary>
     public bool CreateSeriesEntry { get; set; }
+
+    /// <summary>
+    /// Skip updating related TMDB entities after update.
+    /// </summary>
     public bool SkipTmdbUpdate { get; set; }
+
+    /// <summary>
+    /// Current depth of recursion.
+    /// </summary>
+    public int RelDepth { get; set; }
 
     public override void PostInit()
     {
@@ -75,62 +123,106 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     public override async Task<SVR_AniDB_Anime> Process()
     {
         if (AnimeID == 0) return null;
+
         _logger.LogInformation("Processing {Job}: {AnimeID}", nameof(GetAniDBAnimeJob), AnimeID);
-        if (ForceRefresh && _handler.IsBanned)
-        {
-            _logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", AnimeID);
-            throw new AniDBBannedException
-            {
-                BanType = UpdateType.HTTPBan,
-                BanExpires = _handler.BanTime?.AddHours(_handler.BanTimerResetLength)
-            };
-        }
 
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
         var animeRecentlyUpdated = AnimeRecentlyUpdated(anime, update);
 
-        // If we're not only using the cache, the anime was not recently
-        // updated, we're not http banned, and the user requested a forced
-        // online refresh _or_ if there is no local anime record, then try
-        // to fetch a new updated record online but fallback to loading from
-        // the cache unless we request a forced online refresh.
-        ResponseGetAnime response;
-        if (!CacheOnly && !animeRecentlyUpdated && !_handler.IsBanned && (ForceRefresh || anime == null))
+        Exception ex = null;
+        ResponseGetAnime response = null;
+        if (PreferCacheOverRemote && UseCache)
         {
-            response = await GetResponse(anime).ConfigureAwait(false);
-            if (response == null) return null;
-        }
-        // Else, try to load a cached xml file.
-        else
-        {
-            var (success, xml) = await TryGetXmlFromCache().ConfigureAwait(false);
-            if (!success) return null;
-
             try
             {
-                response = _parser.Parse(AnimeID, xml);
+                var (success, xml) = await TryGetXmlFromCache().ConfigureAwait(false);
+                if (success)
+                    response = _parser.Parse(AnimeID, xml);
             }
-            catch
+            catch (Exception e)
             {
                 _logger.LogDebug("Failed to parse the cached AnimeDoc_{AnimeID}.xml file", AnimeID);
-                if (!CacheOnly)
-                {
-                    // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-                    {
-                        c.AnimeID = AnimeID;
-                        c.DownloadRelations = DownloadRelations;
-                        c.RelDepth = RelDepth;
-                        c.CacheOnly = false;
-                        c.ForceRefresh = true;
-                        c.CreateSeriesEntry = CreateSeriesEntry;
-                        c.SkipTmdbUpdate = SkipTmdbUpdate;
-                    }).ConfigureAwait(false);
-                }
-                throw;
+                ex = e;
             }
+        }
+
+        if (UseRemote && response is null)
+        {
+            try
+            {
+                if (_handler.IsBanned && !IgnoreHttpBans)
+                {
+                    _logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", AnimeID);
+                    throw new AniDBBannedException
+                    {
+                        BanType = UpdateType.HTTPBan,
+                        BanExpires = _handler.BanTime?.AddHours(_handler.BanTimerResetLength)
+                    };
+                }
+
+                if (!animeRecentlyUpdated || IgnoreTimeCheck)
+                {
+                    var request = _requestFactory.Create<RequestGetAnime>(r => (r.AnimeID, r.Force) = (AnimeID, IgnoreHttpBans));
+                    var httpResponse = request.Send();
+                    response = httpResponse.Response;
+
+                    // If the response is null then we successfully got a response from the server
+                    // but the ID does not belong to any anime.
+                    if (response is null)
+                    {
+                        _logger.LogError("No such anime with ID: {AnimeID}", AnimeID);
+                        return null;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                if (e is AniDBBannedException)
+                    _logger.LogTrace("We're HTTP banned and requested an online update for anime with ID {AnimeID}", AnimeID);
+                else
+                    _logger.LogError(e, "Failed to get an anime with ID: {AnimeID}", AnimeID);
+
+                ex = e;
+            }
+        }
+
+        if (!PreferCacheOverRemote && UseCache && response is null)
+        {
+            try
+            {
+                var (success, xml) = await TryGetXmlFromCache().ConfigureAwait(false);
+                if (success)
+                    response = _parser.Parse(AnimeID, xml);
+            }
+            catch (Exception e)
+            {
+                _logger.LogDebug("Failed to parse the cached AnimeDoc_{AnimeID}.xml file", AnimeID);
+                ex ??= e;
+            }
+        }
+
+        // If we failed to get the data from either source then throw the
+        // exception (if one exists) or return null.
+        if (response is null)
+        {
+            if (DeferToRemoteIfUnsuccessful)
+            {
+                // Queue the command to get the data when we're no longer banned if there is no anime record.
+                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+                {
+                    c.AnimeID = AnimeID;
+                    c.DownloadRelations = DownloadRelations;
+                    c.RelDepth = RelDepth;
+                    c.UseCache = false;
+                    c.CreateSeriesEntry = CreateSeriesEntry;
+                    c.SkipTmdbUpdate = SkipTmdbUpdate;
+                }).ConfigureAwait(false);
+            }
+            if (ex is null)
+                return null;
+            throw ex;
         }
 
         // Create or update the anime record,
@@ -246,64 +338,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         return anime;
     }
 
-    private async Task<ResponseGetAnime> GetResponse(SVR_AniDB_Anime anime)
-    {
-        ResponseGetAnime response;
-        try
-        {
-            var request = _requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
-            var httpResponse = request.Send();
-            response = httpResponse.Response;
-            if (response == null)
-            {
-                _logger.LogError("No such anime with ID: {AnimeID}", AnimeID);
-                return null;
-            }
-        }
-        catch (AniDBBannedException)
-        {
-            // Don't even try to load from the cache if we requested a
-            // forced online refresh.
-            if (anime != null)
-            {
-                _logger.LogTrace("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", AnimeID);
-                throw;
-            }
-
-            // If the anime record doesn't exist yet then try to load it
-            // from the cache. A stall record is better than no record
-            // in most cases.
-            var (success, xml) = await TryGetXmlFromCache().ConfigureAwait(false);
-            if (!success) throw;
-
-            try
-            {
-                response = _parser.Parse(AnimeID, xml);
-            }
-            catch
-            {
-                _logger.LogTrace("Failed to parse the cached AnimeDoc_{AnimeID}.xml file", AnimeID);
-                // Queue the command to get the data when we're no longer banned if there is no anime record.
-                var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = AnimeID;
-                    c.DownloadRelations = DownloadRelations;
-                    c.RelDepth = RelDepth;
-                    c.CacheOnly = false;
-                    c.ForceRefresh = true;
-                    c.CreateSeriesEntry = CreateSeriesEntry;
-                    c.SkipTmdbUpdate = SkipTmdbUpdate;
-                }).ConfigureAwait(false);
-                throw;
-            }
-
-            _logger.LogTrace("We're HTTP banned but were able to load the cached AnimeDoc_{AnimeID}.xml file from the cache", AnimeID);
-        }
-
-        return response;
-    }
-
     private bool AnimeRecentlyUpdated(SVR_AniDB_Anime anime, AniDB_AnimeUpdate update)
     {
         var animeRecentlyUpdated = false;
@@ -324,24 +358,9 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         var xml = await _xmlUtils.LoadAnimeHTTPFromFile(AnimeID).ConfigureAwait(false);
         if (xml != null) return (true, xml);
 
-        if (!CacheOnly && _handler.IsBanned) _logger.LogTrace("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file", AnimeID);
+        if (_handler.IsBanned) _logger.LogTrace("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file", AnimeID);
         else _logger.LogTrace("Unable to find a cached AnimeDoc_{AnimeID}.xml file", AnimeID);
 
-        if (!CacheOnly)
-        {
-            // Queue the command to get the data when we're no longer banned if there is no anime record.
-            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = AnimeID;
-                c.DownloadRelations = DownloadRelations;
-                c.RelDepth = RelDepth;
-                c.CacheOnly = false;
-                c.ForceRefresh = true;
-                c.CreateSeriesEntry = CreateSeriesEntry;
-                c.SkipTmdbUpdate = SkipTmdbUpdate;
-            }).ConfigureAwait(false);
-        }
         return (false, null);
     }
 
@@ -398,7 +417,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 // online xml file or from a cached xml file).
                 var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(relation.RelatedAnimeID);
 #pragma warning disable CS0618
-                var updatedAt = ForceRefresh && !_handler.IsBanned && update != null ? update.UpdatedAt : anime.DateTimeUpdated;
+                var updatedAt = UseRemote && (IgnoreHttpBans || !_handler.IsBanned) && update != null ? update.UpdatedAt : anime.DateTimeUpdated;
 #pragma warning restore CS0618
                 var ts = DateTime.Now - updatedAt;
                 if (ts.TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo) continue;
@@ -410,8 +429,10 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 c.AnimeID = relation.RelatedAnimeID;
                 c.DownloadRelations = true;
                 c.RelDepth = RelDepth + 1;
-                c.CacheOnly = !ForceRefresh && CacheOnly;
-                c.ForceRefresh = ForceRefresh;
+                c.UseCache = UseCache;
+                c.UseRemote = UseRemote;
+                c.IgnoreTimeCheck = IgnoreTimeCheck;
+                c.IgnoreHttpBans = IgnoreHttpBans;
                 c.CreateSeriesEntry = CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
                 c.SkipTmdbUpdate = SkipTmdbUpdate;
             }).ConfigureAwait(false);

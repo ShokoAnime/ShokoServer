@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Utilities;
@@ -10,17 +9,14 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class AVDumpEmitter : BaseEmitter, IDisposable
 {
-    private IShokoEventHandler EventHandler { get; set; }
-
-    public AVDumpEmitter(IHubContext<AggregateHub> hub, IShokoEventHandler events) : base(hub)
+    public AVDumpEmitter(IHubContext<AggregateHub> hub) : base(hub)
     {
-        EventHandler = events;
-        EventHandler.AVDumpEvent += OnAVDumpEvent;
+        ShokoEventHandler.Instance.AVDumpEvent += OnAVDumpEvent;
     }
 
     public void Dispose()
     {
-        EventHandler.AVDumpEvent -= OnAVDumpEvent;
+        ShokoEventHandler.Instance.AVDumpEvent -= OnAVDumpEvent;
     }
 
     private async void OnAVDumpEvent(object sender, AVDumpEventArgs eventArgs)
