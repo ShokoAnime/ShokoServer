@@ -1133,6 +1133,7 @@ public class DatabaseFixes
         RepoFactory.VideoLocalHashDigest.Save(videoLocalHashDigests);
 
         // create the releases using the above info
+        var anidbProvider = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>().GetProviderInfo<AnidbReleaseProvider>();
         var potentialReleases = RepoFactory.CrossRef_File_Episode.GetAll()
             .GroupBy(x => (x.Hash, x.FileSize, crossRefTypes[x.CrossRef_File_EpisodeID]))
             .ToList();
@@ -1195,7 +1196,7 @@ public class DatabaseFixes
                     : null;
 
                 storedReleaseInfo.ID = $"{ed2k}+{fileSize}";
-                storedReleaseInfo.ProviderName = "AniDB";
+                storedReleaseInfo.ProviderName = anidbProvider.Name;
                 storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile.FileID}";
                 storedReleaseInfo.Revision = anidbFile.FileVersion;
                 storedReleaseInfo.Comment = string.IsNullOrEmpty(anidbFile.File_Description) ? null : anidbFile.File_Description;
@@ -1246,8 +1247,9 @@ public class DatabaseFixes
                 {
                     ED2K = ed2k,
                     FileSize = fileSize,
-                    AttemptedProviderNames = ["AniDB"],
-                    ProviderName = anidbFileUpdate.HasResponse ? "AniDB" : null,
+                    AttemptedProviderNames = [anidbProvider.Name],
+                    ProviderName = anidbFileUpdate.HasResponse ? anidbProvider.Name : null,
+                    ProviderID = anidbFileUpdate.HasResponse ? anidbProvider.ID : null,
                     AttemptStartedAt = anidbFileUpdate.UpdatedAt,
                     AttemptEndedAt = anidbFileUpdate.UpdatedAt,
                 });
