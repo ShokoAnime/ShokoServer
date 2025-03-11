@@ -62,8 +62,6 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
             _descriptionLanguageOrder = eventArgs.Configuration.Language.DescriptionLanguageOrder.ToArray();
             Languages.PreferredDescriptionNamingLanguages = [];
         }
-
-        ShokoEventHandler.Instance.OnSettingsSaved();
     }
 
     public string ApplyMigrations(string config)
