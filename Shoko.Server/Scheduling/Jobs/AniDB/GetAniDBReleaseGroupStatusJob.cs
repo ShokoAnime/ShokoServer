@@ -114,7 +114,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
                 await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = AnimeID;
-                    c.ForceRefresh = true;
+                    c.UseCache = false;
                     c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                 });
             }

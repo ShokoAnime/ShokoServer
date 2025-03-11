@@ -7,7 +7,8 @@ namespace Shoko.Server.Providers.AniDB.HTTP;
 public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> where T : class
 {
     protected readonly ILogger Logger;
-    private IHttpConnectionHandler _handler;
+
+    private readonly IHttpConnectionHandler _handler;
 
     protected HttpRequest(IHttpConnectionHandler handler, ILoggerFactory loggerFactory)
     {
@@ -16,6 +17,8 @@ public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> wh
     }
 
     protected string Command { get; set; } = string.Empty;
+
+    public virtual bool Force { get; set; } = false;
 
     /// <summary>
     /// Various Parameters to add to the base command
@@ -27,7 +30,7 @@ public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> wh
     public virtual HttpResponse<T> Send()
     {
         Command = BaseCommand.Trim();
-        var rawResponse = _handler.GetHttp(Command).Result;
+        var rawResponse = _handler.GetHttp(Command, Force).Result;
         var response = ParseResponse(rawResponse).Result;
         PostExecute(response);
         return response;
