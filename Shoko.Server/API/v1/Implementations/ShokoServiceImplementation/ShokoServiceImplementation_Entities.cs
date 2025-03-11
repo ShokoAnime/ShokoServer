@@ -1969,7 +1969,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             var job = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = animeID;
-                c.ForceRefresh = false;
                 c.DownloadRelations = settings.AutoGroupSeries ||
                                       settings.AniDb.DownloadRelatedAnime;
                 c.CreateSeriesEntry = true;
@@ -2014,7 +2013,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 c.AnimeID = animeID;
                 c.DownloadRelations = false;
-                c.ForceRefresh = true;
+                c.UseCache = false;
             }).GetAwaiter().GetResult();
         }
         catch (Exception ex)
@@ -2035,7 +2034,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = animeID;
-                c.ForceRefresh = true;
+                c.UseCache = false;
                 c.DownloadRelations = false;
             });
             var anime = command.Process().Result;

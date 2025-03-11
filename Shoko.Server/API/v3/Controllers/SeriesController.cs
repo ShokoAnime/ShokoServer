@@ -2911,11 +2911,11 @@ public class SeriesController : BaseController
         return _titleHelper.SearchTitle(query, fuzzy)
             .Select(result =>
             {
-                var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
+                var series = RepoFactory.AnimeSeries.GetByAnimeID(result.Result.AnimeID);
                 if (local.HasValue && series is null == local.Value)
                     return null;
 
-                return new AnidbAnime(result, series, includeTitles);
+                return new AnidbAnime(result.Result, series, includeTitles);
             })
             .WhereNotNull()
             .ToListResult(page, pageSize);

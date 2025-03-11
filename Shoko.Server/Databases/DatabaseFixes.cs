@@ -163,7 +163,7 @@ public class DatabaseFixes
             {
                 var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
                 {
-                    c.CacheOnly = true;
+                    c.UseRemote = false;
                     c.DownloadRelations = false;
                     c.AnimeID = animeID;
                     c.CreateSeriesEntry = false;
@@ -504,7 +504,7 @@ public class DatabaseFixes
             {
                 c.AnimeID = animeID;
                 c.DownloadRelations = false;
-                c.ForceRefresh = true;
+                c.UseCache = false;
             }).GetAwaiter().GetResult();
         }
 
@@ -749,8 +749,7 @@ public class DatabaseFixes
                 scheduler.StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = anime.AnimeID;
-                    c.CacheOnly = false;
-                    c.ForceRefresh = true;
+                    c.UseCache = false;
                     c.DownloadRelations = false;
                     c.CreateSeriesEntry = false;
                     c.RelDepth = 0;
@@ -771,8 +770,7 @@ public class DatabaseFixes
                 scheduler.StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = anime.AnimeID;
-                    c.CacheOnly = false;
-                    c.ForceRefresh = true;
+                    c.UseCache = false;
                     c.DownloadRelations = false;
                     c.CreateSeriesEntry = false;
                     c.RelDepth = 0;
