@@ -731,6 +731,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             SchemaType = SchemaType.JsonSchema,
             GenerateEnumMappingDescription = true,
             FlattenInheritanceHierarchy = true,
+            AlwaysAllowAdditionalObjectProperties = true,
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
         });
@@ -745,6 +746,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             SchemaType = SchemaType.JsonSchema,
             GenerateEnumMappingDescription = true,
             FlattenInheritanceHierarchy = true,
+            AlwaysAllowAdditionalObjectProperties = true,
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
         });
