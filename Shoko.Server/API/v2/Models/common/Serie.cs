@@ -75,7 +75,7 @@ public class Serie : BaseDirectory, IComparable
                 c =>
                 {
                     c.AnimeID = bookmark.AnimeID;
-                    c.ForceRefresh = true;
+                    c.UseCache = false;
                 }
             ).GetAwaiter().GetResult();
 

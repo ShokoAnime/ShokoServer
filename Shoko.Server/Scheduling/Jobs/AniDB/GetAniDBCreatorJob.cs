@@ -87,8 +87,7 @@ public class GetAniDBCreatorJob : BaseJob
                     await scheduler.StartJob<GetAniDBAnimeJob>(c =>
                     {
                         c.AnimeID = anime.AnimeID;
-                        c.ForceRefresh = true;
-                        c.CacheOnly = false;
+                        c.UseCache = false;
                         c.CreateSeriesEntry = false;
                         c.DownloadRelations = false;
                     });

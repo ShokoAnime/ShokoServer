@@ -35,11 +35,6 @@ public interface IShokoEventHandler
     event EventHandler<FileMovedEventArgs> FileMoved;
 
     /// <summary>
-    /// Fired when an AniDB Ban happens...and it will.
-    /// </summary>
-    event EventHandler<AniDBBannedEventArgs> AniDBBanned;
-
-    /// <summary>
     /// Fired on series info updates. Currently, AniDB, TMDB, etc will trigger this.
     /// </summary>
     event EventHandler<SeriesInfoUpdatedEventArgs> SeriesUpdated;
@@ -53,11 +48,6 @@ public interface IShokoEventHandler
     /// Fired on movie info updates. Currently only TMDB will trigger this.
     /// </summary>
     event EventHandler<MovieInfoUpdatedEventArgs> MovieUpdated;
-
-    /// <summary>
-    /// Fired when an avdump event occurs.
-    /// </summary>
-    event EventHandler<AVDumpEventArgs> AVDumpEvent;
 
     /// <summary>
     /// Fired when the the server has fully started and all services are usable.
