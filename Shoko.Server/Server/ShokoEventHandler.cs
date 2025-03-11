@@ -35,8 +35,6 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
 
-    public event EventHandler<SettingsSavedEventArgs>? SettingsSaved;
-
     public event EventHandler<AVDumpEventArgs>? AVDumpEvent;
 
     public event EventHandler? Starting;
@@ -189,11 +187,6 @@ public class ShokoEventHandler : IShokoEventHandler
     {
         ArgumentNullException.ThrowIfNull(movie, nameof(movie));
         MovieUpdated?.Invoke(null, new(movie, reason));
-    }
-
-    public void OnSettingsSaved()
-    {
-        SettingsSaved?.Invoke(null, new SettingsSavedEventArgs());
     }
 
     public void OnAVDumpMessage(AVDumpEventType messageType, string? message = null)

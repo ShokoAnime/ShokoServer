@@ -2,10 +2,9 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Settings;
-using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.UDP;
@@ -21,9 +20,7 @@ public class UDPRateLimiter
 
     private readonly Stopwatch _activeTimeWatch = new();
 
-    private readonly ISettingsProvider _settingsProvider;
-
-    private readonly IShokoEventHandler _eventHandler;
+    private readonly ConfigurationProvider<ServerSettings> _settingsProvider;
 
     private readonly Func<IServerSettings, AnidbRateLimitSettings> _settingsSelector;
 
@@ -99,7 +96,7 @@ public class UDPRateLimiter
             if (!force && _shortDelay.HasValue)
                 return;
 
-            var settings = _settingsSelector(_settingsProvider.GetSettings());
+            var settings = _settingsSelector(_settingsProvider.Load());
             var baseRate = settings.BaseRateInSeconds * 1000;
             _shortDelay = baseRate;
             _longDelay = baseRate * settings.SlowRateMultiplier;
@@ -108,23 +105,22 @@ public class UDPRateLimiter
         }
     }
 
-    public UDPRateLimiter(ILogger<UDPRateLimiter> logger, ISettingsProvider settingsProvider, IShokoEventHandler eventHandler)
+    public UDPRateLimiter(ILogger<UDPRateLimiter> logger, ConfigurationProvider<ServerSettings> settingsProvider)
     {
         _logger = logger;
         _requestWatch.Start();
         _activeTimeWatch.Start();
         _settingsProvider = settingsProvider;
         _settingsSelector = s => s.AniDb.UDPRateLimit;
-        _eventHandler = eventHandler;
-        _eventHandler.SettingsSaved += OnSettingsSaved;
+        _settingsProvider.Saved += OnSettingsSaved;
     }
 
     ~UDPRateLimiter()
     {
-        _eventHandler.SettingsSaved -= OnSettingsSaved;
+        _settingsProvider.Saved -= OnSettingsSaved;
     }
 
-    private void OnSettingsSaved(object? sender, SettingsSavedEventArgs eventArgs)
+    private void OnSettingsSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> eventArgs)
     {
         // Reset the cached values when the settings are updated.
         EnsureUsable(true);
