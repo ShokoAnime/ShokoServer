@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 
 #nullable enable
@@ -9,7 +11,7 @@ namespace Shoko.Server.Models.Release;
 /// <summary>
 /// Information about an attempt to match a video to a release.
 /// </summary>
-public class StoredReleaseInfo_MatchAttempt
+public class StoredReleaseInfo_MatchAttempt : IReleaseMatchAttempt
 {
     #region Database Columns
 
@@ -29,6 +31,14 @@ public class StoredReleaseInfo_MatchAttempt
     /// provider that matched the video to a release.
     /// </summary>
     public string? ProviderName { get; set; }
+
+    /// <summary>
+    /// If the attempt was successful and ran through the auto-matching, then
+    /// this will be the ID of the release provider that matched the video to a
+    /// release. It may be  <c>null</c> and still successfully matched if it
+    /// was matched by other means.
+    /// </summary>
+    public Guid? ProviderID { get; set; }
 
     /// <summary>
     /// Used to identify the video that was attempted to be matched, together
