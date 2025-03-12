@@ -361,70 +361,54 @@ public partial class ShokoServiceImplementation
 
         try
         {
-            // check if it is a title search or an ID search
-            if (int.TryParse(titleQuery, out var aid))
+            var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
+
+            // user  may be directly entering the anime id, so search for that.
+            if (int.TryParse(titleQuery, out var aid) && titleHelper.SearchAnimeID(aid) is { } anime)
             {
-                // user is direct entering the anime id
-
-                // try the local database first
-                // if not download the data from AniDB now
-                var command = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
+                var res = new CL_AnimeSearch
                 {
-                    c.AnimeID = aid;
-                    c.PreferCacheOverRemote = true;
-                    c.DownloadRelations = false;
-                });
-                var anime = command.Process().Result;
+                    AnimeID = aid,
+                    MainTitle = anime.MainTitle,
+                    Titles = [.. anime.Titles.Select(a => a.Title)],
+                };
 
-                if (anime != null)
+                // check for existing series and group details
+                var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                if (ser != null)
                 {
-                    var res = new CL_AnimeSearch
-                    {
-                        AnimeID = anime.AnimeID,
-                        MainTitle = anime.MainTitle,
-                        Titles = new HashSet<string>(anime.AllTitles.Split(_pipeSeparator, StringSplitOptions.RemoveEmptyEntries)),
-                    };
-
-                    // check for existing series and group details
-                    var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                    if (ser != null)
-                    {
-                        res.SeriesExists = true;
-                        res.AnimeSeriesID = ser.AnimeSeriesID;
-                        res.AnimeSeriesName = anime.PreferredTitle;
-                    }
-                    else
-                        res.SeriesExists = false;
-                    retTitles.Add(res);
+                    res.SeriesExists = true;
+                    res.AnimeSeriesID = ser.AnimeSeriesID;
+                    res.AnimeSeriesName = anime.PreferredTitle;
                 }
+                else
+                    res.SeriesExists = false;
+                retTitles.Add(res);
             }
-            else
+
+            // title search so look at the web cache
+            foreach (var result in titleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
             {
-                // title search so look at the web cache
-                var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
-                foreach (var result in titleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
+                var tit = result.Result;
+                var res = new CL_AnimeSearch
                 {
-                    var tit = result.Result;
-                    var res = new CL_AnimeSearch
-                    {
-                        AnimeID = tit.AnimeID,
-                        MainTitle = tit.MainTitle,
-                        Titles = tit.Titles.Select(a => a.Title).ToHashSet()
-                    };
+                    AnimeID = tit.AnimeID,
+                    MainTitle = tit.MainTitle,
+                    Titles = tit.Titles.Select(a => a.Title).ToHashSet()
+                };
 
-                    // check for existing series and group details
-                    var ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
-                    if (ser != null)
-                    {
-                        res.SeriesExists = true;
-                        res.AnimeSeriesID = ser.AnimeSeriesID;
-                        res.AnimeSeriesName = ser.AniDB_Anime.PreferredTitle;
-                    }
-                    else
-                        res.SeriesExists = false;
-
-                    retTitles.Add(res);
+                // check for existing series and group details
+                var ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
+                if (ser != null)
+                {
+                    res.SeriesExists = true;
+                    res.AnimeSeriesID = ser.AnimeSeriesID;
+                    res.AnimeSeriesName = ser.AniDB_Anime.PreferredTitle;
                 }
+                else
+                    res.SeriesExists = false;
+
+                retTitles.Add(res);
             }
         }
         catch (Exception ex)
