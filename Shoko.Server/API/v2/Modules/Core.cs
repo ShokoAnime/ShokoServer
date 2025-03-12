@@ -12,6 +12,8 @@ using NLog;
 using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -33,17 +35,26 @@ namespace Shoko.Server.API.v2.Modules;
 public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
     private readonly ShokoServiceImplementation _service;
-    private readonly IServerSettings _settings;
+
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IAniDBService _anidbService;
+
     private readonly ActionService _actionService;
 
-    public Core(ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ActionService actionService, ShokoServiceImplementation service) : base(settingsProvider)
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
+
+    public Core(ShokoServiceImplementation service, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IAniDBService anidbService, ActionService actionService) : base(settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
-        _actionService = actionService;
         _service = service;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
+        _actionService = actionService;
     }
 
     #region 01.Settings
@@ -297,13 +308,7 @@ public class Core : BaseController
                     continue;
                 }
 
-                await scheduler.StartJob<GetAniDBAnimeJob>(
-                    c =>
-                    {
-                        c.AnimeID = animeID;
-                        c.UseCache = false;
-                    }
-                );
+                _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).GetAwaiter().GetResult();
                 updatedAnime++;
             }
 
