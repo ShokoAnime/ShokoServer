@@ -113,10 +113,10 @@ public class ActionService(
         }
     }
 
-    public Task RunImport_ScanFolder(int folderID, bool skipMyList = false)
-        => RunImport_DetectFiles(skipMyList: skipMyList, folderIDs: [folderID]);
+    public Task RunImport_ScanFolder(int folderID)
+        => RunImport_DetectFiles(folderIDs: [folderID]);
 
-    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, bool skipMyList = false, IEnumerable<int> folderIDs = null)
+    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, IEnumerable<int> folderIDs = null)
     {
         IReadOnlyList<ShokoManagedFolder> managedFolders;
         IEnumerable<VideoLocal_Place> locationsToCheck;
@@ -199,7 +199,6 @@ public class ActionService(
                 await scheduler.StartJob<DiscoverFileJob>(a =>
                 {
                     a.FilePath = fileName;
-                    a.SkipMyList = skipMyList;
                 });
             }
         }
