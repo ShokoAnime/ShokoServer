@@ -9,16 +9,14 @@ using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -32,31 +30,27 @@ namespace Shoko.Server;
 [ApiVersion("1.0", Deprecated = true)]
 public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAccessor
 {
-    private readonly TraktTVHelper _traktHelper;
-
     private readonly ShokoServiceImplementation _service;
 
     private readonly ISettingsProvider _settingsProvider;
-
-    private readonly JobFactory _jobFactory;
 
     private readonly IUserDataService _userDataService;
 
     private readonly AnimeEpisodeService _epService;
 
+    private readonly AbstractAnidbService _anidbService;
+
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     public HttpContext HttpContext { get; set; }
 
-    public ShokoServiceImplementationMetro(TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ShokoServiceImplementation service,
-        JobFactory jobFactory, IUserDataService userDataService, AnimeEpisodeService epService)
+    public ShokoServiceImplementationMetro(ISettingsProvider settingsProvider, ShokoServiceImplementation service, IUserDataService userDataService, AnimeEpisodeService epService, IAniDBService anidbService)
     {
-        _traktHelper = traktHelper;
         _settingsProvider = settingsProvider;
         _service = service;
-        _jobFactory = jobFactory;
         _userDataService = userDataService;
         _epService = epService;
+        _anidbService = (AbstractAnidbService)anidbService;
     }
 
     [HttpGet("Server/Status")]
@@ -856,7 +850,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             return null;
         }
     }
-    
+
     private static string GetAniDBDate(int secs)
     {
         if (secs == 0) return "";
@@ -986,19 +980,6 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             foreach (AniDB_Anime_Relation link in anime.RelatedAnime)
             {
                 var animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
-
-                if (animeLink is null)
-                {
-                    // try getting it from anidb now
-                    var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
-                    {
-                        c.DownloadRelations = false;
-                        c.AnimeID = link.RelatedAnimeID;
-                        c.CreateSeriesEntry = false;
-                    });
-                    animeLink = job.Process().Result;
-                }
-
                 if (animeLink is null)
                 {
                     continue;
@@ -1039,24 +1020,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             // now get similar anime
             foreach (var link in anime.SimilarAnime)
             {
-                var animeLink =
-                    RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
-
-                if (animeLink is null)
-                {
-                    // try getting it from anidb now
-                    var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(
-                        c =>
-                        {
-                            c.DownloadRelations = false;
-                            c.AnimeID = link.SimilarAnimeID;
-                            c.CreateSeriesEntry = false;
-                        }
-                    );
-
-                    animeLink = job.Process().Result;
-                }
-
+                var animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
                 if (animeLink is null)
                 {
                     continue;
@@ -1161,14 +1125,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     {
         try
         {
-            var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
-            {
-                c.UseCache = false;
-                c.DownloadRelations = false;
-                c.AnimeID = animeID;
-                c.CreateSeriesEntry = false;
-            });
-            job.Process().GetAwaiter().GetResult();
+            _anidbService.Process(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
