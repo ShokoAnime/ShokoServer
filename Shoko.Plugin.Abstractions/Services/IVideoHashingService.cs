@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Hashing;
 
@@ -24,7 +24,7 @@ public interface IVideoHashingService
     ///   Event raised when a video file has been hashed. It is now been
     ///   properly added to the database and is ready for use.
     /// </summary>
-    event EventHandler<FileEventArgs> FileHashed;
+    event EventHandler<FileHashedEventArgs> FileHashed;
 
     /// <summary>
     ///   Event raised when the enabled hash providers are updated or parallel
@@ -137,15 +137,56 @@ public interface IVideoHashingService
     /// <summary>
     ///   Gets the hashes for a given video file.
     /// </summary>
-    /// <remarks>
-    ///   If the file is already in the database, it will be returned from the
-    ///   database. If it is not, it will be hashed and added to the database.
-    /// </remarks>
-    /// <param name="fileInfo">
-    ///   The file to hash.
+    /// <param name="path">
+    ///   The path to the video file.
     /// </param>
-    /// <param name="existingHashes">
-    ///   The existing hashes for the file, if any.
+    /// <param name="useExistingHashes">
+    ///   If true, the existing hashes will be provided to the providers during the hashing process.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   The cancellation token.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown if the file is not a video or video container.
+    /// </exception>
+    /// <returns>
+    ///   The hashes for the file.
+    /// </returns>
+    Task<HashingResult> GetHashesForPath(string path, bool useExistingHashes = true, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Schedules the hashing of a video file in the queue.
+    /// </summary>
+    /// <remarks>
+    ///   This will add the file to the queue for hashing. If the file is already
+    ///   in the queue, it will be ignored.
+    /// </remarks>
+    /// <param name="path">
+    ///   The path to the video file.
+    /// </param>
+    /// <param name="useExistingHashes">
+    ///   If true, the existing hashes will be provided to the providers during
+    ///   the hashing process.
+    /// </param>
+    /// <param name="prioritize">
+    ///   If true, the hashing of the file will be prioritized in the queue.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown if the file is not a video or video container.
+    /// </exception>
+    /// <returns>
+    ///   A task that represents the asynchronous operation of adding the file
+    ///   to the queue.
+    /// </returns>
+    Task ScheduleGetHashesForPath(string path, bool useExistingHashes = true, bool prioritize = false);
+
+    /// <summary>
+    ///   Gets the hashes for a given video file.
+    /// </summary>
+    /// <param name="file"> The file to hash. </param>
+    /// <param name="useExistingHashes">
+    ///   If true, the existing hashes will be provided to the providers during
+    ///   the hashing process.
     /// </param>
     /// <param name="cancellationToken">
     ///   The cancellation token.
@@ -153,6 +194,26 @@ public interface IVideoHashingService
     /// <returns>
     ///   The hashes for the file.
     /// </returns>
-    Task<IReadOnlyList<IHashDigest>> GetHashesForFile(FileInfo fileInfo, IReadOnlyList<IHashDigest>? existingHashes = null, CancellationToken cancellationToken = default);
-}
+    Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    ///   Schedules the hashing of a video file in the queue.
+    /// </summary>
+    /// <remarks>
+    ///   This will add the file to the queue for hashing. If the file is already
+    ///   in the queue, it will be ignored.
+    /// </remarks>
+    /// <param name="file"> The file to hash. </param>
+    /// <param name="useExistingHashes">
+    ///   If true, the existing hashes will be provided to the providers during
+    ///   the hashing process.
+    /// </param>
+    /// <param name="prioritize">
+    ///   If true, the hashing of the file will be prioritized in the queue.
+    /// </param>
+    /// <returns>
+    ///   A task that represents the asynchronous operation of adding the file
+    ///   to the queue.
+    /// </returns>
+    Task ScheduleGetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool prioritize = false);
+}
