@@ -205,10 +205,10 @@ public class Startup
 
         var result = builder.Build();
 
+        Utils.ServiceContainer = result.Services;
+
         // Init. plugins before starting the IHostedService services.
         Loader.InitPlugins(result.Services);
-
-        Utils.ServiceContainer = result.Services;
 
         _logger.LogInformation("Web Hosts initialized.");
 
