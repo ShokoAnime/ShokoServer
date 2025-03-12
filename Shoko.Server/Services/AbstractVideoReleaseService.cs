@@ -43,7 +43,6 @@ public class AbstractVideoReleaseService(
     IUserService userService,
     IServiceProvider serviceProvider,
     IPluginManager pluginManager,
-    IAniDBService anidbService,
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
@@ -60,6 +59,9 @@ public class AbstractVideoReleaseService(
     // the anime series service (which in turn depend on this service). So we
     // lazy init the user data service to break the circle.
     private IUserDataService? _userDataService = null;
+
+    // Lazy init. to prevent circular dependency.
+    private IAniDBService? _anidbService = null;
 
     private IServerSettings _settings => settingsProvider.GetSettings();
 
@@ -767,12 +769,14 @@ public class AbstractVideoReleaseService(
             if (missingEpisodes)
             {
                 logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
-                await anidbService.ScheduleRefreshByID(animeID, refreshMethod, prioritize: true);
+                _anidbService ??= serviceProvider.GetRequiredService<IAniDBService>();
+                await _anidbService.ScheduleRefreshByID(animeID, refreshMethod, prioritize: true);
             }
             else if (!animeRecentlyUpdated)
             {
                 logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-                await anidbService.ScheduleRefreshByID(animeID, refreshMethod);
+                _anidbService ??= serviceProvider.GetRequiredService<IAniDBService>();
+                await _anidbService.ScheduleRefreshByID(animeID, refreshMethod);
             }
             else
             {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -36,6 +37,8 @@ public class AbstractAnidbService : IAniDBService
 {
     private readonly ILogger<AbstractAnidbService> _logger;
 
+    private readonly IServiceProvider _serviceProvider;
+
     private readonly ISettingsProvider _settingsProvider;
 
     private readonly IRequestFactory _requestFactory;
@@ -54,11 +57,13 @@ public class AbstractAnidbService : IAniDBService
 
     private readonly AniDBTitleHelper _titleHelper;
 
-    private readonly AnimeCreator _animeCreator;
+    // Lazy init. to prevent circular dependency.
+    private AnimeCreator? _animeCreator;
 
     private readonly AnimeGroupCreator _animeGroupCreator;
 
-    private readonly AnimeSeriesService _seriesService;
+    // Lazy init. to prevent circular dependency.
+    private AnimeSeriesService? _seriesService;
 
     private readonly AniDB_AnimeRepository _anidbAnimeRepository;
 
@@ -70,6 +75,7 @@ public class AbstractAnidbService : IAniDBService
 
     public AbstractAnidbService(
         ILogger<AbstractAnidbService> logger,
+        IServiceProvider serviceProvider,
         ISettingsProvider settingsProvider,
         IRequestFactory requestFactory,
         ISchedulerFactory schedulerFactory,
@@ -79,9 +85,7 @@ public class AbstractAnidbService : IAniDBService
         HttpXmlUtils xmlUtils,
         HttpAnimeParser httpParser,
         AniDBTitleHelper titleHelper,
-        AnimeCreator animeCreator,
         AnimeGroupCreator animeGroupCreator,
-        AnimeSeriesService seriesService,
         AniDB_AnimeRepository anidbAnimeRepository,
         AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
         AnimeSeriesRepository seriesRepository,
@@ -89,6 +93,7 @@ public class AbstractAnidbService : IAniDBService
     )
     {
         _logger = logger;
+        _serviceProvider = serviceProvider;
         _settingsProvider = settingsProvider;
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
@@ -98,9 +103,7 @@ public class AbstractAnidbService : IAniDBService
         _xmlUtils = xmlUtils;
         _httpParser = httpParser;
         _titleHelper = titleHelper;
-        _animeCreator = animeCreator;
         _animeGroupCreator = animeGroupCreator;
-        _seriesService = seriesService;
         _anidbAnimeRepository = anidbAnimeRepository;
         _anidbAnimeUpdateRepository = anidbAnimeUpdateRepository;
         _seriesRepository = seriesRepository;
@@ -369,6 +372,7 @@ public class AbstractAnidbService : IAniDBService
         // Create or update the anime record,
         anime ??= new SVR_AniDB_Anime();
         var isNew = anime.AniDB_AnimeID == 0;
+        _animeCreator ??= _serviceProvider.GetRequiredService<AnimeCreator>();
         var (isUpdated, titlesUpdated, descriptionUpdated, shouldUpdateFiles, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, job.RelDepth).ConfigureAwait(false);
 
         // then conditionally create the series record if it doesn't exist,
@@ -384,6 +388,7 @@ public class AbstractAnidbService : IAniDBService
         // existing series record.
         if (series != null)
         {
+            _seriesService ??= _serviceProvider.GetRequiredService<AnimeSeriesService>();
             (seriesUpdated, seriesEpisodeChanges) = await _seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false);
             _seriesRepository.Save(series, true, false);
         }
