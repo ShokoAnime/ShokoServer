@@ -88,7 +88,7 @@ public class Startup
             services.AddSingleton<IApplicationPaths>(ApplicationPaths.Instance);
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, AbstractVideoService>();
-            services.AddSingleton<IVideoReleaseService, AbstractVideoReleaseService>();
+            services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, AbstractUserService>();

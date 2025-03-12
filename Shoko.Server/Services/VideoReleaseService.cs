@@ -33,8 +33,8 @@ using Shoko.Server.Settings;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AbstractVideoReleaseService(
-    ILogger<AbstractVideoReleaseService> logger,
+public class VideoReleaseService(
+    ILogger<VideoReleaseService> logger,
     IUDPConnectionHandler udpConnection,
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
