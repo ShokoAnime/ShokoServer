@@ -57,5 +57,4 @@ public class HashFileJob : BaseJob
             _logger.LogError(ex, "Error processing {Job}: {FileName}", nameof(HashFileJob), Utils.GetDistinctPath(FilePath));
         }
     }
-
 }
