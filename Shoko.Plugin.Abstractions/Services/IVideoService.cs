@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Plugin.Abstractions.Services;
@@ -30,7 +29,7 @@ public interface IVideoService
     /// Dispatched when a video file has been hashed. It is now ready to be
     /// matched, and has been properly added to the database.
     /// </summary>
-    event EventHandler<FileEventArgs> VideoFileHashed;
+    event EventHandler<FileHashedEventArgs> VideoFileHashed;
 
     /// <summary>
     /// Dispatched when a video file has been moved or renamed.

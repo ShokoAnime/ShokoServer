@@ -2,6 +2,7 @@ using System;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Events;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.SignalR.Models;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
@@ -10,11 +11,14 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
 {
     private IShokoEventHandler EventHandler { get; set; }
 
-    public ShokoEventEmitter(IHubContext<AggregateHub> hub, IShokoEventHandler events) : base(hub)
+    private IVideoHashingService VideoHashingService { get; set; }
+
+    public ShokoEventEmitter(IHubContext<AggregateHub> hub, IShokoEventHandler events, IVideoHashingService videoHashingService) : base(hub)
     {
         EventHandler = events;
+        VideoHashingService = videoHashingService;
         EventHandler.FileDetected += OnFileDetected;
-        EventHandler.FileHashed += OnFileHashed;
+        VideoHashingService.FileHashed += OnFileHashed;
         EventHandler.FileRenamed += OnFileRenamed;
         EventHandler.FileMoved += OnFileMoved;
         EventHandler.FileDeleted += OnFileDeleted;
@@ -26,7 +30,7 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
     public void Dispose()
     {
         EventHandler.FileDetected -= OnFileDetected;
-        EventHandler.FileHashed -= OnFileHashed;
+        VideoHashingService.FileHashed -= OnFileHashed;
         EventHandler.FileRenamed -= OnFileRenamed;
         EventHandler.FileMoved -= OnFileMoved;
         EventHandler.FileDeleted -= OnFileDeleted;

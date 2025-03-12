@@ -21,8 +21,6 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public event EventHandler<FileDetectedEventArgs>? FileDetected;
 
-    public event EventHandler<FileEventArgs>? FileHashed;
-
     public event EventHandler<FileRenamedEventArgs>? FileRenamed;
 
     public event EventHandler<FileMovedEventArgs>? FileMoved;
@@ -50,27 +48,6 @@ public class ShokoEventHandler : IShokoEventHandler
     public void OnFileDetected(IManagedFolder folder, FileInfo file)
     {
         FileDetected?.Invoke(null, new(file.FullName[folder.Path.Length..], file, folder));
-    }
-
-    public void OnFileHashed(IManagedFolder folder, IVideoFile vlp, IVideo vl)
-    {
-        var relativePath = vlp.RelativePath;
-        var xrefs = vl.CrossReferences;
-        var episodes = xrefs
-            .Select(x => x.ShokoEpisode)
-            .WhereNotNull()
-            .ToList();
-        var series = xrefs
-            .DistinctBy(x => x.AnidbAnimeID)
-            .Select(x => x.ShokoSeries)
-            .WhereNotNull()
-            .ToList();
-        var groups = series
-            .DistinctBy(a => a.ParentGroupID)
-            .Select(a => a.ParentGroup)
-            .WhereNotNull()
-            .ToList();
-        FileHashed?.Invoke(null, new(relativePath, folder, vlp, vl, episodes, series, groups));
     }
 
     public void OnFileDeleted(IManagedFolder folder, IVideoFile vlp, IVideo vl)
