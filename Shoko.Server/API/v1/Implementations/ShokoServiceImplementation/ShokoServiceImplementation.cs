@@ -48,7 +48,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly TmdbSearchService _tmdbSearchService;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly AbstractAnidbService _anidbService;
+    private readonly AnidbService _anidbService;
     private readonly ActionService _actionService;
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
@@ -77,7 +77,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
         _schedulerFactory = schedulerFactory;
-        _anidbService = (AbstractAnidbService)anidbService;
+        _anidbService = (AnidbService)anidbService;
         _settingsProvider = settingsProvider;
         _logger = logger;
         _actionService = actionService;
