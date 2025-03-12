@@ -21,8 +21,8 @@ using Shoko.Server.Settings;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AbstractUserDataService(
-    ILogger<AbstractUserDataService> logger,
+public class UserDataService(
+    ILogger<UserDataService> logger,
     ISettingsProvider settingsProvider,
     ISchedulerFactory schedulerFactory,
     AnimeGroupService groupService,
