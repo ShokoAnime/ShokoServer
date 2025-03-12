@@ -12,7 +12,7 @@ using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
-using Shoko.Server.Services;
+using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
