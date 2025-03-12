@@ -29,8 +29,8 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AbstractVideoHashingService(
-    ILogger<AbstractVideoHashingService> logger,
+public class VideoHashingService(
+    ILogger<VideoHashingService> logger,
     ISchedulerFactory schedulerFactory,
     IVideoReleaseService videoReleaseService,
     IPluginManager pluginManager,
@@ -81,7 +81,7 @@ public class AbstractVideoHashingService(
         .SelectMany(p => p.EnabledHashTypes)
         .ToHashSet();
 
-    ~AbstractVideoHashingService()
+    ~VideoHashingService()
     {
     }
 
