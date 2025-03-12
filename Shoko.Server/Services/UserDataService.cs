@@ -20,7 +20,7 @@ using Shoko.Server.Settings;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AbstractUserDataService(
+public class UserDataService(
     ISettingsProvider settingsProvider,
     ISchedulerFactory schedulerFactory,
     AnimeGroupService groupService,
