@@ -149,7 +149,7 @@ public class DatabaseFixes
         var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
             .Select(a => a.AnimeID).Distinct().ToList();
 
-        var anidbService = (AbstractAnidbService)Utils.ServiceContainer.GetRequiredService<IAniDBService>();
+        var anidbService = Utils.ServiceContainer.GetRequiredService<IAniDBService>();
         foreach (var animeID in list)
         {
             if (i % 10 == 0)
@@ -160,7 +160,7 @@ public class DatabaseFixes
             i++;
             try
             {
-                anidbService.Process(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).GetAwaiter().GetResult();
+                anidbService.RefreshByID(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
