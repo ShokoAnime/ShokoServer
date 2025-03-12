@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Shoko.Models.Client;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Databases;
@@ -94,12 +95,18 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
         base.Save(ns);
 
         // Only fire the events if something changed or if it's a new folder.
-        if (isNew)
-            ManagedFolderAdded?.Invoke(null, new() { Folder = ns });
-        else if (isUpdated)
-            ManagedFolderUpdated?.Invoke(null, new() { Folder = ns });
+        if (isNew || isUpdated)
+            Task.Run(() => DispatchEvent(folder, isNew));
 
         return ns;
+    }
+
+    private void DispatchEvent(ShokoManagedFolder folder, bool isNew)
+    {
+        if (isNew)
+            ManagedFolderAdded?.Invoke(null, new() { Folder = folder });
+        else
+            ManagedFolderUpdated?.Invoke(null, new() { Folder = folder });
     }
 
     public (ShokoManagedFolder? folder, string relativePath) GetFromAbsolutePath(string fullPath)
@@ -132,6 +139,6 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
     {
         base.Delete(folder);
 
-        ManagedFolderRemoved?.Invoke(null, new() { Folder = folder });
+        Task.Run(() => ManagedFolderRemoved?.Invoke(null, new() { Folder = folder }));
     }
 }
