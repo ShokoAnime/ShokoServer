@@ -29,8 +29,6 @@ public class ProcessFileJob : BaseJob
 
     public bool ForceRecheck { get; set; }
 
-    public bool SkipMyList { get; set; }
-
     public override string TypeName => "Get Release Information for Video";
 
     public override string Title => "Getting Release Information for Video";
@@ -45,7 +43,6 @@ public class ProcessFileJob : BaseJob
             else
                 result["File Path"] = _fileName;
             if (ForceRecheck) result["Force"] = true;
-            if (!SkipMyList) result["Add to MyList"] = true;
             return result;
         }
     }
