@@ -12,15 +12,12 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#pragma warning disable CS8618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
-[AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
+public class GetLocalAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 {
     private readonly ISettingsProvider _settingsProvider;
 
@@ -28,22 +25,12 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
 
     private readonly AniDBTitleHelper _titleHelper;
 
-    private string? _animeName;
+    private string _animeName;
 
     /// <summary>
     /// The ID of the AniDB anime to update.
     /// </summary>
     public int AnimeID { get; set; }
-
-    /// <summary>
-    /// Use the remote AniDB HTTP API.
-    /// </summary>
-    public bool UseRemote { get; set; } = true;
-
-    /// <summary>
-    /// Use the local AniDB HTTP cache.
-    /// </summary>
-    public bool UseCache { get; set; } = true;
 
     /// <summary>
     /// Prefer the local AniDB HTTP cache over the remote AniDB HTTP API.
@@ -90,11 +77,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
     {
         get
         {
-            var refreshMethod = AnidbRefreshMethod.None;
-            if (UseCache)
-                refreshMethod |= AnidbRefreshMethod.Cache;
-            if (UseRemote)
-                refreshMethod |= AnidbRefreshMethod.Remote;
+            var refreshMethod = AnidbRefreshMethod.Cache;
             if (PreferCacheOverRemote)
                 refreshMethod |= AnidbRefreshMethod.PreferCacheOverRemote;
             if (DeferToRemoteIfUnsuccessful)
@@ -126,8 +109,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
             // Toggle everything manually.
             else
             {
-                UseCache = value.HasFlag(AnidbRefreshMethod.Cache);
-                UseRemote = value.HasFlag(AnidbRefreshMethod.Remote);
                 PreferCacheOverRemote = value.HasFlag(AnidbRefreshMethod.PreferCacheOverRemote);
                 DeferToRemoteIfUnsuccessful = value.HasFlag(AnidbRefreshMethod.DeferToRemoteIfUnsuccessful);
                 IgnoreTimeCheck = value.HasFlag(AnidbRefreshMethod.IgnoreTimeCheck);
@@ -139,39 +120,41 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
         }
     }
 
-    public override string TypeName => "Get AniDB Anime Data";
-
-    public override string Title => "Getting AniDB Anime Data";
-
-    public override Dictionary<string, object> Details => _animeName == null ? new()
-    {
-        {
-            "AnimeID", AnimeID
-        }
-    } : new() {
-        {
-            "Anime", _animeName
-        }
-    };
-
-    public GetAniDBAnimeJob(ISettingsProvider settingsProvider, IAniDBService anidbService, AniDBTitleHelper titleHelper)
-    {
-        _settingsProvider = settingsProvider;
-        _aniDBService = (AbstractAnidbService)anidbService;
-        _titleHelper = titleHelper;
-    }
-
-    protected GetAniDBAnimeJob() { }
-
     public override void PostInit()
     {
         // We have the title helper. May as well use it to provide better info for the user
         _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
     }
 
-    public override async Task<SVR_AniDB_Anime?> Process()
+    public override string TypeName => "Get AniDB Anime Data";
+
+    public override string Title => "Getting AniDB Anime Data";
+
+    public override Dictionary<string, object> Details => _animeName == null
+        ? new()
+        {
+            { "AnimeID", AnimeID },
+            { "Cache Only", true },
+        }
+        : new() {
+            { "Anime", _animeName },
+            { "AnimeID", AnimeID },
+            { "Cache Only", true }
+        };
+
+    public override async Task<SVR_AniDB_Anime> Process()
     {
-        _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
+        _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetLocalAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
         return await _aniDBService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
     }
+
+
+    public GetLocalAniDBAnimeJob(ISettingsProvider settingsProvider, IAniDBService anidbService, AniDBTitleHelper titleHelper)
+    {
+        _settingsProvider = settingsProvider;
+        _aniDBService = (AbstractAnidbService)anidbService;
+        _titleHelper = titleHelper;
+    }
+
+    protected GetLocalAniDBAnimeJob() { }
 }

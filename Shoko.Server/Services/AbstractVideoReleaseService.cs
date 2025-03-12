@@ -43,6 +43,7 @@ public class AbstractVideoReleaseService(
     IUserService userService,
     IServiceProvider serviceProvider,
     IPluginManager pluginManager,
+    IAniDBService anidbService,
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
@@ -747,6 +748,13 @@ public class AbstractVideoReleaseService(
                     anidbAnimeUpdateRepository.GetByAnimeID(groupBy.Key) is null ||
                     groupBy.Any(xref => xref.AnidbEpisode is null)
             );
+        if (animeIDs.Count == 0)
+            return;
+
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var refreshMethod = AnidbRefreshMethod.Default | AnidbRefreshMethod.CreateShokoSeries;
+        if (_settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime)
+            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
         foreach (var (animeID, missingEpisodes) in animeIDs)
         {
             var animeRecentlyUpdated = false;
@@ -756,32 +764,15 @@ public class AbstractVideoReleaseService(
 
             // even if we are missing episode info, don't get data  more than once every `x` hours
             // this is to prevent banning
-            var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
             if (missingEpisodes)
             {
                 logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
-
-                // this should detect and handle a ban, which will leave Result null, and defer
-                await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = animeID;
-                    c.UseCache = false;
-                    c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
-                    c.CreateSeriesEntry = true;
-                }).ConfigureAwait(false);
+                await anidbService.ScheduleRefreshByID(animeID, refreshMethod, prioritize: true);
             }
             else if (!animeRecentlyUpdated)
             {
                 logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-
-                // this should detect and handle a ban, which will leave Result null, and defer
-                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = animeID;
-                    c.UseCache = false;
-                    c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
-                    c.CreateSeriesEntry = true;
-                }).ConfigureAwait(false);
+                await anidbService.ScheduleRefreshByID(animeID, refreshMethod);
             }
             else
             {
