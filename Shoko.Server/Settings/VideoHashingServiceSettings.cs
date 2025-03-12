@@ -6,7 +6,7 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Settings;
 
 /// <summary>
-/// Settings for the <see cref="AbstractVideoHashingService"/>.
+/// Settings for the <see cref="VideoHashingService"/>.
 /// <br/>
 /// These are separate from the <see cref="ServerSettings"/> to prevent
 /// clients from modifying them through the settings endpoint.
