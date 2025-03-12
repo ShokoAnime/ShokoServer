@@ -23,7 +23,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -590,19 +589,12 @@ public class AnimeCreator
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
-        var scheduler = await _schedulerFactory.GetScheduler();
-        // If auto-match is not available then clear the release so the video is
-        // not referencing no longer existing episodes.
-        var autoMatch = _videoReleaseService.AutoMatchEnabled;
         foreach (var video in videosToRefetch)
         {
+            // If auto-match is not available then clear the release so the video is
+            // not referencing no longer existing episodes.
             await _videoReleaseService.ClearReleaseForVideo(video);
-            if (autoMatch)
-                await scheduler.StartJobNow<ProcessFileJob>(c =>
-                {
-                    c.VideoLocalID = video.VideoLocalID;
-                    c.SkipMyList = true;
-                });
+            await _videoReleaseService.ScheduleFindReleaseForVideo(video, prioritize: true);
         }
 
         var episodeCount = episodeCountSpecial + episodeCountNormal;
