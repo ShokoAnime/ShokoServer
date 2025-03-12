@@ -92,7 +92,7 @@ public class Startup
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, AbstractUserService>();
-            services.AddSingleton<IUserDataService, AbstractUserDataService>();
+            services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
