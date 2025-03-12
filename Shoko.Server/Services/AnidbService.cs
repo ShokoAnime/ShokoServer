@@ -33,9 +33,9 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AbstractAnidbService : IAniDBService
+public class AnidbService : IAniDBService
 {
-    private readonly ILogger<AbstractAnidbService> _logger;
+    private readonly ILogger<AnidbService> _logger;
 
     private readonly IServiceProvider _serviceProvider;
 
@@ -73,8 +73,8 @@ public class AbstractAnidbService : IAniDBService
 
     private readonly CrossRef_File_EpisodeRepository _crossReferenceRepository;
 
-    public AbstractAnidbService(
-        ILogger<AbstractAnidbService> logger,
+    public AnidbService(
+        ILogger<AnidbService> logger,
         IServiceProvider serviceProvider,
         ISettingsProvider settingsProvider,
         IRequestFactory requestFactory,
@@ -113,7 +113,7 @@ public class AbstractAnidbService : IAniDBService
         ShokoEventHandler.Instance.AVDumpEvent += OnAVDumpEvent;
     }
 
-    ~AbstractAnidbService()
+    ~AnidbService()
     {
         ShokoEventHandler.Instance.AniDBBanned -= OnAniDBBanned;
         ShokoEventHandler.Instance.AVDumpEvent -= OnAVDumpEvent;
