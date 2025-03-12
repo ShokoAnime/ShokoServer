@@ -89,7 +89,7 @@ public class Startup
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, AbstractVideoService>();
             services.AddSingleton<IVideoReleaseService, AbstractVideoReleaseService>();
-            services.AddSingleton<IVideoHashingService, AbstractVideoHashingService>();
+            services.AddSingleton<IVideoHashingService, VideoHashingService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, AbstractUserService>();
             services.AddSingleton<IUserDataService, AbstractUserDataService>();
