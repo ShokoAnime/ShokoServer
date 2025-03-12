@@ -107,37 +107,6 @@ public interface IAniDBService
 
     #endregion
 
-    #region By Shoko Series
-
-    /// <summary>
-    /// Refreshes the AniDB anime linked to the <paramref name="shokoSeries"/>.
-    /// </summary>
-    /// <param name="shokoSeries">Shoko series.</param>
-    /// <param name="refreshMethod">Refresh method.</param>
-    /// <exception cref="AnidbHttpBannedException">
-    /// Indicates that the AniDB user has been temporarily (or permanently) banned.
-    /// </exception>
-    /// <exception cref="NullReferenceException">
-    /// Indicates that something is severely broken and the AniDB anime series for the Shoko series is not available
-    /// locally.
-    /// </exception>
-    /// <returns>The refreshed AniDB anime.</returns>
-    Task<ISeries> RefreshForShokoSeries(IShokoSeries shokoSeries, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto);
-
-    /// <summary>
-    /// Schedules a refresh of the AniDB anime linked to the <paramref name="shokoSeries"/> in the queue.
-    /// </summary>
-    /// <param name="shokoSeries">Shoko series.</param>
-    /// <param name="refreshMethod">Refresh method.</param>
-    /// <param name="prioritize">Whether to prioritize the refresh in the queue.</param>
-    /// <exception cref="AnidbHttpBannedException">
-    /// Indicates that the AniDB user has been temporarily (or permanently) banned.
-    /// </exception>
-    /// <returns>The refreshed AniDB anime.</returns>
-    Task ScheduleRefreshForShokoSeries(IShokoSeries shokoSeries, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
-
-    #endregion
-
     #endregion
 
     #region AVDump

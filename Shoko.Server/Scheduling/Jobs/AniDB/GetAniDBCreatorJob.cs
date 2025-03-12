@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB;
@@ -14,6 +15,7 @@ using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 
+using AnidbRefreshMethod = Shoko.Plugin.Abstractions.Enums.AnidbRefreshMethod;
 using ImageEntityType = Shoko.Plugin.Abstractions.Enums.ImageEntityType;
 
 #pragma warning disable CS8618
@@ -29,6 +31,8 @@ public class GetAniDBCreatorJob : BaseJob
     private readonly IRequestFactory _requestFactory;
 
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IAniDBService _anidbService;
 
     private string? _creatorName;
 
@@ -82,15 +86,8 @@ public class GetAniDBCreatorJob : BaseJob
             if (anidbAnime.Count > 0)
             {
                 _logger.LogInformation("Scheduling {Count} AniDB Anime for a refresh due to removal of creator: {CreatorID}", anidbAnime.Count, CreatorID);
-                var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
                 foreach (var anime in anidbAnime)
-                    await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-                    {
-                        c.AnimeID = anime.AnimeID;
-                        c.UseCache = false;
-                        c.CreateSeriesEntry = false;
-                        c.DownloadRelations = false;
-                    });
+                    await _anidbService.ScheduleRefresh(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             }
 
             return;
@@ -149,10 +146,11 @@ public class GetAniDBCreatorJob : BaseJob
         RepoFactory.AniDB_Anime_Staff.Save(rolesToUpdate);
     }
 
-    public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory)
+    public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAniDBService anidbService)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
     }
 
     protected GetAniDBCreatorJob()

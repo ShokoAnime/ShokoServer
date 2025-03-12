@@ -28,6 +28,7 @@ using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
@@ -38,6 +39,7 @@ public class ActionService(
     IRequestFactory _requestFactory,
     ISettingsProvider _settingsProvider,
     IVideoReleaseService _videoReleaseService,
+    IAniDBService _anidbService,
     VideoLocalService _videoService,
     VideoLocal_PlaceService _placeService,
     TmdbMetadataService _tmdbService,
@@ -482,19 +484,9 @@ public class ActionService(
 
     public async Task RunImport_UpdateAllAniDB()
     {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate;
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-        {
-            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = anime.AnimeID;
-                c.UseCache = false;
-                c.DownloadRelations = false;
-                c.CreateSeriesEntry = false;
-                c.SkipTmdbUpdate = true;
-            });
-        }
+            await _anidbService.ScheduleRefresh(anime, refreshMethod).ConfigureAwait(false);
     }
 
     public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)

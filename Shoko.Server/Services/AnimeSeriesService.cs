@@ -38,15 +38,15 @@ public class AnimeSeriesService
     private readonly AniDB_AnimeService _animeService;
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly JobFactory _jobFactory;
+    private readonly IAniDBService _aniDBService;
     private readonly IVideoReleaseService _videoReleaseService;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, IAniDBService aniDBService, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _seriesUsers = seriesUsers;
         _schedulerFactory = schedulerFactory;
-        _jobFactory = jobFactory;
+        _aniDBService = aniDBService;
         _animeService = animeService;
         _groupService = groupService;
         _vlUsers = vlUsers;
@@ -76,24 +76,27 @@ public class AnimeSeriesService
     public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
         bool cacheOnly = false, bool skipTmdbUpdate = false)
     {
-        if (animeID == 0) return false;
+        if (animeID == 0)
+            return false;
+
+        var refreshMethod = AnidbRefreshMethod.None;
+        if (!cacheOnly)
+            refreshMethod |= AnidbRefreshMethod.Remote;
+        if (!force)
+            refreshMethod |= AnidbRefreshMethod.Cache;
+        if (downloadRelations)
+            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
+        if (createSeriesEntry)
+            refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
+        if (force || !cacheOnly)
+            refreshMethod |= AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+        if (skipTmdbUpdate)
+            refreshMethod |= AnidbRefreshMethod.SkipTmdbUpdate;
         if (immediate)
         {
-            var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = animeID;
-                c.DownloadRelations = downloadRelations;
-                c.UseRemote = !cacheOnly;
-                c.IgnoreTimeCheck = force;
-                c.UseCache = !force;
-                c.DeferToRemoteIfUnsuccessful = force || !cacheOnly;
-                c.CreateSeriesEntry = createSeriesEntry;
-                c.SkipTmdbUpdate = skipTmdbUpdate;
-            });
-
             try
             {
-                return await job.Process() != null;
+                return await _aniDBService.RefreshByID(animeID, refreshMethod).ConfigureAwait(false) != null;
             }
             catch
             {
@@ -101,18 +104,7 @@ public class AnimeSeriesService
             }
         }
 
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-        {
-            c.AnimeID = animeID;
-            c.DownloadRelations = downloadRelations;
-            c.UseRemote = !cacheOnly;
-            c.IgnoreTimeCheck = force;
-            c.UseCache = !force;
-            c.DeferToRemoteIfUnsuccessful = force || !cacheOnly;
-            c.CreateSeriesEntry = createSeriesEntry;
-            c.SkipTmdbUpdate = skipTmdbUpdate;
-        });
+        await _aniDBService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
         return false;
     }
 

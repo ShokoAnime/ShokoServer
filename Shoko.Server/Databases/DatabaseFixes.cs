@@ -32,7 +32,6 @@ using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -150,7 +149,7 @@ public class DatabaseFixes
         var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
             .Select(a => a.AnimeID).Distinct().ToList();
 
-        var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+        var anidbService = (AbstractAnidbService)Utils.ServiceContainer.GetRequiredService<IAniDBService>();
         foreach (var animeID in list)
         {
             if (i % 10 == 0)
@@ -161,15 +160,7 @@ public class DatabaseFixes
             i++;
             try
             {
-                var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
-                {
-                    c.UseRemote = false;
-                    c.DownloadRelations = false;
-                    c.AnimeID = animeID;
-                    c.CreateSeriesEntry = false;
-                    c.SkipTmdbUpdate = true;
-                });
-                command.Process().GetAwaiter().GetResult();
+                anidbService.Process(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -405,7 +396,7 @@ public class DatabaseFixes
     {
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+        var anidbService = Utils.ServiceContainer.GetRequiredService<IAniDBService>();
         var anidbAnimeDict = RepoFactory.AniDB_Anime.GetAll()
             .ToDictionary(an => an.AnimeID);
         var anidbEpisodeDict = RepoFactory.AniDB_Episode.GetAll()
@@ -499,14 +490,9 @@ public class DatabaseFixes
         // Queue an update for the anime entries that needs it, hopefully fixing
         // the faulty episodes after the update.
         foreach (var animeID in animeToUpdateSet)
-        {
-            scheduler.StartJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = animeID;
-                c.DownloadRelations = false;
-                c.UseCache = false;
-            }).GetAwaiter().GetResult();
-        }
+            anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful)
+                .GetAwaiter()
+                .GetResult();
 
         _logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
     }
@@ -726,8 +712,7 @@ public class DatabaseFixes
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
         var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
-        var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
-        var scheduler = schedulerFactory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
+        var anidbService = Utils.ServiceContainer.GetRequiredService<IAniDBService>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         var str = ServerState.Instance.ServerStartingStatus;
         ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {animeList.Count}";
@@ -746,15 +731,9 @@ public class DatabaseFixes
             if (string.IsNullOrEmpty(xml))
             {
                 _logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                scheduler.StartJob<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = anime.AnimeID;
-                    c.UseCache = false;
-                    c.DownloadRelations = false;
-                    c.CreateSeriesEntry = false;
-                    c.RelDepth = 0;
-                    c.SkipTmdbUpdate = true;
-                }).ConfigureAwait(false).GetAwaiter().GetResult();
+                anidbService.ScheduleRefresh(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
+                    .GetAwaiter()
+                    .GetResult();
                 continue;
             }
 
@@ -767,15 +746,9 @@ public class DatabaseFixes
             catch (Exception e)
             {
                 _logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                scheduler.StartJob<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = anime.AnimeID;
-                    c.UseCache = false;
-                    c.DownloadRelations = false;
-                    c.CreateSeriesEntry = false;
-                    c.RelDepth = 0;
-                    c.SkipTmdbUpdate = true;
-                }).ConfigureAwait(false).GetAwaiter().GetResult();
+                anidbService.ScheduleRefresh(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
+                    .GetAwaiter()
+                    .GetResult();
                 continue;
             }
 

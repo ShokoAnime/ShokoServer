@@ -1965,16 +1965,10 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             // make sure the anime exists first
             var settings = _settingsProvider.GetSettings();
-            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
-            var job = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = animeID;
-                c.DownloadRelations = settings.AutoGroupSeries ||
-                                      settings.AniDb.DownloadRelatedAnime;
-                c.CreateSeriesEntry = true;
-            });
-            var anime = job.Process().Result;
-
+            var refreshMethod = AnidbRefreshMethod.Default | AnidbRefreshMethod.CreateShokoSeries;
+            if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
+                refreshMethod |= AnidbRefreshMethod.DownloadRelations;
+            var anime = _anidbService.Process(animeID, refreshMethod, 0).Result;
             if (anime is null)
             {
                 response.ErrorMessage = "Could not get anime information from AniDB";
@@ -2008,13 +2002,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = animeID;
-                c.DownloadRelations = false;
-                c.UseCache = false;
-            }).GetAwaiter().GetResult();
+            _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -2030,14 +2018,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var aniDBAnimeService = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeService>();
-            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
-            var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = animeID;
-                c.UseCache = false;
-                c.DownloadRelations = false;
-            });
-            var anime = command.Process().Result;
+            var anime = _anidbService.Process(animeID, AnidbRefreshMethod.Remote).GetAwaiter().GetResult();
 
             // update group status information
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();

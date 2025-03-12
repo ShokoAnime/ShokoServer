@@ -42,7 +42,8 @@ public class SyncAniDBMyListJob : BaseJob
     // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IServerSettings _settings;
+    private readonly ISettingsProvider _settingsProvider;
+    private IServerSettings _settings => _settingsProvider.GetSettings();
     private readonly AnimeSeriesService _seriesService;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly IUserDataService _userDataService;
@@ -344,7 +345,7 @@ public class SyncAniDBMyListJob : BaseJob
         _seriesService = seriesService;
         _vlUsers = vlUsers;
         _userDataService = userDataService;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
     }
 
     protected SyncAniDBMyListJob() { }

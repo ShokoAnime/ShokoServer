@@ -42,13 +42,13 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 {
     private readonly ILogger<ShokoServiceImplementation> _logger;
     private readonly AnimeGroupCreator _groupCreator;
-    private readonly JobFactory _jobFactory;
     private readonly TraktTVHelper _traktHelper;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbSearchService _tmdbSearchService;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly AbstractAnidbService _anidbService;
     private readonly ActionService _actionService;
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
@@ -61,11 +61,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
         ISchedulerFactory schedulerFactory,
+        IAniDBService anidbService,
         ISettingsProvider settingsProvider,
         ILogger<ShokoServiceImplementation> logger,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
-        JobFactory jobFactory,
         AnimeEpisodeService episodeService,
         IUserDataService userDataService,
         VideoLocalService videoLocalService,
@@ -77,11 +77,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
         _schedulerFactory = schedulerFactory;
+        _anidbService = (AbstractAnidbService)anidbService;
         _settingsProvider = settingsProvider;
         _logger = logger;
         _actionService = actionService;
         _groupCreator = groupCreator;
-        _jobFactory = jobFactory;
         _episodeService = episodeService;
         _userDataService = userDataService;
         _videoLocalService = videoLocalService;

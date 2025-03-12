@@ -27,7 +27,9 @@ public class ValidateAllImagesJob : BaseJob
 
     private readonly ISchedulerFactory _schedulerFactory;
 
-    private readonly IServerSettings _settings;
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
 
     public override string TypeName => "Validate All Images";
 
@@ -157,7 +159,7 @@ public class ValidateAllImagesJob : BaseJob
     public ValidateAllImagesJob(ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
     }
 
     protected ValidateAllImagesJob() { }

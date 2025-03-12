@@ -5,18 +5,15 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 
-#pragma warning disable CA2012
 #pragma warning disable IDE1006
 namespace Shoko.Server.API.v2.Models.common;
 
@@ -70,15 +67,8 @@ public class Serie : BaseDirectory, IComparable
         var aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
         if (aniDB_Anime is null)
         {
-            var scheduler = ctx.RequestServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
-            scheduler.StartJob<GetAniDBAnimeJob>(
-                c =>
-                {
-                    c.AnimeID = bookmark.AnimeID;
-                    c.UseCache = false;
-                }
-            ).GetAwaiter().GetResult();
-
+            var anidbService = ctx.RequestServices.GetRequiredService<IAniDBService>();
+            anidbService.ScheduleRefreshByID(bookmark.AnimeID).GetAwaiter().GetResult();
             return new Serie { id = -1, name = "GetAnimeInfoHTTP", aid = bookmark.AnimeID };
         }
 

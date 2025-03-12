@@ -33,14 +33,15 @@ namespace Shoko.Server.API.v2.Modules;
 public class Init : BaseController
 {
     private readonly ILogger<Init> _logger;
-    private readonly IServerSettings _settings;
-    private readonly ShokoServer _shokoServer;
 
-    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider, ShokoServer shokoServer) : base(settingsProvider)
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
+
+    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
-        _shokoServer = shokoServer;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
     }
 
     /// <summary>
