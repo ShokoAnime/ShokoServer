@@ -121,6 +121,29 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
         _logger.LogInformation("Initializing service.");
 
+        // Set the server settings to the proper ID before trying to enumerate the config type and definitions.
+        var serverSettingsID = GetID(typeof(ServerSettings));
+        var serverSettingsInfo = _configurationTypes[Guid.Empty];
+        _configurationTypes = new()
+        {
+            {
+                serverSettingsID,
+                new ConfigurationInfo()
+                {
+                    ID = serverSettingsID,
+                    Path = serverSettingsInfo.Path,
+                    Name = serverSettingsInfo.Name,
+                    Description = serverSettingsInfo.Description,
+                    Definition = serverSettingsInfo.Definition,
+                    Type = serverSettingsInfo.Type,
+                    ContextualType = serverSettingsInfo.ContextualType,
+                    Schema = serverSettingsInfo.Schema,
+                    PluginInfo = _pluginManager.GetPluginInfo<CorePlugin>()!,
+                }
+            },
+        };
+        _serializedSchemas = new() { { _configurationTypes[serverSettingsID], _serializedSchemas[serverSettingsInfo] } };
+
         // Dispose of older definitions.
         foreach (var definition in _configurationTypes.Values.Select(info => info.Definition).OfType<IDisposable>())
             definition.Dispose();
