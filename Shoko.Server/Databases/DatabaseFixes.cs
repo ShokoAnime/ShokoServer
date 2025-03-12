@@ -602,7 +602,6 @@ public class DatabaseFixes
                 scheduler.StartJobNow<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = video.VideoLocalID;
-                    c.SkipMyList = true;
                 }).GetAwaiter().GetResult();
         }
 

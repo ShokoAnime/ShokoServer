@@ -137,7 +137,6 @@ public class AnimeSeriesService
                 await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = video.VideoLocalID;
-                    c.SkipMyList = true;
                 });
         }
 
