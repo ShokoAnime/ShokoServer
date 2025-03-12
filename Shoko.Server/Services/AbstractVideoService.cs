@@ -24,7 +24,7 @@ public class AbstractVideoService : IVideoService
     public event EventHandler<FileEventArgs>? VideoFileDeleted;
 
     /// <inheritdoc/>
-    public event EventHandler<FileEventArgs>? VideoFileHashed;
+    public event EventHandler<FileHashedEventArgs>? VideoFileHashed;
 
     /// <inheritdoc/>
     public event EventHandler<FileMovedEventArgs>? VideoFileRelocated;
@@ -46,21 +46,25 @@ public class AbstractVideoService : IVideoService
 
     private readonly ShokoManagedFolderRepository _managedFolderRepository;
 
+    private readonly IVideoHashingService _videoHashingService;
+
     public AbstractVideoService(
         VideoLocal_PlaceRepository placeRepository,
         VideoLocalRepository videoLocalRepository,
         VideoLocal_HashDigestRepository videoLocalHashRepository,
-        ShokoManagedFolderRepository managedFolderRepository
+        ShokoManagedFolderRepository managedFolderRepository,
+        IVideoHashingService videoHashingService
     )
     {
         _placeRepository = placeRepository;
         _videoLocalRepository = videoLocalRepository;
         _videoLocalHashRepository = videoLocalHashRepository;
         _managedFolderRepository = managedFolderRepository;
+        _videoHashingService = videoHashingService;
 
         ShokoEventHandler.Instance.FileDetected += OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
-        ShokoEventHandler.Instance.FileHashed += OnFileHashed;
+        _videoHashingService.FileHashed += OnFileHashed;
         ShokoEventHandler.Instance.FileRenamed += OnFileRenamed;
         ShokoEventHandler.Instance.FileMoved += OnFileMoved;
         _managedFolderRepository.ManagedFolderAdded += OnManagedFolderAdded;
@@ -72,7 +76,7 @@ public class AbstractVideoService : IVideoService
     {
         ShokoEventHandler.Instance.FileDetected -= OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted -= OnFileDeleted;
-        ShokoEventHandler.Instance.FileHashed -= OnFileHashed;
+        _videoHashingService.FileHashed -= OnFileHashed;
         ShokoEventHandler.Instance.FileRenamed -= OnFileRenamed;
         ShokoEventHandler.Instance.FileMoved -= OnFileMoved;
         _managedFolderRepository.ManagedFolderAdded -= OnManagedFolderAdded;
@@ -90,7 +94,7 @@ public class AbstractVideoService : IVideoService
         VideoFileDeleted?.Invoke(this, eventArgs);
     }
 
-    private void OnFileHashed(object? sender, FileEventArgs eventArgs)
+    private void OnFileHashed(object? sender, FileHashedEventArgs eventArgs)
     {
         VideoFileHashed?.Invoke(this, eventArgs);
     }
