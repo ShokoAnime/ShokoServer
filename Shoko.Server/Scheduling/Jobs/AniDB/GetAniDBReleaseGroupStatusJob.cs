@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -27,6 +29,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
     private readonly AniDBTitleHelper _titleHelper;
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IAniDBService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
     private SVR_AniDB_Anime _anime;
     private string _animeName;
@@ -111,12 +114,10 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
             if (eps.Count == 0)
             {
-                await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = AnimeID;
-                    c.UseCache = false;
-                    c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-                });
+                var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+                if (settings.AniDb.AutomaticallyImportSeries)
+                    refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
+                await _anidbService.ScheduleRefreshByID(AnimeID, refreshMethod).ConfigureAwait(false);
             }
 
             // update the missing episode stats on groups and children
@@ -161,10 +162,11 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         return grpStatuses is { Count: > 0 };
     }
 
-    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
+    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAniDBService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
         _settingsProvider = settingsProvider;
         _titleHelper = titleHelper;
     }

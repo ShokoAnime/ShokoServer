@@ -1,8 +1,9 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
@@ -21,7 +22,7 @@ public class SyncAniDBVotesJob : BaseJob
 {
     // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IAniDBService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
 
     public override string TypeName => "Sync AniDB Votes";
@@ -47,7 +48,6 @@ public class SyncAniDBVotesJob : BaseJob
             return;
         }
 
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var myVote in response.Response)
         {
             var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
@@ -76,22 +76,23 @@ public class SyncAniDBVotesJob : BaseJob
 
             if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)) continue;
 
-            // download the anime info if the user doesn't already have it
-            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = thisVote.EntityID;
-                c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-            });
+            // only download the anime info if the user doesn't already have it
+            if (RepoFactory.AniDB_Anime.GetByAnimeID(thisVote.EntityID) is not null)
+                continue;
+
+            var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+            if (settings.AniDb.AutomaticallyImportSeries)
+                refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
+            await _anidbService.ScheduleRefreshByID(thisVote.EntityID, refreshMethod).ConfigureAwait(false);
         }
 
         _logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
     }
 
-    
-    public SyncAniDBVotesJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
+    public SyncAniDBVotesJob(IRequestFactory requestFactory, IAniDBService anidbService, ISettingsProvider settingsProvider)
     {
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
         _settingsProvider = settingsProvider;
     }
 

@@ -20,6 +20,11 @@ public enum AnidbRefreshMethod
     None = 0,
 
     /// <summary>
+    /// Default refresh method.
+    /// </summary>
+    Default = Cache | Remote | DeferToRemoteIfUnsuccessful,
+
+    /// <summary>
     /// Use the remote AniDB HTTP API.
     /// </summary>
     Remote = 1,
