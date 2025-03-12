@@ -33,7 +33,6 @@ public class DiscoverFileJob : BaseJob
     private readonly ShokoManagedFolderRepository _managedFolders;
 
     public string FilePath { get; set; }
-    public bool SkipMyList { get; set; }
 
     public override string TypeName => "Preprocess File";
 
@@ -143,7 +142,6 @@ public class DiscoverFileJob : BaseJob
             await scheduler.StartJobNow<HashFileJob>(a =>
             {
                 a.FilePath = FilePath;
-                a.SkipMyList = SkipMyList;
             });
             return;
         }

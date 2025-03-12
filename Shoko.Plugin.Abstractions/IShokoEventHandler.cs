@@ -20,11 +20,6 @@ public interface IShokoEventHandler
     event EventHandler<FileDetectedEventArgs> FileDetected;
 
     /// <summary>
-    /// Fired when a file is hashed. Has hashes and stuff.
-    /// </summary>
-    event EventHandler<FileEventArgs> FileHashed;
-
-    /// <summary>
     /// Fired when a file is renamed
     /// </summary>
     event EventHandler<FileRenamedEventArgs> FileRenamed;
