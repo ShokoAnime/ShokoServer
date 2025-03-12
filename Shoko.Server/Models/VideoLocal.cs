@@ -36,7 +36,7 @@ public class VideoLocal : IHashes, IVideo
 
     public DateTime? DateTimeImported { get; set; }
 
-    [Obsolete("Use VideoLocal_Place.FilePath instead")]
+    [Obsolete("Use VideoLocal_Place.RelativePath instead")]
     public string FileName { get; set; } = string.Empty;
 
     public bool IsIgnored { get; set; }
