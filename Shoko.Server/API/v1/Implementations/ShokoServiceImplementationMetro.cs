@@ -38,7 +38,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
     private readonly AnimeEpisodeService _epService;
 
-    private readonly AbstractAnidbService _anidbService;
+    private readonly AnidbService _anidbService;
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -50,7 +50,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         _service = service;
         _userDataService = userDataService;
         _epService = epService;
-        _anidbService = (AbstractAnidbService)anidbService;
+        _anidbService = (AnidbService)anidbService;
     }
 
     [HttpGet("Server/Status")]

@@ -24,7 +24,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
 {
     private readonly ISettingsProvider _settingsProvider;
 
-    private readonly AbstractAnidbService _aniDBService;
+    private readonly AnidbService _aniDBService;
 
     private readonly AniDBTitleHelper _titleHelper;
 
@@ -157,7 +157,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
     public GetAniDBAnimeJob(ISettingsProvider settingsProvider, IAniDBService anidbService, AniDBTitleHelper titleHelper)
     {
         _settingsProvider = settingsProvider;
-        _aniDBService = (AbstractAnidbService)anidbService;
+        _aniDBService = (AnidbService)anidbService;
         _titleHelper = titleHelper;
     }
 
