@@ -288,6 +288,9 @@ public class AbstractVideoReleaseService(
 
     public async Task ScheduleFindReleaseForVideo(IVideo video, bool prioritize = false, bool force = false)
     {
+        if (!AutoMatchEnabled)
+            return;
+
         if (!force && releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
             return;
 
