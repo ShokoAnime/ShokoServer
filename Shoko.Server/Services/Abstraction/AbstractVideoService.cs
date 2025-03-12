@@ -9,7 +9,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Utilities;
 
 #nullable enable
-namespace Shoko.Server.Services;
+namespace Shoko.Server.Services.Abstraction;
 
 public class AbstractVideoService : IVideoService
 {

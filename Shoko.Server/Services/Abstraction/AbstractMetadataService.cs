@@ -11,8 +11,7 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
 
 #nullable enable
-namespace Shoko.Server.Services;
-
+namespace Shoko.Server.Services.Abstraction;
 
 public class AbstractMetadataService : IMetadataService
 {

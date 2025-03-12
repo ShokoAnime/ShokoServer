@@ -4,7 +4,7 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Repositories.Cached;
 
 #nullable enable
-namespace Shoko.Server.Services;
+namespace Shoko.Server.Services.Abstraction;
 
 public class AbstractUserService : IUserService
 {
