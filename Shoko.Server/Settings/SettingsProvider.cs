@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
@@ -72,7 +73,7 @@ public class SettingsProvider : ISettingsProvider
                 value = Serialize(value!);
             }
 
-            if (prop.Name.ToLower().EndsWith("password") || prop.Name.ToLower().EndsWith("avdumpkey"))
+            if (prop.GetCustomAttribute<PasswordPropertyTextAttribute>() is not null)
             {
                 value = "***HIDDEN***";
             }
