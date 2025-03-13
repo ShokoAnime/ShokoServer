@@ -25,7 +25,7 @@ public interface IConfigurationDefinitionWithCustomSaveName : IConfigurationDefi
     /// Gets the name of the file to use in the plugin's configuration folder inside <see cref="IApplicationPaths.PluginConfigurationsPath"/> for storing the configuration.
     /// </summary>
     /// <value>The file name.</value>
-    string Name { get; }
+    string? Name { get; }
 }
 
 /// <summary>
