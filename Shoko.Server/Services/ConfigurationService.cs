@@ -861,25 +861,48 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 uiDict.Add("enumDefinitions", enumList);
                 uiDict.Add("enumIsFlag", schema.IsFlagEnumerable);
             }
-            else if (schema.Item is { Reference: not null } itemSchema)
+            else if (schema.Item is { } itemSchema)
             {
-                if (_schemaKeys.TryGetValue(itemSchema.Reference.ActualSchema, out var referencedSchemaKey))
+                uiDict.Add("elementType", "list");
+                uiDict.Add("listElementType", "auto");
+                if (info.GetAttribute<ListAttribute>(false) is { } listAttribute)
+                {
+                    uiDict.Add("listType", listAttribute.ListType.ToString().ToLower());
+                    uiDict.Add("listSortable", listAttribute.Sortable);
+                    uiDict.Add("listUniqueItems", listAttribute.UniqueItems);
+                }
+                else
+                {
+                    uiDict.Add("listType", "auto");
+                    uiDict.Add("listSortable", true);
+                    uiDict.Add("listUniqueItems", false);
+                }
+
+                // Only set if the referenced schema is a class definition
+                if (itemSchema.Reference is not null && _schemaKeys.TryGetValue(itemSchema.Reference.ActualSchema, out var referencedSchemaKey))
                 {
                     var referencedDict = _schemaCache[referencedSchemaKey].ClassUIDefinition;
                     foreach (var (key, value) in referencedDict)
+                    {
                         if (key is "elementType" && value is not "auto")
-                            uiDict.TryAdd(key, value + "+list");
+                            uiDict["listElementType"] = value;
                         else if (key is "sectionType" or "primaryKey")
                             uiDict.TryAdd(key, value);
+                    }
+                }
+                else if (uiDict["listType"] is "dropdown")
+                {
+                    throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
                 }
 
                 var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
-                if (innerDict["elementType"] is not "auto")
-                    uiDict.TryAdd("elementType", innerDict["elementType"] + "+list");
                 foreach (var (key, value) in innerDict)
-                    uiDict.TryAdd(key, value);
-
-                // TODO: ADD LIST STYLES
+                {
+                    if (key is "elementType" && value is not "auto")
+                        uiDict["listElementType"] = value;
+                    else if (key is not "elementType")
+                        uiDict.TryAdd(key, value);
+                }
             }
             else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
             {
@@ -914,7 +937,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     uiDict.Add("label", displayAttribute.Name);
 
                 var propertyDefinitions = _schemaCache[schemaKey].PropertyUIDefinitions;
-                var primaryKey = propertyDefinitions.FirstOrDefault(x => x.Value.ContainsKey("primaryKey")).Key;
+                var primaryKey = propertyDefinitions.FirstOrDefault(x => x.Value.ContainsKey("primaryKey") && x.Value["primaryKey"] is true).Key;
                 if (!string.IsNullOrEmpty(primaryKey))
                     uiDict.Add("primaryKey", primaryKey);
 
@@ -956,7 +979,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     uiDict.Add("actions", actionsDict);
                 }
 
-                uiDict.Add("elementType", "sections");
+                uiDict.Add("elementType", "section-container");
                 if (contextualType.GetAttribute<SectionTypeAttribute>(false) is { } sectionTypeAttribute)
                     uiDict.Add("sectionType", sectionTypeAttribute.SectionType.ToString().ToLower() switch { "fieldset" => "field-set", string def => def });
                 else
