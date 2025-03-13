@@ -487,7 +487,7 @@ public class VideoHashingService(
 
             if ((video.MediaInfo?.GeneralStream?.Duration ?? 0) == 0 || video.MediaVersion < VideoLocal.MEDIA_VERSION)
             {
-                if (locationService.RefreshMediaInfo(videoLocation))
+                if (locationService.RefreshMediaInfo(videoLocation, video))
                     videoRepository.Save(video, false);
             }
         }

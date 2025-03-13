@@ -9,12 +9,12 @@ using Microsoft.Extensions.Logging;
 using NHibernate;
 using Polly;
 using Quartz;
-using Shoko.Models.MediaInfo;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper.Subtitles;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.MediaInfo.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
@@ -742,64 +742,40 @@ public class VideoLocal_PlaceService
         }
     }
 
-    public bool RefreshMediaInfo(VideoLocal_Place place)
+    public bool RefreshMediaInfo(VideoLocal_Place place, VideoLocal video)
     {
+        _logger.LogTrace("Getting media info for: {Place}", place.Path ?? place.ID.ToString());
+        if (!place.IsAvailable)
+        {
+            _logger.LogError("File {Place} failed to be retrieved for MediaInfo", place.ID.ToString());
+            return false;
+        }
+
+        var path = place.Path;
         try
         {
-            _logger.LogTrace("Getting media info for: {Place}", place.Path ?? place.ID.ToString());
-            MediaContainer? m = null;
-            if (place.VideoLocal is null)
+            var mediaInfo = MediaInfoUtility.GetMediaInfo(path);
+            if (mediaInfo is { GeneralStream: { Duration: 0, Format: "ogg" } })
+                mediaInfo.GeneralStream.Duration = CalculateDurationOggFile(path);
+
+            if (mediaInfo is { IsUsable: true })
             {
-                _logger.LogError("VideoLocal for {Place} failed to be retrieved for MediaInfo", place.Path ?? place.ID.ToString());
-                return false;
-            }
-
-            if (!string.IsNullOrEmpty(place.Path))
-            {
-                if (!place.IsAvailable)
-                {
-                    _logger.LogError("File {Place} failed to be retrieved for MediaInfo", place.Path ?? place.ID.ToString());
-                    return false;
-                }
-
-                var name = place.Path.Replace("/", $"{Path.DirectorySeparatorChar}");
-                m = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(name); // MediaInfo should have libcurl.dll for http
-
-                if (m?.GeneralStream != null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format != null && m.GeneralStream.Format.Equals("ogg", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    m.GeneralStream.Duration = CalculateDurationOggFile(name);
-                }
-
-                var duration = m?.GeneralStream?.Duration ?? 0;
-                if (duration == 0)
-                {
-                    m = null;
-                }
-            }
-
-            if (m is not null)
-            {
-                var info = place.VideoLocal;
-
                 var subs = SubtitleHelper.GetSubtitleStreams(place.Path);
                 if (subs.Count > 0)
-                {
-                    m.media?.track.AddRange(subs);
-                }
+                    mediaInfo.media.track.AddRange(subs);
 
-                info.MediaInfo = m;
-                info.MediaVersion = VideoLocal.MEDIA_VERSION;
+                video.MediaInfo = mediaInfo;
+                video.MediaVersion = VideoLocal.MEDIA_VERSION;
                 return true;
             }
-
-            _logger.LogError("File {Place} failed to read MediaInfo", place.Path ?? place.ID.ToString());
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Unable to read the media information of file {Place} ERROR: {Ex}", place.Path ?? place.ID.ToString(),
+            _logger.LogError(e, "Unable to read the media information of file {Place} ERROR: {Ex}", path,
                 e);
         }
 
+        _logger.LogError("File {Place} failed to read MediaInfo", path);
         return false;
     }
 
