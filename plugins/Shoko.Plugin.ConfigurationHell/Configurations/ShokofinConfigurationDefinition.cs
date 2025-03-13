@@ -16,7 +16,7 @@ namespace Shoko.Plugin.ConfigurationHell.Configurations;
 /// Definition for the Shokofin configuration.
 /// </summary>
 public class ShokofinConfigurationDefinition
-    : IConfigurationDefinitionWithCustomValidation<ShokofinConfiguration>, IConfigurationDefinitionWithCustomActions<ShokofinConfiguration>, IConfigurationNewFactory<ShokofinConfiguration>, IDisposable
+    : IConfigurationDefinitionWithCustomValidation<ShokofinConfiguration>, IConfigurationDefinitionWithCustomActions<ShokofinConfiguration>, IConfigurationDefinitionWithNewFactory<ShokofinConfiguration>, IDisposable
 {
     private readonly IUserService _userService;
 
