@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using Shoko.Server.Utilities;
 
-namespace Shoko.Server.FileHelper;
+namespace Shoko.Server.Hashing.HashAlgorithms;
 
 public abstract class MD4 : HashAlgorithm
 {
