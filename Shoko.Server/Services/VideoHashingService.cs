@@ -368,7 +368,7 @@ public class VideoHashingService(
 
         var (managedFolder, relativePath) = managedFolderRepository.GetFromAbsolutePath(path);
         if (managedFolder is null || string.IsNullOrEmpty(relativePath))
-            throw new InvalidOperationException($"File is outside any manager folders: {path}");
+            throw new InvalidOperationException($"File is outside of any managed folders: {path}");
 
         // TODO: CHECK IF THE PATH IS ACTUALLY A VIDEO BEFORE PROCEEDING
 
