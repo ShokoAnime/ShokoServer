@@ -34,25 +34,33 @@ public class ConfigurationInfo
     /// </summary>
     public required string Description { get; init; }
 
+    private bool? _isHidden = null;
+
     /// <summary>
     /// Whether the configuration should be hidden from the UI.
     /// </summary>
-    public bool IsHidden => Type.IsAssignableTo(typeof(IHiddenConfiguration));
+    public bool IsHidden => _isHidden ??= Type.IsAssignableTo(typeof(IHiddenConfiguration));
+
+    private bool? _hasCustomNewFactory = null;
 
     /// <summary>
     /// Whether or not the configuration has custom new factory.
     /// </summary>
-    public bool HasCustomNewFactory => Definition is IConfigurationDefinitionNewFactory;
+    public bool HasCustomNewFactory => _hasCustomNewFactory ??= Definition?.GetType().IsAssignableTo(typeof(IConfigurationDefinitionWithNewFactory<>).MakeGenericType(Type)) ?? false;
+
+    private bool? _hasCustomValidation = null;
 
     /// <summary>
     /// Whether or not the configuration has custom validation.
     /// </summary>
-    public bool HasCustomValidation => Definition is IConfigurationDefinitionWithCustomValidation;
+    public bool HasCustomValidation => _hasCustomValidation ??= Definition?.GetType().IsAssignableTo(typeof(IConfigurationDefinitionWithCustomValidation<>).MakeGenericType(Type)) ?? false;
+
+    private bool? _hasCustomActions = false;
 
     /// <summary>
     /// Whether or not the configuration has custom actions.
     /// </summary>
-    public bool HasCustomActions => Definition is IConfigurationDefinitionWithCustomActions;
+    public bool HasCustomActions => _hasCustomActions ??= Definition?.GetType().IsAssignableTo(typeof(IConfigurationDefinitionWithCustomActions<>).MakeGenericType(Type)) ?? false;
 
     /// <summary>
     /// The definition of the configuration.
