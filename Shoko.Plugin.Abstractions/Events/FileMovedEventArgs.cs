@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using Shoko.Plugin.Abstractions.DataModels;

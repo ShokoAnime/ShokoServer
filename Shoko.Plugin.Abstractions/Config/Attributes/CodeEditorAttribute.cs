@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using NJsonSchema.Annotations;
 using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.Config.Attributes;

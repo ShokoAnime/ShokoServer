@@ -1,6 +1,4 @@
-﻿using Shoko.Models.Server;
-
-namespace Shoko.Models.Client
+﻿namespace Shoko.Models.Client
 {
     public class CL_VideoLocal_Place
     {

@@ -1,5 +1,4 @@
 ﻿using System;
-using Shoko.Models.Server;
 
 namespace Shoko.Models.Client
 {

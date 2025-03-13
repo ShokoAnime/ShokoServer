@@ -1,6 +1,5 @@
 
 using System;
-using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Events;
 

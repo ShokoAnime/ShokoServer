@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Hashing;
 
 namespace Shoko.Plugin.Abstractions.DataModels;

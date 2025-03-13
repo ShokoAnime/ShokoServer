@@ -120,7 +120,8 @@ public static class LanguageExtensions
             "LB" or "LTZ" => TitleLanguage.Luxembourgish,
             "MK" or "MKD" or "MAC" => TitleLanguage.Macedonian,
             "MG" or "MLG" => TitleLanguage.Malagasy,
-            /*"ML" or */ "MAL" => TitleLanguage.Malayalam, // Dutch was incorrectly mapped to ML in the DB
+            /*"ML" or */
+            "MAL" => TitleLanguage.Malayalam, // Dutch was incorrectly mapped to ML in the DB
             "MT" or "MLT" => TitleLanguage.Maltese,
             "MI" or "MRI" or "MAO" => TitleLanguage.Maori,
             "MR" or "MAR" => TitleLanguage.Marathi,
@@ -159,7 +160,7 @@ public static class LanguageExtensions
             "X-THT" => TitleLanguage.ThaiTranscription,
 
             #region Backwards Compat
-            
+
             "CZ" => TitleLanguage.Czech,
             "ML" => TitleLanguage.Dutch,
             "GR" => TitleLanguage.Greek,
