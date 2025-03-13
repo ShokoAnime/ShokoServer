@@ -17,7 +17,7 @@ public class HashingRequest
     /// <summary>
     /// A list of all existing hashes that the provider supports for the video.
     /// </summary>
-    public required IReadOnlyList<IHashDigest> ExistingHashes { get; init; }
+    public IReadOnlyList<IHashDigest> ExistingHashes { get; init; } = [];
 
     /// <summary>
     /// A list of all enabled hash types for this hashing session and provider. 
