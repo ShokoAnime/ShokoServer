@@ -51,6 +51,8 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private readonly ConcurrentDictionary<Guid, IConfiguration> _loadedConfigurations = [];
 
+    private readonly ConcurrentDictionary<Guid, string> _savedMemoryConfigurations = [];
+
     private bool _loaded = false;
 
     public event EventHandler<ConfigurationSavedEventArgs>? Saved;
@@ -165,7 +167,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                         name = name[..^endWith.Length];
                 }
 
-                string path;
+                string? path = null;
                 if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
                 {
                     var relativePath = p0.RelativePath;
@@ -175,10 +177,14 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 }
                 else if (definition is IConfigurationDefinitionWithCustomSaveName { } p1)
                 {
-                    var fileName = p1.Name;
-                    if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                        fileName += ".json";
-                    path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                    // If name is empty or null, then treat it as an in-memory configuration.
+                    if (!string.IsNullOrEmpty(p1.Name))
+                    {
+                        var fileName = p1.Name;
+                        if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                            fileName += ".json";
+                        path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                    }
                 }
                 else
                 {
@@ -465,7 +471,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         if (_loadedConfigurations.GetValueOrDefault(info.ID) is TConfig config)
             return copy ? config.DeepClone() : config;
 
-        if (!File.Exists(info.Path))
+        if (info.Path is null || !File.Exists(info.Path))
         {
             config = New<TConfig>();
             Save(config);
@@ -546,25 +552,41 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
         lock (info)
         {
-            var parentDir = Path.GetDirectoryName(info.Path)!;
-            if (!Directory.Exists(parentDir))
-                Directory.CreateDirectory(parentDir);
 
-            EnsureSchemaExists(info);
-
-            if (File.Exists(info.Path))
+            if (info.Path is null)
             {
-                var oldJson = File.ReadAllText(info.Path);
-                if (oldJson.Equals(json, StringComparison.Ordinal))
+                if (_savedMemoryConfigurations.TryGetValue(info.ID, out var oldJson) && oldJson is not null && oldJson.Equals(json, StringComparison.Ordinal))
                 {
-                    _logger.LogTrace("Configuration for {Name} is unchanged. Skipping save.", info.Name);
+                    _logger.LogTrace("In-memory configuration for {Name} is unchanged. Skipping save.", info.Name);
                     return false;
                 }
-            }
 
-            _logger.LogTrace("Saving configuration for {Name}.", info.Name);
-            File.WriteAllText(info.Path, json);
-            _logger.LogTrace("Saved configuration for {Name}.", info.Name);
+                _logger.LogTrace("Saving in-memory configuration for {Name}.", info.Name);
+                _savedMemoryConfigurations[info.ID] = json;
+                _logger.LogTrace("Saved in-memory configuration for {Name}.", info.Name);
+            }
+            else
+            {
+                var parentDir = Path.GetDirectoryName(info.Path)!;
+                if (!Directory.Exists(parentDir))
+                    Directory.CreateDirectory(parentDir);
+
+                EnsureSchemaExists(info);
+
+                if (File.Exists(info.Path))
+                {
+                    var oldJson = File.ReadAllText(info.Path);
+                    if (oldJson.Equals(json, StringComparison.Ordinal))
+                    {
+                        _logger.LogTrace("Configuration for {Name} is unchanged. Skipping save.", info.Name);
+                        return false;
+                    }
+                }
+
+                _logger.LogTrace("Saving configuration for {Name}.", info.Name);
+                File.WriteAllText(info.Path, json);
+                _logger.LogTrace("Saved configuration for {Name}.", info.Name);
+            }
 
             _loadedConfigurations[info.ID] = config ?? DeserializeInternal<TConfig>(json);
         }
@@ -583,6 +605,9 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private void EnsureSchemaExists(ConfigurationInfo info)
     {
+        if (info.Path is null)
+            return;
+
         var schemaJson = _serializedSchemas[info];
         var schemaPath = Path.ChangeExtension(info.Path, ".schema.json");
         if (!File.Exists(schemaPath))
@@ -604,7 +629,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private static string AddSchemaProperty(ConfigurationInfo info, string json)
     {
-        if (json.Contains("$schema"))
+        if (json.Contains("$schema") || info.Path is null)
             return json;
 
         if (json[0] == '{')
