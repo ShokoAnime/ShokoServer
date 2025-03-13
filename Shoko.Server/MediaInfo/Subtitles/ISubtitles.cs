@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using Shoko.Models.MediaInfo;
 
-namespace Shoko.Server.FileHelper.Subtitles;
+namespace Shoko.Server.MediaInfo.Subtitles;
 
 public interface ISubtitles
 {

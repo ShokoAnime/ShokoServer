@@ -2,9 +2,8 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
-using Shoko.Models.MediaInfo;
 
-namespace Shoko.Server.Utilities.MediaInfoLib;
+namespace Shoko.Server.MediaInfo.Converters;
 
 public class StreamJsonConverter : JsonConverter
 {

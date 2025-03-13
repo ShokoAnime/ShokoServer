@@ -45,7 +45,7 @@ public class MediaInfoJob : BaseJob
             return Task.CompletedTask;
         }
 
-        if (_vlPlaceService.RefreshMediaInfo(place))
+        if (_vlPlaceService.RefreshMediaInfo(place, _vlocal))
         {
             RepoFactory.VideoLocal.Save(place.VideoLocal, true);
         }

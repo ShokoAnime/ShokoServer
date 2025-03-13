@@ -4,13 +4,13 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.MediaInfo;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
+using Shoko.Server.MediaInfo;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
@@ -270,7 +270,7 @@ public class WebUI
                             var height = videoStream?.Height ?? 0;
                             groupByDetails.VideoWidth = width;
                             groupByDetails.VideoHeight = height;
-                            groupByDetails.VideoResolution = MediaInfoUtils.GetStandardResolution(new(width, height));
+                            groupByDetails.VideoResolution = MediaInfoUtility.GetStandardResolution(new(width, height));
                         }
                     }
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoHasChapters))

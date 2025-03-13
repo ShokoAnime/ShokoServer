@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using MessagePack;
 using Newtonsoft.Json;
-using Shoko.Models.MediaInfo;
-using Shoko.Plugin.Abstractions;
-using Shoko.Server.Utilities.MediaInfoLib;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.MediaInfo.Converters;
 using Xunit;
 
 namespace Shoko.Tests
@@ -22,7 +21,7 @@ namespace Shoko.Tests
             Stopwatch stopwatch = Stopwatch.StartNew();
             var obj = JsonConvert.DeserializeObject<MediaContainer>(data, new JsonSerializerSettings
             {
-                Converters = new JsonConverter[] {new StreamJsonConverter()},
+                Converters = [new StreamJsonConverter()],
             });
             stopwatch.Stop();
             Debug.WriteLine(stopwatch.Elapsed);

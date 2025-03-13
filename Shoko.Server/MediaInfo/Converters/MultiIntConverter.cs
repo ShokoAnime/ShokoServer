@@ -3,11 +3,11 @@ using System.Linq;
 using Newtonsoft.Json;
 using NLog;
 
-namespace Shoko.Server.Utilities.MediaInfoLib;
+namespace Shoko.Server.MediaInfo.Converters;
 
 public class MultiIntConverter : JsonConverter
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {

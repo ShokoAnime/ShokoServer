@@ -1,6 +1,6 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.MediaInfo;
 using Shoko.Server.Databases.NHibernate;
+using Shoko.Server.MediaInfo;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings;

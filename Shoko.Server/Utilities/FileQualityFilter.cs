@@ -3,9 +3,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Shoko.Models;
 using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Extensions;
+using Shoko.Server.MediaInfo;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Release;
 
@@ -147,21 +147,21 @@ public static class FileQualityFilter
         if (media?.VideoStream is not { } videoStream || videoStream.Width == 0 || videoStream.Height == 0)
             return true;
 
-        var resolution = MediaInfoUtils.GetStandardResolution(new(videoStream.Width, videoStream.Height));
+        var resolution = MediaInfoUtility.GetStandardResolution(new(videoStream.Width, videoStream.Height));
         var resolutionArea = videoStream.Width * videoStream.Height;
         return Settings.RequiredResolutions.Operator switch
         {
             FileQualityFilterOperationType.EQUALS =>
                 resolution.Equals(Settings.RequiredResolutions.Value.FirstOrDefault()),
             FileQualityFilterOperationType.GREATER_EQ =>
-                MediaInfoUtils.ResolutionArea169
-                    .Concat(MediaInfoUtils.ResolutionArea43)
+                MediaInfoUtility.ResolutionArea169
+                    .Concat(MediaInfoUtility.ResolutionArea43)
                     .Where(pair => resolutionArea >= pair.Key)
                     .Select(pair => pair.Value)
                     .FindInEnumerable(Settings.RequiredResolutions.Value),
             FileQualityFilterOperationType.LESS_EQ =>
-                MediaInfoUtils.ResolutionArea169
-                    .Concat(MediaInfoUtils.ResolutionArea43)
+                MediaInfoUtility.ResolutionArea169
+                    .Concat(MediaInfoUtility.ResolutionArea43)
                     .Where(pair => resolutionArea <= pair.Key)
                     .Select(pair => pair.Value)
                     .FindInEnumerable(Settings.RequiredResolutions.Value),

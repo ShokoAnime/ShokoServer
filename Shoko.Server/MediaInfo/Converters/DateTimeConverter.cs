@@ -4,11 +4,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
 
-namespace Shoko.Server.Utilities.MediaInfoLib;
+namespace Shoko.Server.MediaInfo.Converters;
 
 public class DateTimeConverter : IsoDateTimeConverter
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
     public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
     {

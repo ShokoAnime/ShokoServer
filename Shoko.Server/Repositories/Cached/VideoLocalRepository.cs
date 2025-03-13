@@ -23,6 +23,8 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 {
+    private VideoLocal_PlaceService? _vlpService = null;
+
     private PocoIndex<int, VideoLocal, string>? _ed2k;
 
     private PocoIndex<int, VideoLocal, bool>? _ignored;
@@ -189,15 +191,16 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         }
     }
 
-    private static void UpdateMediaContracts(VideoLocal obj)
+    private void UpdateMediaContracts(VideoLocal obj)
     {
         if (obj.MediaInfo != null && obj.MediaVersion >= VideoLocal.MEDIA_VERSION)
-        {
             return;
-        }
 
-        var place = obj.FirstResolvedPlace;
-        if (place != null) Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>().RefreshMediaInfo(place);
+        if (obj.FirstResolvedPlace is { } place)
+        {
+            _vlpService ??= Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
+            _vlpService.RefreshMediaInfo(place, obj);
+        }
     }
 
     public VideoLocal? GetByEd2k(string hash)

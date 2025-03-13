@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace Shoko.Server.Utilities.MediaInfoLib;
+namespace Shoko.Server.MediaInfo.Converters;
 
 public class BooleanConverter : JsonConverter
 {

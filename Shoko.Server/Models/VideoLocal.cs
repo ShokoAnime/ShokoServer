@@ -12,7 +12,7 @@ using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
 
-using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
+using MediaContainer = Shoko.Server.MediaInfo.MediaContainer;
 
 #pragma warning disable CS0618
 #nullable enable
