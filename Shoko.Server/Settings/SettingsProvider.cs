@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.Config;
-using Shoko.Server.FileHelper;
+using Shoko.Server.Hashing;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -142,7 +142,7 @@ public class SettingsProvider : ISettingsProvider
 
             var hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
-            tempVersion = Hasher.GetVersion();
+            tempVersion = CoreHashProvider.GetRhashVersion();
             if (tempVersion != null) hasherInfoVersion = $"RHash: {tempVersion}";
             _logger.LogInformation("{msg}", hasherInfoVersion);
         }
