@@ -6,9 +6,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Server.FileHelper;
+using Shoko.Server.MediaInfo;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
-using Shoko.Server.Utilities.MediaInfoLib;
 using Formatting = Newtonsoft.Json.Formatting;
 
 #nullable enable
@@ -136,7 +136,7 @@ public class SettingsProvider : ISettingsProvider
         {
             var mediaInfoVersion = "**** MediaInfo Not found *****";
 
-            var tempVersion = MediaInfo.GetVersion();
+            var tempVersion = MediaInfoUtility.GetVersion();
             if (tempVersion != null) mediaInfoVersion = $"MediaInfo: {tempVersion}";
             _logger.LogInformation("{msg}", mediaInfoVersion);
 
