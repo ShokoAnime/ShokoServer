@@ -17,15 +17,34 @@ public interface IConfigurationDefinition
 }
 
 /// <summary>
-/// Interface for creating new configurations with more complex rules for how it should be initialized.
+/// Interface for allowing plugins to specify a custom save name for their configuration.
 /// </summary>
-public interface IConfigurationDefinitionNewFactory : IConfigurationDefinition { }
+public interface IConfigurationDefinitionWithCustomSaveName : IConfigurationDefinition
+{
+    /// <summary>
+    /// Gets the name of the file to use in the plugin's configuration folder inside <see cref="IApplicationPaths.PluginConfigurationsPath"/> for storing the configuration.
+    /// </summary>
+    /// <value>The file name.</value>
+    string Name { get; }
+}
+
+/// <summary>
+/// Interface for allowing plugins to specify a custom save location for their configuration.
+/// </summary>
+public interface IConfigurationDefinitionWithCustomSaveLocation : IConfigurationDefinition
+{
+    /// <summary>
+    /// Gets the relative path relative to <see cref="IApplicationPaths.ProgramDataPath"/> for storing the configuration.
+    /// </summary>
+    /// <value>The relative path.</value>
+    string RelativePath { get; }
+}
 
 /// <summary>
 /// Interface for creating new configurations with more complex rules for how it should be initialized.
 /// </summary>
 /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-public interface IConfigurationNewFactory<TConfig> : IConfigurationDefinitionNewFactory where TConfig : class, IConfiguration, new()
+public interface IConfigurationDefinitionWithNewFactory<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
 {
     /// <summary>
     /// Create a new configuration with more complex rules for how it should be initialized.
@@ -37,13 +56,8 @@ public interface IConfigurationNewFactory<TConfig> : IConfigurationDefinitionNew
 /// <summary>
 /// Interface for allowing plugins to specify a custom validation for their configuration which will be called after JSON schema validation.
 /// </summary>
-public interface IConfigurationDefinitionWithCustomValidation : IConfigurationDefinition { }
-
-/// <summary>
-/// Interface for allowing plugins to specify a custom validation for their configuration which will be called after JSON schema validation.
-/// </summary>
 /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-public interface IConfigurationDefinitionWithCustomValidation<TConfig> : IConfigurationDefinitionWithCustomValidation where TConfig : class, IConfiguration, new()
+public interface IConfigurationDefinitionWithCustomValidation<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
 {
     /// <summary>
     /// Validate the configuration. This will only be called if the JSON schema validation was successful.
@@ -56,12 +70,7 @@ public interface IConfigurationDefinitionWithCustomValidation<TConfig> : IConfig
 /// <summary>
 /// Interface for allowing plugins to specify a custom action for their configuration.
 /// </summary>
-public interface IConfigurationDefinitionWithCustomActions : IConfigurationDefinition { }
-
-/// <summary>
-/// Interface for allowing plugins to specify a custom action for their configuration.
-/// </summary>
-public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigurationDefinitionWithCustomActions where TConfig : class, IConfiguration, new()
+public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
 {
     /// <summary>
     /// Perform an action on the configuration.
@@ -85,28 +94,4 @@ public interface IConfigurationDefinitionWithMigrations : IConfigurationDefiniti
     /// <param name="config">The serialized configuration.</param>
     /// <returns>The modified serialized configuration.</returns>
     string ApplyMigrations(string config);
-}
-
-/// <summary>
-/// Interface for allowing plugins to specify a custom save name for their configuration.
-/// </summary>
-public interface IConfigurationDefinitionWithCustomSaveName : IConfigurationDefinition
-{
-    /// <summary>
-    /// Gets the name of the file to use in the plugin's configuration folder inside <see cref="IApplicationPaths.PluginConfigurationsPath"/> for storing the configuration.
-    /// </summary>
-    /// <value>The file name.</value>
-    string Name { get; }
-}
-
-/// <summary>
-/// Interface for allowing plugins to specify a custom save location for their configuration.
-/// </summary>
-public interface IConfigurationDefinitionWithCustomSaveLocation : IConfigurationDefinition
-{
-    /// <summary>
-    /// Gets the relative path relative to <see cref="IApplicationPaths.ProgramDataPath"/> for storing the configuration.
-    /// </summary>
-    /// <value>The relative path.</value>
-    string RelativePath { get; }
 }
