@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Shoko.Models.MediaInfo;
 using Shoko.Server.Extensions;
 
 // ReSharper disable StringLiteralTypo
 
 // ReSharper disable InconsistentNaming
 
-namespace Shoko.Server.FileHelper.Subtitles;
+namespace Shoko.Server.MediaInfo.Subtitles;
 
 public static class SubtitleHelper
 {
@@ -74,8 +73,8 @@ public static class SubtitleHelper
         return lang.Length switch
         {
             2 => lang,
-            3 => MediaInfoUtils.GetLanguageFromCode(lang) ?? lang,
-            _ => MediaInfoUtils.GetLanguageFromName(lang) ?? lang
+            3 => MediaInfoUtility.GetLanguageFromCode(lang) ?? lang,
+            _ => MediaInfoUtility.GetLanguageFromName(lang) ?? lang
         };
     }
 }
