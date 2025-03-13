@@ -22,7 +22,7 @@ public class ConfigurationInfo
     /// The settings file may not necessarily exist if it has never been saved.
     /// </remarks>
     /// <value>The path.</value>
-    public required string Path { get; init; }
+    public required string? Path { get; init; }
 
     /// <summary>
     /// The display name of the configuration.
