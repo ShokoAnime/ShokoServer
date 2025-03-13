@@ -1,7 +1,3 @@
-
-using System;
-using System.ComponentModel;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Release;
 
 namespace Shoko.Plugin.Abstractions.Events;
