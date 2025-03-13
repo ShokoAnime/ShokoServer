@@ -1,8 +1,8 @@
 ﻿using System.Security.Cryptography;
 
-namespace Shoko.Server.FileHelper;
+namespace Shoko.Server.Hashing.HashAlgorithms;
 
-public class Crc32 : HashAlgorithm
+public class CRC32 : HashAlgorithm
 {
     public const uint DefaultSeed = 0xffffffff;
 
