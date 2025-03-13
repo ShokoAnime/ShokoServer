@@ -433,9 +433,9 @@ public class VideoHashingService(
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
 
         Exception? e = null;
-        var fileSize = GetFileSize(folder, originalPath, resolvedPath, ref e);
-        if (fileSize is 0 && e is not null)
-            throw new UnauthorizedAccessException($"Could not access file to read file size: {resolvedPath}", e);
+        var fileSize = GetFileSize(originalPath, resolvedPath, ref e);
+        if (fileSize is 0)
+            throw new UnauthorizedAccessException($"Could not access file to read file size or file size is 0: {resolvedPath}", e);
 
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
         var hashes = await GetHashesForFile(new FileInfo(resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
@@ -525,11 +525,9 @@ public class VideoHashingService(
 
     #region Get File Size
 
-    private long GetFileSize(ShokoManagedFolder folder, string originalPath, string resolvedPath, ref Exception? e)
+    private long GetFileSize(string originalPath, string resolvedPath, ref Exception? e)
     {
         var settings = settingsProvider.GetSettings();
-        var access = folder.IsDropSource ? FileAccess.ReadWrite : FileAccess.Read;
-
         if (settings.Import.FileLockChecking)
         {
             var waitTime = settings.Import.FileLockWaitTimeMS;
@@ -552,7 +550,7 @@ public class VideoHashingService(
                     logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}", count, resolvedPath);
                 });
 
-            var result = policy.ExecuteAndCapture(() => GetFileSize(resolvedPath, access));
+            var result = policy.ExecuteAndCapture(() => GetFileSize(resolvedPath, FileAccess.Read));
             if (result.Outcome == OutcomeType.Failure)
             {
                 if (result.FinalException is not null)
@@ -569,7 +567,7 @@ public class VideoHashingService(
         {
             try
             {
-                return GetFileSize(resolvedPath, access);
+                return GetFileSize(resolvedPath, FileAccess.Read);
             }
             catch (Exception exception)
             {
