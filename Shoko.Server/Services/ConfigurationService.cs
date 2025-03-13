@@ -915,10 +915,6 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                             uiDict.TryAdd(key, value);
                     }
                 }
-                else if (uiDict["listType"] is "dropdown")
-                {
-                    throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
-                }
 
                 var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
                 foreach (var (key, value) in innerDict)
@@ -928,6 +924,15 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     else if (key is not "elementType")
                         uiDict.TryAdd(key, value);
                 }
+                if (uiDict["listType"] is "dropdown")
+                {
+                    if (uiDict["listElementType"] is not "section-container")
+                        throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
+                    if (!uiDict.ContainsKey("primaryKey"))
+                        throw new NotSupportedException("Dropdown lists must have a primary key set.");
+                }
+                if (uiDict["listType"] is "checkbox" && uiDict["listElementType"] is not "enum")
+                    throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
             }
             else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
             {
