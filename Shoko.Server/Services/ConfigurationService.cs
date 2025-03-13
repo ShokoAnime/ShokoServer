@@ -429,7 +429,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     private TConfig NewInternal<TConfig>() where TConfig : class, IConfiguration, new()
     {
         var info = GetConfigurationInfo<TConfig>();
-        if (info.Definition is IConfigurationNewFactory<TConfig> provider)
+        if (info.Definition is IConfigurationDefinitionWithNewFactory<TConfig> provider)
             return provider.New();
 
         return new TConfig();
