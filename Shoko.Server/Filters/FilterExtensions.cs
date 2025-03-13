@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
-using Shoko.Server.Extensions;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Server.Extensions;
+using Shoko.Server.MediaInfo;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
@@ -143,7 +144,7 @@ public static class FilterExtensions
             ResolutionsDelegate = () =>
                 series.VideoLocals
                     .Where(a => a.MediaInfo?.VideoStream is not null)
-                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
+                    .Select(a => MediaInfoUtility.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
             ManagedFolderIDsDelegate = () =>
                 series.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolderID.ToString()).WhereNotNull().ToHashSet(),
@@ -317,7 +318,7 @@ public static class FilterExtensions
                 series
                     .SelectMany(a => a.VideoLocals)
                     .Where(a => a.MediaInfo?.VideoStream is not null)
-                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
+                    .Select(a => MediaInfoUtility.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
             ManagedFolderIDsDelegate = () =>
                 series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolderID.ToString())).WhereNotNull().ToHashSet(),

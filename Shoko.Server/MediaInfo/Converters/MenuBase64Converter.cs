@@ -4,7 +4,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Shoko.Server.Utilities.MediaInfoLib;
+namespace Shoko.Server.MediaInfo.Converters;
 
 public class MenuBase64Converter : JsonConverter
 {
@@ -38,11 +38,11 @@ public class MenuBase64Converter : JsonConverter
                     sanitizedDictionary[key] = value?.ToString();
                     break;
                 case JTokenType.Object:
-                    {
-                        var base64EncodedBytes = Convert.FromBase64String(value?["#value"]?.ToString() ?? "");
-                        sanitizedDictionary[key] = Encoding.UTF8.GetString(base64EncodedBytes).Trim();
-                        break;
-                    }
+                {
+                    var base64EncodedBytes = Convert.FromBase64String(value?["#value"]?.ToString() ?? "");
+                    sanitizedDictionary[key] = Encoding.UTF8.GetString(base64EncodedBytes).Trim();
+                    break;
+                }
                 default:
                     throw new NotSupportedException("Unknown type encountered in MenuStream.extra");
             }
