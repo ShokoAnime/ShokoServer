@@ -16,7 +16,7 @@ using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
-using Shoko.Server.FileHelper;
+using Shoko.Server.Hashing;
 using Shoko.Server.Models;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached;
