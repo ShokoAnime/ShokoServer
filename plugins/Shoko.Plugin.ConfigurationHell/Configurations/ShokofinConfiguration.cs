@@ -166,6 +166,7 @@ public class ShokofinConfiguration : IConfiguration
             /// The metadata providers to use as the source of the main title for entities, in priority order.
             /// </summary>
             [Display(Name = "Main Title Source")]
+            [List(ListType = DisplayListType.Checkbox)]
             [DefaultValue(new TitleProvider[] { TitleProvider.Shoko_Default })]
             public TitleProvider[] MainTitleSource { get; set; } = [TitleProvider.Shoko_Default];
 
@@ -173,6 +174,7 @@ public class ShokofinConfiguration : IConfiguration
             /// The metadata providers to use as the source of the alternate/original title for entities, in priority order.
             /// </summary>
             [Display(Name = "Alternate/Original Title Source")]
+            [List(ListType = DisplayListType.Checkbox)]
             [DefaultValue(new TitleProvider[] { })]
             public TitleProvider[] AlternateTitleSource { get; set; } = [];
 
@@ -280,6 +282,7 @@ public class ShokofinConfiguration : IConfiguration
             /// The metadata providers to use as the source of descriptions for entities, in priority order.
             /// </summary>
             [Display(Name = "Description Source")]
+            [List(ListType = DisplayListType.Checkbox)]
             [DefaultValue(new DescriptionProvider[] { DescriptionProvider.Shoko })]
             public DescriptionProvider[] DescriptionSource { get; set; } = [DescriptionProvider.Shoko];
 
@@ -865,8 +868,70 @@ public class ShokofinConfiguration : IConfiguration
             [Visibility(DisplayVisibility.Hidden)]
             public bool Enabled { get; set; } = false;
         }
-    }
 
+        /// <summary>
+        /// Basic settings for the SignalR connection to Shoko.
+        /// </summary>
+        public SignalRBasicSettings Basic { get; set; } = new();
+
+        /// <summary>
+        /// Basic settings for the SignalR connection to Shoko.
+        /// </summary>
+        public class SignalRBasicSettings
+        {
+            /// <summary>
+            /// Determines whether to auto connect on start.
+            /// </summary>
+            [Display(Name = "Auto Connect on Start")]
+            [DefaultValue(false)]
+            public bool AutoConnect { get; set; }
+
+            /// <summary>
+            /// An ordered list of intervals given in seconds to try to reconnect to
+            /// your running Shoko instance if we ever gets disconnected. Once the
+            /// last interval has been reached and fails to reconnect, we will stop
+            /// attempting to reconnect and leave the SignalR connection in a
+            /// disconnected state until it is manually or otherwise reconnected.
+            /// </summary>
+            [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Display(Name = "Auto Reconnect Intervals")]
+            [DefaultValue(new int[] { 0, 2, 10, 30, 60, 120, 300 })]
+            public int[] AutoReconnectIntervals { get; set; } = [0, 2, 10, 30, 60, 120, 300];
+
+            /// <summary>
+            /// Which event sources should be listened to for metadata events.
+            /// </summary>
+            [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Display(Name = "Event Sources")]
+            [List(ListType = DisplayListType.Checkbox, Sortable = false)]
+            [DefaultValue(new SignalrEventSource[] { SignalrEventSource.Shoko, SignalrEventSource.AniDB, SignalrEventSource.TMDB })]
+            public SignalrEventSource[] EventSources { get; set; } = [SignalrEventSource.Shoko, SignalrEventSource.AniDB, SignalrEventSource.TMDB];
+
+            /// <summary>
+            /// Available SignalR Event sources.
+            /// </summary>
+            public enum SignalrEventSource
+            {
+                /// <summary>
+                ///
+                /// </summary>
+                [Display(Name = "Shoko")]
+                Shoko,
+
+                /// <summary>
+                ///
+                /// </summary>
+                [Display(Name = "AniDB")]
+                AniDB,
+
+                /// <summary>
+                ///
+                /// </summary>
+                [Display(Name = "TMDb")]
+                TMDB,
+            }
+        }
+    }
 
     #endregion
 }
