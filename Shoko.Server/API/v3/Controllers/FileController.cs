@@ -37,7 +37,7 @@ using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
-using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
+using MediaInfoDto = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using Path = System.IO.Path;
 using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
@@ -686,7 +686,7 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{fileID}/MediaInfo")]
-    public ActionResult<MediaInfo> GetFileMediaInfo([FromRoute, Range(1, int.MaxValue)] int fileID)
+    public ActionResult<MediaInfoDto> GetFileMediaInfo([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -696,7 +696,7 @@ public class FileController : BaseController
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
 
-        return new MediaInfo(file, mediaContainer);
+        return new MediaInfoDto(file, mediaContainer);
     }
 
     /// <summary>
