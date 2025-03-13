@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Models.Enums;
 
@@ -9,6 +10,7 @@ public class AniDbSettings
     [Required(AllowEmptyStrings = false)]
     public string Username { get; set; }
 
+    [PasswordPropertyText]
     [Required(AllowEmptyStrings = false)]
     public string Password { get; set; }
 
@@ -25,6 +27,7 @@ public class AniDbSettings
 
     public ushort ClientPort { get; set; } = 4556;
 
+    [PasswordPropertyText]
     public string AVDumpKey { get; set; }
 
     public ushort AVDumpClientPort { get; set; } = 4557;
