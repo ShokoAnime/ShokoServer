@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using Namotion.Reflection;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
-using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Namotion.Reflection;
+using Shoko.Plugin.Abstractions.Config.Attributes;
 
 namespace Shoko.Plugin.Abstractions.Config;
 
@@ -17,31 +18,40 @@ public interface IConfigurationDefinition
 }
 
 /// <summary>
-/// Interface for allowing plugins to specify a custom save name for their configuration.
+/// Interface for allowing plugins to specify a custom save name for their
+/// configuration.
 /// </summary>
 public interface IConfigurationDefinitionWithCustomSaveName : IConfigurationDefinition
 {
     /// <summary>
-    /// Gets the name of the file to use in the plugin's configuration folder inside <see cref="IApplicationPaths.PluginConfigurationsPath"/> for storing the configuration.
+    /// Gets the name of the file to use in the plugin's configuration folder
+    /// inside <see cref="IApplicationPaths.PluginConfigurationsPath"/> for
+    /// storing the configuration. Can be set to <c>null</c> or an empty string
+    /// to make it an in-memory configuration, which will not persist it's data
+    /// across restarts.
     /// </summary>
     /// <value>The file name.</value>
     string? Name { get; }
 }
 
 /// <summary>
-/// Interface for allowing plugins to specify a custom save location for their configuration.
+/// Interface for allowing plugins to specify a custom save location for their
+/// configuration.
 /// </summary>
 public interface IConfigurationDefinitionWithCustomSaveLocation : IConfigurationDefinition
 {
     /// <summary>
-    /// Gets the relative path relative to <see cref="IApplicationPaths.ProgramDataPath"/> for storing the configuration.
+    /// Gets the relative path relative to
+    /// <see cref="IApplicationPaths.ProgramDataPath"/> for storing the
+    /// configuration.
     /// </summary>
     /// <value>The relative path.</value>
     string RelativePath { get; }
 }
 
 /// <summary>
-/// Interface for creating new configurations with more complex rules for how it should be initialized.
+/// Interface for creating new configurations with more complex rules for how it
+/// should be initialized.
 /// </summary>
 /// <typeparam name="TConfig">The type of the configuration.</typeparam>
 public interface IConfigurationDefinitionWithNewFactory<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
@@ -54,13 +64,15 @@ public interface IConfigurationDefinitionWithNewFactory<TConfig> : IConfiguratio
 }
 
 /// <summary>
-/// Interface for allowing plugins to specify a custom validation for their configuration which will be called after JSON schema validation.
+/// Interface for allowing plugins to specify custom validation rules for their
+/// configuration, which will be called after JSON schema validation.
 /// </summary>
 /// <typeparam name="TConfig">The type of the configuration.</typeparam>
 public interface IConfigurationDefinitionWithCustomValidation<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
 {
     /// <summary>
-    /// Validate the configuration. This will only be called if the JSON schema validation was successful.
+    /// Validate the configuration. This will only be called if the JSON schema
+    /// validation was successful.
     /// </summary>
     /// <param name="config">The configuration.</param>
     /// <returns>A dictionary of validation errors.</returns>
@@ -68,12 +80,15 @@ public interface IConfigurationDefinitionWithCustomValidation<TConfig> : IConfig
 }
 
 /// <summary>
-/// Interface for allowing plugins to specify a custom action for their configuration.
+/// Interface for allowing plugins to specify custom actions on their
+/// configuration. You'll need to assign <see cref="CustomActionAttribute"/> to
+/// your configuration, be it at the base or at a sub-class level for any custom
+/// actions to be available in the UI.
 /// </summary>
 public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
 {
     /// <summary>
-    /// Perform an action on the configuration.
+    /// Perform a custom action on the configuration.
     /// </summary>
     /// <param name="config">The configuration.</param>
     /// <param name="type">The contextual type of the class or sub-class.</param>
@@ -84,7 +99,8 @@ public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigura
 }
 
 /// <summary>
-/// Interface for allowing plugins to apply migrations to their configuration before loading it from disk.
+/// Interface for allowing plugins to apply migrations to their configuration
+/// before loading it from disk.
 /// </summary>
 public interface IConfigurationDefinitionWithMigrations : IConfigurationDefinition
 {
