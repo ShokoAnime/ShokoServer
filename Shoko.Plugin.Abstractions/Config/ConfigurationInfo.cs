@@ -55,7 +55,7 @@ public class ConfigurationInfo
     /// </summary>
     public bool HasCustomValidation => _hasCustomValidation ??= Definition?.GetType().IsAssignableTo(typeof(IConfigurationDefinitionWithCustomValidation<>).MakeGenericType(Type)) ?? false;
 
-    private bool? _hasCustomActions = false;
+    private bool? _hasCustomActions = null;
 
     /// <summary>
     /// Whether or not the configuration has custom actions.
