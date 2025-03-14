@@ -1,4 +1,3 @@
-
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
@@ -9,7 +8,7 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 public interface IAnidbAnimeSearchResult : IMetadata<int>, IWithTitles
 {
     /// <summary>
-    /// Indicates whether the search result is an exact match to the query.
+    /// Indicates the search result is an exact match to the query.
     /// </summary>
     bool ExactMatch { get; }
 
@@ -34,17 +33,17 @@ public interface IAnidbAnimeSearchResult : IMetadata<int>, IWithTitles
     int LengthDifference { get; }
 
     /// <summary>
-    /// Contains the original matched substring from the original string.
+    /// Contains the matched substring from the original matched title.
     /// </summary>
     string MatchedTitle { get; }
 
     /// <summary>
-    /// Full AniDB Anime entry, if available locally.
+    /// AniDB Anime entry, if available locally.
     /// </summary>
     ISeries? AnidbAnime { get; }
 
     /// <summary>
-    /// Full Shoko Series entry, if available locally.
+    /// Shoko Series entry, if available locally.
     /// </summary>
     IShokoSeries? ShokoSeries { get; }
 }

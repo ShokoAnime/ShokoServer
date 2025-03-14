@@ -30,6 +30,11 @@ public class CustomActionAttribute : Attribute
     public DisplayColorTheme Theme { get; set; }
 
     /// <summary>
+    /// Gets or sets the position of the action within it's section in the UI.
+    /// </summary>
+    public DisplayButtonPosition Position { get; set; }
+
+    /// <summary>
     /// When set, will toggle the member from visible to hidden and vice versa. <seealso cref="ToggleWhenSetTo"/> also
     /// needs to be set for this to take effect. <seealso cref="HideByDefault"/> will flip the functionality
     /// so it will toggle from hidden to visible instead of visible to hidden.
