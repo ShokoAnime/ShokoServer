@@ -1,13 +1,14 @@
 using System;
+using Shoko.Plugin.Abstractions.Config.Enums;
 
 namespace Shoko.Plugin.Abstractions.Config.Attributes;
 
 /// <summary>
-/// Define to visualize the sections for the class/group in the UI.
+/// Define extra details around a section in the UI.
 /// </summary>
 /// <param name="sectionType">The type of section to use for the class/group in the UI.</param>
 [AttributeUsage(AttributeTargets.Class)]
-public class SectionTypeAttribute(DisplaySectionType sectionType) : Attribute
+public class SectionAttribute(DisplaySectionType sectionType) : Attribute
 {
     /// <summary>
     /// The type of section to use for the class/group in the UI.

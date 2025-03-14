@@ -7,12 +7,13 @@ using Shoko.Plugin.Abstractions.Events;
 namespace Shoko.Plugin.Abstractions.Services;
 
 /// <summary>
-/// Service responsible for managing configurations.
+/// Service responsible for managing configurations implementing the
+/// <see cref="IConfiguration"/> interface.
 /// </summary>
 public interface IConfigurationService
 {
     /// <summary>
-    /// Occurs when a configuration is saved.
+    ///   Dispatched when a configuration is saved.
     /// </summary>
     event EventHandler<ConfigurationSavedEventArgs>? Saved;
 
@@ -32,190 +33,338 @@ public interface IConfigurationService
     void AddParts(IEnumerable<Type> configurationTypes, IEnumerable<IConfigurationDefinition> configurationDefinitions);
 
     /// <summary>
-    /// Create a new configuration provider instance for the specified configuration type.
+    ///   Create a new <see cref="ConfigurationProvider{TConfig}"/> instance for
+    ///   the specified configuration type.
     /// </summary>
-    /// <typeparam name="TConfig">The configuration type.</typeparam>
-    /// <returns>The configuration provider.</returns>
+    /// <typeparam name="TConfig">
+    ///   The configuration type.
+    /// </typeparam>
+    /// <returns>
+    ///   The newly created configuration provider.
+    /// </returns>
     ConfigurationProvider<TConfig> CreateProvider<TConfig>() where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Gets all configuration infos registered with the system.
+    ///   Gets all <see cref="ConfigurationInfo" />s registered with the system.
     /// </summary>
-    /// <returns>The configuration infos.</returns>
+    /// <returns>
+    ///   The registered <see cref="ConfigurationInfo" />s.
+    /// </returns>
     IEnumerable<ConfigurationInfo> GetAllConfigurationInfos();
 
     /// <summary>
-    /// Gets the configuration info for the specified plugin.
+    ///   Gets all registered <see cref="ConfigurationInfo" />s for the
+    ///   specified plugin instance.
     /// </summary>
-    /// <param name="plugin">The plugin.</param>
-    /// <returns>The configuration infos for the plugin.</returns>
+    /// <param name="plugin">
+    ///   The plugin instance.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="ConfigurationInfo" />s for the plugin.
+    /// </returns>
     IReadOnlyList<ConfigurationInfo> GetConfigurationInfo(IPlugin plugin);
 
     /// <summary>
-    /// Gets the configuration info for the specified configuration ID.
+    ///   Gets the <see cref="ConfigurationInfo" /> for the specified
+    ///   configuration ID, if the configuration ID is registered with the
+    ///   system.
     /// </summary>
-    /// <param name="configurationId">The configuration ID.</param>
-    /// <returns>The configuration info, or null if not found.</returns>
+    /// <param name="configurationId">
+    ///   The configuration ID.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="ConfigurationInfo" />, or <c>null</c> if not found.
+    /// </returns>
     ConfigurationInfo? GetConfigurationInfo(Guid configurationId);
 
     /// <summary>
-    /// Gets the configuration info for the specified type.
+    ///   Gets the <see cref="ConfigurationInfo" /> for the specified
+    ///   configuration type.
     /// </summary>
-    /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-    /// <returns>The configuration info.</returns>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <returns>
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </returns>
     ConfigurationInfo GetConfigurationInfo<TConfig>() where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Validates the configuration for the specified configuration info.
+    ///   Validates a stringified JSON configuration against the specified
+    ///   <see cref="ConfigurationInfo" />'s schema.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <param name="json">The JSON string.</param>
-    /// <returns>A read-only dictionary of validation errors per property path.</returns>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="json">
+    ///   The stringified JSON configuration.
+    /// </param>
+    /// <returns>
+    ///   A read-only dictionary of validation errors per property path.
+    /// </returns>
     IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, string json);
 
     /// <summary>
-    /// Validates the configuration.
+    ///   Validates a configuration instance against it's schema.
     /// </summary>
-    /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-    /// <param name="config">The configuration.</param>
-    /// <returns>A read-only dictionary of validation errors per property path.</returns>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <param name="config">
+    ///   The configuration instance.
+    /// </param>
+    /// <returns>
+    ///   A read-only dictionary of validation errors per property path.
+    /// </returns>
     IReadOnlyDictionary<string, IReadOnlyList<string>> Validate<TConfig>(TConfig config) where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Perform an action on the configuration.
+    ///   Perform a custom action on the configuration instance against the
+    ///   specified <see cref="ConfigurationInfo" />'s action handler.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <param name="configuration">The configuration.</param>
-    /// <param name="path">The path to the configuration.</param>
-    /// <param name="action">The action to perform.</param>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="configuration">
+    ///   The configuration.
+    /// </param>
+    /// <param name="path">
+    ///   The path to the configuration.
+    /// </param>
+    /// <param name="action">
+    ///   The action to perform.
+    /// </param>
     /// <exception cref="InvalidConfigurationActionException">
-    /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
+    ///   Thrown when an action is invalid. Be it because the action does not
+    ///   exist or because the path for where to look for the action is invalid.
     /// </exception>
-    /// <returns>The result of the action.</returns>
+    /// <returns>
+    ///   The result of the action.
+    /// </returns>
     ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action);
 
     /// <summary>
-    /// Perform an action on the configuration.
+    ///   Perform a custom action on the configuration.
     /// </summary>
-    /// <typeparam name="TConfig"></typeparam>
-    /// <param name="configuration">The configuration.</param>
-    /// <param name="path">The path to the configuration.</param>
-    /// <param name="action">The action to perform.</param>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <param name="configuration">
+    ///   The configuration instance.
+    /// </param>
+    /// <param name="path">
+    ///   The path to the configuration.
+    /// </param>
+    /// <param name="action">
+    ///   The action to perform.
+    /// </param>
     /// <exception cref="InvalidConfigurationActionException">
     /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
     /// </exception>
-    /// <returns>The result of the action.</returns>
+    /// <returns>
+    ///   The result of the action.
+    /// </returns>
     ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Creates a new configuration for the specified configuration info without saving it and without storing it in the in-memory cache.
+    ///   Creates a new configuration instance for the specified
+    ///   <see cref="ConfigurationInfo" />'s type without saving it and without
+    ///   storing it in the in-memory cache.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <returns>The new configuration.</returns>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <returns>
+    ///   The new configuration instance.
+    /// </returns>
     IConfiguration New(ConfigurationInfo info);
 
     /// <summary>
-    /// Creates a new configuration without saving it and without storing it in the in-memory cache.
+    ///   Creates a new configuration instance for
+    ///   <typeparamref name="TConfig"/> without saving it and without storing
+    ///   it in the in-memory cache.
     /// </summary>
-    /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-    /// <returns>The new configuration.</returns>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <returns>
+    ///   The new configuration instance.
+    /// </returns>
     TConfig New<TConfig>() where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Loads the configuration for the specified configuration info from the in-memory cache or from the disk. It will validate the configuration before loading it and create a new configuration if one does not exist on disk.
+    ///   Loads the configuration instance for the specified
+    ///   <see cref="ConfigurationInfo" /> from the in-memory cache, from the
+    ///   disk. It will validate the configuration before loading it and create
+    ///   a new configuration file if one does not exist on disk.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <param name="copy">Set to true to get a copy of the configuration instead of the in-memory cached instance.</param>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="copy">
+    ///   Set to true to get a copy of the configuration instead of the
+    ///   in-memory cached instance.
+    /// </param>
     /// <exception cref="ConfigurationValidationException">
-    /// Thrown when a configuration fails validation.
+    ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <returns>The configuration.</returns>
+    /// <returns>
+    ///   The loaded configuration instance.
+    /// </returns>
     IConfiguration Load(ConfigurationInfo info, bool copy = false);
 
     /// <summary>
-    /// Loads the configuration from the in-memory cache or from the disk. It will validate the configuration before loading it and create a new configuration if one does not exist on disk.
+    ///   Loads the configuration instance for <typeparamref name="TConfig"/>
+    ///   from the in-memory cache or from the disk. It will validate the
+    ///   configuration before loading it and create a new configuration file if
+    ///   one does not exist on disk.
     /// </summary>
-    /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-    /// <param name="copy">Set to true to get a copy of the configuration instead of the in-memory cached instance.</param>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <param name="copy">
+    ///   Set to true to get a copy of the configuration instead of the
+    ///   in-memory cached instance.
+    /// </param>
     /// <exception cref="ConfigurationValidationException">
-    /// Thrown when a configuration fails validation.
+    ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <returns>The configuration.</returns>
+    /// <returns>
+    ///   The loaded configuration instance.
+    /// </returns>
     TConfig Load<TConfig>(bool copy = false) where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Saves the configuration for the specified configuration info. This will validate the configuration before saving it.
+    ///   Saves the configuration instance for the specified
+    ///   <see cref="ConfigurationInfo" />. This will validate the configuration
+    ///   before saving it.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <param name="json">The stringified configuration to save.</param>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="json">
+    ///   The stringified configuration to save.
+    /// </param>
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    /// <returns>
+    ///   A boolean indicating whether the configuration was saved to disk. If
+    ///   set to <c>false</c> then there was no change to the configuration.
+    /// </returns>
     bool Save(ConfigurationInfo info, IConfiguration json);
 
     /// <summary>
-    /// Saves the configuration for the specified configuration info. This will validate the configuration before saving it.
+    ///   Saves the stringified JSON configuration for the specified
+    ///   <see cref="ConfigurationInfo" />. This will validate the configuration
+    ///   before saving it, and it will replace the currently loaded in-memory
+    ///   configuration instance after saving.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <param name="json">The stringified configuration to save.</param>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="json">
+    ///   The stringified configuration to save.
+    /// </param>
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    /// <returns>
+    ///   A boolean indicating whether the configuration was saved to disk. If
+    ///   set to <c>false</c> then there was no change to the configuration.
+    /// </returns>
     bool Save(ConfigurationInfo info, string json);
 
     /// <summary>
-    /// Saves the currently loaded in-memory configuration to disk. This will validate the configuration before saving it.
+    ///   Saves the currently loaded in-memory configuration instance to disk.
+    ///   This will validate the configuration before saving it, and it will
+    ///   replace the currently loaded in-memory configuration instance after
+    ///   saving.
     /// </summary>
-    /// <typeparam name="TConfig">The type of the configuration.</typeparam>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    /// <returns>
+    ///   A boolean indicating whether the configuration was saved to disk. If
+    ///   set to <c>false</c> then there was no change to the configuration.
+    /// </returns>
     bool Save<TConfig>() where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Saves the configuration. This will validate the configuration before saving it.
+    ///   Saves the configuration instance. This will validate the configuration
+    ///   before saving it, and it will replace the currently loaded in-memory
+    ///   configuration instance after saving.
     /// </summary>
-    /// <typeparam name="TConfig">The type of the configuration.</typeparam>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
     /// <param name="config">The configuration to save.</param>
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    /// <returns>
+    ///   A boolean indicating whether the configuration was saved to disk. If
+    ///   set to <c>false</c> then there was no change to the configuration.
+    /// </returns>
     bool Save<TConfig>(TConfig config) where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Saves the configuration. This will validate the configuration before saving it.
+    ///   Saves the stringified JSON configuration. This will validate the
+    ///   configuration before saving it, and it will replace the currently
+    ///   loaded in-memory configuration instance after saving.
     /// </summary>
-    /// <typeparam name="TConfig">The type of the configuration.</typeparam>
-    /// <param name="json">The stringified configuration to save.</param>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <param name="json">
+    ///   The stringified configuration to save.
+    /// </param>
     /// <exception cref="ConfigurationValidationException">
     /// Thrown when a configuration fails validation.
     /// </exception>
-    /// <returns>A boolean indicating whether the configuration was saved to disk. <c>false</c> means there was no change to the configuration.</returns>
+    /// <returns>
+    ///   A boolean indicating whether the configuration was saved to disk. If
+    ///   set to <c>false</c> then there was no change to the configuration.
+    /// </returns>
     bool Save<TConfig>(string json) where TConfig : class, IConfiguration, new();
 
     /// <summary>
-    /// Gets the cached, serialized JSON schema for the specified configuration info.
+    ///   Gets the cached, serialized JSON schema for the specified
+    ///   <see cref="ConfigurationInfo" />.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <returns>The serialized JSON schema.</returns>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <returns>
+    ///   The serialized JSON schema for the configuration.
+    /// </returns>
     string GetSchema(ConfigurationInfo info);
 
     /// <summary>
-    /// Serializes the specified configuration to JSON.
+    ///   Serializes the specified configuration to JSON.
     /// </summary>
-    /// <param name="config">The configuration to serialize.</param>
-    /// <returns>The serialized JSON configuration.</returns>
+    /// <param name="config">
+    ///   The configuration to serialize.
+    /// </param>
+    /// <returns>
+    ///   The serialized JSON configuration.
+    /// </returns>
     string Serialize(IConfiguration config);
 
     /// <summary>
-    /// Deserializes the specified JSON configuration.
+    ///   Deserializes the specified JSON configuration.
     /// </summary>
-    /// <param name="info">The configuration info.</param>
-    /// <param name="json">The JSON configuration to deserialize.</param>
-    /// <returns>The deserialized configuration.</returns>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="json">
+    ///   The JSON configuration to deserialize.
+    /// </param>
+    /// <returns>
+    ///   The deserialized configuration.
+    /// </returns>
     IConfiguration Deserialize(ConfigurationInfo info, string json);
 }

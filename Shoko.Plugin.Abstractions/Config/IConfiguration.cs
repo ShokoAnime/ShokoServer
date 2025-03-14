@@ -1,17 +1,20 @@
+using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.Abstractions.Config;
-
 /// <summary>
-/// Base interface for all configurations served through the configuration service.
+/// Base interface for all configurations served through the
+/// <see cref="IConfigurationService"/> or
+///  <see cref="ConfigurationProvider{TConfig}"/>.
 /// </summary>
 public interface IConfiguration { }
 
 /// <summary>
-/// Interface for signaling that the configuration should use Newtonsoft.Json for serialization/deserialization.
+/// Interface for signaling that the configuration should use Newtonsoft.Json
+/// for serialization/deserialization instead of System.Text.Json.
 /// </summary>
 public interface INewtonsoftJsonConfiguration : IConfiguration { }
 
 /// <summary>
-/// Interface for signaling that the configuration should be hidden from the UI.
+/// Interface for signaling that the configuration should be hidden from any UI.
 /// </summary>
 public interface IHiddenConfiguration : IConfiguration { }
