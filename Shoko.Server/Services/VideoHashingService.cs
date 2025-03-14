@@ -574,7 +574,6 @@ public class VideoHashingService(
         };
     }
 
-
     #region Get File Size
 
     private long GetFileSize(string originalPath, string resolvedPath, ref Exception? e)
@@ -732,7 +731,6 @@ public class VideoHashingService(
     #endregion
 
     #region Process Duplicates
-
 
     private async Task<bool> ProcessDuplicates(VideoLocal video, VideoLocal_Place videoLocation)
     {
