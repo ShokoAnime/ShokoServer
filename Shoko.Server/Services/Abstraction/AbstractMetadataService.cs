@@ -13,7 +13,6 @@ using Shoko.Server.Repositories.Cached.TMDB;
 #nullable enable
 namespace Shoko.Server.Services.Abstraction;
 
-
 public class AbstractMetadataService : IMetadataService
 {
     /// <inheritdoc />
