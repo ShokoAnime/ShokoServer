@@ -1,5 +1,3 @@
-
-
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -69,6 +67,19 @@ public interface IUserDataService
     /// <exception cref="ArgumentNullException">The <paramref name="video"/> is null.</exception>
     /// <returns>The task containing the new or updated user video data.</returns>
     Task<IVideoUserData> SaveVideoUserData(IShokoUser user, IVideo video, VideoUserDataUpdate userDataUpdate, UserDataSaveReason reason = UserDataSaveReason.None, bool updateStatsNow = true);
+
+    /// <summary>
+    /// Imports the video user data from a source.
+    /// </summary>
+    /// <param name="user">The user.</param>
+    /// <param name="video">The video.</param>
+    /// <param name="userDataUpdate">The user data update.</param>
+    /// <param name="importSource">The import source.</param>
+    /// <param name="updateStatsNow">if set to <c>true</c> will update the series stats immediately after saving.</param>
+    /// <exception cref="ArgumentNullException">The <paramref name="user"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">The <paramref name="video"/> is null.</exception>
+    /// <returns>The task containing the new or updated user video data.</returns>
+    Task<IVideoUserData> ImportVideoUserData(IShokoUser user, IVideo video, VideoUserDataUpdate userDataUpdate, string importSource, bool updateStatsNow = true);
 
     #endregion
 

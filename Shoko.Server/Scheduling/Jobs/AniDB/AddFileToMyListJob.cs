@@ -176,21 +176,21 @@ public class AddFileToMyListJob : BaseJob
                 // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                 if (settings.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                 {
-                    await _userDataService.SaveVideoUserData(user, _videoLocal, new()
+                    await _userDataService.ImportVideoUserData(user, _videoLocal, new()
                     {
                         ResumePosition = TimeSpan.Zero,
                         LastPlayedAt = newWatchedDate ?? DateTime.Now,
                         LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
-                    }, UserDataSaveReason.AnidbImport).ConfigureAwait(false);
+                    }, "AniDB").ConfigureAwait(false);
                 }
                 else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                 {
-                    await _userDataService.SaveVideoUserData(user, _videoLocal, new()
+                    await _userDataService.ImportVideoUserData(user, _videoLocal, new()
                     {
                         ResumePosition = TimeSpan.Zero,
                         LastPlayedAt = null,
                         LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
-                    }, UserDataSaveReason.AnidbImport).ConfigureAwait(false);
+                    }, "AniDB").ConfigureAwait(false);
                 }
             }
         }

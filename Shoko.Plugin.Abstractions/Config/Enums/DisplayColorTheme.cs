@@ -1,4 +1,3 @@
-
 using System.Runtime.Serialization;
 
 namespace Shoko.Plugin.Abstractions.Config.Enums;
@@ -39,8 +38,8 @@ public enum DisplayColorTheme
     Warning = 4,
 
     /// <summary>
-    /// The element is displayed as a dangerous themed element in the UI.
+    /// The element is displayed as a danger themed element in the UI.
     /// </summary>
     [EnumMember(Value = "danger")]
-    Dangerous = 5,
+    Danger = 5,
 }

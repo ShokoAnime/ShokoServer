@@ -1,5 +1,4 @@
-﻿#region
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -9,10 +8,8 @@ using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#endregion
 namespace Shoko.CLI;
 
 public static class Program

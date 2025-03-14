@@ -1,4 +1,3 @@
-
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Plugin.Abstractions;
 

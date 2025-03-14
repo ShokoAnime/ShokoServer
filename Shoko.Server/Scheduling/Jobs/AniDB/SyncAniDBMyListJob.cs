@@ -213,12 +213,12 @@ public class SyncAniDBMyListJob : BaseJob
             foreach (var user in aniDBUsers)
             {
                 modifiedItems++;
-                await _userDataService.SaveVideoUserData(user, video, new()
+                await _userDataService.ImportVideoUserData(user, video, new()
                 {
                     ResumePosition = TimeSpan.Zero,
                     LastPlayedAt = updateDate,
                     LastUpdatedAt = myItem.UpdatedAt,
-                }, UserDataSaveReason.AnidbImport, false).ConfigureAwait(false);
+                }, "AniDB", false).ConfigureAwait(false);
                 video.AnimeEpisodes
                     .DistinctBy(a => a.AnimeSeriesID)
                     .Select(a => a.AnimeSeries)
@@ -232,12 +232,12 @@ public class SyncAniDBMyListJob : BaseJob
             foreach (var user in aniDBUsers)
             {
                 modifiedItems++;
-                await _userDataService.SaveVideoUserData(user, video, new()
+                await _userDataService.ImportVideoUserData(user, video, new()
                 {
                     ResumePosition = TimeSpan.Zero,
                     LastPlayedAt = null,
                     LastUpdatedAt = myItem.UpdatedAt,
-                }, UserDataSaveReason.AnidbImport, false).ConfigureAwait(false);
+                }, "AniDB", false).ConfigureAwait(false);
                 video.AnimeEpisodes
                     .DistinctBy(a => a.AnimeSeriesID)
                     .Select(a => a.AnimeSeries)

@@ -1,6 +1,4 @@
-﻿
-
-namespace Shoko.Models.Server
+﻿namespace Shoko.Models.Server
 {
     public class AniDB_Anime_Tag
     {

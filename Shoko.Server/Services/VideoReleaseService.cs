@@ -816,7 +816,7 @@ public class VideoReleaseService(
                 continue;
 
             var watchedRecord = _userDataService.GetVideoUserData(user.ID, watchedVideo.ID)!;
-            _userDataService.SaveVideoUserData(user, video, new(watchedRecord), UserDataSaveReason.VideoReImport);
+            _userDataService.ImportVideoUserData(user, video, new(watchedRecord), "Video", false);
         }
     }
 

@@ -9,11 +9,6 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 public interface IVideoCrossReference : IReleaseVideoCrossReference
 {
     /// <summary>
-    /// Source source of the cross-reference.
-    /// </summary>
-    public string Source { get; }
-
-    /// <summary>
     /// ED2K hash used for video identification.
     /// </summary>
     string ED2K { get; }

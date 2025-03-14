@@ -49,11 +49,21 @@ public class UserDataService(
     public Task SetVideoWatchedStatus(IShokoUser user, IVideo video, bool watched = true, DateTime? watchedAt = null, UserDataSaveReason reason = UserDataSaveReason.None, bool updateStatsNow = true)
         => SaveVideoUserData(user, video, new() { ResumePosition = TimeSpan.Zero, LastPlayedAt = watched ? watchedAt ?? DateTime.Now : null, LastUpdatedAt = DateTime.Now }, reason: reason, updateStatsNow: updateStatsNow);
 
-    public async Task<IVideoUserData> SaveVideoUserData(IShokoUser user, IVideo video, VideoUserDataUpdate userDataUpdate, UserDataSaveReason reason = UserDataSaveReason.None, bool updateStatsNow = true)
+    public Task<IVideoUserData> SaveVideoUserData(IShokoUser user, IVideo video, VideoUserDataUpdate userDataUpdate, UserDataSaveReason reason = UserDataSaveReason.None, bool updateStatsNow = true)
+        => SaveVideoUserDataInternal(user, video, userDataUpdate, reason, null, updateStatsNow);
+
+    public Task<IVideoUserData> ImportVideoUserData(IShokoUser user, IVideo video, VideoUserDataUpdate userDataUpdate, string importSource, bool updateStatsNow = true)
+        => SaveVideoUserDataInternal(user, video, userDataUpdate, UserDataSaveReason.Import, importSource, updateStatsNow);
+
+    private async Task<IVideoUserData> SaveVideoUserDataInternal(IShokoUser user, IVideo video, VideoUserDataUpdate userDataUpdate, UserDataSaveReason reason = UserDataSaveReason.None, string? importSource = null, bool updateStatsNow = true)
     {
         ArgumentNullException.ThrowIfNull(user, nameof(user));
         ArgumentNullException.ThrowIfNull(video, nameof(video));
         ArgumentNullException.ThrowIfNull(userDataUpdate, nameof(userDataUpdate));
+        if (reason is UserDataSaveReason.Import && string.IsNullOrWhiteSpace(importSource))
+            reason = UserDataSaveReason.None;
+        else if (!string.IsNullOrWhiteSpace(importSource))
+            importSource = null;
 
         var watchedStatusChanged = false;
         if (GetVideoUserData(user.ID, video.ID) is { } existingUserData)
@@ -71,7 +81,7 @@ public class UserDataService(
         var settings = settingsProvider.GetSettings();
         var scheduler = await schedulerFactory.GetScheduler();
         var syncTrakt = ((SVR_JMMUser)user).IsTraktUser == 1 && settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken);
-        var syncAnidb = reason is not UserDataSaveReason.AnidbImport && ((SVR_JMMUser)user).IsAniDBUser == 1 && ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
+        var syncAnidb = !(reason is UserDataSaveReason.Import && importSource is "AniDB") && ((SVR_JMMUser)user).IsAniDBUser == 1 && ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
         IReadOnlyList<IShokoUser> users = ((SVR_JMMUser)user).IsAniDBUser == 1 ? userRepository.GetAniDBUsers() : [user];
         var lastUpdatedAt = userDataUpdate.LastUpdatedAt ?? DateTime.Now;
 
@@ -194,7 +204,7 @@ public class UserDataService(
         {
             var uD = userDataRepository.GetByUserIDAndVideoLocalID(u.ID, video.ID) ??
                 throw new InvalidOperationException($"User data is null. (Video={video.ID},User={u.ID})");
-            VideoUserDataSaved?.Invoke(this, new(reason, u, video, uD));
+            VideoUserDataSaved?.Invoke(this, new(reason, u, video, uD, importSource));
         }
 
         var userData = userDataRepository.GetByUserIDAndVideoLocalID(user.ID, video.ID) ??

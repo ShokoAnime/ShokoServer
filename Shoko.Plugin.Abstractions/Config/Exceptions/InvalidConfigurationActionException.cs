@@ -1,4 +1,3 @@
-
 using System;
 
 namespace Shoko.Plugin.Abstractions.Config.Exceptions;

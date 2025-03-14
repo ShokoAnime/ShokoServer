@@ -1,9 +1,7 @@
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Attributes;
 using Shoko.Plugin.Abstractions.Config.Enums;
@@ -14,7 +12,7 @@ namespace Shoko.Plugin.ConfigurationHell.Configurations;
 /// Practical example of the configuration for the Shokofin plugin for Jellyfin
 /// as a Shoko IConfiguration implementation.
 /// </summary>
-[SectionType(DisplaySectionType.Tab)]
+[Section(DisplaySectionType.Tab)]
 [HideDefaultSaveAction]
 public class ShokofinConfiguration : IConfiguration
 {
@@ -359,7 +357,7 @@ public class ShokofinConfiguration : IConfiguration
             /// <summary>
             /// Determines how to order seasons within shows when using groups for shows.
             /// </summary>
-            [Badge("Experimental", Theme = DisplayColorTheme.Dangerous)]
+            [Badge("Experimental", Theme = DisplayColorTheme.Danger)]
             [Visibility(
                 DisplayVisibility.Disabled,
                 ToggleWhenMemberIsSet = nameof(LibraryStructure),
@@ -519,7 +517,7 @@ public class ShokofinConfiguration : IConfiguration
         [CustomAction(
             "Remove",
             Description = "This will delete the saved settings and reset the mapping for the library.",
-            Theme = DisplayColorTheme.Dangerous
+            Theme = DisplayColorTheme.Danger
         )]
         [CustomAction("Save", Theme = DisplayColorTheme.Primary, DisableIfNoChanges = true)]
         public class ManagedFolderSettings
@@ -730,7 +728,7 @@ public class ShokofinConfiguration : IConfiguration
     /// </summary>
     [CustomAction(
         "Remove",
-        Theme = DisplayColorTheme.Dangerous,
+        Theme = DisplayColorTheme.Danger,
         ToggleWhenMemberIsSet = nameof(Token),
         ToggleWhenSetTo = null
     )]

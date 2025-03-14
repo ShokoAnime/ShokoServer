@@ -174,7 +174,7 @@ public class FileCrossReference
                             },
                             ED2K = xref.ED2K,
                             FileSize = xref.Size,
-                            Source = xref.Source,
+                            Source = xref.Release?.ProviderName ?? string.Empty,
                         }
                     );
                 })

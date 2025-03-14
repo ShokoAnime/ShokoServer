@@ -5,7 +5,7 @@ using Shoko.Plugin.Abstractions.Config.Enums;
 namespace Shoko.Plugin.Abstractions.Config.Attributes;
 
 /// <summary>
-/// Controls the default visibility of a property/field in the UI.
+/// Controls the visibility of a property/field in the UI.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
 public class VisibilityAttribute : Attribute
@@ -22,12 +22,17 @@ public class VisibilityAttribute : Attribute
     public DisplayVisibility Visibility { get; set; }
 
     /// <summary>
-    /// Indicates that the visibility should change when the specified member is set to the specified value.
+    /// Gets or sets the size of the property/field in the UI.
+    /// </summary>
+    public DisplayElementSize Size { get; set; }
+
+    /// <summary>
+    /// Indicates that the visibility should change to <see cref="ToggleVisibilityTo"/> when the specified member is set to <see cref="ToggleVisibilityTo"/>.
     /// </summary>
     public string? ToggleWhenMemberIsSet { get; set; }
 
     /// <summary>
-    /// Indicates that the visibility should change when the specified member is set to the specified value.
+    /// Indicates that the visibility should change to <see cref="ToggleVisibilityTo"/> when <see cref="ToggleWhenMemberIsSet"/> is set to this value.
     /// </summary>
     public object? ToggleWhenSetTo
     {

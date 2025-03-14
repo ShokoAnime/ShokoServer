@@ -1,3 +1,6 @@
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.Abstractions.Enums;
 
@@ -42,21 +45,15 @@ public enum UserDataSaveReason
     PlaybackEnd,
 
     /// <summary>
-    /// The user data is being saved during an import from AniDB.
+    /// The user data is being imported from another source.
     /// </summary>
-    AnidbImport,
-
-    /// <summary>
-    /// The user data is being saved because a video was imported, and the watch
-    /// state from an existing video was copied over to the newly imported
-    /// video.
-    /// </summary>
-    VideoReImport,
-
-    /// <summary>
-    /// The user data is being saved because a video was imported from a generic
-    /// source that's neither AniDB nor an existing video. For plugins to use
-    /// when importing user data from other services.
-    /// </summary>
+    /// <remarks>
+    /// Should not be used directly in
+    /// <see cref="IUserDataService.SaveVideoUserData(IShokoUser, IVideo, VideoUserDataUpdate, UserDataSaveReason, bool)"/>,
+    /// as it should only be used in
+    /// <see cref="IUserDataService.ImportVideoUserData(IShokoUser, IVideo, VideoUserDataUpdate, string, bool)"/>.
+    /// Using it in the first method will result in the reason being turned into
+    /// <see cref="None"/>.
+    /// </remarks>
     Import,
 }

@@ -27,7 +27,6 @@ public class ReleaseExporter : IHostedService
 
     private ReleaseExporterConfiguration Configuration { get; set; }
 
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ReleaseExporter"/> class.
     /// </summary>
