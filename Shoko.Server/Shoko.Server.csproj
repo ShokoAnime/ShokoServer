@@ -90,6 +90,8 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Mime-Detective" Version="24.12.2" />
+    <PackageReference Include="Mime-Detective.Definitions.Condensed" Version="24.12.2" />
     <PackageReference Include="MimeMapping" Version="3.0.1" />
     <PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1-preview" />
     <PackageReference Include="MySqlBackup.NET.MySqlConnector" Version="2.3.8" />

@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using MimeDetective;
+using MimeDetective.Definitions.Licensing;
+using MimeDetective.Storage;
 using Namotion.Reflection;
 using Polly;
 using Quartz;
@@ -44,6 +48,8 @@ public class VideoHashingService(
     FileNameHashRepository fileNameHashRepository
 ) : IVideoHashingService
 {
+    private IContentInspector? _contentInspector;
+
     private Dictionary<Guid, HashProviderInfo> _hashProviderInfos = [];
 
     private readonly object _lock = new();
@@ -85,15 +91,16 @@ public class VideoHashingService(
     {
     }
 
+    #region Add Parts
+
     public void AddParts(IEnumerable<IHashProvider> providers)
     {
         if (_loaded) return;
-        _loaded = true;
-
-        logger.LogInformation("Initializing service.");
-
         lock (_lock)
         {
+            if (_loaded) return;
+
+            logger.LogInformation("Initializing providers.");
             var config = configurationProvider.Load();
             var order = config.Priority;
             var enabled = config.EnabledHashes;
@@ -123,6 +130,35 @@ public class VideoHashingService(
                 .ThenBy(p => order.IndexOf(p.ID))
                 .ThenBy(p => p.ID)
                 .ToDictionary(info => info.ID);
+
+            logger.LogInformation("Building content inspector.");
+            _contentInspector = new ContentInspectorBuilder()
+            {
+                Definitions = new MimeDetective.Definitions.CondensedBuilder() { UsageType = UsageType.PersonalNonCommercial, }
+                    .Build()
+                    .ScopeExtensions(["3g2", "3gp", "avi", "flv", "h264", "m4v", "mkv", "mov", "mp4", "mpg", "mpeg", "ogv", "ogg", "qt", "rm", "swf", "vob", "wmv", "webm"])
+                    .TrimMeta()
+                    .TrimDescription()
+                    .TrimMimeType()
+                    .TrimCategories()
+                    .GroupBy(a => a.File.Extensions[0])
+                    .Select(groupBy => new Definition()
+                    {
+                        File = new()
+                        {
+                            Extensions = [groupBy.Key],
+                        },
+                        Meta = null,
+                        Signature = new()
+                        {
+                            Prefix = groupBy.SelectMany(a => a.Signature.Prefix).Distinct().ToImmutableArray(),
+                            Strings = groupBy.SelectMany(a => a.Signature.Strings).Distinct().ToImmutableArray(),
+                        },
+                    })
+                    .ToImmutableArray(),
+            }.Build();
+
+            _loaded = true;
         }
 
         UpdateProviders(false);
@@ -131,6 +167,8 @@ public class VideoHashingService(
 
         Ready?.Invoke(this, EventArgs.Empty);
     }
+
+    #endregion
 
     #region Providers
 
@@ -169,8 +207,7 @@ public class VideoHashingService(
     public HashProviderInfo GetProviderInfo(IHashProvider provider)
     {
         ArgumentNullException.ThrowIfNull(provider);
-        if (!_loaded)
-            throw new InvalidOperationException("Providers have not been added yet.");
+        EnsureLoaded();
 
         return GetProviderInfo(GetID(provider.GetType()))
             ?? throw new ArgumentException($"Unregistered provider: '{provider.GetType().Name}'", nameof(provider));
@@ -178,8 +215,7 @@ public class VideoHashingService(
 
     public HashProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IHashProvider
     {
-        if (!_loaded)
-            throw new InvalidOperationException("Providers have not been added yet.");
+        EnsureLoaded();
 
         return GetProviderInfo(GetID(typeof(TProvider)))
             ?? throw new ArgumentException($"Unregistered provider: '{typeof(TProvider).Name}'", nameof(TProvider));
@@ -204,8 +240,7 @@ public class VideoHashingService(
 
     private void UpdateProviders(bool fireEvent, params HashProviderInfo[] providers)
     {
-        if (!_loaded)
-            return;
+        EnsureLoaded();
 
         var existingProviders = GetAvailableProviders().ToList();
         foreach (var providerInfo in providers)
@@ -284,6 +319,7 @@ public class VideoHashingService(
 
     public async Task<HashingResult> GetHashesForPath(string path, bool useExistingHashes = true, CancellationToken cancellationToken = default)
     {
+        EnsureLoaded();
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
@@ -298,8 +334,6 @@ public class VideoHashingService(
         var (managedFolder, relativePath) = managedFolderRepository.GetFromAbsolutePath(path);
         if (managedFolder is null || string.IsNullOrEmpty(relativePath))
             throw new InvalidOperationException($"File is outside of any managed folders: {path}");
-
-        // TODO: CHECK IF THE PATH IS ACTUALLY A VIDEO BEFORE PROCEEDING
 
         VideoLocal? video = null;
         var videoLocation = locationRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID);
@@ -355,6 +389,7 @@ public class VideoHashingService(
 
     public async Task ScheduleGetHashesForPath(string path, bool useExistingHashes = true, bool prioritize = false)
     {
+        EnsureLoaded();
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
@@ -370,7 +405,9 @@ public class VideoHashingService(
         if (managedFolder is null || string.IsNullOrEmpty(relativePath))
             throw new InvalidOperationException($"File is outside of any managed folders: {path}");
 
-        // TODO: CHECK IF THE PATH IS ACTUALLY A VIDEO BEFORE PROCEEDING
+        // Verify that the _unknown_ file we're going to hash is, in fact, a video file.
+        if (locationRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID) is null && !IsVideoFile(resolvedPath))
+            throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
 
         var scheduler = await schedulerFactory.GetScheduler();
         if (prioritize)
@@ -381,6 +418,7 @@ public class VideoHashingService(
 
     public async Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, CancellationToken cancellationToken = default)
     {
+        EnsureLoaded();
         var path = file.Path;
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
@@ -404,6 +442,7 @@ public class VideoHashingService(
 
     public async Task ScheduleGetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool prioritize = false)
     {
+        EnsureLoaded();
         var path = file.Path;
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
@@ -425,6 +464,15 @@ public class VideoHashingService(
 
     #region Internals
 
+    private void EnsureLoaded()
+    {
+        if (!_loaded)
+            throw new InvalidOperationException("Providers have not been added yet.");
+    }
+
+    private bool IsVideoFile(string path)
+        => _contentInspector!.Inspect(path, ContentReader.Min).Length > 0;
+
     private async Task<HashingResult> GetHashesForVideo(VideoLocal video, VideoLocal_Place videoLocation, ShokoManagedFolder folder, bool useExistingHashes, CancellationToken cancellationToken = default)
     {
         var originalPath = Path.Join(folder.Path, videoLocation.RelativePath);
@@ -436,6 +484,10 @@ public class VideoHashingService(
         var fileSize = GetFileSize(originalPath, resolvedPath, ref e);
         if (fileSize is 0)
             throw new UnauthorizedAccessException($"Could not access file to read file size or file size is 0: {resolvedPath}", e);
+
+        // Verify that the _unknown_ file we're going to hash is, in fact, a video file.
+        if (!IsVideoFile(resolvedPath))
+            throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
 
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
         var hashes = await GetHashesForFile(new FileInfo(resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
