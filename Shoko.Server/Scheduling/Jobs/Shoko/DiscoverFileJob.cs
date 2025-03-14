@@ -90,7 +90,7 @@ public class DiscoverFileJob : BaseJob
         }
 
         var enabledHashes = _videoHashingService.AllEnabledHashTypes;
-        var shouldHash = vlocal.Hashes is { } hashes && (hashes.Count == 0 || vlocal.Hashes.Any(a => !enabledHashes.Contains(a.Type)));
+        var shouldHash = string.IsNullOrEmpty(vlocal.Hash) || (vlocal.Hashes is { } hashes && (hashes.Count == 0 || enabledHashes.Any(a => !hashes.Any(b => b.Type == a))));
         var scheduler = await _schedulerFactory.GetScheduler();
 
         // if !shouldHash, then we definitely have a hash
