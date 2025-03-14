@@ -754,7 +754,6 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 if (!propertyDict.TryGetValue(propertyKey, out var propertyDefinition))
                     continue;
 
-
                 if (propertyDefinition.TryGetValue("label", out var propertyLabel
                 ))
                 {
@@ -1010,7 +1009,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 }
 
                 uiDict.Add("elementType", "section-container");
-                if (contextualType.GetAttribute<SectionTypeAttribute>(false) is { } sectionTypeAttribute)
+                if (contextualType.GetAttribute<SectionAttribute>(false) is { } sectionTypeAttribute)
                     uiDict.Add("sectionType", sectionTypeAttribute.SectionType.ToString().ToLower() switch { "fieldset" => "field-set", string def => def });
                 else
                     uiDict.Add("sectionType", "field-set");
