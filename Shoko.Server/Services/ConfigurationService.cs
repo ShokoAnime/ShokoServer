@@ -22,6 +22,7 @@ using NJsonSchema.Validation;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Attributes;
+using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Plugin;
@@ -817,6 +818,8 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             if (!_schemaCache[schemaKey].PropertyUIDefinitions.TryAdd(propertyKey, uiDict))
                 uiDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey];
 
+            uiDict.TryAdd("elementType", "auto");
+            uiDict.TryAdd("elementSize", Convert(DisplayElementSize.Default));
             if (info.GetAttribute<KeyAttribute>(false) is { })
                 uiDict.Add("primaryKey", true);
 
@@ -829,19 +832,20 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             {
                 var visibilityDict = new Dictionary<string, object?>()
                 {
-                    { "default", visibilityAttribute.Visibility.ToString().ToLower() switch { "readonly" => "read-only", string def => def } },
+                    { "default", Convert(visibilityAttribute.Visibility) },
                 };
                 if (visibilityAttribute.HasToggle)
                 {
                     var toggleDict = new Dictionary<string, object?>()
                     {
                         { "path", visibilityAttribute.ToggleWhenMemberIsSet },
-                        { "value", Convert(_currentType!, visibilityAttribute.ToggleWhenSetTo) },
-                        { "visibility", visibilityAttribute.ToggleVisibilityTo.ToString().ToLower() switch { "readonly" => "read-only", string def => def } }
+                        { "value", Convert(visibilityAttribute.ToggleWhenSetTo, _currentType!) },
+                        { "visibility", Convert(visibilityAttribute.ToggleVisibilityTo) },
                     };
                     visibilityDict.Add("toggle", toggleDict);
                 }
                 uiDict.Add("visibility", visibilityDict);
+                uiDict["elementSize"] = Convert(visibilityAttribute.Size);
             }
 
             if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
@@ -849,7 +853,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 var badgeDict = new Dictionary<string, object?>
                 {
                     { "name", badgeAttribute.Name },
-                    { "theme", JsonConvert.DeserializeObject<string?>(JsonConvert.SerializeObject(badgeAttribute.Theme, Formatting.None, _newtonsoftJsonSerializerSettings)) }
+                    { "theme", Convert(badgeAttribute.Theme) },
                 };
                 uiDict.Add("badge", badgeDict);
             }
@@ -881,17 +885,17 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                         { "value", value },
                     });
                 }
-                uiDict.Add("elementType", "enum");
+                uiDict["elementType"] = "enum";
                 uiDict.Add("enumDefinitions", enumList);
                 uiDict.Add("enumIsFlag", schema.IsFlagEnumerable);
             }
             else if (schema.Item is { } itemSchema)
             {
-                uiDict.Add("elementType", "list");
+                uiDict["elementType"] = "list";
                 uiDict.Add("listElementType", "auto");
                 if (info.GetAttribute<ListAttribute>(false) is { } listAttribute)
                 {
-                    uiDict.Add("listType", listAttribute.ListType.ToString().ToLower());
+                    uiDict.Add("listType", Convert(listAttribute.ListType));
                     uiDict.Add("listSortable", listAttribute.Sortable);
                     uiDict.Add("listUniqueItems", listAttribute.UniqueItems);
                 }
@@ -935,20 +939,16 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             }
             else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
             {
-                uiDict.Add("elementType", "code-block");
-                uiDict.Add("codeLanguage", codeBlockAttribute.Language.ToString());
+                uiDict["elementType"] = "code-block";
+                uiDict["codeLanguage"] = Convert(codeBlockAttribute.Language);
             }
             else if (info.GetAttribute<TextAreaAttribute>(false) is not null)
             {
-                uiDict.Add("elementType", "text-area");
+                uiDict["elementType"] = "text-area";
             }
             else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null)
             {
-                uiDict.Add("elementType", "password");
-            }
-            else
-            {
-                uiDict.TryAdd("elementType", "auto");
+                uiDict["elementType"] = "password";
             }
         }
 
@@ -986,14 +986,15 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                         {
                             { "title", action.Name },
                             { "description", action.Description ?? string.Empty },
-                            { "theme", JsonConvert.DeserializeObject<string?>(JsonConvert.SerializeObject(action.Theme, Formatting.None, _newtonsoftJsonSerializerSettings)) },
+                            { "theme", Convert(action.Theme) },
+                            { "position", Convert(action.Position) },
                         };
                         if (action.HasToggle)
                         {
                             actionDict.Add("toggle", new Dictionary<string, object?>
                             {
                                 { "path", action.ToggleWhenMemberIsSet },
-                                { "value", Convert(_currentType!, action.ToggleWhenSetTo) },
+                                { "value", Convert(action.ToggleWhenSetTo, _currentType!) },
                             });
                             actionDict.Add("hideByDefault", action.HideByDefault);
                         }
@@ -1010,7 +1011,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
                 uiDict.Add("elementType", "section-container");
                 if (contextualType.GetAttribute<SectionAttribute>(false) is { } sectionTypeAttribute)
-                    uiDict.Add("sectionType", sectionTypeAttribute.SectionType.ToString().ToLower() switch { "fieldset" => "field-set", string def => def });
+                    uiDict.Add("sectionType", Convert(sectionTypeAttribute.SectionType));
                 else
                     uiDict.Add("sectionType", "field-set");
             }
@@ -1097,8 +1098,8 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             : System.Text.Json.JsonSerializer.Serialize(config, _systemTextJsonSerializerOptions)!;
 
     // For the values that needs to be converted by the right library in the right way
-    private JToken? Convert(Type type, object? value)
-        => value is null ? null : type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
+    private JToken? Convert(object? value, Type? type = null)
+        => value is null ? null : type is null || type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JToken.Parse(JsonConvert.SerializeObject(value, Formatting.None, _newtonsoftJsonSerializerSettings))
             : JToken.Parse(System.Text.Json.JsonSerializer.Serialize(value, _systemTextJsonSerializerOptions));
 
