@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.Sqlite;
 using NHibernate.Exceptions;
 using Quartz;
 using Sentry;
@@ -103,6 +104,12 @@ public static class SentryInit
 
             if (_includedEvents.Contains(type)) return true;
             if (type.GetCustomAttribute<SentryIncludeAttribute>() is not null) return true;
+
+            if (ex is GenericADOException adoEx)
+            {
+                // Error codes: https://www.sqlite.org/rescode.html
+                if (adoEx.InnerException is SqliteException { SqliteErrorCode: 14 }) return false;
+            }
 
             if (ex is WebException webEx)
             {
