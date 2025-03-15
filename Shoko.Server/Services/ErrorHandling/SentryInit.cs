@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -60,6 +60,7 @@ public static class SentryInit
     }
 
     private static readonly HashSet<Type> _ignoredEvents = new() {
+        typeof (ObjectAlreadyExistsException),
         typeof(FileNotFoundException),
         typeof(DirectoryNotFoundException),
         typeof(UnauthorizedAccessException),
@@ -95,7 +96,8 @@ public static class SentryInit
             if (ex is null) return false;
 
             var type = ex.GetType();
-            if (_ignoredEvents.Contains(type)) return false;
+            var innerType = ex.InnerException?.GetType();
+            if (_ignoredEvents.Contains(type) || (innerType is not null && _ignoredEvents.Contains(innerType))) return false;
 
             if (type.GetCustomAttribute<SentryIgnoreAttribute>() is not null) return false;
 
