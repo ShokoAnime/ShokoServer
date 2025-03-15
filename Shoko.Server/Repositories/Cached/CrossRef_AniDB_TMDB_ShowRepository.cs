@@ -19,9 +19,9 @@ public class CrossRef_AniDB_TMDB_ShowRepository(DatabaseFactory databaseFactory)
 
     public override void PopulateIndexes()
     {
-        _tmdbShowIDs = new(Cache, a => a.TmdbShowID);
-        _anidbAnimeIDs = new(Cache, a => a.AnidbAnimeID);
-        _pairedIDs = new(Cache, a => (a.AnidbAnimeID, a.TmdbShowID));
+        _tmdbShowIDs = Cache.CreateIndex(a => a.TmdbShowID);
+        _anidbAnimeIDs = Cache.CreateIndex(a => a.AnidbAnimeID);
+        _pairedIDs = Cache.CreateIndex(a => (a.AnidbAnimeID, a.TmdbShowID));
     }
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetByAnidbAnimeID(int animeId)

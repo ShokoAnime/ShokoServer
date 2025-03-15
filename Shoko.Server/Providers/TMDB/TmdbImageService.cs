@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentNHibernate.Data;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;

@@ -35,7 +35,7 @@ public record AutoRelocateRequest
 
     /// <summary>
     /// Indicates that we can relocate a video file that lives inside a
-    /// drop destination import folder that's not also a drop source.
+    /// drop destination managed folder that's not also a drop source.
     /// </summary>
     public bool AllowRelocationInsideDestination { get; set; } = true;
 

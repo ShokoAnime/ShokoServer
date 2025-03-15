@@ -24,12 +24,10 @@ using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB.Input;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.Trakt;
@@ -41,6 +39,7 @@ using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using Shoko.Server.API.v3.Models.TMDB;
+using Shoko.Server.Extensions;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -64,12 +63,11 @@ public class SeriesController : BaseController
 
     private readonly TmdbMetadataService _tmdbMetadataService;
 
-
     private readonly TmdbSearchService _tmdbSearchService;
 
-    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
-
     private readonly IUserDataService _userDataService;
+
+    private readonly IVideoReleaseService _videoReleaseService;
 
     public SeriesController(
         ISettingsProvider settingsProvider,
@@ -80,8 +78,8 @@ public class SeriesController : BaseController
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
-        CrossRef_File_EpisodeRepository crossRefFileEpisode,
-        IUserDataService userDataService
+        IUserDataService userDataService,
+        IVideoReleaseService videoReleaseService
     ) : base(settingsProvider)
     {
         _seriesService = seriesService;
@@ -91,8 +89,8 @@ public class SeriesController : BaseController
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
-        _crossRefFileEpisode = crossRefFileEpisode;
         _userDataService = userDataService;
+        _videoReleaseService = videoReleaseService;
     }
 
     #region Return messages
@@ -387,8 +385,7 @@ public class SeriesController : BaseController
     {
         var user = User;
         var query = RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && _crossRefFileEpisode.GetByAnimeID(series.AniDB_ID).Where(a => a.VideoLocal != null)
-                .Any(a => a.CrossRefSource == (int)CrossRefSource.User));
+            .Where(series => user.AllowedSeries(series) && series.VideoLocals.Count > 0);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
@@ -685,7 +682,7 @@ public class SeriesController : BaseController
     {
         startDate = startDate?.ToLocalTime();
         endDate = endDate?.ToLocalTime();
-        IEnumerable<SVR_VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
+        IEnumerable<VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
         if (startDate.HasValue && endDate.HasValue)
         {
             userDataQuery = userDataQuery
@@ -2052,7 +2049,7 @@ public class SeriesController : BaseController
                     // If we should hide manually linked episodes and the episode is manually linked, then hide it.
                     // Or if we should only show manually linked episodes and the episode is not manually linked, then hide it.
                     var shouldHideManuallyLinked = includeManuallyLinked == IncludeOnlyFilter.False;
-                    var isManuallyLinked = shoko.FileCrossReferences.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB);
+                    var isManuallyLinked = shoko.VideoLocals.Count > 0;
                     if (shouldHideManuallyLinked == isManuallyLinked)
                         return false;
                 }
@@ -2306,6 +2303,9 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return ValidationProblem("Release auto-matching is currently disabled.", "IVideoReleaseService");
+
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
@@ -2313,14 +2313,14 @@ public class SeriesController : BaseController
                 await scheduler.StartJobNow<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
             else
                 await scheduler.StartJob<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
-                        c.ForceAniDB = true;
+                        c.ForceRecheck = true;
                     }
                 );
         }
@@ -2347,7 +2347,7 @@ public class SeriesController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
-            var filePath = file.FirstResolvedPlace?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
@@ -2385,7 +2385,7 @@ public class SeriesController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
-            var filePath = file.FirstResolvedPlace?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
@@ -2911,11 +2911,11 @@ public class SeriesController : BaseController
         return _titleHelper.SearchTitle(query, fuzzy)
             .Select(result =>
             {
-                var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
+                var series = RepoFactory.AnimeSeries.GetByAnimeID(result.Result.AnimeID);
                 if (local.HasValue && series is null == local.Value)
                     return null;
 
-                return new AnidbAnime(result, series, includeTitles);
+                return new AnidbAnime(result.Result, series, includeTitles);
             })
             .WhereNotNull()
             .ToListResult(page, pageSize);
@@ -2981,12 +2981,12 @@ public class SeriesController : BaseController
 
         query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar)
             .TrimEnd(Path.DirectorySeparatorChar);
-        // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
+        // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing managed folders
         return RepoFactory.VideoLocalPlace.GetAll()
             .Where(a =>
             {
-                if (a.FullServerPath == null) return false;
-                var dir = Path.GetDirectoryName(a.FullServerPath);
+                if (a.Path == null) return false;
+                var dir = Path.GetDirectoryName(a.Path);
                 return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
             })
             .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<SVR_AnimeEpisode>())

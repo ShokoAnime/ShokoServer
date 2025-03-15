@@ -20,25 +20,6 @@ public interface IShokoEventHandler
     event EventHandler<FileDetectedEventArgs> FileDetected;
 
     /// <summary>
-    /// Fired when a file is hashed. Has hashes and stuff.
-    /// </summary>
-    event EventHandler<FileEventArgs> FileHashed;
-
-    /// <summary>
-    /// Fired when a file is scanned but no changes to the cross-reference
-    /// were made. It can be because the file is unrecognized, or because
-    /// there was no changes to the existing cross-references linked to the
-    /// file.
-    /// </summary>
-    event EventHandler<FileNotMatchedEventArgs> FileNotMatched;
-
-    /// <summary>
-    /// Fired when a cross reference is made and data is gathered for a file. This has most if not all relevant data for a file.
-    /// Use <see cref="EpisodeUpdated"/> with a filter on the data source to ensure the desired data is gathered.
-    /// </summary>
-    event EventHandler<FileEventArgs> FileMatched;
-
-    /// <summary>
     /// Fired when a file is renamed
     /// </summary>
     event EventHandler<FileRenamedEventArgs> FileRenamed;
@@ -47,11 +28,6 @@ public interface IShokoEventHandler
     /// Fired when a file is moved
     /// </summary>
     event EventHandler<FileMovedEventArgs> FileMoved;
-
-    /// <summary>
-    /// Fired when an AniDB Ban happens...and it will.
-    /// </summary>
-    event EventHandler<AniDBBannedEventArgs> AniDBBanned;
 
     /// <summary>
     /// Fired on series info updates. Currently, AniDB, TMDB, etc will trigger this.
@@ -69,12 +45,12 @@ public interface IShokoEventHandler
     event EventHandler<MovieInfoUpdatedEventArgs> MovieUpdated;
 
     /// <summary>
-    /// Fired when the core settings has been saved.
+    /// Fired when the the server has fully started and all services are usable.
     /// </summary>
-    event EventHandler<SettingsSavedEventArgs> SettingsSaved;
+    event EventHandler Started;
 
     /// <summary>
-    /// Fired when an avdump event occurs.
+    /// Fired when the the server is shutting down.
     /// </summary>
-    event EventHandler<AVDumpEventArgs> AVDumpEvent;
+    event EventHandler Shutdown;
 }

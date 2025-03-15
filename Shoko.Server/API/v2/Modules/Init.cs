@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,14 +33,15 @@ namespace Shoko.Server.API.v2.Modules;
 public class Init : BaseController
 {
     private readonly ILogger<Init> _logger;
-    private readonly IServerSettings _settings;
-    private readonly ShokoServer _shokoServer;
 
-    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider, ShokoServer shokoServer) : base(settingsProvider)
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
+
+    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
-        _shokoServer = shokoServer;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
     }
 
     /// <summary>
@@ -276,8 +275,6 @@ public class Init : BaseController
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
         handler.CloseConnections();
-
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
         handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,

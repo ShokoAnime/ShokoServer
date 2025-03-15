@@ -10,6 +10,7 @@ using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -27,6 +28,7 @@ using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
@@ -36,6 +38,9 @@ public class ActionService(
     ISchedulerFactory _schedulerFactory,
     IRequestFactory _requestFactory,
     ISettingsProvider _settingsProvider,
+    IVideoReleaseService _videoReleaseService,
+    IAniDBService _anidbService,
+    VideoLocalService _videoService,
     VideoLocal_PlaceService _placeService,
     TmdbMetadataService _tmdbService,
     AnimeSeriesService _seriesService,
@@ -50,14 +55,14 @@ public class ActionService(
         // files which have not been hashed yet
         // or files which do not have a VideoInfo record
         var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
-        var dictFilesToHash = new Dictionary<int, SVR_VideoLocal>();
+        var dictFilesToHash = new Dictionary<int, VideoLocal>();
         foreach (var vl in filesToHash)
         {
             dictFilesToHash[vl.VideoLocalID] = vl;
             var p = vl.FirstResolvedPlace;
             if (p == null) continue;
 
-            await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
+            await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
         }
 
         foreach (var vl in filesToHash)
@@ -70,13 +75,16 @@ public class ActionService(
                 var p = vl.FirstResolvedPlace;
                 if (p == null) continue;
 
-                await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
+                await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
             }
             catch (Exception ex)
             {
                 _logger.LogInformation("Error RunImport_IntegrityCheck XREF: {Detailed} - {Ex}", vl.ToStringDetailed(), ex.ToString());
             }
         }
+
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return;
 
         // files which have been hashed, but don't have an associated episode
         var settings = _settingsProvider.GetSettings();
@@ -85,7 +93,7 @@ public class ActionService(
         {
             if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+                var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                 if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                     continue;
             }
@@ -94,7 +102,7 @@ public class ActionService(
                 c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 }
             );
         }
@@ -107,27 +115,27 @@ public class ActionService(
         }
     }
 
-    public Task RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
-        => RunImport_DetectFiles(skipMyList: skipMyList, importFolderIDs: [importFolderID]);
+    public Task RunImport_ScanFolder(int folderID)
+        => RunImport_DetectFiles(folderIDs: [folderID]);
 
-    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, bool skipMyList = false, IEnumerable<int> importFolderIDs = null)
+    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, IEnumerable<int> folderIDs = null)
     {
-        IReadOnlyList<SVR_ImportFolder> importFolders;
-        IEnumerable<SVR_VideoLocal_Place> locationsToCheck;
-        if (importFolderIDs is null)
+        IReadOnlyList<ShokoManagedFolder> managedFolders;
+        IEnumerable<VideoLocal_Place> locationsToCheck;
+        if (folderIDs is null)
         {
-            importFolders = RepoFactory.ImportFolder.GetAll();
+            managedFolders = RepoFactory.ShokoManagedFolder.GetAll();
             locationsToCheck = RepoFactory.VideoLocalPlace.GetAll();
         }
         else
         {
-            importFolders = importFolderIDs
-                .Select(RepoFactory.ImportFolder.GetByID)
+            managedFolders = folderIDs
+                .Select(RepoFactory.ShokoManagedFolder.GetByID)
                 .WhereNotNull()
                 .ToList();
-            locationsToCheck = importFolders.SelectMany(a => a.Places);
+            locationsToCheck = managedFolders.SelectMany(a => a.Places);
         }
-        if (importFolders.Count is 0)
+        if (managedFolders.Count is 0)
             return;
 
         var existingFiles = new HashSet<string>();
@@ -135,9 +143,9 @@ public class ActionService(
         {
             try
             {
-                if (location.FullServerPath is not { Length: > 0 } path)
+                if (location.Path is not { Length: > 0 } path)
                 {
-                    _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ImportFolder={ImportFolderID})", location.FilePath, location.VideoLocalID, location.VideoLocal_Place_ID, location.ImportFolderID);
+                    _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
                     await _placeService.RemoveRecord(location);
                     continue;
                 }
@@ -146,7 +154,7 @@ public class ActionService(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An exception occurred while processing VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ImportFolder={ImportFolderID})", location.FilePath, location.VideoLocalID, location.VideoLocal_Place_ID, location.ImportFolderID);
+                _logger.LogError(ex, "An exception occurred while processing VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
             }
         }
 
@@ -154,14 +162,14 @@ public class ActionService(
         var videosFound = 0;
         var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos()
             .SelectMany(a => a.Places)
-            .Select(a => a.FullServerPath)
+            .Select(a => a.Path)
             .Where(a => !string.IsNullOrEmpty(a))
             .ToList();
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var folder in importFolders)
+        foreach (var folder in managedFolders)
         {
-            if (onlyInSourceFolders && !folder.FolderIsDropSource)
+            if (onlyInSourceFolders && !folder.IsDropSource)
                 continue;
 
             var files = folder.Files
@@ -181,7 +189,7 @@ public class ActionService(
             foreach (var fileName in files)
             {
                 if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
-                    _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.ImportFolderName, fileName);
+                    _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
 
                 if (!Utils.IsVideo(fileName))
                     continue;
@@ -193,7 +201,6 @@ public class ActionService(
                 await scheduler.StartJob<DiscoverFileJob>(a =>
                 {
                     a.FilePath = fileName;
-                    a.SkipMyList = skipMyList;
                 });
             }
         }
@@ -477,20 +484,9 @@ public class ActionService(
 
     public async Task RunImport_UpdateAllAniDB()
     {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate;
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-        {
-            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = anime.AnimeID;
-                c.ForceRefresh = true;
-                c.CacheOnly = false;
-                c.DownloadRelations = false;
-                c.CreateSeriesEntry = false;
-                c.SkipTmdbUpdate = true;
-            });
-        }
+            await _anidbService.ScheduleRefresh(anime, refreshMethod).ConfigureAwait(false);
     }
 
     public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
@@ -500,17 +496,17 @@ public class ActionService(
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
         using var session = _databaseFactory.SessionFactory.OpenSession();
 
-        // remove missing files in valid import folders
+        // remove missing files in valid managed folders
         var filesAll = RepoFactory.VideoLocalPlace.GetAll()
-            .Where(a => a.ImportFolder != null)
-            .GroupBy(a => a.ImportFolder)
+            .Where(a => a.ManagedFolder != null)
+            .GroupBy(a => a.ManagedFolder)
             .ToDictionary(a => a.Key, a => a.ToList());
         foreach (var vl in filesAll.Keys.SelectMany(a => filesAll[a]))
         {
-            if (File.Exists(vl.FullServerPath)) continue;
+            if (File.Exists(vl.Path)) continue;
 
             // delete video local record
-            _logger.LogInformation("Removing Missing File: {ID}", vl.VideoLocalID);
+            _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
             await _placeService.RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMyList);
         }
 
@@ -528,7 +524,7 @@ public class ActionService(
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
-        var toRemove = new List<SVR_VideoLocal>();
+        var toRemove = new List<VideoLocal>();
         var comparer = new VideoLocalComparer();
 
         foreach (var hash in locals.Keys)
@@ -544,7 +540,7 @@ public class ActionService(
                     using var transaction = s.BeginTransaction();
                     foreach (var place in ps)
                     {
-                        place.VideoLocalID = to.VideoLocalID;
+                        place.VideoID = to.VideoLocalID;
                         RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(s, place);
                     }
 
@@ -566,7 +562,7 @@ public class ActionService(
             transaction.Commit();
         });
 
-        // Remove files in invalid import folders
+        // Remove files in invalid managed folders
         foreach (var v in videoLocalsAll)
         {
             var places = v.Places;
@@ -575,10 +571,10 @@ public class ActionService(
                 BaseRepository.Lock(session, places, (s, ps) =>
                 {
                     using var transaction = s.BeginTransaction();
-                    foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
+                    foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
                     {
 #pragma warning disable CS0618
-                        _logger.LogInformation("RemoveRecordsWithOrphanedImportFolder : {Filename}", v.FileName);
+                        _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
 #pragma warning restore CS0618
                         seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                             .DistinctBy(a => a.AnimeSeriesID));
@@ -595,7 +591,7 @@ public class ActionService(
 
             if (places?.Count > 0)
             {
-                places = places.DistinctBy(a => a.FullServerPath).ToList();
+                places = places.DistinctBy(a => a.Path).ToList();
                 places = v.Places?.Except(places).ToList() ?? [];
                 foreach (var place in places)
                 {
@@ -618,39 +614,7 @@ public class ActionService(
                 .DistinctBy(a => a.AnimeSeriesID));
 
             if (removeMyList)
-            {
-                if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
-                {
-                    var xrefs = v.EpisodeCrossReferences;
-                    foreach (var xref in xrefs)
-                    {
-                        if (xref.AnimeID is 0)
-                            continue;
-
-                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep == null)
-                        {
-                            continue;
-                        }
-
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.AnimeID = xref.AnimeID;
-                            c.EpisodeType = ep.EpisodeTypeEnum;
-                            c.EpisodeNumber = ep.EpisodeNumber;
-                        });
-                    }
-                }
-                else
-                {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.Hash = v.Hash;
-                            c.FileSize = v.FileSize;
-                        }
-                    );
-                }
-            }
+                await _videoService.ScheduleRemovalFromMyList(v);
 
             BaseRepository.Lock(session, v, (s, vl) =>
             {
@@ -697,21 +661,18 @@ public class ActionService(
         _logger.LogInformation("Remove Missing Files: Finished");
     }
 
-    public async Task<string> DeleteImportFolder(int importFolderID, bool removeFromMyList = true)
+    public async Task<string> DeleteManagedFolder(int folderID, bool removeFromMyList = true)
     {
         try
         {
             var affectedSeries = new HashSet<SVR_AnimeSeries>();
-            var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
+            var vids = RepoFactory.VideoLocalPlace.GetByManagedFolderID(folderID);
             _logger.LogInformation("Deleting {VidsCount} video local records", vids.Count);
             using var session = _databaseFactory.SessionFactory.OpenSession();
             foreach (var vid in vids)
-            {
                 await _placeService.RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeFromMyList);
-            }
 
-            // delete the import folder
-            RepoFactory.ImportFolder.Delete(importFolderID);
+            RepoFactory.ShokoManagedFolder.Delete(folderID);
 
             var scheduler = await _schedulerFactory.GetScheduler();
             await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
@@ -731,57 +692,50 @@ public class ActionService(
         await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task<int> UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)
+    public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var vidsToUpdate = new HashSet<int>();
-        var groupsToUpdate = new HashSet<int>();
-        if (outOfDate)
-        {
-            var files = RepoFactory.VideoLocal.GetByInternalVersion(1);
+        var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
+            .Where(r =>
+                !string.IsNullOrEmpty(r.GroupID) &&
+                r.GroupSource is "AniDB" &&
+                int.TryParse(r.GroupID, out var groupID) && (
+                    string.IsNullOrEmpty(r.GroupName) ||
+                    string.IsNullOrEmpty(r.GroupShortName)
+                )
+            )
+            .DistinctBy(a => a.GroupID)
+            .Select(a => int.Parse(a.GroupID))
+            .ToHashSet();
+        var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : RepoFactory.StoredReleaseInfo.GetAll()
+            .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
+            .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
+            .WhereNotNull()
+            .Select(a => a.VideoLocalID)
+            .ToList();
 
-            foreach (var file in files)
+        if (!countOnly)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+
+            _logger.LogInformation("Queuing {Count} GetFile commands", missingFiles.Count);
+            foreach (var id in missingFiles)
             {
-                vidsToUpdate.Add(file.VideoLocalID);
-            }
-        }
-
-        if (missingInfo)
-        {
-            var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll().Select(group => group.GroupID).ToHashSet();
-            var missingGroups = RepoFactory.AniDB_File.GetAll().Select(a => a.GroupID).Where(a => a != 0 && !anidbReleaseGroupIDs.Contains(a)).ToList();
-            groupsToUpdate.UnionWith(missingGroups);
-
-            var missingFiles = RepoFactory.AniDB_File.GetAll()
-                .Where(a => a.GroupID == 0)
-                .Select(a => RepoFactory.VideoLocal.GetByEd2k(a.Hash))
-                .Where(f => f != null)
-                .Select(a => a.VideoLocalID)
-                .ToList();
-            vidsToUpdate.UnionWith(missingFiles);
-        }
-
-        if (!dryRun)
-        {
-            _logger.LogInformation("Queuing {Count} GetFile commands", vidsToUpdate.Count);
-            foreach (var id in vidsToUpdate)
-            {
-                await scheduler.StartJob<GetAniDBFileJob>(c =>
+                await scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = id;
-                    c.ForceAniDB = true;
+                    c.ForceRecheck = true;
                 });
             }
 
-            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", groupsToUpdate.Count);
-            foreach (var a in groupsToUpdate)
+            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
+            foreach (var a in incorrectGroups)
             {
                 await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
             }
         }
 
-        return vidsToUpdate.Count;
+        return missingFiles.Count;
     }
 
     public async Task CheckForUnreadNotifications(bool ignoreSchedule)
@@ -967,26 +921,26 @@ public class ActionService(
         }
 
         // files which have been hashed, but don't have an associated episode
-        var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-        foreach (var vl in filesWithoutEpisode)
+        if (_videoReleaseService.AutoMatchEnabled)
         {
-            if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
+            var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            foreach (var vl in filesWithoutEpisode)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
-                if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                    continue;
-            }
-
-            await scheduler.StartJob<ProcessFileJob>(c =>
+                if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
                 {
-                    c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
+                    var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
+                    if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
+                        continue;
                 }
-            );
+
+                await scheduler.StartJob<ProcessFileJob>(c =>
+                    {
+                        c.VideoLocalID = vl.VideoLocalID;
+                        c.ForceRecheck = true;
+                    }
+                );
+            }
         }
-
-        // now check for any files which have been manually linked and are less than 30 days old
-
 
         schedule ??= new ScheduledUpdate
         {
@@ -1003,7 +957,7 @@ public class ActionService(
         try
         {
             var filesAll = RepoFactory.VideoLocal.GetAll();
-            IReadOnlyList<SVR_VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+            IReadOnlyList<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
 
             foreach (var vl in filesAll)
             {

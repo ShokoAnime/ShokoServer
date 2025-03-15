@@ -9,20 +9,19 @@ using Microsoft.Extensions.Logging;
 using NHibernate;
 using Polly;
 using Quartz;
-using Shoko.Models.MediaInfo;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper.Subtitles;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.MediaInfo.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services.Ogg;
 using Shoko.Server.Utilities;
 
@@ -39,16 +38,25 @@ public class VideoLocal_PlaceService
     private readonly DatabaseFactory _databaseFactory;
     private readonly FileWatcherService _fileWatcherService;
     private readonly RenameFileService _renameFileService;
-    private readonly AniDB_FileRepository _aniDBFile;
-    private readonly AniDB_EpisodeRepository _aniDBEpisode;
-    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisode;
+    private readonly VideoLocalService _videoLocalService;
+    private readonly RenamerConfigRepository _renamerConfig;
+    private readonly FileNameHashRepository _fileNameHash;
     private readonly VideoLocalRepository _videoLocal;
     private readonly VideoLocal_PlaceRepository _videoLocalPlace;
 
-    public VideoLocal_PlaceService(ILogger<VideoLocal_PlaceService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory,
-        FileWatcherService fileWatcherService, VideoLocalRepository videoLocal, VideoLocal_PlaceRepository videoLocalPlace,
-        CrossRef_File_EpisodeRepository crossRefFileEpisode, AniDB_FileRepository aniDBFile, AniDB_EpisodeRepository aniDBEpisode,
-        DatabaseFactory databaseFactory, RenameFileService renameFileService)
+    public VideoLocal_PlaceService(
+        ILogger<VideoLocal_PlaceService> logger,
+        ISettingsProvider settingsProvider,
+        ISchedulerFactory schedulerFactory,
+        FileWatcherService fileWatcherService,
+        VideoLocalRepository videoLocal,
+        VideoLocal_PlaceRepository videoLocalPlace,
+        RenamerConfigRepository renamerConfig,
+        FileNameHashRepository fileNameHash,
+        DatabaseFactory databaseFactory,
+        RenameFileService renameFileService,
+        VideoLocalService videoLocalService
+    )
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
@@ -56,11 +64,11 @@ public class VideoLocal_PlaceService
         _fileWatcherService = fileWatcherService;
         _videoLocal = videoLocal;
         _videoLocalPlace = videoLocalPlace;
-        _crossRefFileEpisode = crossRefFileEpisode;
-        _aniDBFile = aniDBFile;
-        _aniDBEpisode = aniDBEpisode;
+        _renamerConfig = renamerConfig;
+        _fileNameHash = fileNameHash;
         _databaseFactory = databaseFactory;
         _renameFileService = renameFileService;
+        _videoLocalService = videoLocalService;
     }
 
     #region Relocation (Move & Rename)
@@ -78,52 +86,52 @@ public class VideoLocal_PlaceService
     /// Relocates a file directly to the specified location based on the given
     /// request.
     /// </summary>
-    /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to relocate.</param>
+    /// <param name="place">The <see cref="VideoLocal_Place"/> to relocate.</param>
     /// <param name="request">The <see cref="DirectRelocateRequest"/> containing
     /// the details for the relocation operation.</param>
     /// <returns>A <see cref="RelocationResult"/> representing the outcome of
     /// the relocation operation.</returns>
-    public async Task<RelocationResult> DirectlyRelocateFile(SVR_VideoLocal_Place place, DirectRelocateRequest request)
+    public async Task<RelocationResult> DirectlyRelocateFile(VideoLocal_Place place, DirectRelocateRequest request)
     {
-        if (request.ImportFolder is null || string.IsNullOrWhiteSpace(request.RelativePath))
+        if (request.ManagedFolder is null || string.IsNullOrWhiteSpace(request.RelativePath))
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = "Invalid request object, import folder, or relative path.",
+                ErrorMessage = "Invalid request object, managed folder, or relative path.",
             };
 
         if (place.VideoLocal is not { } video)
         {
-            _logger.LogWarning("Could not find the associated video for the file location: {LocationID}", place.VideoLocal_Place_ID);
+            _logger.LogWarning("Could not find the associated video for the file location: {LocationID}", place.ID);
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"Could not find the associated video for the file location: {place.VideoLocal_Place_ID}",
+                ErrorMessage = $"Could not find the associated video for the file location: {place.ID}",
             };
         }
 
-        // Sanitize relative path and reject paths leading to outside the import folder.
-        var fullPath = Path.GetFullPath(Path.Combine(request.ImportFolder.Path, request.RelativePath));
-        if (!fullPath.StartsWith(request.ImportFolder.Path, StringComparison.OrdinalIgnoreCase))
+        // Sanitize relative path and reject paths leading to outside the managed folder.
+        var fullPath = Path.GetFullPath(Path.Combine(request.ManagedFolder.Path, request.RelativePath));
+        if (!fullPath.StartsWith(request.ManagedFolder.Path, StringComparison.OrdinalIgnoreCase))
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = "The provided relative path leads outside the import folder.",
+                ErrorMessage = "The provided relative path leads outside the managed folder.",
             };
 
-        var oldRelativePath = place.FilePath;
-        var oldFullPath = place.FullServerPath;
+        var oldRelativePath = place.RelativePath;
+        var oldFullPath = place.Path;
         if (string.IsNullOrWhiteSpace(oldRelativePath) || string.IsNullOrWhiteSpace(oldFullPath))
         {
-            _logger.LogWarning("Could not find or access the file to move: {LocationID}", place.VideoLocal_Place_ID);
+            _logger.LogWarning("Could not find or access the file to move: {LocationID}", place.ID);
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"Could not find or access the file to move: {place.VideoLocal_Place_ID}",
+                ErrorMessage = $"Could not find or access the file to move: {place.ID}",
             };
         }
 
@@ -139,15 +147,15 @@ public class VideoLocal_PlaceService
             };
         }
 
-        var dropFolder = (IImportFolder?)place.ImportFolder;
+        var dropFolder = (IManagedFolder?)place.ManagedFolder;
         if (dropFolder is null)
         {
-            _logger.LogTrace("Unable to find import folder for file with ID {VideoLocal}", place.VideoLocal);
+            _logger.LogTrace("Unable to find managed folder for file with ID {VideoLocal}", place.VideoLocal);
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"Unable to find import folder for file with ID {place.ImportFolderID}.",
+                ErrorMessage = $"Unable to find managed folder for file with ID {place.ManagedFolderID}.",
             };
         }
 
@@ -175,23 +183,23 @@ public class VideoLocal_PlaceService
             };
         }
 
-        // Check if the import folder can accept the file.
+        // Check if the managed folder can accept the file.
         var settings = _settingsProvider.GetSettings();
         var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
-        if (!settings.Import.SkipDiskSpaceChecks && !relocationService.ImportFolderHasSpace(request.ImportFolder, place))
+        if (!settings.Import.SkipDiskSpaceChecks && !relocationService.ManagedFolderHasSpace(request.ManagedFolder, place))
         {
-            _logger.LogWarning("The import folder cannot accept the file due to too little space available: {FilePath}", oldFullPath);
+            _logger.LogWarning("The managed folder cannot accept the file due to too little space available: {FilePath}", oldFullPath);
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"The import folder cannot accept the file due to too little space available: \"{oldFullPath}\"",
+                ErrorMessage = $"The managed folder cannot accept the file due to too little space available: \"{oldFullPath}\"",
             };
         }
 
-        var newRelativePath = Path.GetRelativePath(request.ImportFolder.Path, fullPath);
+        var newRelativePath = Path.GetRelativePath(request.ManagedFolder.Path, fullPath);
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
-        var newFullPath = Path.Combine(request.ImportFolder.Path, newRelativePath);
+        var newFullPath = Path.Combine(request.ManagedFolder.Path, newRelativePath);
         var newFileName = Path.GetFileName(newRelativePath);
         var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.OrdinalIgnoreCase);
         var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
@@ -203,12 +211,12 @@ public class VideoLocal_PlaceService
             return new()
             {
                 Success = true,
-                ImportFolder = request.ImportFolder,
+                ManagedFolder = request.ManagedFolder,
                 RelativePath = newRelativePath,
             };
         }
 
-        var destFullTree = string.IsNullOrEmpty(newFolderPath) ? request.ImportFolder.Path : Path.Combine(request.ImportFolder.Path, newFolderPath);
+        var destFullTree = string.IsNullOrEmpty(newFolderPath) ? request.ManagedFolder.Path : Path.Combine(request.ManagedFolder.Path, newFolderPath);
         if (!Directory.Exists(destFullTree))
         {
             _fileWatcherService.AddFileWatcherExclusion(destFullTree);
@@ -233,7 +241,7 @@ public class VideoLocal_PlaceService
         }
 
         var sourceFile = new FileInfo(oldFullPath);
-        var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath, request.ImportFolder.ID);
+        var destVideoLocalPlace = _videoLocalPlace.GetByRelativePathAndManagedFolderID(newRelativePath, request.ManagedFolder.ID);
         if (File.Exists(newFullPath))
         {
             // A file with the same name exists at the destination.
@@ -262,7 +270,7 @@ public class VideoLocal_PlaceService
                 }
                 catch (Exception e)
                 {
-                    _logger.LogWarning(e, "Unable to DELETE file: {FilePath}\n{ErrorMessage}", place.FullServerPath, e.Message);
+                    _logger.LogWarning(e, "Unable to DELETE file: {FilePath}\n{ErrorMessage}", place.Path, e.Message);
                     await RemoveRecord(place, false);
 
                     if (request.DeleteEmptyDirectories)
@@ -271,39 +279,38 @@ public class VideoLocal_PlaceService
                     {
                         Success = false,
                         ShouldRetry = false,
-                        ErrorMessage = $"Unable to DELETE file: \"{place.FullServerPath}\" error {e}",
+                        ErrorMessage = $"Unable to DELETE file: \"{place.Path}\" error {e}",
                     };
                 }
             }
 
             // Not a dupe, don't delete it
             _logger.LogTrace("A file already exists at the new location, checking it for version and group");
-            var destinationExistingAniDBFile = destVideoLocal.AniDBFile;
-            if (destinationExistingAniDBFile is null)
+            if (destVideoLocal.ReleaseInfo is not { } destinationExistingReleaseInfo)
             {
-                _logger.LogWarning("The existing file at the new location does not have AniDB info. Not moving.");
+                _logger.LogWarning("The existing file at the new location does not have release info. Not moving.");
                 return new()
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = "The existing file at the new location does not have AniDB info. Not moving.",
+                    ErrorMessage = "The existing file at the new location does not have release info. Not moving.",
                 };
             }
 
-            var aniDBFile = video.AniDBFile;
-            if (aniDBFile is null)
+            if (video.ReleaseInfo is not { } releaseInfo)
             {
-                _logger.LogWarning("The file does not have AniDB info. Not moving.");
+                _logger.LogWarning("The file does not have release info. Not moving.");
                 return new()
                 {
                     Success = false,
                     ShouldRetry = false,
-                    ErrorMessage = "The file does not have AniDB info. Not moving.",
+                    ErrorMessage = "The file does not have release info. Not moving.",
                 };
             }
 
-            if (destinationExistingAniDBFile.GroupID == aniDBFile.GroupID &&
-                destinationExistingAniDBFile.FileVersion < aniDBFile.FileVersion)
+            if (destinationExistingReleaseInfo.GroupID == releaseInfo.GroupID &&
+                destinationExistingReleaseInfo.GroupSource == releaseInfo.GroupSource &&
+                destinationExistingReleaseInfo.Revision < releaseInfo.Revision)
             {
                 // This is a V2 replacing a V1 with the same name.
                 // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
@@ -336,9 +343,9 @@ public class VideoLocal_PlaceService
                     _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
                 }
 
-                place.ImportFolderID = request.ImportFolder.ID;
-                place.FilePath = newRelativePath;
-                RepoFactory.VideoLocalPlace.Save(place);
+                place.ManagedFolderID = request.ManagedFolder.ID;
+                place.RelativePath = newRelativePath;
+                _videoLocalPlace.Save(place);
 
                 if (request.DeleteEmptyDirectories)
                 {
@@ -348,7 +355,7 @@ public class VideoLocal_PlaceService
                     /*
                     var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
                    .Select(dirInfo => dirInfo.FullName);
-                    RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
+                    RecursiveDeleteEmptyDirectories(directories, dropFolder.Path);
                     */
                     RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
                 }
@@ -386,9 +393,9 @@ public class VideoLocal_PlaceService
                 _fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
             }
 
-            place.ImportFolderID = request.ImportFolder.ID;
-            place.FilePath = newRelativePath;
-            RepoFactory.VideoLocalPlace.Save(place);
+            place.ManagedFolderID = request.ManagedFolder.ID;
+            place.RelativePath = newRelativePath;
+            _videoLocalPlace.Save(place);
 
             if (request.DeleteEmptyDirectories)
             {
@@ -398,7 +405,7 @@ public class VideoLocal_PlaceService
                 /*
                 var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
                     .Select(dirInfo => dirInfo.FullName);
-                RecursiveDeleteEmptyDirectories(directories, dropFolder.ImportFolderLocation);
+                RecursiveDeleteEmptyDirectories(directories, dropFolder.Path);
                 */
                 RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
             }
@@ -407,14 +414,14 @@ public class VideoLocal_PlaceService
         if (renamed)
         {
             // Add a new or update an existing lookup entry.
-            var existingEntries = RepoFactory.FileNameHash.GetByHash(video.Hash);
+            var existingEntries = _fileNameHash.GetByHash(video.Hash);
             if (!existingEntries.Any(a => a.FileName.Equals(newFileName)))
             {
-                var hash = RepoFactory.FileNameHash.GetByFileNameAndSize(newFileName, video.FileSize).FirstOrDefault() ??
+                var hash = _fileNameHash.GetByFileNameAndSize(newFileName, video.FileSize).FirstOrDefault() ??
                     new() { FileName = newFileName, FileSize = video.FileSize };
                 hash.DateTimeUpdated = DateTime.Now;
                 hash.Hash = video.Hash;
-                RepoFactory.FileNameHash.Save(hash);
+                _fileNameHash.Save(hash);
             }
         }
 
@@ -423,15 +430,15 @@ public class VideoLocal_PlaceService
 
         // Fire off the moved/renamed event depending on what was done.
         if (renamed && !moved)
-            ShokoEventHandler.Instance.OnFileRenamed(request.ImportFolder, Path.GetFileName(oldRelativePath), newFileName, place);
+            ShokoEventHandler.Instance.OnFileRenamed(request.ManagedFolder, Path.GetFileName(oldRelativePath), newFileName, place);
         else
-            ShokoEventHandler.Instance.OnFileMoved(dropFolder, request.ImportFolder, oldRelativePath, newRelativePath, place);
+            ShokoEventHandler.Instance.OnFileMoved(dropFolder, request.ManagedFolder, oldRelativePath, newRelativePath, place);
 
         return new()
         {
             Success = true,
             ShouldRetry = false,
-            ImportFolder = request.ImportFolder,
+            ManagedFolder = request.ManagedFolder,
             RelativePath = newRelativePath,
             Moved = moved,
             Renamed = renamed,
@@ -442,12 +449,12 @@ public class VideoLocal_PlaceService
     /// Automatically relocates a file using the specified relocation request or
     /// default settings.
     /// </summary>
-    /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to relocate.</param>
+    /// <param name="place">The <see cref="VideoLocal_Place"/> to relocate.</param>
     /// <param name="request">The <see cref="AutoRelocateRequest"/> containing
     /// the details for the relocation operation, or null for default settings.</param>
     /// <returns>A <see cref="RelocationResult"/> representing the outcome of
     /// the relocation operation.</returns>
-    public async Task<RelocationResult> AutoRelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest? request = null)
+    public async Task<RelocationResult> AutoRelocateFile(VideoLocal_Place place, AutoRelocateRequest? request = null)
     {
         // Allows calling the method without any parameters.
         var settings = _settingsProvider.GetSettings();
@@ -458,7 +465,7 @@ public class VideoLocal_PlaceService
             Rename = settings.Plugins.Renamer.RenameOnImport,
             DeleteEmptyDirectories = settings.Plugins.Renamer.MoveOnImport,
             AllowRelocationInsideDestination = settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport,
-            Renamer = RepoFactory.RenamerConfig.GetByName(settings.Plugins.Renamer.DefaultRenamer),
+            Renamer = _renamerConfig.GetByName(settings.Plugins.Renamer.DefaultRenamer),
         };
 
         if (request is { Preview: true, Renamer: null })
@@ -478,14 +485,14 @@ public class VideoLocal_PlaceService
             };
 
         // make sure we can find the file
-        var previousLocation = place.FullServerPath;
-        if (!File.Exists(place.FullServerPath))
+        var previousLocation = place.Path;
+        if (!File.Exists(place.Path))
         {
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"Could not find or access the file to move: {place.FileName} ({place.VideoLocal_Place_ID})"
+                ErrorMessage = $"Could not find or access the file to move: {place.FileName} ({place.ID})"
             };
         }
 
@@ -511,7 +518,7 @@ public class VideoLocal_PlaceService
         {
             try
             {
-                LinuxFS.SetLinuxPermissions(place.FullServerPath, settings.Linux.UID, settings.Linux.GID, settings.Linux.Permission);
+                LinuxFS.SetLinuxPermissions(place.Path, settings.Linux.UID, settings.Linux.GID, settings.Linux.Permission);
             }
             catch (InvalidOperationException e)
             {
@@ -527,7 +534,7 @@ public class VideoLocal_PlaceService
         var correctFileName = Path.GetFileName(relocationResult.RelativePath);
         var correctFolder = Path.GetDirectoryName(relocationResult.RelativePath);
         var correctRelativePath = !string.IsNullOrEmpty(correctFolder) ? Path.Combine(correctFolder, correctFileName) : correctFileName;
-        var correctFullPath = Path.Combine(relocationResult.ImportFolder!.Path, correctRelativePath);
+        var correctFullPath = Path.Combine(relocationResult.ManagedFolder!.Path, correctRelativePath);
         if (request.Preview)
             _logger.LogTrace("Resolved to move from {PreviousPath} to {NextPath}.", previousLocation, correctFullPath);
         else
@@ -536,7 +543,7 @@ public class VideoLocal_PlaceService
         {
             Success = true,
             ShouldRetry = false,
-            ImportFolder = relocationResult.ImportFolder,
+            ManagedFolder = relocationResult.ManagedFolder,
             RelativePath = correctRelativePath,
             Moved = relocationResult.Moved,
             Renamed = relocationResult.Renamed,
@@ -546,12 +553,12 @@ public class VideoLocal_PlaceService
     /// <summary>
     /// Renames a file using the specified rename request.
     /// </summary>
-    /// <param name="place">The <see cref="SVR_VideoLocal_Place"/> to rename.</param>
+    /// <param name="place">The <see cref="VideoLocal_Place"/> to rename.</param>
     /// <param name="request">The <see cref="AutoRelocateRequest"/> containing the
     ///     details for the rename operation.</param>
     /// <returns>A <see cref="RelocationResult"/> representing the outcome of
     /// the rename operation.</returns>
-    public async Task<RelocationResult> RelocateFile(SVR_VideoLocal_Place place, AutoRelocateRequest request)
+    public async Task<RelocationResult> RelocateFile(VideoLocal_Place place, AutoRelocateRequest request)
     {
         // Just return the existing values if we're going to skip the operation.
         if (request is { Rename: false, Move: false })
@@ -559,8 +566,8 @@ public class VideoLocal_PlaceService
             {
                 Success = true,
                 ShouldRetry = false,
-                ImportFolder = place.ImportFolder,
-                RelativePath = place.FilePath,
+                ManagedFolder = place.ManagedFolder,
+                RelativePath = place.RelativePath,
             };
 
         RelocationResult result;
@@ -573,7 +580,7 @@ public class VideoLocal_PlaceService
         {
             var errorMessage = ex.Message;
 
-            _logger.LogError(ex, "An error occurred while trying to find a new file name for {FilePath}: {ErrorMessage}", place.FullServerPath, errorMessage);
+            _logger.LogError(ex, "An error occurred while trying to find a new file name for {FilePath}: {ErrorMessage}", place.Path, errorMessage);
             return new()
             {
                 Success = false,
@@ -592,7 +599,7 @@ public class VideoLocal_PlaceService
         {
             DeleteEmptyDirectories = request.DeleteEmptyDirectories,
             AllowRelocationInsideDestination = request.AllowRelocationInsideDestination,
-            ImportFolder = result.ImportFolder,
+            ManagedFolder = result.ManagedFolder,
             RelativePath = result.RelativePath,
         });
     }
@@ -750,82 +757,58 @@ public class VideoLocal_PlaceService
         }
     }
 
-    public bool RefreshMediaInfo(SVR_VideoLocal_Place place)
+    public bool RefreshMediaInfo(VideoLocal_Place place, VideoLocal video)
     {
+        _logger.LogTrace("Getting media info for: {Place}", place.Path ?? place.ID.ToString());
+        if (!place.IsAvailable)
+        {
+            _logger.LogError("File {Place} failed to be retrieved for MediaInfo", place.ID.ToString());
+            return false;
+        }
+
+        var path = place.Path;
         try
         {
-            _logger.LogTrace("Getting media info for: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
-            MediaContainer? m = null;
-            if (place.VideoLocal is null)
+            var mediaInfo = MediaInfoUtility.GetMediaInfo(path);
+            if (mediaInfo is { GeneralStream: { Duration: 0, Format: "ogg" } })
+                mediaInfo.GeneralStream.Duration = CalculateDurationOggFile(path);
+
+            if (mediaInfo is { IsUsable: true })
             {
-                _logger.LogError("VideoLocal for {Place} failed to be retrieved for MediaInfo", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
-                return false;
-            }
-
-            if (!string.IsNullOrEmpty(place.FullServerPath))
-            {
-                if (place.GetFile() is null)
-                {
-                    _logger.LogError("File {Place} failed to be retrieved for MediaInfo", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
-                    return false;
-                }
-
-                var name = place.FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
-                m = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(name); // MediaInfo should have libcurl.dll for http
-
-                if (m?.GeneralStream != null && m.GeneralStream.Duration == 0 && m.GeneralStream.Format != null && m.GeneralStream.Format.Equals("ogg", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    m.GeneralStream.Duration = CalculateDurationOggFile(name);
-                }
-
-                var duration = m?.GeneralStream?.Duration ?? 0;
-                if (duration == 0)
-                {
-                    m = null;
-                }
-            }
-
-            if (m is not null)
-            {
-                var info = place.VideoLocal;
-
-                var subs = SubtitleHelper.GetSubtitleStreams(place.FullServerPath);
+                var subs = SubtitleHelper.GetSubtitleStreams(place.Path);
                 if (subs.Count > 0)
-                {
-                    m.media?.track.AddRange(subs);
-                }
+                    mediaInfo.media.track.AddRange(subs);
 
-                info.MediaInfo = m;
-                info.MediaVersion = SVR_VideoLocal.MEDIA_VERSION;
+                video.MediaInfo = mediaInfo;
+                video.MediaVersion = VideoLocal.MEDIA_VERSION;
                 return true;
             }
-
-            _logger.LogError("File {Place} failed to read MediaInfo", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Unable to read the media information of file {Place} ERROR: {Ex}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString(),
+            _logger.LogError(e, "Unable to read the media information of file {Place} ERROR: {Ex}", path,
                 e);
         }
 
+        _logger.LogError("File {Place} failed to read MediaInfo", path);
         return false;
     }
 
-    public async Task RemoveRecordAndDeletePhysicalFile(SVR_VideoLocal_Place place, bool deleteFolder = true)
+    public async Task RemoveRecordAndDeletePhysicalFile(VideoLocal_Place place, bool deleteFolder = true)
     {
-        _logger.LogInformation("Deleting video local place record and file: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
+        _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
-        if (!File.Exists(place.FullServerPath))
+        if (!File.Exists(place.Path))
         {
-            _logger.LogInformation("Unable to find file. Removing Record: {Place}", place.FullServerPath ?? place.FilePath);
+            _logger.LogInformation("Unable to find file. Removing Record: {Place}", place.Path ?? place.RelativePath);
             await RemoveRecord(place);
             return;
         }
 
         try
         {
-            File.Delete(place.FullServerPath);
-            DeleteExternalSubtitles(place.FullServerPath);
+            File.Delete(place.Path);
+            DeleteExternalSubtitles(place.Path);
         }
         catch (FileNotFoundException)
         {
@@ -833,33 +816,33 @@ public class VideoLocal_PlaceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", place.FullServerPath, ex);
+            _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", place.Path, ex);
             throw;
         }
 
         if (deleteFolder)
-            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder!.ImportFolderLocation);
+            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
 
         await RemoveRecord(place);
     }
 
-    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate, bool updateMyList = true, bool deleteFolders = true)
+    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate, bool updateMyList = true, bool deleteFolders = true)
     {
         try
         {
-            _logger.LogInformation("Deleting video local place record and file: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
+            _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
-            if (!File.Exists(place.FullServerPath))
+            if (!File.Exists(place.Path))
             {
-                _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", place.FullServerPath);
+                _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", place.Path);
                 await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
                 return;
             }
 
             try
             {
-                File.Delete(place.FullServerPath);
-                DeleteExternalSubtitles(place.FullServerPath);
+                File.Delete(place.Path);
+                DeleteExternalSubtitles(place.Path);
             }
             catch (FileNotFoundException)
             {
@@ -867,17 +850,17 @@ public class VideoLocal_PlaceService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", place.FullServerPath, ex);
+                _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", place.Path, ex);
                 return;
             }
 
-            if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), place.ImportFolder!.ImportFolderLocation);
+            if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
             await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
             // For deletion of files from Trakt, we will rely on the Daily sync
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not delete file and remove record for \"{Place}\": {Ex}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString(),
+            _logger.LogError(ex, "Could not delete file and remove record for \"{Place}\": {Ex}", place.Path ?? place.ID.ToString(),
                 ex);
         }
     }
@@ -914,9 +897,9 @@ public class VideoLocal_PlaceService
         }
     }
 
-    public async Task RemoveRecord(SVR_VideoLocal_Place place, bool updateMyListStatus = true)
+    public async Task RemoveRecord(VideoLocal_Place place, bool updateMyListStatus = true)
     {
-        _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
+        _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
         var seriesToUpdate = new List<SVR_AnimeSeries>();
         var v = place.VideoLocal;
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -926,42 +909,11 @@ public class VideoLocal_PlaceService
             if (v?.Places?.Count <= 1)
             {
                 if (updateMyListStatus)
-                {
-                    if (RepoFactory.AniDB_File.GetByHash(v.Hash) is null)
-                    {
-                        var xrefs = v.EpisodeCrossReferences;
-                        foreach (var xref in xrefs)
-                        {
-                            if (xref.AnimeID is 0)
-                                continue;
-
-                            var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                            if (ep is null)
-                                continue;
-
-                            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                                {
-                                    c.AnimeID = xref.AnimeID;
-                                    c.EpisodeType = ep.EpisodeTypeEnum;
-                                    c.EpisodeNumber = ep.EpisodeNumber;
-                                }
-                            );
-                        }
-                    }
-                    else
-                    {
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                            {
-                                c.Hash = v.Hash;
-                                c.FileSize = v.FileSize;
-                            }
-                        );
-                    }
-                }
+                    await _videoLocalService.ScheduleRemovalFromMyList(v);
 
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
                 }
                 catch
                 {
@@ -971,7 +923,7 @@ public class VideoLocal_PlaceService
                 BaseRepository.Lock(session, s =>
                 {
                     using var transaction = s.BeginTransaction();
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
+                    _videoLocalPlace.DeleteWithOpenTransaction(s, place);
 
                     seriesToUpdate.AddRange(
                         v
@@ -990,7 +942,7 @@ public class VideoLocal_PlaceService
                 {
                     try
                     {
-                        ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
+                        ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
                     }
                     catch
                     {
@@ -1010,54 +962,23 @@ public class VideoLocal_PlaceService
         await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task RemoveRecordWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, ICollection<SVR_AnimeSeries> seriesToUpdate,
+    public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<SVR_AnimeSeries> seriesToUpdate,
         bool updateMyListStatus = true)
     {
-        _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
+        _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
         var v = place.VideoLocal;
 
         if (v?.Places?.Count <= 1)
         {
             if (updateMyListStatus)
-            {
-                var scheduler = await _schedulerFactory.GetScheduler();
-                if (_aniDBFile.GetByHash(v.Hash) is null)
-                {
-                    var xrefs = _crossRefFileEpisode.GetByEd2k(v.Hash);
-                    foreach (var xref in xrefs)
-                    {
-                        if (xref.AnimeID is 0)
-                            continue;
-
-                        var ep = _aniDBEpisode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep is null)
-                            continue;
-
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.AnimeID = xref.AnimeID;
-                            c.EpisodeType = ep.EpisodeTypeEnum;
-                            c.EpisodeNumber = ep.EpisodeNumber;
-                        });
-                    }
-                }
-                else
-                {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.Hash = v.Hash;
-                            c.FileSize = v.FileSize;
-                        }
-                    );
-                }
-            }
+                await _videoLocalService.ScheduleRemovalFromMyList(v);
 
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
             eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.AnimeSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
 
             try
             {
-                ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
+                ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
             }
             catch
             {
@@ -1078,7 +999,7 @@ public class VideoLocal_PlaceService
             {
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder!, place, v);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
                 }
                 catch
                 {

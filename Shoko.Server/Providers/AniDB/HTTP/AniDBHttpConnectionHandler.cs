@@ -2,7 +2,6 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Utilities;
@@ -35,9 +34,9 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         _httpClient.BaseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
     }
 
-    public HttpResponse<string> GetHttp(string url)
+    public HttpResponse<string> GetHttp(string url, bool force = false)
     {
-        if (IsBanned)
+        if (!force && IsBanned)
         {
             throw new AniDBBannedException
             {

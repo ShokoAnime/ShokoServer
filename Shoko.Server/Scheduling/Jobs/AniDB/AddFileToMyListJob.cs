@@ -9,6 +9,7 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
@@ -19,7 +20,6 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -36,7 +36,7 @@ public class AddFileToMyListJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly IUserDataService _userDataService;
-    private SVR_VideoLocal _videoLocal;
+    private VideoLocal _videoLocal;
 
     public string Hash { get; set; }
     public bool ReadStates { get; set; } = true;
@@ -53,7 +53,7 @@ public class AddFileToMyListJob : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "File Path", Utils.GetDistinctPath(_videoLocal?.FirstValidPlace?.FullServerPath) ?? Hash
+            "File Path", Utils.GetDistinctPath(_videoLocal?.FirstValidPlace?.Path) ?? Hash
         }
     };
 
@@ -69,7 +69,7 @@ public class AddFileToMyListJob : BaseJob
         // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
         // if the file is already on the user's list
 
-        var isManualLink = _videoLocal.AniDBFile == null;
+        var isManualLink = _videoLocal.ReleaseInfo is not { } releaseInfo || !(releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false);
 
         // mark the video file as watched
         var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
@@ -176,21 +176,21 @@ public class AddFileToMyListJob : BaseJob
                 // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                 if (settings.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                 {
-                    await _userDataService.SaveVideoUserData(user, _videoLocal, new()
+                    await _userDataService.ImportVideoUserData(user, _videoLocal, new()
                     {
                         ResumePosition = TimeSpan.Zero,
                         LastPlayedAt = newWatchedDate ?? DateTime.Now,
                         LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
-                    }, UserDataSaveReason.AnidbImport).ConfigureAwait(false);
+                    }, "AniDB").ConfigureAwait(false);
                 }
                 else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                 {
-                    await _userDataService.SaveVideoUserData(user, _videoLocal, new()
+                    await _userDataService.ImportVideoUserData(user, _videoLocal, new()
                     {
                         ResumePosition = TimeSpan.Zero,
                         LastPlayedAt = null,
                         LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
-                    }, UserDataSaveReason.AnidbImport).ConfigureAwait(false);
+                    }, "AniDB").ConfigureAwait(false);
                 }
             }
         }
