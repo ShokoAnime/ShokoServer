@@ -13,6 +13,7 @@ using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Services;
+using Shoko.Server.Renamer;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -183,6 +184,9 @@ public static class Loader
 
         var videoHashingService = provider.GetRequiredService<IVideoHashingService>();
         videoHashingService.AddParts(GetExports<IHashProvider>(provider));
+
+        var renameFileService = provider.GetRequiredService<RenameFileService>();
+        renameFileService.LoadRenamers(_exportedTypes);
 
         s_logger.Info("Loading {0} plugins.", _pluginTypes.Count);
         foreach (var (pluginType, plugin) in Plugins)
