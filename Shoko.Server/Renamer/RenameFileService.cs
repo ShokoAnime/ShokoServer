@@ -38,7 +38,6 @@ public class RenameFileService
         _logger = logger;
         _settingsProvider = settingsProvider;
         _renamers = renamers;
-        LoadRenamers(AppDomain.CurrentDomain.GetAssemblies());
     }
 
     public RelocationResult GetNewPath(VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null, bool? allowRelocationInsideDestination = null)
@@ -323,20 +322,9 @@ public class RenameFileService
         }
     }
 
-    private void LoadRenamers(IList<Assembly> assemblies)
+    public void LoadRenamers(IList<Type> exportedTypes)
     {
-        var allTypes = assemblies
-            .SelectMany(a =>
-            {
-                try
-                {
-                    return a.GetTypes();
-                }
-                catch
-                {
-                    return Type.EmptyTypes;
-                }
-            })
+        var allTypes = exportedTypes
             .Where(a => a.IsClass && a is { IsAbstract: false, IsGenericType: false } && a.GetInterfaces().Any(b =>
                 (b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>)) || b == typeof(IRenamer)))
             .ToList();
