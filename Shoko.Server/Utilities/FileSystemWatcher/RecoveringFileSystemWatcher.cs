@@ -63,12 +63,15 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             try
             {
+                var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName ?? path;
+                if (resolvedPath != path)
+                    _logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
                 switch (type)
                 {
                     case WatcherChangeTypes.Created:
                     case WatcherChangeTypes.Changed:
                     case WatcherChangeTypes.Renamed:
-                        if (!IsLocked(path)) FileAdded?.Invoke(this, path);
+                        if (!IsLocked(resolvedPath)) FileAdded?.Invoke(this, path);
                         break;
                     case WatcherChangeTypes.Deleted:
                         FileDeleted?.Invoke(this, path);
@@ -317,7 +320,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 }
 
                 numAttempts++;
-                Thread.Sleep(1000);
+                Thread.Sleep(waitTime);
                 _logger.LogTrace("Failed to access (or filesize is 0) Attempt # {NumAttempts}, {FileName}",
                     numAttempts, path);
             }
