@@ -9,6 +9,11 @@ namespace Shoko.Plugin.Abstractions.Config;
 public class ConfigurationActionResultMessage
 {
     /// <summary>
+    /// The title of the message.
+    /// </summary>
+    public string? Title { get; init; }
+
+    /// <summary>
     /// The message to display to the user.
     /// </summary>
     public required string Message { get; init; }
