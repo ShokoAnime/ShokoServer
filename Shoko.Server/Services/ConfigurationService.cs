@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
@@ -58,10 +59,10 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     public event EventHandler<ConfigurationSavedEventArgs>? Saved;
 
-    public ConfigurationService(ILogger<ConfigurationService> logger, IApplicationPaths applicationPaths, IPluginManager pluginManager)
+    public ConfigurationService(ILoggerFactory loggerFactory, IApplicationPaths applicationPaths, IPluginManager pluginManager)
     {
 
-        _logger = logger;
+        _logger = loggerFactory.CreateLogger<ConfigurationService>();
         _applicationPaths = applicationPaths;
         _pluginManager = pluginManager;
 
@@ -78,13 +79,13 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         {
             AllowTrailingCommas = true,
             WriteIndented = true,
-            PreferredObjectCreationHandling = System.Text.Json.Serialization.JsonObjectCreationHandling.Replace,
-            ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+            PreferredObjectCreationHandling = JsonObjectCreationHandling.Replace,
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
         };
-        _systemTextJsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        _systemTextJsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 
-        var serverSettingsDefinition = new ServerSettingsDefinition(new(this));
-        var serverSettingsName = TypeReflectionExtensions.GetDisplayName(typeof(ServerSettings));
+        var serverSettingsDefinition = new ServerSettingsDefinition(loggerFactory.CreateLogger<ServerSettingsDefinition>(), new(this));
+        var serverSettingsName = GetDisplayName(typeof(ServerSettings).ToContextualType());
         var serverSettingsSchema = GetSchemaForType(typeof(ServerSettings));
         _configurationTypes = new()
         {
@@ -160,14 +161,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 var definition = configurationDefinitionDict.GetValueOrDefault(id);
                 var contextualType = configurationType.ToContextualType();
                 var description = TypeReflectionExtensions.GetDescription(contextualType);
-                var name = TypeReflectionExtensions.GetDisplayName(contextualType);
-                foreach (var suffix in _configurationSuffixSet)
-                {
-                    var endWith = $" {suffix}";
-                    if (name.EndsWith(endWith, StringComparison.OrdinalIgnoreCase))
-                        name = name[..^endWith.Length];
-                }
-
+                var name = GetDisplayName(contextualType);
                 string? path = null;
                 if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
                 {
@@ -406,7 +400,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
         if (info.Definition is IConfigurationDefinitionWithCustomActions<TConfig> provider)
             return provider.PerformAction(configuration, type, path, action);
-        return new();
+        return new("Configuration does not support custom actions!", DisplayColorTheme.Warning) { RefreshConfiguration = false };
     }
 
     #endregion
@@ -691,36 +685,17 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private JsonSchema GetSchemaForType(Type type)
     {
-        var generator = type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
+        var isNewtonsoftJson = type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
+        var generator = isNewtonsoftJson
             ? GetNewtonsoftSchemaForType()
             : GetSystemTextJsonSchemaForType();
         generator.Settings.SchemaProcessors.Add(this);
 
-        // Handle built-in types because apparently NJsonSchema doesn't.
+        // Handle built-in types NJsonSchema doesn't.
         generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(Version), s =>
         {
             s.Type = JsonObjectType.String;
             s.Format = "version";
-        }));
-        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(DateTime), s =>
-        {
-            s.Type = JsonObjectType.String;
-            s.Format = "date-time";
-        }));
-        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(DateOnly), s =>
-        {
-            s.Type = JsonObjectType.String;
-            s.Format = "date";
-        }));
-        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(TimeSpan), s =>
-        {
-            s.Type = JsonObjectType.String;
-            s.Format = "date-span";
-        }));
-        generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(TimeOnly), s =>
-        {
-            s.Type = JsonObjectType.String;
-            s.Format = "time";
         }));
 
         _schemaCache.Clear();
@@ -739,30 +714,32 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             var (classDefinition, propertyDict) = schemaTuple;
             if (classDefinition.Count > 0)
             {
-                if (classDefinition.TryGetValue("label", out var classLabel))
+                if (classDefinition.TryGetValue(ElementLabel, out var classLabel))
                 {
-                    classDefinition.Remove("label");
+                    classDefinition.Remove(ElementLabel);
                     subSchema.Title = (string)classLabel!;
                 }
                 subSchema.ExtensionData ??= new Dictionary<string, object?>();
-                subSchema.ExtensionData.Add("x-uiDefinition", classDefinition);
+                subSchema.ExtensionData.Add(UiDefinition, classDefinition);
             }
             foreach (var tuple in subSchema.Properties)
             {
                 var (propertyKey, schemaValue) = tuple;
                 if (schemaValue.Item is not null)
                     propertyKey += "+List";
+                if (schemaValue.AdditionalPropertiesSchema is not null)
+                    propertyKey += "+Dict";
                 if (!propertyDict.TryGetValue(propertyKey, out var propertyDefinition))
                     continue;
 
-                if (propertyDefinition.TryGetValue("label", out var propertyLabel
+                if (propertyDefinition.TryGetValue(ElementLabel, out var propertyLabel
                 ))
                 {
-                    propertyDefinition.Remove("label");
+                    propertyDefinition.Remove(ElementLabel);
                     schemaValue.Title = (string)propertyLabel!;
                 }
                 schemaValue.ExtensionData ??= new Dictionary<string, object?>();
-                schemaValue.ExtensionData.Add("x-uiDefinition", propertyDefinition);
+                schemaValue.ExtensionData.Add(UiDefinition, propertyDefinition);
             }
         }
         _schemaCache.Clear();
@@ -801,7 +778,52 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         return generator;
     }
 
-    #region Schema | ISchemaProcessor Implementation
+    #region Schema | Constants
+
+    private const string UiDefinition = "x-uiDefinition";
+
+    private const string ElementType = "elementType";
+
+    private const string ElementSize = "elementSize";
+
+    private const string ElementLabel = "label";
+
+    private const string ElementActions = "actions";
+
+    private const string ElementVisibility = "visibility";
+
+    private const string ElementBadge = "badge";
+
+    private const string ElementPrimaryKey = "primaryKey";
+
+    private const string SectionType = "sectionType";
+
+    private const string SectionName = "sectionName";
+
+    private const string SectionAppendFloatingAtEnd = "sectionAppendFloatingAtEnd";
+
+    private const string ListType = "listType";
+
+    private const string ListSortable = "listSortable";
+
+    private const string ListUniqueItems = "listUniqueItems";
+
+    private const string ListHideDefaultActions = "listHideDefaultActions";
+
+    private const string ListElementType = "listElementType";
+
+    private const string RecordElementType = "recordElementType";
+
+    private const string CodeBlockLanguage = "codeLanguage";
+    private const string CodeBlockAutoFormatOnLoad = "codeAutoFormatOnLoad";
+
+    private const string EnumDefinitions = "enumDefinitions";
+
+    private const string EnumIsFlag = "enumIsFlag";
+
+    #endregion
+
+    #region Schema | ISchemaProcessor
 
     void ISchemaProcessor.Process(SchemaProcessorContext context)
     {
@@ -815,18 +837,23 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             var propertyKey = GetPropertyKey(info);
             if (schema.Item is not null)
                 propertyKey += "+List";
+            if (schema.AdditionalPropertiesSchema is not null)
+                propertyKey += "+Dict";
             if (!_schemaCache[schemaKey].PropertyUIDefinitions.TryAdd(propertyKey, uiDict))
                 uiDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey];
 
-            uiDict.TryAdd("elementType", "auto");
-            uiDict.TryAdd("elementSize", Convert(DisplayElementSize.Default));
+            uiDict.TryAdd(ElementType, Convert(DisplayElementType.Auto));
+            uiDict.TryAdd(ElementSize, Convert(DisplayElementSize.Normal));
             if (info.GetAttribute<KeyAttribute>(false) is { })
-                uiDict.Add("primaryKey", true);
+                uiDict.Add(ElementPrimaryKey, true);
 
             if (info.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrWhiteSpace(displayAttribute.Name))
-                uiDict.TryAdd("label", displayAttribute.Name);
+                uiDict.TryAdd(ElementLabel, displayAttribute.Name);
             else
-                uiDict.TryAdd("label", TypeReflectionExtensions.GetDisplayName(info.Name));
+                uiDict.TryAdd(ElementLabel, TypeReflectionExtensions.GetDisplayName(info.Name));
+
+            if (info.GetAttribute<SectionNameAttribute>(false) is { } sectionNameAttribute)
+                uiDict.Add(SectionName, sectionNameAttribute.Name);
 
             if (info.GetAttribute<VisibilityAttribute>(false) is { } visibilityAttribute)
             {
@@ -844,8 +871,8 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     };
                     visibilityDict.Add("toggle", toggleDict);
                 }
-                uiDict.Add("visibility", visibilityDict);
-                uiDict["elementSize"] = Convert(visibilityAttribute.Size);
+                uiDict.Add(ElementVisibility, visibilityDict);
+                uiDict[ElementSize] = Convert(visibilityAttribute.Size);
             }
 
             if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
@@ -855,10 +882,106 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     { "name", badgeAttribute.Name },
                     { "theme", Convert(badgeAttribute.Theme) },
                 };
-                uiDict.Add("badge", badgeDict);
+                uiDict.Add(ElementBadge, badgeDict);
             }
 
-            if (schema.IsEnumeration)
+            if (schema.Item is { } itemSchema)
+            {
+                uiDict[ElementType] = Convert(DisplayElementType.List);
+                uiDict.Add(ListElementType, Convert(DisplayElementSize.Normal));
+                if (info.GetAttribute<ListAttribute>(false) is { } listAttribute)
+                {
+                    uiDict.Add(ListType, Convert(listAttribute.ListType));
+                    uiDict.Add(ListSortable, listAttribute.Sortable);
+                    uiDict.Add(ListUniqueItems, listAttribute.UniqueItems);
+                    uiDict.Add(ListHideDefaultActions, listAttribute.HideDefaultActions);
+                }
+                else
+                {
+                    uiDict.Add(ListType, Convert(DisplayListType.Auto));
+                    uiDict.Add(ListSortable, true);
+                    uiDict.Add(ListUniqueItems, false);
+                    uiDict.Add(ListHideDefaultActions, false);
+                }
+
+                // Only set if the referenced schema is a class definition
+                if (itemSchema.HasReference && _schemaKeys.TryGetValue(itemSchema.ActualSchema, out var referencedSchemaKey))
+                {
+                    var referencedDict = _schemaCache[referencedSchemaKey].ClassUIDefinition;
+                    foreach (var (key, value) in referencedDict)
+                    {
+                        if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
+                            uiDict[ListElementType] = value;
+                        else if (key is SectionType or ElementPrimaryKey)
+                            uiDict.TryAdd(key, value);
+                    }
+                }
+
+                var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
+                foreach (var (key, value) in innerDict)
+                {
+                    if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
+                        uiDict[ListElementType] = value;
+                    else if (key is not ElementType)
+                        uiDict.TryAdd(key, value);
+                }
+
+                if (Equals(uiDict[ListType], Convert(DisplayListType.Dropdown)))
+                {
+                    if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.SectionContainer)))
+                        throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
+                    if (!uiDict.ContainsKey(ElementPrimaryKey))
+                        throw new NotSupportedException("Dropdown lists must have a primary key set.");
+                }
+                if (Equals(uiDict[ListType], Convert(DisplayListType.Tab)))
+                {
+                    if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.SectionContainer)))
+                        throw new NotSupportedException("Tab lists are not supported for non-class list items.");
+                    if (!uiDict.ContainsKey(ElementPrimaryKey))
+                        throw new NotSupportedException("Tab lists must have a primary key set.");
+                }
+                else if (Equals(uiDict[ListType], Convert(DisplayListType.Checkbox)))
+                {
+                    if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.Enum)))
+                        throw new NotSupportedException("Checkbox lists are not supported for non-enum list items.");
+                }
+                else if (Equals(uiDict[ListType], Convert(DisplayListType.Comma)))
+                {
+                    if (itemSchema.Type is not JsonObjectType.String and not JsonObjectType.Integer and not JsonObjectType.Number)
+                        throw new NotSupportedException("Comma lists are only supported for string, integer, and number list items.");
+                }
+            }
+            else if (schema.AdditionalPropertiesSchema is { } recordSchema)
+            {
+                var (keyType, valueType) = GetTKeyAndTValue(info.PropertyType.Type);
+                AssertKeyUsable(keyType);
+
+                uiDict[ElementType] = Convert(DisplayElementType.Record);
+                uiDict.Add(RecordElementType, Convert(DisplayElementSize.Normal));
+
+                // Only set if the referenced schema is a class definition
+                if (recordSchema.HasReference && _schemaKeys.TryGetValue(recordSchema.ActualSchema, out var referencedSchemaKey))
+                {
+                    var referencedDict = _schemaCache[referencedSchemaKey].ClassUIDefinition;
+                    foreach (var (key, value) in referencedDict)
+                    {
+                        if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
+                            uiDict[RecordElementType] = value;
+                        else if (key is SectionType or ElementPrimaryKey)
+                            uiDict.TryAdd(key, value);
+                    }
+                }
+
+                var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
+                foreach (var (key, value) in innerDict)
+                {
+                    if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
+                        uiDict[RecordElementType] = value;
+                    else if (key is not ElementType and not ElementSize)
+                        uiDict.TryAdd(key, value);
+                }
+            }
+            else if (schema.IsEnumeration)
             {
                 schema.Enumeration.Clear();
                 schema.EnumerationNames.Clear();
@@ -885,70 +1008,23 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                         { "value", value },
                     });
                 }
-                uiDict["elementType"] = "enum";
-                uiDict.Add("enumDefinitions", enumList);
-                uiDict.Add("enumIsFlag", schema.IsFlagEnumerable);
-            }
-            else if (schema.Item is { } itemSchema)
-            {
-                uiDict["elementType"] = "list";
-                uiDict.Add("listElementType", "auto");
-                if (info.GetAttribute<ListAttribute>(false) is { } listAttribute)
-                {
-                    uiDict.Add("listType", Convert(listAttribute.ListType));
-                    uiDict.Add("listSortable", listAttribute.Sortable);
-                    uiDict.Add("listUniqueItems", listAttribute.UniqueItems);
-                }
-                else
-                {
-                    uiDict.Add("listType", "auto");
-                    uiDict.Add("listSortable", true);
-                    uiDict.Add("listUniqueItems", false);
-                }
-
-                // Only set if the referenced schema is a class definition
-                if (itemSchema.Reference is not null && _schemaKeys.TryGetValue(itemSchema.Reference.ActualSchema, out var referencedSchemaKey))
-                {
-                    var referencedDict = _schemaCache[referencedSchemaKey].ClassUIDefinition;
-                    foreach (var (key, value) in referencedDict)
-                    {
-                        if (key is "elementType" && value is not "auto")
-                            uiDict["listElementType"] = value;
-                        else if (key is "sectionType" or "primaryKey")
-                            uiDict.TryAdd(key, value);
-                    }
-                }
-
-                var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
-                foreach (var (key, value) in innerDict)
-                {
-                    if (key is "elementType" && value is not "auto")
-                        uiDict["listElementType"] = value;
-                    else if (key is not "elementType")
-                        uiDict.TryAdd(key, value);
-                }
-                if (uiDict["listType"] is "dropdown")
-                {
-                    if (uiDict["listElementType"] is not "section-container")
-                        throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
-                    if (!uiDict.ContainsKey("primaryKey"))
-                        throw new NotSupportedException("Dropdown lists must have a primary key set.");
-                }
-                if (uiDict["listType"] is "checkbox" && uiDict["listElementType"] is not "enum")
-                    throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
+                uiDict[ElementType] = Convert(DisplayElementType.Enum);
+                uiDict.Add(EnumDefinitions, enumList);
+                uiDict.Add(EnumIsFlag, schema.IsFlagEnumerable);
             }
             else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
             {
-                uiDict["elementType"] = "code-block";
-                uiDict["codeLanguage"] = Convert(codeBlockAttribute.Language);
+                uiDict[ElementType] = Convert(DisplayElementType.CodeBlock);
+                uiDict[CodeBlockLanguage] = Convert(codeBlockAttribute.Language);
+                uiDict[CodeBlockAutoFormatOnLoad] = codeBlockAttribute.AutoFormatOnLoad;
             }
             else if (info.GetAttribute<TextAreaAttribute>(false) is not null)
             {
-                uiDict["elementType"] = "text-area";
+                uiDict[ElementType] = Convert(DisplayElementType.TextArea);
             }
             else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null)
             {
-                uiDict["elementType"] = "password";
+                uiDict[ElementType] = Convert(DisplayElementType.Password);
             }
         }
 
@@ -962,82 +1038,143 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             // Only generate the class schema once per type.
             if (_schemaCache[schemaKey].ClassUIDefinition is { Count: 0 } uiDict)
             {
+                uiDict.Add(ElementType, Convert(DisplayElementType.SectionContainer));
                 if (contextualType.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrWhiteSpace(displayAttribute.Name))
-                    uiDict.Add("label", displayAttribute.Name);
+                    uiDict.Add(ElementLabel, displayAttribute.Name);
+
+                if (contextualType.GetAttribute<SectionAttribute>(false) is { } sectionTypeAttribute)
+                {
+                    uiDict.Add(SectionType, Convert(sectionTypeAttribute.SectionType));
+                    if (!string.IsNullOrWhiteSpace(sectionTypeAttribute.DefaultSectionName))
+                        uiDict.Add(SectionName, sectionTypeAttribute.DefaultSectionName);
+                    uiDict.Add(SectionAppendFloatingAtEnd, sectionTypeAttribute.AppendFloatingSectionsAtEnd);
+                }
+                else
+                {
+                    uiDict.Add(SectionType, Convert(DisplaySectionType.FieldSet));
+                }
 
                 var propertyDefinitions = _schemaCache[schemaKey].PropertyUIDefinitions;
-                var primaryKey = propertyDefinitions.FirstOrDefault(x => x.Value.ContainsKey("primaryKey") && x.Value["primaryKey"] is true).Key;
+                var primaryKey = propertyDefinitions.FirstOrDefault(x => x.Value.ContainsKey(ElementPrimaryKey) && x.Value[ElementPrimaryKey] is true).Key;
                 if (!string.IsNullOrEmpty(primaryKey))
-                    uiDict.Add("primaryKey", primaryKey);
+                    uiDict.Add(ElementPrimaryKey, primaryKey);
 
                 var actions = contextualType.GetAttributes<CustomActionAttribute>(false).ToList();
                 var hideSaveAction = contextualType.GetAttribute<HideDefaultSaveActionAttribute>(false) is not null;
-                if (hideSaveAction || actions.Count > 0)
+                var actionList = new List<Dictionary<string, object?>>();
+                var actionsDict = new Dictionary<string, object?>
                 {
-                    var actionList = new List<Dictionary<string, object?>>();
-                    var actionsDict = new Dictionary<string, object?>
+                    { "hideSaveAction", hideSaveAction },
+                    { "customActions", actionList },
+                };
+                foreach (var action in actions)
+                {
+                    var actionDict = new Dictionary<string, object?>
                     {
-                        { "hideSaveAction", hideSaveAction },
-                        { "customActions", actionList },
+                        { "title", action.Name },
+                        { "description", action.Description ?? string.Empty },
+                        { "theme", Convert(action.Theme) },
+                        { "position", Convert(action.Position) },
                     };
-                    foreach (var action in actions)
+                    if (!string.IsNullOrEmpty(action.SectionName))
+                        actionDict.Add(SectionName, action.SectionName);
+                    if (action.HasToggle)
                     {
-                        var actionDict = new Dictionary<string, object?>
+                        actionDict.Add("toggle", new Dictionary<string, object?>
                         {
-                            { "title", action.Name },
-                            { "description", action.Description ?? string.Empty },
-                            { "theme", Convert(action.Theme) },
-                            { "position", Convert(action.Position) },
-                        };
-                        if (action.HasToggle)
-                        {
-                            actionDict.Add("toggle", new Dictionary<string, object?>
-                            {
-                                { "path", action.ToggleWhenMemberIsSet },
-                                { "value", Convert(action.ToggleWhenSetTo, _currentType!) },
-                            });
-                            actionDict.Add("hideByDefault", action.HideByDefault);
-                        }
-                        else
-                        {
-                            actionDict.Add("toggle", null);
-                            actionDict.Add("hideByDefault", false);
-                        }
-                        actionDict.Add("disableIfNoChanges", action.DisableIfNoChanges);
-                        actionList.Add(actionDict);
+                            { "path", action.ToggleWhenMemberIsSet },
+                            { "value", Convert(action.ToggleWhenSetTo, _currentType!) },
+                        });
+                        actionDict.Add("hideByDefault", action.HideByDefault);
                     }
-                    uiDict.Add("actions", actionsDict);
+                    else
+                    {
+                        actionDict.Add("toggle", null);
+                        actionDict.Add("hideByDefault", false);
+                    }
+                    actionDict.Add("disableIfNoChanges", action.DisableIfNoChanges);
+                    actionList.Add(actionDict);
                 }
-
-                uiDict.Add("elementType", "section-container");
-                if (contextualType.GetAttribute<SectionAttribute>(false) is { } sectionTypeAttribute)
-                    uiDict.Add("sectionType", Convert(sectionTypeAttribute.SectionType));
-                else
-                    uiDict.Add("sectionType", "field-set");
+                uiDict.Add(ElementActions, actionsDict);
             }
         }
+    }
+
+    private bool IsNewtonsoftJson() => _currentType!.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
+
+    private static (bool isDictionary, bool isReadonlyDictionary) IsDictionary(Type type)
+    {
+        var interfaces = type.GetInterfaces();
+        var isExtendingReadonlyDictionary = (type.IsGenericType && type.IsInterface && type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)) || interfaces.Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>));
+        var isExtendingWritableDictionary = (type.IsGenericType && type.IsInterface && type.GetGenericTypeDefinition() == typeof(IDictionary<,>)) || interfaces.Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+        return (isExtendingReadonlyDictionary || isExtendingWritableDictionary, isExtendingReadonlyDictionary);
+    }
+
+    private static (Type KeyType, Type ValueType) GetTKeyAndTValue(Type type)
+    {
+        Type[] arguments;
+        var (isQualified, isReadonlyDictionary) = IsDictionary(type);
+        if (!isQualified)
+            throw new InvalidOperationException($"Type {type.Name} does not implement IReadOnlyDictionary<,> or IDictionary<,>.");
+
+        if (!isReadonlyDictionary)
+        {
+            if (type.IsGenericType && type.IsInterface && type.GetGenericTypeDefinition() == typeof(IDictionary<,>))
+                arguments = type.GetGenericArguments();
+            else
+                arguments = type.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)).GetGenericArguments();
+        }
+        else
+        {
+            if (type.IsGenericType && type.IsInterface && type.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>))
+                arguments = type.GetGenericArguments();
+            else
+                arguments = type.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)).GetGenericArguments();
+        }
+
+        return (arguments[0], arguments[1]);
+    }
+
+    private void AssertKeyUsable(Type keyType)
+    {
+        if (keyType == typeof(string) || keyType.GetTypeInfo().IsEnum)
+            return;
+
+        if (keyType.GetCustomAttribute<SerializableAttribute>() is not null)
+            return;
+
+        if (!IsNewtonsoftJson() && keyType.GetCustomAttribute<JsonSerializableAttribute>() is not null)
+            return;
+
+        var interfaces = keyType.GetInterfaces();
+        if (interfaces.Any(i => i == typeof(ISerializable)))
+            return;
+
+        throw new ArgumentException($"Type \"{keyType.FullName!}\" is not serializable to text and therefore cannot be used as a key in a dictionary inside a configuration.", nameof(keyType));
     }
 
     private static string GetPropertyKey(ContextualPropertyInfo info)
     {
         if (info.GetAttribute<JsonPropertyAttribute>(false) is { } jsonPropertyAttribute)
             return jsonPropertyAttribute.PropertyName ?? info.Name;
-        if (info.GetAttribute<System.Text.Json.Serialization.JsonPropertyNameAttribute>(false) is { } jsonPropertyNameAttribute)
+        if (info.GetAttribute<JsonPropertyNameAttribute>(false) is { } jsonPropertyNameAttribute)
             return jsonPropertyNameAttribute.Name ?? info.Name;
         return info.Name;
     }
 
     #endregion
 
-    #region Schema | ISchemaNameGenerator Implementation
+    #region Schema | ISchemaNameGenerator
 
     string ISchemaNameGenerator.Generate(Type type)
+        => GetDisplayName(type.ToContextualType());
+
+    private static string GetDisplayName(ContextualType contextualType)
     {
-        var contextualType = type.ToContextualType();
         if (contextualType.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrEmpty(displayAttribute.Name))
             return displayAttribute.Name;
 
-        var name = TypeReflectionExtensions.GetDisplayName(type);
+        var name = TypeReflectionExtensions.GetDisplayName(contextualType);
         foreach (var suffix in _configurationSuffixSet)
         {
             var endWith = $" {suffix}";
@@ -1098,10 +1235,15 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             : System.Text.Json.JsonSerializer.Serialize(config, _systemTextJsonSerializerOptions)!;
 
     // For the values that needs to be converted by the right library in the right way
-    private JToken? Convert(object? value, Type? type = null)
+    private JToken? Convert(object? value, Type type)
         => value is null ? null : type is null || type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JToken.Parse(JsonConvert.SerializeObject(value, Formatting.None, _newtonsoftJsonSerializerSettings))
             : JToken.Parse(System.Text.Json.JsonSerializer.Serialize(value, _systemTextJsonSerializerOptions));
+
+
+    // For the values that needs to be converted by the right library in the right way
+    private string Convert(object value)
+        => JsonConvert.DeserializeObject<string>(JsonConvert.SerializeObject(value, Formatting.None, _newtonsoftJsonSerializerSettings))!;
 
     #endregion
 

@@ -7,7 +7,7 @@ namespace Shoko.Plugin.Abstractions.Config.Attributes;
 /// <summary>
 /// Controls the visibility of a property/field in the UI.
 /// </summary>
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class VisibilityAttribute : Attribute
 {
     private bool _hasToggleWhenSetTo;

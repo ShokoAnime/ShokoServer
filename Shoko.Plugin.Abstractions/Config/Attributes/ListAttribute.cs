@@ -6,22 +6,26 @@ namespace Shoko.Plugin.Abstractions.Config.Attributes;
 /// <summary>
 /// Define extra details for a list in the UI.
 /// </summary>
-[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
 public class ListAttribute : Attribute
 {
     /// <summary>
-    /// Determines if default actions for the list are displayed in the UI.
+    /// Determines if default actions for the list should be hidden in the UI.
     /// </summary>
-    public bool DisplayDefaultActions { get; set; }
+    public bool HideDefaultActions { get; set; }
 
     private bool? _uniqueItems = null;
 
     /// <summary>
     /// Determines if the items in the list are unique.
     /// </summary>
+    /// <remarks>
+    /// Will always be set to true if <see cref="ListType"/> is set to
+    /// <see cref="DisplayListType.Checkbox"/>.
+    /// </remarks>
     public bool UniqueItems
     {
-        get => _uniqueItems ?? ListType is DisplayListType.Checkbox or DisplayListType.Dropdown;
+        get => ListType is DisplayListType.Checkbox || (_uniqueItems ?? ListType is DisplayListType.Dropdown);
         set => _uniqueItems = value;
     }
 

@@ -245,5 +245,9 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
                     ModelState.AddModelError(propertyPath, message);
             return ValidationProblem(ModelState);
         }
+        catch (InvalidConfigurationActionException ex)
+        {
+            return ValidationProblem(ex.Message, ex.ParamName);
+        }
     }
 }

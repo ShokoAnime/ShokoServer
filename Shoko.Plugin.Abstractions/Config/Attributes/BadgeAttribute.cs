@@ -6,7 +6,7 @@ namespace Shoko.Plugin.Abstractions.Config.Attributes;
 /// <summary>
 /// Controls the displayed badge of a property/field in the UI.
 /// </summary>
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class BadgeAttribute : Attribute
 {
     /// <summary>

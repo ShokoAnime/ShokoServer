@@ -10,20 +10,20 @@ public enum DisplayElementSize
     /// <summary>
     /// The element will span it's default size in the UI.
     /// </summary>
-    [EnumMember(Value = "default")]
-    Default = 0,
+    [EnumMember(Value = "normal")]
+    Normal = 0,
 
     /// <summary>
-    /// The element will span half the default size in the UI.
+    /// The element will span less the default size in the UI.
     /// </summary>
-    [EnumMember(Value = "half")]
-    Half = 1,
+    [EnumMember(Value = "small")]
+    Small = 1,
 
     /// <summary>
-    /// The element will span double the default size in the UI.
+    /// The element will span more the default size in the UI.
     /// </summary>
-    [EnumMember(Value = "double")]
-    Double = 2,
+    [EnumMember(Value = "large")]
+    Large = 2,
 
     /// <summary>
     /// The element will span full size of it's container in the UI.

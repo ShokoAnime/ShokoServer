@@ -84,9 +84,7 @@ public class ShokofinConfigurationDefinition
         foreach (var user in _userService.GetUsers())
             config.Users.Add(new() { Key = user.Username });
         foreach (var folder in _videoService.GetAllManagedFolders())
-        {
             config.Library.ManagedFolders.Add(new() { Key = folder.Name, Paths = [$"{folder.Path} | {folder.Name} ({folder.ID})"] });
-        }
         return config;
     }
 
