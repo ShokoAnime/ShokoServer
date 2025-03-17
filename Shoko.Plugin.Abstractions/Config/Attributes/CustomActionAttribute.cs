@@ -25,6 +25,15 @@ public class CustomActionAttribute : Attribute
     public string? Description { get; set; }
 
     /// <summary>
+    /// If the class has multiple floating sections assigned to it, this is the
+    /// name of the section to place the action in. If the class doesn't have
+    /// any floating sections, this will be ignored. And if it's not set and
+    /// the class has any floating sections then it will be placed outside the
+    /// sections at the given <see cref="Position"/>.
+    /// </summary>
+    public string? SectionName { get; set; }
+
+    /// <summary>
     /// Determines the color theme of the action in the UI.
     /// </summary>
     public DisplayColorTheme Theme { get; set; }
