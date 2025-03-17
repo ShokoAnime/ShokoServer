@@ -156,11 +156,7 @@ public class ShokoServer
         if (e.Result is not bool setupComplete) return;
         if (setupComplete) return;
 
-        var settings = _settingsProvider.GetSettings();
         ServerState.Instance.ServerOnline = false;
-        if (!string.IsNullOrEmpty(settings.Database.Type)) return;
-
-        settings.Database.Type = Constants.DatabaseType.Sqlite;
     }
 
     private void WorkerSetupDB_ReportProgress()
@@ -210,11 +206,6 @@ public class ShokoServer
             if (!InitDB(out var errorMessage))
             {
                 ServerState.Instance.DatabaseAvailable = false;
-
-                if (string.IsNullOrEmpty(settings.Database.Type))
-                {
-                    ServerState.Instance.ServerStartingStatus = "Please select and configure your database.";
-                }
 
                 e.Result = false;
                 ServerState.Instance.StartupFailed = true;

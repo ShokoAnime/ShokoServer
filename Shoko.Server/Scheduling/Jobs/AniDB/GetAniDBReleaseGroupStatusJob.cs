@@ -123,15 +123,6 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             // update the missing episode stats on groups and children
             await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
         }
-
-        if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
-        {
-            // shouldn't need the where, but better safe than sorry.
-            foreach (var g in response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0))
-            {
-                await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = g.GroupID);
-            }
-        }
     }
 
     private bool ShouldSkip(SVR_AniDB_Anime anime)
