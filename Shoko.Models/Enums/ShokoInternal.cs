@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Models.Enums;
 
@@ -275,11 +276,17 @@ public enum ScanStatus
 
 public enum ScheduledUpdateFrequency
 {
+    [Display(Name = "Never")]
     Never = 1,
+    [Display(Name = "Every 6 hours")]
     HoursSix = 2,
+    [Display(Name = "Every 12 hours")]
     HoursTwelve = 3,
+    [Display(Name = "Every 24 hours")]
     Daily = 4,
+    [Display(Name = "Once a week")]
     WeekOne = 5,
+    [Display(Name = "Once a month")]
     MonthOne = 6,
 }
 

@@ -402,8 +402,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
 
             settings.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
-            settings.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
-            settings.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
 
             settings.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
             settings.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
@@ -433,7 +431,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.TMDB.MaxAutoPosters = contractIn.MovieDB_AutoPostersAmount;
 
             // Import settings
-            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToArray();
             settings.Import.UseExistingFileWatchedStatus =
                 contractIn.Import_UseExistingFileWatchedStatus;
             settings.AutoGroupSeries = contractIn.AutoGroupSeries;

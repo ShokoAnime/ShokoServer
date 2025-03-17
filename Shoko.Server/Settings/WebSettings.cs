@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Config.Attributes;
+using Shoko.Plugin.Abstractions.Config.Enums;
 
 namespace Shoko.Server.Settings;
 
@@ -13,6 +15,7 @@ public class WebSettings
     /// <summary>
     /// The port to listen on.
     /// </summary>
+    [Display(Name = "Server Port")]
     [DefaultValue(8111)]
     [Range(1, 65535, ErrorMessage = "Server Port must be between 1 and 65535")]
     public ushort Port { get; set; } = 8111;
@@ -21,6 +24,7 @@ public class WebSettings
     /// Automagically replace the current web ui with the included version if
     /// the current version is older then the included version.
     /// </summary>
+    [Display(Name = "Auto Replace Web UI With Included Version")]
     [DefaultValue(true)]
     public bool AutoReplaceWebUIWithIncluded { get; set; } = true;
 
@@ -28,12 +32,14 @@ public class WebSettings
     /// Enable the Web UI. Disabling this will run the server in "headless"
     /// mode.
     /// </summary>
+    [Display(Name = "Enable Web UI")]
     [DefaultValue(true)]
     public bool EnableWebUI { get; set; } = true;
 
     /// <summary>
     /// The public path prefix for where to mount the Web UI.
     /// </summary>
+    [Display(Name = "Web UI Prefix")]
     [DefaultValue("webui")]
     public string WebUIPrefix { get; set; } = "webui";
 
@@ -60,24 +66,30 @@ public class WebSettings
     /// to where the Web UI is installed, or an absolute path if you have it
     /// somewhere else.
     /// </summary>
+    [Visibility(Size = DisplayElementSize.Full)]
+    [Display(Name = "Web UI Path")]
     [DefaultValue("webui")]
     public string WebUIPath { get; set; } = "webui";
 
     /// <summary>
     /// Enable the Swagger UI.
     /// </summary>
+    [Display(Name = "Enable Swagger UI")]
     [DefaultValue(true)]
     public bool EnableSwaggerUI { get; set; } = true;
 
     /// <summary>
     /// The public path prefix for where to mount the Swagger UI.
     /// </summary>
+    [Display(Name = "Swagger UI Prefix")]
     [DefaultValue("swagger")]
     public string SwaggerUIPrefix { get; set; } = "swagger";
 
     /// <summary>
     /// Always use the developer exceptions page, even in production.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Danger)]
+    [Display(Name = "Always Use Developer Exceptions")]
     [DefaultValue(false)]
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
     public bool AlwaysUseDeveloperExceptions { get; set; } = false;

@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
+using Shoko.Plugin.Abstractions.Config.Attributes;
+using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 
@@ -115,6 +118,7 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(Size = DisplayElementSize.Small)]
     public int MaxAutoBackdrops { get; set; } = 10;
 
     /// <summary>
@@ -131,6 +135,7 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(Size = DisplayElementSize.Small)]
     public int MaxAutoPosters { get; set; } = 10;
 
     /// <summary>
@@ -147,6 +152,7 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(Size = DisplayElementSize.Small)]
     public int MaxAutoLogos { get; set; } = 10;
 
     /// <summary>
@@ -163,6 +169,7 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(Size = DisplayElementSize.Small)]
     public int MaxAutoThumbnails { get; set; } = 1;
 
     /// <summary>
@@ -178,6 +185,7 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(Size = DisplayElementSize.Small)]
     public int MaxAutoStaffImages { get; set; } = 10;
 
     /// <summary>
@@ -188,5 +196,6 @@ public class TMDBSettings
     /// <summary>
     /// Optional. User provided TMDB API key to use.
     /// </summary>
+    [PasswordPropertyText]
     public string? UserApiKey { get; set; } = null;
 }

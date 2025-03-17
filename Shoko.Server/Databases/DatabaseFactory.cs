@@ -35,20 +35,12 @@ public class DatabaseFactory
             if (_instance != null) return _instance;
 
             var settings = Utils.SettingsProvider.GetSettings();
-            if (settings.Database.Type.Trim()
-                .Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
-            {
+            if (settings.Database.Type is Constants.DatabaseType.SQLServer)
                 _instance = new SQLServer();
-            }
-            else if (settings.Database.Type.Trim()
-                     .Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
-            {
-                _instance = new SQLite();
-            }
-            else
-            {
+            else if (settings.Database.Type is Constants.DatabaseType.MySQL)
                 _instance = new MySQL();
-            }
+            else
+                _instance = new SQLite();
 
             return _instance;
         }
