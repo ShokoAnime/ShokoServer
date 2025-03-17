@@ -8,13 +8,18 @@ namespace Shoko.Plugin.Abstractions.Config.Attributes;
 /// Used to mark a property/field as a code editor in the specified language in
 /// the UI.
 /// </summary>
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class CodeEditorAttribute : Attribute
 {
     /// <summary>
     /// The code language for the editor to use.
     /// </summary>
     public CodeLanguage Language { get; set; }
+
+    /// <summary>
+    /// Whether to automatically format the code/text on load.
+    /// </summary>
+    public bool AutoFormatOnLoad { get; set; }
 
     /// <summary>
     /// The height of the text-area in the UI.

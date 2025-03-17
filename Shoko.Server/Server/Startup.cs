@@ -51,7 +51,7 @@ public class Startup
     {
         _logger = loggerFactory.CreateLogger<Startup>();
         _pluginManager = new PluginManager();
-        _configurationService = new ConfigurationService(loggerFactory.CreateLogger<ConfigurationService>(), ApplicationPaths.Instance, _pluginManager);
+        _configurationService = new ConfigurationService(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>(), _configurationService.CreateProvider<ServerSettings>());
     }
 

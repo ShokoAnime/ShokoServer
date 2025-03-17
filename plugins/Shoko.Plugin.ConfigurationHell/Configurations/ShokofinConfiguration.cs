@@ -56,6 +56,7 @@ public class ShokofinConfiguration : IConfiguration
         [DefaultValue("http://localhost:8111")]
         [Visibility(
             DisplayVisibility.Disabled,
+            Size = DisplayElementSize.Large,
             ToggleWhenMemberIsSet = nameof(ApiKey),
             ToggleWhenSetTo = null,
             ToggleVisibilityTo = DisplayVisibility.Visible
@@ -75,6 +76,7 @@ public class ShokofinConfiguration : IConfiguration
         [Display(Name = "Public Host URL")]
         [Visibility(
             DisplayVisibility.Disabled,
+            Size = DisplayElementSize.Large,
             ToggleWhenMemberIsSet = nameof(ApiKey),
             ToggleWhenSetTo = null,
             ToggleVisibilityTo = DisplayVisibility.Visible
@@ -109,10 +111,11 @@ public class ShokofinConfiguration : IConfiguration
         /// <summary>
         /// The version of Shoko we're connected to.
         /// </summary>
-        /// <example>1.0.0.0</example>
+        /// <example>"1.0.0.0"</example>
         [Display(Name = "Shoko Version")]
         [Visibility(
             DisplayVisibility.ReadOnly,
+            Size = DisplayElementSize.Full,
             ToggleWhenMemberIsSet = nameof(ApiKey),
             ToggleWhenSetTo = null,
             ToggleVisibilityTo = DisplayVisibility.Hidden
@@ -352,20 +355,22 @@ public class ShokofinConfiguration : IConfiguration
             /// </summary>
             [Display(Name = "Library Structure Mode")]
             [DefaultValue(LibraryStructureType.AniDB_Anime)]
+            [Visibility(Size = DisplayElementSize.Full)]
             public LibraryStructureType LibraryStructure { get; set; } = LibraryStructureType.AniDB_Anime;
 
             /// <summary>
             /// Determines how to order seasons within shows when using groups for shows.
             /// </summary>
             [Badge("Experimental", Theme = DisplayColorTheme.Danger)]
+            [Display(Name = "Shoko Group's Season Ordering")]
+            [DefaultValue(SeasonOrderingType.Default)]
             [Visibility(
                 DisplayVisibility.Disabled,
+                Size = DisplayElementSize.Full,
                 ToggleWhenMemberIsSet = nameof(LibraryStructure),
                 ToggleWhenSetTo = LibraryStructureType.Shoko_Groups,
                 ToggleVisibilityTo = DisplayVisibility.Visible
             )]
-            [Display(Name = "Shoko Group's Season Ordering")]
-            [DefaultValue(SeasonOrderingType.Default)]
             public SeasonOrderingType SeasonOrdering { get; set; } = SeasonOrderingType.Default;
 
             /// <summary>
@@ -376,6 +381,7 @@ public class ShokofinConfiguration : IConfiguration
             /// </summary>
             [Display(Name = "Specials Placement")]
             [DefaultValue(SpecialsPlacementType.AfterSeason)]
+            [Visibility(Size = DisplayElementSize.Full)]
             public SpecialsPlacementType SpecialsPlacement { get; set; } = SpecialsPlacementType.AfterSeason;
 
             /// <summary>
@@ -508,6 +514,7 @@ public class ShokofinConfiguration : IConfiguration
         /// <summary>
         /// Adjust existing settings on a per library basis.
         /// </summary>
+        [List(ListType = DisplayListType.Tab, HideDefaultActions = true)]
         [Display(Name = "Existing Library Settings")]
         public List<ManagedFolderSettings> ManagedFolders { get; set; } = [];
 
@@ -682,7 +689,7 @@ public class ShokofinConfiguration : IConfiguration
             [Visibility(
                 DisplayVisibility.Hidden,
                 ToggleWhenMemberIsSet = nameof(VFS_Location),
-                ToggleWhenSetTo = nameof(VirtualFileSystemLocation.Custom),
+                ToggleWhenSetTo = VirtualFileSystemLocation.Custom,
                 ToggleVisibilityTo = DisplayVisibility.Visible
             )]
             [Display(Name = "Custom VFS Root Location")]
@@ -721,6 +728,7 @@ public class ShokofinConfiguration : IConfiguration
         ToggleWhenSetTo = null,
         ToggleVisibilityTo = DisplayVisibility.Hidden
     )]
+    [List(ListType = DisplayListType.Dropdown, HideDefaultActions = true)]
     public List<UserSettings> Users { get; set; } = [];
 
     /// <summary>
@@ -774,6 +782,7 @@ public class ShokofinConfiguration : IConfiguration
         /// Enabling user data sync. for restricted videos (H).
         /// </summary>
         public bool SyncRestrictedVideos { get; set; }
+
         /// <summary>
         /// The username of your administrator account in Shoko.
         /// </summary>
@@ -857,7 +866,10 @@ public class ShokofinConfiguration : IConfiguration
             /// </summary>
             [Display(Name = "Connection Status")]
             [DefaultValue("Disabled")]
-            [Visibility(DisplayVisibility.ReadOnly)]
+            [Visibility(
+                DisplayVisibility.ReadOnly,
+                Size = DisplayElementSize.Full
+            )]
             public string Status { get; set; } = "Disabled";
 
             /// <summary>
