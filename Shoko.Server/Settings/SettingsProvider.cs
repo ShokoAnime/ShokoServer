@@ -12,6 +12,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
+using Shoko.Server.Settings.Attributes;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Constants = Shoko.Server.Server.Constants;
@@ -62,6 +63,7 @@ public class SettingsProvider : ISettingsProvider
         }
 
         LoadSettingsFromFile(path);
+        LoadSettingsFromEnv();
         SaveSettings();
     }
 
@@ -239,6 +241,28 @@ public class SettingsProvider : ISettingsProvider
         }
     }
 
+    private void LoadSettingsFromEnv()
+    {
+        ParseEnv(Instance);
+    }
+
+    private void ParseEnv(object obj)
+    {
+        foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (IsShokoType(prop.PropertyType)) ParseEnv(prop.GetValue(obj));
+            if (!IsPrimitive(prop.PropertyType)) continue;
+            
+            var envAttr = prop.GetCustomAttribute<EnvironmentConfigAttribute>();
+            if (envAttr is null) continue;
+
+            var result = envAttr.TryGet(prop.PropertyType, out var attr);
+            if (!result) continue;
+            
+            prop.SetValue(obj, attr);
+        }
+    }
+
     /// <summary>
     /// Fix the behavior of missing members in pre-4.0
     /// </summary>
@@ -319,9 +343,7 @@ public class SettingsProvider : ISettingsProvider
         foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             var type = prop.PropertyType;
-            if (type.FullName.StartsWith("Shoko.Server") ||
-                type.FullName.StartsWith("Shoko.Models") ||
-                type.FullName.StartsWith("Shoko.Plugin"))
+            if (IsShokoType(type))
             {
                 DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
                 continue;
@@ -343,6 +365,16 @@ public class SettingsProvider : ISettingsProvider
         }
     }
 
+
+    private static bool IsShokoType(Type type)
+    {
+        if (type.FullName is null) return false;
+
+        return type.FullName.StartsWith("Shoko.Server") ||
+            type.FullName.StartsWith("Shoko.Models") ||
+            type.FullName.StartsWith("Shoko.Plugin");
+    }
+    
     private static bool IsPrimitive(Type type)
     {
         if (type.IsPrimitive)

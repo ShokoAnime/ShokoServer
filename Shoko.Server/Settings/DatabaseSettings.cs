@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Server.Server;
+using Shoko.Server.Settings.Attributes;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings;
@@ -22,6 +23,7 @@ public class DatabaseSettings
     /// <summary>
     /// Use Constants.DatabaseType
     /// </summary>
+    [EnvironmentConfig("DB_TYPE")]
     public string Type { get; set; } = Constants.DatabaseType.Sqlite;
 
     public bool UseDatabaseLock { get; set; } = true;
@@ -33,7 +35,8 @@ public class DatabaseSettings
     public string Schema { get; set; } = string.Empty;
 
     public string Host { get; set; } = string.Empty;
-
+    
+    [EnvironmentConfig("DB_CONNECTION_STRING")]
     public string OverrideConnectionString { get; set; } = string.Empty;
 
     [JsonIgnore]
