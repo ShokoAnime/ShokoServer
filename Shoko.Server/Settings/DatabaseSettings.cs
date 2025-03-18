@@ -142,7 +142,6 @@ public class DatabaseSettings
     [Badge("Advanced", Theme = DisplayColorTheme.Important)]
     [Visibility(
         Visibility = DisplayVisibility.Visible,
-        Size = DisplayElementSize.Full,
         ToggleWhenMemberIsSet = nameof(Type),
         ToggleWhenSetTo = Constants.DatabaseType.SQLite,
         ToggleVisibilityTo = DisplayVisibility.Hidden

@@ -808,13 +808,16 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private const string ListUniqueItems = "listUniqueItems";
 
-    private const string ListHideDefaultActions = "listHideDefaultActions";
+    private const string ListHideAddAction = "listHideAddAction";
+
+    private const string ListHideRemoveAction = "listHideRemoveAction";
 
     private const string ListElementType = "listElementType";
 
     private const string RecordElementType = "recordElementType";
 
     private const string CodeBlockLanguage = "codeLanguage";
+
     private const string CodeBlockAutoFormatOnLoad = "codeAutoFormatOnLoad";
 
     private const string EnumDefinitions = "enumDefinitions";
@@ -894,14 +897,16 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     uiDict.Add(ListType, Convert(listAttribute.ListType));
                     uiDict.Add(ListSortable, listAttribute.Sortable);
                     uiDict.Add(ListUniqueItems, listAttribute.UniqueItems);
-                    uiDict.Add(ListHideDefaultActions, listAttribute.HideDefaultActions);
+                    uiDict.Add(ListHideAddAction, listAttribute.HideAddAction);
+                    uiDict.Add(ListHideRemoveAction, listAttribute.HideRemoveAction);
                 }
                 else
                 {
                     uiDict.Add(ListType, Convert(DisplayListType.Auto));
                     uiDict.Add(ListSortable, true);
                     uiDict.Add(ListUniqueItems, false);
-                    uiDict.Add(ListHideDefaultActions, false);
+                    uiDict.Add(ListHideAddAction, false);
+                    uiDict.Add(ListHideRemoveAction, false);
                 }
 
                 // Only set if the referenced schema is a class definition
@@ -926,29 +931,24 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                         uiDict.TryAdd(key, value);
                 }
 
-                if (Equals(uiDict[ListType], Convert(DisplayListType.Dropdown)))
+                if (Equals(uiDict[ListType], Convert(DisplayListType.ComplexDropdown)))
                 {
                     if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.SectionContainer)))
                         throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
                     if (!uiDict.ContainsKey(ElementPrimaryKey))
                         throw new NotSupportedException("Dropdown lists must have a primary key set.");
                 }
-                if (Equals(uiDict[ListType], Convert(DisplayListType.Tab)))
+                if (Equals(uiDict[ListType], Convert(DisplayListType.ComplexTab)))
                 {
                     if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.SectionContainer)))
                         throw new NotSupportedException("Tab lists are not supported for non-class list items.");
                     if (!uiDict.ContainsKey(ElementPrimaryKey))
                         throw new NotSupportedException("Tab lists must have a primary key set.");
                 }
-                else if (Equals(uiDict[ListType], Convert(DisplayListType.Checkbox)))
+                else if (Equals(uiDict[ListType], Convert(DisplayListType.EnumCheckbox)))
                 {
                     if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.Enum)))
                         throw new NotSupportedException("Checkbox lists are not supported for non-enum list items.");
-                }
-                else if (Equals(uiDict[ListType], Convert(DisplayListType.Comma)))
-                {
-                    if (itemSchema.Type is not JsonObjectType.String and not JsonObjectType.Integer and not JsonObjectType.Number)
-                        throw new NotSupportedException("Comma lists are only supported for string, integer, and number list items.");
                 }
             }
             else if (schema.AdditionalPropertiesSchema is { } recordSchema)
@@ -1085,12 +1085,12 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                             { "path", action.ToggleWhenMemberIsSet },
                             { "value", Convert(action.ToggleWhenSetTo, _currentType!) },
                         });
-                        actionDict.Add("hideByDefault", action.HideByDefault);
+                        actionDict.Add("inverseToggle", action.InverseToggle);
                     }
                     else
                     {
                         actionDict.Add("toggle", null);
-                        actionDict.Add("hideByDefault", false);
+                        actionDict.Add("inverseToggle", false);
                     }
                     actionDict.Add("disableIfNoChanges", action.DisableIfNoChanges);
                     actionList.Add(actionDict);

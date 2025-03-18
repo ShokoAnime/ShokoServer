@@ -66,6 +66,7 @@ public class TMDBSettings
     /// <summary>
     /// Image language preference order, in text form for storage.
     /// </summary>
+    [Display(Name = "Image Language Order")]
     [JsonProperty(nameof(ImageLanguageOrder))]
     [UsedImplicitly]
     public List<string> InternalImageLanguageOrder

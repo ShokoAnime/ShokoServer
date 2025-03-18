@@ -45,7 +45,7 @@ public class CustomActionAttribute : Attribute
 
     /// <summary>
     /// When set, will toggle the member from visible to hidden and vice versa. <seealso cref="ToggleWhenSetTo"/> also
-    /// needs to be set for this to take effect. <seealso cref="HideByDefault"/> will flip the functionality
+    /// needs to be set for this to take effect. <seealso cref="InverseToggle"/> will flip the functionality
     /// so it will toggle from hidden to visible instead of visible to hidden.
     /// </summary>
     public string? ToggleWhenMemberIsSet { get; set; }
@@ -74,7 +74,7 @@ public class CustomActionAttribute : Attribute
     /// Indicates that the action should be hidden by default. This means that <see cref="ToggleWhenMemberIsSet"/> and
     /// <see cref="ToggleWhenSetTo"/> will show the action instead of hiding it.
     /// </summary>
-    public bool HideByDefault { get; set; }
+    public bool InverseToggle { get; set; }
 
     /// <summary>
     /// When set, will disable the action if no changes are made to the configuration.
