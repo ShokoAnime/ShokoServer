@@ -1,6 +1,7 @@
 using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.Abstractions.Config;
+
 /// <summary>
 /// Base interface for all configurations served through the
 /// <see cref="IConfigurationService"/> or
