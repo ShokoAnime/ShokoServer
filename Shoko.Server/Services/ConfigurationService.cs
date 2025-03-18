@@ -348,14 +348,14 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             parts = parts[1..];
             if (part[0] == '[')
             {
-                if (part[^1] != ']' || part.Length < 3 || part[^2] != '\\')
+                if (part[^1] != ']' || part.Length < 3 || part[^2] == '\\')
                     throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
 
                 // Dictionary
                 if (part[1] == '"')
                 {
                     // Make sure the dictionary key is a valid string
-                    if (part[^2] != '"' || path.Length < 5 || path[^3] != '\\' || InvalidQuoteRegex().IsMatch(part[2..^2]))
+                    if (part[^2] != '"' || path.Length < 5 || path[^3] == '\\' || InvalidQuoteRegex().IsMatch(part[2..^2]))
                         throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
 
                     if (schema.PatternProperties.Count != 1 || !type.IsAssignableToTypeName("IReadOnlyDictionary", TypeNameStyle.Name))
