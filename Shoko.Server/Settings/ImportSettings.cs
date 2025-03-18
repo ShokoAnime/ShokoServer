@@ -27,7 +27,7 @@ public class ImportSettings
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]
     [MinLength(1)]
-    [List(ListType = DisplayListType.Comma, UniqueItems = true, Sortable = true)]
+    [List(UniqueItems = true, Sortable = true)]
     public string[] VideoExtensions
     {
         get => InternalVideoExtensions;
