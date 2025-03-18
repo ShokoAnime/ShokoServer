@@ -734,10 +734,10 @@ public class ShokofinConfiguration : IConfiguration
     )]
     [CustomAction("Link",
         Theme = DisplayColorTheme.Primary,
+        Description = "Links the user to the server.",
         ToggleWhenMemberIsSet = nameof(Token),
         ToggleWhenSetTo = null,
-        InverseToggle = true,
-        DisableIfNoChanges = true
+        InverseToggle = true
     )]
     public class UserSettings
     {
