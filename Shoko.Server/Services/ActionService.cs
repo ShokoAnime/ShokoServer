@@ -1053,12 +1053,11 @@ public class ActionService(
 
         // Queue missing anime needed by existing files.
         index = 0;
-        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
-            .Select(a => a.AnimeID)
-            .OrderBy(a => a)
+        var localAnimeSet = RepoFactory.AnimeSeries.GetAll()
+            .Select(a => a.AniDB_ID)
             .ToHashSet();
-        var localEpisodeSet = RepoFactory.AniDB_Episode.GetAll()
-            .Select(episode => episode.EpisodeID)
+        var localEpisodeSet = RepoFactory.AnimeEpisode.GetAll()
+            .Select(episode => episode.AniDB_EpisodeID)
             .ToHashSet();
         var missingAnimeSet = videos
             .SelectMany(file => file.EpisodeCrossReferences)
@@ -1067,12 +1066,15 @@ public class ActionService(
             .ToHashSet();
         var settings = _settingsProvider.GetSettings();
         _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate | AnidbRefreshMethod.CreateShokoSeries;
+        if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
+            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
         foreach (var animeID in missingAnimeSet)
         {
             if (++index % 10 == 1 || index == missingAnimeSet.Count)
                 _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
 
-            await _seriesService.QueueAniDBRefresh(animeID, false, settings.AniDb.DownloadRelatedAnime, true);
+            await _anidbService.ScheduleRefreshByID(animeID, refreshMethod);
         }
     }
 

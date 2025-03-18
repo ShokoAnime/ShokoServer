@@ -748,7 +748,7 @@ public class VideoReleaseService(
                     anidbAnimeRepository.GetByAnimeID(groupBy.Key) is null ||
                     shokoSeriesRepository.GetByAnimeID(groupBy.Key) is null ||
                     anidbAnimeUpdateRepository.GetByAnimeID(groupBy.Key) is null ||
-                    groupBy.Any(xref => xref.AnidbEpisode is null)
+                    groupBy.Any(xref => xref.AnidbEpisode is null || xref.ShokoEpisode is null)
             );
         if (animeIDs.Count == 0)
             return;
