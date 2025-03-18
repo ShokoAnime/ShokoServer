@@ -95,7 +95,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
             SHA1 = !existingHashes.Any(h => h.Type is "SHA1") && enabledHashTypes.Contains("SHA1"),
             SHA256 = !existingHashes.Any(h => h.Type is "SHA256") && enabledHashTypes.Contains("SHA256"),
             SHA512 = !existingHashes.Any(h => h.Type is "SHA512") && enabledHashTypes.Contains("SHA512"),
-            ForceSharpHasher = config.ForceSharpHasher,
+            ForceSharpHasher = config.AlwaysUseSharpHasher,
         };
 
         logger.LogDebug("Calculating {Count} hashes for {File}", coreRequest.Count, file.Name);
@@ -564,8 +564,8 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         /// again.
         /// </summary>
         [Required]
-        [Display(Name = "Forcefully use C# Hasher")]
-        public bool ForceSharpHasher { get; set; }
+        [Display(Name = "Always use C# Hasher")]
+        public bool AlwaysUseSharpHasher { get; set; }
     }
 
     #endregion

@@ -32,15 +32,14 @@ public class ShokofinConfiguration : IConfiguration
         Theme = DisplayColorTheme.Primary,
         ToggleWhenMemberIsSet = nameof(ApiKey),
         ToggleWhenSetTo = null,
-        HideByDefault = true
+        InverseToggle = true
     )]
     [CustomAction(
         "Disconnect",
         Description = "Reset the connection. Be sure to stop any tasks using this plugin before you press the button.",
         Theme = DisplayColorTheme.Secondary,
         ToggleWhenMemberIsSet = nameof(ApiKey),
-        ToggleWhenSetTo = null,
-        HideByDefault = false
+        ToggleWhenSetTo = null
     )]
     public class ConnectionSettings
     {
@@ -167,7 +166,6 @@ public class ShokofinConfiguration : IConfiguration
             /// The metadata providers to use as the source of the main title for entities, in priority order.
             /// </summary>
             [Display(Name = "Main Title Source")]
-            [List(ListType = DisplayListType.Checkbox)]
             [DefaultValue(new TitleProvider[] { TitleProvider.Shoko_Default })]
             public TitleProvider[] MainTitleSource { get; set; } = [TitleProvider.Shoko_Default];
 
@@ -175,7 +173,6 @@ public class ShokofinConfiguration : IConfiguration
             /// The metadata providers to use as the source of the alternate/original title for entities, in priority order.
             /// </summary>
             [Display(Name = "Alternate/Original Title Source")]
-            [List(ListType = DisplayListType.Checkbox)]
             [DefaultValue(new TitleProvider[] { })]
             public TitleProvider[] AlternateTitleSource { get; set; } = [];
 
@@ -283,7 +280,6 @@ public class ShokofinConfiguration : IConfiguration
             /// The metadata providers to use as the source of descriptions for entities, in priority order.
             /// </summary>
             [Display(Name = "Description Source")]
-            [List(ListType = DisplayListType.Checkbox)]
             [DefaultValue(new DescriptionProvider[] { DescriptionProvider.Shoko })]
             public DescriptionProvider[] DescriptionSource { get; set; } = [DescriptionProvider.Shoko];
 
@@ -514,24 +510,19 @@ public class ShokofinConfiguration : IConfiguration
         /// <summary>
         /// Adjust existing settings on a per library basis.
         /// </summary>
-        [List(ListType = DisplayListType.Tab, HideDefaultActions = true)]
+        [List(ListType = DisplayListType.ComplexTab, HideAddAction = true)]
         [Display(Name = "Existing Library Settings")]
         public List<ManagedFolderSettings> ManagedFolders { get; set; } = [];
 
         /// <summary>
         /// Managed media folder settings.
         /// </summary>
-        [CustomAction(
-            "Remove",
-            Description = "This will delete the saved settings and reset the mapping for the library.",
-            Theme = DisplayColorTheme.Danger
-        )]
-        [CustomAction("Save", Theme = DisplayColorTheme.Primary, DisableIfNoChanges = true)]
         public class ManagedFolderSettings
         {
             /// <summary>
             /// The key of the library this settings are for.
             /// </summary>
+            [Visibility(DisplayVisibility.Hidden)]
             [Key, Required]
             public string Key { get; set; } = string.Empty;
 
@@ -728,19 +719,26 @@ public class ShokofinConfiguration : IConfiguration
         ToggleWhenSetTo = null,
         ToggleVisibilityTo = DisplayVisibility.Hidden
     )]
-    [List(ListType = DisplayListType.Dropdown, HideDefaultActions = true)]
+    [List(ListType = DisplayListType.ComplexDropdown, HideAddAction = true, HideRemoveAction = true)]
     public List<UserSettings> Users { get; set; } = [];
 
     /// <summary>
     /// User settings.
     /// </summary>
     [CustomAction(
-        "Remove",
+        "Reset Link",
+        Description = "Resets the link for the user.",
         Theme = DisplayColorTheme.Danger,
         ToggleWhenMemberIsSet = nameof(Token),
         ToggleWhenSetTo = null
     )]
-    [CustomAction("Save", Theme = DisplayColorTheme.Primary, DisableIfNoChanges = true)]
+    [CustomAction("Link",
+        Theme = DisplayColorTheme.Primary,
+        ToggleWhenMemberIsSet = nameof(Token),
+        ToggleWhenSetTo = null,
+        InverseToggle = true,
+        DisableIfNoChanges = true
+    )]
     public class UserSettings
     {
         /// <summary>
@@ -913,7 +911,7 @@ public class ShokofinConfiguration : IConfiguration
             /// </summary>
             [Badge("Advanced", Theme = DisplayColorTheme.Important)]
             [Display(Name = "Event Sources")]
-            [List(ListType = DisplayListType.Checkbox, Sortable = false)]
+            [List(ListType = DisplayListType.EnumCheckbox, Sortable = false)]
             [DefaultValue(new SignalrEventSource[] { SignalrEventSource.Shoko, SignalrEventSource.AniDB, SignalrEventSource.TMDB })]
             public SignalrEventSource[] EventSources { get; set; } = [SignalrEventSource.Shoko, SignalrEventSource.AniDB, SignalrEventSource.TMDB];
 
