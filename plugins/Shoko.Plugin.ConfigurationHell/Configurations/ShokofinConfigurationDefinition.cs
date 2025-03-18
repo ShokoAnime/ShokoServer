@@ -4,6 +4,7 @@ using System.Linq;
 using Namotion.Reflection;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
+using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
@@ -104,11 +105,18 @@ public class ShokofinConfigurationDefinition
                 "Disconnect" => DisconnectFromSignalR(),
                 _ => throw new InvalidConfigurationActionException($"Invalid action \"{action}\"", nameof(action)),
             },
-            _ => action switch
-            {
-                "Save" => SaveConfig(config),
-                _ => throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
-            }
+            _ => path.StartsWith("Users.[") && path.EndsWith(']') && int.TryParse(path[7..^1], out var index)
+                ? action switch
+                {
+                    "Link" => LinkUser(config, index),
+                    "Reset Link" => UnlinkUser(config, index),
+                    _ => throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
+                }
+                : action switch
+                {
+                    "Save" => SaveConfig(config),
+                    _ => throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
+                }
         };
 
     // Fake connect
@@ -166,6 +174,33 @@ public class ShokofinConfigurationDefinition
         loaded.SignalR.Connection.Status = "Disabled";
         _configurationProvider.Save(loaded);
         return new("Disconnected from SignalR.");
+    }
+
+    private ConfigurationActionResult LinkUser(ShokofinConfiguration config, int index)
+    {
+        var loaded = _configurationProvider.Load();
+        var user = loaded.Users[index] = config.Users[index];
+        var validationErrors = new Dictionary<string, IReadOnlyList<string>>();
+        if (user.Username is not "Default")
+            validationErrors.Add($"Users.[{index}].Username", ["Username must be exactly 'Default'"]);
+        if (user.Password is not null and not "")
+            validationErrors.Add($"Users.[{index}].Password", ["Password must be empty."]);
+        if (validationErrors.Count > 0)
+            throw new ConfigurationValidationException("validate", _configurationProvider.ConfigurationInfo, validationErrors);
+
+        user.Token = "fake";
+        user.Password = null;
+        _configurationProvider.Save(loaded);
+        return new("Linked user.", DisplayColorTheme.Important);
+    }
+
+    private ConfigurationActionResult UnlinkUser(ShokofinConfiguration config, int index)
+    {
+        var loaded = _configurationProvider.Load();
+        var user = loaded.Users[index] = config.Users[index];
+        user.Token = null;
+        _configurationProvider.Save(loaded);
+        return new("Unlinked user.", DisplayColorTheme.Important);
     }
 
     // Real save.
