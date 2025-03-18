@@ -95,13 +95,13 @@ public class ShokofinConfigurationDefinition
             "Connection" => action switch
             {
                 "Connect" => ConnectToShoko(config),
-                "Disconnect" => DisconnectFromShoko(config),
+                "Disconnect" => DisconnectFromShoko(),
                 _ => throw new InvalidConfigurationActionException($"Invalid action \"{action}\"", nameof(action)),
             },
             "SignalR.Connection" => action switch
             {
-                "Connect" => ConnectToSignalR(config),
-                "Disconnect" => DisconnectFromSignalR(config),
+                "Connect" => ConnectToSignalR(),
+                "Disconnect" => DisconnectFromSignalR(),
                 _ => throw new InvalidConfigurationActionException($"Invalid action \"{action}\"", nameof(action)),
             },
             _ => action switch
@@ -124,38 +124,47 @@ public class ShokofinConfigurationDefinition
         if (validationErrors.Count > 0)
             throw new ConfigurationValidationException("validate", _configurationProvider.ConfigurationInfo, validationErrors);
 
-        config.Connection.ApiKey = "fake";
-        config.Connection.Password = null;
-        config.Connection.ServerVersion = typeof(ConfigurationActionResult).Assembly.GetName().Version ?? new Version(0, 0);
+        var loaded = _configurationProvider.Load();
+        loaded.Connection.ApiKey = "fake";
+        loaded.Connection.Password = null;
+        loaded.Connection.ServerVersion = typeof(ConfigurationActionResult).Assembly.GetName().Version ?? new Version(0, 0);
+        if (loaded.SignalR.Basic.AutoConnect)
+        {
+            loaded.SignalR.Connection.Enabled = true;
+            loaded.SignalR.Connection.Status = "Enabled, Connected";
+        }
         _configurationProvider.Save(config);
         return new("Connected to Shoko.");
     }
 
     // Fake disconnect
-    private ConfigurationActionResult DisconnectFromShoko(ShokofinConfiguration config)
+    private ConfigurationActionResult DisconnectFromShoko()
     {
-        config.Connection.ApiKey = null;
-        config.Connection.Password = null;
-        config.Connection.ServerVersion = null;
-        config.SignalR.Connection.Enabled = false;
-        config.SignalR.Connection.Status = "Disabled";
-        _configurationProvider.Save(config);
+        var loaded = _configurationProvider.Load();
+        loaded.Connection.ApiKey = null;
+        loaded.Connection.Password = null;
+        loaded.Connection.ServerVersion = null;
+        loaded.SignalR.Connection.Enabled = false;
+        loaded.SignalR.Connection.Status = "Disabled";
+        _configurationProvider.Save(loaded);
         return new("Disconnected from Shoko.");
     }
 
-    private ConfigurationActionResult ConnectToSignalR(ShokofinConfiguration config)
+    private ConfigurationActionResult ConnectToSignalR()
     {
-        config.SignalR.Connection.Enabled = true;
-        config.SignalR.Connection.Status = "Enabled, Connected";
-        _configurationProvider.Save(config);
+        var loaded = _configurationProvider.Load();
+        loaded.SignalR.Connection.Enabled = true;
+        loaded.SignalR.Connection.Status = "Enabled, Connected";
+        _configurationProvider.Save(loaded);
         return new("Connected to SignalR.");
     }
 
-    private ConfigurationActionResult DisconnectFromSignalR(ShokofinConfiguration config)
+    private ConfigurationActionResult DisconnectFromSignalR()
     {
-        config.SignalR.Connection.Enabled = false;
-        config.SignalR.Connection.Status = "Disabled";
-        _configurationProvider.Save(config);
+        var loaded = _configurationProvider.Load();
+        loaded.SignalR.Connection.Enabled = false;
+        loaded.SignalR.Connection.Status = "Disabled";
+        _configurationProvider.Save(loaded);
         return new("Disconnected from SignalR.");
     }
 

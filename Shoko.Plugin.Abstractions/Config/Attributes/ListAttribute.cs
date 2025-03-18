@@ -10,9 +10,14 @@ namespace Shoko.Plugin.Abstractions.Config.Attributes;
 public class ListAttribute : Attribute
 {
     /// <summary>
-    /// Determines if default actions for the list should be hidden in the UI.
+    /// Determines if the add action should be hidden in the UI.
     /// </summary>
-    public bool HideDefaultActions { get; set; }
+    public bool HideAddAction { get; set; }
+
+    /// <summary>
+    /// Determines if the remove action should be hidden in the UI.
+    /// </summary>
+    public bool HideRemoveAction { get; set; }
 
     private bool? _uniqueItems = null;
 
@@ -21,11 +26,11 @@ public class ListAttribute : Attribute
     /// </summary>
     /// <remarks>
     /// Will always be set to true if <see cref="ListType"/> is set to
-    /// <see cref="DisplayListType.Checkbox"/>.
+    /// <see cref="DisplayListType.EnumCheckbox"/>.
     /// </remarks>
     public bool UniqueItems
     {
-        get => ListType is DisplayListType.Checkbox || (_uniqueItems ?? ListType is DisplayListType.Dropdown);
+        get => ListType is DisplayListType.EnumCheckbox || (_uniqueItems ?? ListType is DisplayListType.ComplexDropdown);
         set => _uniqueItems = value;
     }
 
@@ -36,7 +41,7 @@ public class ListAttribute : Attribute
     /// </summary>
     public bool Sortable
     {
-        get => _sortable ?? ListType is not DisplayListType.Dropdown;
+        get => _sortable ?? ListType is not DisplayListType.ComplexDropdown;
         set => _sortable = value;
     }
 
