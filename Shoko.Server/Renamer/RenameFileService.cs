@@ -238,7 +238,7 @@ public class RenameFileService
         var newFileName = shouldRename && !result.SkipRename ? result.FileName! : place.FileName;
         var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path : Path.GetDirectoryName(place.RelativePath);
         var newRelativePath = !string.IsNullOrEmpty(newRelativeDirectory) && newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
-        var newFullPath = Path.Combine(newFolder.Path, newRelativePath);
+        var newFullPath = Path.Join(newFolder.Path, newRelativePath);
         return new()
         {
             Success = true,
