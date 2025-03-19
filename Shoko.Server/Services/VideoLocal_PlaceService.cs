@@ -252,32 +252,17 @@ public class VideoLocal_PlaceService
 
             if (destVideoLocal.Hash == video.Hash)
             {
-                _logger.LogDebug("Not moving file as it already exists at the new location, deleting source file instead: {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
-
-                // if the file already exists, we can just delete the source file instead
-                // this is safer than deleting and moving
-                try
+                _logger.LogDebug("Not moving file as it already exists at the new location: {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
+                return new()
                 {
-                    sourceFile.Delete();
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Unable to DELETE file: {FilePath}\n{ErrorMessage}", place.FullServerPath, e.Message);
-                    await RemoveRecord(place, false);
-
-                    if (request.DeleteEmptyDirectories)
-                        RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
-                    return new()
-                    {
-                        Success = false,
-                        ShouldRetry = false,
-                        ErrorMessage = $"Unable to DELETE file: \"{place.FullServerPath}\" error {e}",
-                    };
-                }
+                    Success = false,
+                    ShouldRetry = false,
+                    ErrorMessage = $"Not moving file as it already exists at the new location.",
+                };
             }
 
             // Not a dupe, don't delete it
-            _logger.LogTrace("A file already exists at the new location, checking it for version and group");
+            _logger.LogTrace("A different file already exists at the new location, checking it for version and group");
             var destinationExistingAniDBFile = destVideoLocal.AniDBFile;
             if (destinationExistingAniDBFile is null)
             {
