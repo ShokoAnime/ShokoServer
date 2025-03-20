@@ -15,6 +15,7 @@ public class AniDbSettings
     /// AniDB username.
     /// </summary>
     [SectionName("Login")]
+    [EnvironmentVariable("ANIDB_USER")]
     [Required(AllowEmptyStrings = false)]
     public string Username { get; set; }
 
@@ -23,6 +24,7 @@ public class AniDbSettings
     /// </summary>
     [SectionName("Login")]
     [PasswordPropertyText]
+    [EnvironmentVariable("ANIDB_PASS")]
     [Required(AllowEmptyStrings = false)]
     public string Password { get; set; }
 
@@ -170,11 +172,13 @@ public class AniDbSettings
     /// <summary>
     /// HTTP API server to communicate with.
     /// </summary>
+    [Visibility(Size = DisplayElementSize.Large)]
     [SectionName("HTTP")]
     [Display(Name = "Server URL")]
+    [RequiresRestart]
+    [EnvironmentVariable("ANIDB_HTTP_API_URL")]
     [Url]
     [Required(AllowEmptyStrings = false)]
-    [Visibility(Size = DisplayElementSize.Large)]
     public string HTTPServerUrl { get; set; } = "http://api.anidb.net:9001";
 
     /// <summary>
@@ -189,23 +193,34 @@ public class AniDbSettings
     /// </summary>
     [SectionName("UDP")]
     [Display(Name = "Server Address")]
+    [RequiresRestart]
+    [EnvironmentVariable("ANIDB_UDP_API_ADDRESS")]
     public string UDPServerAddress { get; set; } = "api.anidb.net";
 
     /// <summary>
     /// UDP server port to communicate with.
     /// </summary>
-    [Display(Name = "Server Port")]
     [SectionName("UDP")]
+    [Display(Name = "Server Port")]
+    [RequiresRestart]
+    [EnvironmentVariable("ANIDB_UDP_API_PORT")]
+    [Range(1, 65535, ErrorMessage = "UDP Server Port may only be between 1 and 65535")]
     public ushort UDPServerPort { get; set; } = 9000;
 
-    [Display(Name = "Client Port")]
+    /// <summary>
+    /// UDP client port to communicate with.
+    /// </summary>
     [SectionName("UDP")]
+    [Display(Name = "Client Port")]
+    [RequiresRestart]
+    [Range(1, 65535, ErrorMessage = "UDP Client Port may only be between 1 and 65535")]
     public ushort ClientPort { get; set; } = 4556;
 
     // We set it to 60 seconds due to issues with UDP timeouts behind NAT.
     // 60 seconds is a good default for most users.
     [SectionName("UDP")]
     [Display(Name = "Ping Frequency (seconds)")]
+    [RequiresRestart]
     [Range(30, 120, ErrorMessage = "UDP Ping Frequency may only be between 1 and 60")]
     public int UDPPingFrequency { get; set; } = 60;
 
@@ -213,7 +228,7 @@ public class AniDbSettings
     /// Settings for rate limiting the UDP API.
     /// </summary>
     [SectionName("UDP")]
-    [DisplayName("Rate Limiting")]
+    [Display(Name = "Rate Limiting")]
     public AnidbRateLimitSettings UDPRateLimit { get; set; } = new();
 
     /// <summary>
@@ -222,6 +237,7 @@ public class AniDbSettings
     /// </summary>
     [SectionName("AVDump")]
     [Display(Name = "API Key")]
+    [EnvironmentVariable("ANIDB_AVDUMP_API_KEY")]
     [PasswordPropertyText]
     public string AVDumpKey { get; set; }
 
@@ -237,6 +253,6 @@ public class AniDbSettings
     /// AVDump settings
     /// </summary>
     [SectionName("AVDump")]
-    [DisplayName("Advanced AVDump Settings")]
+    [Display(Name = "Advanced AVDump Settings")]
     public AVDumpSettings AVDump { get; set; } = new();
 }
