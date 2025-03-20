@@ -23,6 +23,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Abstraction;
+using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;

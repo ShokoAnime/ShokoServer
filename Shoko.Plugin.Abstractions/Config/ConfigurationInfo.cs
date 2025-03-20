@@ -1,15 +1,23 @@
 using System;
+using System.Collections.Generic;
 using Namotion.Reflection;
 using NJsonSchema;
 using Shoko.Plugin.Abstractions.Plugin;
+using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.Abstractions.Config;
 
 /// <summary>
 /// Information about a configuration and which plugin it belongs to.
 /// </summary>
-public class ConfigurationInfo
+/// <param name="configurationService">Configuration service.</param>
+public class ConfigurationInfo(IConfigurationService configurationService)
 {
+    /// <summary>
+    /// The configuration service.
+    /// </summary>
+    private readonly IConfigurationService _configurationService = configurationService;
+
     /// <summary>
     /// The ID of the configuration.
     /// </summary>
@@ -61,6 +69,18 @@ public class ConfigurationInfo
     /// Whether or not the configuration has custom actions.
     /// </summary>
     public bool HasCustomActions => _hasCustomActions ??= Definition?.GetType().IsAssignableTo(typeof(IConfigurationDefinitionWithCustomActions<>).MakeGenericType(Type)) ?? false;
+
+    /// <summary>
+    /// A set of paths for properties that need a restart to take effect.
+    /// </summary>
+    public IReadOnlySet<string> RestartPendingFor
+        => _configurationService.RestartPendingFor.TryGetValue(ID, out var restartPendingFor) ? restartPendingFor : new HashSet<string>();
+
+    /// <summary>
+    /// A set of environment variables that have been loaded.
+    /// </summary>
+    public IReadOnlySet<string> LoadedEnvironmentVariables
+        => _configurationService.LoadedEnvironmentVariables.TryGetValue(ID, out var loadedEnvVars) ? loadedEnvVars : new HashSet<string>();
 
     /// <summary>
     /// The definition of the configuration.

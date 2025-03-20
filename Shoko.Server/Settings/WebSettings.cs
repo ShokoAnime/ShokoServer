@@ -16,6 +16,8 @@ public class WebSettings
     /// The port to listen on.
     /// </summary>
     [Display(Name = "Server Port")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_PORT")]
     [DefaultValue(8111)]
     [Range(1, 65535, ErrorMessage = "Server Port must be between 1 and 65535")]
     public ushort Port { get; set; } = 8111;
@@ -25,6 +27,8 @@ public class WebSettings
     /// the current version is older then the included version.
     /// </summary>
     [Display(Name = "Auto Replace Web UI With Included Version")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_WEBUI_AUTO_REPLACE")]
     [DefaultValue(true)]
     public bool AutoReplaceWebUIWithIncluded { get; set; } = true;
 
@@ -33,6 +37,8 @@ public class WebSettings
     /// mode.
     /// </summary>
     [Display(Name = "Enable Web UI")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_WEBUI_ENABLED")]
     [DefaultValue(true)]
     public bool EnableWebUI { get; set; } = true;
 
@@ -40,6 +46,8 @@ public class WebSettings
     /// The public path prefix for where to mount the Web UI.
     /// </summary>
     [Display(Name = "Web UI Prefix")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_WEBUI_PREFIX")]
     [DefaultValue("webui")]
     public string WebUIPrefix { get; set; } = "webui";
 
@@ -68,6 +76,8 @@ public class WebSettings
     /// </summary>
     [Visibility(Size = DisplayElementSize.Full)]
     [Display(Name = "Web UI Path")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_WEBUI_PATH")]
     [DefaultValue("webui")]
     public string WebUIPath { get; set; } = "webui";
 
@@ -75,6 +85,8 @@ public class WebSettings
     /// Enable the Swagger UI.
     /// </summary>
     [Display(Name = "Enable Swagger UI")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_SWAGGER_ENABLED")]
     [DefaultValue(true)]
     public bool EnableSwaggerUI { get; set; } = true;
 
@@ -82,6 +94,8 @@ public class WebSettings
     /// The public path prefix for where to mount the Swagger UI.
     /// </summary>
     [Display(Name = "Swagger UI Prefix")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_SWAGGER_PREFIX")]
     [DefaultValue("swagger")]
     public string SwaggerUIPrefix { get; set; } = "swagger";
 
@@ -90,6 +104,8 @@ public class WebSettings
     /// </summary>
     [Badge("Debug", Theme = DisplayColorTheme.Danger)]
     [Display(Name = "Always Use Developer Exceptions")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_WEB_DEVELOPER_EXCEPTIONS")]
     [DefaultValue(false)]
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
     public bool AlwaysUseDeveloperExceptions { get; set; } = false;
