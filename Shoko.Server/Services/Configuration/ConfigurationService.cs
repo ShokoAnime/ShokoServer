@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
 using Namotion.Reflection;
@@ -30,10 +31,11 @@ using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Plugin;
+using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 
 #nullable enable
-namespace Shoko.Server.Services;
+namespace Shoko.Server.Services.Configuration;
 
 public partial class ConfigurationService : IConfigurationService, ISchemaProcessor, ISchemaNameGenerator
 {
@@ -57,7 +59,17 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private bool _loaded = false;
 
+    internal readonly Dictionary<Guid, Dictionary<string, string?>> InternalRestartPendingFor = [];
+
+    internal readonly Dictionary<Guid, Dictionary<string, (string Override, string? Original)>> InternalLoadedEnvironmentVariables = [];
+
+    public IReadOnlyDictionary<Guid, IReadOnlySet<string>> RestartPendingFor => InternalRestartPendingFor.ToDictionary(a => a.Key, a => a.Value.Keys.ToHashSet() as IReadOnlySet<string>);
+
+    public IReadOnlyDictionary<Guid, IReadOnlySet<string>> LoadedEnvironmentVariables => InternalLoadedEnvironmentVariables.ToDictionary(a => a.Key, a => a.Value.Keys.ToHashSet() as IReadOnlySet<string>);
+
     public event EventHandler<ConfigurationSavedEventArgs>? Saved;
+
+    public event EventHandler<ConfigurationRequiresRestartEventArgs>? RequiresRestart;
 
     public ConfigurationService(ILoggerFactory loggerFactory, IApplicationPaths applicationPaths, IPluginManager pluginManager)
     {
@@ -91,7 +103,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         {
             {
                 Guid.Empty,
-                new ConfigurationInfo()
+                new ConfigurationInfo(this)
                 {
                     ID = Guid.Empty,
                     Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
@@ -132,7 +144,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         {
             {
                 serverSettingsID,
-                new ConfigurationInfo()
+                new ConfigurationInfo(this)
                 {
                     ID = serverSettingsID,
                     Path = serverSettingsInfo.Path,
@@ -147,6 +159,13 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             },
         };
         _serializedSchemas = new() { { _configurationTypes[serverSettingsID], _serializedSchemas[serverSettingsInfo] } };
+        _loadedConfigurations[serverSettingsID] = _loadedConfigurations[Guid.Empty];
+        _loadedConfigurations.TryRemove(Guid.Empty, out _);
+        if (InternalLoadedEnvironmentVariables.TryGetValue(Guid.Empty, out var envVarDict))
+        {
+            InternalLoadedEnvironmentVariables[serverSettingsID] = envVarDict;
+            InternalLoadedEnvironmentVariables.Remove(Guid.Empty, out _);
+        }
 
         // Dispose of older definitions.
         foreach (var definition in _configurationTypes.Values.Select(info => info.Definition).OfType<IDisposable>())
@@ -191,7 +210,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 }
 
                 var schema = GetSchemaForType(configurationType);
-                return new ConfigurationInfo()
+                return new ConfigurationInfo(this)
                 {
                     ID = id,
                     Path = path,
@@ -243,10 +262,11 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     {
         try
         {
-            return (IReadOnlyDictionary<string, IReadOnlyList<string>>)typeof(ConfigurationService)
+            var (_, errors) = ((JToken, Dictionary<string, IReadOnlyList<string>>))typeof(ConfigurationService)
                 .GetMethod(nameof(ValidateInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(info.Type)
-                .Invoke(this, [info, json, null])!;
+                .Invoke(this, [info, json, null, false, false])!;
+            return errors;
         }
         catch (TargetInvocationException ex)
         {
@@ -257,13 +277,16 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     }
 
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
-        => ValidateInternal(GetConfigurationInfo<TConfig>(), SerializeInternal(config), config);
+        => ValidateInternal(GetConfigurationInfo<TConfig>(), SerializeInternal(config), config).Errors;
 
-    private Dictionary<string, IReadOnlyList<string>> ValidateInternal<TConfig>(ConfigurationInfo info, string json, TConfig? config = null) where TConfig : class, IConfiguration, new()
+    private (JToken Token, Dictionary<string, IReadOnlyList<string>> Errors) ValidateInternal<TConfig>(ConfigurationInfo info, string json, TConfig? config, bool saveValidation = false, bool loadValidation = false) where TConfig : class, IConfiguration, new()
     {
-        var results = info.Schema.Validate(json);
+        var (token, results) = new ShokoJsonSchemaValidator<TConfig>(this._logger, this, info, _loadedConfigurations.TryGetValue(info.ID, out var config0) ? (config0 as TConfig) ?? config : config, saveValidation, loadValidation).Validate(json);
+        if (loadValidation)
+            json = token.ToString();
+
         var errorDict = new Dictionary<string, List<string>>();
-        foreach (var error in results)
+        foreach (var error in GetAllValidationErrorsForCollection(results))
         {
             // Ignore the "$schema" property at the root of the document if it is present.
             if (error is { Path: "#/$schema", Property: "$schema", Kind: ValidationErrorKind.NoAdditionalPropertiesAllowed })
@@ -291,15 +314,55 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 _logger.LogError("Configuration validation failed for {Type} at \"{Path}\": {Message}", info.Name, path, string.Join(", ", messages));
         }
 
-        return errorDict
-            .Select(a => KeyValuePair.Create(a.Key, (IReadOnlyList<string>)a.Value))
-            .ToDictionary();
+        return (token, errorDict.Select(a => KeyValuePair.Create(a.Key, (IReadOnlyList<string>)a.Value)).ToDictionary());
+    }
+
+    private static IEnumerable<ValidationError> GetAllValidationErrorsForCollection(ICollection<ValidationError> errors)
+    {
+        foreach (var error in errors)
+        {
+
+            switch (error)
+            {
+                case MultiTypeValidationError multiTypeValidationError:
+                {
+                    yield return error;
+                    foreach (var (type, collection) in multiTypeValidationError.Errors)
+                        foreach (var subError in GetAllValidationErrorsForCollection(collection))
+                            yield return subError;
+                    break;
+                }
+
+                case ChildSchemaValidationError childSchemaValidationError:
+                {
+                    // Only emit the error if it's not 'not one of' and the inner error is not a 'null expected'.
+                    var childErrors = childSchemaValidationError.Errors.ToDictionary();
+                    if (childSchemaValidationError.Kind is ValidationErrorKind.NotOneOf && childErrors.Count > 1 && childErrors.FirstOrDefault(kp => kp.Value.Count == 1 && kp.Value.First().Kind is ValidationErrorKind.NullExpected).Key is { } errorSchema)
+                        childErrors.Remove(errorSchema);
+                    else
+                        yield return error;
+                    foreach (var (schema, collection) in childErrors)
+                        foreach (var subError in GetAllValidationErrorsForCollection(collection))
+                            yield return subError;
+                    break;
+                }
+
+                default:
+                {
+                    yield return error;
+                    break;
+                }
+            }
+        }
     }
 
     private static string GetErrorMessage(ValidationError validationError)
     {
         return validationError.Kind switch
         {
+            (ValidationErrorKind)1_003 => "Unable to load environment variables multiple times for the same configuration.",
+            (ValidationErrorKind)1_002 => "Failed to parse environment variable.",
+            (ValidationErrorKind)1_001 => "Unable to set value when an environment variable override is in use.",
             _ => TypeReflectionExtensions.GetDisplayName(validationError.Kind.ToString()),
         };
     }
@@ -338,6 +401,10 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     {
         var schema = info.Schema;
         var type = info.ContextualType;
+
+        // TODO: FIX UP THIS SH*T to support parsing "A.B[0]['D.E'].F['G\'H'].I" etc., where we check each defined property for the schema
+        // and if it's not a known property, check patterns and additional properties.
+
         var parts = path.Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         while (parts.Length > 0)
         {
@@ -358,13 +425,11 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                     if (part[^2] != '"' || path.Length < 5 || path[^3] == '\\' || InvalidQuoteRegex().IsMatch(part[2..^2]))
                         throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
 
-                    if (schema.PatternProperties.Count != 1 || !type.IsAssignableToTypeName("IReadOnlyDictionary", TypeNameStyle.Name))
+                    if (schema.AdditionalItemsSchema is null || !(type.IsAssignableToTypeName("IReadOnlyDictionary", TypeNameStyle.Name) || type.IsAssignableToTypeName("IDictionary", TypeNameStyle.Name)))
                         throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
 
-                    schema = schema.PatternProperties.Values.First() is { } patternSchema
-                        ? patternSchema.Reference is { } referencedSchema2
-                            ? referencedSchema2 : patternSchema
-                        : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path));
+                    schema = schema.AdditionalItemsSchema.Reference is { } referencedSchema2
+                        ? referencedSchema2 : schema.AdditionalItemsSchema;
                     type = type.GenericArguments[1];
                 }
                 // Array
@@ -469,7 +534,13 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         if (info.Path is null || !File.Exists(info.Path))
         {
             config = New<TConfig>();
-            Save(config);
+            var json = SerializeInternal(config);
+            SaveInternal(info, json, config);
+            var (token, errors) = ValidateInternal(info, json, config, loadValidation: true);
+            config = DeserializeInternal<TConfig>(token.ToString());
+            _loadedConfigurations[info.ID] = config;
+            if (errors.Count > 0)
+                throw new ConfigurationValidationException("load", info, errors);
             return copy ? config.DeepClone() : config;
         }
 
@@ -481,11 +552,11 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
             EnsureSchemaExists(info);
 
-            var errors = Validate(info, json);
+            var (token, errors) = ValidateInternal<TConfig>(info, json, null, loadValidation: true);
             if (errors.Count > 0)
                 throw new ConfigurationValidationException("load", info, errors);
 
-            config = DeserializeInternal<TConfig>(json);
+            config = DeserializeInternal<TConfig>(token.ToString());
             _loadedConfigurations[info.ID] = config;
             return copy ? config.DeepClone() : config;
         }
@@ -538,26 +609,27 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     public bool Save<TConfig>(string json) where TConfig : class, IConfiguration, new()
         => SaveInternal<TConfig>(GetConfigurationInfo<TConfig>(), json);
 
-    private bool SaveInternal<TConfig>(ConfigurationInfo info, string json, TConfig? config = null) where TConfig : class, IConfiguration, new()
+    private bool SaveInternal<TConfig>(ConfigurationInfo info, string originalJson, TConfig? config = null) where TConfig : class, IConfiguration, new()
     {
-        json = AddSchemaProperty(info, json);
-        var errors = Validate(info, json);
+        var storedJson = AddSchemaProperty(info, originalJson);
+        var pendingRestart = InternalRestartPendingFor.Count > 0;
+        var (token, errors) = ValidateInternal(info, storedJson, config, saveValidation: true);
         if (errors.Count > 0)
             throw new ConfigurationValidationException("save", info, errors);
 
+        storedJson = token.ToString();
         lock (info)
         {
-
             if (info.Path is null)
             {
-                if (_savedMemoryConfigurations.TryGetValue(info.ID, out var oldJson) && oldJson is not null && oldJson.Equals(json, StringComparison.Ordinal))
+                if (_savedMemoryConfigurations.TryGetValue(info.ID, out var oldJson) && oldJson is not null && oldJson.Equals(storedJson, StringComparison.Ordinal))
                 {
                     _logger.LogTrace("In-memory configuration for {Name} is unchanged. Skipping save.", info.Name);
                     return false;
                 }
 
                 _logger.LogTrace("Saving in-memory configuration for {Name}.", info.Name);
-                _savedMemoryConfigurations[info.ID] = json;
+                _savedMemoryConfigurations[info.ID] = storedJson;
                 _logger.LogTrace("Saved in-memory configuration for {Name}.", info.Name);
             }
             else
@@ -571,7 +643,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 if (File.Exists(info.Path))
                 {
                     var oldJson = File.ReadAllText(info.Path);
-                    if (oldJson.Equals(json, StringComparison.Ordinal))
+                    if (oldJson.Equals(storedJson, StringComparison.Ordinal))
                     {
                         _logger.LogTrace("Configuration for {Name} is unchanged. Skipping save.", info.Name);
                         return false;
@@ -579,14 +651,21 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 }
 
                 _logger.LogTrace("Saving configuration for {Name}.", info.Name);
-                File.WriteAllText(info.Path, json);
+                File.WriteAllText(info.Path, storedJson);
                 _logger.LogTrace("Saved configuration for {Name}.", info.Name);
             }
 
-            _loadedConfigurations[info.ID] = config ?? DeserializeInternal<TConfig>(json);
+            // We deserialize the original JSON for the UI, but store the serialized version that
+            // may have been modified by the schema validation to prevent writing the environment
+            // variables overrides to disk.
+            _loadedConfigurations[info.ID] = config ?? DeserializeInternal<TConfig>(originalJson);
         }
 
-        Saved?.Invoke(this, new ConfigurationSavedEventArgs() { ConfigurationInfo = info });
+        Task.Run(() => Saved?.Invoke(this, new ConfigurationSavedEventArgs() { ConfigurationInfo = info }));
+
+        var needsRestart = InternalRestartPendingFor.Count > 0;
+        if (needsRestart != pendingRestart)
+            Task.Run(() => RequiresRestart?.Invoke(this, new() { RequiresRestart = needsRestart }));
 
         return true;
     }
@@ -780,7 +859,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     #region Schema | Constants
 
-    private const string UiDefinition = "x-uiDefinition";
+    internal const string UiDefinition = "x-uiDefinition";
 
     private const string ElementType = "elementType";
 
@@ -795,6 +874,12 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     private const string ElementBadge = "badge";
 
     private const string ElementPrimaryKey = "primaryKey";
+
+    internal const string ElementEnvironmentVariable = "envVar";
+
+    internal const string ElementEnvironmentVariableOverridable = "envVarOverridable";
+
+    internal const string ElementRequiresRestart = "requiresRestart";
 
     private const string SectionType = "sectionType";
 
@@ -880,6 +965,21 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 }
                 uiDict.Add(ElementVisibility, visibilityDict);
                 uiDict[ElementSize] = Convert(visibilityAttribute.Size);
+            }
+
+            if (info.GetAttribute<RequiresRestartAttribute>(false) is { })
+            {
+                uiDict.Add(ElementRequiresRestart, true);
+            }
+            else
+            {
+                uiDict.Add(ElementRequiresRestart, false);
+            }
+
+            if (info.GetAttribute<EnvironmentVariableAttribute>(false) is { } environmentVariableAttribute && !string.IsNullOrWhiteSpace(environmentVariableAttribute.Name))
+            {
+                uiDict.Add(ElementEnvironmentVariable, environmentVariableAttribute.Name);
+                uiDict.Add(ElementEnvironmentVariableOverridable, environmentVariableAttribute.AllowOverride);
             }
 
             if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))

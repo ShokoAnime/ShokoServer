@@ -8,7 +8,7 @@ namespace Shoko.Server.Settings;
 
 public class ImportSettings
 {
-    private string[] InternalVideoExtensions { get; set; } =
+    private string[] _internalVideoExtensions =
     [
         "MKV",
         "AVI",
@@ -26,19 +26,20 @@ public class ImportSettings
     /// List of video file extensions to import.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]
+    [RequiresRestart]
     [MinLength(1)]
     [List(UniqueItems = true, Sortable = true)]
     public string[] VideoExtensions
     {
-        get => InternalVideoExtensions;
-        set => InternalVideoExtensions = value
+        get => _internalVideoExtensions;
+        set => _internalVideoExtensions = value
             .Select(ext => ext.StartsWith('.') ? ext.TrimStart('.').ToUpper().Trim() : ext.ToUpper().Trim())
             .Distinct()
             .Except([string.Empty, null])
             .ToArray();
     }
 
-    private string[] InternalExclude { get; set; } =
+    private string[] _internalExclude =
     [
         @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]"
     ];
@@ -51,8 +52,8 @@ public class ImportSettings
     [List(UniqueItems = true, Sortable = true)]
     public string[] Exclude
     {
-        get => InternalExclude;
-        set => InternalExclude = value
+        get => _internalExclude;
+        set => _internalExclude = value
             .Select(ext => string.IsNullOrWhiteSpace(ext) ? string.Empty : ext)
             .Distinct()
             .Except([string.Empty, null])
@@ -96,6 +97,8 @@ public class ImportSettings
     /// Check if a file is currently being written to when reacting to events in the file watcher.
     /// </summary>
     [Display(Name = "Use File Lock Checking")]
+    [RequiresRestart]
+    [DefaultValue(true)]
     public bool FileLockChecking { get; set; } = true;
 
     /// <summary>
@@ -108,6 +111,7 @@ public class ImportSettings
         ToggleVisibilityTo = DisplayVisibility.Visible
     )]
     [Display(Name = "File Lock Wait Time (ms)")]
+    [RequiresRestart]
     [DefaultValue(4_000)]
     [Range(1_000, 60_000)]
     public int FileLockWaitTimeMS { get; set; } = 4_000;
@@ -118,6 +122,8 @@ public class ImportSettings
     /// being written to.
     /// </summary>
     [Display(Name = "Use Aggressive File Lock Checking")]
+    [RequiresRestart]
+    [DefaultValue(true)]
     public bool AggressiveFileLockChecking { get; set; } = true;
 
     /// <summary>
@@ -131,6 +137,7 @@ public class ImportSettings
         ToggleVisibilityTo = DisplayVisibility.Visible
     )]
     [Display(Name = "Aggressive File Lock Wait Time (seconds)")]
+    [RequiresRestart]
     [DefaultValue(8)]
     [Range(0, 60)]
     public int AggressiveFileLockWaitTimeSeconds { get; set; } = 8;
@@ -139,6 +146,7 @@ public class ImportSettings
     /// Skip disk space checks during the move/rename of files.
     /// </summary>
     [Display(Name = "Skip Disk Space Checks")]
+    [DefaultValue(false)]
     public bool SkipDiskSpaceChecks { get; set; }
 
     /// <summary>
@@ -146,6 +154,7 @@ public class ImportSettings
     /// </summary>
     [Visibility(Size = DisplayElementSize.Full)]
     [Display(Name = "Override MediaInfo Path")]
+    [DefaultValue(null)]
     public string MediaInfoPath { get; set; }
 
     /// <summary>

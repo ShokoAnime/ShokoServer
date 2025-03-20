@@ -16,9 +16,12 @@ public class AggregateHub : Hub
     private readonly AVDumpEmitter _avdumpEmitter;
 
     private readonly NetworkEmitter _networkEmitter;
+
     private readonly QueueHandler _queueHandler;
 
-    public AggregateHub(AniDBEmitter aniDBEmitter, QueueEmitter queueEmitter, ShokoEventEmitter shokoEmitter, AVDumpEmitter avdumpEmitter, NetworkEmitter networkEmitter, QueueHandler queueHandler)
+    private readonly ConfigurationEmitter _configurationEmitter;
+
+    public AggregateHub(AniDBEmitter aniDBEmitter, QueueEmitter queueEmitter, ShokoEventEmitter shokoEmitter, AVDumpEmitter avdumpEmitter, NetworkEmitter networkEmitter, QueueHandler queueHandler, ConfigurationEmitter configurationEmitter)
     {
         _aniDBEmitter = aniDBEmitter;
         _queueEmitter = queueEmitter;
@@ -26,6 +29,7 @@ public class AggregateHub : Hub
         _avdumpEmitter = avdumpEmitter;
         _networkEmitter = networkEmitter;
         _queueHandler = queueHandler;
+        _configurationEmitter = configurationEmitter;
     }
 
     public override async Task OnConnectedAsync()
@@ -60,6 +64,10 @@ public class AggregateHub : Hub
                 case "network":
                     await Groups.AddToGroupAsync(Context.ConnectionId, _networkEmitter.Group);
                     await Clients.Caller.SendAsync(_networkEmitter.GetName(OnConnected), _networkEmitter.GetInitialMessage());
+                    break;
+                case "configuration":
+                    await Groups.AddToGroupAsync(Context.ConnectionId, _configurationEmitter.Group);
+                    await Clients.Caller.SendAsync(_configurationEmitter.GetName(OnConnected), _configurationEmitter.GetInitialMessage());
                     break;
             }
         }

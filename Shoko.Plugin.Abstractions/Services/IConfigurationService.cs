@@ -18,6 +18,25 @@ public interface IConfigurationService
     event EventHandler<ConfigurationSavedEventArgs>? Saved;
 
     /// <summary>
+    ///   Dispatched when a configuration that requires a restart is saved.
+    /// </summary>
+    event EventHandler<ConfigurationRequiresRestartEventArgs>? RequiresRestart;
+
+    /// <summary>
+    ///   Indicates which configurations need a restart of the server for it's
+    ///   changes to take effect. The key is the configuration ID and the value
+    ///   is a set of property paths that require a restart.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, IReadOnlySet<string>> RestartPendingFor { get; }
+
+    /// <summary>
+    ///   The environment variables that have been successfully loaded into
+    ///   the configurations. The key is the configuration ID and the value
+    ///   is a set of environment variable names loaded by that configuration.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, IReadOnlySet<string>> LoadedEnvironmentVariables { get; }
+
+    /// <summary>
     ///   Adds the necessary parts for the service to function.
     /// </summary>
     /// <remarks>

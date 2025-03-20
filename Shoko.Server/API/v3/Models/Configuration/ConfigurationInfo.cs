@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Shoko.Server.API.v3.Models.Plugin;
 using AbstractConfigurationInfo = Shoko.Plugin.Abstractions.Config.ConfigurationInfo;
 
@@ -16,6 +18,16 @@ public class ConfigurationInfo(AbstractConfigurationInfo info)
     /// The display name of the configuration.
     /// </summary>
     public string Name { get; init; } = info.Name;
+
+    /// <summary>
+    /// A set of paths for properties that need a restart to take effect.
+    /// </summary>
+    public HashSet<string> RestartPendingFor { get; init; } = info.RestartPendingFor.ToHashSet();
+
+    /// <summary>
+    /// A set of environment variables that have been loaded.
+    /// </summary>
+    public HashSet<string> LoadedEnvironmentVariables { get; init; } = info.LoadedEnvironmentVariables.ToHashSet();
 
     /// <summary>
     /// Describes what the configuration is for.

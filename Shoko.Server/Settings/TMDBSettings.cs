@@ -197,6 +197,8 @@ public class TMDBSettings
     /// <summary>
     /// Optional. User provided TMDB API key to use.
     /// </summary>
+    [EnvironmentVariable("TMDB_API_KEY")]
+    [RequiresRestart]
     [PasswordPropertyText]
     public string? UserApiKey { get; set; } = null;
 }

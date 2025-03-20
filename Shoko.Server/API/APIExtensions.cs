@@ -28,12 +28,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
+
 using File = System.IO.File;
-using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
-using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
-using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
-using AVDumpEmitter = Shoko.Server.API.SignalR.Aggregate.AVDumpEmitter;
-using NetworkEmitter = Shoko.Server.API.SignalR.Aggregate.NetworkEmitter;
 
 namespace Shoko.Server.API;
 
@@ -47,6 +43,7 @@ public static class APIExtensions
         services.AddSingleton<AVDumpEmitter>();
         services.AddSingleton<NetworkEmitter>();
         services.AddSingleton<QueueEmitter>();
+        services.AddSingleton<ConfigurationEmitter>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();

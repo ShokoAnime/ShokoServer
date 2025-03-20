@@ -31,6 +31,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public string Culture { get; set; } = "en";
 
     /// <inheritdoc />
+    [EnvironmentVariable("SHOKO_FIRST_RUN", AllowOverride = true)]
     [Visibility(DisplayVisibility.Hidden)]
     public bool FirstRun { get; set; } = true;
 
@@ -46,7 +47,12 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     public bool LoadImageMetadata { get; set; } = false;
 
-    /// <inheritdoc />
+    /// <summary>
+    /// The maximum number of seconds to cache a repository during startup.
+    /// </summary>
+    [Display(Name = "Caching Database Timeout (seconds)")]
+    [EnvironmentVariable("DB_CACHING_TIMEOUT")]
+    [Range(1, 600, ErrorMessage = "Caching Database Timeout must be between 1 and 600")]
     public int CachingDatabaseTimeout { get; set; } = 180;
 
     /// <inheritdoc />
@@ -108,20 +114,24 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
 
     /// <inheritdoc />
     [SectionName("Web UI")]
-    [CodeEditor(CodeLanguage.Json, AutoFormatOnLoad = true)]
     [Display(Name = "Settings")]
+    [EnvironmentVariable("SHOKO_WEBUI_SETTINGS", AllowOverride = true)]
+    [CodeEditor(CodeLanguage.Json, AutoFormatOnLoad = true)]
     public string WebUI_Settings { get; set; } = "";
 
     /// <summary>
     /// Enable trace logging in the log file and web UI live console.
     /// </summary>
     [Display(Name = "Enable Trace Logging")]
+    [EnvironmentVariable("SHOKO_TRACE_LOG")]
     public bool TraceLog { get; set; }
 
     /// <summary>
     /// Disable Sentry error reporting in the server. This will not affect the
     /// web UI error reporting.
     /// </summary>
+    [RequiresRestart]
+    [EnvironmentVariable("SENTRY_OPT_OUT")]
     [Display(Name = "Sentry Opt-Out")]
     public bool SentryOptOut { get; set; } = false;
 }
