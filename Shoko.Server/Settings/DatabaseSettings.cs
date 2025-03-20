@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
@@ -21,8 +22,10 @@ public class DatabaseSettings
     /// <summary>
     /// Determines the database backend to use for everything besides Quartz.
     /// </summary>
-    [Required]
     [Display(Name = "Database Type")]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_TYPE")]
+    [Required]
     public Constants.DatabaseType Type { get; set; } = Constants.DatabaseType.SQLite;
 
     [JsonIgnore]
@@ -39,7 +42,9 @@ public class DatabaseSettings
         ToggleVisibilityTo = DisplayVisibility.Visible
     )]
     [Display(Name = "Filename")]
-    [RegularExpression(@"\.(?:db3?|sqlite3?)$")]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_SQLITE_FILENAME")]
+    [RegularExpression(@".+\.(?:db3?|sqlite3?)$")]
     public string SQLite_DatabaseFile
     {
         get => _sqliteFile;
@@ -84,6 +89,8 @@ public class DatabaseSettings
         ToggleVisibilityTo = DisplayVisibility.Visible
     )]
     [Display(Name = "Directory")]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_SQLITE_DIRECTORY")]
     public string MySqliteDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "SQLite");
 
     /// <summary>
@@ -97,6 +104,8 @@ public class DatabaseSettings
         ToggleWhenSetTo = Constants.DatabaseType.SQLite,
         ToggleVisibilityTo = DisplayVisibility.Hidden
     )]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_HOST")]
     public string Host { get; set; } = string.Empty;
 
     /// <summary>
@@ -109,6 +118,8 @@ public class DatabaseSettings
         ToggleWhenSetTo = Constants.DatabaseType.SQLite,
         ToggleVisibilityTo = DisplayVisibility.Hidden
     )]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_USER")]
     public string Username { get; set; } = string.Empty;
 
     /// <summary>
@@ -121,6 +132,9 @@ public class DatabaseSettings
         ToggleWhenSetTo = Constants.DatabaseType.SQLite,
         ToggleVisibilityTo = DisplayVisibility.Hidden
     )]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_PASS")]
+    [PasswordPropertyText]
     public string Password { get; set; } = string.Empty;
 
     /// <summary>
@@ -134,6 +148,8 @@ public class DatabaseSettings
         ToggleVisibilityTo = DisplayVisibility.Hidden
     )]
     [Display(Name = "Database Name")]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_NAME")]
     public string Schema { get; set; } = string.Empty;
 
     /// <summary>
@@ -146,8 +162,10 @@ public class DatabaseSettings
         ToggleWhenSetTo = Constants.DatabaseType.SQLite,
         ToggleVisibilityTo = DisplayVisibility.Hidden
     )]
-    [TextArea]
     [Display(Name = "Connection String")]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_CONNECTION_STRING")]
+    [TextArea]
     public string OverrideConnectionString { get; set; } = string.Empty;
 
     [JsonIgnore]
@@ -184,6 +202,8 @@ public class DatabaseSettings
     [Visibility(
         Size = DisplayElementSize.Full
     )]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_BACKUP_DIRECTORY")]
     public string DatabaseBackupDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "DatabaseBackup");
 
     /// <summary>
@@ -198,6 +218,8 @@ public class DatabaseSettings
         ToggleVisibilityTo = DisplayVisibility.Disabled
     )]
     [Display(Name = "Use Application Database Locking")]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_USE_APPLICATION_LOCK")]
     public bool UseDatabaseLock { get; set; } = true;
 
     /// <summary>
@@ -205,6 +227,8 @@ public class DatabaseSettings
     /// </summary>
     [Badge("Debug", Theme = DisplayColorTheme.Danger)]
     [Display(Name = "Log SQL to Console")]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_LOG_TO_CONSOLE")]
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     public bool LogSqlInConsole { get; set; } = false;
 }
