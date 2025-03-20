@@ -29,6 +29,8 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
 
     private string[] _descriptionLanguageOrder = [];
 
+    private bool _ready = false;
+
     public Type ConfigurationType { get; } = typeof(ServerSettings);
 
     public string RelativePath => "settings-server.json";
@@ -49,29 +51,35 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
     }
 
     private void OnSettingsReady(object? sender, EventArgs eventArgs)
-        => OnSettingsSaved(sender, new ConfigurationSavedEventArgs<ServerSettings> { ConfigurationInfo = _configurationProvider.ConfigurationInfo, Configuration = _configurationProvider.Load() });
+    {
+        _ready = true;
+        OnSettingsSaved(sender, new ConfigurationSavedEventArgs<ServerSettings> { ConfigurationInfo = _configurationProvider.ConfigurationInfo, Configuration = _configurationProvider.Load() });
+    }
 
     private void OnSettingsSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> eventArgs)
     {
         // Always update the trace logging settings when the settings change.
         Utils.SetTraceLogging(eventArgs.Configuration.TraceLog);
 
-        if (!_seriesTitleLanguageOrder.SequenceEqual(eventArgs.Configuration.Language.SeriesTitleLanguageOrder))
+        if (_ready)
         {
-            _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
-            Languages.PreferredNamingLanguages = [];
-        }
+            if (!_seriesTitleLanguageOrder.SequenceEqual(eventArgs.Configuration.Language.SeriesTitleLanguageOrder))
+            {
+                _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
+                Languages.PreferredNamingLanguages = [];
+            }
 
-        if (!_episodeTitleLanguageOrder.SequenceEqual(eventArgs.Configuration.Language.EpisodeTitleLanguageOrder))
-        {
-            _episodeTitleLanguageOrder = eventArgs.Configuration.Language.EpisodeTitleLanguageOrder.ToArray();
-            Languages.PreferredEpisodeNamingLanguages = [];
-        }
+            if (!_episodeTitleLanguageOrder.SequenceEqual(eventArgs.Configuration.Language.EpisodeTitleLanguageOrder))
+            {
+                _episodeTitleLanguageOrder = eventArgs.Configuration.Language.EpisodeTitleLanguageOrder.ToArray();
+                Languages.PreferredEpisodeNamingLanguages = [];
+            }
 
-        if (!_descriptionLanguageOrder.SequenceEqual(eventArgs.Configuration.Language.DescriptionLanguageOrder))
-        {
-            _descriptionLanguageOrder = eventArgs.Configuration.Language.DescriptionLanguageOrder.ToArray();
-            Languages.PreferredDescriptionNamingLanguages = [];
+            if (!_descriptionLanguageOrder.SequenceEqual(eventArgs.Configuration.Language.DescriptionLanguageOrder))
+            {
+                _descriptionLanguageOrder = eventArgs.Configuration.Language.DescriptionLanguageOrder.ToArray();
+                Languages.PreferredDescriptionNamingLanguages = [];
+            }
         }
     }
 
