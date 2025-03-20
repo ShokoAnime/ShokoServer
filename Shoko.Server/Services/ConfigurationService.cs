@@ -816,6 +816,10 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private const string RecordElementType = "recordElementType";
 
+    private const string RecordHideAddAction = "recordHideAddAction";
+
+    private const string RecordHideRemoveAction = "recordHideRemoveAction";
+
     private const string CodeBlockLanguage = "codeLanguage";
 
     private const string CodeBlockAutoFormatOnLoad = "codeAutoFormatOnLoad";
@@ -958,6 +962,16 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
                 uiDict[ElementType] = Convert(DisplayElementType.Record);
                 uiDict.Add(RecordElementType, Convert(DisplayElementSize.Normal));
+                if (info.GetAttribute<RecordAttribute>(false) is { } recordAttribute)
+                {
+                    uiDict.Add(RecordHideAddAction, recordAttribute.HideAddAction);
+                    uiDict.Add(RecordHideRemoveAction, recordAttribute.HideRemoveAction);
+                }
+                else
+                {
+                    uiDict.Add(RecordHideAddAction, false);
+                    uiDict.Add(RecordHideRemoveAction, false);
+                }
 
                 // Only set if the referenced schema is a class definition
                 if (recordSchema.HasReference && _schemaKeys.TryGetValue(recordSchema.ActualSchema, out var referencedSchemaKey))
