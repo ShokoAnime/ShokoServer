@@ -24,6 +24,10 @@ public class HashFileJob : BaseJob
 
     public bool ForceHash { get; set; }
 
+    public bool SkipMyList { get; set; }
+
+    public bool SkipFindRelease { get; set; }
+
     public override string TypeName => "Hash File";
 
     public override string Title => "Hashing File";
@@ -34,6 +38,8 @@ public class HashFileJob : BaseJob
         {
             var result = new Dictionary<string, object> { { "File Path", Utils.GetDistinctPath(FilePath) } };
             if (ForceHash) result["Force"] = true;
+            if (!SkipMyList) result["Add to MyList"] = true;
+            if (!SkipFindRelease) result["Find Release"] = true;
             return result;
         }
     }
@@ -50,7 +56,7 @@ public class HashFileJob : BaseJob
         try
         {
             _logger.LogInformation("Processing {Job}: {FileName}", nameof(HashFileJob), Utils.GetDistinctPath(FilePath));
-            await _videoHashingService.GetHashesForPath(FilePath, !ForceHash);
+            await _videoHashingService.GetHashesForPath(FilePath, useExistingHashes: !ForceHash, skipFindRelease: SkipFindRelease, skipMylist: SkipMyList);
         }
         catch (Exception ex)
         {

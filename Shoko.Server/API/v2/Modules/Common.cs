@@ -272,14 +272,7 @@ public class Common : BaseController
             if (!_videoReleaseService.AutoMatchEnabled)
                 return Ok();
 
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJobNow<ProcessFileJob>(
-                c =>
-                {
-                    c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceRecheck = true;
-                }
-            );
+            await _videoReleaseService.ScheduleFindReleaseForVideo(vid, force: true, prioritize: true);
             return Ok();
         }
         catch (Exception ex)
@@ -303,17 +296,8 @@ public class Common : BaseController
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
-            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
-            {
-                await scheduler.StartJobNow<ProcessFileJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceRecheck = true;
-                    }
-                );
-            }
+                await _videoReleaseService.ScheduleFindReleaseForVideo(vl, force: true, prioritize: true);
 
             return Ok();
         }
@@ -338,17 +322,8 @@ public class Common : BaseController
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
 
-            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
-            {
-                await scheduler.StartJobNow<ProcessFileJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceRecheck = true;
-                    }
-                );
-            }
+                await _videoReleaseService.ScheduleFindReleaseForVideo(vl, force: true, prioritize: true);
 
             return Ok();
         }

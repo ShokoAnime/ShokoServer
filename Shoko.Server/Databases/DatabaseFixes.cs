@@ -32,7 +32,6 @@ using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Tasks;
@@ -514,7 +513,6 @@ public class DatabaseFixes
 
     public static void FixOrphanedShokoEpisodes()
     {
-        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
         var videoReleaseService = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>();
         var allSeries = RepoFactory.AnimeSeries.GetAll()
             .ToDictionary(series => series.AnimeSeriesID);
@@ -598,11 +596,7 @@ public class DatabaseFixes
         foreach (var video in videosToRefetch)
         {
             videoReleaseService.ClearReleaseForVideo(video).GetAwaiter().GetResult();
-            if (autoMatch)
-                scheduler.StartJobNow<ProcessFileJob>(c =>
-                {
-                    c.VideoLocalID = video.VideoLocalID;
-                }).GetAwaiter().GetResult();
+            videoReleaseService.ScheduleFindReleaseForVideo(video).GetAwaiter().GetResult();
         }
 
         _logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");
