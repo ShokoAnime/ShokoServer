@@ -350,7 +350,6 @@ public static class APIExtensions
             });
         }
 
-
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #else
