@@ -2306,24 +2306,8 @@ public class SeriesController : BaseController
         if (!_videoReleaseService.AutoMatchEnabled)
             return ValidationProblem("Release auto-matching is currently disabled.", "IVideoReleaseService");
 
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
-        {
-            if (priority)
-                await scheduler.StartJobNow<ProcessFileJob>(c =>
-                    {
-                        c.VideoLocalID = file.VideoLocalID;
-                        c.ForceRecheck = true;
-                    }
-                );
-            else
-                await scheduler.StartJob<ProcessFileJob>(c =>
-                    {
-                        c.VideoLocalID = file.VideoLocalID;
-                        c.ForceRecheck = true;
-                    }
-                );
-        }
+            await _videoReleaseService.ScheduleFindReleaseForVideo(file, force: true, prioritize: priority);
 
         return Ok();
     }

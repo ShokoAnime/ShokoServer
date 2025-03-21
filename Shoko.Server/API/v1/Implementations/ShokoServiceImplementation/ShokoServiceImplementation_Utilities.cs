@@ -23,7 +23,6 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -761,18 +760,8 @@ public partial class ShokoServiceImplementation
         {
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-
-            var scheduler = _schedulerFactory.GetScheduler().Result;
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
-            {
-                scheduler.StartJob<ProcessFileJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceRecheck = true;
-                    }
-                ).GetAwaiter().GetResult();
-            }
+                _videoReleaseService.ScheduleFindReleaseForVideo(vl, force: true, prioritize: true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

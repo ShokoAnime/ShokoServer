@@ -22,13 +22,16 @@ public static class QuartzExtensions
     /// </summary>
     /// <param name="scheduler"></param>
     /// <param name="data">Job Data Constructor</param>
+    /// <param name="prioritize">
+    ///   If true, the job will be prioritized in the queue.
+    /// </param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static async Task<DateTimeOffset> StartJob<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
+    public static async Task<DateTimeOffset> StartJob<T>(this IScheduler scheduler, Action<T> data = null, bool prioritize = false) where T : class, IJob
     {
         if (data == null)
-            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build());
-        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build());
+            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority: prioritize ? 10 : 0);
+        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority: prioritize ? 10 : 0);
     }
 
     /// <summary>
@@ -41,8 +44,8 @@ public static class QuartzExtensions
     public static async Task<DateTimeOffset> StartJobNow<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
     {
         if (data == null)
-            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:10);
-        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:10);
+            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority: 10);
+        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority: 10);
     }
 
     /// <summary>

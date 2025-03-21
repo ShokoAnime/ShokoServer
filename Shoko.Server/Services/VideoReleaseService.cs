@@ -19,6 +19,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -289,7 +290,7 @@ public class VideoReleaseService(
     public IReleaseInfo? GetCurrentReleaseForVideo(IVideo video)
         => releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
 
-    public async Task ScheduleFindReleaseForVideo(IVideo video, bool prioritize = false, bool force = false)
+    public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool prioritize = false)
     {
         if (!AutoMatchEnabled)
             return;
@@ -298,13 +299,10 @@ public class VideoReleaseService(
             return;
 
         var scheduler = await schedulerFactory.GetScheduler();
-        if (prioritize)
-            await scheduler.StartJobNow<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck) = (video.ID, true));
-        else
-            await scheduler.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck) = (video.ID, true));
+        await scheduler.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck) = (video.ID, true), prioritize: prioritize);
     }
 
-    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, CancellationToken cancellationToken = default)
+    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, CancellationToken cancellationToken = default)
     {
         // We don't want the search started/completed events to interrupt the search, so wrap them both in a try…catch block.
         var startedAt = DateTime.Now;
@@ -355,7 +353,7 @@ public class VideoReleaseService(
             if (!saveRelease || releaseInfo is null)
                 return releaseInfo;
 
-            releaseInfo = await SaveReleaseForVideo(video, releaseInfo, matchAttempt);
+            releaseInfo = await SaveReleaseForVideo(video, releaseInfo, matchAttempt, addToMylist);
             completedAt = matchAttempt.AttemptEndedAt;
             return releaseInfo;
         }
@@ -461,13 +459,13 @@ public class VideoReleaseService(
         return (selectedRelease, selectedProvider);
     }
 
-    public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User")
-        => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName));
+    public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User", bool addToMylist = true)
+        => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName), addToMylist);
 
-    public async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release)
-        => await SaveReleaseForVideo(video, release, new() { ProviderName = release.ProviderName, EmbeddedAttemptProviderNames = release.ProviderName, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.Hashes.ED2K, FileSize = video.Size });
+    public async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool addToMylist = true)
+        => await SaveReleaseForVideo(video, release, new() { ProviderName = release.ProviderName, EmbeddedAttemptProviderNames = release.ProviderName, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.Hashes.ED2K, FileSize = video.Size }, addToMylist);
 
-    private async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, StoredReleaseInfo_MatchAttempt matchAttempt)
+    private async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, StoredReleaseInfo_MatchAttempt matchAttempt, bool addToMylist = true)
     {
         if (release.CrossReferences.Count < 1)
             throw new InvalidOperationException("Release must have at least one valid cross reference.");
@@ -485,6 +483,7 @@ public class VideoReleaseService(
             releaseInfo.Hashes = hashes.Count < 1 ? null : hashes;
         }
 
+        var releaseUriMatches = false;
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
         {
             // If the new release info is **EXACTLY** the same as the existing one, then just return the existing one.
@@ -497,7 +496,8 @@ public class VideoReleaseService(
                 return existingRelease;
             }
 
-            await ClearReleaseForVideo(video, existingRelease);
+            releaseUriMatches = string.Equals(existingRelease.ReleaseURI, releaseInfo.ReleaseURI);
+            await ClearReleaseForVideo(video, existingRelease, removeFromMylist: addToMylist && !releaseUriMatches);
         }
 
         // Make sure the revision is valid.
@@ -527,7 +527,7 @@ public class VideoReleaseService(
         SetWatchedStateIfNeeded(video, releaseInfo);
 
         // Sync to mylist if needed.
-        if (_settings.AniDb.MyList_AddFiles)
+        if (addToMylist && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
             await scheduler.StartJob<AddFileToMyListJob>(c =>
             {
                 c.Hash = video.Hashes.ED2K;
@@ -543,13 +543,13 @@ public class VideoReleaseService(
         return releaseInfo;
     }
 
-    public async Task ClearReleaseForVideo(IVideo video)
+    public async Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true)
     {
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
-            await ClearReleaseForVideo(video, existingRelease);
+            await ClearReleaseForVideo(video, existingRelease, removeFromMylist);
     }
 
-    private async Task ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo)
+    private async Task ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo, bool removeFromMylist = true)
     {
         if (video is VideoLocal videoLocal)
         {
@@ -562,9 +562,52 @@ public class VideoReleaseService(
 
         releaseInfoRepository.Delete(releaseInfo);
 
+        if (removeFromMylist)
+            await RemoveFromMyList(releaseInfo);
+
         await ScheduleAnimeForRelease(xrefs);
 
         ReleaseDeleted?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
+    }
+
+    private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo)
+    {
+        if (_settings.AniDb.MyList_DeleteType is Shoko.Models.Enums.AniDBFileDeleteType.DeleteLocalOnly)
+        {
+            logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
+            return;
+        }
+
+        var scheduler = await schedulerFactory.GetScheduler();
+        if (releaseInfo is { ReleaseURI: not null } && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+        {
+            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                {
+                    c.Hash = releaseInfo.ED2K;
+                    c.FileSize = releaseInfo.FileSize;
+                }
+            );
+        }
+        else
+        {
+            foreach (var xref in releaseInfo.CrossReferences)
+            {
+                if (xref.AnidbAnimeID is null or 0)
+                    continue;
+
+                var anidbEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
+                if (anidbEpisode is null)
+                    continue;
+
+                await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                    {
+                        c.AnimeID = xref.AnidbAnimeID.Value;
+                        c.EpisodeType = anidbEpisode.EpisodeTypeEnum;
+                        c.EpisodeNumber = anidbEpisode.EpisodeNumber;
+                    }
+                );
+            }
+        }
     }
 
     public IReadOnlyList<IReleaseMatchAttempt> GetReleaseMatchAttemptsForVideo(IVideo video)

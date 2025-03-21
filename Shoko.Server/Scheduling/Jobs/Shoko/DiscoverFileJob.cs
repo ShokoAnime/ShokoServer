@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -26,13 +25,14 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 public class DiscoverFileJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
-    private readonly ISchedulerFactory _schedulerFactory;
     private readonly IVideoHashingService _videoHashingService;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
     private readonly ShokoManagedFolderRepository _managedFolders;
 
     public string FilePath { get; set; }
+
+    public bool SkipMyList { get; set; }
 
     public override string TypeName => "Preprocess File";
 
@@ -46,10 +46,9 @@ public class DiscoverFileJob : BaseJob
 
     protected DiscoverFileJob() { }
 
-    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoHashingService videoHashingService, IVideoReleaseService videoReleaseService, VideoLocal_PlaceService vlPlaceService, ShokoManagedFolderRepository managedFolders)
+    public DiscoverFileJob(ISettingsProvider settingsProvider, IVideoHashingService videoHashingService, IVideoReleaseService videoReleaseService, VideoLocal_PlaceService vlPlaceService, ShokoManagedFolderRepository managedFolders)
     {
         _settingsProvider = settingsProvider;
-        _schedulerFactory = schedulerFactory;
         _videoHashingService = videoHashingService;
         _videoReleaseService = videoReleaseService;
         _vlPlaceService = vlPlaceService;
@@ -91,7 +90,6 @@ public class DiscoverFileJob : BaseJob
 
         var enabledHashes = _videoHashingService.AllEnabledHashTypes;
         var shouldHash = string.IsNullOrEmpty(vlocal.Hash) || (vlocal.Hashes is { } hashes && (hashes.Count == 0 || enabledHashes.Any(a => !hashes.Any(b => b.Type == a))));
-        var scheduler = await _schedulerFactory.GetScheduler();
 
         // if !shouldHash, then we definitely have a hash
         var hasXrefs = vlocal.EpisodeCrossReferences is { } xrefs && xrefs.Count > 0 && xrefs.All(a => a.AnimeEpisode is not null && a.AnimeSeries is not null);
@@ -118,7 +116,7 @@ public class DiscoverFileJob : BaseJob
             }
 
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
-            await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
+            await _videoReleaseService.ScheduleFindReleaseForVideo(vlocal, addToMylist: !SkipMyList);
             return;
         }
 
@@ -139,10 +137,7 @@ public class DiscoverFileJob : BaseJob
 
         if (shouldHash)
         {
-            await scheduler.StartJobNow<HashFileJob>(a =>
-            {
-                a.FilePath = FilePath;
-            });
+            await _videoHashingService.ScheduleGetHashesForPath(FilePath, skipMylist: SkipMyList);
             return;
         }
 
@@ -156,7 +151,7 @@ public class DiscoverFileJob : BaseJob
             }
 
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
-            await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
+            await _videoReleaseService.ScheduleFindReleaseForVideo(vlocal, addToMylist: !SkipMyList);
         }
     }
 

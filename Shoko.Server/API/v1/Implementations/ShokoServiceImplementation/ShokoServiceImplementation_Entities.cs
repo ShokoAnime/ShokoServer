@@ -570,14 +570,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (!_videoReleaseService.AutoMatchEnabled)
                 return "Release auto-matching is currently disabled";
 
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<ProcessFileJob>(
-                c =>
-                {
-                    c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceRecheck = true;
-                }
-            ).GetAwaiter().GetResult();
+            _videoReleaseService.ScheduleFindReleaseForVideo(vid, force: true, prioritize: true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -603,14 +596,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (!_videoReleaseService.AutoMatchEnabled)
                 return "Release auto-matching is currently disabled";
 
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<ProcessFileJob>(
-                c =>
-                {
-                    c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceRecheck = true;
-                }
-            ).GetAwaiter().GetResult();
+            _videoReleaseService.ScheduleFindReleaseForVideo(vid, force: true, prioritize: true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

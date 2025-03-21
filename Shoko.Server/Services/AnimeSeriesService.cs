@@ -22,7 +22,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -129,15 +128,10 @@ public class AnimeSeriesService
         // remove the current release and schedule a recheck for the file if
         // auto match is enabled.
         var scheduler = await _schedulerFactory.GetScheduler();
-        var autoMatch = _videoReleaseService.AutoMatchEnabled;
         foreach (var video in vlIDsToUpdate)
         {
             await _videoReleaseService.ClearReleaseForVideo(video);
-            if (autoMatch)
-                await scheduler.StartJob<ProcessFileJob>(c =>
-                {
-                    c.VideoLocalID = video.VideoLocalID;
-                });
+            await _videoReleaseService.ScheduleFindReleaseForVideo(video);
         }
 
         _logger.LogTrace($"Generating {anidbEpisodes.Count} episodes for {anime.MainTitle}");
