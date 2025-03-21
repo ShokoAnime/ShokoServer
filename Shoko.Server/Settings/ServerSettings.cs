@@ -31,16 +31,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
 
     /// <inheritdoc />
     [Visibility(DisplayVisibility.Hidden)]
-    [JsonInclude]
-    [Obsolete("Use Web.Port instead.")]
-    public ushort ServerPort
-    {
-        get => Web.Port;
-        set { }
-    }
-
-    /// <inheritdoc />
-    [Visibility(DisplayVisibility.Hidden)]
     public string Culture { get; set; } = "en";
 
     /// <inheritdoc />

@@ -16,12 +16,6 @@ public interface IServerSettings
     string ImagesPath { get; set; }
 
     /// <summary>
-    /// The port number to listen on for web requests.
-    /// </summary>
-    [Obsolete("Use Web.Port instead.")]
-    ushort ServerPort { get; set; }
-
-    /// <summary>
     /// The culture to use when formatting strings.
     /// </summary>
     string Culture { get; set; }
