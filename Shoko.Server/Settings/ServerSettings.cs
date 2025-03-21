@@ -28,6 +28,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public string ImagesPath { get; set; }
 
     /// <inheritdoc />
+    [Visibility(DisplayVisibility.Hidden)]
     public string Culture { get; set; } = "en";
 
     /// <inheritdoc />
