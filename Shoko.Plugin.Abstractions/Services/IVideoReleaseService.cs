@@ -13,7 +13,7 @@ namespace Shoko.Plugin.Abstractions.Services;
 /// </summary>
 /// <remarks>
 ///   The service can operate in sequential mode or parallel model. Parallel
-///   mode affects <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/>
+///   mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
 ///   and makes it run all providers in parallel and pick the highest priority
 ///   valid result, as opposed to running each provider serially in the priority
 ///   order and picking the first valid result when running in sequential mode.
@@ -62,7 +62,7 @@ public interface IVideoReleaseService
     ///   Gets or sets a value indicating whether to use parallel mode.
     /// </summary>
     /// <remarks>
-    ///   Parallel mode affects <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/>
+    ///   Parallel mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
     ///   and makes it run all providers in parallel and pick the highest
     ///   priority valid result, as opposed to running each provider serially in
     ///   the priority order and picking the first valid result when running in
@@ -84,12 +84,12 @@ public interface IVideoReleaseService
 
     /// <summary>
     ///   List out all available providers, if they're enabled for use in
-    ///   <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/> and
+    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/> and
     ///   their priority order when used in said method.
     /// </summary>
     /// <param name="onlyEnabled">
     ///   If true, only providers that are enabled for use in
-    ///   <see cref="FindReleaseForVideo(IVideo, bool, CancellationToken)"/> will
+    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/> will
     ///   be returned.
     /// </param>
     /// <returns>
@@ -188,6 +188,10 @@ public interface IVideoReleaseService
     ///   If set to <c>false</c>, then it will only schedule the job if the video
     ///   doesn't already have a release associated with it.
     /// </param>
+    /// <param name="addToMylist">
+    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList if a
+    ///   release is found and saved.
+    /// </param>
     /// <param name="prioritize">
     ///   If set to <c>true</c>, then this video will be given higher than
     ///   default priority in the queue.
@@ -196,7 +200,7 @@ public interface IVideoReleaseService
     ///   A <see cref="Task"/> representing the asynchronous operation of scheduling
     ///   the job in the queue.
     /// </returns>
-    Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool prioritize = false);
+    Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool prioritize = false);
 
     /// <summary>
     ///   If parallel mode is disabled, then it will run all enabled
@@ -215,8 +219,12 @@ public interface IVideoReleaseService
     /// <param name="saveRelease">
     ///   If not set to <c>true</c>, then the found release will not be saved,
     ///   allowing the user to preview the release before saving it using
-    ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo)"/>, or discarding
+    ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or discarding
     ///   it.
+    /// </param>
+    /// <param name="addToMylist">
+    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList if a
+    ///   release is found and saved.
     /// </param>
     /// <param name="cancellationToken">
     ///   Optional. A cancellation token for cancelling the search.
@@ -224,7 +232,7 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The found release, or <c>null</c> if none could be found.
     /// </returns>
-    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, CancellationToken cancellationToken = default);
+    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Saves the release info for the specified video in the database, and
@@ -237,13 +245,16 @@ public interface IVideoReleaseService
     /// <param name="release">
     ///   The release details to save.
     /// </param>
+    /// <param name="addToMylist">
+    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList.
+    /// </param>
     /// <exception cref="InvalidOperationException">
     ///   Release does not have at least one cross reference or have invalid cross references.
     /// </exception>
     /// <returns>
     ///   The saved release.
     /// </returns>
-    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release);
+    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool addToMylist = true);
 
     /// <summary>
     /// Saves the release info for the specified video in the database, and
@@ -259,13 +270,16 @@ public interface IVideoReleaseService
     /// <param name="providerName">
     ///   Optional. Set the name of the provider.
     /// </param>
+    /// <param name="addToMylist">
+    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList.
+    /// </param>
     /// <exception cref="InvalidOperationException">
     ///   Release does not have at least one cross reference or have invalid cross references.
     /// </exception>
     /// <returns>
     ///   The saved release.
     /// </returns>
-    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User");
+    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User", bool addToMylist = true);
 
     /// <summary>
     /// Clears the current release for the specified video.
@@ -273,10 +287,13 @@ public interface IVideoReleaseService
     /// <param name="video">
     ///   The video to clear the current release for.
     /// </param>
+    /// <param name="removeFromMylist">
+    ///   Optional. Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task ClearReleaseForVideo(IVideo video);
+    Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true);
 
     /// <summary>
     ///   Gets the release match attempts for the specified video.
