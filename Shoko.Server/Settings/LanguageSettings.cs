@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Config.Attributes;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -20,6 +21,7 @@ public class LanguageSettings
     /// <summary>
     /// Series / group title language preference order.
     /// </summary>
+    [RequiresRestart]
     public List<string> SeriesTitleLanguageOrder
     {
         get => _seriesTitleLanguageOrder;
@@ -31,6 +33,7 @@ public class LanguageSettings
     /// <summary>
     /// Series / group title source preference order.
     /// </summary>
+    [RequiresRestart]
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> SeriesTitleSourceOrder
     {
@@ -43,6 +46,7 @@ public class LanguageSettings
     /// <summary>
     /// Episode / season title language preference order.
     /// </summary>
+    [RequiresRestart]
     public List<string> EpisodeTitleLanguageOrder
     {
         get => _episodeLanguagePreference;
@@ -54,6 +58,7 @@ public class LanguageSettings
     /// <summary>
     /// Episode / season title source preference order.
     /// </summary>
+    [RequiresRestart]
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> EpisodeTitleSourceOrder
     {
@@ -66,6 +71,7 @@ public class LanguageSettings
     /// <summary>
     /// Description language preference order.
     /// </summary>
+    [RequiresRestart]
     public List<string> DescriptionLanguageOrder
     {
         get => _descriptionLanguagePreference;
@@ -77,6 +83,7 @@ public class LanguageSettings
     /// <summary>
     /// Description source preference order.
     /// </summary>
+    [RequiresRestart]
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> DescriptionSourceOrder
     {
