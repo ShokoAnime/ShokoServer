@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -51,6 +52,15 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     protected ActionResult ValidationProblem(string message, string fieldName = "Body")
     {
         ModelState.AddModelError(fieldName, message);
+        return ValidationProblem(ModelState);
+    }
+
+    [NonAction]
+    protected ActionResult ValidationProblem(IEnumerable<KeyValuePair<string, IReadOnlyList<string>>> errors)
+    {
+        foreach (var (key, errorsList) in errors)
+            foreach (var error in errorsList)
+                ModelState.AddModelError(key, error);
         return ValidationProblem(ModelState);
     }
 }
