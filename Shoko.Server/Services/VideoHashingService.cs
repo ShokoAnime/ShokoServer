@@ -87,10 +87,6 @@ public class VideoHashingService(
         .SelectMany(p => p.EnabledHashTypes)
         .ToHashSet();
 
-    ~VideoHashingService()
-    {
-    }
-
     #region Add Parts
 
     public void AddParts(IEnumerable<IHashProvider> providers)
@@ -317,7 +313,7 @@ public class VideoHashingService(
 
     #region Get Hashes
 
-    public async Task<HashingResult> GetHashesForPath(string path, bool useExistingHashes = true, CancellationToken cancellationToken = default)
+    public async Task<HashingResult> GetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
     {
         EnsureLoaded();
         if (!File.Exists(path))
@@ -384,10 +380,10 @@ public class VideoHashingService(
                 videoLocation.VideoID = video.VideoLocalID;
         }
 
-        return await GetHashesForVideo(video, videoLocation, managedFolder, useExistingHashes, cancellationToken).ConfigureAwait(false);
+        return await GetHashesForVideo(video, videoLocation, managedFolder, useExistingHashes, skipFindRelease, skipMylist, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task ScheduleGetHashesForPath(string path, bool useExistingHashes = true, bool prioritize = false)
+    public async Task ScheduleGetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, bool prioritize = false)
     {
         EnsureLoaded();
         if (!File.Exists(path))
@@ -410,13 +406,10 @@ public class VideoHashingService(
             throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
 
         var scheduler = await schedulerFactory.GetScheduler();
-        if (prioritize)
-            await scheduler.StartJobNow<HashFileJob>(b => (b.FilePath, b.ForceHash) = (path, !useExistingHashes));
-        else
-            await scheduler.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash) = (path, !useExistingHashes));
+        await scheduler.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipMyList) = (path, !useExistingHashes, skipFindRelease, skipMylist), prioritize: prioritize);
     }
 
-    public async Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, CancellationToken cancellationToken = default)
+    public async Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
     {
         EnsureLoaded();
         var path = file.Path;
@@ -437,10 +430,10 @@ public class VideoHashingService(
             ?? throw new InvalidOperationException($"No VideoLocal record found for ID: {videoLocation.VideoID}");
         var managedFolder = videoLocation.ManagedFolder
             ?? throw new InvalidOperationException($"No ManagedFolder record found for ID: {videoLocation.ManagedFolderID}");
-        return await GetHashesForVideo(video, videoLocation, managedFolder, useExistingHashes, cancellationToken).ConfigureAwait(false);
+        return await GetHashesForVideo(video, videoLocation, managedFolder, useExistingHashes, skipFindRelease, skipMylist, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task ScheduleGetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool prioritize = false)
+    public async Task ScheduleGetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, bool prioritize = false)
     {
         EnsureLoaded();
         var path = file.Path;
@@ -456,10 +449,7 @@ public class VideoHashingService(
         }
 
         var scheduler = await schedulerFactory.GetScheduler();
-        if (prioritize)
-            await scheduler.StartJobNow<HashFileJob>(b => (b.FilePath, b.ForceHash) = (path, !useExistingHashes));
-        else
-            await scheduler.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash) = (path, !useExistingHashes));
+        await scheduler.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipMyList) = (path, !useExistingHashes, skipFindRelease, skipMylist), prioritize: prioritize);
     }
 
     #region Internals
@@ -473,7 +463,7 @@ public class VideoHashingService(
     private bool IsVideoFile(string path)
         => _contentInspector!.Inspect(path, ContentReader.Min).Length > 0;
 
-    private async Task<HashingResult> GetHashesForVideo(VideoLocal video, VideoLocal_Place videoLocation, ShokoManagedFolder folder, bool useExistingHashes, CancellationToken cancellationToken = default)
+    private async Task<HashingResult> GetHashesForVideo(VideoLocal video, VideoLocal_Place videoLocation, ShokoManagedFolder folder, bool useExistingHashes, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
     {
         var originalPath = Path.Join(folder.Path, videoLocation.RelativePath);
         var resolvedPath = File.ResolveLinkTarget(originalPath, true)?.FullName ?? originalPath;
@@ -545,8 +535,8 @@ public class VideoHashingService(
         }
 
         // Add the process file job if we're not forcefully re-hashing the file.
-        if (useExistingHashes || video.ReleaseInfo is null)
-            await videoReleaseService.ScheduleFindReleaseForVideo(video, force: !useExistingHashes).ConfigureAwait(false);
+        if (!skipFindRelease && (useExistingHashes || video.ReleaseInfo is null))
+            await videoReleaseService.ScheduleFindReleaseForVideo(video, force: !useExistingHashes, addToMylist: !skipMylist).ConfigureAwait(false);
 
         try
         {

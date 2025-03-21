@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
@@ -14,7 +13,6 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Actions)]
 public class ProcessFileMovedMessageJob : BaseJob
 {
-    private readonly ISchedulerFactory _schedulerFactory;
     private readonly IVideoReleaseService _videoReleaseService;
 
     public override string TypeName => "Handle Moved File Message";
@@ -59,14 +57,7 @@ public class ProcessFileMovedMessageJob : BaseJob
         if (!_videoReleaseService.AutoMatchEnabled)
             return;
 
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ProcessFileJob>(
-            c =>
-            {
-                c.VideoLocalID = vlocal.VideoLocalID;
-                c.ForceRecheck = true;
-            }
-        ).ContinueWith(t =>
+        await _videoReleaseService.ScheduleFindReleaseForVideo(vlocal, force: true).ContinueWith(t =>
         {
             if (!t.IsFaulted)
             {
@@ -81,9 +72,8 @@ public class ProcessFileMovedMessageJob : BaseJob
         });
     }
 
-    public ProcessFileMovedMessageJob(ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
+    public ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService)
     {
-        _schedulerFactory = schedulerFactory;
         _videoReleaseService = videoReleaseService;
     }
 
