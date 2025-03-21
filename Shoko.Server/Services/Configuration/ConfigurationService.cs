@@ -31,7 +31,6 @@ using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Plugin;
-using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 
 #nullable enable
