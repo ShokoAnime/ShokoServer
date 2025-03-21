@@ -11,6 +11,9 @@ using SharpCompress.Readers;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
+using IApplicationPaths = Shoko.Plugin.Abstractions.IApplicationPaths;
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
+
 #nullable enable
 namespace Shoko.Server.Services;
 
@@ -21,6 +24,10 @@ public partial class WebUIUpdateService
 
     [GeneratedRegex(@"^[Vv]?(?<version>(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+))(?:-dev.(?<buildNumber>\d+))?$", RegexOptions.Compiled, "en-US")]
     private static partial Regex ServerReleaseVersionRegex();
+
+    private readonly ISettingsProvider _settingsProvider;
+
+    private readonly IApplicationPaths _applicationPaths;
 
     private readonly HttpClient _httpClient;
 
@@ -35,9 +42,10 @@ public partial class WebUIUpdateService
 
     public readonly string ServerRepoName;
 
-
-    public WebUIUpdateService()
+    public WebUIUpdateService(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths)
     {
+        _settingsProvider = settingsProvider;
+        _applicationPaths = applicationPaths;
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
         _httpClient.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()}");
@@ -107,7 +115,7 @@ public partial class WebUIUpdateService
     /// <returns></returns>
     private void DownloadAndInstallUpdate(string url, ComponentVersion version)
     {
-        var webuiDir = Path.Combine(Utils.ApplicationPath, "webui");
+        var webuiDir = _applicationPaths.WebPath;
         var backupDir = Path.Combine(webuiDir, "old");
         var files = Directory.GetFiles(webuiDir);
         var directories = Directory.GetDirectories(webuiDir);
@@ -164,10 +172,10 @@ public partial class WebUIUpdateService
         UpdateCachedVersionInfo(version);
     }
 
-    private static void UpdateCachedVersionInfo(ComponentVersion version)
+    private void UpdateCachedVersionInfo(ComponentVersion version)
     {
         // Load the web ui version info from disk.
-        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
+        var webUIFileInfo = new FileInfo(Path.Join(_applicationPaths.WebPath, "version.json"));
         if (!webUIFileInfo.Exists || JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName)) is not { } webuiVersion)
             webuiVersion = new();
 
@@ -391,9 +399,9 @@ public partial class WebUIUpdateService
         }
     }
 
-    private static ReleaseChannel GetCurrentWebUIReleaseChannel()
+    private ReleaseChannel GetCurrentWebUIReleaseChannel()
     {
-        var webuiVersion = LoadWebUIVersionInfo();
+        var webuiVersion = LoadWebUIVersionInfo(_applicationPaths);
         if (webuiVersion != null)
             return webuiVersion.Channel;
         return GetCurrentServerReleaseChannel();
@@ -407,9 +415,19 @@ public partial class WebUIUpdateService
         return ReleaseChannel.Stable;
     }
 
-    public static WebUIVersionInfo? LoadWebUIVersionInfo()
+    public static WebUIVersionInfo? LoadWebUIVersionInfo(IApplicationPaths? applicationPaths = null)
     {
-        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
+        applicationPaths ??= ApplicationPaths.Instance;
+        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.WebPath, "version.json"));
+        if (webUIFileInfo.Exists)
+            return JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName));
+        return null;
+    }
+
+    public static WebUIVersionInfo? LoadIncludedWebUIVersionInfo(IApplicationPaths? applicationPaths = null)
+    {
+        applicationPaths ??= ApplicationPaths.Instance;
+        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.ExecutableDirectoryPath, "webui/version.json"));
         if (webUIFileInfo.Exists)
             return JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName));
         return null;
@@ -425,6 +443,9 @@ public partial class WebUIUpdateService
         /// </summary>
         [JsonProperty("package")]
         public string Version { get; set; } = "1.0.0";
+
+        [JsonIgnore]
+        public Version VersionAsVersion => new(Version.Replace("-dev", ""));
 
         /// <summary>
         /// Git tag.

@@ -55,7 +55,7 @@ public class Core : BaseController
     [HttpPost("config/port/set")]
     public object SetPort(ushort port)
     {
-        _settings.ServerPort = port;
+        _settings.Web.Port = port;
         return APIStatus.OK();
     }
 
@@ -67,7 +67,7 @@ public class Core : BaseController
     public object GetPort()
     {
         dynamic x = new ExpandoObject();
-        x.port = _settings.ServerPort;
+        x.port = _settings.Web.Port;
         return x;
     }
 

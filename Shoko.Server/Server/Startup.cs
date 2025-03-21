@@ -70,7 +70,7 @@ public class Startup
             services.AddSingleton<CssThemeService>();
             services.AddSingleton<WebUIUpdateService>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
-            services.AddSingleton<IApplicationPaths>(AbstractApplicationPaths.Instance);
+            services.AddSingleton<IApplicationPaths>(ApplicationPaths.Instance);
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, AbstractVideoService>();
             services.AddSingleton<IUserService, AbstractUserService>();
@@ -159,7 +159,7 @@ public class Startup
         var settings = settingsProvider.GetSettings();
         var builder = new WebHostBuilder().UseKestrel(options =>
             {
-                options.ListenAnyIP(settings.ServerPort);
+                options.ListenAnyIP(settings.Web.Port);
             })
             .ConfigureApp()
             .ConfigureServiceProvider()

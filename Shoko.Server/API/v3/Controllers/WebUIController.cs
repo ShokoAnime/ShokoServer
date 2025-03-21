@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -20,9 +21,8 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
@@ -42,7 +42,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-public partial class WebUIController(ISettingsProvider settingsProvider, WebUIUpdateService updateService, CssThemeService themeService, WebUIFactory webUIFactory, ILogger<WebUIController> logger) : BaseController(settingsProvider)
+public partial class WebUIController(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths, WebUIUpdateService updateService, CssThemeService themeService, WebUIFactory webUIFactory, ILogger<WebUIController> logger) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Retrieves the list of available themes.
@@ -362,7 +362,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, WebUIUp
     [HttpPost("Install")]
     public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
     {
-        var indexLocation = Path.Combine(Utils.ApplicationPath, "webui", "index.html");
+        var indexLocation = Path.Join(applicationPaths.WebPath, "index.html");
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);

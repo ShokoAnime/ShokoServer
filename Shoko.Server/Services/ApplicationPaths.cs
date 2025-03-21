@@ -7,15 +7,15 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AbstractApplicationPaths : IApplicationPaths
+public class ApplicationPaths : IApplicationPaths
 {
-    public static AbstractApplicationPaths Instance => new();
+    public static ApplicationPaths Instance { get; set; } = new();
 
     /// <inheritdoc/>
     public string ExecutableDirectoryPath => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
     /// <inheritdoc/>
-    public string WebPath => Path.Combine(ProgramDataPath, "webui");
+    public string WebPath => Path.Combine(ProgramDataPath, Utils.SettingsProvider.GetSettings().Web.WebUIPath);
 
     /// <inheritdoc/>
     public string ProgramDataPath => Utils.ApplicationPath;

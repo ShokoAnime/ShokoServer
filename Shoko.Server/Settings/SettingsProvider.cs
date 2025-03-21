@@ -68,6 +68,7 @@ public class SettingsProvider : ISettingsProvider
     private static ServerSettings LoadLegacySettings()
     {
         var legacy = Legacy.LoadSettingsFromFile();
+#pragma warning disable CS0618 // Type or member is obsolete
         var settings = new ServerSettings
         {
             ImagesPath = legacy.ImagesPath,
@@ -173,6 +174,7 @@ public class SettingsProvider : ISettingsProvider
                 Type = legacy.DatabaseType
             }
         };
+#pragma warning restore CS0618 // Type or member is obsolete
 
         switch (legacy.DatabaseType)
         {

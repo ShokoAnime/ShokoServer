@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using Shoko.Models;
 
@@ -14,8 +15,13 @@ public class ServerSettings : IServerSettings
     /// <inheritdoc />
     public string ImagesPath { get; set; }
 
-    [Range(1, 65535, ErrorMessage = "Server Port must be between 1 and 65535")]
-    public ushort ServerPort { get; set; } = 8111;
+    [JsonInclude]
+    [Obsolete("Use Web.Port instead.")]
+    public ushort ServerPort
+    {
+        get => Web.Port;
+        set { }
+    }
 
     public string Culture { get; set; } = "en";
 
@@ -58,6 +64,8 @@ public class ServerSettings : IServerSettings
     public LogRotatorSettings LogRotator { get; set; } = new();
 
     public LinuxSettings Linux { get; set; } = new();
+
+    public WebSettings Web { get; set; } = new();
 
     public string WebUI_Settings { get; set; } = "";
 

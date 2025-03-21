@@ -2,12 +2,13 @@ using System;
 using System.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
+
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.API.v2.Modules;
 
@@ -17,7 +18,7 @@ namespace Shoko.Server.API.v2.Modules;
 [ApiVersion("2.0")]
 [InitFriendly]
 [DatabaseBlockedExempt]
-public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService updateService) : BaseController(settingsProvider)
+public class Webui(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths, WebUIUpdateService updateService) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Download and install latest stable version of WebUI
@@ -27,7 +28,7 @@ public class Webui(ISettingsProvider settingsProvider, WebUIUpdateService update
     [HttpGet("install")]
     public ActionResult InstallWebUI()
     {
-        var indexLocation = Path.Combine(Utils.ApplicationPath, "webui", "index.html");
+        var indexLocation = Path.Join(applicationPaths.WebPath, "index.html");
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);

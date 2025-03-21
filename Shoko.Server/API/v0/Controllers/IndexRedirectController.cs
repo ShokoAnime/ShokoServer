@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.API.ActionConstraints;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v0.Controllers;
 
@@ -7,11 +9,10 @@ namespace Shoko.Server.API.v0.Controllers;
 [ApiVersionNeutral]
 [InitFriendly]
 [DatabaseBlockedExempt]
-public class IndexRedirectController : Controller
+public class IndexRedirectController(ISettingsProvider settingsProvider) : Controller
 {
     [HttpGet]
+    [RedirectConstraint]
     public ActionResult Index()
-    {
-        return Redirect("/webui/index.html");
-    }
+        => Redirect(settingsProvider.GetSettings().Web.WebUIPublicPath);
 }

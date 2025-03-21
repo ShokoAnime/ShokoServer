@@ -151,7 +151,7 @@ public static class Loader
             try
             {
                 var instance = Activator.CreateInstance(registrationType) as IPluginServiceRegistration;
-                instance?.RegisterServices(serviceCollection, AbstractApplicationPaths.Instance);
+                instance?.RegisterServices(serviceCollection, ApplicationPaths.Instance);
             }
             catch (Exception ex)
             {

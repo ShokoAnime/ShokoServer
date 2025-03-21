@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Shoko.Models;
 
 namespace Shoko.Server.Settings;
@@ -17,6 +18,7 @@ public interface IServerSettings
     /// <summary>
     /// The port number to listen on for web requests.
     /// </summary>
+    [Obsolete("Use Web.Port instead.")]
     ushort ServerPort { get; set; }
 
     /// <summary>
@@ -123,6 +125,11 @@ public interface IServerSettings
     /// Linux runtime settings. Windows users can ignore this.
     /// </summary>
     LinuxSettings Linux { get; set; }
+
+    /// <summary>
+    /// Configure settings related to the HTTP(S) hosting.
+    /// </summary>
+    WebSettings Web { get; set; }
 
     /// <summary>
     /// The web UI settings, as a stringified JSON object.

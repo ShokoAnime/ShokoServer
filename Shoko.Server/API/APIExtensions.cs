@@ -328,96 +328,123 @@ public static class APIExtensions
 
     public static IApplicationBuilder UseAPI(this IApplicationBuilder app)
     {
-        app.Use(async (context, next) =>
+        var settings = Utils.SettingsProvider.GetSettings();
+        var webSettings = settings.Web;
+        if (!settings.SentryOptOut)
         {
-            try
-            {
-                await next.Invoke(context);
-            }
-            catch (Exception e)
+            app.Use(async (context, next) =>
             {
                 try
                 {
-                    SentrySdk.CaptureException(e);
+                    await next.Invoke(context);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignore
+                    try
+                    {
+                        SentrySdk.CaptureException(e);
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                    throw;
                 }
-                throw;
-            }
-        });
+            });
+        }
+
 
 #if DEBUG
         app.UseDeveloperExceptionPage();
+#else
+        if (webSettings.AlwaysUseDeveloperExceptions)
+            app.UseDeveloperExceptionPage();
 #endif
+
         // Create web ui directory and add the boot-strapper.
-        var webUIDir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
+        var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
+        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ExecutableDirectoryPath, "webui"));
         if (!webUIDir.Exists)
         {
-            webUIDir.Create();
-
-            var backupDir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
-                "webui"));
             if (backupDir.Exists)
-            {
                 CopyFilesRecursively(backupDir, webUIDir);
-            }
+            else
+                webUIDir.Create();
+        }
+        else if (
+            backupDir.Exists &&
+            webSettings.AutoReplaceWebUIWithIncluded &&
+            WebUIUpdateService.LoadIncludedWebUIVersionInfo() is { } includedVersion &&
+            (
+                WebUIUpdateService.LoadWebUIVersionInfo() is not { } currentVersion ||
+                includedVersion.VersionAsVersion > currentVersion.VersionAsVersion
+            )
+        )
+        {
+            CopyFilesRecursively(backupDir, webUIDir);
         }
 
-        app.UseStaticFiles(new StaticFileOptions
+        if (webSettings.EnableSwaggerUI)
         {
-            FileProvider = new WebUiFileProvider(webUIDir.FullName),
-            RequestPath = "/webui",
-            ServeUnknownFileTypes = true,
-            DefaultContentType = "text/html",
-            OnPrepareResponse = ctx =>
+            app.UseSwagger(c =>
             {
-                var requestPath = ctx.File.PhysicalPath;
-                // We set the cache headers only for index.html file because it doesn't have a different hash when changed
-                if (requestPath?.EndsWith("index.html", StringComparison.OrdinalIgnoreCase) ?? false)
+                c.PreSerializeFilters.Add((swaggerDoc, _) =>
                 {
-                    ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-                    ctx.Context.Response.Headers.Append("Expires", "0");
-                }
-            }
-        });
+                    var version = double.Parse(swaggerDoc.Info.Version);
+                    swaggerDoc.Servers.Add(new() { Url = $"/api/v{version:0}/" });
 
-        app.UseSwagger(c =>
-        {
-            c.PreSerializeFilters.Add((swaggerDoc, _) =>
-            {
-                var version = double.Parse(swaggerDoc.Info.Version);
-                swaggerDoc.Servers.Add(new() { Url = $"/api/v{version:0}/" });
-
-                var basepathInt = $"/api/v{version:0}/";
-                var basepathDecimal = $"/api/v{version:0.0}/";
-                var paths = new OpenApiPaths();
-                foreach (var path in swaggerDoc.Paths)
-                {
-                    if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
+                    var basepathInt = $"/api/v{version:0}/";
+                    var basepathDecimal = $"/api/v{version:0.0}/";
+                    var paths = new OpenApiPaths();
+                    foreach (var path in swaggerDoc.Paths)
                     {
-                        path.Value.Servers.Clear();
-                        path.Value.Servers.Add(new() { Url = "/" });
-                    }
+                        if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
+                        {
+                            path.Value.Servers.Clear();
+                            path.Value.Servers.Add(new() { Url = "/" });
+                        }
 
-                    paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
-                }
-                swaggerDoc.Paths = paths;
+                        paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
+                    }
+                    swaggerDoc.Paths = paths;
+                });
             });
-        });
-        app.UseSwaggerUI(
-            options =>
-            {
-                // build a swagger endpoint for each discovered API version
-                var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
-                foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
+            app.UseSwaggerUI(
+                options =>
                 {
-                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
-                        description.GroupName.ToUpperInvariant());
+                    options.RoutePrefix = webSettings.SwaggerUIPrefix;
+                    // build a swagger endpoint for each discovered API version
+                    var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
+                    foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
+                    {
+                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
+                            description.GroupName.ToUpperInvariant());
+                    }
+                    options.EnablePersistAuthorization();
+                });
+        }
+
+        if (webSettings.EnableWebUI)
+        {
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new WebUiFileProvider(webSettings.WebUIPublicPath, webUIDir.FullName),
+                RequestPath = webSettings.WebUIPublicPath,
+                ServeUnknownFileTypes = true,
+                DefaultContentType = "text/html",
+                OnPrepareResponse = ctx =>
+                {
+                    var requestPath = ctx.File.PhysicalPath;
+                    // We set the cache headers only for index.html file because it doesn't have a different hash when changed
+                    if (requestPath?.EndsWith("index.html", StringComparison.OrdinalIgnoreCase) ?? false)
+                    {
+                        ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                        ctx.Context.Response.Headers.Append("Expires", "0");
+                    }
                 }
-                options.EnablePersistAuthorization();
             });
+        }
+
         // Important for first run at least
         app.UseAuthentication();
 
@@ -437,6 +464,10 @@ public static class APIExtensions
 
     private static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
     {
+        if (target.Exists)
+            target.Delete(recursive: true);
+
+        target.Create();
         foreach (var dir in source.GetDirectories())
         {
             CopyFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
