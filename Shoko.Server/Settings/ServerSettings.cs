@@ -30,6 +30,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public string ImagesPath { get; set; }
 
     /// <inheritdoc />
+    [Visibility(DisplayVisibility.Hidden)]
     [JsonInclude]
     [Obsolete("Use Web.Port instead.")]
     public ushort ServerPort
