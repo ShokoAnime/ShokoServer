@@ -98,27 +98,14 @@ public class ActionService(
                     continue;
             }
 
-            await scheduler.StartJob<ProcessFileJob>(
-                c =>
-                {
-                    c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceRecheck = true;
-                }
-            );
-        }
-
-        // check that all the episode data is populated
-        foreach (var vl in RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData())
-        {
-            // queue scan for files that are automatically linked but missing AniDB_File data
-            await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
         }
     }
 
-    public Task RunImport_ScanFolder(int folderID)
-        => RunImport_DetectFiles(folderIDs: [folderID]);
+    public Task RunImport_ScanFolder(int folderID, bool skipMylist = false)
+        => RunImport_DetectFiles(skipMylist: skipMylist, folderIDs: [folderID]);
 
-    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, IEnumerable<int> folderIDs = null)
+    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, bool skipMylist = false, IEnumerable<int> folderIDs = null)
     {
         IReadOnlyList<ShokoManagedFolder> managedFolders;
         IEnumerable<VideoLocal_Place> locationsToCheck;
@@ -201,6 +188,7 @@ public class ActionService(
                 await scheduler.StartJob<DiscoverFileJob>(a =>
                 {
                     a.FilePath = fileName;
+                    a.SkipMyList = skipMylist;
                 });
             }
         }
@@ -695,44 +683,34 @@ public class ActionService(
     public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
-        var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
-            .Where(r =>
-                !string.IsNullOrEmpty(r.GroupID) &&
-                r.GroupSource is "AniDB" &&
-                int.TryParse(r.GroupID, out var groupID) && (
-                    string.IsNullOrEmpty(r.GroupName) ||
-                    string.IsNullOrEmpty(r.GroupShortName)
-                )
-            )
-            .DistinctBy(a => a.GroupID)
-            .Select(a => int.Parse(a.GroupID))
-            .ToHashSet();
         var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : RepoFactory.StoredReleaseInfo.GetAll()
             .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
             .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
             .WhereNotNull()
-            .Select(a => a.VideoLocalID)
+            .Select(a => a)
             .ToList();
-
         if (!countOnly)
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
-
             _logger.LogInformation("Queuing {Count} GetFile commands", missingFiles.Count);
             foreach (var id in missingFiles)
-            {
-                await scheduler.StartJob<ProcessFileJob>(c =>
-                {
-                    c.VideoLocalID = id;
-                    c.ForceRecheck = true;
-                });
-            }
+                await _videoReleaseService.ScheduleFindReleaseForVideo(id, force: true);
 
+            var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
+                .Where(r =>
+                    !string.IsNullOrEmpty(r.GroupID) &&
+                    r.GroupSource is "AniDB" &&
+                    int.TryParse(r.GroupID, out var groupID) && (
+                        string.IsNullOrEmpty(r.GroupName) ||
+                        string.IsNullOrEmpty(r.GroupShortName)
+                    )
+                )
+                .DistinctBy(a => a.GroupID)
+                .Select(a => int.Parse(a.GroupID))
+                .ToHashSet();
             _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
+            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var a in incorrectGroups)
-            {
                 await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
-            }
         }
 
         return missingFiles.Count;
@@ -903,15 +881,10 @@ public class ActionService(
     {
         var settings = _settingsProvider.GetSettings();
         if (settings.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
-        {
             return;
-        }
-
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.File_UpdateFrequency);
-        var scheduler = await _schedulerFactory.GetScheduler();
 
         // check for any updated anime info every 12 hours
-
+        var freqHours = Utils.GetScheduledHours(settings.AniDb.File_UpdateFrequency);
         var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
         if (schedule != null)
         {
@@ -933,12 +906,7 @@ public class ActionService(
                         continue;
                 }
 
-                await scheduler.StartJob<ProcessFileJob>(c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceRecheck = true;
-                    }
-                );
+                await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
             }
         }
 

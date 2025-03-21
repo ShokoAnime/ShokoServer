@@ -12,7 +12,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -85,7 +84,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         {
             var xrefsToDelete = new List<SVR_CrossRef_File_Episode>();
             var scheduler = await _schedulerFactory.GetScheduler();
-            var videosToUpdate = new HashSet<int>();
+            var videosToUpdate = new List<VideoLocal>();
             foreach (var databaseReleaseGroup in databaseReleaseGroups)
             {
                 var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(databaseReleaseGroup.ED2K);
@@ -93,7 +92,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
 
                 var video = RepoFactory.VideoLocal.GetByEd2kAndSize(databaseReleaseGroup.ED2K, databaseReleaseGroup.FileSize);
                 if (video is not null)
-                    videosToUpdate.Add(video.VideoLocalID);
+                    videosToUpdate.Add(video);
             }
 
             RepoFactory.CrossRef_File_Episode.Delete(xrefsToDelete);
@@ -105,12 +104,8 @@ public class GetAniDBReleaseGroupJob : BaseJob
             if (!_videoReleaseService.AutoMatchEnabled)
                 return;
 
-            foreach (var videoID in videosToUpdate)
-                await scheduler.StartJob<ProcessFileJob>(c =>
-                {
-                    c.VideoLocalID = videoID;
-                    c.ForceRecheck = true;
-                });
+            foreach (var video in videosToUpdate)
+                await _videoReleaseService.ScheduleFindReleaseForVideo(video, force: true);
             return;
         }
 
