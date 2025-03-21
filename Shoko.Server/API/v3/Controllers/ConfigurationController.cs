@@ -68,10 +68,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         }
         catch (ConfigurationValidationException ex)
         {
-            foreach (var (path, messages) in ex.ValidationErrors)
-                foreach (var message in messages)
-                    ModelState.AddModelError(path, message);
-            return ValidationProblem(ModelState);
+            return ValidationProblem(ex.ValidationErrors);
         }
     }
 
@@ -96,10 +93,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         }
         catch (ConfigurationValidationException ex)
         {
-            foreach (var (path, messages) in ex.ValidationErrors)
-                foreach (var message in messages)
-                    ModelState.AddModelError(path, message);
-            return ValidationProblem(ModelState);
+            return ValidationProblem(ex.ValidationErrors);
         }
     }
 
@@ -126,10 +120,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         }
         catch (ConfigurationValidationException ex)
         {
-            foreach (var (path, messages) in ex.ValidationErrors)
-                foreach (var message in messages)
-                    ModelState.AddModelError(path, message);
-            return ValidationProblem(ModelState);
+            return ValidationProblem(ex.ValidationErrors);
         }
     }
 
@@ -193,13 +184,10 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
         var json = body.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
         var errors = configurationService.Validate(configInfo, json);
-        if (errors.Count is 0)
-            return Ok();
+        if (errors.Count > 0)
+            return ValidationProblem(errors);
 
-        foreach (var (path, messages) in errors)
-            foreach (var message in messages)
-                ModelState.AddModelError(path, message);
-        return ValidationProblem(ModelState);
+        return Ok();
     }
 
     /// <summary>
@@ -218,21 +206,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
             return NotFound($"Configuration '{id}' not found!");
 
-
         try
         {
             var data = body?.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
-            if (!string.IsNullOrEmpty(data))
-            {
-                var errors = configurationService.Validate(configInfo, data);
-                if (errors.Count is > 0)
-                {
-                    foreach (var (propertyPath, messages) in errors)
-                        foreach (var message in messages)
-                            ModelState.AddModelError(propertyPath, message);
-                    return ValidationProblem(ModelState);
-                }
-            }
+            if (!string.IsNullOrEmpty(data) && configurationService.Validate(configInfo, data) is { Count: > 0 } errors)
+                return ValidationProblem(errors);
 
             var config = string.IsNullOrEmpty(data) ? configurationService.Load(configInfo) : configurationService.Deserialize(configInfo, data);
             var result = configurationService.PerformAction(configInfo, config, path, action);
@@ -240,10 +218,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         }
         catch (ConfigurationValidationException ex)
         {
-            foreach (var (propertyPath, messages) in ex.ValidationErrors)
-                foreach (var message in messages)
-                    ModelState.AddModelError(propertyPath, message);
-            return ValidationProblem(ModelState);
+            return ValidationProblem(ex.ValidationErrors);
         }
         catch (InvalidConfigurationActionException ex)
         {
