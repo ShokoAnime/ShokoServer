@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,28 +8,39 @@ using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
+#nullable enable
 namespace Shoko.Server.Renamer;
 
 [RenamerID(RENAMER_ID)]
 public class WebAOMRenamer : IRenamer<WebAOMSettings>
 {
+    private static readonly char[] _validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
+
     private const string RENAMER_ID = "WebAOM";
+
     private readonly ILogger<WebAOMRenamer> _logger;
+
     private readonly IRelocationService _relocationService;
+
+    public string Name => "WebAOM Renamer";
+
+    public string Description => "The legacy renamer, based on WebAOM's renamer. You can find information for it at https://wiki.anidb.net/WebAOM#Scripting";
+
+    public bool SupportsMoving => true;
+
+    public bool SupportsRenaming => true;
 
     public WebAOMRenamer(ILogger<WebAOMRenamer> logger, IRelocationService relocationService)
     {
         _logger = logger;
         _relocationService = relocationService;
     }
-
-    public string Name => "WebAOM Renamer";
-    public string Description => "The legacy renamer, based on WebAOM's renamer. You can find information for it at https://wiki.anidb.net/WebAOM#Scripting";
 
     public Shoko.Plugin.Abstractions.Events.RelocationResult GetNewPath(RelocationEventArgs<WebAOMSettings> args)
     {
@@ -42,10 +53,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             };
         }
 
-        string newFilename = null;
+        string? newFilename = null;
         var success = true;
-        (IImportFolder dest, string folder) destination = default;
-        Exception ex = null;
+        (IImportFolder? dest, string? folder) destination = default;
+        Exception? ex = null;
         try
         {
             if (args.RenameEnabled) (success, newFilename) = GetNewFileName(args, args.Settings, script);
@@ -77,11 +88,6 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         };
     }
 
-    public bool SupportsMoving => true;
-    public bool SupportsRenaming => true;
-
-    private readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
-
     /* TESTS
     A   int     Anime id
     G   int     Group id
@@ -97,7 +103,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     C   text    Video Codec (one of the video tracks) [H264/AVC, DivX5/6, unknown, VP Other, WMV9 (also WMV3), XviD, ...]
     J   text    Audio Codec (one of the audio tracks) [AC3, FLAC, MP3 CBR, MP3 VBR, Other, unknown, Vorbis (Ogg Vorbis)  ...]
     I   text    Tag has a value. Do not use %, i.e. I(eng) [eng, kan, rom, ...]
-    Z   int     Video Bith Depth [8,10]
+    Z   int     Video Bit Depth [8,10]
     W   int     Video Resolution Width [720, 1280, 1920, ...]
     U   int     Video Resolution Height [576, 720, 1080, ...]
     M   null    empty - test whether the file is manually linked
@@ -122,7 +128,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     W   int     Video Resolution Width [720, 1280, 1920, ...]
     X   text    Total number of episodes
     Y   int     Year
-    Z   int     Video Bith Depth [8,10]
+    Z   int     Video Bit Depth [8,10]
      */
 
     /// <summary>
@@ -136,10 +142,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
             if (!int.TryParse(test, out var animeID))
@@ -156,7 +162,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -167,7 +173,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="test"></param>
     /// <param name="aniFile"></param>
     /// <returns></returns>
-    private bool EvaluateTestG(string test, SVR_AniDB_File aniFile)
+    private bool EvaluateTestG(string test, SVR_AniDB_File? aniFile)
     {
         if (aniFile is null)
         {
@@ -176,10 +182,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
             var groupID = 0;
@@ -202,7 +208,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -215,13 +221,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="aniFile"></param>
     /// <param name="episodes"></param>
     /// <returns></returns>
-    private bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
+    private bool EvaluateTestM(string test, SVR_AniDB_File? aniFile, List<SVR_AniDB_Episode> episodes)
     {
         try
         {
-            var notCondition = !string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!");
+            var notCondition = !string.IsNullOrEmpty(test) && test[..1].Equals("!");
 
-            // for a file to be manually linked it must NOT have an anifile, but does need episodes attached
+            // for a file to be manually linked it must NOT have an ani file, but does need episodes attached
             var manuallyLinked = false;
             if (aniFile == null)
             {
@@ -241,7 +247,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -254,11 +260,11 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="aniFile"></param>
     /// <param name="episodes"></param>
     /// <returns></returns>
-    private bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
+    private bool EvaluateTestN(string test, SVR_AniDB_File? aniFile, List<SVR_AniDB_Episode> episodes)
     {
         try
         {
-            var notCondition = !string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!");
+            var notCondition = !string.IsNullOrEmpty(test) && test[..1].Equals("!");
 
             var epsLinked = aniFile == null && episodes != null && episodes.Count > 0;
 
@@ -271,7 +277,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -282,15 +288,15 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="test"></param>
     /// <param name="aniFile"></param>
     /// <returns></returns>
-    private bool EvaluateTestD(string test, SVR_AniDB_File aniFile)
+    private bool EvaluateTestD(string test, SVR_AniDB_File? aniFile)
     {
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
             if (aniFile == null)
@@ -306,7 +312,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -317,15 +323,15 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="test"></param>
     /// <param name="aniFile"></param>
     /// <returns></returns>
-    private bool EvaluateTestS(string test, SVR_AniDB_File aniFile)
+    private bool EvaluateTestS(string test, SVR_AniDB_File? aniFile)
     {
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
             if (aniFile == null)
@@ -349,7 +355,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -360,7 +366,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="test"></param>
     /// <param name="aniFile"></param>
     /// <returns></returns>
-    private bool EvaluateTestF(string test, SVR_AniDB_File aniFile)
+    private bool EvaluateTestF(string test, SVR_AniDB_File? aniFile)
     {
         try
         {
@@ -408,7 +414,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -467,7 +473,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -522,7 +528,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -577,21 +583,21 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
 
 
-    private bool EvaluateTestR(string test, SVR_AniDB_File aniFile)
+    private bool EvaluateTestR(string test, SVR_AniDB_File? aniFile)
     {
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
             if (aniFile == null)
@@ -618,7 +624,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -628,10 +634,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
             var hasType = !string.IsNullOrEmpty(anime.RawAnimeType);
@@ -653,7 +659,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -701,7 +707,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -749,7 +755,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -759,10 +765,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
             var epType = string.Empty;
@@ -798,7 +804,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -817,43 +823,43 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         out bool greaterThanEqual, out bool lessThan, out bool lessThanEqual)
     {
         notCondition = false;
-        if (test.Substring(0, 1).Equals("!"))
+        if (test[..1].Equals("!"))
         {
             notCondition = true;
-            test = test.Substring(1, test.Length - 1);
+            test = test[1..];
         }
 
         greaterThan = false;
         greaterThanEqual = false;
-        if (test.Substring(0, 1).Equals(">"))
+        if (test[..1].Equals(">"))
         {
             greaterThan = true;
-            test = test.Substring(1, test.Length - 1);
-            if (test.Substring(0, 1).Equals("="))
+            test = test[1..];
+            if (test[..1].Equals("="))
             {
                 greaterThan = false;
                 greaterThanEqual = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
         }
 
         lessThan = false;
         lessThanEqual = false;
-        if (!test.Substring(0, 1).Equals("<"))
+        if (!test[..1].Equals("<"))
         {
             return;
         }
 
         lessThan = true;
-        test = test.Substring(1, test.Length - 1);
-        if (!test.Substring(0, 1).Equals("="))
+        test = test[1..];
+        if (!test[..1].Equals("="))
         {
             return;
         }
 
         lessThan = false;
         lessThanEqual = true;
-        test = test.Substring(1, test.Length - 1);
+        test = test[1..];
     }
 
     private bool EvaluateTestX(string test, SVR_AniDB_Anime anime)
@@ -899,7 +905,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -913,17 +919,17 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <param name="episodes"></param>
     /// <param name="anime"></param>
     /// <returns></returns>
-    private bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+    private bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File? aniFile,
         List<SVR_AniDB_Episode> episodes,
         SVR_AniDB_Anime anime)
     {
         try
         {
             var notCondition = false;
-            if (test.Substring(0, 1).Equals("!"))
+            if (test[..1].Equals("!"))
             {
                 notCondition = true;
-                test = test.Substring(1, test.Length - 1);
+                test = test[1..];
             }
 
 
@@ -936,8 +942,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             // Test if Anime ID exists
 
-            var tagAnimeID = Constants.FileRenameTag.AnimeID.Substring(1,
-                Constants.FileRenameTag.AnimeID.Length - 1); // remove % at the front
+            var tagAnimeID = Constants.FileRenameTag.AnimeID[1..]; // remove % at the front
             if (test.Trim().Equals(tagAnimeID, StringComparison.InvariantCultureIgnoreCase))
             {
                 // manually linked files won't have an anime id
@@ -965,8 +970,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             // Test if Group ID exists
 
-            var tagGroupID = Constants.FileRenameTag.GroupID.Substring(1,
-                Constants.FileRenameTag.GroupID.Length - 1); // remove % at the front
+            var tagGroupID = Constants.FileRenameTag.GroupID[1..]; // remove % at the front
             if (test.Trim().Equals(tagGroupID, StringComparison.InvariantCultureIgnoreCase))
             {
                 // manually linked files won't have an group id
@@ -994,8 +998,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             // Test if Original File Nameexists
 
-            var tagOriginalFileName = Constants.FileRenameTag.OriginalFileName.Substring(1,
-                Constants.FileRenameTag.OriginalFileName.Length - 1); // remove % at the front
+            var tagOriginalFileName = Constants.FileRenameTag.OriginalFileName[1..]; // remove % at the front
             if (test.Trim().Equals(tagOriginalFileName, StringComparison.InvariantCultureIgnoreCase))
             {
                 // manually linked files won't have an Original File Name
@@ -1017,8 +1020,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test if Episode Number exists
 
             // Test if Episode Number exists
-            var tagEpisodeNumber = Constants.FileRenameTag.EpisodeNumber.Substring(1,
-                Constants.FileRenameTag.EpisodeNumber.Length - 1); // remove % at the front
+            var tagEpisodeNumber = Constants.FileRenameTag.EpisodeNumber[1..]; // remove % at the front
             if (test.Trim().Equals(tagEpisodeNumber, StringComparison.InvariantCultureIgnoreCase))
             {
                 // manually linked files won't have an Episode Number
@@ -1035,8 +1037,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test file version
 
             // Test if Group Short Name exists - yes it always does
-            var tagFileVersion = Constants.FileRenameTag.FileVersion.Substring(1,
-                Constants.FileRenameTag.FileVersion.Length - 1); // remove % at the front
+            var tagFileVersion = Constants.FileRenameTag.FileVersion[1..]; // remove % at the front
             if (test.Trim().Equals(tagFileVersion, StringComparison.InvariantCultureIgnoreCase))
             {
                 // manually linked files won't have an anime id
@@ -1053,8 +1054,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test if ED2K Upper exists
 
             // Test if Group Short Name exists - yes it always does
-            var tagED2KUpper = Constants.FileRenameTag.ED2KUpper.Substring(1,
-                Constants.FileRenameTag.ED2KUpper.Length - 1); // remove % at the front
+            var tagED2KUpper = Constants.FileRenameTag.ED2KUpper[1..]; // remove % at the front
             if (test.Trim().Equals(tagED2KUpper, StringComparison.InvariantCultureIgnoreCase))
             {
                 return !notCondition;
@@ -1065,8 +1065,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test if ED2K Lower exists
 
             // Test if Group Short Name exists - yes it always does
-            var tagED2KLower = Constants.FileRenameTag.ED2KLower.Substring(1,
-                Constants.FileRenameTag.ED2KLower.Length - 1); // remove % at the front
+            var tagED2KLower = Constants.FileRenameTag.ED2KLower[1..]; // remove % at the front
             if (test.Trim().Equals(tagED2KLower, StringComparison.InvariantCultureIgnoreCase))
             {
                 return !notCondition;
@@ -1076,8 +1075,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if English title exists
 
-            var tagAnimeNameEnglish = Constants.FileRenameTag.AnimeNameEnglish.Substring(1,
-                Constants.FileRenameTag.AnimeNameEnglish.Length - 1); // remove % at the front
+            var tagAnimeNameEnglish = Constants.FileRenameTag.AnimeNameEnglish[1..]; // remove % at the front
             if (test.Trim().Equals(tagAnimeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (anime.Titles.Any(ti =>
@@ -1094,8 +1092,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if Kanji title exists
 
-            var tagAnimeNameKanji = Constants.FileRenameTag.AnimeNameKanji.Substring(1,
-                Constants.FileRenameTag.AnimeNameKanji.Length - 1); // remove % at the front
+            var tagAnimeNameKanji = Constants.FileRenameTag.AnimeNameKanji[1..]; // remove % at the front
             if (test.Trim().Equals(tagAnimeNameKanji, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (anime.Titles.Any(ti =>
@@ -1112,8 +1109,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if anime main or romaji title exists
 
-            var tagAnimeNameRomaji = Constants.FileRenameTag.AnimeNameMain.Substring(1,
-                Constants.FileRenameTag.AnimeNameMain.Length - 1); // remove % at the front
+            var tagAnimeNameRomaji = Constants.FileRenameTag.AnimeNameMain[1..]; // remove % at the front
             if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (anime.Titles.Any(ti =>
@@ -1130,8 +1126,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if episode name (english) exists
 
-            var tagEpisodeNameEnglish = Constants.FileRenameTag.EpisodeNameEnglish.Substring(1,
-                Constants.FileRenameTag.EpisodeNameEnglish.Length - 1); // remove % at the front
+            var tagEpisodeNameEnglish = Constants.FileRenameTag.EpisodeNameEnglish[1..]; // remove % at the front
             if (test.Trim().Equals(tagEpisodeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
             {
                 var title = RepoFactory.AniDB_Episode_Title
@@ -1149,8 +1144,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if episode name (romaji) exists
 
-            var tagEpisodeNameRomaji = Constants.FileRenameTag.EpisodeNameRomaji.Substring(1,
-                Constants.FileRenameTag.EpisodeNameRomaji.Length - 1); // remove % at the front
+            var tagEpisodeNameRomaji = Constants.FileRenameTag.EpisodeNameRomaji[1..]; // remove % at the front
             if (test.Trim().Equals(tagEpisodeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
             {
                 var title = RepoFactory.AniDB_Episode_Title
@@ -1169,8 +1163,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test if group name short exists
 
             // Test if Group Short Name exists - yes it always does
-            var tagGroupShortName = Constants.FileRenameTag.GroupShortName.Substring(1,
-                Constants.FileRenameTag.GroupShortName.Length - 1); // remove % at the front
+            var tagGroupShortName = Constants.FileRenameTag.GroupShortName[1..]; // remove % at the front
             if (test.Trim().Equals(tagGroupShortName, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (string.IsNullOrEmpty(aniFile?.Anime_GroupNameShort))
@@ -1186,8 +1179,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test if group name long exists
 
             // Test if Group Short Name exists - yes it always does
-            var tagGroupLongName = Constants.FileRenameTag.GroupLongName.Substring(1,
-                Constants.FileRenameTag.GroupLongName.Length - 1); // remove % at the front
+            var tagGroupLongName = Constants.FileRenameTag.GroupLongName[1..]; // remove % at the front
             if (test.Trim().Equals(tagGroupLongName, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (string.IsNullOrEmpty(aniFile?.Anime_GroupName))
@@ -1203,8 +1195,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test if CRC Lower exists
 
             // Test if Group Short Name exists - yes it always does
-            var tagCRCLower = Constants.FileRenameTag.CRCLower.Substring(1,
-                Constants.FileRenameTag.CRCLower.Length - 1); // remove % at the front
+            var tagCRCLower = Constants.FileRenameTag.CRCLower[1..]; // remove % at the front
             if (test.Trim().Equals(tagCRCLower, StringComparison.InvariantCultureIgnoreCase))
             {
                 var crc = vid.CRC32;
@@ -1222,8 +1213,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             #region Test if CRC Upper exists
 
             // Test if Group Short Name exists - yes it always does
-            var tagCRCUpper = Constants.FileRenameTag.CRCUpper.Substring(1,
-                Constants.FileRenameTag.CRCUpper.Length - 1); // remove % at the front
+            var tagCRCUpper = Constants.FileRenameTag.CRCUpper[1..]; // remove % at the front
             if (test.Trim().Equals(tagCRCUpper, StringComparison.InvariantCultureIgnoreCase))
             {
                 var crc = vid.CRC32;
@@ -1240,8 +1230,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test file has an audio track
 
-            var tagDubLanguage = Constants.FileRenameTag.DubLanguage.Substring(1,
-                Constants.FileRenameTag.DubLanguage.Length - 1); // remove % at the front
+            var tagDubLanguage = Constants.FileRenameTag.DubLanguage[1..]; // remove % at the front
             if (test.Trim().Equals(tagDubLanguage, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (aniFile == null || aniFile.Languages.Count == 0)
@@ -1256,8 +1245,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test file has a subtitle track
 
-            var tagSubLanguage = Constants.FileRenameTag.SubLanguage.Substring(1,
-                Constants.FileRenameTag.SubLanguage.Length - 1); // remove % at the front
+            var tagSubLanguage = Constants.FileRenameTag.SubLanguage[1..]; // remove % at the front
             if (test.Trim().Equals(tagSubLanguage, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (aniFile == null || aniFile.Subtitles.Count == 0)
@@ -1272,8 +1260,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if Video resolution exists
 
-            var tagVidRes = Constants.FileRenameTag.Resolution.Substring(1,
-                Constants.FileRenameTag.Resolution.Length - 1); // remove % at the front
+            var tagVidRes = Constants.FileRenameTag.Resolution[1..]; // remove % at the front
             if (test.Trim().Equals(tagVidRes, StringComparison.InvariantCultureIgnoreCase))
             {
                 var vidRes = string.Empty;
@@ -1295,8 +1282,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test file has a video codec defined
 
-            var tagVideoCodec = Constants.FileRenameTag.VideoCodec.Substring(1,
-                Constants.FileRenameTag.VideoCodec.Length - 1); // remove % at the front
+            var tagVideoCodec = Constants.FileRenameTag.VideoCodec[1..]; // remove % at the front
             if (test.Trim().Equals(tagVideoCodec, StringComparison.InvariantCultureIgnoreCase))
             {
                 return notCondition;
@@ -1306,8 +1292,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test file has an audio codec defined
 
-            var tagAudioCodec = Constants.FileRenameTag.AudioCodec.Substring(1,
-                Constants.FileRenameTag.AudioCodec.Length - 1); // remove % at the front
+            var tagAudioCodec = Constants.FileRenameTag.AudioCodec[1..]; // remove % at the front
             if (test.Trim().Equals(tagAudioCodec, StringComparison.InvariantCultureIgnoreCase))
             {
                 return notCondition;
@@ -1317,8 +1302,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test file has Video Bit Depth defined
 
-            var tagVideoBitDepth = Constants.FileRenameTag.VideoBitDepth.Substring(1,
-                Constants.FileRenameTag.VideoBitDepth.Length - 1); // remove % at the front
+            var tagVideoBitDepth = Constants.FileRenameTag.VideoBitDepth[1..]; // remove % at the front
             if (test.Trim().Equals(tagVideoBitDepth, StringComparison.InvariantCultureIgnoreCase))
             {
                 var bitDepthExists = vid?.MediaInfo?.VideoStream != null && vid.MediaInfo?.VideoStream?.BitDepth != 0;
@@ -1334,8 +1318,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if censored
 
-            var tagCensored = Constants.FileRenameTag.Censored.Substring(1,
-                Constants.FileRenameTag.Censored.Length - 1); // remove % at the front
+            var tagCensored = Constants.FileRenameTag.Censored[1..]; // remove % at the front
             if (test.Trim().Equals(tagCensored, StringComparison.InvariantCultureIgnoreCase))
             {
                 var isCensored = false;
@@ -1356,8 +1339,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             #region Test if Deprecated
 
-            var tagDeprecated = Constants.FileRenameTag.Deprecated.Substring(1,
-                Constants.FileRenameTag.Deprecated.Length - 1); // remove % at the front
+            var tagDeprecated = Constants.FileRenameTag.Deprecated[1..]; // remove % at the front
             if (!test.Trim().Equals(tagDeprecated, StringComparison.InvariantCultureIgnoreCase))
             {
                 return false;
@@ -1380,7 +1362,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
             return false;
         }
     }
@@ -1400,9 +1382,9 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         var newFileName = string.Empty;
 
         var episodes = new List<SVR_AniDB_Episode>();
-        SVR_AniDB_Anime anime;
+        SVR_AniDB_Anime? anime;
 
-        if (vid == null) return (false, "Unable to access file");
+        if (place == null || vid == null) return (false, "Unable to access file");
 
         // get all the data so we don't need to get multiple times
         var aniFile = vid.AniDBFile;
@@ -1411,7 +1393,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             var animeEps = vid.AnimeEpisodes;
             if (animeEps.Count == 0) return (false, "Unable to get episode for file");
 
-            episodes.AddRange(animeEps.Select(a => a.AniDB_Episode).OrderBy(a => a?.EpisodeType ?? (int)EpisodeType.Other)
+            episodes.AddRange(animeEps.Select(a => a.AniDB_Episode).WhereNotNull().OrderBy(a => a?.EpisodeType ?? (int)EpisodeType.Other)
                 .ThenBy(a => a.EpisodeNumber));
 
             anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
@@ -1433,7 +1415,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
             // remove all comments from this line
             var comPos = thisLine.IndexOf("//", StringComparison.Ordinal);
-            if (comPos >= 0) thisLine = thisLine.Substring(0, comPos);
+            if (comPos >= 0) thisLine = thisLine[..comPos];
 
 
             // check if this line has no tests (applied to all files)
@@ -1471,7 +1453,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return (true, $"{newFileName.Replace("`", "'")}{ext}".ReplaceInvalidPathCharacters());
     }
 
-    private (bool, string) PerformActionOnFileName(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+    private (bool, string) PerformActionOnFileName(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid, SVR_AniDB_File? aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         // find the first test
         var posStart = action.IndexOf(' ');
@@ -1517,15 +1499,15 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            return (false, ex.Message); 
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
+            return (false, ex.Message);
         }
-        
-        return (true, newFileName); 
+
+        return (true, newFileName);
     }
 
     private (bool, string) PerformActionOnFileNameADD(string newFileName, string action, WebAOMSettings settings, SVR_VideoLocal vid,
-        SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+        SVR_AniDB_File? aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         newFileName += action;
         newFileName = newFileName.Replace("'", string.Empty);
@@ -1938,7 +1920,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             if (aniFile != null)
             {
                 var ext = Path.GetExtension(aniFile.FileName);
-                var partial = aniFile.FileName.Substring(0, aniFile.FileName.Length - ext.Length);
+                var partial = aniFile.FileName[..^ext.Length];
 
                 newFileName = newFileName.Replace(Constants.FileRenameTag.OriginalFileName, partial);
             }
@@ -1983,13 +1965,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return action;
     }
 
-    private bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+    private bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File? aniFile,
         List<SVR_AniDB_Episode> episodes,
         SVR_AniDB_Anime anime)
     {
         line = line.Trim();
         // determine if this line has a test
-        foreach (var c in validTests)
+        foreach (var c in _validTests)
         {
             var prefix = $"IF {c}(";
             if (!line.ToUpper().StartsWith(prefix)) continue;
@@ -2013,7 +1995,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                 var thisLineRemainder = line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
                 // remove any spacing
                 //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
-                var thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
+                var thisTest = thisLineRemainder[..1].ToCharArray()[0];
 
                 var posStartNew = thisLineRemainder.IndexOf('(');
                 var posEndNew = thisLineRemainder.IndexOf(')');
@@ -2042,7 +2024,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
                     line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
                 // remove any spacing
                 //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
-                var thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
+                var thisTest = thisLineRemainder[..1].ToCharArray()[0];
 
                 var posStartNew = thisLineRemainder.IndexOf('(');
                 var posEndNew = thisLineRemainder.IndexOf(')');
@@ -2060,7 +2042,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     }
 
     private bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid,
-        SVR_AniDB_File aniFile,
+        SVR_AniDB_File? aniFile,
         List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         testCondition = testCondition.Trim();
@@ -2110,7 +2092,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    public (IImportFolder dest, string folder) GetDestinationFolder(RelocationEventArgs<WebAOMSettings> args)
+    public (IImportFolder? dest, string? folder) GetDestinationFolder(RelocationEventArgs<WebAOMSettings> args)
     {
         if (args.Settings.GroupAwareSorting)
             return GetGroupAwareDestination(args);
@@ -2118,7 +2100,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return GetFlatFolderDestination(args);
     }
 
-    private (IImportFolder dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
+    private (IImportFolder? dest, string? folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
     {
         if (args?.Episodes == null || args.Episodes.Count == 0)
         {
@@ -2175,7 +2157,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return dest.DropFolderType.HasFlag(DropFolderType.Destination);
     }
 
-    private (IImportFolder dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
+    private (IImportFolder? dest, string? folder) GetFlatFolderDestination(RelocationEventArgs args)
     {
         if (_relocationService.GetExistingSeriesLocationWithSpace(args) is { } existingSeriesLocation)
             return existingSeriesLocation;
