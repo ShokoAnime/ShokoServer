@@ -197,7 +197,7 @@ public class Series : BaseModel
             .Select(episode =>
             {
                 var aniDB = episode.AniDB_Episode;
-                var airDate = aniDB.GetAirDateAsDate();
+                var airDate = aniDB?.GetAirDateAsDate();
                 return (episode, aniDB, airDate);
             })
             .Where(tuple =>

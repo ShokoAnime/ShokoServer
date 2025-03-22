@@ -505,11 +505,11 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     {
         get
         {
-            var anime = AniDB_Anime;
-            var startYear = anime?.BeginYear ?? 0;
+            if (AniDB_Anime is not { } anime) return [];
+            var startYear = anime.BeginYear;
             if (startYear == 0) return [];
 
-            var endYear = anime?.EndYear ?? 0;
+            var endYear = anime.EndYear;
             if (endYear == 0) endYear = DateTime.Today.Year;
             if (endYear < startYear) endYear = startYear;
             if (startYear == endYear) return [startYear];

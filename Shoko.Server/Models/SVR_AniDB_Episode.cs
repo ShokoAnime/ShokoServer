@@ -53,7 +53,8 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
     {
         get
         {
-            if (AniDB_Anime.GetFinishedAiring()) return true;
+            if (AniDB_Anime is not { } anidbAnime) return false;
+            if (anidbAnime.GetFinishedAiring()) return true;
             var date = this.GetAirDateAsDate();
             if (date == null) return false;
 

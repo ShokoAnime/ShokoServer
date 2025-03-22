@@ -3009,7 +3009,7 @@ public class SeriesController : BaseController
             return;
         }
 
-        var titles = a.AniDB_Anime.GetAllTitles();
+        var titles = a.AniDB_Anime?.GetAllTitles();
         if (titles is null || titles.Count == 0)
         {
             return;

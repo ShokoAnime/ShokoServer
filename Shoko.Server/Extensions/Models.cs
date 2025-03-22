@@ -6,6 +6,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Providers.AniDB;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 
+#nullable enable
 namespace Shoko.Server.Extensions
 {
     public static class Models
