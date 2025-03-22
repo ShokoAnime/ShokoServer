@@ -88,101 +88,80 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     public static TitleLanguage GetLanguage(string language)
     {
-        switch (language)
+        return language switch
         {
-            case "afrikaans": return TitleLanguage.Afrikaans;
-            case "albanian": return TitleLanguage.Albanian;
-            case "arabic": return TitleLanguage.Arabic;
-            case "basque":
-            case "spanish (basque)":
-                return TitleLanguage.Basque;
-            case "bengali": return TitleLanguage.Bengali;
-            case "bosnian": return TitleLanguage.Bosnian;
-            case "bulgarian": return TitleLanguage.Bulgarian;
-            case "burmese": return TitleLanguage.MyanmarBurmese;
-            case "catalan":
-            case "spanish (catalan)":
-                return TitleLanguage.Catalan;
-            case "chinese (simplified)": return TitleLanguage.ChineseSimplified;
-            case "chinese (traditional)": return TitleLanguage.ChineseTraditional;
-            case "chinese":
-            case "chinese (unspecified)":
-            case "cantonese":
-            case "chinese (cantonese)":
-            case "mandarin":
-            case "chinese (mandarin)":
-            case "taiwanese":
-            case "chinese (taiwanese)":
-                return TitleLanguage.Chinese;
-            case "chinese (transcription)": return TitleLanguage.Pinyin;
-            case "croatian": return TitleLanguage.Croatian;
-            case "czech": return TitleLanguage.Czech;
-            case "danish": return TitleLanguage.Danish;
-            case "dutch": return TitleLanguage.Dutch;
-            case "english": return TitleLanguage.English;
-            case "esperanto": return TitleLanguage.Esperanto;
-            case "estonian": return TitleLanguage.Estonian;
-            case "filipino":
-            case "tagalog":
-            case "filipino (tagalog)":
-                return TitleLanguage.Filipino;
-            case "finnish": return TitleLanguage.Finnish;
-            case "french": return TitleLanguage.French;
-            case "galician":
-            case "spanish (galician)":
-                return TitleLanguage.Galician;
-            case "georgian": return TitleLanguage.Georgian;
-            case "german": return TitleLanguage.German;
-            case "greek (ancient)":
-            case "greek":
-                return TitleLanguage.Greek;
-            case "haitian creole": return TitleLanguage.HaitianCreole;
-            case "hebrew": return TitleLanguage.Hebrew;
-            case "hindi": return TitleLanguage.Hindi;
-            case "hungarian": return TitleLanguage.Hungarian;
-            case "icelandic": return TitleLanguage.Icelandic;
-            case "indonesian": return TitleLanguage.Indonesian;
-            case "italian": return TitleLanguage.Italian;
-            case "japanese": return TitleLanguage.Japanese;
-            case "japanese (transcription)": return TitleLanguage.Romaji;
-            case "javanese": return TitleLanguage.Javanese;
-            case "korean": return TitleLanguage.Korean;
-            case "korean (transcription)": return TitleLanguage.KoreanTranscription;
-            case "latin": return TitleLanguage.Latin;
-            case "latvian": return TitleLanguage.Latvian;
-            case "lithuanian": return TitleLanguage.Lithuanian;
-            case "malay": return TitleLanguage.Malaysian;
-            case "mongolian": return TitleLanguage.Mongolian;
-            case "nepali": return TitleLanguage.Nepali;
-            case "norwegian": return TitleLanguage.Norwegian;
-            case "persian": return TitleLanguage.Persian;
-            case "polish": return TitleLanguage.Polish;
-            case "portuguese": return TitleLanguage.Portuguese;
-            case "brazilian":
-            case "portuguese (brazilian)":
-                return TitleLanguage.BrazilianPortuguese;
-            case "romanian": return TitleLanguage.Romanian;
-            case "russian": return TitleLanguage.Russian;
-            case "serbian": return TitleLanguage.Serbian;
-            case "sinhala": return TitleLanguage.Sinhala;
-            case "slovak": return TitleLanguage.Slovak;
-            case "slovenian": return TitleLanguage.Slovenian;
-            case "spanish":
-            case "spanish (latin american)":
-                return TitleLanguage.Spanish;
-            case "swedish": return TitleLanguage.Swedish;
-            case "tamil": return TitleLanguage.Tamil;
-            case "tatar": return TitleLanguage.Tatar;
-            case "telugu": return TitleLanguage.Telugu;
-            case "thai (transcription)": return TitleLanguage.ThaiTranscription;
-            case "thai": return TitleLanguage.Thai;
-            case "turkish": return TitleLanguage.Turkish;
-            case "ukrainian": return TitleLanguage.Ukrainian;
-            case "urdu": return TitleLanguage.Urdu;
-            case "vietnamese": return TitleLanguage.Vietnamese;
-            default:
-                return TitleLanguage.Unknown;
-        }
+            "afrikaans" => TitleLanguage.Afrikaans,
+            "albanian" => TitleLanguage.Albanian,
+            "arabic" => TitleLanguage.Arabic,
+            "basque" or "spanish (basque)" => TitleLanguage.Basque,
+            "bengali" => TitleLanguage.Bengali,
+            "bosnian" => TitleLanguage.Bosnian,
+            "bulgarian" => TitleLanguage.Bulgarian,
+            "burmese" => TitleLanguage.MyanmarBurmese,
+            "catalan" or "spanish (catalan)" => TitleLanguage.Catalan,
+            "chinese (simplified)" => TitleLanguage.ChineseSimplified,
+            "chinese (traditional)" => TitleLanguage.ChineseTraditional,
+            "chinese" or "chinese (unspecified)" or
+                "cantonese" or "chinese (cantonese)" or
+                "mandarin" or "chinese (mandarin)" or
+                "taiwanese" or "chinese (taiwanese)" => TitleLanguage.Chinese,
+            "chinese (transcription)" => TitleLanguage.Pinyin,
+            "croatian" => TitleLanguage.Croatian,
+            "czech" => TitleLanguage.Czech,
+            "danish" => TitleLanguage.Danish,
+            "dutch" => TitleLanguage.Dutch,
+            "english" => TitleLanguage.English,
+            "esperanto" => TitleLanguage.Esperanto,
+            "estonian" => TitleLanguage.Estonian,
+            "filipino" or "tagalog" or "filipino (tagalog)" => TitleLanguage.Filipino,
+            "finnish" => TitleLanguage.Finnish,
+            "french" => TitleLanguage.French,
+            "galician" or "spanish (galician)" => TitleLanguage.Galician,
+            "georgian" => TitleLanguage.Georgian,
+            "german" => TitleLanguage.German,
+            "greek (ancient)" or "greek" => TitleLanguage.Greek,
+            "haitian creole" => TitleLanguage.HaitianCreole,
+            "hebrew" => TitleLanguage.Hebrew,
+            "hindi" => TitleLanguage.Hindi,
+            "hungarian" => TitleLanguage.Hungarian,
+            "icelandic" => TitleLanguage.Icelandic,
+            "indonesian" => TitleLanguage.Indonesian,
+            "italian" => TitleLanguage.Italian,
+            "japanese" => TitleLanguage.Japanese,
+            "japanese (transcription)" => TitleLanguage.Romaji,
+            "javanese" => TitleLanguage.Javanese,
+            "korean" => TitleLanguage.Korean,
+            "korean (transcription)" => TitleLanguage.KoreanTranscription,
+            "latin" => TitleLanguage.Latin,
+            "latvian" => TitleLanguage.Latvian,
+            "lithuanian" => TitleLanguage.Lithuanian,
+            "malay" => TitleLanguage.Malaysian,
+            "mongolian" => TitleLanguage.Mongolian,
+            "nepali" => TitleLanguage.Nepali,
+            "norwegian" => TitleLanguage.Norwegian,
+            "persian" => TitleLanguage.Persian,
+            "polish" => TitleLanguage.Polish,
+            "portuguese" => TitleLanguage.Portuguese,
+            "brazilian" or "portuguese (brazilian)" => TitleLanguage.BrazilianPortuguese,
+            "romanian" => TitleLanguage.Romanian,
+            "russian" => TitleLanguage.Russian,
+            "serbian" => TitleLanguage.Serbian,
+            "sinhala" => TitleLanguage.Sinhala,
+            "slovak" => TitleLanguage.Slovak,
+            "slovenian" => TitleLanguage.Slovenian,
+            "spanish" or "spanish (latin american)" => TitleLanguage.Spanish,
+            "swedish" => TitleLanguage.Swedish,
+            "tamil" => TitleLanguage.Tamil,
+            "tatar" => TitleLanguage.Tatar,
+            "telugu" => TitleLanguage.Telugu,
+            "thai (transcription)" => TitleLanguage.ThaiTranscription,
+            "thai" => TitleLanguage.Thai,
+            "turkish" => TitleLanguage.Turkish,
+            "ukrainian" => TitleLanguage.Ukrainian,
+            "urdu" => TitleLanguage.Urdu,
+            "vietnamese" => TitleLanguage.Vietnamese,
+            _ => TitleLanguage.Unknown
+        };
     }
 
     private static readonly ImmutableHashSet<string> _possibleLanguagesBoth =
