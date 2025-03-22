@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -169,6 +169,10 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     /// <returns></returns>
     private bool EvaluateTestG(string test, SVR_AniDB_File aniFile)
     {
+        if (aniFile is null)
+        {
+            return false;
+        }
         try
         {
             var notCondition = false;
