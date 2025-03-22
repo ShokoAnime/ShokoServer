@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Xml.Serialization;
 using Shoko.Models.Server;
@@ -29,7 +30,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         .Select(crossref => crossref.AniDBEpisode)
         .WhereNotNull()
         .OrderBy(ep => ep.EpisodeTypeEnum)
-        .OrderBy(ep => ep.EpisodeNumber)
+        .ThenBy(ep => ep.EpisodeNumber)
         .ToList();
 
     [XmlIgnore]
@@ -37,7 +38,10 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     // NOTE: I want to cache it, but i won't for now. not until the anidb files and release groups are stored in a non-cached repo.
     public AniDB_ReleaseGroup ReleaseGroup =>
-        RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID) ?? new() { GroupID = GroupID };
+        RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID) ?? new()
+        {
+            GroupID = GroupID
+        };
 
     public string Anime_GroupName => ReleaseGroup?.GroupName;
 
@@ -84,178 +88,178 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     public static TitleLanguage GetLanguage(string language)
     {
-        switch (language)
+        return language.ToLowerInvariant() switch
         {
-            case "afrikaans": return TitleLanguage.Afrikaans;
-            case "albanian": return TitleLanguage.Albanian;
-            case "arabic": return TitleLanguage.Arabic;
-            case "basque": return TitleLanguage.Basque;
-            case "bengali": return TitleLanguage.Bengali;
-            case "bosnian": return TitleLanguage.Bosnian;
-            case "bulgarian": return TitleLanguage.Bulgarian;
-            case "czech": return TitleLanguage.Czech;
-            case "danish": return TitleLanguage.Danish;
-            case "dutch": return TitleLanguage.Dutch;
-            case "english": return TitleLanguage.English;
-            case "estonian": return TitleLanguage.Estonian;
-            case "finnish": return TitleLanguage.Finnish;
-            case "french": return TitleLanguage.French;
-            case "german": return TitleLanguage.German;
-            case "greek (ancient)":
-            case "greek":
-                return TitleLanguage.Greek;
-            case "hebrew": return TitleLanguage.Hebrew;
-            case "hungarian": return TitleLanguage.Hungarian;
-            case "javanese":
-            case "malay":
-            case "indonesian":
-                return TitleLanguage.Malaysian;
-            case "latin": return TitleLanguage.Latin;
-            case "italian": return TitleLanguage.Italian;
-            case "korean": return TitleLanguage.Korean;
-            case "icelandic":
-            case "norwegian": return TitleLanguage.Norwegian;
-            case "polish": return TitleLanguage.Polish;
-            case "portuguese": return TitleLanguage.Portuguese;
-            case "portuguese (brazilian)": return TitleLanguage.BrazilianPortuguese;
-            case "romanian": return TitleLanguage.Romanian;
-            case "russian": return TitleLanguage.Russian;
-            case "slovenian": return TitleLanguage.Slovenian;
-            case "ukrainian": return TitleLanguage.Ukrainian;
-            case "swedish": return TitleLanguage.Swedish;
-            case "thai (transcription)":
-            case "thai":
-                return TitleLanguage.Thai;
-            case "turkish": return TitleLanguage.Turkish;
-            case "vietnamese": return TitleLanguage.Vietnamese;
-            case "chinese (simplified)": return TitleLanguage.ChineseSimplified;
-            case "chinese (traditional)": return TitleLanguage.ChineseTraditional;
-            case "chinese (cantonese)":
-            case "chinese (mandarin)":
-            case "chinese (unspecified)":
-            case "taiwanese":
-                return TitleLanguage.Chinese;
-            case "chinese (transcription)": return TitleLanguage.Pinyin;
-            case "japanese": return TitleLanguage.Japanese;
-            case "japanese (transcription)": return TitleLanguage.Romaji;
-            case "catalan":
-            case "spanish":
-            case "spanish (latin american)":
-                return TitleLanguage.Spanish;
-            default:
-                return TitleLanguage.Unknown;
-            // TODO these, a proper language class, idk I'm bored an this is tedious
-            /*
-             croatian	hr	both	20	0
-            esperanto	eo	both	24	0
-            filipino	tl	both	26	0
-            filipino (tagalog)	tl	both	27	0
-            galician	gl	both	30	0
-            georgian	ka	both	31	0
-            haitian creole	ht	both	35	0
-            hindi	hi	both	37	0
-            icelandic	is	both	39	0
-            17	korean	ko	both	44	0
-            87	korean (transcription)	x-kot	written	45	0
-            69	latin	la	both	46	0
-            67	latvian	lv	both	47	0
-            35	lithuanian	lt	both	48	0
-            94	mongolian	mn	both	50	0
-            91	persian	fa	both	53	0
-            serbian	sr	both	59	0
-            slovak	sk	both	61	0
-            telugu	te	both	69	0
-            urdu	ur	written	74	0
-            */
-        }
+            "afrikaans" => TitleLanguage.Afrikaans,
+            "albanian" => TitleLanguage.Albanian,
+            "arabic" => TitleLanguage.Arabic,
+            "basque" or "spanish (basque)" => TitleLanguage.Basque,
+            "bengali" => TitleLanguage.Bengali,
+            "bosnian" => TitleLanguage.Bosnian,
+            "bulgarian" => TitleLanguage.Bulgarian,
+            "burmese" => TitleLanguage.MyanmarBurmese,
+            "catalan" or "spanish (catalan)" => TitleLanguage.Catalan,
+            "chinese (simplified)" => TitleLanguage.ChineseSimplified,
+            "chinese (traditional)" => TitleLanguage.ChineseTraditional,
+            "chinese" or "chinese (unspecified)" or
+                "cantonese" or "chinese (cantonese)" or
+                "mandarin" or "chinese (mandarin)" or
+                "taiwanese" or "chinese (taiwanese)" => TitleLanguage.Chinese,
+            "chinese (transcription)" => TitleLanguage.Pinyin,
+            "croatian" => TitleLanguage.Croatian,
+            "czech" => TitleLanguage.Czech,
+            "danish" => TitleLanguage.Danish,
+            "dutch" => TitleLanguage.Dutch,
+            "english" => TitleLanguage.English,
+            "esperanto" => TitleLanguage.Esperanto,
+            "estonian" => TitleLanguage.Estonian,
+            "filipino" or "tagalog" or "filipino (tagalog)" => TitleLanguage.Filipino,
+            "finnish" => TitleLanguage.Finnish,
+            "french" => TitleLanguage.French,
+            "galician" or "spanish (galician)" => TitleLanguage.Galician,
+            "georgian" => TitleLanguage.Georgian,
+            "german" => TitleLanguage.German,
+            "greek (ancient)" or "greek" => TitleLanguage.Greek,
+            "haitian creole" => TitleLanguage.HaitianCreole,
+            "hebrew" => TitleLanguage.Hebrew,
+            "hindi" => TitleLanguage.Hindi,
+            "hungarian" => TitleLanguage.Hungarian,
+            "icelandic" => TitleLanguage.Icelandic,
+            "indonesian" => TitleLanguage.Indonesian,
+            "italian" => TitleLanguage.Italian,
+            "japanese" => TitleLanguage.Japanese,
+            "japanese (transcription)" => TitleLanguage.Romaji,
+            "javanese" => TitleLanguage.Javanese,
+            "korean" => TitleLanguage.Korean,
+            "korean (transcription)" => TitleLanguage.KoreanTranscription,
+            "latin" => TitleLanguage.Latin,
+            "latvian" => TitleLanguage.Latvian,
+            "lithuanian" => TitleLanguage.Lithuanian,
+            "malay" => TitleLanguage.Malaysian,
+            "mongolian" => TitleLanguage.Mongolian,
+            "nepali" => TitleLanguage.Nepali,
+            "norwegian" => TitleLanguage.Norwegian,
+            "persian" => TitleLanguage.Persian,
+            "polish" => TitleLanguage.Polish,
+            "portuguese" => TitleLanguage.Portuguese,
+            "brazilian" or "portuguese (brazilian)" => TitleLanguage.BrazilianPortuguese,
+            "romanian" => TitleLanguage.Romanian,
+            "russian" => TitleLanguage.Russian,
+            "serbian" => TitleLanguage.Serbian,
+            "sinhala" => TitleLanguage.Sinhala,
+            "slovak" => TitleLanguage.Slovak,
+            "slovenian" => TitleLanguage.Slovenian,
+            "spanish" or "spanish (latin american)" => TitleLanguage.Spanish,
+            "swedish" => TitleLanguage.Swedish,
+            "tamil" => TitleLanguage.Tamil,
+            "tatar" => TitleLanguage.Tatar,
+            "telugu" => TitleLanguage.Telugu,
+            "thai (transcription)" => TitleLanguage.ThaiTranscription,
+            "thai" => TitleLanguage.Thai,
+            "turkish" => TitleLanguage.Turkish,
+            "ukrainian" => TitleLanguage.Ukrainian,
+            "urdu" => TitleLanguage.Urdu,
+            "vietnamese" => TitleLanguage.Vietnamese,
+            _ => TitleLanguage.Unknown,
+        };
     }
 
-    private static readonly string[] _possibleAudioLanguages =
-    {
-        "english", "japanese",
-        "chinese (mandarin)", "afrikaans",
-        "albanian", "arabic",
-        "basque", "bengali",
-        "bulgarian", "bosnian",
-        "catalan", "chinese (unspecified)",
-        "chinese (cantonese)", "chinese (taiwanese)",
-        "croatian", "czech",
-        "danish", "dutch",
-        "esperanto", "estonian",
-        "filipino", "filipino (tagalog)",
-        "finnish", "french",
-        "galician", "georgian",
-        "german", "greek",
-        "haitian creole", "hebrew",
-        "hindi", "hungarian",
-        "icelandic", "indonesian",
-        "instrumental", "italian",
-        "javanese", "korean",
-        "latin", "latvian",
-        "lithuanian", "malay",
-        "mongolian", "nepali",
-        "norwegian", "persian",
-        "polish", "portuguese",
-        "portuguese (brazilian)", "romanian",
-        "russian", "serbian",
-        "sinhala", "slovak",
-        "slovenian", "spanish",
-        "spanish (latin american)", "swedish",
-        "tamil", "tatar",
-        "telugu", "thai",
-        "turkish", "ukrainian",
-        "vietnamese", "unknown",
+    private static readonly ImmutableHashSet<string> _possibleLanguagesBoth =
+    [
+        "afrikaans",
+        "albanian",
+        "arabic",
+        "basque",
+        "bengali",
+        "bosnian",
+        "bulgarian",
+        "burmese",
+        "catalan",
+        "chinese",
+        "croatian",
+        "czech",
+        "danish",
+        "dutch",
+        "english",
+        "esperanto",
+        "estonian",
+        "filipino",
+        "tagalog",
+        "finnish",
+        "french",
+        "galician",
+        "georgian",
+        "german",
+        "greek",
+        "haitian creole",
+        "hebrew",
+        "hindi",
+        "hungarian",
+        "icelandic",
+        "indonesian",
+        "italian",
+        "japanese",
+        "javanese",
+        "korean",
+        "latin",
+        "latvian",
+        "lithuanian",
+        "malay",
+        "mongolian",
+        "nepali",
+        "norwegian",
+        "persian",
+        "polish",
+        "portuguese",
+        "portuguese (brazilian)",
+        "romanian",
+        "russian",
+        "serbian",
+        "sinhala",
+        "slovak",
+        "slovenian",
+        "spanish",
+        "spanish (latin american)",
+        "swedish",
+        "tamil",
+        "tatar",
+        "telugu",
+        "thai",
+        "turkish",
+        "ukrainian",
+        "vietnamese",
+        "unknown",
         "other",
-    };
+    ];
+
+    private static readonly ImmutableHashSet<string> _possibleAudioLanguages =
+        _possibleLanguagesBoth.Union([
+            "cantonese",
+            "mandarin",
+            "taiwanese",
+            "instrumental",
+        ]);
 
     public static string[] GetPossibleAudioLanguages()
     {
-        return _possibleAudioLanguages;
+        return _possibleAudioLanguages.ToArray();
     }
 
-    private static readonly string[] _possibleSubtitleLanguages =
-    {
-        "english", "japanese",
-        "japanese (transcription)", "afrikaans",
-        "albanian", "arabic",
-        "basque", "bengali",
-        "bulgarian", "bosnian",
-        "catalan", "chinese (unspecified)",
-        "chinese (transcription)", "chinese (traditional)",
-        "chinese (simplified)", "croatian",
-        "czech", "danish",
-        "dutch", "esperanto",
-        "estonian", "filipino",
-        "filipino (tagalog)", "finnish",
-        "french", "galician",
-        "georgian", "german",
-        "greek", "greek (ancient)",
-        "haitian creole", "hebrew",
-        "hindi", "hungarian",
-        "icelandic", "indonesian",
-        "italian", "javanese",
-        "korean", "korean (transcription)",
-        "latin", "latvian",
-        "lithuanian", "malay",
-        "mongolian", "nepali",
-        "norwegian", "persian",
-        "polish", "portuguese",
-        "portuguese (brazilian)", "romanian",
-        "russian", "serbian",
-        "sinhala", "slovak",
-        "slovenian", "spanish",
-        "spanish (latin american)", "swedish",
-        "tamil", "tatar",
-        "telugu", "thai",
-        "thai (transcription)", "turkish",
-        "ukrainian", "urdu",
-        "vietnamese", "unknown",
-        "other",
-    };
+    private static readonly ImmutableHashSet<string> _possibleSubtitleLanguages =
+        _possibleLanguagesBoth.Union([
+            "chinese (simplified)",
+            "chinese (traditional)",
+            "chinese (transcription)",
+            "greek (ancient)",
+            "japanese (transcription)",
+            "korean (transcription)",
+            "thai (transcription)",
+            "urdu",
+        ]);
 
     public static string[] GetPossibleSubtitleLanguages()
     {
-        return _possibleSubtitleLanguages;
+        return _possibleSubtitleLanguages.ToArray();
     }
 
     int IAniDBFile.AniDBFileID => FileID;
@@ -272,7 +276,6 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     AniDBMediaData IAniDBFile.MediaInfo => new()
     {
-        AudioLanguages = Languages.Select(a => GetLanguage(a.LanguageName)).ToList(),
-        SubLanguages = Subtitles.Select(a => GetLanguage(a.LanguageName)).ToList()
+        AudioLanguages = Languages.Select(a => GetLanguage(a.LanguageName)).ToList(), SubLanguages = Subtitles.Select(a => GetLanguage(a.LanguageName)).ToList()
     };
 }

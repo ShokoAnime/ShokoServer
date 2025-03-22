@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using System.Globalization;
 using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Extensions;
@@ -14,68 +14,82 @@ public static class LanguageExtensions
     /// </summary>
     /// <param name="lang">The language code or name.</param>
     /// <returns>The <see cref="TitleLanguage"/> or <see cref="TitleLanguage.Unknown"/> if not found.</returns>
+    /// <remarks>This method may be paired with <see cref="GetString(Shoko.Plugin.Abstractions.DataModels.TitleLanguage)"/> for conversion.<br/>
+    /// This method is used to convert persisted strings from several DB tables</remarks>
     public static TitleLanguage GetTitleLanguage(this string lang)
-        => lang?.ToUpper() switch
+    {
+        try
+        {
+            var cultureInfo = CultureInfo.GetCultureInfo(lang);
+            var ietfResult = cultureInfo.IetfLanguageTag.ToUpperInvariant() switch
+            {
+                "EN-US" => TitleLanguage.EnglishAmerican,
+                "EN-GB" => TitleLanguage.EnglishBritish,
+                "EN-AU" => TitleLanguage.EnglishAustralian,
+                "EN-CA" => TitleLanguage.EnglishCanadian,
+                "EN-IN" => TitleLanguage.EnglishIndia,
+                "EN-NZ" => TitleLanguage.EnglishNewZealand,
+                "FR-CA" => TitleLanguage.FrenchCanadian,
+                "PT-BR" => TitleLanguage.BrazilianPortuguese,
+
+                "ZH-HANS" => TitleLanguage.ChineseSimplified,
+                "ZH-HANT" => TitleLanguage.ChineseTraditional,
+                _ => TitleLanguage.None,
+            };
+            if (ietfResult is not TitleLanguage.None)
+                return ietfResult;
+
+            lang = string.IsNullOrWhiteSpace(cultureInfo.TwoLetterISOLanguageName) ? lang : cultureInfo.TwoLetterISOLanguageName;
+        }
+        catch (CultureNotFoundException)
+        {
+        }
+
+        return lang.ToUpperInvariant() switch
         {
             "EN" or "ENG" => TitleLanguage.English,
-            "EN-US" => TitleLanguage.EnglishAmerican,
-            "EN-GB" => TitleLanguage.EnglishBritish,
-            "EN-AU" => TitleLanguage.EnglishAustralian,
-            "EN-CA" => TitleLanguage.EnglishCanadian,
-            "EN-IN" => TitleLanguage.EnglishIndia,
-            "EN-NZ" => TitleLanguage.EnglishNewZealand,
-            "X-JAT" => TitleLanguage.Romaji,
             "JA" or "JPN" => TitleLanguage.Japanese,
             "AR" or "ARA" => TitleLanguage.Arabic,
-            "BD" or "BAN" => TitleLanguage.Bangladeshi,
+            "BN" or "BEN" => TitleLanguage.Bengali,
             "BG" or "BUL" => TitleLanguage.Bulgarian,
-            // CA isn't actually french canadian, but we have it mapped as such
-            // because anidb have it mapped as such.
-            "CA" or "FR-CA" => TitleLanguage.FrenchCanadian,
-            "CS" or "CES" or "CZ" => TitleLanguage.Czech,
-            "DA" or "DAN" or "DK" => TitleLanguage.Danish,
-            "DE" or "DEU" => TitleLanguage.German,
-            "EL" or "ELL" or "GR" => TitleLanguage.Greek,
+            "CS" or "CES" or "CZE" => TitleLanguage.Czech,
+            "DA" or "DAN" => TitleLanguage.Danish,
+            "DE" or "DEU" or "GER" => TitleLanguage.German,
+            "EL" or "ELL" or "GRE" or "GRC" => TitleLanguage.Greek,
             "ES" or "SPA" => TitleLanguage.Spanish,
-            "ET" or "EST" => TitleLanguage.Estonian,
+            "ET" or "EST" or "EKK" => TitleLanguage.Estonian,
             "FI" or "FIN" => TitleLanguage.Finnish,
-            "FR" or "FRA" => TitleLanguage.French,
+            "FR" or "FRA" or "FRE" => TitleLanguage.French,
             "GL" or "GLG" => TitleLanguage.Galician,
-            "HE" or "HEB" or "IL" => TitleLanguage.Hebrew,
+            "HE" or "HEB" => TitleLanguage.Hebrew,
             "HU" or "HUN" => TitleLanguage.Hungarian,
             "IT" or "ITA" => TitleLanguage.Italian,
             "KO" or "KOR" => TitleLanguage.Korean,
-            "X-KOT" => TitleLanguage.KoreanTranscription,
             "LT" or "LIT" => TitleLanguage.Lithuanian,
             "MN" or "MON" => TitleLanguage.Mongolian,
-            "MS" or "MSA" or "MY" => TitleLanguage.Malaysian,
-            "NL" or "NLD" => TitleLanguage.Dutch,
+            "MS" or "MSA" or "MAY" => TitleLanguage.Malaysian,
+            "NL" or "NLD" or "DUT" => TitleLanguage.Dutch,
             "NO" or "NOR" => TitleLanguage.Norwegian,
             "PL" or "POL" => TitleLanguage.Polish,
             "PT" or "POR" => TitleLanguage.Portuguese,
-            "PT-BR" => TitleLanguage.BrazilianPortuguese,
-            "RO" or "RON" => TitleLanguage.Romanian,
+            "RO" or "RON" or "RUM" => TitleLanguage.Romanian,
             "RU" or "RUS" => TitleLanguage.Russian,
-            "SK" or "SLK" => TitleLanguage.Slovak,
+            "SK" or "SLK" or "SLO" => TitleLanguage.Slovak,
             "SL" or "SLV" => TitleLanguage.Slovenian,
             "SR" or "SRP" => TitleLanguage.Serbian,
-            "SV" or "SWE" or "SE" => TitleLanguage.Swedish,
+            "SV" or "SWE" => TitleLanguage.Swedish,
             "TH" or "THA" => TitleLanguage.Thai,
             "TR" or "TUR" => TitleLanguage.Turkish,
-            "UK" or "UKR" or "UA" => TitleLanguage.Ukrainian,
+            "UK" or "UKR" => TitleLanguage.Ukrainian,
             "VI" or "VIE" => TitleLanguage.Vietnamese,
-            "ZH" or "ZHO" => TitleLanguage.Chinese,
-            "X-ZHT" => TitleLanguage.Pinyin,
-            "ZH-HANS" => TitleLanguage.ChineseSimplified,
-            "ZH-HANT" => TitleLanguage.ChineseTraditional,
+            "ZH" or "ZHO" or "CHI" => TitleLanguage.Chinese,
             "AF" or "AFR" => TitleLanguage.Afrikaans,
-            "SQ" or "SQI" => TitleLanguage.Albanian,
+            "SQ" or "ALB" or "SQI" => TitleLanguage.Albanian,
             "AM" or "AMH" => TitleLanguage.Amharic,
-            "HY" or "HYE" => TitleLanguage.Armenian,
+            "HY" or "HYE" or "ARM" => TitleLanguage.Armenian,
             "AZ" or "AZE" => TitleLanguage.Azerbaijani,
-            "EU" or "EUS" => TitleLanguage.Basque,
+            "EU" or "EUS" or "BAQ" => TitleLanguage.Basque,
             "BE" or "BEL" => TitleLanguage.Belarusian,
-            "BN" or "BEN" => TitleLanguage.Bengali,
             "BS" or "BOS" => TitleLanguage.Bosnian,
             "CA" or "CAT" => TitleLanguage.Catalan,
             "NY" or "NYA" => TitleLanguage.Chichewa,
@@ -83,14 +97,14 @@ public static class LanguageExtensions
             "HR" or "HRV" => TitleLanguage.Croatian,
             "DV" or "DIV" => TitleLanguage.Divehi,
             "EO" or "EPO" => TitleLanguage.Esperanto,
-            "TL" or "FIL" => TitleLanguage.Filipino,
+            "TL" or "TGL" or "FIL" => TitleLanguage.Filipino,
             "FJ" or "FIJ" => TitleLanguage.Fijian,
-            "KA" or "KAT" => TitleLanguage.Georgian,
+            "KA" or "KAT" or "GEO" => TitleLanguage.Georgian,
             "GU" or "GUJ" => TitleLanguage.Gujarati,
             "HT" or "HAT" => TitleLanguage.HaitianCreole,
             "HA" or "HAU" => TitleLanguage.Hausa,
             "HI" or "HIN" => TitleLanguage.Hindi,
-            "IS" or "ISL" => TitleLanguage.Icelandic,
+            "IS" or "ISL" or "ICE" => TitleLanguage.Icelandic,
             "IG" or "IBO" => TitleLanguage.Igbo,
             "ID" or "IND" => TitleLanguage.Indonesian,
             "GA" or "GLE" => TitleLanguage.Irish,
@@ -103,18 +117,18 @@ public static class LanguageExtensions
             "LO" or "LAO" => TitleLanguage.Lao,
             "LA" or "LAT" => TitleLanguage.Latin,
             "LV" or "LAV" => TitleLanguage.Latvian,
-            "LB" or "LUX" => TitleLanguage.Luxembourgish,
-            "MK" or "MKD" => TitleLanguage.Macedonian,
+            "LB" or "LTZ" => TitleLanguage.Luxembourgish,
+            "MK" or "MKD" or "MAC" => TitleLanguage.Macedonian,
             "MG" or "MLG" => TitleLanguage.Malagasy,
-            "ML" or "MAL" => TitleLanguage.Malayalam,
+            /*"ML" or */ "MAL" => TitleLanguage.Malayalam, // Dutch was incorrectly mapped to ML in the DB
             "MT" or "MLT" => TitleLanguage.Maltese,
-            "MI" or "MRI" => TitleLanguage.Maori,
+            "MI" or "MRI" or "MAO" => TitleLanguage.Maori,
             "MR" or "MAR" => TitleLanguage.Marathi,
-            "MY" or "MYA" => TitleLanguage.MyanmarBurmese,
+            "MY" or "MYA" or "BUR" => TitleLanguage.MyanmarBurmese,
             "NE" or "NEP" => TitleLanguage.Nepali,
             "OR" or "ORI" => TitleLanguage.Oriya,
             "PS" or "PUS" => TitleLanguage.Pashto,
-            "FA" or "FAS" => TitleLanguage.Persian,
+            "FA" or "FAS" or "PER" => TitleLanguage.Persian,
             "PA" or "PAN" => TitleLanguage.Punjabi,
             "QU" or "QUE" => TitleLanguage.Quechua,
             "SM" or "SMO" => TitleLanguage.Samoan,
@@ -132,12 +146,27 @@ public static class LanguageExtensions
             "TK" or "TUK" => TitleLanguage.Turkmen,
             "UG" or "UIG" => TitleLanguage.Uighur,
             "UZ" or "UZB" => TitleLanguage.Uzbek,
-            "CY" or "CYM" => TitleLanguage.Welsh,
+            "CY" or "CYM" or "WEL" => TitleLanguage.Welsh,
             "XH" or "XHO" => TitleLanguage.Xhosa,
             "YI" or "YID" => TitleLanguage.Yiddish,
             "YO" or "YOR" => TitleLanguage.Yoruba,
             "ZU" or "ZUL" => TitleLanguage.Zulu,
             "UR" or "URD" => TitleLanguage.Urdu,
+
+            "X-JAT" => TitleLanguage.Romaji,
+            "X-ZHT" => TitleLanguage.Pinyin,
+            "X-KOT" => TitleLanguage.KoreanTranscription,
+            "X-THT" => TitleLanguage.ThaiTranscription,
+
+            #region Backwards Compat
+            
+            "CZ" => TitleLanguage.Czech,
+            "ML" => TitleLanguage.Dutch,
+            "GR" => TitleLanguage.Greek,
+            "SE" => TitleLanguage.Swedish,
+            "UA" => TitleLanguage.Ukrainian,
+            "BD" => TitleLanguage.Bengali,
+            "X-THA" => TitleLanguage.ThaiTranscription,
             "GREEK (ANCIENT)" => TitleLanguage.Greek,
             "JAVANESE" or "MALAY" or "INDONESIAN" => TitleLanguage.Malaysian,
             "PORTUGUESE (BRAZILIAN)" => TitleLanguage.BrazilianPortuguese,
@@ -145,18 +174,20 @@ public static class LanguageExtensions
             "CHINESE (SIMPLIFIED)" => TitleLanguage.ChineseSimplified,
             "CHINESE (TRADITIONAL)" => TitleLanguage.ChineseTraditional,
             "CHINESE (CANTONESE)" or "CHINESE (MANDARIN)" or
-            "CHINESE (UNSPECIFIED)" or "TAIWANESE" => TitleLanguage.Chinese,
+                "CHINESE (UNSPECIFIED)" or "TAIWANESE" => TitleLanguage.Chinese,
             "CHINESE (TRANSCRIPTION)" => TitleLanguage.Pinyin,
             "JAPANESE (TRANSCRIPTION)" => TitleLanguage.Romaji,
             "CATALAN" or "SPANISH (LATIN AMERICAN)" => TitleLanguage.Spanish,
             "KOREAN (TRANSCRIPTION)" => TitleLanguage.KoreanTranscription,
             "FILIPINO (TAGALOG)" => TitleLanguage.Filipino,
-            "" => TitleLanguage.None,
+
+            #endregion
+
             "X-MAIN" => TitleLanguage.Main,
-            null => TitleLanguage.None,
-            _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage) ?
-                titleLanguage : TitleLanguage.Unknown,
+            null or "" => TitleLanguage.None,
+            _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage) ? titleLanguage : TitleLanguage.Unknown,
         };
+    }
 
     /// <summary>
     /// Get a user friendly description of a <see cref="TitleLanguage"/>.
@@ -175,7 +206,6 @@ public static class LanguageExtensions
             TitleLanguage.EnglishNewZealand => "English (New Zealand)",
             TitleLanguage.Romaji => "Japanese (Romaji / Transcription)",
             TitleLanguage.Japanese => "Japanese (Kanji)",
-            TitleLanguage.Bangladeshi => "Bangladesh",
             TitleLanguage.FrenchCanadian => "Canadian-French",
             TitleLanguage.BrazilianPortuguese => "Brazilian Portuguese",
             TitleLanguage.Chinese => "Chinese (any)",
@@ -192,6 +222,8 @@ public static class LanguageExtensions
     /// </summary>
     /// <param name="lang">Language value.</param>
     /// <returns>The preferred language-code.</returns>
+    /// <remarks>This method may be paired with <see cref="GetTitleLanguage"/> for conversion.<br/>
+    /// Several DB tables persist the results of this method.</remarks>
     public static string GetString(this TitleLanguage lang)
         => lang switch
         {
@@ -201,10 +233,9 @@ public static class LanguageExtensions
             TitleLanguage.Romaji => "x-jat",
             TitleLanguage.Japanese => "ja",
             TitleLanguage.Arabic => "ar",
-            TitleLanguage.Bangladeshi => "bd",
             TitleLanguage.Bulgarian => "bg",
             TitleLanguage.FrenchCanadian => "fr-CA",
-            TitleLanguage.Czech => "cz",
+            TitleLanguage.Czech => "cs",
             TitleLanguage.Danish => "da",
             TitleLanguage.German => "de",
             TitleLanguage.Greek => "gr",
@@ -221,7 +252,7 @@ public static class LanguageExtensions
             TitleLanguage.Lithuanian => "lt",
             TitleLanguage.Mongolian => "mn",
             TitleLanguage.Malaysian => "ms",
-            TitleLanguage.Dutch => "ml",
+            TitleLanguage.Dutch => "nl",
             TitleLanguage.Norwegian => "no",
             TitleLanguage.Polish => "pl",
             TitleLanguage.Portuguese => "pt",
@@ -233,7 +264,7 @@ public static class LanguageExtensions
             TitleLanguage.Serbian => "sr",
             TitleLanguage.Swedish => "sv",
             TitleLanguage.Thai => "th",
-            TitleLanguage.ThaiTranscription => "x-tha",
+            TitleLanguage.ThaiTranscription => "x-tht",
             TitleLanguage.Turkish => "tr",
             TitleLanguage.Ukrainian => "uk",
             TitleLanguage.Vietnamese => "vi",

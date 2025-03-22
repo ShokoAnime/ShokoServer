@@ -8,7 +8,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
@@ -30,13 +29,13 @@ public class HttpAnimeParser
             return null;
         }
 
-        var anime = ParseAnime(animeId, xml);
+        var titles = ParseTitles(xml["anime"]?["titles"]?.GetElementsByTagName("title"));
+        var anime = ParseAnime(animeId, titles, xml);
         if (anime == null)
         {
             return null;
         }
 
-        var titles = ParseTitles(xml);
         var episodes = ParseEpisodes(animeId, xml);
         var tags = ParseTags(animeId, xml);
         var staff = ParseStaffs(animeId, xml);
@@ -69,7 +68,7 @@ public class HttpAnimeParser
 
     #region Parse Anime Details
 
-    private ResponseAnime ParseAnime(int animeID, XmlNode docAnime)
+    private ResponseAnime ParseAnime(int animeID, List<ResponseTitle> titles, XmlDocument docAnime)
     {
         // most of the general anime data will be overwritten by the UDP command
         var anime = new ResponseAnime { AnimeID = animeID };
@@ -115,7 +114,13 @@ public class HttpAnimeParser
         anime.URL = TryGetProperty(docAnime, "anime", "url");
         anime.Picname = TryGetProperty(docAnime, "anime", "picture");
 
-        ParseMainTitle(docAnime, anime);
+        anime.MainTitle = titles.FirstOrDefault(t => t.TitleType == TitleType.Main)?.Title;
+        if (string.IsNullOrWhiteSpace(anime.MainTitle))
+        {
+            _logger.LogWarning("AniDB ProcessAnimeDetails - Could not find a main title");
+            return null;
+        }
+
         ParseRatings(docAnime, anime);
 
         return anime;
@@ -240,52 +245,20 @@ public class HttpAnimeParser
         }
     }
 
-    private static void ParseMainTitle(XmlNode docAnime, ResponseAnime anime)
-    {
-        var titleItems = docAnime["anime"]["titles"]?.GetElementsByTagName("title");
-        if (titleItems == null)
-        {
-            return;
-        }
-
-        foreach (XmlNode node in titleItems)
-        {
-            if (string.IsNullOrEmpty(node?.Attributes?["xml:lang"]?.Value.Trim().ToLower()))
-            {
-                continue;
-            }
-
-            var titleValue = UnescapeXml(node.InnerText.Trim());
-            if (string.IsNullOrEmpty(titleValue))
-            {
-                continue;
-            }
-
-            var titleType = node.Attributes?["type"]?.Value.Trim().ToLower();
-            if (!"main".Equals(titleType))
-            {
-                continue;
-            }
-
-            anime.MainTitle = titleValue.Replace('`', '\'');
-        }
-    }
-
     #endregion
 
     #region Parse Titles
 
-    private List<ResponseTitle> ParseTitles(XmlDocument docAnime)
+    private List<ResponseTitle> ParseTitles(XmlNodeList titleElements)
     {
         var titles = new List<ResponseTitle>();
 
-        var titleItems = docAnime?["anime"]?["titles"]?.GetElementsByTagName("title");
-        if (titleItems == null)
+        if (titleElements == null)
         {
             return titles;
         }
 
-        foreach (XmlNode node in titleItems)
+        foreach (var node in titleElements.OfType<XmlElement>())
         {
             try
             {
@@ -301,19 +274,91 @@ public class HttpAnimeParser
         return titles;
     }
 
-    private static ResponseTitle ParseTitle(XmlNode node)
+    private static ResponseTitle ParseTitle(XmlElement node)
     {
         var titleType = TryGetAttribute(node, "type");
-        if (!Enum.TryParse(titleType, true, out TitleType type))
-        {
-            return null;
-        }
+        Enum.TryParse(titleType, true, out TitleType type);
 
         var language = TryGetAttribute(node, "xml:lang");
-        var langEnum = language.GetTitleLanguage();
+        var langEnum = GetLanguageFromXmlAttribute(language);
         var title = UnescapeXml(node.InnerText.Trim()).Replace('`', '\'');
         return new ResponseTitle { Title = title, TitleType = type, Language = langEnum };
     }
+
+
+    private static TitleLanguage GetLanguageFromXmlAttribute(string lang) =>
+        lang.ToLowerInvariant() switch
+        {
+            "jp" => TitleLanguage.Japanese,
+            "x-jat" => TitleLanguage.Romaji,
+            "en" => TitleLanguage.English,
+            "af" => TitleLanguage.Afrikaans,
+            "al" => TitleLanguage.Albanian,
+            "ar" => TitleLanguage.Arabic,
+            "es-pv" => TitleLanguage.Basque,
+            "bd" => TitleLanguage.Bengali,
+            "bg" => TitleLanguage.Bulgarian,
+            "bs" => TitleLanguage.Bosnian,
+            "bur" => TitleLanguage.MyanmarBurmese,
+            "es-ca" => TitleLanguage.Catalan,
+            "x-zht" => TitleLanguage.Pinyin,
+            "zh" or "zh-yue" or "zh-cmn" or "zh-nan" => TitleLanguage.Chinese,
+            "zh-hant" => TitleLanguage.ChineseTraditional,
+            "zh-hans" => TitleLanguage.ChineseSimplified,
+            "hr" => TitleLanguage.Croatian,
+            "cs" => TitleLanguage.Czech,
+            "da" => TitleLanguage.Danish,
+            "nl" => TitleLanguage.Dutch,
+            "eo" => TitleLanguage.Esperanto,
+            "et" => TitleLanguage.Estonian,
+            "tl" => TitleLanguage.Filipino,
+            "fi" => TitleLanguage.Finnish,
+            "fr" => TitleLanguage.French,
+            "es-ga" => TitleLanguage.Galician,
+            "ka" => TitleLanguage.Georgian,
+            "de" => TitleLanguage.German,
+            "el" or "grc" => TitleLanguage.Greek,
+            "ht" => TitleLanguage.HaitianCreole,
+            "he" => TitleLanguage.Hebrew,
+            "hi" => TitleLanguage.Hindi,
+            "hu" => TitleLanguage.Hungarian,
+            "is" => TitleLanguage.Icelandic,
+            "id" => TitleLanguage.Indonesian,
+            "x-in" => TitleLanguage.Unknown,
+            "it" => TitleLanguage.Italian,
+            "jv" => TitleLanguage.Javanese,
+            "ko" => TitleLanguage.Korean,
+            "x-kot" => TitleLanguage.KoreanTranscription,
+            "la" => TitleLanguage.Latin,
+            "lv" => TitleLanguage.Latvian,
+            "lt" => TitleLanguage.Lithuanian,
+            "my" => TitleLanguage.Malaysian,
+            "mn" => TitleLanguage.Mongolian,
+            "ne" => TitleLanguage.Nepali,
+            "no" => TitleLanguage.Norwegian,
+            "fa" => TitleLanguage.Persian,
+            "pl" => TitleLanguage.Polish,
+            "pt" => TitleLanguage.Portuguese,
+            "pt-br" => TitleLanguage.BrazilianPortuguese,
+            "ro" => TitleLanguage.Romanian,
+            "ru" => TitleLanguage.Russian,
+            "sr" => TitleLanguage.Serbian,
+            "si" => TitleLanguage.Sinhala,
+            "sk" => TitleLanguage.Slovak,
+            "sl" => TitleLanguage.Slovenian,
+            "es" or "es-419" => TitleLanguage.Spanish,
+            "sv" => TitleLanguage.Swedish,
+            "ta" => TitleLanguage.Tamil,
+            "tt" => TitleLanguage.Tatar,
+            "te" => TitleLanguage.Telugu,
+            "th" => TitleLanguage.Thai,
+            "x-tht" => TitleLanguage.ThaiTranscription,
+            "tr" => TitleLanguage.Turkish,
+            "uk" => TitleLanguage.Ukrainian,
+            "ur" => TitleLanguage.Urdu,
+            "vi" => TitleLanguage.Vietnamese,
+            "x-unk" or "x-other" or _ => TitleLanguage.Unknown,
+        };
 
     #endregion
 
@@ -328,7 +373,7 @@ public class HttpAnimeParser
             return episodes;
         }
 
-        foreach (XmlNode node in episodeItems)
+        foreach (XmlElement node in episodeItems)
         {
             try
             {
@@ -345,9 +390,9 @@ public class HttpAnimeParser
         return episodes;
     }
 
-    private static ResponseEpisode ParseEpisode(int animeID, XmlNode node)
+    private ResponseEpisode ParseEpisode(int animeID, XmlElement node)
     {
-        if (!int.TryParse(node?.Attributes?["id"]?.Value, out var id))
+        if (!int.TryParse(node?.Attributes["id"]?.Value, out var id))
         {
             throw new UnexpectedHttpResponseException("Could not get episode ID from XML", HttpStatusCode.OK,
                 node?.ToString());
@@ -370,14 +415,7 @@ public class HttpAnimeParser
         if (!DateTime.TryParse(TryGetAttribute(node, "update"), out var lastUpdated))
             lastUpdated = DateTime.UnixEpoch;
 
-        var titles = node.ChildNodes.Cast<XmlNode>()
-            .Where(nodeChild => Equals("title", nodeChild?.Name))
-            .Select(nodeChild => new ResponseTitle
-            {
-                Language = nodeChild?.Attributes?["xml:lang"]?.Value.GetTitleLanguage() ?? TitleLanguage.Unknown,
-                Title = UnescapeXml(nodeChild?.InnerText.Trim())?.Replace('`', '\''),
-                TitleType = TitleType.None,
-            })
+        var titles = ParseTitles(node.GetElementsByTagName("title"))
             .Where(episodeTitle => !string.IsNullOrEmpty(episodeTitle.Title) && episodeTitle.Language != TitleLanguage.Unknown)
             .ToList();
 
