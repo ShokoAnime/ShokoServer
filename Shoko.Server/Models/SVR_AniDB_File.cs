@@ -30,7 +30,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         .Select(crossref => crossref.AniDBEpisode)
         .WhereNotNull()
         .OrderBy(ep => ep.EpisodeTypeEnum)
-        .OrderBy(ep => ep.EpisodeNumber)
+        .ThenBy(ep => ep.EpisodeNumber)
         .ToList();
 
     [XmlIgnore]
@@ -88,7 +88,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     public static TitleLanguage GetLanguage(string language)
     {
-        return language switch
+        return language.ToLowerInvariant() switch
         {
             "afrikaans" => TitleLanguage.Afrikaans,
             "albanian" => TitleLanguage.Albanian,
@@ -160,7 +160,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
             "ukrainian" => TitleLanguage.Ukrainian,
             "urdu" => TitleLanguage.Urdu,
             "vietnamese" => TitleLanguage.Vietnamese,
-            _ => TitleLanguage.Unknown
+            _ => TitleLanguage.Unknown,
         };
     }
 

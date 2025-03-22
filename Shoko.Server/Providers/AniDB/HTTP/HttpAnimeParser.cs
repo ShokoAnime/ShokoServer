@@ -8,7 +8,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
@@ -296,10 +295,85 @@ public class HttpAnimeParser
         Enum.TryParse(titleType, true, out TitleType type);
 
         var language = TryGetAttribute(node, "xml:lang");
-        var langEnum = language.GetTitleLanguage();
+        var langEnum = GetLanguageFromXmlAttribute(language);
         var title = UnescapeXml(node.InnerText.Trim()).Replace('`', '\'');
         return new ResponseTitle { Title = title, TitleType = type, Language = langEnum };
     }
+
+
+    private static TitleLanguage GetLanguageFromXmlAttribute(string lang) =>
+        lang.ToLowerInvariant() switch
+        {
+            "jp" => TitleLanguage.Japanese,
+            "x-jat" => TitleLanguage.Romaji,
+            "en" => TitleLanguage.English,
+            "af" => TitleLanguage.Afrikaans,
+            "al" => TitleLanguage.Albanian,
+            "ar" => TitleLanguage.Arabic,
+            "es-pv" => TitleLanguage.Basque,
+            "bd" => TitleLanguage.Bengali,
+            "bg" => TitleLanguage.Bulgarian,
+            "bs" => TitleLanguage.Bosnian,
+            "bur" => TitleLanguage.MyanmarBurmese,
+            "es-ca" => TitleLanguage.Catalan,
+            "x-zht" => TitleLanguage.Pinyin,
+            "zh" or "zh-yue" or "zh-cmn" or "zh-nan" => TitleLanguage.Chinese,
+            "zh-hant" => TitleLanguage.ChineseTraditional,
+            "zh-hans" => TitleLanguage.ChineseSimplified,
+            "hr" => TitleLanguage.Croatian,
+            "cs" => TitleLanguage.Czech,
+            "da" => TitleLanguage.Danish,
+            "nl" => TitleLanguage.Dutch,
+            "eo" => TitleLanguage.Esperanto,
+            "et" => TitleLanguage.Estonian,
+            "tl" => TitleLanguage.Filipino,
+            "fi" => TitleLanguage.Finnish,
+            "fr" => TitleLanguage.French,
+            "es-ga" => TitleLanguage.Galician,
+            "ka" => TitleLanguage.Georgian,
+            "de" => TitleLanguage.German,
+            "el" or "grc" => TitleLanguage.Greek,
+            "ht" => TitleLanguage.HaitianCreole,
+            "he" => TitleLanguage.Hebrew,
+            "hi" => TitleLanguage.Hindi,
+            "hu" => TitleLanguage.Hungarian,
+            "is" => TitleLanguage.Icelandic,
+            "id" => TitleLanguage.Indonesian,
+            "x-in" => TitleLanguage.Unknown,
+            "it" => TitleLanguage.Italian,
+            "jv" => TitleLanguage.Javanese,
+            "ko" => TitleLanguage.Korean,
+            "x-kot" => TitleLanguage.KoreanTranscription,
+            "la" => TitleLanguage.Latin,
+            "lv" => TitleLanguage.Latvian,
+            "lt" => TitleLanguage.Lithuanian,
+            "my" => TitleLanguage.Malaysian,
+            "mn" => TitleLanguage.Mongolian,
+            "ne" => TitleLanguage.Nepali,
+            "no" => TitleLanguage.Norwegian,
+            "fa" => TitleLanguage.Persian,
+            "pl" => TitleLanguage.Polish,
+            "pt" => TitleLanguage.Portuguese,
+            "pt-br" => TitleLanguage.BrazilianPortuguese,
+            "ro" => TitleLanguage.Romanian,
+            "ru" => TitleLanguage.Russian,
+            "sr" => TitleLanguage.Serbian,
+            "si" => TitleLanguage.Sinhala,
+            "sk" => TitleLanguage.Slovak,
+            "sl" => TitleLanguage.Slovenian,
+            "es" or "es-419" => TitleLanguage.Spanish,
+            "sv" => TitleLanguage.Swedish,
+            "ta" => TitleLanguage.Tamil,
+            "tt" => TitleLanguage.Tatar,
+            "te" => TitleLanguage.Telugu,
+            "th" => TitleLanguage.Thai,
+            "x-tht" => TitleLanguage.ThaiTranscription,
+            "tr" => TitleLanguage.Turkish,
+            "uk" => TitleLanguage.Ukrainian,
+            "ur" => TitleLanguage.Urdu,
+            "vi" => TitleLanguage.Vietnamese,
+            "x-unk" or "x-other" or _ => TitleLanguage.Unknown,
+        };
 
     #endregion
 
