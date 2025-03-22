@@ -158,6 +158,7 @@ public class DatabaseSettings
     [Badge("Advanced", Theme = DisplayColorTheme.Important)]
     [Visibility(
         Visibility = DisplayVisibility.Visible,
+        Advanced = true,
         ToggleWhenMemberIsSet = nameof(Type),
         ToggleWhenSetTo = Constants.DatabaseType.SQLite,
         ToggleVisibilityTo = DisplayVisibility.Hidden
@@ -213,6 +214,7 @@ public class DatabaseSettings
     [Badge("Debug", Theme = DisplayColorTheme.Danger)]
     [Visibility(
         Visibility = DisplayVisibility.Visible,
+        Advanced = true,
         ToggleWhenMemberIsSet = nameof(Type),
         ToggleWhenSetTo = Constants.DatabaseType.SQLite,
         ToggleVisibilityTo = DisplayVisibility.Disabled
@@ -226,6 +228,7 @@ public class DatabaseSettings
     /// Log SQL statements to standard output. They will not appear in the log file or Web UI live log.
     /// </summary>
     [Badge("Debug", Theme = DisplayColorTheme.Danger)]
+    [Visibility(Advanced = true)]
     [Display(Name = "Log SQL to Console")]
     [RequiresRestart]
     [EnvironmentVariable("DB_LOG_TO_CONSOLE")]
