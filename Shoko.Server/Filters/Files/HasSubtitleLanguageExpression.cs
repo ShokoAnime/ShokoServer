@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models;
 
@@ -10,6 +11,7 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithString
     {
         Parameter = parameter;
     }
+
     public HasSubtitleLanguageExpression() { }
 
     public string Parameter { get; set; }
@@ -20,7 +22,8 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithString
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.SubtitleLanguages.Contains(Parameter);
+        var paramLang = SVR_AniDB_File.GetLanguage(Parameter);
+        return filterable.SubtitleLanguages.Any(sl => SVR_AniDB_File.GetLanguage(sl) == paramLang);
     }
 
     protected bool Equals(HasSubtitleLanguageExpression other)

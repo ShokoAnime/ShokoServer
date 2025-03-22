@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models;
 
@@ -20,7 +21,8 @@ public class HasAudioLanguageExpression : FilterExpression<bool>, IWithStringPar
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AudioLanguages.Contains(Parameter);
+        var paramLang = SVR_AniDB_File.GetLanguage(Parameter);
+        return filterable.AudioLanguages.Any(al => SVR_AniDB_File.GetLanguage(al) == paramLang);
     }
 
     protected bool Equals(HasAudioLanguageExpression other)
