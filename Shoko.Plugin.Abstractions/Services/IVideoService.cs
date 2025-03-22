@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Plugin.Abstractions.Services;
@@ -30,39 +29,15 @@ public interface IVideoService
     /// Dispatched when a video file has been hashed. It is now ready to be
     /// matched, and has been properly added to the database.
     /// </summary>
-    event EventHandler<FileEventArgs> VideoFileHashed;
+    event EventHandler<FileHashedEventArgs> VideoFileHashed;
 
     /// <summary>
-    /// Dispatched when cross references are made and data is gathered for a
-    /// video file. This has most if not all relevant data for a file, but
-    /// is not necessarily complete, e.g. if we failed to download the metadata
-    /// for the linked series or episodes. In that case, then use
-    /// <see cref="IMetadataService.EpisodeUpdated"/> with a filter on the data
-    /// source and episode id to ensure the desired data is gathered before
-    /// doing your thing.
+    /// Dispatched when a video file has been moved or renamed.
     /// </summary>
-    event EventHandler<FileEventArgs> VideoFileMatched;
+    event EventHandler<FileMovedEventArgs> VideoFileRelocated;
 
     /// <summary>
-    /// Dispatched when a video file has been scanned but no changes to the
-    /// cross-references were made. It can be because the file is unrecognized,
-    /// or because there was no changes to the existing cross-references linked
-    /// to the video file.
-    /// </summary>
-    event EventHandler<FileNotMatchedEventArgs> VideoFileNotMatched;
-
-    /// <summary>
-    /// Dispatched when a video file has been renamed.
-    /// </summary>
-    event EventHandler<FileRenamedEventArgs> VideoFileRenamed;
-
-    /// <summary>
-    /// Dispatched when a video file has been moved.
-    /// </summary>
-    event EventHandler<FileMovedEventArgs> VideoFileMoved;
-
-    /// <summary>
-    /// Gets all video files as a queryable list.
+    /// Gets all video files.
     /// </summary>
     /// <returns>All video files.</returns>
     IEnumerable<IVideoFile> GetAllVideoFiles();
@@ -83,20 +58,20 @@ public interface IVideoService
 
     /// <summary>
     /// Looks up a video file by its relative path, optionally filtered by
-    /// import folder in case the relative path is not unique enough by itself.
+    /// managed folder in case the relative path is not unique enough by itself.
     /// </summary>
     /// <param name="relativePath">The relative path of the video file.</param>
-    /// <param name="importFolderID">The ID of the import folder.</param>
+    /// <param name="managedFolderID">The ID of the managed folder.</param>
     /// <returns>The video file if found, otherwise <see langword="null"/>.</returns>
-    IVideoFile? GetVideoFileByRelativePath(string relativePath, int? importFolderID = null);
+    IVideoFile? GetVideoFileByRelativePath(string relativePath, int? managedFolderID = null);
 
     #endregion
     #region Video
 
     /// <summary>
-    /// Gets all videos as a queryable list.
+    /// Gets all videos.
     /// </summary>
-    /// <returns>A queryable list of videos.</returns>
+    /// <returns>A list of videos.</returns>
     IEnumerable<IVideo> GetAllVideos();
 
     /// <summary>
@@ -108,27 +83,81 @@ public interface IVideoService
     IVideo? GetVideoByID(int videoID);
 
     /// <summary>
-    /// Looks up a video by the <paramref name="hash"/> using the given
-    /// <paramref name="algorithm"/>.
+    /// Looks for a video by the <paramref name="hash"/> using the given
+    /// <paramref name="algorithm"/>. It will only return the video if it's
+    /// the only video with that hash.
     /// </summary>
     /// <param name="hash">The hash to look up the video by.</param>
-    /// <param name="algorithm">The algorithm used to create the hash. Defaults to <see cref="HashAlgorithmName.ED2K"/>.</param>
+    /// <param name="algorithm">The algorithm used to create the hash. Defaults to <c>"ED2K"</c>.</param>
     /// <returns>The video if found, otherwise <see langword="null"/>.</returns>
-    IVideo? GetVideoByHash(string hash, HashAlgorithmName algorithm = HashAlgorithmName.ED2K);
+    IVideo? GetVideoByHash(string hash, string algorithm = "ED2K");
 
     /// <summary>
     /// Looks up a video by the <paramref name="hash"/> and
     /// <paramref name="fileSize"/>, where the hash is using the given
     /// <paramref name="algorithm"/>. This is more foolproof than
-    /// <see cref="GetVideoByHash(string, HashAlgorithmName)"/> because we're also
+    /// <see cref="GetVideoByHash(string, string)"/> because we're also
     /// factoring in the size of the file, giving us less overlap between videos
     /// with the same hash for the same size.
     /// </summary>
     /// <param name="hash">The hash to look up the video by.</param>
     /// <param name="fileSize">The size of the video file.</param>
-    /// <param name="algorithm">The algorithm used to create the hash. Defaults to <see cref="HashAlgorithmName.ED2K"/>.</param>
+    /// <param name="algorithm">The algorithm used to create the hash. Defaults to <c>"ED2K"</c>.</param>
     /// <returns>The video if found, otherwise <see langword="null"/>.</returns>
-    IVideo? GetVideoByHashAndSize(string hash, long fileSize, HashAlgorithmName algorithm = HashAlgorithmName.ED2K);
+    IVideo? GetVideoByHashAndSize(string hash, long fileSize, string algorithm = "ED2K");
+
+    /// <summary>
+    /// Looks for videos by the <paramref name="hash"/> using the given
+    /// <paramref name="algorithm"/>. This will return all videos with that
+    /// hash.
+    /// </summary>
+    /// <param name="hash">The hash to look up the video by.</param>
+    /// <param name="algorithm">The algorithm used to create the hash. Defaults to <c>"ED2K"</c>.</param>
+    /// <returns>The found videos.</returns>
+    IReadOnlyList<IVideo> GetAllVideoByHash(string hash, string algorithm = "ED2K");
+
+    /// <summary>
+    /// Looks for videos by the <paramref name="hash"/> using the given
+    /// <paramref name="algorithm"/>. This will return all videos with that
+    /// hash.
+    /// </summary>
+    /// <param name="hash">The hash to look up the video by.</param>
+    /// <param name="metadata">The extra metadata to look for together with the hash. This will be a case-insensitive match on the whole metadata string. Defaults to <c>null</c>.</param>
+    /// <param name="algorithm">The algorithm used to create the hash. </param>
+    /// <returns>The found videos.</returns>
+    IReadOnlyList<IVideo> GetAllVideoByHash(string hash, string algorithm, string? metadata);
+
+    #endregion
+
+    #region Managed Folders
+
+    /// <summary>
+    /// Dispatched when a new managed folder is added.
+    /// </summary>
+    event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderAdded;
+
+    /// <summary>
+    /// Dispatched when a managed folder is updated.
+    /// </summary>
+    event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderUpdated;
+
+    /// <summary>
+    /// Dispatched when a managed folder is removed.
+    /// </summary>
+    event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderRemoved;
+
+    /// <summary>
+    /// Gets all managed folders.
+    /// </summary>
+    /// <returns>A list of managed folders.</returns>
+    IEnumerable<IManagedFolder> GetAllManagedFolders();
+
+    /// <summary>
+    /// Looks up a managed folder by its ID.
+    /// </summary>
+    /// <param name="folderID">The ID of the managed folder.</param>
+    /// <returns>The managed folder if found, otherwise <see langword="null"/>.</returns>
+    IManagedFolder? GetManagedFolderByID(int folderID);
 
     #endregion
 }

@@ -37,9 +37,9 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         _rateLimiter = rateLimiter;
     }
 
-    public HttpResponse<string> GetHttp(string url)
+    public HttpResponse<string> GetHttp(string url, bool force = false)
     {
-        if (IsBanned)
+        if (!force && IsBanned)
         {
             throw new AniDBBannedException
             {

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shoko.Models;
 
 namespace Shoko.Server.Settings;
@@ -14,12 +13,6 @@ public interface IServerSettings
     /// The default location is the "Images" folder in the same directory as the executable.
     /// </remarks>
     string ImagesPath { get; set; }
-
-    /// <summary>
-    /// The port number to listen on for web requests.
-    /// </summary>
-    [Obsolete("Use Web.Port instead.")]
-    ushort ServerPort { get; set; }
 
     /// <summary>
     /// The culture to use when formatting strings.
