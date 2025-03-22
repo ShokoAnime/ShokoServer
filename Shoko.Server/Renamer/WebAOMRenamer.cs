@@ -142,7 +142,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
@@ -182,7 +182,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
@@ -225,7 +225,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     {
         try
         {
-            var notCondition = !string.IsNullOrEmpty(test) && test[..1].Equals("!");
+            var notCondition = !string.IsNullOrEmpty(test) && test.Length > 0 && test[..1].Equals("!");
 
             // for a file to be manually linked it must NOT have an ani file, but does need episodes attached
             var manuallyLinked = false;
@@ -264,7 +264,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
     {
         try
         {
-            var notCondition = !string.IsNullOrEmpty(test) && test[..1].Equals("!");
+            var notCondition = !string.IsNullOrEmpty(test) && test.Length > 0 && test[..1].Equals("!");
 
             var epsLinked = aniFile == null && episodes != null && episodes.Count > 0;
 
@@ -293,7 +293,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
@@ -328,7 +328,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
@@ -594,7 +594,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
@@ -634,7 +634,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
@@ -765,7 +765,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
@@ -823,7 +823,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         out bool greaterThanEqual, out bool lessThan, out bool lessThanEqual)
     {
         notCondition = false;
-        if (test[..1].Equals("!"))
+        if (test.Length > 0 && test[..1].Equals("!"))
         {
             notCondition = true;
             test = test[1..];
@@ -926,7 +926,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         try
         {
             var notCondition = false;
-            if (test[..1].Equals("!"))
+            if (test.Length > 0 && test[..1].Equals("!"))
             {
                 notCondition = true;
                 test = test[1..];
