@@ -9,7 +9,6 @@ public abstract class ConnectionHandler
 {
     protected readonly ILoggerFactory _loggerFactory;
     protected ILogger Logger { get; set; }
-    protected AniDBRateLimiter RateLimiter { get; set; }
     public abstract double BanTimerResetLength { get; }
     public abstract string Type { get; }
     protected abstract UpdateType BanEnum { get; }
@@ -75,11 +74,10 @@ public abstract class ConnectionHandler
         }
     }
 
-    protected ConnectionHandler(ILoggerFactory loggerFactory, AniDBRateLimiter rateLimiter)
+    protected ConnectionHandler(ILoggerFactory loggerFactory)
     {
         _loggerFactory = loggerFactory;
         Logger = loggerFactory.CreateLogger(GetType());
-        RateLimiter = rateLimiter;
         _banResetTimer = new Timer
         {
             AutoReset = false,

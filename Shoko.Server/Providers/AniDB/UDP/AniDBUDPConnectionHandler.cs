@@ -32,6 +32,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     // 5 minutes
     private const int LogoutPeriod = 5 * 60 * 1000;
     private readonly IRequestFactory _requestFactory;
+    private readonly UDPRateLimiter _rateLimiter;
     private readonly IConnectivityService _connectivityService;
     private AniDBSocketHandler? _socketHandler;
     private readonly object _socketHandlerLock = new();
@@ -98,9 +99,10 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     public bool IsNetworkAvailable { private set; get; }
 
     public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory, ISettingsProvider settings, UDPRateLimiter rateLimiter, IConnectivityService connectivityService) :
-        base(loggerFactory, rateLimiter)
+        base(loggerFactory)
     {
         _requestFactory = requestFactory;
+        _rateLimiter = rateLimiter;
         _connectivityService = connectivityService;
         SettingsProvider = settings;
     }
@@ -290,7 +292,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
                     _connectivityService.CheckAvailability().Wait();
                 });
 
-            var result = timeoutPolicy.ExecuteAndCapture(() => RateLimiter.EnsureRate(forceShortDelay: isPing, action: () =>
+            var result = timeoutPolicy.ExecuteAndCapture(() => _rateLimiter.EnsureRate(forceShortDelay: isPing, action: () =>
             {
                 if (_connectivityService.NetworkAvailability < NetworkAvailability.PartialInternet)
                 {
