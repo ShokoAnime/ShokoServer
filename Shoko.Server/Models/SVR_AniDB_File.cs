@@ -194,9 +194,9 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         "bengali",
         "bosnian",
         "bulgarian",
+        "burmese",
         "catalan",
         "chinese",
-        "chinese (unspecified)",
         "croatian",
         "czech",
         "danish",
@@ -205,7 +205,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         "esperanto",
         "estonian",
         "filipino",
-        "filipino (tagalog)",
+        "tagalog",
         "finnish",
         "french",
         "galician",
@@ -255,9 +255,9 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     private static readonly ImmutableHashSet<string> _possibleAudioLanguages =
         _possibleLanguagesBoth.Union([
-            "chinese (cantonese)",
-            "chinese (mandarin)",
-            "chinese (taiwanese)",
+            "cantonese",
+            "mandarin",
+            "taiwanese",
             "instrumental",
         ]);
 
