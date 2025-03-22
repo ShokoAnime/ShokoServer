@@ -103,8 +103,11 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
             case "chinese (traditional)": return TitleLanguage.ChineseTraditional;
             case "chinese":
             case "chinese (unspecified)":
+            case "cantonese":
             case "chinese (cantonese)":
+            case "mandarin":
             case "chinese (mandarin)":
+            case "taiwanese":
             case "chinese (taiwanese)":
                 return TitleLanguage.Chinese;
             case "chinese (transcription)": return TitleLanguage.Pinyin;
@@ -116,6 +119,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
             case "esperanto": return TitleLanguage.Esperanto;
             case "estonian": return TitleLanguage.Estonian;
             case "filipino":
+            case "tagalog":
             case "filipino (tagalog)":
                 return TitleLanguage.Filipino;
             case "finnish": return TitleLanguage.Finnish;
