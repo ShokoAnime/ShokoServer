@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
+using MySqlConnector;
 using NHibernate.Exceptions;
 using Quartz;
 using Sentry;
@@ -109,6 +110,7 @@ public static class SentryInit
             {
                 // Error codes: https://www.sqlite.org/rescode.html
                 if (adoEx.InnerException is SqliteException { SqliteErrorCode: 8 /* readonly db */ or 14 /* cannot open file */ }) return false;
+                if (adoEx.InnerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
             }
 
             if (ex is WebException webEx)
