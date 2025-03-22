@@ -103,6 +103,7 @@ public class WebSettings
     /// Always use the developer exceptions page, even in production.
     /// </summary>
     [Badge("Debug", Theme = DisplayColorTheme.Danger)]
+    [Visibility(Advanced = true)]
     [Display(Name = "Always Use Developer Exceptions")]
     [RequiresRestart]
     [EnvironmentVariable("SHOKO_WEB_DEVELOPER_EXCEPTIONS")]

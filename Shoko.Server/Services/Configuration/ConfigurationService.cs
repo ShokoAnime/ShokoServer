@@ -951,6 +951,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 var visibilityDict = new Dictionary<string, object?>()
                 {
                     { "default", Convert(visibilityAttribute.Visibility) },
+                    { "advanced", visibilityAttribute.Advanced },
                 };
                 if (visibilityAttribute.HasToggle)
                 {
