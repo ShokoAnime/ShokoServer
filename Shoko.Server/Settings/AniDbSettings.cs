@@ -76,6 +76,7 @@ public class AniDbSettings
     /// Automatically create a Shoko Series for each AniDB anime.
     /// </summary>
     [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+    [Visibility(Advanced = true)]
     [SectionName("Download")]
     [Display(Name = "Automatically Import Series")]
     public bool AutomaticallyImportSeries { get; set; } = false;

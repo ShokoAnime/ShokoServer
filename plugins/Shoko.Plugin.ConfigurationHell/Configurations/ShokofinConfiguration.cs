@@ -187,6 +187,7 @@ public class ShokofinConfiguration : IConfiguration
             /// Allows for any titles to be utilized if an official title is not present in the given language. Only applies to the AniDB title selectors above.
             /// </summary>
             [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Visibility(Advanced = true)]
             [Display(Name = "Allow Any Title")]
             public bool AllowAnyTitle { get; set; }
 
@@ -260,6 +261,7 @@ public class ShokofinConfiguration : IConfiguration
             /// Prettifies AniDB descriptions.
             /// </summary>
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+            [Visibility(Advanced = true)]
             [Display(Name = "Cleanup AniDB Descriptions")]
             [DefaultValue(true)]
             public bool CleanupAnidbDescription { get; set; } = true;
@@ -362,6 +364,7 @@ public class ShokofinConfiguration : IConfiguration
             [DefaultValue(SeasonOrderingType.Default)]
             [Visibility(
                 DisplayVisibility.Disabled,
+                Advanced = true,
                 Size = DisplayElementSize.Full,
                 ToggleWhenMemberIsSet = nameof(LibraryStructure),
                 ToggleWhenSetTo = LibraryStructureType.Shoko_Groups,
@@ -634,6 +637,7 @@ public class ShokofinConfiguration : IConfiguration
             /// Gets or sets a value indicating whether to resolve links before the VFS.
             /// </summary>
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+            [Visibility(Advanced = true)]
             [Display(Name = "Resolve Links Before VFS")]
             [DefaultValue(false)]
             public bool ResolveLinksBeforeVFS { get; set; } = false;
@@ -642,6 +646,7 @@ public class ShokofinConfiguration : IConfiguration
             /// Gets or sets a value indicating whether to attach the VFS to libraries.
             /// </summary>
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+            [Visibility(Advanced = true)]
             [Display(Name = "Attach VFS to Libraries")]
             [DefaultValue(true)]
             public bool AttachToLibraries { get; set; } = true;
@@ -650,6 +655,7 @@ public class ShokofinConfiguration : IConfiguration
             /// Gets or sets a value indicating whether to perform iterative file checks.
             /// </summary>
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+            [Visibility(Advanced = true)]
             [Display(Name = "Iterative File Checks")]
             [DefaultValue(false)]
             public bool PerformIterativeFileChecks { get; set; } = false;
@@ -666,9 +672,9 @@ public class ShokofinConfiguration : IConfiguration
             /// <br/>
             /// <strong>You have been warned.</strong>
             /// </summary>
-            [DefaultValue(VirtualFileSystemLocation.Default)]
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
             [Display(Name = "VFS Location")]
+            [DefaultValue(VirtualFileSystemLocation.Default)]
             public VirtualFileSystemLocation VFS_Location { get; set; } = VirtualFileSystemLocation.Default;
 
             /// <summary>
@@ -679,6 +685,7 @@ public class ShokofinConfiguration : IConfiguration
             [Badge("Debug", Theme = DisplayColorTheme.Warning)]
             [Visibility(
                 DisplayVisibility.Hidden,
+                Advanced = true,
                 ToggleWhenMemberIsSet = nameof(VFS_Location),
                 ToggleWhenSetTo = VirtualFileSystemLocation.Custom,
                 ToggleVisibilityTo = DisplayVisibility.Visible
@@ -902,6 +909,7 @@ public class ShokofinConfiguration : IConfiguration
             /// disconnected state until it is manually or otherwise reconnected.
             /// </summary>
             [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Visibility(Advanced = true)]
             [Display(Name = "Auto Reconnect Intervals")]
             [DefaultValue(new int[] { 0, 2, 10, 30, 60, 120, 300 })]
             public int[] AutoReconnectIntervals { get; set; } = [0, 2, 10, 30, 60, 120, 300];
@@ -910,9 +918,10 @@ public class ShokofinConfiguration : IConfiguration
             /// Which event sources should be listened to for metadata events.
             /// </summary>
             [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Visibility(Advanced = true)]
             [Display(Name = "Event Sources")]
-            [List(ListType = DisplayListType.EnumCheckbox, Sortable = false)]
             [DefaultValue(new SignalrEventSource[] { SignalrEventSource.Shoko, SignalrEventSource.AniDB, SignalrEventSource.TMDB })]
+            [List(ListType = DisplayListType.EnumCheckbox, Sortable = false)]
             public SignalrEventSource[] EventSources { get; set; } = [SignalrEventSource.Shoko, SignalrEventSource.AniDB, SignalrEventSource.TMDB];
 
             /// <summary>
