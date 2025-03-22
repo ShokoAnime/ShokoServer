@@ -109,7 +109,7 @@ public static class SentryInit
             if (ex is GenericADOException adoEx)
             {
                 // Error codes: https://www.sqlite.org/rescode.html
-                if (adoEx.InnerException is SqliteException { SqliteErrorCode: 8 /* readonly db */ or 14 /* cannot open file */ }) return false;
+                if (adoEx.InnerException is SqliteException { SqliteErrorCode: 8 /* readonly db */ or 13 /* db or fs is full */ or 14 /* cannot open file */ }) return false;
                 if (adoEx.InnerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
             }
 
