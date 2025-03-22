@@ -27,6 +27,13 @@ public class VisibilityAttribute : Attribute
     public DisplayElementSize Size { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the property/field is an
+    /// advanced setting, and should be hidden from the UI until the user has
+    /// enabled advanced mode.
+    /// </summary>
+    public bool Advanced { get; set; }
+
+    /// <summary>
     /// Indicates that the visibility should change to <see cref="ToggleVisibilityTo"/> when the specified member is set to <see cref="ToggleVisibilityTo"/>.
     /// </summary>
     public string? ToggleWhenMemberIsSet { get; set; }
