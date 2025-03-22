@@ -12,7 +12,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 10;
+    public static int Version => s_migrations.Keys.Max();
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -49,6 +49,7 @@ public static class SettingsMigrations
         { 8, MigrateRenamerFromImportToPluginsSettings },
         { 9, MigrateFixDefaultRenamer },
         { 10, MigrateLanguageSourceOrders },
+        { 11, MigrateServerPortToWebPort }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -186,7 +187,7 @@ public static class SettingsMigrations
         {
             DataSourceType.AniDB, DataSourceType.TMDB
         };
-;
+
         languageSettings["EpisodeTitleSourceOrder"] = new JArray
         {
             DataSourceType.AniDB, DataSourceType.TMDB
@@ -196,6 +197,20 @@ public static class SettingsMigrations
         {
             DataSourceType.AniDB, DataSourceType.TMDB
         };
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateServerPortToWebPort(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var serverPort = currentSettings["ServerPort"]?.Value<ushort>() ?? 0;
+        if (serverPort == 0)
+            return settings;
+
+        var webSettings = currentSettings["Web"] ?? (currentSettings["Web"] = new JObject());
+        webSettings["Port"] = serverPort;
+        currentSettings.Remove("ServerPort");
 
         return currentSettings.ToString();
     }

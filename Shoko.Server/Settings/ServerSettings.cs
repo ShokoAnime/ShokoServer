@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
+﻿using System.Collections.Generic;
 using JetBrains.Annotations;
 using Shoko.Models;
 
@@ -14,14 +12,6 @@ public class ServerSettings : IServerSettings
 
     /// <inheritdoc />
     public string ImagesPath { get; set; }
-
-    [JsonInclude]
-    [Obsolete("Use Web.Port instead.")]
-    public ushort ServerPort
-    {
-        get => Web.Port;
-        set { }
-    }
 
     public string Culture { get; set; } = "en";
 

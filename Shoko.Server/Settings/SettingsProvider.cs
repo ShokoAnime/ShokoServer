@@ -72,7 +72,10 @@ public class SettingsProvider : ISettingsProvider
         var settings = new ServerSettings
         {
             ImagesPath = legacy.ImagesPath,
-            ServerPort = (ushort)legacy.JMMServerPort,
+            Web = new()
+            {
+                Port = (ushort)legacy.JMMServerPort,
+            },
             WebUI_Settings = legacy.WebUI_Settings,
             FirstRun = legacy.FirstRun,
             LogRotator =
