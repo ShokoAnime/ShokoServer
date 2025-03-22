@@ -93,12 +93,16 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
             case "afrikaans": return TitleLanguage.Afrikaans;
             case "albanian": return TitleLanguage.Albanian;
             case "arabic": return TitleLanguage.Arabic;
-            case "basque": return TitleLanguage.Basque;
+            case "basque":
+            case "spanish (basque)":
+                return TitleLanguage.Basque;
             case "bengali": return TitleLanguage.Bengali;
             case "bosnian": return TitleLanguage.Bosnian;
             case "bulgarian": return TitleLanguage.Bulgarian;
             case "burmese": return TitleLanguage.MyanmarBurmese;
-            case "catalan": return TitleLanguage.Catalan;
+            case "catalan":
+            case "spanish (catalan)":
+                return TitleLanguage.Catalan;
             case "chinese (simplified)": return TitleLanguage.ChineseSimplified;
             case "chinese (traditional)": return TitleLanguage.ChineseTraditional;
             case "chinese":
@@ -124,7 +128,9 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
                 return TitleLanguage.Filipino;
             case "finnish": return TitleLanguage.Finnish;
             case "french": return TitleLanguage.French;
-            case "galician": return TitleLanguage.Galician;
+            case "galician":
+            case "spanish (galician)":
+                return TitleLanguage.Galician;
             case "georgian": return TitleLanguage.Georgian;
             case "german": return TitleLanguage.German;
             case "greek (ancient)":
@@ -152,7 +158,9 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
             case "persian": return TitleLanguage.Persian;
             case "polish": return TitleLanguage.Polish;
             case "portuguese": return TitleLanguage.Portuguese;
-            case "portuguese (brazilian)": return TitleLanguage.BrazilianPortuguese;
+            case "brazilian":
+            case "portuguese (brazilian)":
+                return TitleLanguage.BrazilianPortuguese;
             case "romanian": return TitleLanguage.Romanian;
             case "russian": return TitleLanguage.Russian;
             case "serbian": return TitleLanguage.Serbian;
@@ -166,9 +174,8 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
             case "tamil": return TitleLanguage.Tamil;
             case "tatar": return TitleLanguage.Tatar;
             case "telugu": return TitleLanguage.Telugu;
-            case "thai (transcription)":
-            case "thai":
-                return TitleLanguage.Thai;
+            case "thai (transcription)": return TitleLanguage.ThaiTranscription;
+            case "thai": return TitleLanguage.Thai;
             case "turkish": return TitleLanguage.Turkish;
             case "ukrainian": return TitleLanguage.Ukrainian;
             case "urdu": return TitleLanguage.Urdu;
