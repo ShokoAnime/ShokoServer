@@ -79,7 +79,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata
     /// Get all local TMDB movies associated with the movie collection.
     /// </summary>
     /// <value>The TMDB movies.</value>
-    public virtual ICollection<TMDB_Movie> Movies { get; set; }
+    public virtual IEnumerable<TMDB_Movie> Movies { get; set; }
 
     /// <summary>
     /// Populate the fields from the raw data.

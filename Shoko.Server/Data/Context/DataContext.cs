@@ -268,7 +268,7 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbCollectionID).HasColumnName("TmdbCollectionID");
 
             // Foreign Keys
-            entity.HasMany(d => d.Movies).WithOne(p => p.TmdbCollection).HasForeignKey(d => d.TmdbCollectionID).HasPrincipalKey(a => a.TmdbCollectionID);
+            entity.HasMany(d => d.Movies).WithOne(p => p.Collection).HasForeignKey(d => d.TmdbCollectionID).HasPrincipalKey(a => a.TmdbCollectionID);
             entity.HasMany(d => d.ImageXRefs).WithOne().HasPrincipalKey(a => a.TmdbCollectionID).HasForeignKey(d => d.TmdbEntityID)
                 .HasPrincipalKey(a => a.TmdbCollectionID);
             entity.HasMany(d => d.Titles).WithOne().HasForeignKey(d => d.ParentID).HasPrincipalKey(a => a.TmdbCollectionID)
@@ -321,8 +321,7 @@ public class DataContext : DbContext
             entity.Property(e => e.TmdbEntityID).HasColumnName("TmdbEntityID");
 
             // Foreign Keys
-            entity.HasOne(a => a.TVShow).WithMany().HasForeignKey(a => a.TmdbEntityID).HasPrincipalKey(a => a.TmdbShowID);
-            entity.HasOne(a => a.Movie).WithMany().HasForeignKey(a => a.TmdbEntityID).HasPrincipalKey(a => a.TmdbMovieID);
+            entity.HasOne(a => a.Company).WithMany().HasForeignKey(a => a.TmdbCompanyID).HasPrincipalKey(a => a.TmdbCompanyID);
         });
 
         modelBuilder.Entity<TMDB_Episode>(entity =>
@@ -470,6 +469,7 @@ public class DataContext : DbContext
             entity.HasMany(a => a.AllOverviews).WithOne().HasForeignKey(a => a.ParentID).HasPrincipalKey(a => a.TmdbMovieID);
             entity.HasMany(a => a.Cast).WithOne(a => a.Movie).HasForeignKey(a => a.TmdbMovieID).HasPrincipalKey(a => a.TmdbMovieID);
             entity.HasMany(a => a.Crew).WithOne(a => a.Movie).HasForeignKey(a => a.TmdbMovieID).HasPrincipalKey(a => a.TmdbMovieID);
+            entity.HasMany(a => a.CompanyXRefs).WithOne().HasForeignKey(a => a.TmdbEntityID).HasPrincipalKey(a => a.TmdbMovieID);
         });
 
         modelBuilder.Entity<TMDB_Movie_Cast>(entity =>

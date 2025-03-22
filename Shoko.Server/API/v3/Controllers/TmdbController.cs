@@ -390,7 +390,7 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        var movieCollection = movie.TmdbCollection;
+        var movieCollection = movie.Collection;
         if (movieCollection is null)
             return NotFound(MovieCollectionByMovieIDNotFound);
 

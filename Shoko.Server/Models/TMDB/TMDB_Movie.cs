@@ -223,7 +223,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// settings file for this to be populated.
     /// </summary>
     /// <returns>The TMDB movie collection if found, or null.</returns>
-    public virtual TMDB_Collection? TmdbCollection { get; set; }
+    public virtual TMDB_Collection? Collection { get; set; }
     
     [NotMapped]
     public TMDB_Image? DefaultPoster => Images.FirstOrDefault(a => a is { IsPreferred: true, ImageType: ImageEntityType.Poster });

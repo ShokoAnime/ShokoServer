@@ -114,12 +114,6 @@ namespace Shoko.Server.Data.Migrations
 
                     b.HasKey("TMDB_AlternateOrdering_EpisodeID");
 
-                    b.HasIndex("TmdbEpisodeGroupCollectionID");
-
-                    b.HasIndex("TmdbEpisodeID");
-
-                    b.HasIndex("TmdbShowID");
-
                     b.ToTable("TMDB_AlternateOrdering_Episode", (string)null);
                 });
 
@@ -277,11 +271,8 @@ namespace Shoko.Server.Data.Migrations
                     b.Property<int>("Ordering")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ReleasedAt")
+                    b.Property<DateOnly?>("ReleasedAt")
                         .HasColumnType("DATE");
-
-                    b.Property<int?>("TVShowTMDB_ShowID")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int>("TmdbCompanyID")
                         .HasColumnType("INTEGER")
@@ -296,19 +287,11 @@ namespace Shoko.Server.Data.Migrations
 
                     b.HasKey("TMDB_Company_EntityID");
 
-                    b.HasIndex("TVShowTMDB_ShowID");
-
-                    b.HasIndex("TmdbEntityID");
-
                     b.HasIndex(new[] { "TmdbCompanyID" }, "IX_TMDB_Company_Entity_TmdbCompanyID");
 
                     b.HasIndex(new[] { "TmdbEntityType", "TmdbEntityID" }, "IX_TMDB_Company_Entity_TmdbEntityType_TmdbEntityID");
 
                     b.ToTable("TMDB_Company_Entity", (string)null);
-
-                    b.HasDiscriminator<int>("TmdbEntityType");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Episode", b =>
@@ -318,7 +301,7 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("TMDB_EpisodeID");
 
-                    b.Property<string>("AiredAt")
+                    b.Property<DateOnly?>("AiredAt")
                         .HasColumnType("DATE");
 
                     b.Property<DateTime>("CreatedAt")
@@ -345,12 +328,6 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("SeasonNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SeasonTMDB_SeasonID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("ShowTMDB_ShowID")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ThumbnailPath")
@@ -385,10 +362,6 @@ namespace Shoko.Server.Data.Migrations
 
                     b.HasKey("TMDB_EpisodeID");
 
-                    b.HasIndex("SeasonTMDB_SeasonID");
-
-                    b.HasIndex("ShowTMDB_ShowID");
-
                     b.HasIndex(new[] { "TmdbSeasonID" }, "IX_TMDB_Episode_TmdbSeasonID");
 
                     b.HasIndex(new[] { "TmdbShowID" }, "IX_TMDB_Episode_TmdbShowID");
@@ -416,9 +389,6 @@ namespace Shoko.Server.Data.Migrations
                     b.Property<int>("Ordering")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("TMDB_EpisodeID")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("TmdbCreditID")
                         .IsRequired()
                         .HasColumnType("TEXT")
@@ -441,8 +411,6 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnName("TmdbShowID");
 
                     b.HasKey("TMDB_Episode_CastID");
-
-                    b.HasIndex("TMDB_EpisodeID");
 
                     b.HasIndex(new[] { "TmdbEpisodeID" }, "IX_TMDB_Episode_Cast_TmdbEpisodeID");
 
@@ -470,9 +438,6 @@ namespace Shoko.Server.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("TMDB_EpisodeID")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("TmdbCreditID")
                         .IsRequired()
                         .HasColumnType("TEXT")
@@ -495,8 +460,6 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnName("TmdbShowID");
 
                     b.HasKey("TMDB_Episode_CrewID");
-
-                    b.HasIndex("TMDB_EpisodeID");
 
                     b.HasIndex(new[] { "TmdbEpisodeID" }, "IX_TMDB_Episode_Crew_TmdbEpisodeID");
 
@@ -542,44 +505,6 @@ namespace Shoko.Server.Data.Migrations
                     b.HasKey("TMDB_ImageID");
 
                     b.ToTable("TMDB_Image", (string)null);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Entity", b =>
-                {
-                    b.Property<int>("TMDB_Image_EntityID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("TMDB_Image_EntityID");
-
-                    b.Property<int>("ImageType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Ordering")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ReleasedAt")
-                        .HasColumnType("DATE");
-
-                    b.Property<string>("RemoteFileName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("TmdbEntityID")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("TmdbEntityID");
-
-                    b.Property<int>("TmdbEntityType")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("TMDB_Image_EntityID");
-
-                    b.HasIndex("RemoteFileName");
-
-                    b.ToTable("TMDB_Image_Entity", (string)null);
-
-                    b.HasDiscriminator<int>("TmdbEntityType");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Movie", b =>
@@ -655,7 +580,7 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnType("TEXT")
                         .HasDefaultValueSql("NULL");
 
-                    b.Property<string>("ReleasedAt")
+                    b.Property<DateOnly?>("ReleasedAt")
                         .HasColumnType("DATE");
 
                     b.Property<int?>("RuntimeMinutes")
@@ -699,9 +624,6 @@ namespace Shoko.Server.Data.Migrations
                     b.Property<int>("Ordering")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("TMDB_MovieID")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("TmdbCreditID")
                         .IsRequired()
                         .HasColumnType("TEXT")
@@ -716,8 +638,6 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnName("TmdbPersonID");
 
                     b.HasKey("TMDB_Movie_CastID");
-
-                    b.HasIndex("TMDB_MovieID");
 
                     b.HasIndex(new[] { "TmdbMovieID" }, "IX_TMDB_Movie_Cast_TmdbMovieID");
 
@@ -741,9 +661,6 @@ namespace Shoko.Server.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("TMDB_MovieID")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("TmdbCreditID")
                         .IsRequired()
                         .HasColumnType("TEXT")
@@ -758,8 +675,6 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnName("TmdbPersonID");
 
                     b.HasKey("TMDB_Movie_CrewID");
-
-                    b.HasIndex("TMDB_MovieID");
 
                     b.HasIndex(new[] { "TmdbMovieID" }, "IX_TMDB_Movie_Crew_TmdbMovieID");
 
@@ -823,15 +738,9 @@ namespace Shoko.Server.Data.Migrations
 
                     b.HasKey("TMDB_OverviewID");
 
-                    b.HasIndex("ParentID");
-
                     b.HasIndex(new[] { "ParentType", "ParentID" }, "IX_TMDB_Overview");
 
                     b.ToTable("TMDB_Overview", (string)null);
-
-                    b.HasDiscriminator<int>("ParentType");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Person", b =>
@@ -845,13 +754,13 @@ namespace Shoko.Server.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("BirthDay")
+                    b.Property<DateOnly?>("BirthDay")
                         .HasColumnType("DATE");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("DATETIME");
 
-                    b.Property<string>("DeathDay")
+                    b.Property<DateOnly?>("DeathDay")
                         .HasColumnType("DATE");
 
                     b.Property<string>("EnglishBiography")
@@ -921,9 +830,6 @@ namespace Shoko.Server.Data.Migrations
                     b.Property<int>("SeasonNumber")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("ShowTMDB_ShowID")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("TmdbSeasonID")
                         .HasColumnType("INTEGER")
                         .HasColumnName("TmdbSeasonID");
@@ -933,8 +839,6 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnName("TmdbShowID");
 
                     b.HasKey("TMDB_SeasonID");
-
-                    b.HasIndex("ShowTMDB_ShowID");
 
                     b.HasIndex(new[] { "TmdbShowID" }, "IX_TMDB_Season_TmdbShowID");
 
@@ -978,7 +882,7 @@ namespace Shoko.Server.Data.Migrations
                     b.Property<int>("EpisodeCount")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("FirstAiredAt")
+                    b.Property<DateOnly?>("FirstAiredAt")
                         .HasColumnType("DATE");
 
                     b.Property<string>("Genres")
@@ -997,7 +901,7 @@ namespace Shoko.Server.Data.Migrations
                         .HasColumnType("TEXT")
                         .HasDefaultValueSql("NULL");
 
-                    b.Property<string>("LastAiredAt")
+                    b.Property<DateOnly?>("LastAiredAt")
                         .HasColumnType("DATE");
 
                     b.Property<DateTime>("LastUpdatedAt")
@@ -1076,10 +980,6 @@ namespace Shoko.Server.Data.Migrations
 
                     b.HasKey("TMDB_Show_NetworkID");
 
-                    b.HasIndex("TmdbNetworkID");
-
-                    b.HasIndex("TmdbShowID");
-
                     b.ToTable("Tmdb_Show_Network", (string)null);
                 });
 
@@ -1111,758 +1011,9 @@ namespace Shoko.Server.Data.Migrations
 
                     b.HasKey("TMDB_TitleID");
 
-                    b.HasIndex("ParentID");
-
                     b.HasIndex(new[] { "ParentType", "ParentID" }, "IX_TMDB_Title");
 
                     b.ToTable("TMDB_Title", (string)null);
-
-                    b.HasDiscriminator<int>("ParentType");
-
-                    b.UseTphMappingStrategy();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Company_Movie", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Company_Entity");
-
-                    b.Property<int?>("TMDB_MovieID")
-                        .HasColumnType("INTEGER");
-
-                    b.HasIndex("TMDB_MovieID");
-
-                    b.HasDiscriminator().HasValue(2);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Company_Show", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Company_Entity");
-
-                    b.HasDiscriminator().HasValue(4);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Character", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasDiscriminator().HasValue(512);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Collection", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasIndex("TmdbEntityID");
-
-                    b.HasDiscriminator().HasValue(1);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Company", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasIndex("TmdbEntityID");
-
-                    b.HasDiscriminator().HasValue(32);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Episode", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasDiscriminator().HasValue(16);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Movie", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasIndex("TmdbEntityID");
-
-                    b.HasDiscriminator().HasValue(2);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Network", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasDiscriminator().HasValue(128);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Person", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasIndex("TmdbEntityID");
-
-                    b.HasDiscriminator().HasValue(256);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Season", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasDiscriminator().HasValue(8);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Studio", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasDiscriminator().HasValue(64);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_TVShow", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Image_Entity");
-
-                    b.HasIndex("TmdbEntityID");
-
-                    b.HasDiscriminator().HasValue(4);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview_Collection", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Overview");
-
-                    b.HasDiscriminator().HasValue(1);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview_Episode", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Overview");
-
-                    b.HasDiscriminator().HasValue(16);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview_Movie", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Overview");
-
-                    b.HasDiscriminator().HasValue(2);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview_Person", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Overview");
-
-                    b.HasDiscriminator().HasValue(256);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview_Season", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Overview");
-
-                    b.HasDiscriminator().HasValue(8);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview_TVShow", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Overview");
-
-                    b.HasDiscriminator().HasValue(4);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Title_Collection", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Title");
-
-                    b.HasDiscriminator().HasValue(1);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Title_Episode", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Title");
-
-                    b.HasDiscriminator().HasValue(16);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Title_Movie", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Title");
-
-                    b.HasDiscriminator().HasValue(2);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Title_Season", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Title");
-
-                    b.HasDiscriminator().HasValue(8);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Title_TVShow", b =>
-                {
-                    b.HasBaseType("Shoko.Server.Models.TMDB.TMDB_Title");
-
-                    b.HasDiscriminator().HasValue(4);
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", "Show")
-                        .WithMany("AlternateOrderings")
-                        .HasForeignKey("TmdbShowID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Show");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering_Episode", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering", "TmdbAlternateOrdering")
-                        .WithMany("AlternateOrderingEpisodes")
-                        .HasForeignKey("TmdbEpisodeGroupCollectionID")
-                        .HasPrincipalKey("TmdbEpisodeGroupCollectionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering_Season", "TmdbAlternateOrderingSeason")
-                        .WithMany("TmdbAlternateOrderingEpisodes")
-                        .HasForeignKey("TmdbEpisodeGroupCollectionID")
-                        .HasPrincipalKey("TmdbEpisodeGroupCollectionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", "TmdbEpisode")
-                        .WithMany("TmdbAlternateOrderingEpisodes")
-                        .HasForeignKey("TmdbEpisodeID")
-                        .HasPrincipalKey("TmdbEpisodeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", "TmdbShow")
-                        .WithMany()
-                        .HasForeignKey("TmdbShowID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TmdbAlternateOrdering");
-
-                    b.Navigation("TmdbAlternateOrderingSeason");
-
-                    b.Navigation("TmdbEpisode");
-
-                    b.Navigation("TmdbShow");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering_Season", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering", "TmdbAlternateOrdering")
-                        .WithMany("AlternateOrderingSeasons")
-                        .HasForeignKey("TmdbEpisodeGroupCollectionID")
-                        .HasPrincipalKey("TmdbEpisodeGroupCollectionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", "TmdbShow")
-                        .WithMany()
-                        .HasForeignKey("TmdbShowID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TmdbAlternateOrdering");
-
-                    b.Navigation("TmdbShow");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Company_Entity", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", "TVShow")
-                        .WithMany()
-                        .HasForeignKey("TVShowTMDB_ShowID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Company", "Company")
-                        .WithMany("XRefs")
-                        .HasForeignKey("TmdbCompanyID")
-                        .HasPrincipalKey("TmdbCompanyID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", "Movie")
-                        .WithMany()
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbMovieID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Movie");
-
-                    b.Navigation("TVShow");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Episode", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Season", "Season")
-                        .WithMany()
-                        .HasForeignKey("SeasonTMDB_SeasonID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", "Show")
-                        .WithMany()
-                        .HasForeignKey("ShowTMDB_ShowID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Season", null)
-                        .WithMany("Episodes")
-                        .HasForeignKey("TmdbSeasonID")
-                        .HasPrincipalKey("TmdbSeasonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", null)
-                        .WithMany("Episodes")
-                        .HasForeignKey("TmdbSeasonID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Season");
-
-                    b.Navigation("Show");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Episode_Cast", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", null)
-                        .WithMany("Cast")
-                        .HasForeignKey("TMDB_EpisodeID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", "Episode")
-                        .WithMany()
-                        .HasForeignKey("TmdbEpisodeID")
-                        .HasPrincipalKey("TmdbEpisodeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Person", "Person")
-                        .WithMany("EpisodeRoles")
-                        .HasForeignKey("TmdbPersonID")
-                        .HasPrincipalKey("TmdbPersonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Episode");
-
-                    b.Navigation("Person");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Episode_Crew", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", null)
-                        .WithMany("Crew")
-                        .HasForeignKey("TMDB_EpisodeID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", "Episode")
-                        .WithMany()
-                        .HasForeignKey("TmdbEpisodeID")
-                        .HasPrincipalKey("TmdbEpisodeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Person", "Person")
-                        .WithMany("EpisodeCrew")
-                        .HasForeignKey("TmdbPersonID")
-                        .HasPrincipalKey("TmdbPersonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Episode");
-
-                    b.Navigation("Person");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Entity", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Image", "Image")
-                        .WithMany()
-                        .HasForeignKey("RemoteFileName")
-                        .HasPrincipalKey("RemoteFileName")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Image");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Movie", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Collection", "TmdbCollection")
-                        .WithMany("Movies")
-                        .HasForeignKey("TmdbCollectionID")
-                        .HasPrincipalKey("TmdbCollectionID");
-
-                    b.Navigation("TmdbCollection");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Movie_Cast", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", null)
-                        .WithMany("Cast")
-                        .HasForeignKey("TMDB_MovieID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", "Movie")
-                        .WithMany()
-                        .HasForeignKey("TmdbMovieID")
-                        .HasPrincipalKey("TmdbMovieID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Person", "Person")
-                        .WithMany("MovieRoles")
-                        .HasForeignKey("TmdbPersonID")
-                        .HasPrincipalKey("TmdbPersonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Movie");
-
-                    b.Navigation("Person");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Movie_Crew", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", null)
-                        .WithMany("Crew")
-                        .HasForeignKey("TMDB_MovieID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", "Movie")
-                        .WithMany()
-                        .HasForeignKey("TmdbMovieID")
-                        .HasPrincipalKey("TmdbMovieID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Person", "Person")
-                        .WithMany("MovieCrew")
-                        .HasForeignKey("TmdbPersonID")
-                        .HasPrincipalKey("TmdbPersonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Movie");
-
-                    b.Navigation("Person");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Collection", null)
-                        .WithMany("Overviews")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbCollectionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", null)
-                        .WithMany("AllOverviews")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbMovieID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Person", null)
-                        .WithMany("AllBiographies")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbPersonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Season", null)
-                        .WithMany("AllOverviews")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbSeasonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", null)
-                        .WithMany("AllOverviews")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Season", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", "Show")
-                        .WithMany()
-                        .HasForeignKey("ShowTMDB_ShowID");
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", null)
-                        .WithMany("Seasons")
-                        .HasForeignKey("TmdbShowID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Show");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Show_Network", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Network", "Network")
-                        .WithMany("NetworkXRefs")
-                        .HasForeignKey("TmdbNetworkID")
-                        .HasPrincipalKey("TmdbNetworkID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", "Show")
-                        .WithMany("NetworkXRefs")
-                        .HasForeignKey("TmdbShowID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Network");
-
-                    b.Navigation("Show");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Title", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Collection", null)
-                        .WithMany("Titles")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbCollectionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", null)
-                        .WithMany("AllTitles")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbMovieID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Season", null)
-                        .WithMany("AllTitles")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbSeasonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", null)
-                        .WithMany("AllTitles")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Company_Movie", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", null)
-                        .WithMany("CompanyXRefs")
-                        .HasForeignKey("TMDB_MovieID");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Company_Show", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", null)
-                        .WithMany("CompanyXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Collection", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Collection", null)
-                        .WithMany("ImageXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbCollectionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", null)
-                        .WithMany("ImageXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbEpisodeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Company", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Company", null)
-                        .WithMany("ImageXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbCompanyID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Movie", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Movie", null)
-                        .WithMany("ImageXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbMovieID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Season", null)
-                        .WithMany("ImageXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbSeasonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_Person", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Person", null)
-                        .WithMany("ImageXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbPersonID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Image_TVShow", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Show", null)
-                        .WithMany("ImageXRefs")
-                        .HasForeignKey("TmdbEntityID")
-                        .HasPrincipalKey("TmdbShowID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Overview_Episode", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", null)
-                        .WithMany("AllOverviews")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbEpisodeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Title_Episode", b =>
-                {
-                    b.HasOne("Shoko.Server.Models.TMDB.TMDB_Episode", null)
-                        .WithMany("AllTitles")
-                        .HasForeignKey("ParentID")
-                        .HasPrincipalKey("TmdbEpisodeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering", b =>
-                {
-                    b.Navigation("AlternateOrderingEpisodes");
-
-                    b.Navigation("AlternateOrderingSeasons");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_AlternateOrdering_Season", b =>
-                {
-                    b.Navigation("TmdbAlternateOrderingEpisodes");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Collection", b =>
-                {
-                    b.Navigation("ImageXRefs");
-
-                    b.Navigation("Movies");
-
-                    b.Navigation("Overviews");
-
-                    b.Navigation("Titles");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Company", b =>
-                {
-                    b.Navigation("ImageXRefs");
-
-                    b.Navigation("XRefs");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Episode", b =>
-                {
-                    b.Navigation("AllOverviews");
-
-                    b.Navigation("AllTitles");
-
-                    b.Navigation("Cast");
-
-                    b.Navigation("Crew");
-
-                    b.Navigation("ImageXRefs");
-
-                    b.Navigation("TmdbAlternateOrderingEpisodes");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Movie", b =>
-                {
-                    b.Navigation("AllOverviews");
-
-                    b.Navigation("AllTitles");
-
-                    b.Navigation("Cast");
-
-                    b.Navigation("CompanyXRefs");
-
-                    b.Navigation("Crew");
-
-                    b.Navigation("ImageXRefs");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Network", b =>
-                {
-                    b.Navigation("NetworkXRefs");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Person", b =>
-                {
-                    b.Navigation("AllBiographies");
-
-                    b.Navigation("EpisodeCrew");
-
-                    b.Navigation("EpisodeRoles");
-
-                    b.Navigation("ImageXRefs");
-
-                    b.Navigation("MovieCrew");
-
-                    b.Navigation("MovieRoles");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Season", b =>
-                {
-                    b.Navigation("AllOverviews");
-
-                    b.Navigation("AllTitles");
-
-                    b.Navigation("Episodes");
-
-                    b.Navigation("ImageXRefs");
-                });
-
-            modelBuilder.Entity("Shoko.Server.Models.TMDB.TMDB_Show", b =>
-                {
-                    b.Navigation("AllOverviews");
-
-                    b.Navigation("AllTitles");
-
-                    b.Navigation("AlternateOrderings");
-
-                    b.Navigation("CompanyXRefs");
-
-                    b.Navigation("Episodes");
-
-                    b.Navigation("ImageXRefs");
-
-                    b.Navigation("NetworkXRefs");
-
-                    b.Navigation("Seasons");
                 });
 #pragma warning restore 612, 618
         }
