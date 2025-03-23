@@ -72,7 +72,6 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     public ConfigurationService(ILoggerFactory loggerFactory, IApplicationPaths applicationPaths, IPluginManager pluginManager)
     {
-
         _logger = loggerFactory.CreateLogger<ConfigurationService>();
         _applicationPaths = applicationPaths;
         _pluginManager = pluginManager;
