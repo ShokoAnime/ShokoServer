@@ -310,7 +310,7 @@ public class VideoHashingService(
                         ConfigurationInfo = info.ConfigurationInfo,
                         PluginInfo = info.PluginInfo,
                         EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
-                        Priority = info.Priority,
+                        Priority = priority.IndexOf(info.ID),
                     })
                     .ToDictionary(info => info.ID);
             }
