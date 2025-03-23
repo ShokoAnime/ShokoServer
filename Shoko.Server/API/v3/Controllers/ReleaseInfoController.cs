@@ -88,7 +88,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     public ActionResult UpdateMultipleReleaseProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<UpdateMultipleProvidersBody> body)
     {
         var providerInfoDict = videoReleaseService.GetAvailableProviders().ToDictionary(p => p.ID);
-        var changedProviders = new List<ReleaseInfoProviderInfo>();
+        var changedProviders = new List<ReleaseProviderInfo>();
         foreach (var provider in body)
         {
             if (providerInfoDict.TryGetValue(provider.ID, out var p))

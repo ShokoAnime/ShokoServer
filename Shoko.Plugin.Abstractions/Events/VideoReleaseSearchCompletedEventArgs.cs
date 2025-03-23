@@ -26,13 +26,13 @@ public class VideoReleaseSearchCompletedEventArgs : VideoEventArgs
     /// <summary>
     /// The IDs of the release providers that were attempted.
     /// </summary>
-    public required IReadOnlyList<ReleaseInfoProviderInfo> AttemptedProviders { get; init; }
+    public required IReadOnlyList<ReleaseProviderInfo> AttemptedProviders { get; init; }
 
     /// <summary>
     /// The ID of the release provider that was selected for the successful
     /// search.
     /// </summary>
-    public required ReleaseInfoProviderInfo? SelectedProvider { get; init; }
+    public required ReleaseProviderInfo? SelectedProvider { get; init; }
 
     /// <summary>
     /// The found release info, if successful.

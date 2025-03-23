@@ -6,7 +6,7 @@ namespace Shoko.Plugin.Abstractions.Release;
 /// <summary>
 /// Contains information about a <see cref="IReleaseInfoProvider"/>.
 /// </summary>
-public class ReleaseInfoProviderInfo
+public class ReleaseProviderInfo
 {
     /// <summary>
     /// The unique ID of the provider, generated off of the full class name.
