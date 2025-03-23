@@ -93,10 +93,10 @@ public interface IVideoReleaseService
     ///   be returned.
     /// </param>
     /// <returns>
-    ///   An enumerable of <see cref="ReleaseInfoProviderInfo"/>s, one for each
+    ///   An enumerable of <see cref="ReleaseProviderInfo"/>s, one for each
     ///   available <see cref="IReleaseInfoProvider"/>.
     /// </returns>
-    IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders(bool onlyEnabled = false);
+    IEnumerable<ReleaseProviderInfo> GetAvailableProviders(bool onlyEnabled = false);
 
     /// <summary>
     ///   Edit the settings for an <see cref="IReleaseInfoProvider"/>, such as
@@ -106,10 +106,10 @@ public interface IVideoReleaseService
     /// <param name="providers">
     ///   The providers to update.
     /// </param>
-    void UpdateProviders(params ReleaseInfoProviderInfo[] providers);
+    void UpdateProviders(params ReleaseProviderInfo[] providers);
 
     /// <summary>
-    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for a given plugin.
+    ///   Gets the <see cref="ReleaseProviderInfo"/> for a given plugin.
     /// </summary>
     /// <param name="plugin">
     ///   The plugin.
@@ -117,10 +117,10 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The provider info.
     /// </returns>
-    IReadOnlyList<ReleaseInfoProviderInfo> GetProviderInfo(IPlugin plugin);
+    IReadOnlyList<ReleaseProviderInfo> GetProviderInfo(IPlugin plugin);
 
     /// <summary>
-    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified ID.
+    ///   Gets the <see cref="ReleaseProviderInfo"/> for the specified ID.
     /// </summary>
     /// <param name="providerID">
     ///   The ID of the provider.
@@ -128,10 +128,10 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The provider info, or <c>null</c> if none could be found.
     /// </returns>
-    ReleaseInfoProviderInfo? GetProviderInfo(Guid providerID);
+    ReleaseProviderInfo? GetProviderInfo(Guid providerID);
 
     /// <summary>
-    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the provider.
+    ///   Gets the <see cref="ReleaseProviderInfo"/> for the provider.
     /// </summary>
     /// <param name="provider">
     ///   The provider.
@@ -148,10 +148,10 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The provider info.
     /// </returns>
-    ReleaseInfoProviderInfo GetProviderInfo(IReleaseInfoProvider provider);
+    ReleaseProviderInfo GetProviderInfo(IReleaseInfoProvider provider);
 
     /// <summary>
-    ///   Gets the <see cref="ReleaseInfoProviderInfo"/> for the specified type.
+    ///   Gets the <see cref="ReleaseProviderInfo"/> for the specified type.
     /// </summary>
     /// <typeparam name="TProvider">
     ///   The provider type.
@@ -165,7 +165,7 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The provider info.
     /// </returns>
-    ReleaseInfoProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider;
+    ReleaseProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider;
 
     /// <summary>
     ///   Get the current release for the specified video, if one exists.
