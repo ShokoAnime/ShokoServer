@@ -27,7 +27,7 @@ public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> wh
     public virtual HttpResponse<T> Send()
     {
         Command = BaseCommand.Trim();
-        var rawResponse = _handler.GetHttp(Command);
+        var rawResponse = _handler.GetHttp(Command).Result;
         var response = ParseResponse(rawResponse).Result;
         PostExecute(response);
         return response;

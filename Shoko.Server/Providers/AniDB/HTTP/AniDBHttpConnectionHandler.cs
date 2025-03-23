@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Utilities;
@@ -37,7 +38,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         _rateLimiter = rateLimiter;
     }
 
-    public HttpResponse<string> GetHttp(string url)
+    public async Task<HttpResponse<string>> GetHttp(string url)
     {
         if (IsBanned)
         {
@@ -48,7 +49,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             };
         }
 
-        var response = _rateLimiter.EnsureRate(async () =>
+        var response = await _rateLimiter.EnsureRate(async () =>
         {
             using var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
@@ -65,7 +66,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             }
 
             return new HttpResponse<string> { Response = output, Code = response.StatusCode };
-        }).Result;
+        });
 
         return response;
     }
