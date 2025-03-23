@@ -12,6 +12,7 @@ public class ReleaseExporterConfiguration : IConfiguration
     /// <summary>
     /// Enables the exporter functionality.
     /// </summary>
+    [Display(Name = "Enabled")]
     public bool IsExporterEnabled { get; set; }
 
     /// <summary>
