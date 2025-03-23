@@ -1,12 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Release;
 
 /// <summary>
-/// Video release information provider.
+///   Base interface for all video release information providers to implement.
 /// </summary>
 public interface IReleaseInfoProvider
 {
