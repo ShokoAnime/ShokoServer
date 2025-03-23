@@ -5,7 +5,7 @@ using Shoko.Server.API.v3.Models.Plugin;
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
-public class ReleaseInfoProvider(ReleaseInfoProviderInfo info)
+public class ReleaseInfoProvider(ReleaseProviderInfo info)
 {
     public Guid ID { get; init; } = info.ID;
 
