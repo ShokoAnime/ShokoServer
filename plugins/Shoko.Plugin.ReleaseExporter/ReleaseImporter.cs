@@ -17,7 +17,7 @@ namespace Shoko.Plugin.ReleaseExporter;
 public class ReleaseImporter(ILogger<ReleaseImporter> logger) : IReleaseInfoProvider
 {
     /// <inheritdoc/>
-    public const string Key = "Release Importer/Exporter";
+    public const string Key = "Release Importer";
 
     /// <inheritdoc/>
     public string Name => Key;
