@@ -22,7 +22,7 @@ namespace Shoko.Server.Hashing;
 ///    Responsible for providing the core hashes for a video. Among them, only
 ///    ED2K is required to be calculated, but not necessarily by this provider.
 /// </summary>
-public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationProvider<CoreHashProvider.CoreHasherConfiguration> configurationProvider) : IHashProvider
+public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationProvider<CoreHashProvider.CoreHasherConfiguration> configurationProvider) : IHashProvider<CoreHashProvider.CoreHasherConfiguration>
 {
     /// <inheritdoc/>
     public string Name => "Built-In Hasher";
@@ -556,7 +556,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     /// Configure how hashes are calculated in the built-in hasher.
     /// </summary>
     [Display(Name = "Built-In Hasher")]
-    public class CoreHasherConfiguration : INewtonsoftJsonConfiguration
+    public class CoreHasherConfiguration : IHashProviderConfiguration, INewtonsoftJsonConfiguration
     {
         /// <summary>
         /// Indicates that only the C# hasher should be used. This will
