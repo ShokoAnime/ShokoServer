@@ -186,7 +186,7 @@ public class ShokofinConfiguration : IConfiguration
             /// <summary>
             /// Allows for any titles to be utilized if an official title is not present in the given language. Only applies to the AniDB title selectors above.
             /// </summary>
-            [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
             [Visibility(Advanced = true)]
             [Display(Name = "Allow Any Title")]
             public bool AllowAnyTitle { get; set; }
@@ -908,7 +908,7 @@ public class ShokofinConfiguration : IConfiguration
             /// attempting to reconnect and leave the SignalR connection in a
             /// disconnected state until it is manually or otherwise reconnected.
             /// </summary>
-            [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
             [Visibility(Advanced = true)]
             [Display(Name = "Auto Reconnect Intervals")]
             [DefaultValue(new int[] { 0, 2, 10, 30, 60, 120, 300 })]
@@ -917,7 +917,7 @@ public class ShokofinConfiguration : IConfiguration
             /// <summary>
             /// Which event sources should be listened to for metadata events.
             /// </summary>
-            [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+            [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
             [Visibility(Advanced = true)]
             [Display(Name = "Event Sources")]
             [DefaultValue(new SignalrEventSource[] { SignalrEventSource.Shoko, SignalrEventSource.AniDB, SignalrEventSource.TMDB })]
