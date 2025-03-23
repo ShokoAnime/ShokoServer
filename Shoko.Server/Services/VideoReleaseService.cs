@@ -286,7 +286,7 @@ public class VideoReleaseService(
                         ConfigurationInfo = info.ConfigurationInfo,
                         PluginInfo = info.PluginInfo,
                         Enabled = info.Enabled,
-                        Priority = info.Priority,
+                        Priority = priority.IndexOf(info.ID),
                     })
                     .ToDictionary(info => info.ID);
                 _autoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
