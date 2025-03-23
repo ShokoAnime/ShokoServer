@@ -102,7 +102,7 @@ public class WebSettings
     /// <summary>
     /// Always use the developer exceptions page, even in production.
     /// </summary>
-    [Badge("Debug", Theme = DisplayColorTheme.Danger)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(Advanced = true)]
     [Display(Name = "Always Use Developer Exceptions")]
     [RequiresRestart]
