@@ -664,7 +664,13 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
         var needsRestart = InternalRestartPendingFor.Count > 0;
         if (needsRestart != pendingRestart)
+        {
+            if (needsRestart)
+                _logger.LogInformation("A restart is required for some some configuration to take effect.");
+            else
+                _logger.LogInformation("A restart is no longer required for some configuration to take effect.");
             Task.Run(() => RequiresRestart?.Invoke(this, new() { RequiresRestart = needsRestart }));
+        }
 
         return true;
     }
