@@ -1,11 +1,14 @@
 
 using System;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
@@ -25,10 +28,11 @@ namespace Shoko.Server.Providers.AniDB.Release;
 ///    internal UDP connection handler.
 /// </summary>
 /// <param name="logger">The logger.</param>
+/// <param name="configurationProvider">The configuration provider.</param>
 /// <param name="requestFactory">The request factory.</param>
 /// <param name="connectionHandler">The connection handler.</param>
 /// <param name="videoRepository">The video repository.</param>
-public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler, VideoLocalRepository videoRepository) : IReleaseInfoProvider
+public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, ConfigurationProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings> configurationProvider, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler, VideoLocalRepository videoRepository) : IReleaseInfoProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings>
 {
     /// <summary>
     /// Simple memory cache to prevent looking up the same file multiple times within half an hour.
@@ -104,6 +108,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
             return null;
         }
 
+        var storeHashes = configurationProvider.Load().StoreHashes;
         video ??= videoRepository.GetByEd2kAndSize(hash, size);
         releaseInfo = new ReleaseInfo()
         {
@@ -150,7 +155,9 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
             FileSize = size,
             Hashes = [
                     new() { Type = "ED2K", Value = hash },
-                    ..video?.Hashes.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? [],
+                    ..storeHashes
+                        ? video?.Hashes.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? []
+                        : [],
                 ],
             ReleasedAt = anidbFile.ReleasedAt,
             CreatedAt = DateTime.Now,
@@ -187,5 +194,20 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, IRequest
         logger.LogInformation("Found a release for Hash={Hash} & Size={Size} at AniDB!", hash, size);
         _memoryCache.Set(releaseId, releaseInfo, TimeSpan.FromMinutes(30));
         return releaseInfo;
+    }
+
+    /// <summary>
+    /// Configure some aspects of the built-in AniDB release provider.
+    /// </summary>
+    [Display(Name = "Built-in AniDB Release Provider")]
+    public class AnidbReleaseProviderSettings : IReleaseInfoProviderConfiguration, INewtonsoftJsonConfiguration
+    {
+        /// <summary>
+        /// If set to true, hashes stored in the database will be included in
+        /// the provided release info.
+        /// </summary>
+        [Display(Name = "Store existing hashes")]
+        [DefaultValue(true)]
+        public bool StoreHashes { get; set; } = true;
     }
 }
