@@ -51,3 +51,12 @@ public interface IReleaseInfoProvider
     /// </returns>
     Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken);
 }
+
+/// <summary>
+///   Indicates that the release information provider supports configuration,
+///   and which configuration type to display in the UI.
+/// </summary>
+/// <typeparam name="TConfiguration">
+///   The hash provider configuration type.
+/// </typeparam>
+public interface IReleaseInfoProvider<TConfiguration> : IReleaseInfoProvider where TConfiguration : IReleaseInfoProviderConfiguration { }

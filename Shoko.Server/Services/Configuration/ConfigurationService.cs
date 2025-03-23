@@ -232,6 +232,9 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             .ThenBy(info => info.ID)
             .ToList();
 
+    public ConfigurationInfo GetConfigurationInfo(Type type)
+        => GetConfigurationInfo(GetID(type))!;
+
     public ConfigurationInfo GetConfigurationInfo<TConfig>() where TConfig : class, IConfiguration, new()
         => GetConfigurationInfo(GetID(typeof(TConfig)))!;
 

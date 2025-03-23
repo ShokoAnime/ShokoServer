@@ -36,6 +36,7 @@ namespace Shoko.Server.Services;
 
 public class VideoReleaseService(
     ILogger<VideoReleaseService> logger,
+    IConfigurationService configurationService,
     IUDPConnectionHandler udpConnection,
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
@@ -118,19 +119,24 @@ public class VideoReleaseService(
             _releaseProviderInfos = providers
                 .Select((provider, priority) =>
                 {
-                    var pluginType = provider.GetType();
+                    var providerType = provider.GetType();
                     var pluginInfo = pluginManager.GetPluginInfo(
-                        Loader.GetTypes<IPlugin>(pluginType.Assembly)
+                        Loader.GetTypes<IPlugin>(providerType.Assembly)
                             .First(t => pluginManager.GetPluginInfo(t) is not null)
                     )!;
-                    var id = GetID(pluginType, pluginInfo);
+                    var id = GetID(providerType, pluginInfo);
                     var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
-                    var description = pluginType.GetDescription();
+                    var description = providerType.GetDescription();
+                    var configurationType = providerType.GetInterfaces()
+                        .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReleaseInfoProvider<>))
+                        ?.GetGenericArguments()[0];
+                    var configurationInfo = configurationType is null ? null : configurationService.GetConfigurationInfo(configurationType);
                     return new ReleaseProviderInfo()
                     {
                         ID = id,
                         Description = description,
                         Provider = provider,
+                        ConfigurationInfo = configurationInfo,
                         PluginInfo = pluginInfo,
                         Enabled = isEnabled,
                         Priority = priority,
@@ -160,9 +166,10 @@ public class VideoReleaseService(
                 ID = info.ID,
                 Description = info.Description,
                 Provider = info.Provider,
+                ConfigurationInfo = info.ConfigurationInfo,
                 PluginInfo = info.PluginInfo,
                 Enabled = info.Enabled,
-                Priority = info.Priority
+                Priority = info.Priority,
             });
 
     public IReadOnlyList<ReleaseProviderInfo> GetProviderInfo(IPlugin plugin)
@@ -176,6 +183,7 @@ public class VideoReleaseService(
                 ID = info.ID,
                 Description = info.Description,
                 Provider = info.Provider,
+                ConfigurationInfo = info.ConfigurationInfo,
                 PluginInfo = info.PluginInfo,
                 Enabled = info.Enabled,
                 Priority = info.Priority,
@@ -209,6 +217,7 @@ public class VideoReleaseService(
                 ID = providerInfo.ID,
                 Description = providerInfo.Description,
                 Provider = providerInfo.Provider,
+                ConfigurationInfo = providerInfo.ConfigurationInfo,
                 PluginInfo = providerInfo.PluginInfo,
                 Enabled = providerInfo.Enabled,
                 Priority = providerInfo.Priority,
@@ -274,6 +283,7 @@ public class VideoReleaseService(
                         ID = info.ID,
                         Description = info.Description,
                         Provider = info.Provider,
+                        ConfigurationInfo = info.ConfigurationInfo,
                         PluginInfo = info.PluginInfo,
                         Enabled = info.Enabled,
                         Priority = info.Priority,

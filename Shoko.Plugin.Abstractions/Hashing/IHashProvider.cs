@@ -3,11 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Plugin.Abstractions.Config;
 
 namespace Shoko.Plugin.Abstractions.Hashing;
 
 /// <summary>
-///   
+///   Base interface for hash providers to implement.
 /// </summary>
 public interface IHashProvider
 {
@@ -48,3 +49,12 @@ public interface IHashProvider
     /// </returns>
     Task<IReadOnlyCollection<HashDigest>> GetHashesForVideo(HashingRequest request, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+///   Indicates that the hash provider supports configuration, and which
+///   configuration type to display in the UI.
+/// </summary>
+/// <typeparam name="TConfiguration">
+///   The hash provider configuration type.
+/// </typeparam>
+public interface IHashProvider<TConfiguration> : IHashProvider where TConfiguration : IHashProviderConfiguration { }

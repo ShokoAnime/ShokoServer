@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Plugin;
 
 namespace Shoko.Plugin.Abstractions.Hashing;
@@ -11,7 +12,7 @@ namespace Shoko.Plugin.Abstractions.Hashing;
 public class HashProviderInfo
 {
     /// <summary>
-    /// The unique ID of the provider, generated off of the full class name.
+    /// The unique ID of the provider.
     /// </summary>
     public required Guid ID { get; init; }
 
@@ -34,6 +35,11 @@ public class HashProviderInfo
     /// The <see cref="IHashProvider"/> that this info is for.
     /// </summary>
     public required IHashProvider Provider { get; init; }
+
+    /// <summary>
+    /// Information about the configuration that the hash provider uses.
+    /// </summary>
+    public required ConfigurationInfo? ConfigurationInfo { get; init; }
 
     /// <summary>
     /// Information about the plugin that the hash provider belongs to.

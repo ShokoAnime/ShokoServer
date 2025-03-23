@@ -19,3 +19,14 @@ public interface INewtonsoftJsonConfiguration : IConfiguration { }
 /// Interface for signaling that the configuration should be hidden from any UI.
 /// </summary>
 public interface IHiddenConfiguration : IConfiguration { }
+
+/// <summary>
+/// Interface for signaling that the configuration is tied to a hash provider.
+/// </summary>
+public interface IHashProviderConfiguration : IHiddenConfiguration { }
+
+/// <summary>
+/// Interface for signaling that the configuration is tied to a release info
+/// provider.
+/// </summary>
+public interface IReleaseInfoProviderConfiguration : IHiddenConfiguration { }

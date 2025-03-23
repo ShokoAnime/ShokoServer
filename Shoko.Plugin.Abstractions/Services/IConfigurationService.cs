@@ -100,6 +100,18 @@ public interface IConfigurationService
     ///   Gets the <see cref="ConfigurationInfo" /> for the specified
     ///   configuration type.
     /// </summary>
+    /// <param name="type">
+    ///   The type of the configuration.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </returns>
+    ConfigurationInfo? GetConfigurationInfo(Type type);
+
+    /// <summary>
+    ///   Gets the <see cref="ConfigurationInfo" /> for the specified
+    ///   configuration type.
+    /// </summary>
     /// <typeparam name="TConfig">
     ///   The type of the configuration.
     /// </typeparam>

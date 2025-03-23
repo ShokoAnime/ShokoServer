@@ -36,6 +36,7 @@ namespace Shoko.Server.Services;
 public class VideoHashingService(
     ILogger<VideoHashingService> logger,
     ISchedulerFactory schedulerFactory,
+    IConfigurationService configurationService,
     IVideoReleaseService videoReleaseService,
     IPluginManager pluginManager,
     ISettingsProvider settingsProvider,
@@ -104,19 +105,25 @@ public class VideoHashingService(
             _hashProviderInfos = providers
                 .Select((provider, priority) =>
                 {
+                    var providerType = provider.GetType();
                     var pluginInfo = pluginManager.GetPluginInfo(
-                        Loader.GetTypes<IPlugin>(provider.GetType().Assembly)
+                        Loader.GetTypes<IPlugin>(providerType.Assembly)
                             .First(t => pluginManager.GetPluginInfo(t) is not null)
                     )!;
-                    var id = GetID(provider.GetType(), pluginInfo);
-                    var contextualType = provider.GetType().ToContextualType();
+                    var id = GetID(providerType, pluginInfo);
+                    var contextualType = providerType.ToContextualType();
                     var enabledHashes = enabled.TryGetValue(id, out var h) ? h : id == _coreProviderID ? ["ED2K"] : [];
                     var description = contextualType.GetDescription();
+                    var configurationType = providerType.GetInterfaces()
+                        .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHashProvider<>))
+                        ?.GetGenericArguments()[0];
+                    var configurationInfo = configurationType is null ? null : configurationService.GetConfigurationInfo(configurationType);
                     return new HashProviderInfo()
                     {
                         ID = id,
                         Description = description,
                         Provider = provider,
+                        ConfigurationInfo = configurationInfo,
                         PluginInfo = pluginInfo,
                         EnabledHashTypes = enabledHashes,
                         Priority = priority,
@@ -178,9 +185,10 @@ public class VideoHashingService(
                 ID = info.ID,
                 Description = info.Description,
                 Provider = info.Provider,
+                ConfigurationInfo = info.ConfigurationInfo,
                 PluginInfo = info.PluginInfo,
                 EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
-                Priority = info.Priority
+                Priority = info.Priority,
             });
 
     public IReadOnlyList<HashProviderInfo> GetProviderInfo(IPlugin plugin)
@@ -194,9 +202,10 @@ public class VideoHashingService(
                 ID = info.ID,
                 Description = info.Description,
                 Provider = info.Provider,
+                ConfigurationInfo = info.ConfigurationInfo,
                 PluginInfo = info.PluginInfo,
                 EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
-                Priority = info.Priority
+                Priority = info.Priority,
             })
             .ToList();
 
@@ -225,6 +234,7 @@ public class VideoHashingService(
                 ID = providerInfo.ID,
                 Description = providerInfo.Description,
                 Provider = providerInfo.Provider,
+                ConfigurationInfo = providerInfo.ConfigurationInfo,
                 PluginInfo = providerInfo.PluginInfo,
                 EnabledHashTypes = providerInfo.EnabledHashTypes.ToHashSet(),
                 Priority = providerInfo.Priority,
@@ -297,6 +307,7 @@ public class VideoHashingService(
                         ID = info.ID,
                         Description = info.Description,
                         Provider = info.Provider,
+                        ConfigurationInfo = info.ConfigurationInfo,
                         PluginInfo = info.PluginInfo,
                         EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
                         Priority = info.Priority,
