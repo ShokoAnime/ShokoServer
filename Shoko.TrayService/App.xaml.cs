@@ -101,7 +101,7 @@ public partial class App
         try
         {
             var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings();
-            OpenUrl($"http://localhost:{settings.ServerPort}");
+            OpenUrl($"http://localhost:{settings.Web.Port}");
         }
         catch (Exception e)
         {
