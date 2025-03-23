@@ -176,7 +176,7 @@ public static class Loader
         pluginManager.AddParts(Plugins.Values);
 
         var configurationService = provider.GetRequiredService<IConfigurationService>();
-        configurationService.AddParts(GetTypes<IConfiguration>(), GetExports<IConfigurationDefinition>(provider));
+        configurationService.AddParts(GetTypes<IConfiguration>(), GetTypes<IConfigurationDefinition>());
 
         // Used to store the updated priorities for the providers in the settings file.
         var videoReleaseService = provider.GetRequiredService<IVideoReleaseService>();
@@ -237,6 +237,9 @@ public static class Loader
 
     public static IEnumerable<Type> GetTypes<T>(Assembly assembly)
         => assembly.GetTypes().Where(type => typeof(T).IsAssignableFrom(type));
+
+    public static T? CreateInstance<T>(Type type)
+        => !typeof(T).IsAssignableFrom(type) ? default : typeof(T).IsValueType ? (T?)Activator.CreateInstance(type) : (T?)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, type);
 
     public static IEnumerable<T> GetExports<T>()
         => GetExports<T>(Utils.ServiceContainer);
