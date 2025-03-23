@@ -66,7 +66,7 @@ public class VideoReleaseService(
 
     private IServerSettings _settings => settingsProvider.GetSettings();
 
-    private Dictionary<Guid, ReleaseInfoProviderInfo> _releaseInfoProviderInfos = [];
+    private Dictionary<Guid, ReleaseProviderInfo> _releaseProviderInfos = [];
 
     private readonly object _lock = new();
 
@@ -115,7 +115,7 @@ public class VideoReleaseService(
             var config = configurationProvider.Load();
             var order = config.Priority;
             var enabled = config.Enabled;
-            _releaseInfoProviderInfos = providers
+            _releaseProviderInfos = providers
                 .Select((provider, priority) =>
                 {
                     var pluginType = provider.GetType();
@@ -126,7 +126,7 @@ public class VideoReleaseService(
                     var id = GetID(pluginType, pluginInfo);
                     var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
                     var description = pluginType.GetDescription();
-                    return new ReleaseInfoProviderInfo()
+                    return new ReleaseProviderInfo()
                     {
                         ID = id,
                         Description = description,
@@ -140,22 +140,22 @@ public class VideoReleaseService(
                 .ThenBy(p => order.IndexOf(p.ID))
                 .ThenBy(p => p.ID)
                 .ToDictionary(info => info.ID);
-            _autoMatchEnabled = _releaseInfoProviderInfos.Values.Any(p => p.Enabled);
+            _autoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
         }
 
         UpdateProviders(false);
 
-        logger.LogInformation("Loaded {ProviderCount} providers.", _releaseInfoProviderInfos.Count);
+        logger.LogInformation("Loaded {ProviderCount} providers.", _releaseProviderInfos.Count);
 
         Ready?.Invoke(this, EventArgs.Empty);
     }
 
-    public IEnumerable<ReleaseInfoProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
-        => _releaseInfoProviderInfos.Values
+    public IEnumerable<ReleaseProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
+        => _releaseProviderInfos.Values
             .Where(info => !onlyEnabled || info.Enabled)
             .OrderBy(info => info.Priority)
             // Create a copy so that we don't affect the original entries
-            .Select(info => new ReleaseInfoProviderInfo()
+            .Select(info => new ReleaseProviderInfo()
             {
                 ID = info.ID,
                 Description = info.Description,
@@ -165,13 +165,13 @@ public class VideoReleaseService(
                 Priority = info.Priority
             });
 
-    public IReadOnlyList<ReleaseInfoProviderInfo> GetProviderInfo(IPlugin plugin)
-        => _releaseInfoProviderInfos.Values
+    public IReadOnlyList<ReleaseProviderInfo> GetProviderInfo(IPlugin plugin)
+        => _releaseProviderInfos.Values
             .Where(info => info.PluginInfo.ID == plugin.ID)
             .OrderBy(info => info.Provider.Name)
             .ThenBy(info => info.ID)
             // Create a copy so that we don't affect the original entries
-            .Select(info => new ReleaseInfoProviderInfo()
+            .Select(info => new ReleaseProviderInfo()
             {
                 ID = info.ID,
                 Description = info.Description,
@@ -182,7 +182,7 @@ public class VideoReleaseService(
             })
             .ToList();
 
-    public ReleaseInfoProviderInfo GetProviderInfo(IReleaseInfoProvider provider)
+    public ReleaseProviderInfo GetProviderInfo(IReleaseInfoProvider provider)
     {
         ArgumentNullException.ThrowIfNull(provider);
         if (!_loaded)
@@ -192,7 +192,7 @@ public class VideoReleaseService(
             ?? throw new ArgumentException($"Unregistered provider: '{provider.GetType().Name}'", nameof(provider));
     }
 
-    public ReleaseInfoProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider
+    public ReleaseProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider
     {
         if (!_loaded)
             throw new InvalidOperationException("Providers have not been added yet.");
@@ -201,8 +201,8 @@ public class VideoReleaseService(
             ?? throw new ArgumentException($"Unregistered provider: '{typeof(TProvider).Name}'", nameof(TProvider));
     }
 
-    public ReleaseInfoProviderInfo? GetProviderInfo(Guid providerID)
-        => _releaseInfoProviderInfos?.TryGetValue(providerID, out var providerInfo) ?? false
+    public ReleaseProviderInfo? GetProviderInfo(Guid providerID)
+        => _releaseProviderInfos?.TryGetValue(providerID, out var providerInfo) ?? false
             // Create a copy so that we don't affect the original entry
             ? new()
             {
@@ -215,10 +215,10 @@ public class VideoReleaseService(
             }
             : null;
 
-    public void UpdateProviders(params ReleaseInfoProviderInfo[] providers)
+    public void UpdateProviders(params ReleaseProviderInfo[] providers)
         => UpdateProviders(true, providers);
 
-    private void UpdateProviders(bool fireEvent, params ReleaseInfoProviderInfo[] providers)
+    private void UpdateProviders(bool fireEvent, params ReleaseProviderInfo[] providers)
     {
         if (!_loaded)
             return;
@@ -267,9 +267,9 @@ public class VideoReleaseService(
         {
             lock (_lock)
             {
-                _releaseInfoProviderInfos = existingProviders
+                _releaseProviderInfos = existingProviders
                     // Create a copy so that we don't affect the original entry
-                    .Select(info => new ReleaseInfoProviderInfo()
+                    .Select(info => new ReleaseProviderInfo()
                     {
                         ID = info.ID,
                         Description = info.Description,
@@ -279,7 +279,7 @@ public class VideoReleaseService(
                         Priority = info.Priority,
                     })
                     .ToDictionary(info => info.ID);
-                _autoMatchEnabled = _releaseInfoProviderInfos.Values.Any(p => p.Enabled);
+                _autoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
             }
             configurationProvider.Save(config);
             if (fireEvent)
@@ -318,7 +318,7 @@ public class VideoReleaseService(
         catch { }
 
         var completedAt = startedAt;
-        var selectedProvider = (ReleaseInfoProviderInfo?)null;
+        var selectedProvider = (ReleaseProviderInfo?)null;
         var releaseInfo = (IReleaseInfo?)null;
         var exception = (Exception?)null;
         var providers = GetAvailableProviders(onlyEnabled: true).ToList();
@@ -386,7 +386,7 @@ public class VideoReleaseService(
         }
     }
 
-    private async Task<(IReleaseInfo?, ReleaseInfoProviderInfo?)> FileReleaseForVideoSequential(IVideo video, IReadOnlyList<ReleaseInfoProviderInfo> providers, CancellationToken cancellationToken)
+    private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoSequential(IVideo video, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
     {
         foreach (var providerInfo in providers)
         {
@@ -404,10 +404,10 @@ public class VideoReleaseService(
         return default;
     }
 
-    private async Task<(IReleaseInfo?, ReleaseInfoProviderInfo?)> FileReleaseForVideoParallel(IVideo video, IReadOnlyList<ReleaseInfoProviderInfo> providers, CancellationToken cancellationToken)
+    private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoParallel(IVideo video, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
     {
         // Start as many providers as possible in parallel until we've exhausted the list or the token is cancelled.
-        var tasks = new Dictionary<Task<IReleaseInfo?>, (ReleaseInfoProviderInfo providerInfo, CancellationTokenSource source)>();
+        var tasks = new Dictionary<Task<IReleaseInfo?>, (ReleaseProviderInfo providerInfo, CancellationTokenSource source)>();
         foreach (var providerInfo in providers)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -432,7 +432,7 @@ public class VideoReleaseService(
 
         // Wait for the highest priority release to be found or for all the tasks to be cancelled.
         var selectedRelease = (IReleaseInfo?)null;
-        var selectedProvider = (ReleaseInfoProviderInfo?)null;
+        var selectedProvider = (ReleaseProviderInfo?)null;
         var queue = tasks.Keys.ToList();
         while (queue.Count > 0)
         {
