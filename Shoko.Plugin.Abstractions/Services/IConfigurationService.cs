@@ -46,10 +46,10 @@ public interface IConfigurationService
     /// <param name="configurationTypes">
     ///   The configurations.
     /// </param>
-    /// <param name="configurationDefinitions">
+    /// <param name="configurationDefinitionTypes">
     ///   The configuration definitions.
     /// </param>
-    void AddParts(IEnumerable<Type> configurationTypes, IEnumerable<IConfigurationDefinition> configurationDefinitions);
+    void AddParts(IEnumerable<Type> configurationTypes, IEnumerable<Type> configurationDefinitionTypes);
 
     /// <summary>
     ///   Create a new <see cref="ConfigurationProvider{TConfig}"/> instance for

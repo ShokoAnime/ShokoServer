@@ -48,9 +48,9 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private readonly System.Text.Json.JsonSerializerOptions _systemTextJsonSerializerOptions;
 
-    private Dictionary<Guid, ConfigurationInfo> _configurationTypes;
+    private readonly ConcurrentDictionary<Guid, ConfigurationInfo> _configurationTypes = [];
 
-    private Dictionary<ConfigurationInfo, string> _serializedSchemas;
+    private readonly ConcurrentDictionary<ConfigurationInfo, string> _serializedSchemas = [];
 
     private readonly ConcurrentDictionary<Guid, IConfiguration> _loadedConfigurations = [];
 
@@ -98,35 +98,28 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         var serverSettingsDefinition = new ServerSettingsDefinition(loggerFactory.CreateLogger<ServerSettingsDefinition>(), new(this));
         var serverSettingsName = GetDisplayName(typeof(ServerSettings).ToContextualType());
         var serverSettingsSchema = GetSchemaForType(typeof(ServerSettings));
-        _configurationTypes = new()
+        _configurationTypes[Guid.Empty] = new(this)
         {
-            {
-                Guid.Empty,
-                new ConfigurationInfo(this)
-                {
-                    ID = Guid.Empty,
-                    Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
-                    Name = serverSettingsName,
-                    Description = string.Empty,
-                    Definition = serverSettingsDefinition,
-                    Type = typeof(ServerSettings),
-                    ContextualType = typeof(ServerSettings).ToContextualType(),
-                    Schema = serverSettingsSchema,
-                    // We're not going to be using this before .AddParts is called.
-                    PluginInfo = null!,
-                }
-            },
+            // We first map the server settings to the empty guid because the id
+            // namespace depends on the plugin info which is not available yet.
+            ID = Guid.Empty,
+            Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
+            Name = serverSettingsName,
+            Description = string.Empty,
+            Definition = serverSettingsDefinition,
+            Type = typeof(ServerSettings),
+            ContextualType = typeof(ServerSettings).ToContextualType(),
+            Schema = serverSettingsSchema,
+            // We're not going to be using this before .AddParts is called.
+            PluginInfo = null!,
         };
-
-        _serializedSchemas = _configurationTypes.Values
-            .ToDictionary(info => info, info => AddSchemaPropertyToSchema(info.Schema.ToJson()));
     }
 
     #region Configuration Info
 
     private static readonly HashSet<string> _configurationSuffixSet = ["Setting", "Settings", "Conf", "Config", "Configuration"];
 
-    public void AddParts(IEnumerable<Type> configurationTypes, IEnumerable<IConfigurationDefinition> configurationDefinitions)
+    public void AddParts(IEnumerable<Type> configurationTypes, IEnumerable<Type> configurationDefinitions)
     {
         if (_loaded) return;
         _loaded = true;
@@ -139,25 +132,21 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         // Set the server settings to the proper ID before trying to enumerate the config type and definitions.
         var serverSettingsID = GetID(typeof(ServerSettings));
         var serverSettingsInfo = _configurationTypes[Guid.Empty];
-        _configurationTypes = new()
+        _configurationTypes[serverSettingsID] = new(this)
         {
-            {
-                serverSettingsID,
-                new ConfigurationInfo(this)
-                {
-                    ID = serverSettingsID,
-                    Path = serverSettingsInfo.Path,
-                    Name = serverSettingsInfo.Name,
-                    Description = serverSettingsInfo.Description,
-                    Definition = serverSettingsInfo.Definition,
-                    Type = serverSettingsInfo.Type,
-                    ContextualType = serverSettingsInfo.ContextualType,
-                    Schema = serverSettingsInfo.Schema,
-                    PluginInfo = _pluginManager.GetPluginInfo<CorePlugin>()!,
-                }
-            },
+            ID = serverSettingsID,
+            Path = serverSettingsInfo.Path,
+            Name = serverSettingsInfo.Name,
+            Description = serverSettingsInfo.Description,
+            Definition = serverSettingsInfo.Definition,
+            Type = serverSettingsInfo.Type,
+            ContextualType = serverSettingsInfo.ContextualType,
+            Schema = serverSettingsInfo.Schema,
+            PluginInfo = _pluginManager.GetPluginInfo<CorePlugin>()!,
         };
-        _serializedSchemas = new() { { _configurationTypes[serverSettingsID], _serializedSchemas[serverSettingsInfo] } };
+        _configurationTypes.TryRemove(Guid.Empty, out _);
+        _serializedSchemas[_configurationTypes[serverSettingsID]] = _serializedSchemas[serverSettingsInfo];
+        _serializedSchemas.TryRemove(serverSettingsInfo, out _);
         _loadedConfigurations[serverSettingsID] = _loadedConfigurations[Guid.Empty];
         _loadedConfigurations.TryRemove(Guid.Empty, out _);
         if (InternalLoadedEnvironmentVariables.TryGetValue(Guid.Empty, out var envVarDict))
@@ -166,67 +155,64 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             InternalLoadedEnvironmentVariables.Remove(Guid.Empty, out _);
         }
 
-        // Dispose of older definitions.
-        foreach (var definition in _configurationTypes.Values.Select(info => info.Definition).OfType<IDisposable>())
-            definition.Dispose();
-
-        var configurationDefinitionDict = configurationDefinitions.ToDictionary(GetID);
-        _configurationTypes = configurationTypes
-            .Select(configurationType =>
-            {
-                var pluginInfo = _pluginManager.GetPluginInfo(Loader.GetTypes<IPlugin>(configurationType.Assembly).First(t => _pluginManager.GetPluginInfo(t) is not null))!;
-                var id = GetID(configurationType, pluginInfo);
-                var definition = configurationDefinitionDict.GetValueOrDefault(id);
-                var contextualType = configurationType.ToContextualType();
-                var description = TypeReflectionExtensions.GetDescription(contextualType);
-                var name = GetDisplayName(contextualType);
-                string? path = null;
-                if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
-                {
-                    var relativePath = p0.RelativePath;
-                    if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                        relativePath += ".json";
-                    path = Path.Join(_applicationPaths.ProgramDataPath, relativePath);
-                }
-                else if (definition is IConfigurationDefinitionWithCustomSaveName { } p1)
-                {
-                    // If name is empty or null, then treat it as an in-memory configuration.
-                    if (!string.IsNullOrEmpty(p1.Name))
-                    {
-                        var fileName = p1.Name;
-                        if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                            fileName += ".json";
-                        path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName);
-                    }
-                }
-                else
-                {
-                    var fileName = name
-                        .RemoveInvalidPathCharacters()
-                        .Replace(' ', '-')
-                        .ToLower();
-                    path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
-                }
-
-                var schema = GetSchemaForType(configurationType);
-                return new ConfigurationInfo(this)
-                {
-                    ID = id,
-                    Path = path,
-                    Name = name,
-                    Description = description,
-                    Type = configurationType,
-                    ContextualType = contextualType,
-                    Definition = definition,
-                    Schema = schema,
-                    PluginInfo = pluginInfo,
-                };
-            })
+        var configurationDefinitionDict = configurationDefinitions
+            .Except([typeof(ServerSettingsDefinition)])
+            .Select(Loader.CreateInstance<IConfigurationDefinition>)
             .WhereNotNull()
-            .ToDictionary(info => info.ID);
+            .ToDictionary(GetID);
+        foreach (var configurationType in configurationTypes)
+        {
+            if (configurationType == typeof(ServerSettings))
+                continue;
 
-        _serializedSchemas = _configurationTypes.Values
-            .ToDictionary(info => info, info => AddSchemaPropertyToSchema(info.Schema.ToJson()));
+            var pluginInfo = _pluginManager.GetPluginInfo(Loader.GetTypes<IPlugin>(configurationType.Assembly).First(t => _pluginManager.GetPluginInfo(t) is not null))!;
+            var id = GetID(configurationType, pluginInfo);
+            var definition = configurationDefinitionDict.GetValueOrDefault(id);
+            var contextualType = configurationType.ToContextualType();
+            var description = TypeReflectionExtensions.GetDescription(contextualType);
+            var name = GetDisplayName(contextualType);
+            string? path = null;
+            if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
+            {
+                var relativePath = p0.RelativePath;
+                if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                    relativePath += ".json";
+                path = Path.Join(_applicationPaths.ProgramDataPath, relativePath);
+            }
+            else if (definition is IConfigurationDefinitionWithCustomSaveName { } p1)
+            {
+                // If name is empty or null, then treat it as an in-memory configuration.
+                if (!string.IsNullOrEmpty(p1.Name))
+                {
+                    var fileName = p1.Name;
+                    if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                        fileName += ".json";
+                    path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                }
+            }
+            else
+            {
+                var fileName = name
+                    .RemoveInvalidPathCharacters()
+                    .Replace(' ', '-')
+                    .ToLower();
+                path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
+            }
+
+            var schema = GetSchemaForType(configurationType);
+            _configurationTypes[id] = new(this)
+            {
+                ID = id,
+                Path = path,
+                Name = name,
+                Description = description,
+                Type = configurationType,
+                ContextualType = contextualType,
+                Definition = definition,
+                Schema = schema,
+                PluginInfo = pluginInfo,
+            };
+        }
 
         _logger.LogTrace("Loaded {ConfigurationCount} configurations.", _configurationTypes.Count);
     }
@@ -680,14 +666,27 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     #region Schema
 
     public string GetSchema(ConfigurationInfo info)
-        => _serializedSchemas[info];
+    {
+        if (_serializedSchemas.TryGetValue(info, out var schemaJson))
+            return schemaJson;
+
+        lock (info)
+        {
+            if (_serializedSchemas.TryGetValue(info, out schemaJson))
+                return schemaJson;
+
+            schemaJson = AddSchemaPropertyToSchema(info.Schema.ToJson());
+            _serializedSchemas[info] = schemaJson;
+            return schemaJson;
+        }
+    }
 
     private void EnsureSchemaExists(ConfigurationInfo info)
     {
         if (info.Path is null)
             return;
 
-        var schemaJson = _serializedSchemas[info];
+        var schemaJson = GetSchema(info);
         var schemaPath = Path.ChangeExtension(info.Path, ".schema.json");
         if (!File.Exists(schemaPath))
         {
