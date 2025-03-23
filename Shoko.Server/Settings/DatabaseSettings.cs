@@ -155,7 +155,7 @@ public class DatabaseSettings
     /// <summary>
     /// Advanced SQL Server or MySQL/MariaDB connection string.
     /// </summary>
-    [Badge("Advanced", Theme = DisplayColorTheme.Important)]
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
     [Visibility(
         Visibility = DisplayVisibility.Visible,
         Advanced = true,
@@ -211,7 +211,7 @@ public class DatabaseSettings
     /// Use database locking in the application. This should be left on if
     /// you're using SQLite, but can safely be turned off for the other two.
     /// </summary>
-    [Badge("Debug", Theme = DisplayColorTheme.Danger)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(
         Visibility = DisplayVisibility.Visible,
         Advanced = true,
@@ -227,7 +227,7 @@ public class DatabaseSettings
     /// <summary>
     /// Log SQL statements to standard output. They will not appear in the log file or Web UI live log.
     /// </summary>
-    [Badge("Debug", Theme = DisplayColorTheme.Danger)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(Advanced = true)]
     [Display(Name = "Log SQL to Console")]
     [RequiresRestart]
