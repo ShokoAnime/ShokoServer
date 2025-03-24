@@ -18,6 +18,12 @@ public interface IHashProvider
     string Name { get; }
 
     /// <summary>
+    ///   Optional. Description of the release information provider. Can also be
+    ///   defined in an `DisplayAttribute` or as an XML comment.
+    /// </summary>
+    static string? Description { get; }
+
+    /// <summary>
     ///   Version of the release information provider.
     /// </summary>
     Version Version { get; }

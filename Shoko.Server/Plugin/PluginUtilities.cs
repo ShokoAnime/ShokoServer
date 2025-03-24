@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Namotion.Reflection;
 using Shoko.Server.Extensions;
 
+#nullable enable
 namespace Shoko.Server.Plugin;
 
 public static partial class TypeReflectionExtensions
@@ -84,7 +85,11 @@ public static partial class TypeReflectionExtensions
     /// <param name="type">The type.</param>
     public static string GetDescription(this ContextualType type)
     {
-        var description = type.GetAttribute<DisplayAttribute>(false)?.Description;
+        var description = type.OriginalType.GetProperty("Description")?.GetValue(null) as string;
+        if (!string.IsNullOrEmpty(description))
+            return CleanDescription(description);
+
+        description = type.GetAttribute<DisplayAttribute>(false)?.Description;
         if (string.IsNullOrEmpty(description))
             description = type.GetXmlDocsSummary() ?? string.Empty;
 
