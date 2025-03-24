@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -8,7 +9,7 @@ namespace Shoko.Server.Settings;
 
 public class ImportSettings
 {
-    private string[] _internalVideoExtensions =
+    private List<string> _internalVideoExtensions =
     [
         "MKV",
         "AVI",
@@ -28,18 +29,19 @@ public class ImportSettings
     [Visibility(Size = DisplayElementSize.Large)]
     [RequiresRestart]
     [MinLength(1)]
+    [DefaultValue(new string[] { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" })]
     [List(UniqueItems = true, Sortable = true)]
-    public string[] VideoExtensions
+    public List<string> VideoExtensions
     {
         get => _internalVideoExtensions;
         set => _internalVideoExtensions = value
             .Select(ext => ext.StartsWith('.') ? ext.TrimStart('.').ToUpper().Trim() : ext.ToUpper().Trim())
             .Distinct()
             .Except([string.Empty, null])
-            .ToArray();
+            .ToList();
     }
 
-    private string[] _internalExclude =
+    private List<string> _internalExclude =
     [
         @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]"
     ];
@@ -50,14 +52,14 @@ public class ImportSettings
     [Display(Name = "Exclude Regex Patterns")]
     [DefaultValue(new string[] { @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]" })]
     [List(UniqueItems = true, Sortable = true)]
-    public string[] Exclude
+    public List<string> Exclude
     {
         get => _internalExclude;
         set => _internalExclude = value
             .Select(ext => string.IsNullOrWhiteSpace(ext) ? string.Empty : ext)
             .Distinct()
             .Except([string.Empty, null])
-            .ToArray();
+            .ToList();
     }
 
     /// <summary>

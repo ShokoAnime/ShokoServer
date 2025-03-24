@@ -431,7 +431,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.TMDB.MaxAutoPosters = contractIn.MovieDB_AutoPostersAmount;
 
             // Import settings
-            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToArray();
+            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             settings.Import.UseExistingFileWatchedStatus =
                 contractIn.Import_UseExistingFileWatchedStatus;
             settings.AutoGroupSeries = contractIn.AutoGroupSeries;
