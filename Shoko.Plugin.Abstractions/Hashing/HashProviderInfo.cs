@@ -50,9 +50,4 @@ public class HashProviderInfo
     /// The enabled hash types.
     /// </summary>
     public required HashSet<string> EnabledHashTypes { get; set; }
-
-    /// <summary>
-    /// The priority of the hash provider when running in sequential mode.
-    /// </summary>
-    public required int Priority { get; set; }
 }

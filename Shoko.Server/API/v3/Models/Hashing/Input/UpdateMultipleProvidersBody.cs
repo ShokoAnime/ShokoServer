@@ -10,7 +10,5 @@ public class UpdateMultipleProvidersBody
     [Required]
     public Guid ID { get; set; }
 
-    public int? Priority { get; set; }
-
     public HashSet<string>? EnabledHashTypes { get; set; }
 }
