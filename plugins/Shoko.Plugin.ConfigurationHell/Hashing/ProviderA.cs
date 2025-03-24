@@ -20,6 +20,12 @@ public class ProviderA : IHashProvider<ProviderA.ProviderAConfig>
     public string Name => "Provider A";
 
     /// <inheritdoc />
+    public string Description => """
+        Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor
+        incididunt ut labore et dolore magna aliqua.
+    """;
+
+    /// <inheritdoc />
     public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
 
     /// <inheritdoc />
