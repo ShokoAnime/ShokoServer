@@ -1107,6 +1107,7 @@ public class DatabaseFixes
         var storedReleaseInfoAttempts = new List<StoredReleaseInfo_MatchAttempt>();
         var count = 0;
         var str = ServerState.Instance.ServerStartingStatus;
+        var creditlessRegex = AnidbReleaseProvider.CreditlessRegex;
         foreach (var groupBy in potentialReleases)
         {
             if (++count % 10000 == 0 || count == 1 || count == potentialReleases.Count)
@@ -1166,8 +1167,11 @@ public class DatabaseFixes
                 storedReleaseInfo.Comment = string.IsNullOrEmpty(anidbFile.File_Description) ? null : anidbFile.File_Description;
                 storedReleaseInfo.OriginalFilename = anidbFile.FileName;
                 storedReleaseInfo.IsCensored = anidbFile.IsCensored;
-                storedReleaseInfo.IsCorrupted = anidbFile.IsDeprecated;
                 storedReleaseInfo.IsChaptered = anidbFile.IsChaptered;
+                storedReleaseInfo.IsCreditless =
+                    (!string.IsNullOrEmpty(anidbFile.FileName) && creditlessRegex.IsMatch(anidbFile.FileName)) ||
+                    (video?.Places is { Count: > 0 } places && places.Any(x => creditlessRegex.IsMatch(x.FileName)));
+                storedReleaseInfo.IsCorrupted = anidbFile.IsDeprecated;
                 storedReleaseInfo.Source = Enum.Parse<GetFile_Source>(anidbFile.File_Source.ToString()) switch
                 {
                     GetFile_Source.TV => ReleaseSource.TV,
