@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Namotion.Reflection;
+using Shoko.Plugin.Abstractions.Hashing;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 
 #nullable enable
@@ -85,11 +87,7 @@ public static partial class TypeReflectionExtensions
     /// <param name="type">The type.</param>
     public static string GetDescription(this ContextualType type)
     {
-        var description = type.OriginalType.GetProperty("Description")?.GetValue(null) as string;
-        if (!string.IsNullOrEmpty(description))
-            return CleanDescription(description);
-
-        description = type.GetAttribute<DisplayAttribute>(false)?.Description;
+        var description = type.GetAttribute<DisplayAttribute>(false)?.Description;
         if (string.IsNullOrEmpty(description))
             description = type.GetXmlDocsSummary() ?? string.Empty;
 
