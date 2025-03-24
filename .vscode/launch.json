@@ -14,7 +14,8 @@
             "args": [],
             "cwd": "${workspaceFolder}/Shoko.Server/bin/Debug/net8.0",
             "env": {
-              "SHOKO_HOME": "${workspaceFolder}/Shoko.Server/bin/Data"
+              "SHOKO_HOME": "${workspaceFolder}/Shoko.Server/bin/Data",
+              "SHOKO_PORT": "8111",
             },
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "integratedTerminal",
