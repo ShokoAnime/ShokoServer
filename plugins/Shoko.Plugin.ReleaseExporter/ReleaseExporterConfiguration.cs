@@ -5,14 +5,15 @@ using Shoko.Plugin.Abstractions.Config;
 namespace Shoko.Plugin.ReleaseExporter;
 
 /// <summary>
-/// Configure how the export functionality works.
+/// Configure how the import/export functionality works.
 /// </summary>
-public class ReleaseExporterConfiguration : IConfiguration
+[DisplayName("Release Importer/Exporter")]
+public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
 {
     /// <summary>
     /// Enables the exporter functionality.
     /// </summary>
-    [Display(Name = "Enabled")]
+    [Display(Name = "Exporter Enabled")]
     public bool IsExporterEnabled { get; set; }
 
     /// <summary>
