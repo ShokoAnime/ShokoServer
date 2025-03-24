@@ -25,9 +25,12 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         ProviderName = releaseInfo.ProviderName;
         ReleaseURI = releaseInfo.ReleaseURI;
         Revision = releaseInfo.Revision;
+        ProvidedFileSize = releaseInfo.FileSize;
         Comment = releaseInfo.Comment;
         OriginalFilename = releaseInfo.OriginalFilename;
         IsCensored = releaseInfo.IsCensored;
+        IsCreditless = releaseInfo.IsCreditless;
+        IsChaptered = releaseInfo.IsChaptered;
         IsCorrupted = releaseInfo.IsCorrupted;
         Source = releaseInfo.Source;
         if (releaseInfo.Group is { } group)
@@ -83,9 +86,11 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public bool? IsCensored { get; set; }
 
-    public bool IsCorrupted { get; set; }
+    public bool? IsCreditless { get; set; }
 
     public bool? IsChaptered { get; set; }
+
+    public bool IsCorrupted { get; set; }
 
     public ReleaseSource Source { get; set; }
 
