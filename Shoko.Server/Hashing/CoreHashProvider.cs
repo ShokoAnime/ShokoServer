@@ -33,9 +33,6 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     /// <inheritdoc/>
     public IReadOnlySet<string> AvailableHashTypes => new HashSet<string>() { "ED2K", "MD5", "CRC32", "SHA1", "SHA256", "SHA512" };
 
-    /// <inheritdoc/>
-    public IReadOnlySet<string> DefaultEnabledHashTypes => new HashSet<string>() { "ED2K" };
-
     static CoreHashProvider()
     {
         if (Utils.IsLinux)
