@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Release;
 
@@ -14,13 +15,19 @@ namespace Shoko.Plugin.ReleaseExporter;
 /// Responsible for importing releases from the file system near the video files.
 /// </summary>
 /// <param name="logger">Logger.</param>
-public class ReleaseImporter(ILogger<ReleaseImporter> logger) : IReleaseInfoProvider
+/// <param name="configurationProvider">Configuration provider.</param>
+public class ReleaseImporter(ILogger<ReleaseImporter> logger, ConfigurationProvider<ReleaseExporterConfiguration> configurationProvider) : IReleaseInfoProvider<ReleaseExporterConfiguration>
 {
     /// <inheritdoc/>
     public const string Key = "Release Importer";
 
     /// <inheritdoc/>
-    public string Name => Key;
+    public string Name { get; private set; } = Key;
+
+    /// <inheritdoc/>
+    public string Description { get; private set; } = """
+        Responsible for importing releases from the file system near the video files.
+    """;
 
     /// <inheritdoc/>
     public Version Version { get; private set; } = Assembly.GetExecutingAssembly().GetName().Version ?? new("0.0.0");
@@ -33,11 +40,12 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger) : IReleaseInfoProv
     public async Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
     {
         logger.LogTrace("Trying to find release for video. (Video={VideoID})", video.ID);
+        var config = configurationProvider.Load();
         foreach (var location in video.Locations)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var path = location.Path;
-            var releasePath = Path.ChangeExtension(path, ".release.json");
+            var releasePath = Path.ChangeExtension(path, config.ReleaseExtension);
             if (!File.Exists(releasePath))
                 continue;
 
