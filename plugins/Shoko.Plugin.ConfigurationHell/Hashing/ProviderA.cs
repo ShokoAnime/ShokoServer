@@ -26,9 +26,6 @@ public class ProviderA : IHashProvider<ProviderA.ProviderAConfig>
     public IReadOnlySet<string> AvailableHashTypes => new HashSet<string>(["HASH_A"]);
 
     /// <inheritdoc />
-    public IReadOnlySet<string> DefaultEnabledHashTypes => new HashSet<string>([]);
-
-    /// <inheritdoc />
     public Task<IReadOnlyCollection<HashDigest>> GetHashesForVideo(HashingRequest request, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IReadOnlyCollection<HashDigest>>([]);
