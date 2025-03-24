@@ -16,6 +16,12 @@ public class ProviderA : IReleaseInfoProvider
     public string Name => "Provider A";
 
     /// <inheritdoc />
+    public string Description => """
+        Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor
+        incididunt ut labore et dolore magna aliqua.
+    """;
+
+    /// <inheritdoc />
     public Version Version => new(1, 2, 0);
 
     /// <inheritdoc />

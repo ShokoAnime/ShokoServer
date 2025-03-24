@@ -126,7 +126,7 @@ public class VideoReleaseService(
                     )!;
                     var id = GetID(providerType, pluginInfo);
                     var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
-                    var description = providerType.GetDescription();
+                    var description = provider.Description ?? string.Empty;
                     var configurationType = providerType.GetInterfaces()
                         .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReleaseInfoProvider<>))
                         ?.GetGenericArguments()[0];
