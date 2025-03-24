@@ -15,6 +15,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP;
 
 public class HttpAnimeParser
 {
+    private static readonly TimeZoneInfo _japanTime = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
     private readonly ILogger<HttpAnimeParser> _logger;
 
     public HttpAnimeParser(ILogger<HttpAnimeParser> logger)
@@ -129,24 +130,31 @@ public class HttpAnimeParser
         {
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal, out var date
-                ) && date != DateTime.UnixEpoch)
+                    DateTimeStyles.None, out var date
+                ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.AirDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.AirDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.AirDate = date;
+            }
+
+            if (anime.AirDate != null)
+            {
+                // define datetimeoffset to make anime.AirDate timezone aware
+                var dto = new DateTimeOffset(anime.AirDate.Value, _japanTime.GetUtcOffset(anime.AirDate.Value));
+                anime.AirDate = TimeZoneInfo.ConvertTimeFromUtc(dto.UtcDateTime, _japanTime);
             }
         }
 
@@ -156,24 +164,31 @@ public class HttpAnimeParser
         {
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal, out var date
-                ) && date != DateTime.UnixEpoch)
+                    DateTimeStyles.None, out var date
+                ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.EndDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.EndDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.EndDate = date;
+            }
+            
+            if (anime.EndDate != null)
+            {
+                // define datetimeoffset to make anime.EndDate timezone aware
+                var dto = new DateTimeOffset(anime.EndDate.Value, _japanTime.GetUtcOffset(anime.EndDate.Value));
+                anime.EndDate = TimeZoneInfo.ConvertTimeFromUtc(dto.UtcDateTime, _japanTime);
             }
 
             if (anime.EndDate != null && anime.AirDate != null && anime.EndDate < anime.AirDate) anime.EndDate = anime.AirDate;
