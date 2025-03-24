@@ -38,6 +38,8 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// Gets a summary of the release information service's properties.
     /// </summary>
     /// <returns>A <see cref="ReleaseInfoSummary"/> containing the current settings.</returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
     [HttpGet("Summary")]
     public ActionResult<ReleaseInfoSummary> GetReleaseInfoSummary()
         => new ReleaseInfoSummary
@@ -51,6 +53,9 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// </summary>
     /// <param name="body">The settings to update.</param>
     /// <returns>An empty <see cref="ActionResult"/>.</returns>
+    [Authorize(Roles = "admin,init")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
     [HttpPost("Settings")]
     public ActionResult UpdateReleaseInfoSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateReleaseInfoSettingsBody body)
     {
@@ -65,6 +70,8 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// </summary>
     /// <param name="pluginID">Optional. Plugin ID to get release providers for.</param>
     /// <returns>A list of <see cref="ReleaseInfoProvider"/>.</returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
     [HttpGet("Provider")]
     public ActionResult<List<ReleaseInfoProvider>> GetAvailableReleaseProviders([FromQuery] Guid? pluginID = null)
         => pluginID.HasValue
@@ -82,7 +89,9 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// </summary>
     /// <param name="body">The providers to update.</param>
     /// <returns></returns>
-    [Authorize("admin")]
+    [Authorize(Roles = "admin,init")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
     [ProducesResponseType(200)]
     [HttpPost("Provider")]
     public ActionResult UpdateMultipleReleaseProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<UpdateMultipleProvidersBody> body)
@@ -122,6 +131,8 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// </summary>
     /// <param name="providerID">The ID of the release provider to get.</param>
     /// <returns>A <see cref="ReleaseInfoProvider"/>.</returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
     [HttpGet("Provider/{providerID}")]
     public ActionResult<ReleaseInfoProvider> GetReleaseProviderByID(Guid providerID)
     {
@@ -137,7 +148,9 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// <param name="providerID">The ID of the release provider to update.</param>
     /// <param name="body">The provider to update.</param>
     /// <returns>The updated <see cref="ReleaseInfoProvider"/>.</returns>
-    [Authorize("admin")]
+    [Authorize(Roles = "admin,init")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
     [ProducesResponseType(404)]
     [ProducesResponseType(200)]
     [HttpPut("Provider/{providerID}")]
