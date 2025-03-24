@@ -49,6 +49,8 @@ public class VideoHashingService(
     FileNameHashRepository fileNameHashRepository
 ) : IVideoHashingService
 {
+    private const string ED2K = "ED2K";
+
     private IContentInspector? _contentInspector;
 
     private Dictionary<Guid, HashProviderInfo> _hashProviderInfos = [];
@@ -99,7 +101,6 @@ public class VideoHashingService(
 
             logger.LogInformation("Initializing providers.");
             var config = configurationProvider.Load();
-            var order = config.Priority;
             var enabled = config.EnabledHashes;
             _coreProviderID = GetID(typeof(CoreHashProvider), pluginManager.GetPluginInfo(typeof(CorePlugin))!);
             _hashProviderInfos = providers
@@ -112,7 +113,7 @@ public class VideoHashingService(
                     )!;
                     var id = GetID(providerType, pluginInfo);
                     var contextualType = providerType.ToContextualType();
-                    var enabledHashes = enabled.TryGetValue(id, out var h) ? h : id == _coreProviderID ? ["ED2K"] : [];
+                    var enabledHashes = enabled.Where(kp => kp.Value == id).Select(kp => kp.Key).Order().ToHashSet();
                     var description = contextualType.GetDescription();
                     var configurationType = providerType.GetInterfaces()
                         .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHashProvider<>))
@@ -126,12 +127,12 @@ public class VideoHashingService(
                         ConfigurationInfo = configurationInfo,
                         PluginInfo = pluginInfo,
                         EnabledHashTypes = enabledHashes,
-                        Priority = priority,
                     };
                 })
-                .OrderBy(p => order.IndexOf(p.ID) is -1)
-                .ThenBy(p => order.IndexOf(p.ID))
-                .ThenBy(p => p.ID)
+                .OrderByDescending(info => info.PluginInfo.PluginType == typeof(CorePlugin))
+                .ThenBy(info => info.PluginInfo.Name)
+                .ThenBy(info => info.Name)
+                .ThenBy(info => info.ID)
                 .ToDictionary(info => info.ID);
 
             logger.LogInformation("Building content inspector.");
@@ -178,23 +179,9 @@ public class VideoHashingService(
     public IEnumerable<HashProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
         => _hashProviderInfos.Values
             .Where(info => !onlyEnabled || info.EnabledHashTypes.Count > 0)
-            .OrderBy(info => info.Priority)
-            // Create a copy so that we don't affect the original entries
-            .Select(info => new HashProviderInfo()
-            {
-                ID = info.ID,
-                Description = info.Description,
-                Provider = info.Provider,
-                ConfigurationInfo = info.ConfigurationInfo,
-                PluginInfo = info.PluginInfo,
-                EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
-                Priority = info.Priority,
-            });
-
-    public IReadOnlyList<HashProviderInfo> GetProviderInfo(IPlugin plugin)
-        => _hashProviderInfos.Values
-            .Where(info => info.PluginInfo.ID == plugin.ID)
-            .OrderBy(info => info.Provider.Name)
+            .OrderByDescending(info => info.PluginInfo.PluginType == typeof(CorePlugin))
+            .ThenBy(info => info.PluginInfo.Name)
+            .ThenBy(info => info.Name)
             .ThenBy(info => info.ID)
             // Create a copy so that we don't affect the original entries
             .Select(info => new HashProviderInfo()
@@ -205,7 +192,22 @@ public class VideoHashingService(
                 ConfigurationInfo = info.ConfigurationInfo,
                 PluginInfo = info.PluginInfo,
                 EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
-                Priority = info.Priority,
+            });
+
+    public IReadOnlyList<HashProviderInfo> GetProviderInfo(IPlugin plugin)
+        => _hashProviderInfos.Values
+            .Where(info => info.PluginInfo.ID == plugin.ID)
+            .OrderBy(info => info.Name)
+            .ThenBy(info => info.ID)
+            // Create a copy so that we don't affect the original entries
+            .Select(info => new HashProviderInfo()
+            {
+                ID = info.ID,
+                Description = info.Description,
+                Provider = info.Provider,
+                ConfigurationInfo = info.ConfigurationInfo,
+                PluginInfo = info.PluginInfo,
+                EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
             })
             .ToList();
 
@@ -237,7 +239,6 @@ public class VideoHashingService(
                 ConfigurationInfo = providerInfo.ConfigurationInfo,
                 PluginInfo = providerInfo.PluginInfo,
                 EnabledHashTypes = providerInfo.EnabledHashTypes.ToHashSet(),
-                Priority = providerInfo.Priority,
             }
             : null;
 
@@ -251,45 +252,28 @@ public class VideoHashingService(
         var existingProviders = GetAvailableProviders().ToList();
         foreach (var providerInfo in providers)
         {
-            var wantedIndex = providerInfo.Priority;
-            var existingIndex = existingProviders.FindIndex(p => p.Provider == providerInfo.Provider);
-            if (existingIndex is -1)
+            if (existingProviders.Find(p => p.Provider == providerInfo.Provider) is not { } existingProvider)
                 continue;
 
             // Enable or disable provider.
             providerInfo.EnabledHashTypes.IntersectWith(providerInfo.Provider.AvailableHashTypes);
-            if (!providerInfo.EnabledHashTypes.SetEquals(existingProviders[existingIndex].EnabledHashTypes))
-                existingProviders[existingIndex].EnabledHashTypes = providerInfo.EnabledHashTypes;
-
-            // Move index.
-            if (wantedIndex != existingIndex)
-            {
-                var pI = existingProviders[existingIndex];
-                existingProviders.RemoveAt(existingIndex);
-                if (wantedIndex < 0)
-                    existingProviders.Add(pI);
-                else
-                    existingProviders.Insert(wantedIndex, pI);
-            }
+            if (!providerInfo.EnabledHashTypes.SetEquals(existingProvider.EnabledHashTypes))
+                existingProvider.EnabledHashTypes = providerInfo.EnabledHashTypes;
         }
 
         var changed = false;
         var config = configurationProvider.Load();
-        var priority = existingProviders.Select(pI => pI.ID).ToList();
-        if (!config.Priority.SequenceEqual(priority))
-        {
-            config.Priority = priority;
-            changed = true;
-        }
 
-        var enabled = existingProviders.ToDictionary(p => p.ID, p => p.EnabledHashTypes);
-        // Ensure we at least have 1 ED2K hash provider at all times.
-        if (!enabled.Any(kp => kp.Value.Contains("ED2K")))
-            enabled[_coreProviderID].Add("ED2K");
         // Remove any providers with no hashes.
-        enabled = enabled
-            .Where(kp => kp.Value.Count > 0)
-            .ToDictionary(kp => kp.Key, kp => kp.Value);
+        var enabled = existingProviders
+            .Where(p => p.EnabledHashTypes.Count > 0)
+            .SelectMany(p => p.EnabledHashTypes.Select(h => (p.ID, Value: h)))
+            .DistinctBy(kp => kp.Value)
+            .OrderBy(kp => kp.Value)
+            .ToDictionary(kp => kp.Value, kp => kp.ID);
+        // Ensure we at have an ED2K hash provider at all times.
+        enabled.TryAdd(ED2K, _coreProviderID);
+
         if (!config.EnabledHashes.SequenceEqual(enabled))
         {
             config.EnabledHashes = enabled;
@@ -309,8 +293,7 @@ public class VideoHashingService(
                         Provider = info.Provider,
                         ConfigurationInfo = info.ConfigurationInfo,
                         PluginInfo = info.PluginInfo,
-                        EnabledHashTypes = info.EnabledHashTypes.ToHashSet(),
-                        Priority = priority.IndexOf(info.ID),
+                        EnabledHashTypes = enabled.Where(kp => kp.Value == info.ID).Select(kp => kp.Key).Order().ToHashSet(),
                     })
                     .ToDictionary(info => info.ID);
             }
@@ -492,8 +475,8 @@ public class VideoHashingService(
 
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
         var hashes = await GetHashesForFile(new FileInfo(resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
-        var ed2k = hashes.FirstOrDefault(x => x.Type is "ED2K");
-        if (ed2k is not { Type: "ED2K", Value.Length: 32 })
+        var ed2k = hashes.FirstOrDefault(x => x.Type is ED2K);
+        if (ed2k is not { Type: ED2K, Value.Length: 32 })
             throw new InvalidOperationException($"Could not get ED2K hash for {originalPath}");
 
         if (videoRepository.GetByEd2k(ed2k.Value) is { } otherVideo && video.VideoLocalID != otherVideo.VideoLocalID)
@@ -683,17 +666,17 @@ public class VideoHashingService(
             await GetHashesForFileSequential(fileInfo, existingHashes, providers, cancellationToken);
     }
 
-    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileSequential(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IReadOnlyList<HashProviderInfo> providers, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileParallel(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IList<HashProviderInfo> providers, CancellationToken cancellationToken)
     {
-        var allHashes = new ConcurrentBag<(HashProviderInfo, IReadOnlyList<IHashDigest>)>() { };
+        var allHashes = new ConcurrentBag<(HashProviderInfo Provider, IReadOnlyList<IHashDigest> Hashes)>() { };
         await Task.WhenAll(providers.Select(providerInfo => Task.Run(async () =>
         {
             var newHashes = await GetHashesForFileAndProvider(fileInfo, providerInfo, existingHashes, cancellationToken);
             allHashes.Add((providerInfo, newHashes));
         }, cancellationToken)));
         return allHashes.ToArray()
-            .OrderBy(tuple => tuple.Item1.Priority)
-            .Select(tuple => tuple.Item2)
+            .OrderBy(tuple => providers.IndexOf(tuple.Provider))
+            .Select(tuple => tuple.Hashes)
             .Prepend(existingHashes)
             .SelectMany(h => h)
             .Distinct()
@@ -701,7 +684,7 @@ public class VideoHashingService(
             .ToList();
     }
 
-    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileParallel(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IReadOnlyList<HashProviderInfo> providers, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileSequential(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IReadOnlyList<HashProviderInfo> providers, CancellationToken cancellationToken)
     {
         var allHashes = new List<IHashDigest>(existingHashes);
         foreach (var providerInfo in providers)

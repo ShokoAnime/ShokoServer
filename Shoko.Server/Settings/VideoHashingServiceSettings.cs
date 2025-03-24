@@ -21,14 +21,8 @@ public class VideoHashingServiceSettings : INewtonsoftJsonConfiguration, IHidden
     public bool ParallelMode { get; set; } = false;
 
     /// <summary>
-    /// A dictionary containing the enabled hashes of each provider by id.
+    /// A dictionary containing the enabled hashes and their provider's ID.
     /// </summary>
     [Visibility(DisplayVisibility.ReadOnly)]
-    public Dictionary<Guid, HashSet<string>> EnabledHashes { get; set; } = [];
-
-    /// <summary>
-    /// A list of provider ids in order of priority.
-    /// </summary>
-    [Visibility(DisplayVisibility.ReadOnly)]
-    public List<Guid> Priority { get; set; } = [];
+    public Dictionary<string, Guid> EnabledHashes { get; set; } = [];
 }
