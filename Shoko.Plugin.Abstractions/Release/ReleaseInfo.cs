@@ -52,15 +52,21 @@ public class ReleaseInfo
     public bool? IsCensored { get; set; }
 
     /// <summary>
-    /// Indicates that the released file is corrupted.
+    /// Indicates that the release is an OP/ED without credits, if it's known by
+    /// the release info provider.
     /// </summary>
-    public bool IsCorrupted { get; set; }
+    public bool? IsCreditless { get; set; }
 
     /// <summary>
     /// Indicates that the release is chaptered, if it's known by the release
     /// info provider.
     /// </summary>
     public bool? IsChaptered { get; set; }
+
+    /// <summary>
+    /// Indicates that the released file is corrupted.
+    /// </summary>
+    public bool IsCorrupted { get; set; }
 
     /// <summary>
     /// The source of the release. What the video file was created from.
@@ -115,13 +121,19 @@ public class ReleaseInfo
     public ReleaseInfo(ReleaseInfo info)
     {
         ID = info.ID;
+        ProviderName = info.ProviderName;
+        ReleaseURI = info.ReleaseURI;
         Revision = info.Revision;
+        FileSize = info.FileSize;
         Comment = info.Comment;
         OriginalFilename = info.OriginalFilename;
         IsCensored = info.IsCensored;
+        IsCreditless = info.IsCreditless;
+        IsChaptered = info.IsChaptered;
+        IsCorrupted = info.IsCorrupted;
         Source = info.Source;
         Group = info.Group is not null ? new(info.Group) : null;
-        Hashes = info.Hashes is not null ? new(info.Hashes) : null;
+        Hashes = info.Hashes?.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();
         MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
         CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
         ReleasedAt = info.ReleasedAt;
@@ -137,10 +149,15 @@ public class ReleaseInfo
     {
         ID = info.ID;
         ProviderName = info.ProviderName;
+        ReleaseURI = info.ReleaseURI;
         Revision = info.Revision;
+        FileSize = info.FileSize;
         Comment = info.Comment;
         OriginalFilename = info.OriginalFilename;
         IsCensored = info.IsCensored;
+        IsCreditless = info.IsCreditless;
+        IsChaptered = info.IsChaptered;
+        IsCorrupted = info.IsCorrupted;
         Source = info.Source;
         Group = info.Group is not null ? new(info.Group) : null;
         Hashes = info.Hashes?.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();

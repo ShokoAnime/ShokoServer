@@ -1,9 +1,11 @@
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -19,6 +21,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
@@ -31,8 +34,16 @@ namespace Shoko.Server.Providers.AniDB.Release;
 /// <param name="configurationProvider">The configuration provider.</param>
 /// <param name="requestFactory">The request factory.</param>
 /// <param name="connectionHandler">The connection handler.</param>
+/// <param name="fileNameHashRepository">The file name hash repository.</param>
 /// <param name="videoRepository">The video repository.</param>
-public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, ConfigurationProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings> configurationProvider, IRequestFactory requestFactory, IUDPConnectionHandler connectionHandler, VideoLocalRepository videoRepository) : IReleaseInfoProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings>
+public partial class AnidbReleaseProvider(
+    ILogger<AnidbReleaseProvider> logger,
+    ConfigurationProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings> configurationProvider,
+    IRequestFactory requestFactory,
+    IUDPConnectionHandler connectionHandler,
+    FileNameHashRepository fileNameHashRepository,
+    VideoLocalRepository videoRepository
+) : IReleaseInfoProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings>
 {
     /// <summary>
     /// Simple memory cache to prevent looking up the same file multiple times within half an hour.
@@ -114,8 +125,26 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, Configur
             return null;
         }
 
-        var storeHashes = configurationProvider.Load().StoreHashes;
         video ??= videoRepository.GetByEd2kAndSize(hash, size);
+
+        var settings = configurationProvider.Load();
+        var creditless = (bool?)null;
+        if (settings.CheckCreditless)
+        {
+            var regex = GeneratedCreditlessRegex();
+            // Check anidb's remote file name
+            if (!string.IsNullOrEmpty(anidbFile.Filename) && regex.IsMatch(anidbFile.Filename))
+                creditless = true;
+            // then check any locations for the video if the video is available
+            else if (video?.Locations is { Count: > 0 } locations && locations.Any(x => regex.IsMatch(x.FileName)))
+                creditless = true;
+            // and as a last ditch effort check locally known file names for the hash
+            else if (fileNameHashRepository.GetByHash(hash).Where(x => x.FileSize == size).Select(x => x.FileName).ToList() is { Count: > 0 } knownFileNames && knownFileNames.Any(regex.IsMatch))
+                creditless = true;
+            else
+                creditless = false;
+        }
+
         releaseInfo = new ReleaseInfo()
         {
             ID = releaseId,
@@ -124,6 +153,8 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, Configur
             Comment = anidbFile.Description,
             OriginalFilename = anidbFile.Filename,
             IsCensored = anidbFile.Censored,
+            IsChaptered = anidbFile.Chaptered,
+            IsCreditless = creditless,
             IsCorrupted = anidbFile.Deprecated,
             Source = anidbFile.Source switch
             {
@@ -161,7 +192,7 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, Configur
             FileSize = size,
             Hashes = [
                     new() { Type = "ED2K", Value = hash },
-                    ..storeHashes
+                    ..settings.StoreHashes
                         ? video?.Hashes.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? []
                         : [],
                 ],
@@ -202,6 +233,16 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, Configur
         return releaseInfo;
     }
 
+    [GeneratedRegex(@"(?:(?<![a-z0-9])(?:nc|creditless)[\s_.]*(?:ed|op)(?![a-z]))(?:[\s_.]*(?:\d+(?!\d*p)))?", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript)]
+    private static partial Regex GeneratedCreditlessRegex();
+
+    /// <summary>
+    /// Helper to get the generated regex outside this class, since calling the
+    /// method above seems to be causing problems due to the way it's compiled
+    /// and this being a partial class.
+    /// </summary>
+    internal static Regex CreditlessRegex => GeneratedCreditlessRegex();
+
     /// <summary>
     /// Configure some aspects of the built-in AniDB release provider.
     /// </summary>
@@ -215,5 +256,14 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, Configur
         [Display(Name = "Store existing hashes")]
         [DefaultValue(true)]
         public bool StoreHashes { get; set; } = true;
+
+        /// <summary>
+        /// If set to true, the release will be checked if it is creditless by
+        /// checking all known file names, both local and remote for a 'NC' or
+        /// 'creditless' tag.
+        /// </summary>
+        [Display(Name = "Check if release is creditless")]
+        [DefaultValue(true)]
+        public bool CheckCreditless { get; set; } = true;
     }
 }

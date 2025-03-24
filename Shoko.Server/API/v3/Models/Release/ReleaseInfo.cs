@@ -69,6 +69,12 @@ public class ReleaseInfo : IReleaseInfo
     public bool? IsChaptered { get; init; }
 
     /// <summary>
+    /// Indicates that the release is an OP/ED without credits, if it's known by
+    /// the release info provider.
+    /// </summary>
+    public bool? IsCreditless { get; init; }
+
+    /// <summary>
     /// Indicates that the released file is corrupted.
     /// </summary>
     public bool IsCorrupted { get; init; }
@@ -137,6 +143,7 @@ public class ReleaseInfo : IReleaseInfo
         Comment = releaseInfo.Comment;
         OriginalFilename = releaseInfo.OriginalFilename;
         IsCensored = releaseInfo.IsCensored;
+        IsCreditless = releaseInfo.IsCreditless;
         IsChaptered = releaseInfo.IsChaptered;
         IsCorrupted = releaseInfo.IsCorrupted;
         Source = releaseInfo.Source;

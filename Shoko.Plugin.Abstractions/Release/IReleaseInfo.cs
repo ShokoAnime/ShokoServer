@@ -62,6 +62,12 @@ public interface IReleaseInfo
     bool? IsChaptered { get; }
 
     /// <summary>
+    /// Indicates that the release is an OP/ED without credits, if it's known by
+    /// the release info provider.
+    /// </summary>
+    bool? IsCreditless { get; }
+
+    /// <summary>
     /// Indicates that the released file is corrupted.
     /// </summary>
     bool IsCorrupted { get; }

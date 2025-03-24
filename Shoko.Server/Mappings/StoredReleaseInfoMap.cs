@@ -23,6 +23,8 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.Comment);
         Map(x => x.OriginalFilename);
         Map(x => x.IsCensored);
+        Map(x => x.IsChaptered);
+        Map(x => x.IsCreditless);
         Map(x => x.IsCorrupted).Not.Nullable();
         Map(x => x.Source).Not.Nullable();
         Map(x => x.GroupID);
