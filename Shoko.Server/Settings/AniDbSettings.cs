@@ -188,7 +188,7 @@ public class AniDbSettings
     [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(Advanced = true)]
     [SectionName("HTTP")]
-    [DisplayName("Rate Limiting")]
+    [Display(Name = "Rate Limiting")]
     public AnidbRateLimitSettings HTTPRateLimit { get; set; } = new();
 
     /// <summary>
