@@ -24,9 +24,6 @@ public class ProviderB : IHashProvider
     public IReadOnlySet<string> AvailableHashTypes => new HashSet<string>(["ED2K", "HASH_B"]);
 
     /// <inheritdoc />
-    public IReadOnlySet<string> DefaultEnabledHashTypes => new HashSet<string>([]);
-
-    /// <inheritdoc />
     public Task<IReadOnlyCollection<HashDigest>> GetHashesForVideo(HashingRequest request, CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyCollection<HashDigest>>([]);
 }

@@ -35,19 +35,9 @@ public class HashProvider(HashProviderInfo info)
     public string? Description { get; init; } = string.IsNullOrEmpty(info.Description) ? null : info.Description;
 
     /// <summary>
-    /// The priority of the hash provider when running in sequential mode.
-    /// </summary>
-    public int Priority { get; init; } = info.Priority;
-
-    /// <summary>
     ///   Gets all available hash types for the provider.
     /// </summary>
     public HashSet<string> AvailableHashTypes { get; init; } = info.Provider.AvailableHashTypes.ToHashSet();
-
-    /// <summary>
-    ///   Gets the default enabled hash types for the provider.
-    /// </summary>
-    public HashSet<string> DefaultEnabledHashTypes { get; init; } = info.Provider.DefaultEnabledHashTypes.ToHashSet();
 
     /// <summary>
     /// The enabled hash types.

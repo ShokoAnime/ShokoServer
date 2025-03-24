@@ -98,12 +98,6 @@ public class HashingController(ISettingsProvider settingsProvider, IPluginManage
                     }
                 }
 
-                if (provider.Priority.HasValue && provider.Priority.Value != p.Priority)
-                {
-                    p.Priority = provider.Priority.Value;
-                    changed = true;
-                }
-
                 if (changed)
                     changedProviders.Add(p);
             }
@@ -163,11 +157,6 @@ public class HashingController(ISettingsProvider settingsProvider, IPluginManage
                 providerInfo.EnabledHashTypes = body.EnabledHashTypes;
                 changed = true;
             }
-        }
-        if (body.Priority.HasValue && body.Priority.Value != providerInfo.Priority)
-        {
-            providerInfo.Priority = body.Priority.Value;
-            changed = true;
         }
 
         if (!ModelState.IsValid)
