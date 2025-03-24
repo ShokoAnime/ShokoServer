@@ -17,6 +17,12 @@ public class ProviderC : IReleaseInfoProvider<ProviderB.ProviderBConfig>
     public string Name => "Provider C";
 
     /// <inheritdoc />
+    public string Description => """
+        Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor
+        incididunt ut labore et dolore magna aliqua.
+    """;
+
+    /// <inheritdoc />
     public Version Version => new(2, 3, 0);
 
     /// <inheritdoc />
