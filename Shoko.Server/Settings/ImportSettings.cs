@@ -75,7 +75,8 @@ public class ImportSettings
     /// <summary>
     /// Max auto-scan attempts per file for unrecognized files.
     /// </summary>
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Display(Name = "Max auto-scan attempts per file")]
     [DefaultValue(15)]
     [Range(0, 100)]
@@ -96,6 +97,8 @@ public class ImportSettings
     /// <summary>
     /// Check if a file is currently being written to when reacting to events in the file watcher.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [Display(Name = "Use File Lock Checking")]
     [RequiresRestart]
     [DefaultValue(true)]
@@ -104,8 +107,10 @@ public class ImportSettings
     /// <summary>
     /// Time between each check to see if a file is currently being written to.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(
         DisplayVisibility.Disabled,
+        Advanced = true,
         ToggleWhenMemberIsSet = nameof(FileLockChecking),
         ToggleWhenSetTo = true,
         ToggleVisibilityTo = DisplayVisibility.Visible
@@ -121,6 +126,8 @@ public class ImportSettings
     /// will try to use a more aggressive method to check if a file is currently
     /// being written to.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [Display(Name = "Use Aggressive File Lock Checking")]
     [RequiresRestart]
     [DefaultValue(true)]
@@ -131,11 +138,13 @@ public class ImportSettings
     /// </summary>
     [Visibility(
         DisplayVisibility.Disabled,
+        Advanced = true,
         Size = DisplayElementSize.Small,
         ToggleWhenMemberIsSet = nameof(AggressiveFileLockChecking),
         ToggleWhenSetTo = true,
         ToggleVisibilityTo = DisplayVisibility.Visible
     )]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Display(Name = "Aggressive File Lock Wait Time (seconds)")]
     [RequiresRestart]
     [DefaultValue(8)]
@@ -145,6 +154,8 @@ public class ImportSettings
     /// <summary>
     /// Skip disk space checks during the move/rename of files.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [Display(Name = "Skip Disk Space Checks")]
     [DefaultValue(false)]
     public bool SkipDiskSpaceChecks { get; set; }
@@ -152,7 +163,8 @@ public class ImportSettings
     /// <summary>
     /// Optional. Custom path to MediaInfo executable.
     /// </summary>
-    [Visibility(Size = DisplayElementSize.Full)]
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Size = DisplayElementSize.Full, Advanced = true)]
     [Display(Name = "Override MediaInfo Path")]
     [DefaultValue(null)]
     public string MediaInfoPath { get; set; }
@@ -161,7 +173,8 @@ public class ImportSettings
     /// Timeout for wait for MediaInfo to finish scanning a file before killing
     /// it.
     /// </summary>
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Display(Name = "MediaInfo Timeout (minutes)")]
     [DefaultValue(5)]
     [Range(1, 60)]

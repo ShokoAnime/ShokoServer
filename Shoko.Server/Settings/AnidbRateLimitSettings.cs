@@ -12,7 +12,8 @@ public class AnidbRateLimitSettings
     /// <summary>
     /// Base rate in seconds for request and the multipliers.
     /// </summary>
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Display(Name = "Base Rate (seconds)")]
     [Range(2, 60)]
     public int BaseRateInSeconds { get; set; } = 2;
@@ -20,21 +21,24 @@ public class AnidbRateLimitSettings
     /// <summary>
     /// Slow rate multiplier applied to the <seealso cref="BaseRateInSeconds">Base Rate</seealso>.
     /// </summary>
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Range(2, 99)]
     public int SlowRateMultiplier { get; set; } = 3;
 
     /// <summary>
     /// Slow rate period multiplier applied to the <seealso cref="BaseRateInSeconds">Base Rate</seealso>.
     /// </summary>
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Range(2, 99)]
     public int SlowRatePeriodMultiplier { get; set; } = 5;
 
     /// <summary>
     /// Reset period multiplier applied to the <seealso cref="BaseRateInSeconds">Base Rate</seealso>.
     /// </summary>
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Range(2, 99)]
     public int ResetPeriodMultiplier { get; set; } = 60;
 }

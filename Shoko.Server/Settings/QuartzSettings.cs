@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using Shoko.Plugin.Abstractions.Config.Attributes;
+using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -30,6 +31,8 @@ public class QuartzSettings
     /// <summary>
     /// Set this value to override the default size of the queue thread pool.
     /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     [RequiresRestart]
     [EnvironmentVariable("QUARTZ_MAX_THREAD_POOL_SIZE")]
     [Range(-1, int.MaxValue)]
@@ -38,6 +41,8 @@ public class QuartzSettings
     /// <summary>
     /// The number of waiting jobs to cache for API usage.
     /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     [RequiresRestart]
     [EnvironmentVariable("QUARTZ_WAITING_CACHE_SIZE")]
     [Range(0, 1000)]
@@ -47,6 +52,8 @@ public class QuartzSettings
     /// A map of Type (yes, you need to look at the source code, under ./Shoko.Server/Scheduling/Jobs) to the number of allowed concurrent jobs of the same type.
     /// Some types will not be able to have a lower limit, due to API restrictions. HashFileJob is included as an example.
     /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     [RequiresRestart]
     [EnvironmentVariable("QUARTZ_CONCURRENCY_LIMITS")]
     public Dictionary<string, int> LimitedConcurrencyOverrides { get; set; } = new()

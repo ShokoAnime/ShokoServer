@@ -185,6 +185,8 @@ public class AniDbSettings
     /// <summary>
     /// Settings for rate limiting the HTTP API.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [SectionName("HTTP")]
     [DisplayName("Rate Limiting")]
     public AnidbRateLimitSettings HTTPRateLimit { get; set; } = new();
@@ -211,6 +213,8 @@ public class AniDbSettings
     /// <summary>
     /// UDP client port to communicate with.
     /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     [SectionName("UDP")]
     [Display(Name = "Client Port")]
     [RequiresRestart]
@@ -219,6 +223,11 @@ public class AniDbSettings
 
     // We set it to 60 seconds due to issues with UDP timeouts behind NAT.
     // 60 seconds is a good default for most users.
+    /// <summary>
+    /// How often to ping the UDP server to keep the session alive.
+    /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [SectionName("UDP")]
     [Display(Name = "Ping Frequency (seconds)")]
     [RequiresRestart]
@@ -228,6 +237,8 @@ public class AniDbSettings
     /// <summary>
     /// Settings for rate limiting the UDP API.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [SectionName("UDP")]
     [Display(Name = "Rate Limiting")]
     public AnidbRateLimitSettings UDPRateLimit { get; set; } = new();
@@ -246,6 +257,8 @@ public class AniDbSettings
     /// The client port to prefer binding to when using AVDump to dump files for
     /// AniDB.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [SectionName("AVDump")]
     [Display(Name = "Client Port")]
     public ushort AVDumpClientPort { get; set; } = 4557;
@@ -253,6 +266,8 @@ public class AniDbSettings
     /// <summary>
     /// AVDump settings
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [SectionName("AVDump")]
     [Display(Name = "Advanced AVDump Settings")]
     public AVDumpSettings AVDump { get; set; } = new();
