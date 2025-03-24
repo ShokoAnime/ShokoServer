@@ -179,7 +179,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
 
             chunkCount++;
 
-            logger.LogTrace("Hashing Chunk: {ChunkSize}", chunkCount.ToString());
+            logger.LogTrace("Hashing chunk {ChunkCount}/{TotalChunks} for path: {Path}", chunkCount, numberOfBlocks, request.Path);
 
             var bytesRead = await stream.ReadAsync(workBuffer.AsMemory(0, bytesToRead), cancellationToken).ConfigureAwait(false);
             if (md4 is not null)
