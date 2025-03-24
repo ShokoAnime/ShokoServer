@@ -28,11 +28,6 @@ public interface IHashProvider
     IReadOnlySet<string> AvailableHashTypes { get; }
 
     /// <summary>
-    ///   Gets the default enabled hash types for the provider.
-    /// </summary>
-    IReadOnlySet<string> DefaultEnabledHashTypes { get; }
-
-    /// <summary>
     ///   Gets all enabled hash types for a video file. The output is filtered
     ///   to only include enabled hash types, so providing other hash types will
     ///   have no effect and is generally not recommended.
