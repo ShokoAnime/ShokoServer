@@ -119,7 +119,13 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Visibility(
+        DisplayVisibility.Disabled,
+        Size = DisplayElementSize.Small,
+        ToggleWhenMemberIsSet = nameof(AutoDownloadBackdrops),
+        ToggleWhenSetTo = true,
+        ToggleVisibilityTo = DisplayVisibility.Visible
+    )]
     public int MaxAutoBackdrops { get; set; } = 10;
 
     /// <summary>
@@ -136,7 +142,13 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Visibility(
+        DisplayVisibility.Disabled,
+        Size = DisplayElementSize.Small,
+        ToggleWhenMemberIsSet = nameof(AutoDownloadPosters),
+        ToggleWhenSetTo = true,
+        ToggleVisibilityTo = DisplayVisibility.Visible
+    )]
     public int MaxAutoPosters { get; set; } = 10;
 
     /// <summary>
@@ -153,7 +165,13 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Visibility(
+        DisplayVisibility.Disabled,
+        Size = DisplayElementSize.Small,
+        ToggleWhenMemberIsSet = nameof(AutoDownloadLogos),
+        ToggleWhenSetTo = true,
+        ToggleVisibilityTo = DisplayVisibility.Visible
+    )]
     public int MaxAutoLogos { get; set; } = 10;
 
     /// <summary>
@@ -170,7 +188,13 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Visibility(
+        DisplayVisibility.Disabled,
+        Size = DisplayElementSize.Small,
+        ToggleWhenMemberIsSet = nameof(AutoDownloadThumbnails),
+        ToggleWhenSetTo = true,
+        ToggleVisibilityTo = DisplayVisibility.Visible
+    )]
     public int MaxAutoThumbnails { get; set; } = 1;
 
     /// <summary>
@@ -186,7 +210,13 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
-    [Visibility(Size = DisplayElementSize.Small)]
+    [Visibility(
+        DisplayVisibility.Disabled,
+        Size = DisplayElementSize.Small,
+        ToggleWhenMemberIsSet = nameof(AutoDownloadStaffImages),
+        ToggleWhenSetTo = true,
+        ToggleVisibilityTo = DisplayVisibility.Visible
+    )]
     public int MaxAutoStaffImages { get; set; } = 10;
 
     /// <summary>
@@ -197,6 +227,8 @@ public class TMDBSettings
     /// <summary>
     /// Optional. User provided TMDB API key to use.
     /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     [EnvironmentVariable("TMDB_API_KEY")]
     [RequiresRestart]
     [PasswordPropertyText]
