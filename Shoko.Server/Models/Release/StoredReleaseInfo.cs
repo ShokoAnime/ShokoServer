@@ -1,8 +1,7 @@
-
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
@@ -10,6 +9,7 @@ using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 
+#nullable enable
 namespace Shoko.Server.Models.Release;
 
 public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IEquatable<StoredReleaseInfo>
@@ -109,7 +109,9 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public List<HashDigest>? Hashes { get; set; }
 
-    public string EmbeddedCrossReferences { get; set; } = string.Empty;
+    // Stored as  a serialized JSON list so each xref can be queried later when
+    // we drop NHibernate and the current in-memory cache.
+    public string EmbeddedCrossReferences { get; set; } = "[]";
 
     public DateOnly? ReleasedAt { get; set; }
 
@@ -117,16 +119,12 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public DateTime CreatedAt { get; set; }
 
+    private IReadOnlyList<EmbeddedCrossReference>? _embeddedCrossReferences;
+
     public IReadOnlyList<IReleaseVideoCrossReference> CrossReferences
     {
-        get => EmbeddedCrossReferences
-            .Split(',')
-            .Select(EmbeddedCrossReference.FromString)
-            .WhereNotNull()
-            .ToList();
-        set => EmbeddedCrossReferences = value
-            .Select(x => x.ToEmbeddedString())
-            .Join(',');
+        get => _embeddedCrossReferences ??= JsonConvert.DeserializeObject<List<EmbeddedCrossReference>>(EmbeddedCrossReferences) ?? [];
+        set => EmbeddedCrossReferences = JsonConvert.SerializeObject(_embeddedCrossReferences = value.Select(x => new EmbeddedCrossReference(x)).ToList());
     }
 
     long? IReleaseInfo.FileSize => ProvidedFileSize;
@@ -241,7 +239,8 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
                 AudioLanguages,
                 SubtitleLanguages,
                 FileSize
-            )
+            ),
+            CrossReferences
         );
     }
 
