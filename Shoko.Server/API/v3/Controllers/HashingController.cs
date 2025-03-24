@@ -25,6 +25,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
+[DatabaseBlockedExempt]
+[InitFriendly]
 public class HashingController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IVideoHashingService videoHashingService) : BaseController(settingsProvider)
 {
     [HttpGet("Summary")]
@@ -37,7 +39,7 @@ public class HashingController(ISettingsProvider settingsProvider, IPluginManage
             AllEnabledHashTypes = videoHashingService.AllEnabledHashTypes,
         };
 
-    [Authorize("admin")]
+    [Authorize(Roles = "admin,init")]
     [HttpPost("Settings")]
     public ActionResult UpdateHashingSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateHashingSettingsBody body)
     {
@@ -69,7 +71,7 @@ public class HashingController(ISettingsProvider settingsProvider, IPluginManage
     /// </summary>
     /// <param name="body">The providers to update.</param>
     /// <returns></returns>
-    [Authorize("admin")]
+    [Authorize(Roles = "admin,init")]
     [ProducesResponseType(200)]
     [HttpPost("Provider")]
     public ActionResult UpdateMultipleHashProviders([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<UpdateMultipleProvidersBody> body)
@@ -132,7 +134,7 @@ public class HashingController(ISettingsProvider settingsProvider, IPluginManage
     /// <param name="providerID">The ID of the hash provider to update.</param>
     /// <param name="body">The provider to update.</param>
     /// <returns>The updated <see cref="HashProvider"/>.</returns>
-    [Authorize("admin")]
+    [Authorize(Roles = "admin,init")]
     [ProducesResponseType(404)]
     [ProducesResponseType(200)]
     [HttpPut("Provider/{providerID}")]
