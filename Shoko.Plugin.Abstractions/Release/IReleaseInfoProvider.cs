@@ -17,10 +17,9 @@ public interface IReleaseInfoProvider
     string Name { get; }
 
     /// <summary>
-    ///   Optional. Description of the release information provider. Can also be
-    ///   defined in an `DisplayAttribute` or as an XML comment.
+    ///   Optional. Description of the release information provider.
     /// </summary>
-    static string? Description { get; }
+    string? Description => null;
 
     /// <summary>
     ///   Version of the release information provider.

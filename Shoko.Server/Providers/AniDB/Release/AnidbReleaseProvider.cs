@@ -50,6 +50,12 @@ public class AnidbReleaseProvider(ILogger<AnidbReleaseProvider> logger, Configur
     /// <inheritdoc/>
     public string Name => "AniDB";
 
+    /// <inheritdoc />
+    public string Description => """
+        The built-in AniDB release provider, using the AniDB UDP API through the
+        internal UDP connection handler.
+    """;
+
     /// <inheritdoc/>
     public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
 

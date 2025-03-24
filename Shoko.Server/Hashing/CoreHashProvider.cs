@@ -28,6 +28,12 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     public string Name => "Built-In Hasher";
 
     /// <inheritdoc/>
+    public string Description => """
+        Responsible for providing the core hashes for a video. Among them, only
+        ED2K is required to be calculated, but not necessarily by this provider.
+    """;
+
+    /// <inheritdoc/>
     public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
 
     /// <inheritdoc/>
