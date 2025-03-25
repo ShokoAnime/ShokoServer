@@ -46,11 +46,15 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
     /// <inheritdoc />
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     public bool LoadImageMetadata { get; set; } = false;
 
     /// <summary>
     /// The maximum number of seconds to cache a repository during startup.
     /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     [Display(Name = "Caching Database Timeout (seconds)")]
     [EnvironmentVariable("DB_CACHING_TIMEOUT")]
     [Range(1, 600, ErrorMessage = "Caching Database Timeout must be between 1 and 600")]
@@ -89,9 +93,13 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public LanguageSettings Language { get; set; } = new();
 
     /// <inheritdoc />
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     public PlexSettings Plex { get; set; } = new();
 
     /// <inheritdoc />
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     public TraktSettings TraktTv { get; set; } = new();
 
     /// <inheritdoc />
@@ -108,6 +116,8 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public LogRotatorSettings LogRotator { get; set; } = new();
 
     /// <inheritdoc />
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
     public LinuxSettings Linux { get; set; } = new();
 
     /// <inheritdoc />
