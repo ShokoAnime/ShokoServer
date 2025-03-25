@@ -10,7 +10,9 @@ public class RenamerSettings
     /// <summary>
     /// Dictionary of enabled renamers.
     /// </summary>
-    [Visibility(Visibility = DisplayVisibility.ReadOnly)]
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [Record(HideAddAction = true, HideRemoveAction = true)]
     public Dictionary<string, bool> EnabledRenamers { get; set; } = [];
 
     /// <summary>
@@ -41,6 +43,7 @@ public class RenamerSettings
     /// <summary>
     /// Name of the default renamer in use.
     /// </summary>
-    [Visibility(Visibility = DisplayVisibility.ReadOnly)]
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Advanced = true)]
     public string DefaultRenamer { get; set; } = "Default";
 }
