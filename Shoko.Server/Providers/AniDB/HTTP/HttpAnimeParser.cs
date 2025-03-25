@@ -304,7 +304,7 @@ public class HttpAnimeParser
     private static TitleLanguage GetLanguageFromXmlAttribute(string lang) =>
         lang.ToLowerInvariant() switch
         {
-            "jp" => TitleLanguage.Japanese,
+            "ja" => TitleLanguage.Japanese,
             "x-jat" => TitleLanguage.Romaji,
             "en" => TitleLanguage.English,
             "af" => TitleLanguage.Afrikaans,
