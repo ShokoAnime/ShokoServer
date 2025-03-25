@@ -18,4 +18,20 @@ public class RecordAttribute : Attribute
     /// Determines if the remove action should be hidden in the UI.
     /// </summary>
     public bool HideRemoveAction { get; set; }
+
+    private bool? _sortable = null;
+
+    /// <summary>
+    /// Determines if the record is sortable in the UI.
+    /// </summary>
+    public bool Sortable
+    {
+        get => _sortable ?? RecordType is not DisplayRecordType.ComplexDropdown;
+        set => _sortable = value;
+    }
+
+    /// <summary>
+    /// Determines how to render the record in the UI.
+    /// </summary>
+    public DisplayRecordType RecordType { get; set; }
 }

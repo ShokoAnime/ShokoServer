@@ -907,6 +907,10 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     private const string RecordElementType = "recordElementType";
 
+    private const string RecordType = "recordType";
+
+    private const string RecordSortable = "recordSortable";
+
     private const string RecordHideAddAction = "recordHideAddAction";
 
     private const string RecordHideRemoveAction = "recordHideRemoveAction";
@@ -1071,11 +1075,15 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 uiDict.Add(RecordElementType, Convert(DisplayElementSize.Normal));
                 if (info.GetAttribute<RecordAttribute>(false) is { } recordAttribute)
                 {
+                    uiDict.Add(RecordType, Convert(recordAttribute.RecordType));
+                    uiDict.Add(RecordSortable, recordAttribute.Sortable);
                     uiDict.Add(RecordHideAddAction, recordAttribute.HideAddAction);
                     uiDict.Add(RecordHideRemoveAction, recordAttribute.HideRemoveAction);
                 }
                 else
                 {
+                    uiDict.Add(RecordType, Convert(DisplayRecordType.Auto));
+                    uiDict.Add(RecordSortable, true);
                     uiDict.Add(RecordHideAddAction, false);
                     uiDict.Add(RecordHideRemoveAction, false);
                 }
