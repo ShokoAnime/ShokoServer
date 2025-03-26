@@ -108,6 +108,11 @@ public class ReleaseInfo : IReleaseInfo
     public IReadOnlyList<ReleaseCrossReference> CrossReferences { get; init; }
 
     /// <summary>
+    /// Metadata about the release from the provider or user, if available.
+    /// </summary>
+    public string? Metadata { get; init; }
+
+    /// <summary>
     /// When the video was released, according to the provider. May or may not
     /// be accurate, but at least it's something. Can be <c>null</c> if not
     /// known.
@@ -151,6 +156,7 @@ public class ReleaseInfo : IReleaseInfo
         Hashes = releaseInfo.Hashes?.Select(h => new File.HashDigest(h)).ToList();
         MediaInfo = releaseInfo.MediaInfo is not null ? new(releaseInfo.MediaInfo) : null;
         CrossReferences = releaseInfo.CrossReferences.Select(x => new ReleaseCrossReference(x)).ToList();
+        Metadata = releaseInfo.Metadata;
         Released = releaseInfo.ReleasedAt;
         Updated = releaseInfo.LastUpdatedAt;
         Created = releaseInfo.CreatedAt;

@@ -113,6 +113,8 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     // we drop NHibernate and the current in-memory cache.
     public string EmbeddedCrossReferences { get; set; } = "[]";
 
+    public string? Metadata { get; set; }
+
     public DateOnly? ReleasedAt { get; set; }
 
     public DateTime LastUpdatedAt { get; set; }

@@ -94,6 +94,11 @@ public class ReleaseInfo
     public List<ReleaseVideoCrossReference> CrossReferences { get; set; } = [];
 
     /// <summary>
+    /// Metadata about the release from the provider or user, if available.
+    /// </summary>
+    public string? Metadata { get; set; }
+
+    /// <summary>
     /// When the video was released, according to the provider. May or may not
     /// be accurate, but at least it's something. Can be <c>null</c> if not
     /// known.
@@ -136,6 +141,7 @@ public class ReleaseInfo
         Hashes = info.Hashes?.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();
         MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
         CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
+        Metadata = info.Metadata;
         ReleasedAt = info.ReleasedAt;
         CreatedAt = info.CreatedAt;
     }
@@ -163,6 +169,7 @@ public class ReleaseInfo
         Hashes = info.Hashes?.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();
         MediaInfo = info.MediaInfo is not null ? new(info.MediaInfo) : null;
         CrossReferences = info.CrossReferences.Select(xref => new ReleaseVideoCrossReference(xref)).ToList();
+        Metadata = info.Metadata;
         ReleasedAt = info.ReleasedAt;
         CreatedAt = info.CreatedAt;
     }

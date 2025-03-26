@@ -98,6 +98,11 @@ public interface IReleaseInfo
     IReadOnlyList<IReleaseVideoCrossReference> CrossReferences { get; }
 
     /// <summary>
+    /// Metadata about the release from the provider or user, if available.
+    /// </summary>
+    string? Metadata { get; }
+
+    /// <summary>
     /// When the video was released, according to the provider. May or may not
     /// be accurate, but at least it's something. Can be <c>null</c> if not
     /// known.
