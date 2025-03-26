@@ -107,7 +107,9 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         _ => "unk",
     };
 
-    public List<HashDigest>? Hashes { get; set; }
+    // Stored as  a serialized JSON list so each hash can be queried later when
+    // we drop NHibernate and the current in-memory cache.
+    public string? EmbeddedHashes { get; set; }
 
     // Stored as  a serialized JSON list so each xref can be queried later when
     // we drop NHibernate and the current in-memory cache.
@@ -127,6 +129,25 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     {
         get => _embeddedCrossReferences ??= JsonConvert.DeserializeObject<List<EmbeddedCrossReference>>(EmbeddedCrossReferences) ?? [];
         set => EmbeddedCrossReferences = JsonConvert.SerializeObject(_embeddedCrossReferences = value.Select(x => new EmbeddedCrossReference(x)).ToList());
+    }
+
+    private List<HashDigest>? _embeddedHashes;
+
+    public List<HashDigest>? Hashes
+    {
+        get => string.IsNullOrEmpty(EmbeddedHashes) ? null : _embeddedHashes ??= JsonConvert.DeserializeObject<List<HashDigest>>(EmbeddedHashes);
+        set
+        {
+            if (value is null)
+            {
+                EmbeddedHashes = null;
+                _embeddedHashes = null;
+            }
+            else
+            {
+                EmbeddedHashes = JsonConvert.SerializeObject(_embeddedHashes = value);
+            }
+        }
     }
 
     long? IReleaseInfo.FileSize => ProvidedFileSize;
