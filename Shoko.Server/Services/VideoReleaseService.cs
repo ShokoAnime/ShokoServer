@@ -561,7 +561,9 @@ public class VideoReleaseService(
 
     private async Task ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo, bool removeFromMylist = true)
     {
-        if (video is VideoLocal videoLocal)
+        // Mark the video as not imported if the video hasn't been deleted from the database,
+        // because the clear method can still be called after the video has been deleted.
+        if (video is VideoLocal videoLocal && videoRepository.GetByID(video.ID) is not null)
         {
             videoLocal.DateTimeImported = null;
             videoRepository.Save(videoLocal);
