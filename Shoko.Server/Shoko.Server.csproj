@@ -22,7 +22,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- Define plugin names here -->
-    <PluginNames>ReleaseExporter</PluginNames>
+    <PluginNames>ReleaseExporter;OfflineImporter</PluginNames>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'ApiLogging' ">
     <DefineConstants>LOGWEB;DEBUG</DefineConstants>
