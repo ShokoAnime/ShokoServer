@@ -65,8 +65,6 @@ public class VideoHashingService(
 
     public event EventHandler? ProvidersUpdated;
 
-    public event EventHandler? Ready;
-
     public bool ParallelMode
     {
         get => configurationProvider.Load().ParallelMode;
@@ -168,8 +166,6 @@ public class VideoHashingService(
         UpdateProviders(false);
 
         logger.LogInformation("Loaded {ProviderCount} providers.", _hashProviderInfos.Count);
-
-        Ready?.Invoke(this, EventArgs.Empty);
     }
 
     #endregion
