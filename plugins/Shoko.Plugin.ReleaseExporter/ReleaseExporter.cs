@@ -111,6 +111,9 @@ public class ReleaseExporter : IHostedService
 
     private void OnVideoReleaseDeleted(object? sender, VideoReleaseEventArgs eventArgs)
     {
+        if (!Configuration.DeletePhysicalReleaseFiles)
+            return;
+
         if (eventArgs.Video.Locations is not { Count: > 0 } locations)
             return;
 

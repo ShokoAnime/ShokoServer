@@ -13,8 +13,16 @@ public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
     /// <summary>
     /// Enables the exporter functionality.
     /// </summary>
-    [Display(Name = "Exporter Enabled")]
+    [Display(Name = "Export Releases")]
     public bool IsExporterEnabled { get; set; }
+
+    /// <summary>
+    /// Deletes the physical release file when a release is deleted from the
+    /// system.
+    /// </summary>
+    [Display(Name = "Also Delete Physical Release Files")]
+    [DefaultValue(true)]
+    public bool DeletePhysicalReleaseFiles { get; set; } = true;
 
     /// <summary>
     /// The extension of the release file.
