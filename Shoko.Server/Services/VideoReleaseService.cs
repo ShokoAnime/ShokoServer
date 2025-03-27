@@ -69,21 +69,11 @@ public class VideoReleaseService(
 
     private Dictionary<Guid, ReleaseProviderInfo> _releaseProviderInfos = [];
 
+    private readonly HashSet<int> _unknownEpisodeIDs = [];
+
     private readonly object _lock = new();
 
     private bool _loaded = false;
-
-    public event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
-
-    public event EventHandler<VideoReleaseEventArgs>? ReleaseDeleted;
-
-    public event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
-
-    public event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
-
-    public event EventHandler? ProvidersUpdated;
-
-    public event EventHandler? Ready;
 
     private bool _autoMatchEnabled = false;
 
@@ -103,6 +93,18 @@ public class VideoReleaseService(
             ProvidersUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    public event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
+
+    public event EventHandler<VideoReleaseEventArgs>? ReleaseDeleted;
+
+    public event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
+
+    public event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
+
+    public event EventHandler? ProvidersUpdated;
+
+    public event EventHandler? Ready;
 
     public void AddParts(IEnumerable<IReleaseInfoProvider> providers)
     {
@@ -650,6 +652,12 @@ public class VideoReleaseService(
             if (xref.AnidbEpisodeID is <= 0)
                 continue;
 
+            if (_unknownEpisodeIDs.Contains(xref.AnidbEpisodeID))
+            {
+                logger.LogError("Unknown episode with id {EpisodeID}!", xref.AnidbEpisodeID);
+                continue;
+            }
+
             // The provider doesn't know which anime the episode belongs to, so try to fix that.
             var animeID = xref.AnidbAnimeID;
             if (animeID is null or <= 0)
@@ -672,6 +680,12 @@ public class VideoReleaseService(
                             .Create<RequestGetEpisode>(r => r.EpisodeID = xref.AnidbEpisodeID)
                             .Send();
                         animeID = episodeResponse.Response?.AnimeID;
+                        if (episodeResponse.Code is Providers.AniDB.UDPReturnCode.NO_SUCH_EPISODE)
+                        {
+                            logger.LogError("Unknown episode with id {EpisodeID}!", xref.AnidbEpisodeID);
+                            _unknownEpisodeIDs.Add(xref.AnidbEpisodeID);
+                            continue;
+                        }
                     }
                     catch (Exception e)
                     {
