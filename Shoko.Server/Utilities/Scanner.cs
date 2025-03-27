@@ -10,9 +10,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper;
+using Shoko.Server.Hashing;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -205,11 +206,6 @@ public class Scanner : INotifyPropertyChangedExt
     private bool cancelIntegrityCheck;
     internal SVR_Scan RunScan;
 
-    public static int OnHashProgress(string fileName, int percentComplete)
-    {
-        return 1; //continue hashing (return 0 to abort)
-    }
-
     private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
     {
         if (RunScan != null && (ScanStatus)RunScan.Status != ScanStatus.Finish)
@@ -222,6 +218,8 @@ public class Scanner : INotifyPropertyChangedExt
             Refresh();
             var files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
             var cnt = 0;
+            var hashingService = Utils.ServiceContainer.GetRequiredService<IVideoHashingService>();
+            var hasher = hashingService.GetProviderInfo<CoreHashProvider>().Provider;
             foreach (var sf in files)
             {
                 try
@@ -239,15 +237,16 @@ public class Scanner : INotifyPropertyChangedExt
                         }
                         else
                         {
-                            var hashes = Hasher.CalculateHashes(sf.FullName, OnHashProgress, false, false, false);
-                            if (string.IsNullOrEmpty(hashes.ED2K))
+                            var hashes = hasher.GetHashesForVideo(new() { File = new(sf.FullName), EnabledHashTypes = new HashSet<string>() { "ED2K" } }).GetAwaiter().GetResult();
+                            var ed2k = hashes.FirstOrDefault(a => a.Type is "ED2K")?.Value;
+                            if (string.IsNullOrEmpty(ed2k))
                             {
                                 sf.Status = (int)ScanFileStatus.ErrorMissingHash;
                             }
                             else
                             {
-                                sf.HashResult = hashes.ED2K;
-                                if (!sf.Hash.Equals(sf.HashResult, StringComparison.InvariantCultureIgnoreCase))
+                                sf.HashResult = ed2k;
+                                if (!sf.Hash.Equals(ed2k, StringComparison.InvariantCultureIgnoreCase))
                                 {
                                     sf.Status = (int)ScanFileStatus.ErrorInvalidHash;
                                 }

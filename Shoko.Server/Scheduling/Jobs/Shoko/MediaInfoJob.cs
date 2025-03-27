@@ -17,7 +17,7 @@ public class MediaInfoJob : BaseJob
 {
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    private SVR_VideoLocal _vlocal;
+    private VideoLocal _vlocal;
     private string _fileName;
 
     public int VideoLocalID { get; set; }
@@ -29,7 +29,7 @@ public class MediaInfoJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal.FirstValidPlace?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal.FirstValidPlace?.Path);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
@@ -45,7 +45,7 @@ public class MediaInfoJob : BaseJob
             return Task.CompletedTask;
         }
 
-        if (_vlPlaceService.RefreshMediaInfo(place))
+        if (_vlPlaceService.RefreshMediaInfo(place, _vlocal))
         {
             RepoFactory.VideoLocal.Save(place.VideoLocal, true);
         }

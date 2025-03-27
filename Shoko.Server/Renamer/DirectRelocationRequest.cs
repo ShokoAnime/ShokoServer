@@ -9,25 +9,25 @@ namespace Shoko.Server.Renamer;
 public record DirectRelocateRequest
 {
     /// <summary>
-    /// The import folder where the file should be relocated to.
+    /// The managed folder where the file should be relocated to.
     /// </summary>
-    public IImportFolder? ImportFolder = null;
+    public IManagedFolder? ManagedFolder { get; set; } = null;
 
     /// <summary>
-    /// The relative path from the <see cref="ImportFolder"/> where the file
+    /// The relative path from the <see cref="ManagedFolder"/> where the file
     /// should be relocated to.
     /// </summary>
-    public string? RelativePath = null;
+    public string? RelativePath { get; set; } = null;
 
     /// <summary>
     /// Indicates whether empty directories should be deleted after
     /// relocating the file.
     /// </summary>
-    public bool DeleteEmptyDirectories = true;
+    public bool DeleteEmptyDirectories { get; set; } = true;
 
     /// <summary>
     /// Indicates that we can relocate a video file that lives inside a
-    /// drop destination import folder that's not also a drop source.
+    /// drop destination managed folder that's not also a drop source.
     /// </summary>
     public bool AllowRelocationInsideDestination { get; set; } = true;
 }

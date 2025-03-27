@@ -123,7 +123,7 @@ public static class QuartzStartup
     private static void AddJobs(this IServiceCollection services)
     {
         services.AddTransient<ScanFolderJob>();
-        services.AddTransient<DeleteImportFolderJob>();
+        services.AddTransient<DeleteManagedFolderJob>();
         services.AddTransient<ScanDropFoldersJob>();
         services.AddTransient<RemoveMissingFilesJob>();
         services.AddTransient<MediaInfoAllFilesJob>();
@@ -142,7 +142,7 @@ public static class QuartzStartup
                 throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
 
             const string DefaultSource = SchedulerBuilder.AdoProviderOptions.DefaultDataSourceName;
-            if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLServer)
             {
                 EnsureQuartzDatabaseExists_SQLServer(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SqlServerDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -150,7 +150,7 @@ public static class QuartzStartup
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "SqlServer");
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
-            else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
+            else if (settings.Quartz.DatabaseType is Constants.DatabaseType.MySQL)
             {
                 EnsureQuartzDatabaseExists_MySQL(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(MySQLDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -158,7 +158,7 @@ public static class QuartzStartup
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "MySqlConnector");
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
-            else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
+            else if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLite)
             {
                 EnsureQuartzDatabaseExists_SQLite(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SQLiteDelegate).AssemblyQualifiedNameWithoutVersion());
