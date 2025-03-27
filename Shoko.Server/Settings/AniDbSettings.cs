@@ -16,8 +16,9 @@ public class AniDbSettings
     /// </summary>
     [SectionName("Login")]
     [EnvironmentVariable("ANIDB_USER")]
-    [Required(AllowEmptyStrings = false)]
-    public string Username { get; set; }
+    [DefaultValue("")]
+    [Required(AllowEmptyStrings = true)]
+    public string Username { get; set; } = "";
 
     /// <summary>
     /// AniDB password.
@@ -25,8 +26,9 @@ public class AniDbSettings
     [SectionName("Login")]
     [PasswordPropertyText]
     [EnvironmentVariable("ANIDB_PASS")]
-    [Required(AllowEmptyStrings = false)]
-    public string Password { get; set; }
+    [DefaultValue("")]
+    [Required(AllowEmptyStrings = true)]
+    public string Password { get; set; } = "";
 
     /// <summary>
     /// Download character images from AniDB.
