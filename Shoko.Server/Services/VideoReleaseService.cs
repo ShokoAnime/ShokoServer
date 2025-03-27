@@ -569,7 +569,7 @@ public class VideoReleaseService(
             videoRepository.Save(videoLocal);
         }
 
-        var xrefs = xrefRepository.GetByEd2k(video.Hashes.ED2K);
+        var xrefs = xrefRepository.GetByEd2k(releaseInfo.ED2K);
         xrefRepository.Delete(xrefs);
 
         releaseInfoRepository.Delete(releaseInfo);
