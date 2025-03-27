@@ -47,12 +47,6 @@ public interface IVideoReleaseService
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
-    ///   Event raised when all release info providers are registered and the
-    ///   service is ready for use.
-    /// </summary>
-    event EventHandler? Ready;
-
-    /// <summary>
     ///   Gets a value indicating whether any release info providers are enabled
     ///   for auto-matching.
     /// </summary>

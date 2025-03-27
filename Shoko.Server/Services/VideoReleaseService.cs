@@ -104,8 +104,6 @@ public class VideoReleaseService(
 
     public event EventHandler? ProvidersUpdated;
 
-    public event EventHandler? Ready;
-
     public void AddParts(IEnumerable<IReleaseInfoProvider> providers)
     {
         if (_loaded) return;
@@ -154,8 +152,6 @@ public class VideoReleaseService(
         UpdateProviders(false);
 
         logger.LogInformation("Loaded {ProviderCount} providers.", _releaseProviderInfos.Count);
-
-        Ready?.Invoke(this, EventArgs.Empty);
     }
 
     public IEnumerable<ReleaseProviderInfo> GetAvailableProviders(bool onlyEnabled = false)

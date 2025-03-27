@@ -33,12 +33,6 @@ public interface IVideoHashingService
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
-    ///   Event raised when all hash providers are registered and the service is
-    ///   ready for use.
-    /// </summary>
-    event EventHandler? Ready;
-
-    /// <summary>
     ///   Gets or sets a value indicating whether to use parallel mode. Parallel
     ///   mode will allow all providers to hash the same file at the same time.
     ///   <br/>
