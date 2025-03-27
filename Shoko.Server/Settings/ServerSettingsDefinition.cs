@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Settings;
 
-public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWithCustomSaveLocation, IConfigurationDefinitionWithMigrations, IConfigurationDefinitionWithCustomActions<ServerSettings>
+public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWithCustomSaveLocation, IConfigurationDefinitionWithCustomValidation<ServerSettings>, IConfigurationDefinitionWithMigrations, IConfigurationDefinitionWithCustomActions<ServerSettings>
 {
     private readonly ILogger<ServerSettingsDefinition> _logger;
 
@@ -148,5 +149,15 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
             _logger.LogError(ex, "AniDB Login Failed!");
             return new("AniDB Login Failed!", DisplayColorTheme.Danger) { RefreshConfiguration = false };
         }
+    }
+
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ServerSettings config)
+    {
+        var dictionary = new Dictionary<string, IReadOnlyList<string>>();
+        if (!config.FirstRun && config.AniDb.Username is not { Length: > 0 })
+            dictionary.Add("AniDb.Username", ["AniDb.Username cannot be empty or null if FirstRun is set to false."]);
+        if (!config.FirstRun && config.AniDb.Password is not { Length: > 0 })
+            dictionary.Add("AniDb.Password", ["AniDb.Password cannot be empty or null if FirstRun is set to false."]);
+        return dictionary;
     }
 }
