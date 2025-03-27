@@ -116,7 +116,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     #region Configuration Info
 
-    private static readonly HashSet<string> _configurationSuffixSet = ["Setting", "Settings", "Conf", "Config", "Configuration"];
+    private static readonly HashSet<string> _configurationSuffixSet = ["Setting", "Conf", "Config", "Configuration"];
 
     public void AddParts(IEnumerable<Type> configurationTypes, IEnumerable<Type> configurationDefinitions)
     {
@@ -1304,12 +1304,26 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             return displayAttribute.Name;
 
         var name = TypeReflectionExtensions.GetDisplayName(contextualType);
+        label:
         foreach (var suffix in _configurationSuffixSet)
         {
-            var endWith = $" {suffix}";
-            if (name.EndsWith(endWith, StringComparison.OrdinalIgnoreCase))
-                name = name[..^endWith.Length];
+            if (name == suffix)
+            {
+                // I don't want to deal with generic types rn, so bail.
+                if (contextualType.Type.IsGenericType)
+                    break;
+
+                name = contextualType.Type.FullName!.Split('.').SkipLast(1).Join('.');
+                goto label;
+            }
+
+            var endsWith = $" {suffix}";
+            if (name.EndsWith(endsWith, StringComparison.OrdinalIgnoreCase))
+                name = name[..^endsWith.Length];
+            if (name.EndsWith($"{endsWith}s", StringComparison.OrdinalIgnoreCase))
+                name = name[..^endsWith.Length];
         }
+
         return name;
     }
 
