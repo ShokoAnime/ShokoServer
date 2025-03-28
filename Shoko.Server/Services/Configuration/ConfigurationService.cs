@@ -707,42 +707,44 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         }
     }
 
-    private static string AddSchemaProperty(ConfigurationInfo info, string json)
+    private string AddSchemaProperty(ConfigurationInfo info, string json)
     {
         if (json.Contains("$schema") || info.Path is null)
             return json;
 
+        var newLine = Environment.NewLine;
         if (json[0] == '{')
         {
-            var baseUri = $"file://{Path.ChangeExtension(info.Path, ".schema.json").Replace("\"", "\\\"")}";
-            if (json[1] == '\n')
+            var baseUri = JsonConvert.SerializeObject($"file://{Path.ChangeExtension(info.Path, ".schema.json")}", _newtonsoftJsonSerializerSettings);
+            if (json[1..(1 + newLine.Length)] == newLine)
             {
-                if (json[2] == ' ')
+                var nextIndex = 1 + newLine.Length;
+                if (json[nextIndex] == ' ')
                 {
                     var spaceLength = 0;
-                    for (var i = 2; i < json.Length; i++)
+                    for (var i = nextIndex; i < json.Length; i++)
                     {
                         if (json[i] != ' ')
                             break;
                         spaceLength++;
                     }
-                    return "{\n" + new string(' ', spaceLength) + "\"$schema\": \"" + baseUri + "\"," + json[1..];
+                    return "{" + newLine + new string(' ', spaceLength) + "\"$schema\": " + baseUri + "," + json[1..];
                 }
 
-                if (json[2] == '\t')
+                if (json[nextIndex] == '\t')
                 {
                     var tabLength = 0;
-                    for (var i = 2; i < json.Length; i++)
+                    for (var i = nextIndex; i < json.Length; i++)
                     {
                         if (json[i] != '\t')
                             break;
                         tabLength++;
                     }
-                    return "{\n" + new string('\t', tabLength) + "\"$schema\": \"" + baseUri + "\"," + json[1..];
+                    return "{" + newLine + new string('\t', tabLength) + "\"$schema\": " + baseUri + "," + json[1..];
                 }
             }
 
-            return "{\"$schema\":\"" + baseUri + "\"," + json[1..];
+            return "{\"$schema\":" + baseUri + "," + json[1..];
         }
         return json;
     }

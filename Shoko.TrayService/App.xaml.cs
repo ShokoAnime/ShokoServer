@@ -52,10 +52,7 @@ public partial class App
 
         try
         {
-            var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
-            settingsProvider.LoadSettings();
-            Utils.SettingsProvider = settingsProvider;
-            var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+            var startup = new Startup(logFactory);
             startup.AboutToStart += (_, _) => AddEventHandlers();
             startup.Start().ConfigureAwait(true).GetAwaiter().GetResult();
         }
