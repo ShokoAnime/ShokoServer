@@ -158,13 +158,15 @@ public class PlexHelper
 
     private Dictionary<string, string> AuthenticationHeaders => new() { { "X-Plex-Token", GetPlexToken() } };
 
+    private DateTime? _lastAuthenticated = null;
+
     public bool IsAuthenticated
     {
         get
         {
-            if (isAuthenticated is true)
+            if (_lastAuthenticated is not null && DateTime.Now - _lastAuthenticated > TimeSpan.FromMinutes(30))
             {
-                return isAuthenticated.GetValueOrDefault(false);
+                return true;
             }
 
             try
