@@ -73,18 +73,28 @@ public record MatchRuleResult
     public required string RuleName { get; set; }
 
     /// <summary>
+    /// An empty result.
+    /// </summary>
+    public static MatchRuleResult Empty => new()
+    {
+        Success = false,
+        FilePath = string.Empty,
+        RuleName = "none",
+    };
+
+    /// <summary>
     /// Attempts to match a file path to a rule.
     /// </summary>
     /// <param name="filePath"></param>
     /// <returns></returns>
-    public static MatchRuleResult? Match(string? filePath)
+    public static MatchRuleResult Match(string? filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
-            return null;
+            return Empty;
 
         var fileName = Path.GetFileName(filePath);
         if (string.IsNullOrWhiteSpace(fileName))
-            return null;
+            return Empty;
 
         foreach (var rule in _rules)
         {
@@ -137,12 +147,12 @@ public record MatchRuleResult
                     FileExtension = match.Groups["extension"]?.Value,
                     ReleaseGroup = match.Groups["releaseGroup"]?.Value,
                     ShowName = showName,
-                    Season = match.Groups["season"]?.Value != null ? int.Parse(match.Groups["season"].Value) : null,
+                    Season = match.Groups["season"].Value is { Length: > 0 } ? int.Parse(match.Groups["season"].Value) : null,
                     EpisodeName = match.Groups["episodeName"]?.Value,
                     EpisodeStart = episodeStart,
                     EpisodeEnd = episodeEnd,
                     EpisodeType = episodeType,
-                    Version = match.Groups["version"]?.Value != null ? int.Parse(match.Groups["version"].Value) : null,
+                    Version = match.Groups["version"].Value is { Length: > 0 } ? int.Parse(match.Groups["version"].Value) : null,
                     RuleName = rule.Name,
                 };
 
@@ -157,27 +167,27 @@ public record MatchRuleResult
             }
         }
 
-        return null;
+        return Empty;
     }
 
     private static EpisodeType DetectEpisodeType(GroupCollection matchGroups)
     {
-        if (matchGroups["isSpecial"]?.Value != null)
+        if (matchGroups["isSpecial"].Success)
         {
             return EpisodeType.Special;
         }
 
-        if (matchGroups["isThemeSong"]?.Value != null)
+        if (matchGroups["isThemeSong"].Success)
         {
             return EpisodeType.Credits;
         }
 
-        if (matchGroups["isOther"]?.Value != null)
+        if (matchGroups["isOther"].Success)
         {
             return EpisodeType.Other;
         }
 
-        if (matchGroups["isTrailer"]?.Value != null)
+        if (matchGroups["isTrailer"].Success)
         {
             return EpisodeType.Trailer;
         }
