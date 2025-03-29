@@ -13,7 +13,10 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
+using Shoko.Plugin.Abstractions.Config.Attributes;
+using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Exceptions;
 using Shoko.Plugin.Abstractions.Hashing;
@@ -23,11 +26,19 @@ using Shoko.Plugin.Abstractions.Services;
 namespace Shoko.Plugin.OfflineImporter;
 
 /// <summary>
-/// Imports releases based on file names. By default operates in lax mode
-/// which guesses based on any clues in all known files names for the video,
-/// but can be configured to operate in strict mode, which means it will
-/// only look for anidb bracket tags in the file and folder names to match
-/// against.
+/// Imports releases based on file paths.
+///
+/// By default operates only using the local database, local cache, and
+/// local title search. Online refresh can be enabled if desired, but it's
+/// designed to function without it.
+///
+/// You have three different operation modes; lax, strict (with extra info),
+/// and strict (without extra info). By default it operates in lax mode,
+/// which guesses based on all clues if finds in the file name. Then we have
+/// strict mode, where it will only look for anidb bracket tags in the file
+/// and folder names to match against, optionally with extra info from the
+/// lax mode enabled without using the lax search for the cross-reference
+/// info.
 /// </summary>
 public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicationPaths applicationPaths, IAniDBService anidbService, ConfigurationProvider<OfflineImporter.Configuration> configurationProvider) : IReleaseInfoProvider<OfflineImporter.Configuration>
 {
@@ -38,11 +49,19 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
 
     /// <inheritdoc/>
     public string Description => """
-        Imports releases based on file names. By default operates in lax mode
-        which guesses based on any clues in all known files names for the video,
-        but can be configured to operate in strict mode, which means it will
-        only look for anidb bracket tags in the file and folder names to match
-        against.
+        Imports releases based on file paths.
+
+        By default operates only using the local database, local cache, and
+        local title search. Online refresh can be enabled if desired, but it's
+        designed to function without it.
+
+        You have three different operation modes; lax, strict (with extra info),
+        and strict (without extra info). By default it operates in lax mode,
+        which guesses based on all clues if finds in the file name. Then we have
+        strict mode, where it will only look for anidb bracket tags in the file
+        and folder names to match against, optionally with extra info from the
+        lax mode enabled without using the lax search for the cross-reference
+        info.
     """;
 
     /// <inheritdoc/>
@@ -56,70 +75,79 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         var config = configurationProvider.Load();
         foreach (var location in video.Locations)
         {
-            if (!location.IsAvailable)
+            var filePath = location.Path;
+            if (string.IsNullOrEmpty(filePath))
             {
                 logger.LogDebug("Location is not available: {Path} (ManagedFolder={ManagedFolderID})", location.RelativePath, location.ManagedFolderID);
                 continue;
             }
 
-            var filePath = location.Path;
-            var animeId = (int?)null;
+            if (!config.SkipAvailabilityCheck && !location.IsAvailable)
+            {
+                logger.LogDebug("Location is not available: {Path} (ManagedFolder={ManagedFolderID})", location.RelativePath, location.ManagedFolderID);
+                continue;
+            }
+
             var releaseInfo = (ReleaseInfo?)null;
             var parts = location.RelativePath[1..].Split('/');
             var (folderName, fileName) = parts.Length > 1 ? (parts[^2], parts[^1]) : (null, parts[0]);
             var filenameMatch = filenameRegex.Match(fileName);
-            var folderNameMatch = string.IsNullOrEmpty(folderName) ? null : folderRegex.Match(folderName);
+            var match = config.Mode is not Configuration.MatchMode.StrictAndFast
+                ? MatchRuleResult.Match(filePath)
+                : MatchRuleResult.Empty;
             if (filenameMatch.Success)
-            {
-                logger.LogDebug("Found strict match: {FileName}", fileName);
                 releaseInfo = (await GetReleaseInfoById(OfflinePrefix + filenameMatch.Value, cancellationToken))!;
-                if (config.Mode is not Configuration.MatchMode.StrictAndFast && await GetReleaseInfoByFileName(filePath, cancellationToken) is { } extraReleaseInfo)
-                {
-                    releaseInfo.ReleaseURI = extraReleaseInfo.ReleaseURI;
-                    releaseInfo.Group = extraReleaseInfo.Group;
-                    releaseInfo.Revision = extraReleaseInfo.Revision;
-                    releaseInfo.IsCensored = extraReleaseInfo.IsCensored;
-                    releaseInfo.IsCreditless = extraReleaseInfo.IsCreditless;
-                    releaseInfo.IsChaptered = extraReleaseInfo.IsChaptered;
-                    releaseInfo.IsCorrupted = extraReleaseInfo.IsCorrupted;
-                    releaseInfo.Source = extraReleaseInfo.Source;
-                    releaseInfo.MediaInfo = extraReleaseInfo.MediaInfo;
-                    releaseInfo.CrossReferences = extraReleaseInfo.CrossReferences;
-                    releaseInfo.Metadata = extraReleaseInfo.Metadata;
-                    releaseInfo.ReleasedAt = extraReleaseInfo.ReleasedAt;
-                    releaseInfo.CreatedAt = extraReleaseInfo.CreatedAt;
-                }
-            }
-            else if (config.Mode is Configuration.MatchMode.Lax)
-            {
-                releaseInfo = await GetReleaseInfoByFileName(filePath, cancellationToken);
-            }
-
+            else if (config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
+                releaseInfo = await GetReleaseInfoByFileName(match, cancellationToken);
             if (releaseInfo is not { CrossReferences.Count: > 0 })
                 continue;
 
-            if (video.MediaInfo is { } mediaInfo)
+            if (releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0))
             {
-                if (mediaInfo.Encoded is { } encodedAt && (releaseInfo.ReleasedAt is null || releaseInfo.ReleasedAt > DateOnly.FromDateTime(encodedAt)))
-                    releaseInfo.ReleasedAt = DateOnly.FromDateTime(encodedAt);
-
-                releaseInfo.IsChaptered = mediaInfo.Chapters.Count > 0;
+                var animeId = (int?)null;
+                var folderNameMatch = string.IsNullOrEmpty(folderName) ? null : folderRegex.Match(folderName);
+                if (folderNameMatch is { Success: true })
+                    animeId = int.Parse(folderNameMatch.Value[6..^1].Trim());
+                if (animeId is > 0)
+                    foreach (var xref in releaseInfo.CrossReferences)
+                        if (xref.AnidbAnimeID is null or <= 0)
+                            xref.AnidbAnimeID = animeId;
             }
+
             releaseInfo.FileSize = video.Size;
             releaseInfo.Hashes = video.Hashes.Hashes
                 .Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata })
                 .ToList();
 
-            if (releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0))
+            if (video.MediaInfo is { } mediaInfo)
             {
-                if (folderNameMatch is { Success: true })
-                    animeId = int.Parse(folderNameMatch.Value[6..^1].Trim());
-                else if (config.Mode is Configuration.MatchMode.Lax && !string.IsNullOrWhiteSpace(folderName))
-                    animeId = GetAnimeIdByFolderName(folderName, cancellationToken);
-                if (animeId is > 0)
-                    foreach (var xref in releaseInfo.CrossReferences)
-                        if (xref.AnidbAnimeID is null or <= 0)
-                            xref.AnidbAnimeID = animeId;
+                if (mediaInfo.Encoded is { } encodedAt && encodedAt > DateTime.MinValue)
+                    releaseInfo.ReleasedAt = DateOnly.FromDateTime(encodedAt);
+
+                releaseInfo.IsChaptered = mediaInfo.Chapters.Count > 0;
+            }
+
+            if (match is { Success: true })
+            {
+                var group = (ReleaseGroup?)null;
+                if (!string.IsNullOrEmpty(match.ReleaseGroup))
+                {
+                    if (configurationProvider.Load().MapAsAnidbGroupIfPossible)
+                        group = OfflineReleaseGroupSearch.LookupByName(match.ReleaseGroup, applicationPaths);
+                    group ??= new() { ID = match.ReleaseGroup, Name = match.ReleaseGroup, ShortName = match.ReleaseGroup, Source = "Offline" };
+                }
+
+                var isCreditless = CreditlessRegex().IsMatch(match.FilePath);
+                var isCensored = CensoredRegex().Match(match.FilePath) is { Success: true } censoredResult ? !censoredResult.Groups["isDe"].Success : (bool?)null;
+
+                releaseInfo.Group = group;
+                releaseInfo.OriginalFilename = Path.GetFileName(match.FilePath);
+                releaseInfo.Revision = match.Version ?? 1;
+                releaseInfo.Metadata = JsonConvert.SerializeObject(match);
+                releaseInfo.IsCensored = isCensored;
+                releaseInfo.IsCreditless = isCreditless;
+                // Assume the creation date has been properly set in the file-system.
+                releaseInfo.ReleasedAt ??= DateOnly.FromDateTime(File.GetCreationTimeUtc(match.FilePath));
             }
 
             return releaseInfo;
@@ -128,12 +156,9 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         return null;
     }
 
-    private async Task<ReleaseInfo?> GetReleaseInfoByFileName(string filePath, CancellationToken cancellationToken)
+    private async Task<ReleaseInfo?> GetReleaseInfoByFileName(MatchRuleResult match, CancellationToken cancellationToken)
     {
-        if (MatchRuleResult.Match(filePath) is not { Success: true } match)
-            return null;
-
-        logger.LogDebug("Found potential match {ShowName} for {FileName}", match.ShowName, filePath);
+        logger.LogDebug("Found potential match {ShowName} for {FileName}", match.ShowName, match.FilePath);
         if (anidbService.Search(match.ShowName!) is not { Count: > 0 } searchResults)
         {
             logger.LogDebug("No search results found for {ShowName}", match.ShowName);
@@ -141,62 +166,115 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         }
 
         logger.LogDebug("Found {Count} search results for {ShowName0}, picking first one; {ShowName1}", searchResults.Count, match.ShowName, searchResults[0].DefaultTitle);
-        if (searchResults[0].AnidbAnime is not { } anime)
+        return await GetReleaseInfoForMatchAndAnime(match, searchResults[0], cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<ReleaseInfo?> GetReleaseInfoForMatchAndAnime(MatchRuleResult match, IAnidbAnimeSearchResult searchResult, CancellationToken cancellationToken, int depth = 0)
+    {
+        var anime = searchResult.AnidbAnime;
+        if (
+            anime is null ||
+            !anime.Episodes.Any(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd && x.EpisodeNumber >= match.EpisodeStart)
+        )
         {
-            logger.LogDebug("Refreshing AniDB Anime {AnimeName} (Anime={AnimeID})", searchResults[0].DefaultTitle, searchResults[0].ID);
-            try
+            logger.LogDebug("Refreshing AniDB Anime {AnimeName} (Anime={AnimeID})", searchResult.DefaultTitle, searchResult.ID);
+            anime ??= await anidbService.RefreshByID(searchResult.ID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate, cancellationToken).ConfigureAwait(false);
+            if (configurationProvider.Load().AllowRemote && (
+                anime is null ||
+                !anime.Episodes.Any(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd && x.EpisodeNumber >= match.EpisodeStart)
+            ))
             {
-                anime = await anidbService.RefreshByID(searchResults[0].ID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).ConfigureAwait(false);
-                if (anime is null)
+                try
                 {
-                    anime = await anidbService.RefreshByID(searchResults[0].ID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.SkipTmdbUpdate | AnidbRefreshMethod.IgnoreTimeCheck).ConfigureAwait(false);
+                    anime = await anidbService.RefreshByID(searchResult.ID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.SkipTmdbUpdate, cancellationToken).ConfigureAwait(false);
                     if (anime is null)
                         return null;
                 }
+                catch (AnidbHttpBannedException ex)
+                {
+                    logger.LogWarning("Got banned while refreshing {AnimeName}: {Message}", searchResult.DefaultTitle, ex.Message);
+                    return null;
+                }
             }
-            catch (AnidbHttpBannedException ex)
-            {
-                logger.LogWarning("Got banned while searching for {ShowName}: {Message}", match.ShowName, ex.Message);
+
+            if (anime is null || !anime.Episodes.Any(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd && x.EpisodeNumber >= match.EpisodeStart))
                 return null;
-            }
         }
 
-        var episodes = anime.Episodes
+        // Prevents following movies when searching for sequels, since we can't
+        // know beforehand if the anidb anime is a movie before we potentially
+        // fetch it.
+        if (depth is > 0 && anime is { Type: AnimeType.Movie or AnimeType.Unknown })
+        {
+            logger.LogDebug("Skipping unknown or movie {ShowName}", anime.DefaultTitle);
+            return null;
+        }
+
+        var allEpisodes = anime.Episodes.ToList();
+        var episodes = allEpisodes
             .Where(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd && x.EpisodeNumber >= match.EpisodeStart)
             .ToList();
         if (episodes.Count == 0)
-            return null;
-
-        var group = (ReleaseGroup?)null;
-        if (!string.IsNullOrEmpty(match.ReleaseGroup))
         {
-            if (configurationProvider.Load().MapAsAnidbGroupIfPossible)
-                group = OfflineReleaseGroupSearch.LookupByName(match.ReleaseGroup, applicationPaths);
-            group ??= new() { ID = match.ReleaseGroup, Name = match.ReleaseGroup, ShortName = match.ReleaseGroup, Source = "Offline" };
+            var highestEpisodeNumber = allEpisodes.Count > 0 ? allEpisodes.Max(x => x.EpisodeNumber) : 0;
+            if (match.EpisodeStart > highestEpisodeNumber)
+            {
+                logger.LogDebug("Found episode range is above last episode, trying to find sequel for {ShowName}", match.ShowName);
+                var sequels = anime.RelatedSeries.Where(x => x.RelationType == RelationType.Sequel)
+                    .ToList();
+                if (sequels.Count == 0)
+                {
+                    logger.LogDebug("No sequels found for {ShowName}", match.ShowName);
+                    return null;
+                }
+
+                foreach (var sequel in sequels)
+                {
+                    var sequelSearch = anidbService.SearchByID(sequel.RelatedID);
+                    if (sequelSearch is null)
+                    {
+                        logger.LogDebug("Unknown sequel by ID {RelatedID} for {ShowName}", searchResult.ID, anime.DefaultTitle);
+                        continue;
+                    }
+
+                    var sequelMatch = new MatchRuleResult()
+                    {
+                        Success = true,
+                        FilePath = match.FilePath,
+                        FileExtension = match.FileExtension,
+                        EpisodeName = match.EpisodeName,
+                        EpisodeEnd = match.EpisodeEnd - highestEpisodeNumber,
+                        EpisodeStart = match.EpisodeStart - highestEpisodeNumber,
+                        EpisodeType = match.EpisodeType,
+                        ReleaseGroup = match.ReleaseGroup,
+                        Season = match.Season,
+                        ShowName = match.ShowName,
+                        Version = match.Version,
+                        RuleName = match.RuleName,
+                    };
+                    logger.LogDebug("Attempting sequel {ShowName} (Anime={AnimeID})", sequelSearch.DefaultTitle, sequel.RelatedID);
+                    var sequelResult = await GetReleaseInfoForMatchAndAnime(sequelMatch, sequelSearch, cancellationToken, depth + 1).ConfigureAwait(false);
+                    if (sequelResult is not null)
+                    {
+                        logger.LogDebug("Found sequel for {ShowName}", match.ShowName);
+                        return sequelResult;
+                    }
+                }
+
+                logger.LogDebug("No matched sequels found for {ShowName}", match.ShowName);
+                return null;
+            }
+
+            logger.LogDebug("No episodes found for {ShowName}", match.ShowName);
+            return null;
         }
 
-        var isCreditless = CreditlessRegex().IsMatch(filePath);
-        var isCensored = CensoredRegex().Match(filePath) is { Success: true } censoredResult ? !censoredResult.Groups["isDe"].Success : (bool?)null;
-        return new ReleaseInfo()
+        var releaseInfo = new ReleaseInfo()
         {
             ID = OfflinePrefix + episodes.Select(x => $"{anime.ID}-{x.ID}").Join(','),
-            Group = group,
-            OriginalFilename = Path.GetFileName(filePath),
-            Revision = match.Version ?? 1,
-            ProviderName = "Offline",
             CrossReferences = episodes.Select(x => new ReleaseVideoCrossReference() { AnidbAnimeID = anime.ID, AnidbEpisodeID = x.ID }).ToList(),
-            Metadata = JsonConvert.SerializeObject(match),
-            IsCensored = isCensored,
-            IsCreditless = isCreditless,
-            // Assume the creation date has been properly set in the file-system.
-            ReleasedAt = DateOnly.FromDateTime(File.GetCreationTimeUtc(filePath)),
         };
-    }
-
-    private int? GetAnimeIdByFolderName(string folderName, CancellationToken cancellationToken)
-    {
-        // TODO: Implement this logic if needed.
-        return null;
+        return releaseInfo;
     }
 
     /// <inheritdoc/>
@@ -255,7 +333,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             });
         }
 
-        return Task.FromResult<ReleaseInfo?>(new() { CrossReferences = crossReferences, });
+        return Task.FromResult<ReleaseInfo?>(new() { ID = releaseId, CrossReferences = crossReferences, });
     }
 
     [GeneratedRegex(@"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
@@ -296,7 +374,25 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         /// If enabled, the importer will attempt to map the release group to a
         /// known AniDB release group if possible.
         /// </summary>
-        public bool MapAsAnidbGroupIfPossible { get; set; }
+        [Display(Name = "Map release group to AniDB")]
+        [DefaultValue(false)]
+        public bool MapAsAnidbGroupIfPossible { get; set; } = false;
+
+        /// <summary>
+        /// If disabled, the importer will not attempt to refresh AniDB data
+        /// remotely if not found locally in the database or in the cache.
+        /// </summary>
+        [Display(Name = "Enable remote refresh")]
+        [DefaultValue(false)]
+        public bool AllowRemote { get; set; } = false;
+
+        /// <summary>
+        /// If enabled, the importer will skip the availability check and
+        /// check all video file paths regardless of availability.
+        /// </summary>
+        [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+        [Visibility(Advanced = true)]
+        public bool SkipAvailabilityCheck { get; set; }
 
         /// <summary>
         /// Match mode to use during the import.
