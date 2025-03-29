@@ -9,6 +9,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Utilities;
@@ -117,7 +118,7 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
         return JsonConvert.SerializeObject(result, serializerSettings);
     }
 
-    public ConfigurationActionResult PerformAction(ServerSettings config, ContextualType type, string path, string action)
+    public ConfigurationActionResult PerformAction(ServerSettings config, string path, string action, ContextualType type, IShokoUser? user = null)
     {
         return (path, action) switch
         {
