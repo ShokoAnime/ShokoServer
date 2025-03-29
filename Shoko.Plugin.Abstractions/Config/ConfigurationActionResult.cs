@@ -13,15 +13,27 @@ public class ConfigurationActionResult
     /// </summary>
     public bool ShowDefaultSaveMessage { get; init; } = false;
 
+    private bool? _refreshConfiguration;
+
     /// <summary>
-    /// Indicates that the configuration should be refreshed.
+    /// Indicates that the configuration should be refreshed. Defaults to
+    /// <c>true</c> if there is no redirect, otherwise defaults to <c>false</c>.
     /// </summary>
-    public bool RefreshConfiguration { get; init; } = true;
+    public bool RefreshConfiguration
+    {
+        get => _refreshConfiguration ??= Redirect is null;
+        init => _refreshConfiguration = value;
+    }
 
     /// <summary>
     /// Any additional messages to show to the user.
     /// </summary>
     public IReadOnlyList<ConfigurationActionResultMessage> Messages { get; init; } = [];
+
+    /// <summary>
+    /// The redirect to perform as part of the result of the action.
+    /// </summary>
+    public ConfigurationActionRedirect? Redirect { get; init; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfigurationActionResult"/> class.
