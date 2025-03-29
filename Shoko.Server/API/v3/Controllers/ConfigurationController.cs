@@ -213,7 +213,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
                 return ValidationProblem(errors);
 
             var config = string.IsNullOrEmpty(data) ? configurationService.Load(configInfo) : configurationService.Deserialize(configInfo, data);
-            var result = configurationService.PerformAction(configInfo, config, path, action);
+            var result = configurationService.PerformAction(configInfo, config, path, action, User);
             return Ok(new ConfigurationActionResult(result));
         }
         catch (ConfigurationValidationException ex)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Plugin.Abstractions.Services;
@@ -165,6 +166,9 @@ public interface IConfigurationService
     /// <param name="action">
     ///   The action to perform.
     /// </param>
+    /// <param name="user">
+    ///   The user performing the action, if applicable.
+    /// </param>
     /// <exception cref="InvalidConfigurationActionException">
     ///   Thrown when an action is invalid. Be it because the action does not
     ///   exist or because the path for where to look for the action is invalid.
@@ -172,7 +176,7 @@ public interface IConfigurationService
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action);
+    ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action, IShokoUser? user = null);
 
     /// <summary>
     ///   Perform a custom action on the configuration.
@@ -189,13 +193,16 @@ public interface IConfigurationService
     /// <param name="action">
     ///   The action to perform.
     /// </param>
+    /// <param name="user">
+    ///   The user performing the action, if applicable.
+    /// </param>
     /// <exception cref="InvalidConfigurationActionException">
     /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
     /// </exception>
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new();
+    ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action, IShokoUser? user = null) where TConfig : class, IConfiguration, new();
 
     /// <summary>
     ///   Creates a new configuration instance for the specified
