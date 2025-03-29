@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using System.Linq;
 using AbstractConfigurationActionResult = Shoko.Plugin.Abstractions.Config.ConfigurationActionResult;
@@ -26,4 +25,9 @@ public class ConfigurationActionResult(AbstractConfigurationActionResult actionR
     /// Any additional messages to show to the user.
     /// </summary>
     public List<ConfigurationActionResultMessage> Messages { get; init; } = actionResult.Messages.Select(m => new ConfigurationActionResultMessage(m)).ToList();
+
+    /// <summary>
+    /// The redirect to perform as part of the result of the action.
+    /// </summary>
+    public ConfigurationActionRedirect? Redirect { get; init; } = actionResult.Redirect is not null ? new(actionResult.Redirect) : null;
 }
