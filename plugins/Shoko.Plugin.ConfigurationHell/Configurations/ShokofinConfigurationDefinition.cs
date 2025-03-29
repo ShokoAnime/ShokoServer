@@ -92,20 +92,13 @@ public class ShokofinConfigurationDefinition
 
     /// <inheritdoc />
     public ConfigurationActionResult PerformAction(ShokofinConfiguration config, string path, string action, ContextualType type, IShokoUser? user = null)
-        => path switch
+        => (path, action) switch
         {
-            "Connection" => action switch
-            {
-                "Connect" => ConnectToShoko(config),
-                "Disconnect" => DisconnectFromShoko(),
-                _ => throw new InvalidConfigurationActionException($"Invalid action \"{action}\"", nameof(action)),
-            },
-            "SignalR.Connection" => action switch
-            {
-                "Connect" => ConnectToSignalR(),
-                "Disconnect" => DisconnectFromSignalR(),
-                _ => throw new InvalidConfigurationActionException($"Invalid action \"{action}\"", nameof(action)),
-            },
+            ("Connection", "Connect") => ConnectToShoko(config),
+            ("Connection", "Disconnect") => DisconnectFromShoko(),
+            ("SignalR.Connection", "Connect") => ConnectToSignalR(),
+            ("SignalR.Connection", "Disconnect") => DisconnectFromSignalR(),
+            (_, "Save") => SaveConfig(config),
             _ => path.StartsWith("Users.[") && path.EndsWith(']') && int.TryParse(path[7..^1], out var index)
                 ? action switch
                 {
@@ -113,11 +106,7 @@ public class ShokofinConfigurationDefinition
                     "Reset Link" => UnlinkUser(config, index),
                     _ => throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
                 }
-                : action switch
-                {
-                    "Save" => SaveConfig(config),
-                    _ => throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
-                }
+                : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
         };
 
     // Fake connect
