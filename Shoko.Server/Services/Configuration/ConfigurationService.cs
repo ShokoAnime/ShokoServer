@@ -26,6 +26,7 @@ using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Attributes;
 using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
@@ -358,14 +359,14 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
 
     #region Custom Actions
 
-    public ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action)
+    public ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action, IShokoUser? user = null)
     {
         try
         {
             return (ConfigurationActionResult)typeof(ConfigurationService)
                 .GetMethod(nameof(PerformActionInternal), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(configuration.GetType())
-                .Invoke(this, [info, configuration, path, action])!;
+                .Invoke(this, [info, configuration, path, action, user])!;
         }
         catch (TargetInvocationException ex)
         {
@@ -375,8 +376,8 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         }
     }
 
-    public ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new()
-        => PerformActionInternal(GetConfigurationInfo<TConfig>(), configuration, path, action);
+    public ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action, IShokoUser? user = null) where TConfig : class, IConfiguration, new()
+        => PerformActionInternal(GetConfigurationInfo<TConfig>(), configuration, path, action, user);
 
     [GeneratedRegex(@"(?<!\\)\.")]
     private static partial Regex SplitPathToPartsRegex();
@@ -384,7 +385,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     [GeneratedRegex(@"(?<!\\)""")]
     private static partial Regex InvalidQuoteRegex();
 
-    private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action) where TConfig : class, IConfiguration, new()
+    private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action, IShokoUser? user) where TConfig : class, IConfiguration, new()
     {
         var schema = info.Schema;
         var type = info.ContextualType;
@@ -451,7 +452,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             throw new InvalidConfigurationActionException($"Invalid action \"{action}\" for path \"{path}\"", nameof(action));
 
         if (info.Definition is IConfigurationDefinitionWithCustomActions<TConfig> provider)
-            return provider.PerformAction(configuration, type, path, action);
+            return provider.PerformAction(configuration, path, action, type, user);
         return new("Configuration does not support custom actions!", DisplayColorTheme.Warning) { RefreshConfiguration = false };
     }
 

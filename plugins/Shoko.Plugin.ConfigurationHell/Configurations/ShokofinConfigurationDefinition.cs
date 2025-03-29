@@ -6,6 +6,7 @@ using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Enums;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
 
@@ -90,7 +91,7 @@ public class ShokofinConfigurationDefinition
     }
 
     /// <inheritdoc />
-    public ConfigurationActionResult PerformAction(ShokofinConfiguration config, ContextualType type, string path, string action)
+    public ConfigurationActionResult PerformAction(ShokofinConfiguration config, string path, string action, ContextualType type, IShokoUser? user = null)
         => path switch
         {
             "Connection" => action switch
