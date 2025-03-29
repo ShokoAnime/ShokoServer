@@ -1005,7 +1005,7 @@ public class AnimeSeriesService
 
                 var (nextEpisode, _) = episodeList
                     .Skip(nextIndex)
-                    .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.shoko.VideoLocals.Count > 0 : tuple => tuple.shoko.VideoLocals.Count > 0 && tuple.anidb.HasAired);
+                    .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.shoko.VideoLocals.Count > 0 : tuple => tuple.shoko.VideoLocals.Count > 0);
                 return nextEpisode;
             }
         }
@@ -1020,7 +1020,7 @@ public class AnimeSeriesService
 
                 return !episodeUserRecord.WatchedDate.HasValue;
             })
-            .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.shoko.VideoLocals.Count > 0 : tuple => tuple.shoko.VideoLocals.Count > 0 && tuple.anidb.HasAired);
+            .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.shoko.VideoLocals.Count > 0 : tuple => tuple.shoko.VideoLocals.Count > 0);
 
         // Disable first episode from showing up in the search.
         if (options.DisableFirstEpisode && anidbEpisode is not null && anidbEpisode.EpisodeType == (int)EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)
@@ -1045,7 +1045,7 @@ public class AnimeSeriesService
                     (options.IncludeOthers && tuple.anidb.EpisodeTypeEnum is EpisodeType.Other)
                 )
             )
-            .Where(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.shoko.VideoLocals.Count > 0 : tuple => tuple.shoko.VideoLocals.Count > 0 && tuple.anidb.HasAired)
+            .Where(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.shoko.VideoLocals.Count > 0 : tuple => tuple.shoko.VideoLocals.Count > 0)
             .OrderBy(tuple => order.IndexOf(tuple.anidb.EpisodeTypeEnum))
             .ThenBy(tuple => tuple.anidb.EpisodeNumber)
             .ToList();
