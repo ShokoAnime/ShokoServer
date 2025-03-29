@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Bulkhead;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
@@ -73,6 +76,8 @@ public class AnidbService : IAniDBService
 
     private readonly CrossRef_File_EpisodeRepository _crossReferenceRepository;
 
+    private readonly AsyncBulkheadPolicy<SVR_AniDB_Anime?> _bulkheadPolicy;
+
     public AnidbService(
         ILogger<AnidbService> logger,
         IServiceProvider serviceProvider,
@@ -108,6 +113,7 @@ public class AnidbService : IAniDBService
         _anidbAnimeUpdateRepository = anidbAnimeUpdateRepository;
         _seriesRepository = seriesRepository;
         _crossReferenceRepository = crossReferenceRepository;
+        _bulkheadPolicy = Policy.BulkheadAsync<SVR_AniDB_Anime?>(1);
 
         ShokoEventHandler.Instance.AniDBBanned += OnAniDBBanned;
         ShokoEventHandler.Instance.AVDumpEvent += OnAVDumpEvent;
@@ -155,13 +161,13 @@ public class AnidbService : IAniDBService
     #region By AniDB Anime ID
 
     /// <inheritdoc/>
-    public async Task<ISeries?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto)
+    public async Task<ISeries?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         if (anidbAnimeID <= 0)
             return null;
 
         var anime = _anidbAnimeRepository.GetByAnimeID(anidbAnimeID);
-        return await RefreshInternal(anidbAnimeID, anime, refreshMethod).ConfigureAwait(false);
+        return await RefreshInternal(anidbAnimeID, anime, refreshMethod, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -179,13 +185,13 @@ public class AnidbService : IAniDBService
     #region By AniDB Anime
 
     /// <inheritdoc/>
-    public async Task<ISeries> Refresh(ISeries anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto)
+    public async Task<ISeries> Refresh(ISeries anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(anidbAnime);
         if (anidbAnime is not SVR_AniDB_Anime)
             throw new ArgumentException("ISeries must be from AniDB");
 
-        return await RefreshInternal(anidbAnime.ID, anidbAnime, refreshMethod).ConfigureAwait(false) ?? anidbAnime;
+        return await RefreshInternal(anidbAnime.ID, anidbAnime, refreshMethod, cancellationToken).ConfigureAwait(false) ?? anidbAnime;
     }
 
     /// <inheritdoc/>
@@ -196,7 +202,7 @@ public class AnidbService : IAniDBService
 
     #region Internals
 
-    private async Task<ISeries?> RefreshInternal(int anidbAnimeID, ISeries? anidbAnime = null, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto)
+    private async Task<ISeries?> RefreshInternal(int anidbAnimeID, ISeries? anidbAnime = null, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         if (refreshMethod is AnidbRefreshMethod.None)
             return anidbAnime;
@@ -204,7 +210,7 @@ public class AnidbService : IAniDBService
         try
         {
             var job = CreateJobDetails(anidbAnimeID, refreshMethod);
-            var anime = await Process(job).ConfigureAwait(false);
+            var anime = await Process(job, cancellationToken).ConfigureAwait(false);
             return anime ?? anidbAnime;
         }
         catch (AniDBBannedException ex)
@@ -263,10 +269,13 @@ public class AnidbService : IAniDBService
         return job;
     }
 
-    public Task<SVR_AniDB_Anime?> Process(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Default, int relationDepth = 0)
-        => Process(CreateJobDetails(anidbAnimeID, refreshMethod, relationDepth));
+    public Task<SVR_AniDB_Anime?> Process(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Default, int relationDepth = 0, CancellationToken cancellationToken = default)
+        => Process(CreateJobDetails(anidbAnimeID, refreshMethod, relationDepth), cancellationToken);
 
-    private async Task<SVR_AniDB_Anime?> Process(AnidbJobDetails job)
+    private async Task<SVR_AniDB_Anime?> Process(AnidbJobDetails job, CancellationToken cancellationToken = default)
+        => await _bulkheadPolicy.ExecuteAsync((ctx) => ProcessInternal(job, ctx), cancellationToken);
+
+    private async Task<SVR_AniDB_Anime?> ProcessInternal(AnidbJobDetails job, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Processing {Job}: {AnimeID}", nameof(GetAniDBAnimeJob), job.AnimeID);
 
@@ -308,6 +317,7 @@ public class AnidbService : IAniDBService
 
                 if (!animeRecentlyUpdated || job.IgnoreTimeCheck)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var request = _requestFactory.Create<RequestGetAnime>(r => (r.AnimeID, r.Force) = (job.AnimeID, job.IgnoreHttpBans));
                     var httpResponse = request.Send();
                     response = httpResponse.Response;
