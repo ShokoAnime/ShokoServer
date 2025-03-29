@@ -49,7 +49,10 @@ public static class TraktStatusCodes
     public const int Conflict = 409;
 
     public const int Precondition_Failed = 412;
+    public const int Account_Limit_Exceeded = 420;
+    public const int Account_Locked = 423;
     public const int Unprocessable_Entity = 422;
+    public const int VIP_Only = 426;
     public const int Rate_Limit_Exceeded = 429;
 
     public const int Server_Error = 500;

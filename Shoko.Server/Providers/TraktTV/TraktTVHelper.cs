@@ -1269,7 +1269,7 @@ public class TraktTVHelper
     public List<TraktV2ShowCollectedResult> GetCollectedShows(ref int traktCode)
     {
         var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.VipStatus)
         {
             return new List<TraktV2ShowCollectedResult>();
         }
@@ -1376,7 +1376,7 @@ public class TraktTVHelper
         try
         {
             var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.VipStatus)
             {
                 return;
             }
@@ -1935,7 +1935,7 @@ public class TraktTVHelper
         try
         {
             var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.VipStatus)
             {
                 return false;
             }

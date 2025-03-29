@@ -17,4 +17,6 @@ public class TraktSettings
     public ScheduledUpdateFrequency UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
 
     public ScheduledUpdateFrequency SyncFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
+
+    public bool VipStatus { get; set; } = false;
 }
