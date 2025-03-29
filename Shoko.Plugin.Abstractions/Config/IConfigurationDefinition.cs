@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Namotion.Reflection;
 using Shoko.Plugin.Abstractions.Config.Attributes;
+using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
 namespace Shoko.Plugin.Abstractions.Config;
 
@@ -91,11 +92,12 @@ public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigura
     /// Perform a custom action on the configuration.
     /// </summary>
     /// <param name="config">The configuration.</param>
-    /// <param name="type">The contextual type of the class or sub-class.</param>
     /// <param name="path">The path to the configuration.</param>
     /// <param name="action">The action to perform.</param>
+    /// <param name="type">The contextual type of the class or sub-class.</param>
+    /// <param name="user">The user performing the action, if any.</param>
     /// <returns>The result of the action.</returns>
-    ConfigurationActionResult PerformAction(TConfig config, ContextualType type, string path, string action);
+    ConfigurationActionResult PerformAction(TConfig config, string path, string action, ContextualType type, IShokoUser? user = null);
 }
 
 /// <summary>
