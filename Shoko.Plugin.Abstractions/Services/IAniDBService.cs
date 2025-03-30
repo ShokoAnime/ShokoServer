@@ -50,6 +50,13 @@ public interface IAniDBService
     /// <returns>Search results.</returns>
     IReadOnlyList<IAnidbAnimeSearchResult> Search(string query, bool fuzzy = false);
 
+    /// <summary>
+    /// Searches the locally cached AniDB title database for the given <paramref name="anidbID"/>.
+    /// </summary>
+    /// <param name="anidbID">AniDB ID to search for.</param>
+    /// <returns>Search result, if found by ID.</returns>
+    IAnidbAnimeSearchResult? SearchByID(int anidbID);
+
     #endregion
 
     #region Refresh
