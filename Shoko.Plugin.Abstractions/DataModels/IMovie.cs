@@ -57,12 +57,12 @@ public interface IMovie : IWithTitles, IWithDescriptions, IWithImages, IWithCast
     /// <summary>
     /// Related series.
     /// </summary>
-    IReadOnlyList<IRelatedMetadata<ISeries>> RelatedSeries { get; }
+    IReadOnlyList<IRelatedMetadata<IMovie, ISeries>> RelatedSeries { get; }
 
     /// <summary>
     /// Related movies.
     /// </summary>
-    IReadOnlyList<IRelatedMetadata<IMovie>> RelatedMovies { get; }
+    IReadOnlyList<IRelatedMetadata<IMovie, IMovie>> RelatedMovies { get; }
 
     /// <summary>
     /// All cross-references linked to the episode.

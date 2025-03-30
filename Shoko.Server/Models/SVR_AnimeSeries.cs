@@ -671,9 +671,9 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     IImageMetadata? ISeries.DefaultPoster => AniDB_Anime?.GetImageMetadata();
 
-    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries => [];
 
-    IReadOnlyList<IRelatedMetadata<IMovie>> ISeries.RelatedMovies => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);

@@ -456,16 +456,16 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries, IAnidbAnime
 
     IImageMetadata? ISeries.DefaultPoster => this.GetImageMetadata();
 
-    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries =>
-        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries>>()
-            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries>>().Select(a => a.Reversed))
+    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries =>
+        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries, ISeries>>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries, ISeries>>().Select(a => a.Reversed))
             .Distinct()
             .OrderBy(a => a.BaseID)
             .ThenBy(a => a.RelatedID)
             .ThenBy(a => a.RelationType)
             .ToList();
 
-    IReadOnlyList<IRelatedMetadata<IMovie>> ISeries.RelatedMovies => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID);

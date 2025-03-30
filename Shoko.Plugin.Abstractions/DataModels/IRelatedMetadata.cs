@@ -33,22 +33,23 @@ public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
 /// <summary>
 /// Related metadata with entity.
 /// </summary>
-/// <typeparam name="TMetadata">Related entity type.</typeparam>
-public interface IRelatedMetadata<TMetadata> : IMetadata, IRelatedMetadata, IEquatable<IRelatedMetadata<TMetadata>> where TMetadata : IMetadata<int>
+/// <typeparam name="TBaseMetadata">Base entity type.</typeparam>
+/// <typeparam name="TRelatedMetadata">Related entity type.</typeparam>
+public interface IRelatedMetadata<TBaseMetadata, TRelatedMetadata> : IMetadata, IRelatedMetadata, IEquatable<IRelatedMetadata<TBaseMetadata, TRelatedMetadata>> where TBaseMetadata : IMetadata<int> where TRelatedMetadata : IMetadata<int>
 {
     /// <summary>
     /// Base entity, if available.
     /// </summary>
-    TMetadata? Base { get; }
+    TBaseMetadata? Base { get; }
 
     /// <summary>
     /// Related entity, if available.
     /// </summary>
-    TMetadata? Related { get; }
+    TBaseMetadata? Related { get; }
 
     /// <summary>
     /// Reverse relation.
     /// </summary>
     /// <returns>The reversed relation.</returns>
-    new IRelatedMetadata<TMetadata> Reversed { get; }
+    new IRelatedMetadata<TRelatedMetadata, TBaseMetadata> Reversed { get; }
 }
