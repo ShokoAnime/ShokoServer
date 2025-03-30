@@ -45,7 +45,7 @@ public class FilterController : BaseController
     /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeEmptyGroups = false,
+    public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeEmptyGroups = true,
         [FromQuery] bool showHidden = false, [FromQuery, Range(0, 100)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
     {
@@ -217,7 +217,7 @@ public class FilterController : BaseController
     /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <returns>The filter</returns>
     [HttpGet("{filterID}")]
-    public ActionResult<Filter> GetFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = false)
+    public ActionResult<Filter> GetFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = true)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
         if (filterPreset == null)
@@ -326,7 +326,7 @@ public class FilterController : BaseController
     [HttpPost("Preview/Group")]
     public ActionResult<ListResult<Group>> GetPreviewFilteredGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
+        [FromQuery] bool includeEmpty = true, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Directories should only contain sub-filters, not groups and series.
         if (filter.IsDirectory)
@@ -361,7 +361,7 @@ public class FilterController : BaseController
     ///     <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpPost("Preview/Group/Letters")]
-    public ActionResult<Dictionary<char, int>> GetPreviewGroupNameLettersInFilter([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromQuery] bool includeEmpty = false)
+    public ActionResult<Dictionary<char, int>> GetPreviewGroupNameLettersInFilter([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromQuery] bool includeEmpty = true)
     {
         // Directories should only contain sub-filters, not groups and series.
         if (filter.IsDirectory)
@@ -397,7 +397,7 @@ public class FilterController : BaseController
     [HttpPost("Preview/Series")]
     public ActionResult<ListResult<Series>> GetPreviewSeriesInFilteredGroup([FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = true)
     {
         // Directories should only contain sub-filters, not groups and series.
         if (filter.IsDirectory)
@@ -449,7 +449,7 @@ public class FilterController : BaseController
     /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Group")]
     public ActionResult<List<Group>> GetPreviewFilteredSubGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = true)
     {
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -508,7 +508,7 @@ public class FilterController : BaseController
     /// /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetPreviewSeriesInFilteredGroup([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
+        [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = true,
         [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);

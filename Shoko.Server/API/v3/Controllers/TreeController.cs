@@ -139,7 +139,7 @@ public class TreeController : BaseController
     [HttpGet("Filter/{filterID}/Group")]
     public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute, Range(0, int.MaxValue)] int filterID,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
+        [FromQuery] bool includeEmpty = true, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Return the top level groups with no filter.
         IEnumerable<SVR_AnimeGroup> groups;
@@ -201,7 +201,7 @@ public class TreeController : BaseController
     /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/Letters")]
-    public ActionResult<Dictionary<char, int>> GetGroupNameLettersInFilter([FromRoute, Range(0, int.MaxValue)] int filterID, [FromQuery] bool includeEmpty = false)
+    public ActionResult<Dictionary<char, int>> GetGroupNameLettersInFilter([FromRoute, Range(0, int.MaxValue)] int filterID, [FromQuery] bool includeEmpty = true)
     {
         var user = User;
         if (filterID > 0)
@@ -265,7 +265,7 @@ public class TreeController : BaseController
     [HttpGet("Filter/{filterID}/Series")]
     public ActionResult<ListResult<Series>> GetSeriesInFilteredGroup([FromRoute, Range(0, int.MaxValue)] int filterID,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = true)
     {
         // Return the series with no group filter applied.
         var user = User;
@@ -345,7 +345,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Group")]
     public ActionResult<List<Group>> GetFilteredSubGroups([FromRoute, Range(0, int.MaxValue)] int filterID, [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = true)
     {
         // Return sub-groups with no group filter applied.
         if (filterID == 0)
@@ -416,7 +416,7 @@ public class TreeController : BaseController
     /// /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute, Range(0, int.MaxValue)] int filterID, [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
+        [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = true,
         [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Return the groups with no group filter applied.
@@ -474,7 +474,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Group")]
     public ActionResult<List<Group>> GetSubGroups([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
-        [FromQuery] bool includeEmpty = false)
+        [FromQuery] bool includeEmpty = true)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -517,7 +517,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool recursive = false,
-        [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false,
+        [FromQuery] bool includeMissing = true, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
