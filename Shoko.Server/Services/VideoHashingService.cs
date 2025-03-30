@@ -112,7 +112,7 @@ public class VideoHashingService(
                     var id = GetID(providerType, pluginInfo);
                     var contextualType = providerType.ToContextualType();
                     var enabledHashes = enabled.Where(kp => kp.Value == id).Select(kp => kp.Key).Order().ToHashSet();
-                    var description = provider.Description ?? string.Empty;
+                    var description = provider.Description?.CleanDescription() ?? string.Empty;
                     var configurationType = providerType.GetInterfaces()
                         .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHashProvider<>))
                         ?.GetGenericArguments()[0];
