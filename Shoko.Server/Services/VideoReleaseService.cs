@@ -311,6 +311,9 @@ public class VideoReleaseService(
     }
 
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, CancellationToken cancellationToken = default)
+         => await FindReleaseForVideo(video, GetAvailableProviders(onlyEnabled: true), saveRelease, addToMylist, cancellationToken);
+
+    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = true, bool addToMylist = true, CancellationToken cancellationToken = default)
     {
         // We don't want the search started/completed events to interrupt the search, so wrap them both in a try…catch block.
         var startedAt = DateTime.Now;
@@ -329,18 +332,32 @@ public class VideoReleaseService(
         var selectedProvider = (ReleaseProviderInfo?)null;
         var releaseInfo = (IReleaseInfo?)null;
         var exception = (Exception?)null;
-        var providers = GetAvailableProviders(onlyEnabled: true).ToList();
+        // Reconfigure the providers in case we got them "out of order" by the
+        // user or another plugin. So we can trust the set priority/order later.
+        var providerList = providers
+            .DistinctBy(p => p.ID)
+            .Select((provider, index) => new ReleaseProviderInfo()
+            {
+                ID = provider.ID,
+                Description = provider.Description,
+                Provider = provider.Provider,
+                ConfigurationInfo = provider.ConfigurationInfo,
+                PluginInfo = provider.PluginInfo,
+                Enabled = true,
+                Priority = index,
+            })
+            .ToList();
         try
         {
-            if (providers.Count == 0)
+            if (providerList.Count == 0)
             {
                 logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.ID);
                 return null;
             }
 
             (releaseInfo, selectedProvider) = ParallelMode
-                ? await FileReleaseForVideoParallel(video, providers, cancellationToken)
-                : await FileReleaseForVideoSequential(video, providers, cancellationToken);
+                ? await FileReleaseForVideoParallel(video, providerList, cancellationToken)
+                : await FileReleaseForVideoSequential(video, providerList, cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
             var matchAttempt = new StoredReleaseInfo_MatchAttempt()
@@ -352,7 +369,7 @@ public class VideoReleaseService(
                 AttemptStartedAt = startedAt,
                 // Reuse startedAt because it will be overwritten in SaveReleaseForVideo later.
                 AttemptEndedAt = releaseInfo is null ? DateTime.Now : startedAt,
-                AttemptedProviderNames = providers.Select(p => p.Provider.Name).ToList(),
+                AttemptedProviderNames = providerList.Select(p => p.Provider.Name).ToList(),
             };
             // If we didn't find a release then save the attempt now.
             if (releaseInfo is null)
@@ -386,7 +403,7 @@ public class VideoReleaseService(
                     StartedAt = startedAt,
                     CompletedAt = completedAt,
                     Exception = exception,
-                    AttemptedProviders = providers,
+                    AttemptedProviders = providerList,
                     SelectedProvider = selectedProvider,
                 });
             }
