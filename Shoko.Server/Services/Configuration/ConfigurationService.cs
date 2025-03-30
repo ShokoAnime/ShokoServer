@@ -1307,7 +1307,8 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             return displayAttribute.Name;
 
         var name = TypeReflectionExtensions.GetDisplayName(contextualType);
-        label:
+        var offset = 0;
+        retryNewNameLabel:;
         foreach (var suffix in _configurationSuffixSet)
         {
             if (name == suffix)
@@ -1316,8 +1317,10 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 if (contextualType.Type.IsGenericType)
                     break;
 
-                name = contextualType.Type.FullName!.Split('.').SkipLast(1).Join('.');
-                goto label;
+                name = TypeReflectionExtensions.GetDisplayName(contextualType.Type.FullName!.Split('.').Reverse().Skip(++offset).FirstOrDefault() ?? string.Empty);
+                if (string.IsNullOrEmpty(name))
+                    return TypeReflectionExtensions.GetDisplayName(contextualType);
+                goto retryNewNameLabel;
             }
 
             var endsWith = $" {suffix}";
