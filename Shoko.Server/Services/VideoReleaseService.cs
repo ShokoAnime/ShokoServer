@@ -117,7 +117,7 @@ public class VideoReleaseService(
             var order = config.Priority;
             var enabled = config.Enabled;
             _releaseProviderInfos = providers
-                .Select((provider, priority) =>
+                .Select(provider =>
                 {
                     var providerType = provider.GetType();
                     var pluginInfo = pluginManager.GetPluginInfo(
@@ -139,12 +139,22 @@ public class VideoReleaseService(
                         ConfigurationInfo = configurationInfo,
                         PluginInfo = pluginInfo,
                         Enabled = isEnabled,
-                        Priority = priority,
+                        Priority = -1,
                     };
                 })
                 .OrderBy(p => order.IndexOf(p.ID) is -1)
                 .ThenBy(p => order.IndexOf(p.ID))
                 .ThenBy(p => p.ID)
+                .Select((info, priority) => new ReleaseProviderInfo()
+                {
+                    ID = info.ID,
+                    Description = info.Description,
+                    Provider = info.Provider,
+                    ConfigurationInfo = info.ConfigurationInfo,
+                    PluginInfo = info.PluginInfo,
+                    Enabled = info.Enabled,
+                    Priority = priority,
+                })
                 .ToDictionary(info => info.ID);
             _autoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
         }
@@ -257,14 +267,14 @@ public class VideoReleaseService(
         var changed = false;
         var config = configurationProvider.Load();
         var priority = existingProviders.Select(pI => pI.ID).ToList();
-        if (!config.Priority.SequenceEqual(priority))
+        if (config.Priority.Count != priority.Count || !config.Priority.Select((p, i) => (p, i)).All((tuple) => priority[tuple.i] == tuple.p))
         {
             config.Priority = priority;
             changed = true;
         }
 
-        var enabled = existingProviders.ToDictionary(p => p.ID, p => p.Enabled);
-        if (!config.Enabled.OrderBy(p => p.Key).SequenceEqual(enabled.OrderBy(p => p.Key)))
+        var enabled = existingProviders.OrderBy(p => p.ID).ToDictionary(p => p.ID, p => p.Enabled);
+        if (config.Enabled.Count != enabled.Count || !config.Enabled.All((tuple) => enabled.TryGetValue(tuple.Key, out var value) && value == tuple.Value))
         {
             config.Enabled = enabled;
             changed = true;
