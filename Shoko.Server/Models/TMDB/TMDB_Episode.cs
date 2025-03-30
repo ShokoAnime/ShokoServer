@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.DataModels.Tmdb;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
@@ -21,7 +22,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Episode Database Model.
 /// </summary>
-public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
+public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpisode
 {
     #region Properties
 
@@ -400,7 +401,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     #endregion
 
-    #region IEntityMetadata
+    #region IEntityMetadata Implementation
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Episode;
 
@@ -416,7 +417,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     #endregion
 
-    #region IMetadata
+    #region IMetadata Implementation
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
 
@@ -424,7 +425,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     #endregion
 
-    #region IWithTitles
+    #region IWithTitles Implementation
 
     string IWithTitles.DefaultTitle => EnglishTitle;
 
@@ -443,7 +444,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     #endregion
 
-    #region IWithDescriptions
+    #region IWithDescriptions Implementation
 
     string IWithDescriptions.DefaultDescription => EnglishOverview;
 
@@ -470,7 +471,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     #endregion
 
-    #region IEpisode
+    #region IEpisode Implementation
 
     int IEpisode.SeriesID => TmdbShowID;
 
@@ -505,6 +506,12 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()
         .ToList();
+
+    #endregion
+
+    #region ITmdbEpisode Implementation
+
+    public ITmdbShow? Series => TmdbShow;
 
     #endregion
 }

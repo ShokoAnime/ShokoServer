@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.DataModels.Tmdb;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Extensions;
@@ -22,7 +23,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Show Database Model.
 /// </summary>
-public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
+public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow
 {
     #region Properties
 
@@ -534,7 +535,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region IEntityMetadata
+    #region IEntityMetadata Implementation
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Show;
 
@@ -546,7 +547,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region IMetadata
+    #region IMetadata Implementation
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
 
@@ -554,7 +555,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region IWithTitles
+    #region IWithTitles Implementation
 
     string IWithTitles.DefaultTitle => EnglishTitle;
 
@@ -573,7 +574,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region IWithDescriptions
+    #region IWithDescriptions Implementation
 
     string IWithDescriptions.DefaultDescription => EnglishOverview;
 
@@ -592,7 +593,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region IWithImages
+    #region IWithImages Implementation
 
     IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
 
@@ -614,7 +615,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region ISeries
+    #region ISeries Implementation
 
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => CrossReferences.Select(xref => xref.AnimeSeries?.AnimeSeriesID).WhereNotNull().Distinct().ToList();
 
@@ -658,6 +659,12 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()
         .ToList();
+
+    #endregion
+
+    #region ITmdbShow Implementation
+
+    public IReadOnlyList<ITmdbEpisode> Episodes => Episodes;
 
     #endregion
 }

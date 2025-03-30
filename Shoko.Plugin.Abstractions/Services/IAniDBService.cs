@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Exceptions;
@@ -65,7 +66,7 @@ public interface IAniDBService
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime, or <c>null</c> if the anime doesn't exist on AniDB.</returns>
-    Task<ISeries?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
+    Task<IAnidbAnime?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Schedules a refresh of the AniDB anime with the given <paramref name="anidbAnimeID"/> in the queue.
@@ -93,7 +94,7 @@ public interface IAniDBService
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime.</returns>
-    Task<ISeries> Refresh(ISeries anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
+    Task<IAnidbAnime> Refresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Schedules a refresh of the AniDB anime represented by <paramref name="anidbAnime"/> in the queue.
@@ -105,7 +106,7 @@ public interface IAniDBService
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime.</returns>
-    Task ScheduleRefresh(ISeries anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
+    Task ScheduleRefresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
 
     #endregion
 

@@ -1,6 +1,6 @@
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
-namespace Shoko.Plugin.Abstractions.DataModels;
+namespace Shoko.Plugin.Abstractions.DataModels.Anidb;
 
 /// <summary>
 /// A search result from the local AniDB title cache.
@@ -40,7 +40,7 @@ public interface IAnidbAnimeSearchResult : IMetadata<int>, IWithTitles
     /// <summary>
     /// AniDB Anime entry, if available locally.
     /// </summary>
-    ISeries? AnidbAnime { get; }
+    IAnidbAnime? AnidbAnime { get; }
 
     /// <summary>
     /// Shoko Series entry, if available locally.

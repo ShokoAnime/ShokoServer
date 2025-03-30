@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
+using Shoko.Plugin.Abstractions.DataModels.Tmdb;
 
 namespace Shoko.Plugin.Abstractions.DataModels.Shoko;
 
@@ -25,12 +27,12 @@ public interface IShokoEpisode : IEpisode
     /// <summary>
     /// A direct link to the anidb episode metadata.
     /// </summary>
-    IEpisode AnidbEpisode { get; }
+    IAnidbEpisode AnidbEpisode { get; }
 
     /// <summary>
     /// A direct link to all tmdb episodes linked to the shoko episode.
     /// </summary>
-    IReadOnlyList<IEpisode> TmdbEpisodes { get; }
+    IReadOnlyList<ITmdbEpisode> TmdbEpisodes { get; }
 
     /// <summary>
     /// A direct link to all tmdb movies linked to the shoko episode.

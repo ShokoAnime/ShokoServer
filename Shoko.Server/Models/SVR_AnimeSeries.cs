@@ -5,7 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.DataModels.Tmdb;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -703,12 +705,12 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     IReadOnlyList<IShokoGroup> IShokoSeries.AllParentGroups => AllGroupsAbove;
 
-    ISeries IShokoSeries.AnidbAnime => AniDB_Anime ??
+    IAnidbAnime IShokoSeries.AnidbAnime => AniDB_Anime ??
         throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IShokoSeries.AnidbAnime");
 
-    IReadOnlyList<ISeries> IShokoSeries.TmdbShows => TmdbShows;
+    IReadOnlyList<ITmdbShow> IShokoSeries.TmdbShows => TmdbShows;
 
-    IReadOnlyList<IMovie> IShokoSeries.TmdbMovies => TmdbMovies;
+    IReadOnlyList<ITmdbMovie> IShokoSeries.TmdbMovies => TmdbMovies;
 
     IReadOnlyList<ISeries> IShokoSeries.LinkedSeries
     {

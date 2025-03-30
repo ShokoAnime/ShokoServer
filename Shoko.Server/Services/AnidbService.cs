@@ -9,6 +9,7 @@ using Polly;
 using Polly.Bulkhead;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
@@ -161,7 +162,7 @@ public class AnidbService : IAniDBService
     #region By AniDB Anime ID
 
     /// <inheritdoc/>
-    public async Task<ISeries?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
+    public async Task<IAnidbAnime?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         if (anidbAnimeID <= 0)
             return null;
@@ -171,11 +172,9 @@ public class AnidbService : IAniDBService
     }
 
     /// <inheritdoc/>
-    public async Task ScheduleRefresh(ISeries anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
+    public async Task ScheduleRefresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
     {
         ArgumentNullException.ThrowIfNull(anidbAnime);
-        if (anidbAnime is not SVR_AniDB_Anime)
-            throw new ArgumentException("ISeries must be from AniDB");
 
         await ScheduleRefreshInternal(anidbAnime.ID, refreshMethod, prioritize).ConfigureAwait(false);
     }
@@ -185,11 +184,9 @@ public class AnidbService : IAniDBService
     #region By AniDB Anime
 
     /// <inheritdoc/>
-    public async Task<ISeries> Refresh(ISeries anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
+    public async Task<IAnidbAnime> Refresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(anidbAnime);
-        if (anidbAnime is not SVR_AniDB_Anime)
-            throw new ArgumentException("ISeries must be from AniDB");
 
         return await RefreshInternal(anidbAnime.ID, anidbAnime, refreshMethod, cancellationToken).ConfigureAwait(false) ?? anidbAnime;
     }
@@ -202,7 +199,7 @@ public class AnidbService : IAniDBService
 
     #region Internals
 
-    private async Task<ISeries?> RefreshInternal(int anidbAnimeID, ISeries? anidbAnime = null, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
+    private async Task<IAnidbAnime?> RefreshInternal(int anidbAnimeID, IAnidbAnime? anidbAnime = null, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         if (refreshMethod is AnidbRefreshMethod.None)
             return anidbAnime;
@@ -729,7 +726,7 @@ public class AnidbService : IAniDBService
 
         private IReadOnlyList<AnimeTitle>? _titles = null;
 
-        private ISeries? _anidbAnime = null;
+        private IAnidbAnime? _anidbAnime = null;
 
         private IShokoSeries? _shokoSeries = null;
 
@@ -773,7 +770,7 @@ public class AnidbService : IAniDBService
         public int LengthDifference { get; init; } = searchResult.LengthDifference;
 
         /// <inheritdoc/>
-        public ISeries? AnidbAnime => ID > 0 ? _anidbAnime ??= _anidbAnimeRepository.GetByAnimeID(ID) : null;
+        public IAnidbAnime? AnidbAnime => ID > 0 ? _anidbAnime ??= _anidbAnimeRepository.GetByAnimeID(ID) : null;
 
         /// <inheritdoc/>
         public IShokoSeries? ShokoSeries => ID > 0 ? _shokoSeries ??= _seriesRepository.GetByAnimeID(ID) : null;
