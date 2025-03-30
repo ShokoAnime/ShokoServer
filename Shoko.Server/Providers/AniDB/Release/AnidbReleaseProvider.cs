@@ -58,6 +58,8 @@ public partial class AnidbReleaseProvider(
     /// </summary>
     public const string ReleasePrefix = "https://anidb.net/file/";
 
+    public const string IdPrefix = "anidb://";
+
     /// <inheritdoc/>
     public string Name => "AniDB";
 
@@ -72,7 +74,7 @@ public partial class AnidbReleaseProvider(
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
-        => GetReleaseInfoById($"{video.Hashes.ED2K}+{video.Size}", video);
+        => GetReleaseInfoById($"{IdPrefix}{video.Hashes.ED2K}+{video.Size}", video);
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
@@ -89,9 +91,10 @@ public partial class AnidbReleaseProvider(
         if (_memoryCache.TryGetValue(releaseId, out ReleaseInfo? releaseInfo))
             return releaseInfo;
 
-        if (string.IsNullOrEmpty(releaseId))
+        if (string.IsNullOrEmpty(releaseId) || !releaseId.StartsWith(IdPrefix))
             return null;
 
+        releaseId = releaseId[IdPrefix.Length..];
         var (hash, fileSize) = releaseId.Split('+');
         if (string.IsNullOrEmpty(hash) || hash.Length != 32 || !long.TryParse(fileSize, out var size))
             return null;
@@ -147,7 +150,7 @@ public partial class AnidbReleaseProvider(
 
         releaseInfo = new ReleaseInfo()
         {
-            ID = releaseId,
+            ID = IdPrefix + releaseId,
             ReleaseURI = $"{ReleasePrefix}{anidbFile.FileID}",
             Revision = anidbFile.Version,
             Comment = anidbFile.Description,
