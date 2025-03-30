@@ -1327,7 +1327,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
                 name = name[..^endsWith.Length];
         }
 
-        return name;
+        return name.Trim();
     }
 
     #endregion
