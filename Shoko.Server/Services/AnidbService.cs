@@ -155,6 +155,12 @@ public class AnidbService : IAniDBService
             .Select(a => new AbstractAnidbAnimeSearchResult(a, _anidbAnimeRepository, _seriesRepository))
             .ToList();
 
+    /// <inheritdoc/>
+    public IAnidbAnimeSearchResult? SearchByID(int anidbID)
+        => _titleHelper.SearchAnimeID(anidbID) is { } result
+            ? new AbstractAnidbAnimeSearchResult(new() { Result = result, Match = result.MainTitle, ExactMatch = true }, _anidbAnimeRepository, _seriesRepository)
+            : null;
+
     #endregion
 
     #region Refresh
