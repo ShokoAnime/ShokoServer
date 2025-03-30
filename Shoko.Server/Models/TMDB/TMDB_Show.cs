@@ -636,9 +636,9 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow
         .WhereNotNull()
         .ToList();
 
-    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries => [];
 
-    IReadOnlyList<IRelatedMetadata<IMovie>> ISeries.RelatedMovies => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences => CrossReferences
         .DistinctBy(xref => xref.AnidbAnimeID)
