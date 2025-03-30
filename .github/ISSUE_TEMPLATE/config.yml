@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: UI/UX Related Issue
+    url: https://github.com/ShokoAnime/Shoko-WebUI/issues
+    about: Create your issue here if has ANYTHING to do with the UI/UX.
+  - name: Shoko Docs Issue
+    url: https://github.com/ShokoAnime/ShokoDocs
+    about: Create your issue here if its related to Shoko Docs.
+  - name: Shoko Website Issue
+    url: https://github.com/ShokoAnime/ShokoSite
+    about: Create your issue here if its related to the Shoko Website.
