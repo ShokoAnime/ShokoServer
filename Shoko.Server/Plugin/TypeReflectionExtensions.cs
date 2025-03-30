@@ -4,8 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Namotion.Reflection;
-using Shoko.Plugin.Abstractions.Hashing;
-using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Extensions;
 
 #nullable enable
@@ -94,12 +92,13 @@ public static partial class TypeReflectionExtensions
         return CleanDescription(description);
     }
 
-    private static string CleanDescription(this string description)
+    public static string CleanDescription(this string description)
         => description
             .Replace(BreakTwoRegex(), "\0")
             .Replace(BreakRegex(), " ")
             .Replace(SpaceRegex(), " ")
             .Replace("\0", "\n")
+            .Replace("\n ", "\n")
             .Trim();
 
     /// <summary>
