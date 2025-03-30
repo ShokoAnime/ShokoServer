@@ -229,6 +229,41 @@ public interface IVideoReleaseService
     Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, CancellationToken cancellationToken = default);
 
     /// <summary>
+    ///   If parallel mode is disabled, then it will run all provided
+    ///   <paramref name="providers"/>, in order, until a
+    ///   release is found or all providers are exhausted. If parallel mode is
+    ///   enabled, then it will run all provided <paramref name="providers"/>
+    ///   in parallel and pick the highest priority valid result.
+    /// </summary>
+    /// <remarks>
+    ///   This method does not save the found release to the database unless
+    ///   <paramref name="saveRelease"/> is set to <c>true</c>.
+    /// </remarks>
+    /// <param name="video">
+    ///   The video to find a release for.
+    /// </param>
+    /// <param name="providers">
+    ///   The <see cref="IReleaseInfoProvider"/>s to use.
+    /// </param>
+    /// <param name="saveRelease">
+    ///   If not set to <c>true</c>, then the found release will not be saved,
+    ///   allowing the user to preview the release before saving it using
+    ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or discarding
+    ///   it.
+    /// </param>
+    /// <param name="addToMylist">
+    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList if a
+    ///   release is found and saved.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Optional. A cancellation token for cancelling the search.
+    /// </param>
+    /// <returns>
+    ///   The found release, or <c>null</c> if none could be found.
+    /// </returns>
+    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = false, bool addToMylist = true, CancellationToken cancellationToken = default);
+
+    /// <summary>
     ///   Saves the release info for the specified video in the database, and
     ///   returns the saved release info. This will overwrite any existing
     ///   release for the video.
