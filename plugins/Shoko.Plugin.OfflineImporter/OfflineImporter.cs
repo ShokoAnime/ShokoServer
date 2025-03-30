@@ -45,7 +45,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
     /// <inheritdoc/>
     public string Name => "Offline Importer";
 
-    private const string OfflinePrefix = "offline://";
+    private const string IdPrefix = "offline://";
 
     /// <inheritdoc/>
     public string Description => """
@@ -96,7 +96,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 ? MatchRuleResult.Match(filePath)
                 : MatchRuleResult.Empty;
             if (filenameMatch.Success)
-                releaseInfo = (await GetReleaseInfoById(OfflinePrefix + filenameMatch.Value, cancellationToken))!;
+                releaseInfo = (await GetReleaseInfoById(IdPrefix + filenameMatch.Value, cancellationToken))!;
             else if (config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
                 releaseInfo = await GetReleaseInfoByFileName(match, cancellationToken);
             if (releaseInfo is not { CrossReferences.Count: > 0 })
@@ -121,7 +121,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
 
             if (video.MediaInfo is { } mediaInfo)
             {
-                if (mediaInfo.Encoded is { } encodedAt && encodedAt > DateTime.MinValue)
+                if (mediaInfo.Encoded is { } encodedAt && encodedAt > DateTime.MinValue && encodedAt != DateTime.UnixEpoch)
                     releaseInfo.ReleasedAt = DateOnly.FromDateTime(encodedAt);
 
                 releaseInfo.IsChaptered = mediaInfo.Chapters.Count > 0;
@@ -137,15 +137,12 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                     group ??= new() { ID = match.ReleaseGroup, Name = match.ReleaseGroup, ShortName = match.ReleaseGroup, Source = "Offline" };
                 }
 
-                var isCreditless = CreditlessRegex().IsMatch(match.FilePath);
-                var isCensored = CensoredRegex().Match(match.FilePath) is { Success: true } censoredResult ? !censoredResult.Groups["isDe"].Success : (bool?)null;
-
                 releaseInfo.Group = group;
                 releaseInfo.OriginalFilename = Path.GetFileName(match.FilePath);
                 releaseInfo.Revision = match.Version ?? 1;
                 releaseInfo.Metadata = JsonConvert.SerializeObject(match);
-                releaseInfo.IsCensored = isCensored;
-                releaseInfo.IsCreditless = isCreditless;
+                releaseInfo.IsCreditless = match.Creditless;
+                releaseInfo.IsCensored = match.Censored;
                 // Assume the creation date has been properly set in the file-system.
                 releaseInfo.ReleasedAt ??= DateOnly.FromDateTime(File.GetCreationTimeUtc(match.FilePath));
             }
@@ -160,16 +157,33 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
     {
         logger.LogDebug("Found potential match {ShowName} for {FileName}", match.ShowName, match.FilePath);
         if (anidbService.Search(match.ShowName!) is not { Count: > 0 } searchResults)
+            searchResults = anidbService.Search(match.ShowName!, fuzzy: true);
+        if (searchResults.Count == 0)
         {
             logger.LogDebug("No search results found for {ShowName}", match.ShowName);
             return null;
         }
 
         logger.LogDebug("Found {Count} search results for {ShowName0}, picking first one; {ShowName1}", searchResults.Count, match.ShowName, searchResults[0].DefaultTitle);
+        if (match.Year.HasValue)
+        {
+            foreach (var searchResult in searchResults)
+            {
+                var releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken, year: match.Year).ConfigureAwait(false);
+                if (releaseInfo is not null)
+                {
+                    logger.LogDebug("Found year match for {ShowName} in search results", match.ShowName);
+                    return releaseInfo;
+                }
+            }
+
+            return null;
+        }
+
         return await GetReleaseInfoForMatchAndAnime(match, searchResults[0], cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<ReleaseInfo?> GetReleaseInfoForMatchAndAnime(MatchRuleResult match, IAnidbAnimeSearchResult searchResult, CancellationToken cancellationToken, int depth = 0)
+    private async Task<ReleaseInfo?> GetReleaseInfoForMatchAndAnime(MatchRuleResult match, IAnidbAnimeSearchResult searchResult, CancellationToken cancellationToken, int depth = 0, int? year = null)
     {
         var anime = searchResult.AnidbAnime;
         if (
@@ -192,7 +206,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 }
                 catch (AnidbHttpBannedException ex)
                 {
-                    logger.LogWarning("Got banned while refreshing {AnimeName}: {Message}", searchResult.DefaultTitle, ex.Message);
+                    logger.LogWarning(ex, "Got banned while refreshing {AnimeName} (Anime={AnimeID})", searchResult.DefaultTitle, searchResult.ID);
                     return null;
                 }
             }
@@ -206,7 +220,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         // fetch it.
         if (depth is > 0 && anime is { Type: AnimeType.Movie or AnimeType.Unknown })
         {
-            logger.LogDebug("Skipping unknown or movie {ShowName}", anime.DefaultTitle);
+            logger.LogDebug("Skipping unknown or movie {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
             return null;
         }
 
@@ -219,12 +233,12 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             var highestEpisodeNumber = allEpisodes.Count > 0 ? allEpisodes.Max(x => x.EpisodeNumber) : 0;
             if (match.EpisodeStart > highestEpisodeNumber)
             {
-                logger.LogDebug("Found episode range is above last episode, trying to find sequel for {ShowName}", match.ShowName);
+                logger.LogDebug("Found episode range is above last episode, trying to find sequel for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
                 var sequels = anime.RelatedSeries.Where(x => x.RelationType == RelationType.Sequel)
                     .ToList();
                 if (sequels.Count == 0)
                 {
-                    logger.LogDebug("No sequels found for {ShowName}", match.ShowName);
+                    logger.LogDebug("No sequels found for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
                     return null;
                 }
 
@@ -233,7 +247,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                     var sequelSearch = anidbService.SearchByID(sequel.RelatedID);
                     if (sequelSearch is null)
                     {
-                        logger.LogDebug("Unknown sequel by ID {RelatedID} for {ShowName}", searchResult.ID, anime.DefaultTitle);
+                        logger.LogDebug("Unknown sequel for {AnimeName} (Anime={AnimeID},SequelAnime={SequelAnimeID})", anime.DefaultTitle, anime.ID, sequel.RelatedID);
                         continue;
                     }
 
@@ -252,26 +266,32 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                         Version = match.Version,
                         RuleName = match.RuleName,
                     };
-                    logger.LogDebug("Attempting sequel {ShowName} (Anime={AnimeID})", sequelSearch.DefaultTitle, sequel.RelatedID);
-                    var sequelResult = await GetReleaseInfoForMatchAndAnime(sequelMatch, sequelSearch, cancellationToken, depth + 1).ConfigureAwait(false);
+                    logger.LogDebug("Attempting sequel {SequelAnimeName} for {AnimeName} (Anime={AnimeID},SequelAnime={SequelAnimeID})", sequelSearch.DefaultTitle, anime.DefaultTitle, anime.ID, sequelSearch.ID);
+                    var sequelResult = await GetReleaseInfoForMatchAndAnime(sequelMatch, sequelSearch, cancellationToken, depth + 1, year).ConfigureAwait(false);
                     if (sequelResult is not null)
                     {
-                        logger.LogDebug("Found sequel for {ShowName}", match.ShowName);
+                        logger.LogDebug("Found sequel {SequelAnimeName} for {AnimeName} (Anime={AnimeID},SequelAnime={SequelAnimeID})", sequelSearch.DefaultTitle, anime.DefaultTitle, anime.ID, sequelSearch.ID);
                         return sequelResult;
                     }
                 }
 
-                logger.LogDebug("No matched sequels found for {ShowName}", match.ShowName);
+                logger.LogDebug("No matched sequels found for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
                 return null;
             }
 
-            logger.LogDebug("No episodes found for {ShowName}", match.ShowName);
+            logger.LogDebug("No episodes found for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
+            return null;
+        }
+
+        if (year.HasValue && (!anime.AirDate.HasValue || anime.AirDate.Value.Year != year.Value))
+        {
+            logger.LogDebug("Year mismatch between {ShowName} and {AnimeName} (Anime={AnimeID},FoundYear={FoundYear},ExpectedYear={ExpectedYear})", match.ShowName, anime.DefaultTitle, anime.ID, anime.AirDate?.Year, year);
             return null;
         }
 
         var releaseInfo = new ReleaseInfo()
         {
-            ID = OfflinePrefix + episodes.Select(x => $"{anime.ID}-{x.ID}").Join(','),
+            ID = IdPrefix + episodes.Select(x => $"{anime.ID}-{x.ID}").Join(','),
             CrossReferences = episodes.Select(x => new ReleaseVideoCrossReference() { AnidbAnimeID = anime.ID, AnidbEpisodeID = x.ID }).ToList(),
         };
         return releaseInfo;
@@ -280,13 +300,13 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
     {
-        if (!releaseId.StartsWith(OfflinePrefix))
+        if (!releaseId.StartsWith(IdPrefix))
         {
             logger.LogWarning("Invalid release id: {ReleaseId}", releaseId);
             return Task.FromResult<ReleaseInfo?>(null);
         }
 
-        releaseId = releaseId[OfflinePrefix.Length..];
+        releaseId = releaseId[IdPrefix.Length..];
         var segmentRegex = SegmentRegex();
         var segments = releaseId
             .Split(',')
@@ -333,7 +353,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             });
         }
 
-        return Task.FromResult<ReleaseInfo?>(new() { ID = releaseId, CrossReferences = crossReferences, });
+        return Task.FromResult<ReleaseInfo?>(new() { ID = IdPrefix + releaseId, CrossReferences = crossReferences, });
     }
 
     [GeneratedRegex(@"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
@@ -344,12 +364,6 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
 
     [GeneratedRegex(@"(?<=^|,)\s*(?:(?<animeId>\d+)[=\- \.])?(?<episodeId>\d+)(?:'(?<percentRangeStartOrWholeRange>\d+)(?:\-(?<percentRangeEnd>\d+))?)?\s*(?=$|,),?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex SegmentRegex();
-
-    [GeneratedRegex(@"(?:(?<![a-z0-9])(?:nc|credit[\- ]?less)[\s_.]*(?:ed|op)(?![a-z]))(?:[\s_.]*(?:\d+(?!\d*p)))?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex CreditlessRegex();
-
-    [GeneratedRegex(@"\b((?<isDe>de)?cen(?:[sz]ored)?)\b", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex CensoredRegex();
 
     /// <summary>
     /// Configure how the offline importer works.
