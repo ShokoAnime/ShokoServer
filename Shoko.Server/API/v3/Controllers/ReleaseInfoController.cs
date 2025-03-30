@@ -11,8 +11,10 @@ using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.API.v3.Models.Release.Input;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
@@ -318,18 +320,41 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// Preview an automatic search for a <see cref="ReleaseInfo"/> for a file, disregarding any existing info, using the <paramref name="fileID"/>.
     /// </summary>
     /// <param name="fileID">File ID</param>
+    /// <param name="providerIDs">Optional. List of provider IDs to search with.</param>
     /// <returns>The current automatic <see cref="ReleaseInfo"/> for the <paramref name="fileID"/>, or a 204 response if none is available.</returns>
     [Authorize("admin")]
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
     [HttpPost("File/{fileID}/AutoPreview")]
-    public async Task<ActionResult<ReleaseInfo>> AutoPreviewReleaseInfoByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
+    public async Task<ActionResult<ReleaseInfo>> AutoPreviewReleaseInfoByFileID(
+        [FromRoute, Range(1, int.MaxValue)] int fileID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<Guid>? providerIDs = default
+    )
     {
         if (videoRepository.GetByID(fileID) is not { } video)
             return NotFound("File not found!");
 
-        if (await videoReleaseService.FindReleaseForVideo(video, saveRelease: false, cancellationToken: HttpContext.RequestAborted) is not { } releaseInfo)
+        List<ReleaseProviderInfo> providers;
+        if (providerIDs is { Count: > 0 })
+        {
+            var availableProviders = videoReleaseService.GetAvailableProviders().ToDictionary(p => p.ID);
+            providers = providerIDs
+                .Select(id => availableProviders.GetValueOrDefault(id))
+                .WhereNotNull()
+                .ToList();
+            if (providers.Count != providerIDs.Count)
+            {
+                ModelState.AddModelError(nameof(providerIDs), $"Invalid provider IDs; {providerIDs.Where(id => !availableProviders.ContainsKey(id)).Select(id => id.ToString()).Join(", ")}");
+                return ValidationProblem(ModelState);
+            }
+        }
+        else
+        {
+            providers = videoReleaseService.GetAvailableProviders(onlyEnabled: true).ToList();
+        }
+
+        if (await videoReleaseService.FindReleaseForVideo(video, providers, saveRelease: false, cancellationToken: HttpContext.RequestAborted) is not { } releaseInfo)
             return NoContent();
 
         return Ok(new ReleaseInfo(releaseInfo));
