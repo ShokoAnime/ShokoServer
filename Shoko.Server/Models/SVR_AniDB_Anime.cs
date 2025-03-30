@@ -7,6 +7,7 @@ using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.AniDB;
@@ -22,7 +23,7 @@ using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime : AniDB_Anime, ISeries
+public class SVR_AniDB_Anime : AniDB_Anime, ISeries, IAnidbAnime
 {
     #region Properties & Methods
 
@@ -494,6 +495,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
             };
         }
     }
+
+    #endregion
+
+    #region IAnidbAnime Implementation
+
+    public IReadOnlyList<IAnidbEpisode> Episodes => AniDBEpisodes;
 
     #endregion
 }
