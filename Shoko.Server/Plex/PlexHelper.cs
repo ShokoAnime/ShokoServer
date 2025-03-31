@@ -174,7 +174,7 @@ public class PlexHelper
                 isAuthenticated = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
                         AuthenticationHeaders).ConfigureAwait(false)
                     .GetAwaiter().GetResult().status == HttpStatusCode.OK;
-                _lastAuthenticated = DateTime.Now;
+                _lastAuthenticated = (bool)isAuthenticated ? DateTime.Now : null;
                 return (bool)isAuthenticated;
             }
             catch (Exception)
