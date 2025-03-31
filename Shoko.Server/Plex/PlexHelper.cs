@@ -164,7 +164,7 @@ public class PlexHelper
     {
         get
         {
-            if (_lastAuthenticated is not null && DateTime.Now - _lastAuthenticated > TimeSpan.FromMinutes(30))
+            if (_lastAuthenticated is not null && DateTime.Now - _lastAuthenticated < TimeSpan.FromMinutes(30))
             {
                 return true;
             }
@@ -469,6 +469,7 @@ public class PlexHelper
     {
         _user.PlexToken = string.Empty;
         isAuthenticated = false;
+        _lastAuthenticated = null;
         _key = null;
         SaveUser(_user);
     }
