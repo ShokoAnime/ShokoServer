@@ -158,19 +158,15 @@ public class PlexHelper
 
     private Dictionary<string, string> AuthenticationHeaders => new() { { "X-Plex-Token", GetPlexToken() } };
 
+    private DateTime? _lastAuthenticated = null;
+
     public bool IsAuthenticated
     {
         get
         {
-            if (isAuthenticated is true)
+            if (_lastAuthenticated is not null && DateTime.Now - _lastAuthenticated < TimeSpan.FromMinutes(30))
             {
-                return isAuthenticated.GetValueOrDefault(false);
-            }
-
-            // If key is not null, then we are trying to login. Plex token check should be skipped.
-            if (_key == null && string.IsNullOrEmpty(_user?.PlexToken))
-            {
-                return false;
+                return true;
             }
 
             try
@@ -178,6 +174,7 @@ public class PlexHelper
                 isAuthenticated = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
                         AuthenticationHeaders).ConfigureAwait(false)
                     .GetAwaiter().GetResult().status == HttpStatusCode.OK;
+                _lastAuthenticated = (bool)isAuthenticated ? DateTime.Now : null;
                 return (bool)isAuthenticated;
             }
             catch (Exception)
@@ -472,6 +469,7 @@ public class PlexHelper
     {
         _user.PlexToken = string.Empty;
         isAuthenticated = false;
+        _lastAuthenticated = null;
         _key = null;
         SaveUser(_user);
     }
