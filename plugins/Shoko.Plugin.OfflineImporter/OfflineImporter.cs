@@ -73,6 +73,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         var folderRegex = StrictFolderNameCheckRegex();
         var filenameRegex = StrictFilenameCheckRegex();
         var config = configurationProvider.Load();
+        logger.LogDebug("Getting release info for {Video}", video.ID);
         foreach (var location in video.Locations)
         {
             var filePath = location.Path;
@@ -88,30 +89,31 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 continue;
             }
 
+            var animeId = (int?)null;
             var releaseInfo = (ReleaseInfo?)null;
             var parts = location.RelativePath[1..].Split('/');
             var (folderName, fileName) = parts.Length > 1 ? (parts[^2], parts[^1]) : (null, parts[0]);
             var filenameMatch = filenameRegex.Match(fileName);
+            var folderNameMatch = string.IsNullOrEmpty(folderName) ? null : folderRegex.Match(folderName);
             var match = config.Mode is not Configuration.MatchMode.StrictAndFast
                 ? MatchRuleResult.Match(filePath)
                 : MatchRuleResult.Empty;
+            if (folderNameMatch is { Success: true })
+                animeId = int.Parse(folderNameMatch.Value[6..^1].Trim());
             if (filenameMatch.Success)
                 releaseInfo = (await GetReleaseInfoById(IdPrefix + filenameMatch.Value, cancellationToken))!;
             else if (config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
-                releaseInfo = await GetReleaseInfoByFileName(match, cancellationToken);
+                releaseInfo = await GetReleaseInfoByFileName(match, animeId, cancellationToken);
             if (releaseInfo is not { CrossReferences.Count: > 0 })
                 continue;
 
-            if (releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0))
+            if (releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0) && animeId is > 0 && anidbService.SearchByID(animeId.Value) is not null)
             {
-                var animeId = (int?)null;
-                var folderNameMatch = string.IsNullOrEmpty(folderName) ? null : folderRegex.Match(folderName);
-                if (folderNameMatch is { Success: true })
-                    animeId = int.Parse(folderNameMatch.Value[6..^1].Trim());
-                if (animeId is > 0)
-                    foreach (var xref in releaseInfo.CrossReferences)
-                        if (xref.AnidbAnimeID is null or <= 0)
-                            xref.AnidbAnimeID = animeId;
+                foreach (var xref in releaseInfo.CrossReferences)
+                {
+                    if (xref.AnidbAnimeID is null or <= 0)
+                        xref.AnidbAnimeID = animeId;
+                }
             }
 
             releaseInfo.FileSize = video.Size;
@@ -153,8 +155,29 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         return null;
     }
 
-    private async Task<ReleaseInfo?> GetReleaseInfoByFileName(MatchRuleResult match, CancellationToken cancellationToken)
+    private async Task<ReleaseInfo?> GetReleaseInfoByFileName(MatchRuleResult match, int? animeId, CancellationToken cancellationToken)
     {
+        var releaseInfo = (ReleaseInfo?)null;
+        if (animeId is > 0)
+        {
+            logger.LogDebug("Found anime ID in folder name to use: {AnimeID}", animeId);
+            if (anidbService.SearchByID(animeId.Value) is not { } searchResult)
+            {
+                logger.LogDebug("No search result found for anime ID {AnimeID}", animeId);
+                return null;
+            }
+
+            releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken, year: match.Year).ConfigureAwait(false);
+            if (releaseInfo is not null)
+            {
+                logger.LogDebug("Found anime id match for {ShowName} in search results", match.ShowName);
+                return releaseInfo;
+            }
+
+            logger.LogDebug("No match found for anime ID {AnimeID}", animeId);
+            return null;
+        }
+
         logger.LogDebug("Found potential match {ShowName} for {FileName}", match.ShowName, match.FilePath);
         if (anidbService.Search(match.ShowName!) is not { Count: > 0 } searchResults)
             searchResults = anidbService.Search(match.ShowName!, fuzzy: true);
@@ -164,12 +187,12 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             return null;
         }
 
-        logger.LogDebug("Found {Count} search results for {ShowName0}, picking first one; {ShowName1}", searchResults.Count, match.ShowName, searchResults[0].DefaultTitle);
         if (match.Year.HasValue)
         {
+            logger.LogDebug("Found {Count} search results for {ShowName} with year {Year}", searchResults.Count, match.ShowName, match.Year);
             foreach (var searchResult in searchResults)
             {
-                var releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken, year: match.Year).ConfigureAwait(false);
+                releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken, year: match.Year).ConfigureAwait(false);
                 if (releaseInfo is not null)
                 {
                     logger.LogDebug("Found year match for {ShowName} in search results", match.ShowName);
@@ -177,10 +200,17 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 }
             }
 
+            logger.LogDebug("No match found for {ShowName} in search results", match.ShowName);
             return null;
         }
 
-        return await GetReleaseInfoForMatchAndAnime(match, searchResults[0], cancellationToken).ConfigureAwait(false);
+        logger.LogDebug("Found {Count} search results for {ShowName0}, picking first one; {ShowName1}", searchResults.Count, match.ShowName, searchResults[0].DefaultTitle);
+        releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResults[0], cancellationToken).ConfigureAwait(false);
+        if (releaseInfo is not null)
+            logger.LogDebug("Found match for {ShowName} in search results", match.ShowName);
+        else
+            logger.LogDebug("No match found for {ShowName} in search results", match.ShowName);
+        return releaseInfo;
     }
 
     private async Task<ReleaseInfo?> GetReleaseInfoForMatchAndAnime(MatchRuleResult match, IAnidbAnimeSearchResult searchResult, CancellationToken cancellationToken, int depth = 0, int? year = null)
