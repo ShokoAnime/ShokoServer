@@ -80,7 +80,7 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
                         try
                         {
                             var parsedToken = JToken.Parse(envVar);
-                            _loadedEnvironmentVariables.Add(envVarName, (parsedToken.ToString(), token?.ToString()));
+                            _loadedEnvironmentVariables.Add(envVarName, (parsedToken.ToJson(), token?.ToJson()));
                             if (token is not null)
                                 token.Replace(parsedToken);
                             else
@@ -104,7 +104,7 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
                 )
                 {
                     // If the value is different from what we expect, then add an error, otherwise
-                    if (!string.Equals(tuple.Override, token?.ToString(), StringComparison.Ordinal))
+                    if (!string.Equals(tuple.Override, token?.ToJson(), StringComparison.Ordinal))
                     {
                         errors.Add(new ValidationError((ValidationErrorKind)1_001, propertyName, propertyPath, token, schema));
                     }
@@ -122,13 +122,13 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
                 {
                     if (_restartPending.TryGetValue(propertyPath, out var existingValue))
                     {
-                        if (string.Equals(existingValue, token?.ToString(), StringComparison.Ordinal))
+                        if (string.Equals(existingValue, token?.ToJson(), StringComparison.Ordinal))
                             _restartPending.Remove(propertyPath);
                     }
                     else
                     {
-                        existingValue = GetPropertyPath(propertyPath)?.ToString();
-                        if (!string.Equals(existingValue, token?.ToString(), StringComparison.Ordinal))
+                        existingValue = GetPropertyPath(propertyPath)?.ToJson();
+                        if (!string.Equals(existingValue, token?.ToJson(), StringComparison.Ordinal))
                             _restartPending.Add(propertyPath, existingValue);
                     }
                 }
