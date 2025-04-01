@@ -271,7 +271,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     {
         var (token, results) = new ShokoJsonSchemaValidator<TConfig>(this._logger, this, info, _loadedConfigurations.TryGetValue(info.ID, out var config0) ? (config0 as TConfig) ?? config : config, saveValidation, loadValidation).Validate(json);
         if (loadValidation)
-            json = token.ToString();
+            json = token.ToJson();
 
         var errorDict = new Dictionary<string, List<string>>();
         foreach (var error in GetAllValidationErrorsForCollection(results))
@@ -525,7 +525,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             var json = SerializeInternal(config);
             SaveInternal(info, json, config);
             var (token, errors) = ValidateInternal(info, json, config, loadValidation: true);
-            config = DeserializeInternal<TConfig>(token.ToString());
+            config = DeserializeInternal<TConfig>(token.ToJson());
             _loadedConfigurations[info.ID] = config;
             if (errors.Count > 0)
                 throw new ConfigurationValidationException("load", info, errors);
@@ -544,7 +544,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
             if (errors.Count > 0)
                 throw new ConfigurationValidationException("load", info, errors);
 
-            config = DeserializeInternal<TConfig>(token.ToString());
+            config = DeserializeInternal<TConfig>(token.ToJson());
             _loadedConfigurations[info.ID] = config;
             return copy ? config.DeepClone() : config;
         }
@@ -605,7 +605,7 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
         if (errors.Count > 0)
             throw new ConfigurationValidationException("save", info, errors);
 
-        storedJson = token.ToString();
+        storedJson = token.ToJson();
         lock (info)
         {
             if (info.Path is null)
