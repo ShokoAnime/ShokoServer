@@ -140,6 +140,8 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 }
 
                 releaseInfo.Group = group;
+                if (match.Source is not null)
+                    releaseInfo.Source = match.Source.Value;
                 releaseInfo.OriginalFilename = Path.GetFileName(match.FilePath);
                 releaseInfo.Revision = match.Version ?? 1;
                 releaseInfo.Metadata = JsonConvert.SerializeObject(match);
