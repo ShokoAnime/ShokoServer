@@ -23,7 +23,7 @@ public class ReleaseInfoWithProvider : ReleaseInfo, IReleaseInfo
     /// <inheritdoc />
     public ReleaseInfoWithProvider(ReleaseInfo releaseInfo, string providerName) : base(releaseInfo)
     {
-        if (!string.IsNullOrEmpty(ProviderName))
+        if (string.IsNullOrEmpty(ProviderName))
             ProviderName = providerName;
     }
 
