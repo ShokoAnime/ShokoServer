@@ -114,7 +114,7 @@ public class AnidbService : IAniDBService
         _anidbAnimeUpdateRepository = anidbAnimeUpdateRepository;
         _seriesRepository = seriesRepository;
         _crossReferenceRepository = crossReferenceRepository;
-        _bulkheadPolicy = Policy.BulkheadAsync<SVR_AniDB_Anime?>(1);
+        _bulkheadPolicy = Policy.BulkheadAsync<SVR_AniDB_Anime?>(1, int.MaxValue);
 
         ShokoEventHandler.Instance.AniDBBanned += OnAniDBBanned;
         ShokoEventHandler.Instance.AVDumpEvent += OnAVDumpEvent;
