@@ -207,7 +207,7 @@ public class AnidbService : IAniDBService
 
     private async Task<IAnidbAnime?> RefreshInternal(int anidbAnimeID, IAnidbAnime? anidbAnime = null, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
-        if (refreshMethod is AnidbRefreshMethod.None)
+        if (!refreshMethod.HasFlag(AnidbRefreshMethod.Cache) && !refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
             return anidbAnime;
 
         try
@@ -224,11 +224,11 @@ public class AnidbService : IAniDBService
 
     private async Task ScheduleRefreshInternal(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
     {
-        if (refreshMethod is AnidbRefreshMethod.None)
+        if (!refreshMethod.HasFlag(AnidbRefreshMethod.Cache) && !refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
             return;
 
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        if (refreshMethod.HasFlag(AnidbRefreshMethod.Cache) && !refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
+        if (!refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
         {
             if (prioritize)
                 await scheduler.StartJobNow<GetLocalAniDBAnimeJob>(job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod)).ConfigureAwait(false);
