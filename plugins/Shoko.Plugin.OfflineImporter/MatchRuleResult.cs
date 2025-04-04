@@ -64,6 +64,11 @@ public record MatchRuleResult
     public float EpisodeEnd { get; set; }
 
     /// <summary>
+    /// The episode text.
+    /// </summary>
+    public string? EpisodeText { get; set; }
+
+    /// <summary>
     /// Indicates if the theme video is creditless.
     /// </summary>
     public bool? Creditless { get; set; }
@@ -381,13 +386,17 @@ public record MatchRuleResult
         var themeCheckResult = _themeSongCheckRegex.Match(originalDetails.FilePath);
         if (themeCheckResult.Success)
         {
-            var episodeText = themeCheckResult.Groups["episode"].Value ?? "1";
-            var episode = int.Parse(episodeText);
+            var episodeText = themeCheckResult.Groups["episode"].Value;
+            if (string.IsNullOrEmpty(episodeText))
+                episodeText = "1";
 
-            modifiedDetails.Creditless = _creditlessRegex.IsMatch(originalDetails.FilePath);
+            var episode = int.Parse(episodeText);
+            var episodeTextDetails = $"{themeCheckResult.Groups["type"].Value}{(themeCheckResult.Groups["episode"].Success ? episode.ToString() : "")}{themeCheckResult.Groups["suffix"].Value}";
+            modifiedDetails.Creditless = themeCheckResult.Groups["isCreditless"].Success;
             modifiedDetails.EpisodeType = EpisodeType.Credits;
             modifiedDetails.EpisodeStart = episode;
             modifiedDetails.EpisodeEnd = episode;
+            modifiedDetails.EpisodeText = episodeTextDetails;
         }
 
         if (modifiedDetails.EpisodeStart == 0)
@@ -440,7 +449,7 @@ public record MatchRuleResult
     private static readonly Regex _reStitchRegex = new(@"^[\s_.]*-+[\s_.]*$", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex _themeSongCheckRegex = new(
-        @"(?<isThemeSong>(?<![a-z0-9])(?:(?:nc|creditless)[\s_.]*)?(?:ed|op)(?![a-z]))(?:[\s_.]*(?<episode>\d+(?!\d*p)))?",
+        @"(?<![a-z0-9])(?:(?<isCreditless>nc|creditless)[\s_.]*)?(?<type>ed|op)(?![a-z]{2,})(?:[\s_.]*(?<episode>\d+(?!\d*p)))?(?<suffix>(?<=(?:OP|ED)(?:[\s_.]*\d+)?)(?:\.\d+|\w)\b)?",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
@@ -459,16 +468,10 @@ public record MatchRuleResult
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
-    private static readonly Regex _creditlessRegex = new(
-        @"(?:(?<![a-z0-9])(?:nc|credit[\- ]?less)[\s_.]*(?:ed|op)(?![a-z]))(?:[\s_.]*(?:\d+(?!\d*p)))?",
-        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-    );
-
     private static readonly Regex _censoredRegex = new(
         @"\b((?<isDe>de|un)?cen(?:sored)?)\b",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
-
 
     private static readonly MatchRule[] _rules = [
         new()
@@ -518,7 +521,7 @@ public record MatchRuleResult
             Name = "default",
             Regex = new(
                 // Note: Currently it will not recognize episodes in the 19xx and 2xxx ranges. Let's hope nothing reaches that far.
-                @"^(?:[{[(](?<releaseGroup>[^)}\]]+)[)}\]][\s_.]*)?(?<showName>(?<isMovie2>gekijouban[\s_.]+)?(?:[a-z]+[\s_\.]+\d+(?=[\s_\.]*(?:-+[\s_\.]*)[a-z]+))?.+?(?<!\d)(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?<isMovie>[\s_\.]*(?:[-!+]+[\s_\.]*)?(?:the[\s_\.]+)?movie)?(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?:[\s_\.]*\((?<year>(?:19|20)\d{2})\))?)(?<isTrailer>[\s_\.]*(?:character[\s_\.]*)?(?:cm|pv|menu))?[\s_\.]*(?:-+[\s_\.]*)?(?:(?:(?<isThemeSong>(?<![a-z])(?:nc)?(?:ed|op)[\s_\.]*))|(?<isSpecial>sp(?:ecial)?|s(?=\d+(?<!e)))|(?<isOther>O)|(?<isOVA>ova)(?:[\s_\.]+(?:[_-]+[\s_\.]*)?e|(?=e))|s(?:eason)?(?<season>\d+)(?:[\s_\.]+(?:[_-]+\.*)?e?|(?=e))|)(?:(?<!part[\s_\.]*)(?:(?<![a-z])e(?:ps?|pisodes?)?[\s_\.]*)?(?<episode>(?<!x[\. ]?|(?:flac|opus)[\. ]?(?:\d\.)?|\d+ - [\w\d \.]+)(?!19\d{2}|2\d{3}|\d+[pi])(?:\d+(?:(?!-\d+p)-+\d+?|\.5)?|(?<=(?:ed|op) *)\d+\.\d+))(?:[\s:\.]*end)?)(?:[\s:\.]*v(?<version>\d{1,2}))?(?! - (?:E(p(?:isode)?)?)? *\d+| OVA)(?:[\s_\.]*-*(?:[\s_\.]+(?<episodeName>(?!\d)[^([{\n]*?))?)?(?:[\s_\.]+(?:[\s_\.]+)?)?(?:[\s_.]*(?:\([^)]*\)|\[[^\]]*\]|{[^}]*}|[([{]+[^)\]}\n]*[)\]}]+|(?:(?<![a-z])(?:jpn?|jap(?:anese)?|en|eng(?:lish)?|es|(?:spa(?:nish)?|de|ger(?:man)?)|\d{3,4}[pi](?:-+hi\w*)?|(?:[uf]?hd|sd)|\d{3,4}x\d{3,4}|dual[\s_\.-]*audio|(?:www|web|bd|dvd|ld|blu[\s_\.-]*ray)(?:[\s_\.-]*(?:rip|dl))?|dl|rip|(?:av1|hevc|[hx]26[45])(?:-[a-z0-9]{1,6})?|(?:dolby(?:[\s_\.-]*(?:atmos|vision))?|dts|opus|e?ac3|aac|flac|dovi)(?:[\s\._]*[257]\.[0124](?:[_.-]+\w{1,6})?)?|(?:\w{2,3}[\s_\.-]*)?(?:sub(?:title)?s?|dub)|(?:un)?cen(?:\.|sored)?)[\s_\.]*){1,20})){0,20}[\s_\.]*(?:-[a-zA-Z0-9]+?)?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
+                @"^(?:[{[(](?<releaseGroup>[^)}\]]+)[)}\]][\s_.]*)?(?<showName>(?<isMovie2>gekijouban[\s_.]+)?(?:[a-z]+[\s_\.]+\d+(?=[\s_\.]*(?:-+[\s_\.]*)[a-z]+))?.+?(?<!\d)(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?<isMovie>[\s_\.]*(?:[-!+]+[\s_\.]*)?(?:the[\s_\.]+)?movie)?(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?:[\s_\.]*\((?<year>(?:19|20)\d{2})\))?)(?<isTrailer>[\s_\.]*(?:character[\s_\.]*)?(?:cm|pv|menu))?[\s_\.]*(?:-+[\s_\.]*)?(?:(?:(?<isThemeSong>(?<![a-z])(?:nc)?(?:ed|op)[\s_\.]*))|(?<isSpecial>sp(?:ecial)?|s(?=\d+(?<!e)))|(?<isOther>O)|(?<isOVA>ova)(?:[\s_\.]+(?:[_-]+[\s_\.]*)?e|(?=e))|s(?:eason)?(?<season>\d+)(?:[\s_\.]+(?:[_-]+\.*)?e?|(?=e))|)(?:(?<!part[\s_\.]*)(?:(?<![a-z])e(?:ps?|pisodes?)?[\s_\.]*)?(?<episode>(?<!x[\. ]?|(?:flac|opus)[\. ]?(?:\d\.)?|\d+ - [\w\d \.]+)(?!19\d{2}|2\d{3}|\d+[pi])(?:\d+(?:(?!-\d+p)-+\d+?|\.5)?|(?<=(?:ed|op) *)\d+\.\d+))(?:(?<=(?:OP|ED)\d+)(?:\w|\.\d+)\b)?(?:[\s:\.]*end)?)(?:[\s:\.]*v(?<version>\d{1,2}))?(?! - (?:E(p(?:isode)?)?)? *\d+| OVA)(?:[\s_\.]*-*(?:[\s_\.]+(?<episodeName>(?!\d)[^([{\n]*?))?)?(?:[\s_\.]+(?:[\s_\.]+)?)?(?:[\s_.]*(?:\([^)]*\)|\[[^\]]*\]|{[^}]*}|[([{]+[^)\]}\n]*[)\]}]+|(?:(?<![a-z])(?:jpn?|jap(?:anese)?|en|eng(?:lish)?|es|(?:spa(?:nish)?|de|ger(?:man)?)|\d{3,4}[pi](?:-+hi\w*)?|(?:[uf]?hd|sd)|\d{3,4}x\d{3,4}|dual[\s_\.-]*audio|(?:www|web|bd|dvd|ld|blu[\s_\.-]*ray)(?:[\s_\.-]*(?:rip|dl))?|dl|rip|(?:av1|hevc|[hx]26[45])(?:-[a-z0-9]{1,6})?|(?:dolby(?:[\s_\.-]*(?:atmos|vision))?|dts|opus|e?ac3|aac|flac|dovi)(?:[\s\._]*[257]\.[0124](?:[_.-]+\w{1,6})?)?|(?:\w{2,3}[\s_\.-]*)?(?:sub(?:title)?s?|dub)|(?:un)?cen(?:\.|sored)?)[\s_\.]*){1,20})){0,20}[\s_\.]*(?:-[a-zA-Z0-9]+?)?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
                 RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
             ),
         },
@@ -568,7 +571,7 @@ public record MatchRuleResult
             Name = "fallback",
             Regex = new(
                 // Note: Currently it will not recognize episodes in the 19xx and 2xxx ranges. Let's hope nothing reaches that far.
-                @"^(?:[{[(](?<releaseGroup>[^)}\]]+)[)}\]][\s_.]*)?(?<showName>(?<isMovie2>gekijouban[\s_.]+)?(?:[a-z]+[\s_\.]+\d+(?=[\s_\.]*(?:-+[\s_\.]*)[a-z]+))?.+?(?<!\d)(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?<isMovie>[\s_\.]*(?:[-!+]+[\s_\.]*)?(?:the[\s_\.]+)?movie)?(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?:[\s_\.]*\((?<year>(?:19|20)\d{2})\))?)(?<isTrailer>[\s_\.]*(?:character[\s_\.]*)?(?:cm|pv|menu))?[\s_\.]*(?:-+[\s_\.]*)?(?:(?:(?<isThemeSong>(?<![a-z])(?:nc)?(?:ed|op)[\s_\.]*))|(?<isSpecial>sp(?:ecial)?|s(?=\d+(?<!e)))|(?<isOther>O)|(?<isOVA>ova)(?:[\s_\.]+(?:[_-]+[\s_\.]*)?e|(?=e))|s(?:eason)?(?<season>\d+)(?:[\s_\.]+(?:[_-]+\.*)?e?|(?=e))|)(?:(?<!part[\s_\.]*)(?:(?<![a-z])e(?:ps?|pisodes?)?[\s_\.]*)?(?<episode>(?<!x[\. ]?|(?:flac|opus)[\. ]?(?:\d\.)?|\d+ - [\w\d \.]+)(?!19\d{2}|2\d{3}|\d+[pi])(?:\d+(?:(?!-\d+p)-+\d+?|\.5)?|(?<=(?:ed|op) *)\d+\.\d+))?(?:[\s:\.]*end)?)(?:[\s:\.]*v(?<version>\d{1,2}))?(?! - (?:E(p(?:isode)?)?)? *\d+| OVA)(?:[\s_\.]*-*(?:[\s_\.]+(?<episodeName>(?!\d)[^([{\n]*?))?)?(?:[\s_\.]+(?:[\s_\.]+)?)?(?:[\s_.]*(?:\([^)]*\)|\[[^\]]*\]|{[^}]*}|[([{]+[^)\]}\n]*[)\]}]+|(?:(?<![a-z])(?:jpn?|jap(?:anese)?|en|eng(?:lish)?|es|(?:spa(?:nish)?|de|ger(?:man)?)|\d{3,4}[pi](?:-+hi\w*)?|(?:[uf]?hd|sd)|\d{3,4}x\d{3,4}|dual[\s_\.-]*audio|(?:www|web|bd|dvd|ld|blu[\s_\.-]*ray)(?:[\s_\.-]*(?:rip|dl))?|dl|rip|(?:av1|hevc|[hx]26[45])(?:-[a-z0-9]{1,6})?|(?:dolby(?:[\s_\.-]*(?:atmos|vision))?|dts|opus|e?ac3|aac|flac|dovi)(?:[\s\._]*[257]\.[0124](?:[_.-]+\w{1,6})?)?|(?:\w{2,3}[\s_\.-]*)?(?:sub(?:title)?s?|dub)|(?:un)?cen(?:\.|sored)?)[\s_\.]*){1,20})){0,20}[\s_\.]*(?:-[a-zA-Z0-9]+?)?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
+                @"^(?:[{[(](?<releaseGroup>[^)}\]]+)[)}\]][\s_.]*)?(?<showName>(?<isMovie2>gekijouban[\s_.]+)?(?:[a-z]+[\s_\.]+\d+(?=[\s_\.]*(?:-+[\s_\.]*)[a-z]+))?.+?(?<!\d)(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?<isMovie>[\s_\.]*(?:[-!+]+[\s_\.]*)?(?:the[\s_\.]+)?movie)?(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?:[\s_\.]*\((?<year>(?:19|20)\d{2})\))?)(?<isTrailer>[\s_\.]*(?:character[\s_\.]*)?(?:cm|pv|menu))?[\s_\.]*(?:-+[\s_\.]*)?(?:(?:(?<isThemeSong>(?<![a-z])(?:nc)?(?:ed|op)[\s_\.]*))|(?<isSpecial>sp(?:ecial)?|s(?=\d+(?<!e)))|(?<isOther>O)|(?<isOVA>ova)(?:[\s_\.]+(?:[_-]+[\s_\.]*)?e|(?=e))|s(?:eason)?(?<season>\d+)(?:[\s_\.]+(?:[_-]+\.*)?e?|(?=e))|)(?:(?<!part[\s_\.]*)(?:(?<![a-z])e(?:ps?|pisodes?)?[\s_\.]*)?(?<episode>(?<!x[\. ]?|(?:flac|opus)[\. ]?(?:\d\.)?|\d+ - [\w\d \.]+)(?!19\d{2}|2\d{3}|\d+[pi])(?:\d+(?:(?!-\d+p)-+\d+?|\.5)?|(?<=(?:ed|op) *)\d+\.\d+))?(?:(?<=(?:OP|ED)\d+)(?:\w|\.\d+)\b)?(?:[\s:\.]*end)?)(?:[\s:\.]*v(?<version>\d{1,2}))?(?! - (?:E(p(?:isode)?)?)? *\d+| OVA)(?:[\s_\.]*-*(?:[\s_\.]+(?<episodeName>(?!\d)[^([{\n]*?))?)?(?:[\s_\.]+(?:[\s_\.]+)?)?(?:[\s_.]*(?:\([^)]*\)|\[[^\]]*\]|{[^}]*}|[([{]+[^)\]}\n]*[)\]}]+|(?:(?<![a-z])(?:jpn?|jap(?:anese)?|en|eng(?:lish)?|es|(?:spa(?:nish)?|de|ger(?:man)?)|\d{3,4}[pi](?:-+hi\w*)?|(?:[uf]?hd|sd)|\d{3,4}x\d{3,4}|dual[\s_\.-]*audio|(?:www|web|bd|dvd|ld|blu[\s_\.-]*ray)(?:[\s_\.-]*(?:rip|dl))?|dl|rip|(?:av1|hevc|[hx]26[45])(?:-[a-z0-9]{1,6})?|(?:dolby(?:[\s_\.-]*(?:atmos|vision))?|dts|opus|e?ac3|aac|flac|dovi)(?:[\s\._]*[257]\.[0124](?:[_.-]+\w{1,6})?)?|(?:\w{2,3}[\s_\.-]*)?(?:sub(?:title)?s?|dub)|(?:un)?cen(?:\.|sored)?)[\s_\.]*){1,20})){0,20}[\s_\.]*(?:-[a-zA-Z0-9]+?)?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
                 RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
             ),
         },

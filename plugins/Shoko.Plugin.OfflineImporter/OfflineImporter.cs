@@ -257,9 +257,35 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         }
 
         var allEpisodes = anime.Episodes.ToList();
-        var episodes = allEpisodes
-            .Where(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd && x.EpisodeNumber >= match.EpisodeStart)
-            .ToList();
+        List<IAnidbEpisode> episodes;
+        // Extra handling for credits if we managed to parse the credit type
+        if (match.EpisodeType is EpisodeType.Credits && !string.IsNullOrWhiteSpace(match.EpisodeText))
+        {
+            var (type, num, suf) = ParseCreditType(match.EpisodeText);
+            var allCredits = allEpisodes
+                .Where(x => x.Type == EpisodeType.Credits)
+                .Select(x => (x, y: ParseCreditType(x.DefaultTitle)))
+                .Where(t => t.y.type == type)
+                .ToList();
+            var altMode = allCredits.GroupBy(x => x.y.number).All(g => g.Count() == 1);
+            episodes = allCredits
+                .Select(t => (
+                    t.x,
+                    t.y,
+                    z: altMode
+                        ? new HashSet<string>([.. ParseCreditTitle(t.x.DefaultTitle), .. ParseCreditTitle($"{type}{IntegerToSuffix(t.y.number)}")], StringComparer.InvariantCultureIgnoreCase)
+                        : ParseCreditTitle(t.x.DefaultTitle)
+                ))
+                .Where(t => t.z.Contains(match.EpisodeText))
+                .Select(x => x.x)
+                .ToList();
+        }
+        else
+        {
+            episodes = allEpisodes
+                .Where(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd && x.EpisodeNumber >= match.EpisodeStart)
+                .ToList();
+        }
         if (episodes.Count == 0)
         {
             var highestEpisodeNumber = allEpisodes.Count > 0 ? allEpisodes.Max(x => x.EpisodeNumber) : 0;
@@ -387,6 +413,146 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
 
         return Task.FromResult<ReleaseInfo?>(new() { ID = IdPrefix + releaseId, CrossReferences = crossReferences, });
     }
+
+    private static string IntegerToSuffix(int number) => number switch
+    {
+        // from a to z
+        _ when number is >= 1 and <= 26 => ((char)('a' + number - 1)).ToString(),
+        _ => string.Empty,
+    };
+
+    private static (string type, int number, string suffix) ParseCreditType(string title)
+    {
+        var match = CreditTitleRegex().Match(title);
+        if (!match.Success)
+            return (string.Empty, 0, string.Empty);
+
+        var type = match.Groups["type"].Value.ToLowerInvariant() switch
+        {
+            "ed" or "ending" or "credits" => "ED",
+            "op" or "opening" or "intro" => "OP",
+            _ => null,
+        };
+        if (type is null)
+            return (string.Empty, 0, string.Empty);
+
+        var number = match.Groups["number"].Success ? int.Parse(match.Groups["number"].Value) : 1;
+        var suffix = match.Groups["suffix"].Value;
+        if (match.Groups["version"].Success)
+            suffix = match.Groups["version"].Value switch
+            {
+                "1" => "a",
+                "2" => "b",
+                "3" => "c",
+                _ => suffix,
+            };
+
+        string? episodeRange = null;
+        foreach (var group in match.Groups.Values.Where(g => g.Name.StartsWith("episodeRange")))
+        {
+            if (group.Success)
+            {
+                episodeRange = group.Value;
+                break;
+            }
+        }
+
+        var realSuffix = !string.IsNullOrEmpty(suffix) ? suffix : !string.IsNullOrEmpty(episodeRange) ? $" ({episodeRange})" : string.Empty;
+        return (type, number, realSuffix);
+    }
+
+    private static HashSet<string> ParseCreditTitle(string title)
+    {
+        var matches = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        var match = CreditTitleRegex().Match(title);
+        if (!match.Success)
+            return matches;
+
+        var types = match.Groups["type"].Value.ToLowerInvariant() switch
+        {
+            "ed" or "ending" or "credits" => new string[] { "ED", "ED ", "Ending ", "Credits " },
+            "op" or "opening" or "intro" => ["OP", "OP ", "Opening ", "Intro "],
+            _ => null,
+        };
+        if (types is null)
+            return matches;
+
+        var isSpecial = match.Groups["isSpecial1"].Success || match.Groups["isSpecial2"].Success;
+        var isExtra = match.Groups["isExtra"].Success;
+        var isFull = match.Groups["isFull1"].Success || match.Groups["isFull2"].Success;
+        var isFinalEpisode = match.Groups["isFinalEpisode"].Success;
+        var isDVD = match.Groups["isDVD"].Success;
+        var number = match.Groups["number"].Success ? int.Parse(match.Groups["number"].Value).ToString() : "1";
+        var suffix = match.Groups["suffix"].Value;
+        if (match.Groups["version"].Success)
+            suffix = match.Groups["version"].Value switch
+            {
+                "1" => "a",
+                "2" => "b",
+                "3" => "c",
+                _ => suffix,
+            };
+
+        string? episodeRange = null;
+        foreach (var group in match.Groups.Values.Where(g => g.Name.StartsWith("episodeRange")))
+        {
+            if (group.Success)
+            {
+                episodeRange = group.Value;
+                break;
+            }
+        }
+
+        var realSuffix = !string.IsNullOrEmpty(suffix) ? suffix : !string.IsNullOrEmpty(episodeRange) ? $" ({episodeRange})" : string.Empty;
+        foreach (var type in types)
+        {
+            var modifiedType = type;
+            if (realSuffix.Length > 0 && realSuffix[0] == ' ' && type[^1] == ' ')
+                modifiedType = type[0..^1];
+            var phrases = new List<string>() {
+                $"{modifiedType}{number}{realSuffix}",
+            };
+            if (number is "1")
+            {
+                phrases.Add($"{modifiedType}{realSuffix}");
+            }
+            if (isExtra)
+            {
+                phrases.Add($"{modifiedType.TrimEnd()} EX{number}{realSuffix}");
+                phrases.Add($"{modifiedType.TrimEnd()} EX {number}{realSuffix}");
+            }
+            if (number is "1" && isExtra)
+            {
+                phrases.Add($"{modifiedType.TrimEnd()} EX{realSuffix}");
+                phrases.Add($"{modifiedType.TrimEnd()} EX {realSuffix}");
+            }
+            foreach (var phrase in phrases)
+            {
+                matches.Add(phrase.TrimEnd());
+                if (isFull)
+                {
+                    matches.Add(("Full " + phrase).TrimEnd());
+                    matches.Add(phrase.TrimEnd() + " (LongVer.)");
+                }
+                if (isFinalEpisode)
+                {
+                    if (type is "ED" or "OP")
+                    {
+                        matches.Add(("FE " + phrase).TrimEnd());
+                        matches.Add(("FE" + phrase).TrimEnd());
+                    }
+                    else
+                    {
+                        matches.Add(("Final Episode " + phrase).TrimEnd());
+                    }
+                }
+            }
+        }
+        return matches;
+    }
+
+    [GeneratedRegex(@"^(?:(?<isFinalEpisode>Final Episode) |Episode (?<episodeRange1>\d+(?:\-\d+)?) |(?<isFull1>Full) |(?<isDVD>DVD) |(?<isSpecial1>Special|Bonus|Special Broadcast|TV)? |(?<isCreditless>creditless) |(?<isInternational>international) |(?<isOriginal>Original )?(?<language>japanese|english|american|us|german|french(?: uncensored)?|italian|spanish|arabic) |(?<isEdgeCase>BD-BOX II|Doukyuusei: Natsu no Owari ni|Ami-chan's First Love|Narration -) )?(?<type>ED|OP|Opening|Ending|Intro|Credits)(?<isExtra> EX)?(?: *(?<number>\d+))?(?<suffix> ?[a-z]|\.\d+)?(?:(?: \((?<episodeRange2>\d+(?:\-\d+)?)\)| Episode (?<episodeRange3>\d+(?:\-\d+)?))?| \((?:(?<isSpecial2>Specials?)|Episode (?<episodeRange4>S?\d+(?:\-\d+)?(?: ?& ?S?\d+(?:\-\d+)?)?)|(?<isFull2>LongVer.)|(?<details1>[^\)]+))\)| \[(?<details2>[^\]]+)\]| (?<isFull3>full)| - Version (?<version>\d+)| - .+| .+)?$", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex CreditTitleRegex();
 
     [GeneratedRegex(@"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex StrictFolderNameCheckRegex();
