@@ -446,7 +446,7 @@ public record MatchRuleResult
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
-    private static readonly Regex _reStitchRegex = new(@"^[\s_.]*-+[\s_.]*$", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex _reStitchRegex = new(@"^[\s_.]*-+[\s_.]*$|^[\s_.]*$", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex _themeSongCheckRegex = new(
         @"(?<![a-z0-9])(?:(?<isCreditless>nc|creditless)[\s_.]*)?(?<type>ed|op)(?![a-z]{2,})(?:[\s_.]*(?<episode>\d+(?!\d*p)))?(?<suffix>(?<=(?:OP|ED)(?:[\s_.]*\d+)?)(?:\.\d+|\w)\b)?",
