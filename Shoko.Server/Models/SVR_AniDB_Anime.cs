@@ -494,7 +494,10 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries, IAnidbAnime
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID);
 
-    IReadOnlyList<IEpisode> ISeries.Episodes => AniDBEpisodes;
+    IReadOnlyList<IEpisode> ISeries.Episodes => AniDBEpisodes
+        .OrderBy(a => a.EpisodeTypeEnum)
+        .ThenBy(a => a.EpisodeNumber)
+        .ToList();
 
     IReadOnlyList<IVideo> ISeries.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
@@ -524,7 +527,10 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries, IAnidbAnime
 
     #region IAnidbAnime Implementation
 
-    public IReadOnlyList<IAnidbEpisode> Episodes => AniDBEpisodes;
+    public IReadOnlyList<IAnidbEpisode> Episodes => AniDBEpisodes
+        .OrderBy(a => a.EpisodeTypeEnum)
+        .ThenBy(a => a.EpisodeNumber)
+        .ToList();
 
     #endregion
 }
