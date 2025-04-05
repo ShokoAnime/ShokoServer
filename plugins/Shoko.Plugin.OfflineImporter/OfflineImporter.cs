@@ -258,8 +258,39 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
 
         var allEpisodes = anime.Episodes.ToList();
         List<IAnidbEpisode> episodes;
+        // Extra handling for TV Specials with multiple parts as additional episodes.
+        if (match.EpisodeType is EpisodeType.Episode && anime.Type is AnimeType.TVSpecial && allEpisodes.Count > 0 && allEpisodes[0].DefaultTitle is "TV Special" && allEpisodes.Count(ep => ep.Type is EpisodeType.Episode) > 1)
+        {
+            episodes = allEpisodes
+                .Where(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd + 1 && x.EpisodeNumber >= match.EpisodeStart + 1)
+                .ToList();
+            if (episodes.Count > 0)
+            {
+                if (year.HasValue && (!anime.AirDate.HasValue || anime.AirDate.Value.Year != year.Value))
+                {
+                    logger.LogDebug("Year mismatch between {ShowName} and {AnimeName} (Anime={AnimeID},FoundYear={FoundYear},ExpectedYear={ExpectedYear})", match.ShowName, anime.DefaultTitle, anime.ID, anime.AirDate?.Year, year);
+                    return null;
+                }
+
+                var parts = allEpisodes.Count(ep => ep.Type is EpisodeType.Episode) - 1;
+                var range = (int)Math.Floor(100d / parts);
+                var start = (int)(range * (match.EpisodeStart - 1));
+                var rangeSize = match.EpisodeEnd - match.EpisodeStart + 1;
+                var end = start + (int)(range * rangeSize);
+                if (start + range > 95)
+                    end = 100;
+                return new ReleaseInfo()
+                {
+                    ID = IdPrefix + episodes.Select(x => $"{anime.ID}-{x.ID}").Join(','),
+                    CrossReferences = [
+                        new ReleaseVideoCrossReference() { AnidbAnimeID = anime.ID, AnidbEpisodeID = allEpisodes[0].ID, PercentageStart = start, PercentageEnd = end },
+                        .. episodes.Select(x => new ReleaseVideoCrossReference() { AnidbAnimeID = anime.ID, AnidbEpisodeID = x.ID }),
+                    ],
+                };
+            }
+        }
         // Extra handling for credits if we managed to parse the credit type
-        if (match.EpisodeType is EpisodeType.Credits && !string.IsNullOrWhiteSpace(match.EpisodeText))
+        else if (match.EpisodeType is EpisodeType.Credits && !string.IsNullOrWhiteSpace(match.EpisodeText))
         {
             var (type, num, suf) = ParseCreditType(match.EpisodeText);
             var allCredits = allEpisodes
