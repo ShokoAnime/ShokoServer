@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 153;
+    public override int RequiredVersion { get; } = 154;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -446,7 +446,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(38, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new(39, 1, DatabaseFixes.PopulateTagWeight),
         new(40, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new(41, 1, DatabaseFixes.FixHashes),
+        new(41, 1, DatabaseFixes.NoOperation),
         new(42, 1, "drop table `LogMessage`;"),
         new(43, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder text character set utf8"),
         new(44, 1, "ALTER TABLE JMMUser ADD PlexUsers text character set utf8"),
@@ -723,7 +723,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(109, 1, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateTimeImported = DateTimeCreated;"),
         new(110, 1, "CREATE TABLE `AniDB_FileUpdate` ( `AniDB_FileUpdateID` INT NOT NULL AUTO_INCREMENT, `FileSize` BIGINT NOT NULL, `Hash` varchar(50) NOT NULL, `HasResponse` BIT NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_FileUpdateID`) );"),
         new(110, 2, "ALTER TABLE `AniDB_FileUpdate` ADD INDEX `IX_AniDB_FileUpdate` (`FileSize` ASC, `Hash` ASC) ;"),
-        new(110, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new(110, 3, DatabaseFixes.NoOperation),
         new(111, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
         new(111, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
         new(111, 3, "ALTER TABLE `AniDB_Anime` ADD ( `VNDBID` INT NULL, `BangumiID` INT NULL, `LianID` INT NULL, `FunimationID` text character set utf8 null, `HiDiveID` text character set utf8 null );"),
@@ -943,6 +943,12 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(152, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(153, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(153, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
+        new(154, 01, "CREATE TABLE `StoredReleaseInfo` (`StoredReleaseInfoID` INT NOT NULL AUTO_INCREMENT, `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `ID` VARCHAR(128), `ProviderName` VARCHAR(128) NOT NULL, `ReleaseURI` VARCHAR(1024), `Revision` INT NOT NULL, `ProvidedFileSize` BIGINT, `Comment` VARCHAR(1024), `OriginalFilename` VARCHAR(1024), `IsCensored` INT, `IsChaptered` INT, `IsCreditless` INT, `IsCorrupted` INT NOT NULL, `Source` INT NOT NULL, `GroupID` VARCHAR(128), `GroupSource` VARCHAR(128), `GroupName` VARCHAR(128), `GroupShortName` VARCHAR(128), `Hashes` TEXT NULL, `AudioLanguages` VARCHAR(128), `SubtitleLanguages` VARCHAR(128), `CrossReferences` VARCHAR(10240) NOT NULL, `Metadata` TEXT NULL, `ReleasedAt` DATE, `LastUpdatedAt` DATETIME NOT NULL, `CreatedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfoID`));"),
+        new(154, 02, "CREATE TABLE `StoredReleaseInfo_MatchAttempt` (`StoredReleaseInfo_MatchAttemptID` INT NOT NULL AUTO_INCREMENT, `AttemptProviderNames` VARCHAR(1024) NOT NULL, `ProviderName` VARCHAR(128), `ProviderID` VARCHAR(40), `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `AttemptStartedAt` DATETIME NOT NULL, `AttemptEndedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfo_MatchAttemptID`));"),
+        new(154, 03, "CREATE TABLE `VideoLocal_HashDigest` (`VideoLocal_HashDigestID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `Type` VARCHAR(32) NOT NULL, Value VARCHAR(1024) NOT NULL, Metadata VARCHAR(10240), PRIMARY KEY (`VideoLocal_HashDigestID`));"),
+        new(154, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new(154, 05, "ALTER TABLE `ImportFolder` DROP COLUMN `ImportFolderType`;"),
+        new(154, 06, "ALTER TABLE `VideoLocal_Place` DROP COLUMN `ImportFolderType`;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
