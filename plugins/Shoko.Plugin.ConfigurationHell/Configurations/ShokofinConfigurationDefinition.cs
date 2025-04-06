@@ -99,7 +99,7 @@ public class ShokofinConfigurationDefinition
             ("SignalR.Connection", "Connect") => ConnectToSignalR(),
             ("SignalR.Connection", "Disconnect") => DisconnectFromSignalR(),
             (_, "Save") => SaveConfig(config),
-            _ => path.StartsWith("Users.[") && path.EndsWith(']') && int.TryParse(path[7..^1], out var index)
+            _ => path.StartsWith("Users[") && path.EndsWith(']') && int.TryParse(path[6..^1], out var index)
                 ? action switch
                 {
                     "Link" => LinkUser(config, index),
