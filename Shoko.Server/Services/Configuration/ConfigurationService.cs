@@ -385,15 +385,14 @@ public partial class ConfigurationService : IConfigurationService, ISchemaProces
     [GeneratedRegex(@"(?<!\\)""")]
     private static partial Regex InvalidQuoteRegex();
 
+    [GeneratedRegex(@"(?<=\w|\]|^)\[", RegexOptions.Compiled | RegexOptions.ECMAScript)]
+    private static partial Regex IndexNotationFixRegex();
+
     private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action, IShokoUser? user) where TConfig : class, IConfiguration, new()
     {
         var schema = info.Schema;
         var type = info.ContextualType;
-
-        // TODO: FIX UP THIS SH*T to support parsing "A.B[0]['D.E'].F['G\'H'].I" etc., where we check each defined property for the schema
-        // and if it's not a known property, check patterns and additional properties.
-
-        var parts = path.Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = path.Replace(IndexNotationFixRegex(), ".[").Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         while (parts.Length > 0)
         {
             // `part` can be in the format 'Part', '[0]', or '["Part"]', where
