@@ -171,14 +171,28 @@ public class PlexHelper
 
             try
             {
-                isAuthenticated = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
-                        AuthenticationHeaders).ConfigureAwait(false)
-                    .GetAwaiter().GetResult().status == HttpStatusCode.OK;
-                _lastAuthenticated = (bool)isAuthenticated ? DateTime.Now : null;
-                return (bool)isAuthenticated;
+                var (status, _) = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
+                    AuthenticationHeaders).ConfigureAwait(false).GetAwaiter().GetResult();
+
+                if (status == HttpStatusCode.OK)
+                {
+                    isAuthenticated = true;
+                    _lastAuthenticated = DateTime.Now;
+                    return true;
+                }
+
+                if (status == HttpStatusCode.UnprocessableEntity)
+                {
+                    Logger.Warn("UnprocessableEntity returned when authenticating Plex user. Invalidating token.");
+                    InvalidateToken();
+                }
+
+                isAuthenticated = false;
+                return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.Trace($"Exception during Plex authentication: {ex}");
                 return false;
             }
         }
