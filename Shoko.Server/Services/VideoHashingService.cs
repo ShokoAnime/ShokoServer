@@ -143,20 +143,6 @@ public class VideoHashingService(
                     .TrimDescription()
                     .TrimMimeType()
                     .TrimCategories()
-                    .GroupBy(a => a.File.Extensions[0])
-                    .Select(groupBy => new Definition()
-                    {
-                        File = new()
-                        {
-                            Extensions = [groupBy.Key],
-                        },
-                        Meta = null,
-                        Signature = new()
-                        {
-                            Prefix = groupBy.SelectMany(a => a.Signature.Prefix).Distinct().ToImmutableArray(),
-                            Strings = groupBy.SelectMany(a => a.Signature.Strings).Distinct().ToImmutableArray(),
-                        },
-                    })
                     .ToImmutableArray(),
             }.Build();
 
