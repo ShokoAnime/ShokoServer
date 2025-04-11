@@ -429,6 +429,10 @@ public record MatchRuleResult
             }
         }
 
+        // Season 0 means it's a special.
+        if (modifiedDetails is { Season: 0, EpisodeType: EpisodeType.Episode })
+            modifiedDetails.EpisodeType = EpisodeType.Special;
+
         // Correct movie numbering.
         if (
             (match.Groups["isMovie"].Success || match.Groups["isMovie2"].Success) && modifiedDetails.EpisodeStart == 0
