@@ -682,15 +682,16 @@ public class VideoHashingService(
 
     private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileAndProvider(FileInfo fileInfo, HashProviderInfo providerInfo, IReadOnlyList<IHashDigest> existingHashes, CancellationToken cancellationToken)
     {
+        var enabledHashTypes = providerInfo.EnabledHashTypes;
         var request = new HashingRequest()
         {
-            EnabledHashTypes = providerInfo.EnabledHashTypes,
-            ExistingHashes = existingHashes,
+            EnabledHashTypes = enabledHashTypes,
+            ExistingHashes = existingHashes.Where(h => enabledHashTypes.Contains(h.Type)).ToList(),
             File = fileInfo,
         };
         var hashes = await providerInfo.Provider.GetHashesForVideo(request, cancellationToken);
         return hashes
-            .Where(h => providerInfo.EnabledHashTypes.Contains(h.Type))
+            .Where(h => enabledHashTypes.Contains(h.Type))
             .ToList();
     }
 
