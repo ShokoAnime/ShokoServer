@@ -2335,12 +2335,10 @@ public class SeriesController : BaseController
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
-            await scheduler.StartJobNow<HashFileJob>(c =>
-                {
-                    c.FilePath = filePath;
-                    c.ForceHash = true;
-                }
-            );
+            await scheduler.StartJob<HashFileJob>(
+                c => (c.FilePath, c.ForceHash) = (filePath, true),
+                prioritize: true
+            ).ConfigureAwait(false);
         }
 
         return Ok();
