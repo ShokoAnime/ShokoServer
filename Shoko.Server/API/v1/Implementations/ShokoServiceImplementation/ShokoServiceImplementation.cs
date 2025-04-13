@@ -559,7 +559,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public void SyncMyList()
     {
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<SyncAniDBMyListJob>(c => c.ForceRefresh = true).GetAwaiter().GetResult();
+        scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true, prioritize: true).GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/Vote/Sync")]

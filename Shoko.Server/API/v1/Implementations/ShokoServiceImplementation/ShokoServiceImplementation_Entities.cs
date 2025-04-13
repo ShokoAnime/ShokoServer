@@ -622,12 +622,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<HashFileJob>(
-                c =>
-                {
-                    c.FilePath = pl.Path;
-                    c.ForceHash = true;
-                }
+            scheduler.StartJob<HashFileJob>(
+                c => (c.FilePath, c.ForceHash) = (pl.Path, true),
+                prioritize: true
             ).GetAwaiter().GetResult();
         }
     }
@@ -841,12 +838,9 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
 
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<DeleteFileFromMyListJob>(
-            c =>
-            {
-                c.Hash = vl.Hash;
-                c.FileSize = vl.FileSize;
-            }
+        scheduler.StartJob<DeleteFileFromMyListJob>(
+            c => (c.Hash, c.FileSize) = (vl.Hash, vl.FileSize),
+            prioritize: true
         ).GetAwaiter().GetResult();
     }
 
@@ -856,7 +850,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<AddFileToMyListJob>(c => c.Hash = hash).GetAwaiter().GetResult();
+            scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = hash, prioritize: true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -1252,13 +1246,9 @@ public partial class ShokoServiceImplementation : IShokoServer
         RepoFactory.AniDB_Vote.Save(thisVote);
 
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<VoteAniDBAnimeJob>(
-            c =>
-            {
-                c.AnimeID = animeID;
-                c.VoteType = (AniDBVoteType)voteType;
-                c.VoteValue = Convert.ToDouble(voteValue);
-            }
+        scheduler.StartJob<VoteAniDBAnimeJob>(
+            c => (c.AnimeID, c.VoteType, c.VoteValue) = (animeID, (AniDBVoteType)voteType, Convert.ToDouble(voteValue)),
+            prioritize: true
         ).GetAwaiter().GetResult();
     }
 
@@ -1285,13 +1275,9 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
 
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<VoteAniDBAnimeJob>(
-            c =>
-            {
-                c.AnimeID = animeID;
-                c.VoteType = (AniDBVoteType)thisVote.VoteType;
-                c.VoteValue = -1;
-            }
+        scheduler.StartJob<VoteAniDBAnimeJob>(
+            c => (c.AnimeID, c.VoteType, c.VoteValue) = (animeID, (AniDBVoteType)thisVote.VoteType, -1),
+            prioritize: true
         ).GetAwaiter().GetResult();
 
         RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
@@ -2008,12 +1994,9 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             // update group status information
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<GetAniDBReleaseGroupStatusJob>(
-                c =>
-                {
-                    c.AnimeID = animeID;
-                    c.ForceRefresh = true;
-                }
+            scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(
+                c => (c.AnimeID, c.ForceRefresh) = (animeID, true),
+                prioritize: true
             ).GetAwaiter().GetResult();
 
             return aniDBAnimeService.GetV1DetailedContract(anime);
