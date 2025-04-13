@@ -49,6 +49,26 @@ public class QuartzSettings
     public int WaitingCacheSize { get; set; } = 100;
 
     /// <summary>
+    /// The number of milliseconds to wait for before doing a batch insert.
+    /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [Display(Name = "Batch Insert Timeout (ms)")]
+    [EnvironmentVariable("QUARTZ_BATCH_INSERT_TIMEOUT")]
+    [Range(0, 10_000)]
+    public int BatchInsertTimeoutInMS { get; set; } = 200;
+
+    /// <summary>
+    /// The maximum number of jobs to batch insert at once.
+    /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [Display(Name = "Batch Max Insert Size")]
+    [EnvironmentVariable("QUARTZ_BATCH_MAX_INSERT_SIZE")]
+    [Range(1, 10_000)]
+    public int BatchMaxInsertSize { get; set; } = 1;
+
+    /// <summary>
     /// A map of Type (yes, you need to look at the source code, under ./Shoko.Server/Scheduling/Jobs) to the number of allowed concurrent jobs of the same type.
     /// Some types will not be able to have a lower limit, due to API restrictions. HashFileJob is included as an example.
     /// </summary>

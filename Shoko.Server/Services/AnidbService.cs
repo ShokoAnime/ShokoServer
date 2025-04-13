@@ -230,17 +230,17 @@ public class AnidbService : IAniDBService
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         if (!refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
         {
-            if (prioritize)
-                await scheduler.StartJobNow<GetLocalAniDBAnimeJob>(job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod)).ConfigureAwait(false);
-            else
-                await scheduler.StartJob<GetLocalAniDBAnimeJob>(job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod)).ConfigureAwait(false);
+            await scheduler.StartJob<GetLocalAniDBAnimeJob>(
+                job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod),
+                prioritize: prioritize
+            ).ConfigureAwait(false);
         }
         else
         {
-            if (prioritize)
-                await scheduler.StartJobNow<GetAniDBAnimeJob>(job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod)).ConfigureAwait(false);
-            else
-                await scheduler.StartJob<GetAniDBAnimeJob>(job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod)).ConfigureAwait(false);
+            await scheduler.StartJob<GetAniDBAnimeJob>(
+                job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod),
+                prioritize: prioritize
+            ).ConfigureAwait(false);
         }
     }
 
@@ -580,7 +580,7 @@ public class AnidbService : IAniDBService
 
             // Append the command to the queue.
             if (job.UseCache && !job.UseRemote)
-                await scheduler.StartJobNow<GetLocalAniDBAnimeJob>(c =>
+                await scheduler.StartJob<GetLocalAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = relation.RelatedAnimeID;
                     c.DownloadRelations = true;
@@ -589,9 +589,9 @@ public class AnidbService : IAniDBService
                     c.IgnoreHttpBans = job.IgnoreHttpBans;
                     c.CreateSeriesEntry = job.CreateSeriesEntry && settings.AniDb.AutomaticallyImportSeries;
                     c.SkipTmdbUpdate = job.SkipTmdbUpdate;
-                }).ConfigureAwait(false);
+                }, prioritize: true).ConfigureAwait(false);
             else
-                await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
+                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = relation.RelatedAnimeID;
                     c.DownloadRelations = true;
@@ -602,7 +602,7 @@ public class AnidbService : IAniDBService
                     c.IgnoreHttpBans = job.IgnoreHttpBans;
                     c.CreateSeriesEntry = job.CreateSeriesEntry && settings.AniDb.AutomaticallyImportSeries;
                     c.SkipTmdbUpdate = job.SkipTmdbUpdate;
-                }).ConfigureAwait(false);
+                }, prioritize: true).ConfigureAwait(false);
         }
     }
     #endregion
@@ -678,7 +678,7 @@ public class AnidbService : IAniDBService
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = videoDictionary);
+        await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -717,7 +717,7 @@ public class AnidbService : IAniDBService
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = videoDictionary);
+        await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
     }
 
     #endregion

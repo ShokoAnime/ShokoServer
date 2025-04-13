@@ -104,7 +104,7 @@ public class AVDumpController : BaseController
             return ValidationProblem(ModelState);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = fileDictionary);
+        await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = fileDictionary, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }

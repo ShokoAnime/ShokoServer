@@ -123,7 +123,7 @@ public class ActionController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+        await scheduler.StartJob<SyncTraktCollectionJob>(c => c.ForceRefresh = true, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -300,7 +300,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> ValidateAllImages()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<ValidateAllImagesJob>();
+        await scheduler.StartJob<ValidateAllImagesJob>(prioritize: true);
         return Ok();
     }
 

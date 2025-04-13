@@ -936,10 +936,7 @@ public class FileController : BaseController
         else
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            if (priority)
-                await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = files);
-            else
-                await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = files);
+            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = files, prioritize: priority).ConfigureAwait(false);
         }
 
         return Ok();
@@ -987,20 +984,10 @@ public class FileController : BaseController
             return ValidationProblem(FileNoPath, "File");
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        if (priority)
-            await scheduler.StartJobNow<HashFileJob>(c =>
-                {
-                    c.FilePath = filePath;
-                    c.ForceHash = true;
-                }
-            );
-        else
-            await scheduler.StartJob<HashFileJob>(c =>
-                {
-                    c.FilePath = filePath;
-                    c.ForceHash = true;
-                }
-            );
+        await scheduler.StartJob<HashFileJob>(
+            c => (c.FilePath, c.ForceHash) = (filePath, true),
+            prioritize: priority
+        ).ConfigureAwait(false);
 
         return Ok();
     }
@@ -1148,7 +1135,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<AddFileToMyListJob>(c => c.Hash = file.Hash);
+        await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = file.Hash, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }

@@ -359,13 +359,10 @@ public class Common : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<HashFileJob>(
-            c =>
-            {
-                c.FilePath = pl.Path;
-                c.ForceHash = true;
-            }
-        );
+        await scheduler.StartJob<HashFileJob>(
+            c => (c.FilePath, c.ForceHash) = (pl.Path, true),
+            prioritize: true
+        ).ConfigureAwait(false);
 
         return Ok();
     }
@@ -389,13 +386,10 @@ public class Common : BaseController
                     continue;
                 }
 
-                await scheduler.StartJobNow<HashFileJob>(
-                    c =>
-                    {
-                        c.FilePath = pl.Path;
-                        c.ForceHash = true;
-                    }
-                );
+                await scheduler.StartJob<HashFileJob>(
+                    c => (c.FilePath, c.ForceHash) = (pl.Path, true),
+                    prioritize: true
+                ).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -425,13 +419,10 @@ public class Common : BaseController
                     continue;
                 }
 
-                await scheduler.StartJobNow<HashFileJob>(
-                    c =>
-                    {
-                        c.FilePath = pl.Path;
-                        c.ForceHash = true;
-                    }
-                );
+                await scheduler.StartJob<HashFileJob>(
+                    c => (c.FilePath, c.ForceHash) = (pl.Path, true),
+                    prioritize: true
+                ).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -1545,11 +1536,10 @@ public class Common : BaseController
         RepoFactory.AniDB_Vote.Save(thisVote);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<VoteAniDBEpisodeJob>(c =>
-        {
-            c.EpisodeID = episode.AniDB_EpisodeID;
-            c.VoteValue = Convert.ToDouble(thisVote);
-        });
+        await scheduler.StartJob<VoteAniDBEpisodeJob>(
+            c => (c.EpisodeID, c.VoteValue) = (episode.AniDB_EpisodeID, Convert.ToDouble(score)),
+            prioritize: true
+        ).ConfigureAwait(false);
 
         return Ok();
     }
@@ -2559,14 +2549,10 @@ public class Common : BaseController
         RepoFactory.AniDB_Vote.Save(thisVote);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<VoteAniDBAnimeJob>(
-            c =>
-            {
-                c.AnimeID = ser.AniDB_ID;
-                c.VoteType = (AniDBVoteType)voteType;
-                c.VoteValue = score / 100D;
-            }
-        );
+        await scheduler.StartJob<VoteAniDBAnimeJob>(
+            c => (c.AnimeID, c.VoteType, c.VoteValue) = (ser.AniDB_ID, (AniDBVoteType)voteType, score / 100D),
+            prioritize: true
+        ).ConfigureAwait(false);
         return Ok();
     }
 

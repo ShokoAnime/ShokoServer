@@ -52,17 +52,11 @@ public class DebugController : BaseController
     /// <param name="count"></param>
     /// <param name="seconds"></param>
     [HttpGet("ScheduleJobs/Delay/{count}")]
-    public async Task<ActionResult> ScheduleTestJobs(int count, [FromQuery]int seconds = 60)
+    public async Task<ActionResult> ScheduleTestJobs(int count, [FromQuery] int seconds = 60)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
-        {
-            await scheduler.StartJobNow<TestDelayJob>(t =>
-            {
-                t.DelaySeconds = seconds;
-                t.Offset = i;
-            });
-        }
+            await scheduler.StartJob<TestDelayJob>(t => (t.DelaySeconds, t.Offset) = (seconds, i), prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -76,12 +70,7 @@ public class DebugController : BaseController
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
-        {
-            await scheduler.StartJobNow<TestErrorJob>(t =>
-            {
-                t.Offset = i;
-            });
-        }
+            await scheduler.StartJob<TestErrorJob>(t => t.Offset = i, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -95,7 +84,7 @@ public class DebugController : BaseController
     public async Task<ActionResult> FetchAniDBMessage(int id)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<GetAniDBMessageJob>(r => r.MessageID = id);
+        await scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = id, prioritize: true).ConfigureAwait(false);
         return Ok();
     }
 
