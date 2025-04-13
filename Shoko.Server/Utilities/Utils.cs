@@ -319,6 +319,7 @@ public static partial class Utils
 
     public static string CleanPath(string value, bool osDependent = false, bool cleanStart = false)
     {
+        var isUNC = value.StartsWith(@"\\") && !IsLinux;
         value ??= string.Empty;
         value = value.Replace(Path.DirectorySeparatorChar, '/')
             .Replace(Path.AltDirectorySeparatorChar, '/')
@@ -329,7 +330,11 @@ public static partial class Utils
         if (cleanStart && value.StartsWith('/'))
             value = value[1..];
         if (osDependent)
+        {
             value = value.Replace('/', Path.DirectorySeparatorChar);
+            if (isUNC)
+                value = $@"\{value}";
+        }
         return value;
     }
 }
