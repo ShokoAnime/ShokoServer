@@ -414,10 +414,14 @@ public class VideoLocal_PlaceService
         MoveExternalSubtitles(newFullPath, oldFullPath);
 
         // Fire off the moved/renamed event depending on what was done.
-        if (renamed && !moved)
-            ShokoEventHandler.Instance.OnFileRenamed(request.ManagedFolder, Path.GetFileName(oldRelativePath), newFileName, place);
-        else
-            ShokoEventHandler.Instance.OnFileMoved(dropFolder, request.ManagedFolder, oldRelativePath, newRelativePath, place);
+        try
+        {
+            ShokoEventHandler.Instance.OnFileRelocated(dropFolder, request.ManagedFolder, oldRelativePath, newRelativePath, place);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a FileRelocated event.");
+        }
 
         return new()
         {

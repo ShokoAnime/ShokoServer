@@ -6,9 +6,9 @@ using Shoko.Plugin.Abstractions.DataModels.Shoko;
 namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
-/// Dispatched when a file is moved.
+/// Dispatched when a file is moved or renamed.
 /// </summary>
-public class FileMovedEventArgs : FileEventArgs
+public class FileRelocatedEventArgs : FileEventArgs
 {
     /// <summary>
     /// The previous relative path of the file from the
@@ -22,12 +22,22 @@ public class FileMovedEventArgs : FileEventArgs
     public IManagedFolder PreviousManagedFolder { get; set; }
 
     /// <summary>
+    /// Whether or not the file was moved.
+    /// </summary>
+    public bool Moved => !string.Equals(Path.GetDirectoryName(RelativePath), Path.GetDirectoryName(PreviousRelativePath), System.StringComparison.InvariantCulture) || PreviousManagedFolder != ManagedFolder;
+
+    /// <summary>
+    /// Whether or not the file was renamed.
+    /// </summary>
+    public bool Renamed => Path.GetFileName(RelativePath) != Path.GetFileName(PreviousRelativePath);
+
+    /// <summary>
     /// The absolute path leading to the previous location of the file. Uses an OS dependent directory separator.
     /// </summary>
     public string PreviousPath => Path.Join(PreviousManagedFolder.Path, PreviousRelativePath);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileMovedEventArgs"/> class.
+    /// Initializes a new instance of the <see cref="FileRelocatedEventArgs"/> class.
     /// </summary>
     /// <param name="relativePath">Relative path to the file.</param>
     /// <param name="managedFolder">The managed folder that the file is in.</param>
@@ -38,7 +48,7 @@ public class FileMovedEventArgs : FileEventArgs
     /// <param name="episodeInfo">The collection of <see cref="IShokoEpisode"/> information for the file.</param>
     /// <param name="animeInfo">The collection of <see cref="IShokoSeries"/> information for the file.</param>
     /// /// <param name="groupInfo">The collection of <see cref="IShokoGroup"/> information for the file.</param>
-    public FileMovedEventArgs(string relativePath, IManagedFolder managedFolder, string previousRelativePath, IManagedFolder previousManagedFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo)
+    public FileRelocatedEventArgs(string relativePath, IManagedFolder managedFolder, string previousRelativePath, IManagedFolder previousManagedFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo)
         : base(relativePath, managedFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo)
     {
         previousRelativePath = previousRelativePath
