@@ -1,0 +1,23 @@
+using System;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Release;
+
+namespace Shoko.Plugin.Abstractions.Events;
+
+/// <summary>
+/// Dispatched when a video release is saved or deleted.
+/// </summary>
+public class VideoReleaseRemovedEventArgs : EventArgs
+{
+    /// <summary>
+    /// The video, if available when the event was dispatched. It may have been
+    /// removed from the database at this point though, so don't assume the
+    /// locations or hash digests are always available when using it.
+    /// </summary>
+    public required IVideo? Video { get; init; }
+
+    /// <summary>
+    /// The release information for the video.
+    /// </summary>
+    public required IReleaseInfo ReleaseInfo { get; init; }
+}

@@ -94,15 +94,17 @@ public class VideoReleaseService(
         }
     }
 
-    public event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
+    public event EventHandler<VideoReleaseSavedEventArgs>? ReleaseSaved;
 
-    public event EventHandler<VideoReleaseEventArgs>? ReleaseDeleted;
+    public event EventHandler<VideoReleaseRemovedEventArgs>? ReleaseDeleted;
 
     public event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
 
     public event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
 
     public event EventHandler? ProvidersUpdated;
+
+    #region Add Parts
 
     public void AddParts(IEnumerable<IReleaseInfoProvider> providers)
     {
@@ -163,6 +165,10 @@ public class VideoReleaseService(
 
         logger.LogInformation("Loaded {ProviderCount} providers.", _releaseProviderInfos.Count);
     }
+
+    #endregion Add Parts
+
+    #region Provider Info
 
     public IEnumerable<ReleaseProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
         => _releaseProviderInfos.Values
@@ -305,8 +311,20 @@ public class VideoReleaseService(
         }
     }
 
+    #endregion Provider Info
+
+    #region Get Current Data
+
     public IReleaseInfo? GetCurrentReleaseForVideo(IVideo video)
         => releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
+
+    public IReadOnlyList<IReleaseMatchAttempt> GetReleaseMatchAttemptsForVideo(IVideo video)
+        => releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
+
+
+    #endregion Get Current Data
+
+    #region Find Release
 
     public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool prioritize = false)
     {
@@ -336,7 +354,10 @@ public class VideoReleaseService(
                 Video = video,
             });
         }
-        catch { }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in a SearchStarted event.");
+        }
 
         var completedAt = startedAt;
         var selectedProvider = (ReleaseProviderInfo?)null;
@@ -417,7 +438,10 @@ public class VideoReleaseService(
                     SelectedProvider = selectedProvider,
                 });
             }
-            catch { }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Got an error in a SearchCompleted event.");
+            }
         }
     }
 
@@ -493,6 +517,10 @@ public class VideoReleaseService(
 
         return (selectedRelease, selectedProvider);
     }
+
+    #endregion Find Release
+
+    #region Save Release
 
     public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User", bool addToMylist = true)
         => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName), addToMylist);
@@ -572,83 +600,20 @@ public class VideoReleaseService(
         if (_settings.Plugins.Renamer.RelocateOnImport)
             await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
 
-        // Dispatch the release saved event now.
-        ReleaseSaved?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
+        try
+        {
+            // Dispatch the release saved event now.
+            ReleaseSaved?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in a ReleaseSaved event.");
+        }
 
         return releaseInfo;
     }
 
-    public async Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true)
-    {
-        if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
-            await ClearReleaseForVideo(video, existingRelease, removeFromMylist);
-    }
-
-    private async Task ClearReleaseForVideo(IVideo video, StoredReleaseInfo releaseInfo, bool removeFromMylist = true)
-    {
-        // Mark the video as not imported if the video hasn't been deleted from the database,
-        // because the clear method can still be called after the video has been deleted.
-        if (video is VideoLocal videoLocal && videoRepository.GetByID(video.ID) is not null)
-        {
-            videoLocal.DateTimeImported = null;
-            videoRepository.Save(videoLocal);
-        }
-
-        var xrefs = xrefRepository.GetByEd2k(releaseInfo.ED2K);
-        xrefRepository.Delete(xrefs);
-
-        releaseInfoRepository.Delete(releaseInfo);
-
-        if (removeFromMylist)
-            await RemoveFromMyList(releaseInfo);
-
-        await ScheduleAnimeForRelease(xrefs);
-
-        ReleaseDeleted?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
-    }
-
-    private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo)
-    {
-        if (_settings.AniDb.MyList_DeleteType is Shoko.Models.Enums.AniDBFileDeleteType.DeleteLocalOnly)
-        {
-            logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
-            return;
-        }
-
-        var scheduler = await schedulerFactory.GetScheduler();
-        if (releaseInfo is { ReleaseURI: not null } && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-        {
-            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                {
-                    c.Hash = releaseInfo.ED2K;
-                    c.FileSize = releaseInfo.FileSize;
-                }
-            );
-        }
-        else
-        {
-            foreach (var xref in releaseInfo.CrossReferences)
-            {
-                if (xref.AnidbAnimeID is null or 0)
-                    continue;
-
-                var anidbEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
-                if (anidbEpisode is null)
-                    continue;
-
-                await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                    {
-                        c.AnimeID = xref.AnidbAnimeID.Value;
-                        c.EpisodeType = anidbEpisode.EpisodeTypeEnum;
-                        c.EpisodeNumber = anidbEpisode.EpisodeNumber;
-                    }
-                );
-            }
-        }
-    }
-
-    public IReadOnlyList<IReleaseMatchAttempt> GetReleaseMatchAttemptsForVideo(IVideo video)
-        => releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
+    #region Save Release | Internals
 
     private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
     {
@@ -912,6 +877,116 @@ public class VideoReleaseService(
         }
     }
 
+    #endregion Save Release | Internals
+
+    #endregion Save Release
+
+    #region Clear Release
+
+    public async Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true)
+    {
+        if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
+            await ClearReleaseForVideo(video, existingRelease, removeFromMylist);
+    }
+
+    public async Task ClearReleaseForAllVideos(bool removeFromMylist = true)
+    {
+        var releases = releaseInfoRepository.GetAll()
+            .Select(release => videoRepository.GetByEd2kAndSize(release.ED2K, release.FileSize) is { } video ? (video, release) : (video: null, release))
+            .Where(v => v.video is not null)
+            .ToList();
+        foreach (var (video, release) in releases)
+            await ClearReleaseForVideo(video, release, removeFromMylist);
+    }
+
+    public async Task PurgeUnusedReleases(bool removeFromMylist = true)
+    {
+        var releases = releaseInfoRepository.GetAll()
+            .Where(v => videoRepository.GetByEd2kAndSize(v.ED2K, v.FileSize) is null)
+            .ToList();
+        foreach (var release in releases)
+            await ClearReleaseForVideo(null, release, removeFromMylist);
+    }
+
+    private async Task ClearReleaseForVideo(IVideo? video, StoredReleaseInfo releaseInfo, bool removeFromMylist = true)
+    {
+        // Mark the video as not imported if the video hasn't been deleted from the database,
+        // because the clear method can still be called after the video has been deleted.
+        if (video is VideoLocal videoLocal && videoRepository.GetByID(video.ID) is not null)
+        {
+            videoLocal.DateTimeImported = null;
+            videoRepository.Save(videoLocal);
+        }
+
+        var xrefs = xrefRepository.GetByEd2k(releaseInfo.ED2K);
+        xrefRepository.Delete(xrefs);
+
+        releaseInfoRepository.Delete(releaseInfo);
+
+        if (removeFromMylist)
+            await RemoveFromMyList(releaseInfo);
+
+        await ScheduleAnimeForRelease(xrefs);
+
+        try
+        {
+            ReleaseDeleted?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in a ReleaseDeleted event.");
+        }
+    }
+
+    #region Clear Release | Internals
+
+    private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo)
+    {
+        if (_settings.AniDb.MyList_DeleteType is Shoko.Models.Enums.AniDBFileDeleteType.DeleteLocalOnly)
+        {
+            logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
+            return;
+        }
+
+        var scheduler = await schedulerFactory.GetScheduler();
+        if (releaseInfo is { ReleaseURI: not null } && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+        {
+            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                {
+                    c.Hash = releaseInfo.ED2K;
+                    c.FileSize = releaseInfo.FileSize;
+                }
+            );
+        }
+        else
+        {
+            foreach (var xref in releaseInfo.CrossReferences)
+            {
+                if (xref.AnidbAnimeID is null or 0)
+                    continue;
+
+                var anidbEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
+                if (anidbEpisode is null)
+                    continue;
+
+                await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                    {
+                        c.AnimeID = xref.AnidbAnimeID.Value;
+                        c.EpisodeType = anidbEpisode.EpisodeTypeEnum;
+                        c.EpisodeNumber = anidbEpisode.EpisodeNumber;
+                    }
+                );
+            }
+        }
+    }
+
+    #endregion Clear Release | Internals
+
+
+    #endregion Clear Release
+
+    #region ID Helpers
+
     private Guid GetID(Type providerType)
         => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).FirstOrDefault(t => pluginManager.GetPluginInfo(t) is not null) is { } pluginType
             ? GetID(providerType, pluginManager.GetPluginInfo(pluginType)!)
@@ -919,4 +994,6 @@ public class VideoReleaseService(
 
     private static Guid GetID(Type type, PluginInfo pluginInfo)
         => UuidUtility.GetV5($"ReleaseProvider={type.FullName!}", pluginInfo.ID);
+
+    #endregion ID Helpers
 }
