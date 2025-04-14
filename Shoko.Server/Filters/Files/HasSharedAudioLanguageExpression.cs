@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Files;
