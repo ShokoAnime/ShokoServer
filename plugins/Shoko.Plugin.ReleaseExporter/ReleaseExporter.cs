@@ -75,7 +75,7 @@ public class ReleaseExporter : IHostedService
         Configuration = e.Configuration;
     }
 
-    private void OnVideoReleaseSaved(object? sender, VideoReleaseEventArgs eventArgs)
+    private void OnVideoReleaseSaved(object? sender, VideoReleaseSavedEventArgs eventArgs)
     {
         if (!Configuration.IsExporterEnabled)
             return;
@@ -109,12 +109,12 @@ public class ReleaseExporter : IHostedService
         }
     }
 
-    private void OnVideoReleaseDeleted(object? sender, VideoReleaseEventArgs eventArgs)
+    private void OnVideoReleaseDeleted(object? sender, VideoReleaseRemovedEventArgs eventArgs)
     {
         if (!Configuration.DeletePhysicalReleaseFiles)
             return;
 
-        if (eventArgs.Video.Locations is not { Count: > 0 } locations)
+        if (eventArgs.Video?.Locations is not { Count: > 0 } locations)
             return;
 
         foreach (var location in locations)
@@ -135,7 +135,7 @@ public class ReleaseExporter : IHostedService
         }
     }
 
-    private void OnVideoRelocated(object? sender, FileMovedEventArgs eventArgs)
+    private void OnVideoRelocated(object? sender, FileRelocatedEventArgs eventArgs)
     {
         var releasePath = Path.ChangeExtension(eventArgs.PreviousPath, Configuration.ReleaseExtension);
         if (!File.Exists(releasePath))

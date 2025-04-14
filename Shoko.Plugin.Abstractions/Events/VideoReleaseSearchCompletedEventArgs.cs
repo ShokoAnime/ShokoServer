@@ -1,7 +1,7 @@
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Release;
 
 namespace Shoko.Plugin.Abstractions.Events;
@@ -9,7 +9,7 @@ namespace Shoko.Plugin.Abstractions.Events;
 /// <summary>
 /// Dispatched when a video release search is completed.
 /// </summary>
-public class VideoReleaseSearchCompletedEventArgs : VideoEventArgs
+public class VideoReleaseSearchCompletedEventArgs : EventArgs
 {
     /// <summary>
     /// Indicates if the found releases should be saved.
@@ -33,6 +33,11 @@ public class VideoReleaseSearchCompletedEventArgs : VideoEventArgs
     /// search.
     /// </summary>
     public required ReleaseProviderInfo? SelectedProvider { get; init; }
+
+    /// <summary>
+    /// The video.
+    /// </summary>
+    public required IVideo Video { get; init; }
 
     /// <summary>
     /// The found release info, if successful.

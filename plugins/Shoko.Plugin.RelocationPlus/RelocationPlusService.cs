@@ -51,7 +51,7 @@ public class RelocationPlusService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 
-    private void OnVideoRelocated(object? sender, FileMovedEventArgs eventArgs)
+    private void OnVideoRelocated(object? sender, FileRelocatedEventArgs eventArgs)
     {
         var file = eventArgs.PreviousPath;
         var newPath = eventArgs.File.Path;
