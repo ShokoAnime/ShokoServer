@@ -27,7 +27,7 @@ public class AbstractVideoService : IVideoService
     public event EventHandler<FileHashedEventArgs>? VideoFileHashed;
 
     /// <inheritdoc/>
-    public event EventHandler<FileMovedEventArgs>? VideoFileRelocated;
+    public event EventHandler<FileRelocatedEventArgs>? VideoFileRelocated;
 
     /// <inheritdoc/>
     public event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderAdded;
@@ -62,11 +62,9 @@ public class AbstractVideoService : IVideoService
         _managedFolderRepository = managedFolderRepository;
         _videoHashingService = videoHashingService;
 
-        ShokoEventHandler.Instance.FileDetected += OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
         _videoHashingService.FileHashed += OnFileHashed;
-        ShokoEventHandler.Instance.FileRenamed += OnFileRenamed;
-        ShokoEventHandler.Instance.FileMoved += OnFileMoved;
+        ShokoEventHandler.Instance.FileRelocated += OnFileRelocated;
         _managedFolderRepository.ManagedFolderAdded += OnManagedFolderAdded;
         _managedFolderRepository.ManagedFolderUpdated += OnManagedFolderUpdated;
         _managedFolderRepository.ManagedFolderRemoved += OnManagedFolderRemoved;
@@ -74,11 +72,9 @@ public class AbstractVideoService : IVideoService
 
     ~AbstractVideoService()
     {
-        ShokoEventHandler.Instance.FileDetected -= OnFileDetected;
         ShokoEventHandler.Instance.FileDeleted -= OnFileDeleted;
         _videoHashingService.FileHashed -= OnFileHashed;
-        ShokoEventHandler.Instance.FileRenamed -= OnFileRenamed;
-        ShokoEventHandler.Instance.FileMoved -= OnFileMoved;
+        ShokoEventHandler.Instance.FileRelocated -= OnFileRelocated;
         _managedFolderRepository.ManagedFolderAdded -= OnManagedFolderAdded;
         _managedFolderRepository.ManagedFolderUpdated -= OnManagedFolderUpdated;
         _managedFolderRepository.ManagedFolderRemoved -= OnManagedFolderRemoved;
@@ -99,23 +95,7 @@ public class AbstractVideoService : IVideoService
         VideoFileHashed?.Invoke(this, eventArgs);
     }
 
-    private void OnFileRenamed(object? sender, FileRenamedEventArgs eventArgs)
-    {
-        var moveEventArgs = new FileMovedEventArgs(
-            eventArgs.RelativePath,
-            eventArgs.ManagedFolder,
-            eventArgs.PreviousRelativePath,
-            eventArgs.ManagedFolder,
-            eventArgs.File,
-            eventArgs.Video,
-            eventArgs.Episodes,
-            eventArgs.Series,
-            eventArgs.Groups
-        );
-        VideoFileRelocated?.Invoke(this, moveEventArgs);
-    }
-
-    private void OnFileMoved(object? sender, FileMovedEventArgs eventArgs)
+    private void OnFileRelocated(object? sender, FileRelocatedEventArgs eventArgs)
     {
         VideoFileRelocated?.Invoke(this, eventArgs);
     }
