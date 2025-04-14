@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -19,11 +18,7 @@ public class ShokoEventHandler : IShokoEventHandler
 {
     public event EventHandler<FileEventArgs>? FileDeleted;
 
-    public event EventHandler<FileDetectedEventArgs>? FileDetected;
-
-    public event EventHandler<FileRenamedEventArgs>? FileRenamed;
-
-    public event EventHandler<FileMovedEventArgs>? FileMoved;
+    public event EventHandler<FileRelocatedEventArgs>? FileRelocated;
 
     public event EventHandler<AniDBBannedEventArgs>? AniDBBanned;
 
@@ -44,11 +39,6 @@ public class ShokoEventHandler : IShokoEventHandler
     private static ShokoEventHandler? _instance;
 
     public static ShokoEventHandler Instance => _instance ??= new();
-
-    public void OnFileDetected(IManagedFolder folder, FileInfo file)
-    {
-        FileDetected?.Invoke(null, new(file.FullName[folder.Path.Length..], file, folder));
-    }
 
     public void OnFileDeleted(IManagedFolder folder, IVideoFile vlp, IVideo vl)
     {
@@ -71,7 +61,7 @@ public class ShokoEventHandler : IShokoEventHandler
         FileDeleted?.Invoke(null, new(path, folder, vlp, vl, episodes, series, groups));
     }
 
-    public void OnFileMoved(IManagedFolder oldFolder, IManagedFolder newFolder, string oldPath, string newPath, IVideoFile vlp)
+    public void OnFileRelocated(IManagedFolder oldFolder, IManagedFolder newFolder, string oldPath, string newPath, IVideoFile vlp)
     {
         var vl = vlp.Video!;
         var xrefs = vl.CrossReferences;
@@ -89,29 +79,7 @@ public class ShokoEventHandler : IShokoEventHandler
             .Select(a => a.ParentGroup)
             .WhereNotNull()
             .ToList();
-        FileMoved?.Invoke(null, new(newPath, newFolder, oldPath, oldFolder, vlp, vl, episodes, series, groups));
-    }
-
-    public void OnFileRenamed(IManagedFolder folder, string oldName, string newName, IVideoFile vlp)
-    {
-        var path = vlp.RelativePath;
-        var vl = vlp.Video!;
-        var xrefs = vl.CrossReferences;
-        var episodes = xrefs
-            .Select(x => x.ShokoEpisode)
-            .WhereNotNull()
-            .ToList();
-        var series = xrefs
-            .DistinctBy(x => x.AnidbAnimeID)
-            .Select(x => x.ShokoSeries)
-            .WhereNotNull()
-            .ToList();
-        var groups = series
-            .DistinctBy(a => a.ParentGroupID)
-            .Select(a => a.ParentGroup)
-            .WhereNotNull()
-            .ToList();
-        FileRenamed?.Invoke(null, new(path, folder, newName, oldName, vlp, vl, episodes, series, groups));
+        FileRelocated?.Invoke(null, new(newPath, newFolder, oldPath, oldFolder, vlp, vl, episodes, series, groups));
     }
 
     public void OnAniDBBanned(AniDBBanType type, DateTime time, DateTime resumeTime)

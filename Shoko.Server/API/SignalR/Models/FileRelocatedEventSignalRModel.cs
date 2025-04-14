@@ -2,9 +2,9 @@ using Shoko.Plugin.Abstractions.Events;
 
 namespace Shoko.Server.API.SignalR.Models;
 
-public class FileMovedEventSignalRModel : FileEventSignalRModel
+public class FileRelocatedEventSignalRModel : FileEventSignalRModel
 {
-    public FileMovedEventSignalRModel(FileMovedEventArgs eventArgs) : base(eventArgs)
+    public FileRelocatedEventSignalRModel(FileRelocatedEventArgs eventArgs) : base(eventArgs)
     {
         PreviousRelativePath = eventArgs.PreviousRelativePath;
         PreviousManagedFolderID = eventArgs.PreviousManagedFolder.ID;
