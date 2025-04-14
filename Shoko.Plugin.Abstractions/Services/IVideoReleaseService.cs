@@ -23,12 +23,12 @@ public interface IVideoReleaseService
     /// <summary>
     ///   Event raised when a video release is saved to the database.
     /// </summary>
-    event EventHandler<VideoReleaseEventArgs>? ReleaseSaved;
+    event EventHandler<VideoReleaseSavedEventArgs>? ReleaseSaved;
 
     /// <summary>
     ///   Event raised when a video release is deleted from the database.
     /// </summary>
-    event EventHandler<VideoReleaseEventArgs>? ReleaseDeleted;
+    event EventHandler<VideoReleaseRemovedEventArgs>? ReleaseDeleted;
 
     /// <summary>
     ///   Event raised when an automatic video release search is started.
@@ -78,13 +78,13 @@ public interface IVideoReleaseService
 
     /// <summary>
     ///   List out all available providers, if they're enabled for use in
-    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/> and
-    ///   their priority order when used in said method.
+    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
+    ///   and their priority order when used in said method.
     /// </summary>
     /// <param name="onlyEnabled">
     ///   If true, only providers that are enabled for use in
-    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/> will
-    ///   be returned.
+    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
+    ///   will be returned.
     /// </param>
     /// <returns>
     ///   An enumerable of <see cref="ReleaseProviderInfo"/>s, one for each
@@ -173,26 +173,27 @@ public interface IVideoReleaseService
     IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
 
     /// <summary>
-    ///   Schedule a call to find a release for the specified video in the queue.
+    ///   Schedule a call to find a release for the specified video in the
+    ///   queue.
     /// </summary>
     /// <param name="video">
     ///   The video to find a release for.
     /// </param>
     /// <param name="force">
-    ///   If set to <c>false</c>, then it will only schedule the job if the video
-    ///   doesn't already have a release associated with it.
+    ///   If set to <c>false</c>, then it will only schedule the job if the
+    ///   video doesn't already have a release associated with it.
     /// </param>
     /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList if a
-    ///   release is found and saved.
+    ///   Optional. Set to <c>false</c> to not add the release to the user's
+    ///   MyList if a release is found and saved.
     /// </param>
     /// <param name="prioritize">
     ///   If set to <c>true</c>, then this video will be given higher than
     ///   default priority in the queue.
     /// </param>
     /// <returns>
-    ///   A <see cref="Task"/> representing the asynchronous operation of scheduling
-    ///   the job in the queue.
+    ///   A <see cref="Task"/> representing the asynchronous operation of
+    ///   scheduling the job in the queue.
     /// </returns>
     Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool prioritize = false);
 
@@ -200,8 +201,9 @@ public interface IVideoReleaseService
     ///   If parallel mode is disabled, then it will run all enabled
     ///   <see cref="IReleaseInfoProvider"/>s, in priority order, until a
     ///   release is found or all providers are exhausted. If parallel mode is
-    ///   enabled, then it will run all enabled <see cref="IReleaseInfoProvider"/>s
-    ///   in parallel and pick the highest priority valid result.
+    ///   enabled, then it will run all enabled
+    ///   <see cref="IReleaseInfoProvider"/>s in parallel and pick the highest
+    ///   priority valid result.
     /// </summary>
     /// <remarks>
     ///   This method does not save the found release to the database unless
@@ -213,12 +215,12 @@ public interface IVideoReleaseService
     /// <param name="saveRelease">
     ///   If not set to <c>true</c>, then the found release will not be saved,
     ///   allowing the user to preview the release before saving it using
-    ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or discarding
-    ///   it.
+    ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or
+    ///   discarding it.
     /// </param>
     /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList if a
-    ///   release is found and saved.
+    ///   Optional. Set to <c>false</c> to not add the release to the user's
+    ///   MyList if a release is found and saved.
     /// </param>
     /// <param name="cancellationToken">
     ///   Optional. A cancellation token for cancelling the search.
@@ -248,12 +250,12 @@ public interface IVideoReleaseService
     /// <param name="saveRelease">
     ///   If not set to <c>true</c>, then the found release will not be saved,
     ///   allowing the user to preview the release before saving it using
-    ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or discarding
-    ///   it.
+    ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or
+    ///   discarding it.
     /// </param>
     /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList if a
-    ///   release is found and saved.
+    ///   Optional. Set to <c>false</c> to not add the release to the user's
+    ///   MyList if a release is found and saved.
     /// </param>
     /// <param name="cancellationToken">
     ///   Optional. A cancellation token for cancelling the search.
@@ -275,10 +277,12 @@ public interface IVideoReleaseService
     ///   The release details to save.
     /// </param>
     /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList.
+    ///   Optional. Set to <c>false</c> to not add the release to the user's
+    ///   MyList.
     /// </param>
     /// <exception cref="InvalidOperationException">
-    ///   Release does not have at least one cross reference or have invalid cross references.
+    ///   Release does not have at least one cross reference or have invalid
+    ///   cross references.
     /// </exception>
     /// <returns>
     ///   The saved release.
@@ -317,12 +321,37 @@ public interface IVideoReleaseService
     ///   The video to clear the current release for.
     /// </param>
     /// <param name="removeFromMylist">
-    ///   Optional. Set to <c>false</c> to not remove the release from the user's MyList.
+    ///   Optional. Set to <c>false</c> to not remove the release from the
+    ///   user's MyList.
     /// </param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
     Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true);
+
+    /// <summary>
+    /// Clears the current release for all known videos.
+    /// </summary>
+    /// <param name="removeFromMylist">
+    ///   Optional. Set to <c>false</c> to not remove the release from the
+    ///   user's MyList.
+    /// </param>
+    /// <returns>
+    ///   A task that represents the asynchronous operation.
+    /// </returns>
+    Task ClearReleaseForAllVideos(bool removeFromMylist = true);
+
+    /// <summary>
+    ///   Purges all unused releases not linked to any videos from the database.
+    /// </summary>
+    /// <param name="removeFromMylist">
+    ///   Optional. Set to <c>false</c> to not remove the release from the
+    ///   user's MyList.
+    /// </param>
+    /// <returns>
+    ///   A task that represents the asynchronous operation.
+    /// </returns>
+    Task PurgeUnusedReleases(bool removeFromMylist = true);
 
     /// <summary>
     ///   Gets the release match attempts for the specified video.

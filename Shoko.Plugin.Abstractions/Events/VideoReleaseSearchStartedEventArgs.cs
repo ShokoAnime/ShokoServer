@@ -1,12 +1,12 @@
-
 using System;
+using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
 /// Dispatched when a video release search is started.
 /// </summary>
-public class VideoReleaseSearchStartedEventArgs : VideoEventArgs
+public class VideoReleaseSearchStartedEventArgs : EventArgs
 {
     /// <summary>
     /// Indicates if the found releases should be saved.
@@ -17,4 +17,9 @@ public class VideoReleaseSearchStartedEventArgs : VideoEventArgs
     /// The time the search started.
     /// </summary>
     public required DateTime StartedAt { get; init; }
+
+    /// <summary>
+    /// The video.
+    /// </summary>
+    public required IVideo Video { get; init; }
 }
