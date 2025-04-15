@@ -378,6 +378,10 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             return null;
         }
 
+        foreach (var episode in episodes)
+        {
+            logger.LogDebug("Found episode {EpisodeType} {EpisodeNumber} for {ShowName} (Anime={AnimeID})", episode.Type.ToString(), episode.EpisodeNumber, anime.DefaultTitle, anime.ID);
+        }
         var releaseInfo = new ReleaseInfo()
         {
             ID = IdPrefix + episodes.Select(x => $"{anime.ID}-{x.ID}").Join(','),
