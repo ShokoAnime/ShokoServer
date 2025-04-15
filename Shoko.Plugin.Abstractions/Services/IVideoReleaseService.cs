@@ -9,7 +9,7 @@ using Shoko.Plugin.Abstractions.Release;
 namespace Shoko.Plugin.Abstractions.Services;
 
 /// <summary>
-/// Service responsible for managing release info for videos.
+///   Service responsible for managing release info for videos.
 /// </summary>
 /// <remarks>
 ///   The service can operate in sequential mode or parallel model. Parallel
@@ -290,9 +290,9 @@ public interface IVideoReleaseService
     Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool addToMylist = true);
 
     /// <summary>
-    /// Saves the release info for the specified video in the database, and
-    /// returns the saved release info. This will overwrite any existing
-    /// release for the video.
+    ///   Saves the release info for the specified video in the database, and
+    ///   returns the saved release info. This will overwrite any existing
+    ///   release for the video.
     /// </summary>
     /// <param name="video">
     ///   The video to save the release for.
@@ -330,7 +330,7 @@ public interface IVideoReleaseService
     Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true);
 
     /// <summary>
-    /// Clears the current release for all known videos.
+    ///   Clears the current release for all known videos.
     /// </summary>
     /// <param name="removeFromMylist">
     ///   Optional. Set to <c>false</c> to not remove the release from the
