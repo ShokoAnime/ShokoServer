@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace Shoko.Plugin.OfflineImporter;
@@ -14,7 +15,7 @@ public static class StringExtensions
     /// <param name="input">The input string.</param>
     /// <param name="regexPattern">The regular expression pattern.</param>
     /// <returns>The match.</returns>
-    public static Match Match(this string input, string regexPattern)
+    public static Match Match(this string input, [StringSyntax("Regex")] string regexPattern)
         => Regex.Match(input, regexPattern);
 
     /// <summary>
