@@ -66,7 +66,7 @@ public class QuartzSettings
     [Display(Name = "Batch Max Insert Size")]
     [EnvironmentVariable("QUARTZ_BATCH_MAX_INSERT_SIZE")]
     [Range(1, 10_000)]
-    public int BatchMaxInsertSize { get; set; } = 1;
+    public int BatchMaxInsertSize { get; set; } = 1000;
 
     /// <summary>
     /// A map of Type (yes, you need to look at the source code, under ./Shoko.Server/Scheduling/Jobs) to the number of allowed concurrent jobs of the same type.

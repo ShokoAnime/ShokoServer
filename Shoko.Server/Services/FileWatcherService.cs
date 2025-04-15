@@ -3,30 +3,33 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
 
+#nullable enable
 namespace Shoko.Server.Services;
 
 public class FileWatcherService
 {
-    private List<RecoveringFileSystemWatcher> _fileWatchers;
+    private List<RecoveringFileSystemWatcher> _fileWatchers = [];
+
     private readonly ILogger<FileWatcherService> _logger;
+
     private readonly ISettingsProvider _settingsProvider;
-    private readonly ISchedulerFactory _schedulerFactory;
+
     private readonly ShokoManagedFolderRepository _managedFolders;
 
-    public FileWatcherService(ILogger<FileWatcherService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, ShokoManagedFolderRepository managedFolders)
+    private IVideoService? _videoService;
+
+    public FileWatcherService(ILogger<FileWatcherService> logger, ISettingsProvider settingsProvider, ShokoManagedFolderRepository managedFolders)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
-        _schedulerFactory = schedulerFactory;
         _managedFolders = managedFolders;
         _managedFolders.ManagedFolderAdded += ManagedFoldersChanged;
         _managedFolders.ManagedFolderUpdated += ManagedFoldersChanged;
@@ -40,7 +43,7 @@ public class FileWatcherService
         _managedFolders.ManagedFolderRemoved -= ManagedFoldersChanged;
     }
 
-    private void ManagedFoldersChanged(object sender, EventArgs e)
+    private void ManagedFoldersChanged(object? sender, EventArgs e)
     {
         StopWatchingFiles();
         StartWatchingFiles();
@@ -48,6 +51,7 @@ public class FileWatcherService
 
     public void StartWatchingFiles()
     {
+        _videoService ??= Utils.ServiceContainer.GetRequiredService<IVideoService>();
         _fileWatchers = [];
         var settings = _settingsProvider.GetSettings();
 
@@ -90,9 +94,8 @@ public class FileWatcherService
         }
     }
 
-    private void FileAdded(object sender, string path)
+    private void FileAdded(object? sender, string path)
     {
-        if (!File.Exists(path)) return;
         if (!Utils.IsVideo(path)) return;
 
         _logger.LogInformation("Found file {Path}", path);
@@ -105,24 +108,7 @@ public class FileWatcherService
 
         Task.Run(async () =>
         {
-            try
-            {
-                ShokoEventHandler.Instance.OnFileDetected(tuple.folder, new FileInfo(path));
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Unable to run File Detected Event for File: {File}", path);
-            }
-
-            try
-            {
-                var scheduler = await _schedulerFactory.GetScheduler();
-                await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = path).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Unable to Schedule DiscoverFileJob for new file: {File}", path);
-            }
+            await _videoService!.NotifyVideoFileChangeDetected(path);
         });
     }
 
