@@ -37,6 +37,7 @@ public class ActionController : BaseController
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbImageService _tmdbImageService;
     private readonly IVideoService _videoService;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly ISchedulerFactory _schedulerFactory;
 
     public ActionController(
@@ -47,6 +48,7 @@ public class ActionController : BaseController
         TmdbImageService tmdbImageService,
         ISchedulerFactory schedulerFactory,
         IVideoService videoService,
+        IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
@@ -59,6 +61,7 @@ public class ActionController : BaseController
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbImageService = tmdbImageService;
         _videoService = videoService;
+        _videoReleaseService = videoReleaseService;
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
         _groupCreator = groupCreator;
@@ -275,6 +278,36 @@ public class ActionController : BaseController
             if (resetAutoLinkingState.HasValue)
                 _tmdbLinkingService.ResetAutoLinkingState(resetAutoLinkingState.Value);
         });
+        return Ok();
+    }
+
+    /// <summary>
+    /// Clears the current release for all known videos.
+    /// </summary>
+    /// <param name="removeFromMyList">
+    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUsedReleases")]
+    public ActionResult PurgeAllUsedReleases(bool removeFromMyList = true)
+    {
+        Task.Run(() => _videoReleaseService.ClearReleaseForAllVideos(removeFromMyList));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purges all unused releases not linked to any videos from the database.
+    /// </summary>
+    /// <param name="removeFromMyList">
+    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUnusedReleases")]
+    public ActionResult PurgeAllUnusedReleases(bool removeFromMyList = true)
+    {
+        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(removeFromMyList));
         return Ok();
     }
 
