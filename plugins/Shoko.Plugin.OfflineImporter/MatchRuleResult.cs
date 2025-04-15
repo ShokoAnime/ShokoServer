@@ -46,7 +46,7 @@ public record MatchRuleResult
     /// <summary>
     /// The season.
     /// </summary>
-    public int? Season { get; set; }
+    public int? SeasonNumber { get; set; }
 
     /// <summary>
     /// The episode name.
@@ -131,7 +131,7 @@ public record MatchRuleResult
                 var episodeEnd = 1f;
                 // We accept specials in-between episodes or episode ranges, so we split
                 // the range and parse the text as floats.
-                var episodeParts = match.Groups["episode"].Value.Split('-');
+                var episodeParts = (match.Groups["specialNumber"].Success ? match.Groups["specialNumber"] : match.Groups["episode"]).Value.Split('-');
                 if (episodeParts.Length > 0)
                 {
                     var episodeStartStr = episodeParts[0].TrimStart('E');
@@ -174,7 +174,7 @@ public record MatchRuleResult
                     ReleaseGroup = match.Groups["releaseGroup"]?.Value,
                     ShowName = showName,
                     Year = match.Groups["year"].Value is { Length: > 0 } ? int.Parse(match.Groups["year"].Value) : null,
-                    Season = match.Groups["season"].Value is { Length: > 0 } ? int.Parse(match.Groups["season"].Value) : null,
+                    SeasonNumber = match.Groups["season"].Value is { Length: > 0 } ? int.Parse(match.Groups["season"].Value) : null,
                     EpisodeName = match.Groups["episodeName"]?.Value,
                     EpisodeStart = episodeStart,
                     EpisodeEnd = episodeEnd,
@@ -199,7 +199,7 @@ public record MatchRuleResult
 
     private static EpisodeType DetectEpisodeType(GroupCollection matchGroups)
     {
-        if (matchGroups["isSpecial"].Success)
+        if (matchGroups["isSpecial"].Success || matchGroups["specialNumber"].Success)
         {
             return EpisodeType.Special;
         }
@@ -258,7 +258,7 @@ public record MatchRuleResult
             var showName = modifiedDetails.ShowName.Trim().Replace(_trimShowNameRegex, string.Empty);
 
             // Fix movie name when no episode number is provided.
-            var episode = match.Groups["episode"].Value;
+            var episode = (match.Groups["specialNumber"].Success ? match.Groups["specialNumber"] : match.Groups["episode"]).Value;
             var episodeName = match.Groups["episodeName"].Value;
             var isTv = match.Groups["isTv"].Success;
             var year = match.Groups["year"].Value;
@@ -281,7 +281,7 @@ public record MatchRuleResult
                 showName = showName.Replace("_", " ").Replace(".", " ").Trim();
 
                 // A hack.
-                if (showName.StartsWith("//"))
+                if (showName.StartsWith("hack//"))
                     showName = $".{showName}";
             }
 
@@ -289,7 +289,7 @@ public record MatchRuleResult
             if (matchResult.Success)
             {
                 showName = showName[..^matchResult.Length];
-                modifiedDetails.Season = int.Parse(matchResult.Groups[1].Value);
+                modifiedDetails.SeasonNumber = int.Parse(matchResult.Groups[1].Value);
             }
 
             matchResult = showName.Match(@"\s+\b([IVX]+)\s*$");
@@ -299,7 +299,7 @@ public record MatchRuleResult
                 if (seasonNumber is not -1)
                 {
                     showName = showName[..^matchResult.Length];
-                    modifiedDetails.Season = seasonNumber;
+                    modifiedDetails.SeasonNumber = seasonNumber;
                 }
             }
 
@@ -321,8 +321,8 @@ public record MatchRuleResult
 
             // Append the 'season' number to the show name to help with the search if a
             // year was not found.
-            if (modifiedDetails.Season != null && modifiedDetails.Season != 1 && !string.IsNullOrEmpty(episode) && string.IsNullOrEmpty(year))
-                showName += $" S{modifiedDetails.Season}";
+            if (modifiedDetails.SeasonNumber != null && modifiedDetails.SeasonNumber != 1 && !string.IsNullOrEmpty(episode) && string.IsNullOrEmpty(year))
+                showName += $" S{modifiedDetails.SeasonNumber}";
 
             modifiedDetails.ShowName = showName;
         }
@@ -430,7 +430,7 @@ public record MatchRuleResult
         }
 
         // Season 0 means it's a special.
-        if (modifiedDetails is { Season: 0, EpisodeType: EpisodeType.Episode })
+        if (modifiedDetails is { SeasonNumber: 0, EpisodeType: EpisodeType.Episode })
             modifiedDetails.EpisodeType = EpisodeType.Special;
 
         // Correct movie numbering.
@@ -444,6 +444,16 @@ public record MatchRuleResult
         }
         return modifiedDetails;
     }
+
+    private static readonly Regex _leadingReleaseGroupCheck = new(
+        @"^(?<releaseGroup>\[[^\]]+\]|\([^\)]+\)|\{[^\}]+\})",
+        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static readonly Regex _trailingReleaseGroupCheck = new(
+        @"(?<=[\. _])-(?<releaseGroup>\w+)(?: \([^\)]+\))?[\. _]*$",
+        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
 
     private static readonly Regex _trimShowNameRegex = new(
         @"(?![\s_.]*\(part[\s_.]*[ivx]+\))(?![\s_.]*\((?:19|20)\d{2}\))(?:[\s_.]*(?:[([{][^)\]}\n]*[)\]}]|(?:(?<![a-z])(?:jpn?|jap(?:anese)?|en|eng(?:lish)?|es|(?:spa(?:nish)?|de|ger(?:man)?)|\d{3,4}[pi](?:-+hi\w*)?|(?:[uf]?hd|sd)|\d{3,4}x\d{3,4}|dual[\s_.-]*audio|(?:www|web|bd|dvd|ld|blu[\s_.-]*ray)(?:[\s_.-]*(?:rip|dl))?|dl|rip|(?:av1|hevc|[hx]26[45])(?:-[a-z0-9]{1,6})?|(?:dolby(?:[\s_.-]*atmos)?|dts|opus|ac3|aac|flac)(?:[\s._]*[257]\.[0124](?:[_.-]+\w{1,3})?)?|(?:\w{2,3}[\s_.-]*)?(?:sub(?:title)?s?|dub)|(?:un)?cen(?:\.|sored)?)[\s_.]*){1,20})){0,20}[\s_.]*$",
@@ -468,7 +478,22 @@ public record MatchRuleResult
     );
 
     private static readonly Regex _sourceRegex = new(
-        @"\b(?<source>(?:U?HD ?|SD ?)?TV|(?:U?HD ?)?(?:BD|Blue?-?Ray)|(?:H[KD] ?)?DVD|VHS|S?VCD|Web|www|LD|LaserDisc|camera|camcorder)s?(?:rip)?\b",
+        @"\b(?<source>(?:U?HD[ _-]?|SD[ _-]?)?TV(?!-cm)|(?:U?HD[ _-]?)?(?:BD|Blue?-?Ray)(?! (?:menu|notice))|(?:H[KD] ?)?DVD|VHS|S?VCD|Web(?:-?DL)?|www|(?:\b|(?<=_))LD(?:\b|(?=_))|LaserDisc|camera|camcorder)s?(?:[ _-]?rip)?\b",
+        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static readonly Regex _miscRegex = new(
+        @"(?:(?<source>(?:U?HD[ _-]?|SD[ _-]?)?TV(?!-cm)|(?:U?HD[ _-]?)?(?:BD|Blue?-?Ray)(?! (?:menu|notice))|(?:H[KD] ?)?DVD|VHS|S?VCD|Web(?:-?DL)?|www|(?:\b|(?<=_))LD(?:\b|(?=_))|LaserDisc|camera|camcorder)s?(?:[ _-]?rip)?|(?<lang>(?:\b|(?<=_))lng(?:\b|(?=_))|(?:\b|(?<=_))jpn?(?:\b|(?=_))|jap(?:anese)?|(?:\b|(?<=_))gb(?:\b|(?=_))|eng(?:lish)?|(?:\b|(?<=_))en(?:\b|(?=_))|(?:\b|(?<=_))es\b|(?:\b|(?<=_))cn(?:\b|(?=_))|chinese|spa(?:nish)?|(?:\b|(?<=_))de(?:\b|(?=_))|ger(?:man)?)|(?<codec>(?:xvid|divx|prores|vvc|hevc|avc|mpeg[\.-]?[1-4]|vc1|av1|flv|[hx]\.?26[1-6]|aac|e?ac-?3|flac|dca|ogg|opus|wmav2|wmapro|adpcm_ms|pcm|mp[23]|vp[69]f?)(?:[ \._-]?[1-9]\.[0-9](?:\.[0-9])?|-(?:8|10)bits?)?)|(?:multi(?:(?:ple)? )?)?sub(?:s|titled?)?|dub(?:bed)?|rip|(un)?cen(ored)?|(?<resolution>[48]k|\d{3,5}[pi]|\d{3,5}[x×]\d{3,5})|multi(?:[-_ ]?(?:pack|audio))?|remux|truehd|hi10|(?:\b|(?<=_))proper(?:\b|(?=_))|dolby (?:atmos|vision)?|\bdovi\b|dts|vostfr|vorbis|crf\d+|at-x|dual[-_ ]?audio|[24579]ch|(?:8|10)-?bits?|[0-9a-f]{8})",
+        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static readonly Regex _bracketCollapseRegex = new(
+        @"\[[ \._\-]*\]|\([ \._\-]*\)|\{[ \._\-]*\}",
+        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static readonly Regex _spaceCollapseRegex = new(
+        @"\s{2,}",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
@@ -522,7 +547,92 @@ public record MatchRuleResult
         },
         new()
         {
-            Name = "default",
+            Name = "new-default",
+            Regex = new(
+                @"^(?<pre>.*?(?<!(?:PV|CM|Preview|Trailer|Commercial|Menu)[\._ ]?(-[\._ ]?)?))(?:[\._ ]?-[\._ ]?)?(?<=\b|_)(?:(?:s(?<season>\d+))?(?:OVA[ \._]?|Vol(?:\.|ume)[\. _]?|(?:(?:creditless|NC)[\._ ]?)?(?<isThemeSong>OP|ED)[\._ ]?|(?<=\b|_)(?<isOther>o)|e(?:p(?:isode|s)?)?[\. _]?|(?=(?:\d+(?:(?!-?\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?:[\._ ]?END(?=\b|_))?[\._ ]?\.[a-z0-9]{1,10}$)|(?<=[\._ ]?-[\._ ]?)(?=(?:\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?:[\._ ]?END(?=\b|_))?[\._ ]?(?:[\._ ]?-[\._ ]?|[\[\({「]))|(?<=[\._ ]?-[\._ ]?)(?=(?:(?!(?:19|2[01])\d{2})\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?![\._ ]?-[\._ ]?))|(?=(?:\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?:[\._ ]?END(?=\b|_))?[\._ ]?[\[\({「])|(?<=s\d+) )(?<episode>\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?!\]|\)|-(?!\d+[pi])\d+|OVA| (?:nc)?(?:ed|op))|(?<!jump[\. _]festa[\. _])s(?:p(?:ecials?)?)?[ \.]?(?<specialNumber>\d+(?!\]|\)| \d+|[\. _]?-[\. _]?E(?:p(?:isode)?)?[ \.]?\d+))(?![\. _-]*(?:nc)?(?:ed|op)))(?=\b|_)(?:[\._ ]?END)?(?:[\._ ]?-[\._ ]?)?(?<post>.+)?\.(?<extension>[a-z0-9]{1,10})$",
+                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+            ),
+            Transform = static (originalDetails, match) =>
+            {
+                var modifiedDetails = originalDetails with { };
+                if (match.Groups["pre"].Value is { Length: > 0 } pre)
+                {
+                    if (_leadingReleaseGroupCheck.Match(pre) is { Success: true } releaseGroupMatch)
+                    {
+                        modifiedDetails.ReleaseGroup = releaseGroupMatch.Groups["releaseGroup"].Value[1..^1];
+                        pre = pre[releaseGroupMatch.Length..];
+                    }
+                    if (!pre.Contains(' '))
+                    {
+                        pre = pre.Replace("_", " ").Replace(".", " ").Trim();
+
+                        // A hack.
+                        if (pre.StartsWith("hack//"))
+                            pre = $".{pre}";
+                    }
+                    if (pre.Match(@" \((?<year>\d{4})\)") is { Success: true } yearMatch)
+                        modifiedDetails.Year = int.Parse(yearMatch.Groups["year"].Value);
+                    modifiedDetails.ShowName = pre.Trim();
+                }
+                if (match.Groups["post"].Value is { Length: > 0 } post)
+                {
+                    if (_sourceRegex.Match(post) is { Success: true } sourceResult)
+                    {
+                        modifiedDetails.Source = sourceResult.Groups["source"].Value.ToUpper() switch
+                        {
+                            "BD" => ReleaseSource.BluRay,
+                            "BluRay" => ReleaseSource.BluRay,
+                            "BlueRay" => ReleaseSource.BluRay,
+                            "Blu-Ray" => ReleaseSource.BluRay,
+                            "Blue-Ray" => ReleaseSource.BluRay,
+                            "HDBD" => ReleaseSource.BluRay,
+                            "HD BD" => ReleaseSource.BluRay,
+                            "UHDBD" => ReleaseSource.BluRay,
+                            "UHD BD" => ReleaseSource.BluRay,
+                            "DVD" => ReleaseSource.DVD,
+                            "HDDVD" => ReleaseSource.DVD,
+                            "HD DVD" => ReleaseSource.DVD,
+                            "HKDVD" => ReleaseSource.DVD,
+                            "HK DVD" => ReleaseSource.DVD,
+                            "VHS" => ReleaseSource.VHS,
+                            "VCD" => ReleaseSource.VCD,
+                            "SVCD" => ReleaseSource.VCD,
+                            "CAMERA" => ReleaseSource.Camera,
+                            "CAMCORDER" => ReleaseSource.Camera,
+                            "LD" => ReleaseSource.LaserDisc,
+                            "LASERDISC" => ReleaseSource.LaserDisc,
+                            "TV" => ReleaseSource.TV,
+                            "SDTV" => ReleaseSource.TV,
+                            "SD TV" => ReleaseSource.TV,
+                            "HDTV" => ReleaseSource.TV,
+                            "HD TV" => ReleaseSource.TV,
+                            "UHDTV" => ReleaseSource.TV,
+                            "UHD TV" => ReleaseSource.TV,
+                            "WEB" => ReleaseSource.Web,
+                            "WEBDL" => ReleaseSource.Web,
+                            "WWW" => ReleaseSource.Web,
+                            _ => ReleaseSource.Unknown,
+                        };
+                    }
+                    post = post.Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
+                    if (_trailingReleaseGroupCheck.Match(post) is { Success: true } releaseGroupMatch)
+                    {
+                        modifiedDetails.ReleaseGroup = releaseGroupMatch.Groups["releaseGroup"].Value;
+                        post = post[..^releaseGroupMatch.Length];
+                    }
+                    post = post.Replace(_spaceCollapseRegex, " ").Trim();
+                    if (post.Length > 2 && ((post[0] == '(' && post[^1] == ')') || (post[0] == '[' && post[^1] == ']') || (post[0] == '{' && post[^1] == '}') || (post[0] == '「' && post[^1] == '」')))
+                        post = post[1..^1];
+
+                    if (!string.IsNullOrEmpty(post))
+                        modifiedDetails.EpisodeName = post.Trim();
+                }
+                return DefaultTransform(modifiedDetails, match);
+            },
+        },
+        new()
+        {
+            Name = "old-default",
             Regex = new(
                 // Note: Currently it will not recognize episodes in the 19xx and 2xxx ranges. Let's hope nothing reaches that far.
                 @"^(?:[{[(](?<releaseGroup>[^)}\]]+)[)}\]][\s_.]*)?(?<showName>(?<isMovie2>gekijouban[\s_.]+)?(?:[a-z]+[\s_\.]+\d+(?=[\s_\.]*(?:-+[\s_\.]*)[a-z]+))?.+?(?<!\d)(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?<isMovie>[\s_\.]*(?:[-!+]+[\s_\.]*)?(?:the[\s_\.]+)?movie)?(?:[\s_\.]*\(part[\s_\.]*[ivx]+\))?(?:[\s_\.]*\((?<year>(?:19|20)\d{2})\))?)(?<isTrailer>[\s_\.]*(?:character[\s_\.]*)?(?:cm|pv|menu))?[\s_\.]*(?:-+[\s_\.]*)?(?:(?:(?<isThemeSong>(?<![a-z])(?:nc)?(?:ed|op)[\s_\.]*))|(?<isSpecial>sp(?:ecial)?|s(?=\d+(?<!e)))|(?<isOther>\bO)|(?<isOVA>ova)(?:[\s_\.]+(?:[_-]+[\s_\.]*)?e|(?=e))|s(?:eason)?(?<season>\d+)(?:[\s_\.]+(?:[_-]+\.*)?e?|(?=e))|)(?:(?<!part[\s_\.]*)(?:(?<![a-z])e(?:ps?|pisodes?)?[\s_\.]*|#)?(?<episode>(?<!x[\. ]?|(?:flac|opus)[\. ]?(?:\d\.)?|\d+ - [\w\d \.]+)(?!19\d{2}|2\d{3}|\d+[pi])(?:\d+(?:(?!-\d+[pi])-+\d+?|\.5)?|(?<=(?:ed|op) *)\d+\.\d+)(?![\s_\.]*(?:[-!+]+[\s_\.]*)?(?:the[\s_\.]+)?movie))(?:(?<=(?:OP|ED)\d+)(?:\w|\.\d+)\b)?(?:[\s:\.]*end)?)(?:[\s:\.]*v(?<version>\d{1,2}))?(?! - (?:E(p(?:isode)?)?)? *\d+| OVA)(?:[\s_\.]*-*(?:[\s_\.]+(?<episodeName>(?!\d)[^([{\n]*?))?)?(?:[\s_\.]+(?:[\s_\.]+)?)?(?:[\s_.]*(?:\([^)]*\)|\[[^\]]*\]|{[^}]*}|[([{]+[^)\]}\n]*[)\]}]+|(?:(?<![a-z])(?:jpn?|jap(?:anese)?|en|eng(?:lish)?|es|(?:spa(?:nish)?|de|ger(?:man)?)|\d{3,4}[pi](?:-+hi\w*)?|(?:[uf]?hd|sd)|\d{3,4}x\d{3,4}|dual[\s_\.-]*audio|(?:www|web|bd|dvd|ld|blu[\s_\.-]*ray)(?:[\s_\.-]*(?:rip|dl))?|dl|rip|(?:av1|hevc|[hx]26[45])(?:-[a-z0-9]{1,6})?|(?:dolby(?:[\s_\.-]*(?:atmos|vision))?|dts|opus|e?ac3|aac|flac|dovi)(?:[\s\._]*[257]\.[0124](?:[_.-]+\w{1,6})?)?|(?:\w{2,3}[\s_\.-]*)?(?:sub(?:title)?s?|dub)|(?:un)?cen(?:\.|sored)?)[\s_\.]*){1,20})){0,20}[\s_\.]*(?:-[a-zA-Z0-9]+?)?\.(?<extension>[a-zA-Z0-9_\-+]+)$",

@@ -350,7 +350,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                         EpisodeStart = match.EpisodeStart - highestEpisodeNumber,
                         EpisodeType = match.EpisodeType,
                         ReleaseGroup = match.ReleaseGroup,
-                        Season = match.Season,
+                        SeasonNumber = match.SeasonNumber,
                         ShowName = match.ShowName,
                         Version = match.Version,
                         RuleName = match.RuleName,
