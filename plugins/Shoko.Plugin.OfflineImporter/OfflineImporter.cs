@@ -159,7 +159,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
 
     private async Task<ReleaseInfo?> GetReleaseInfoByFileName(MatchRuleResult match, int? animeId, CancellationToken cancellationToken)
     {
-        var releaseInfo = (ReleaseInfo?)null;
+        ReleaseInfo? releaseInfo;
         if (animeId is > 0)
         {
             logger.LogDebug("Found anime ID in folder name to use: {AnimeID}", animeId);
