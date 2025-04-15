@@ -64,13 +64,23 @@ public class ShokoManagedFolder : IManagedFolder
 
     /// <inheritdoc/>
     public DropFolderType DropFolderType
-        => ID switch // The field we check doesn't matter.
+    {
+        get
         {
-            _ when IsDropSource && IsDropDestination => DropFolderType.Both,
-            _ when IsDropSource => DropFolderType.Source,
-            _ when IsDropDestination => DropFolderType.Destination,
-            _ => DropFolderType.Excluded,
-        };
+            return true switch
+            {
+                _ when IsDropSource && IsDropDestination => DropFolderType.Both,
+                _ when IsDropSource => DropFolderType.Source,
+                _ when IsDropDestination => DropFolderType.Destination,
+                _ => DropFolderType.Excluded,
+            };
+        }
+        set
+        {
+            IsDropSource = value.HasFlag(DropFolderType.Source);
+            IsDropDestination = value.HasFlag(DropFolderType.Destination);
+        }
+    }
 
     /// <summary>
     /// Helper to get all video file locations stored in the database for the folder.
@@ -93,6 +103,8 @@ public class ShokoManagedFolder : IManagedFolder
     }
 
     #region IManagedFolder Implementation
+
+    bool IManagedFolder.WatchForNewFiles => IsWatched;
 
     #endregion
 }

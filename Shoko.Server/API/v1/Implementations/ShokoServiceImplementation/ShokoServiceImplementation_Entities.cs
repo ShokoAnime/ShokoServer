@@ -3428,8 +3428,10 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpDelete("Folder/{importFolderID}")]
     public string DeleteImportFolder(int importFolderID)
     {
-        var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob<DeleteManagedFolderJob>(a => a.ManagedFolderID = importFolderID).GetAwaiter().GetResult();
+        var importFolder = RepoFactory.ShokoManagedFolder.GetByID(importFolderID);
+        if (importFolder == null)
+            return "ImportFolder not found";
+        _videoService.RemoveManagedFolder(importFolder);
         return string.Empty;
     }
 

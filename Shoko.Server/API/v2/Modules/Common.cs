@@ -54,6 +54,7 @@ public class Common : BaseController
     private readonly QueueHandler _queueHandler;
     private readonly IUserDataService _userDataService;
     private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
 
     public Common(
@@ -66,6 +67,7 @@ public class Common : BaseController
         AnimeGroupService groupService,
         IUserDataService userDataService,
         VideoLocal_UserRepository vlUsers,
+        IVideoService videoService,
         IVideoReleaseService videoReleaseService) : base(settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
@@ -76,6 +78,7 @@ public class Common : BaseController
         _groupService = groupService;
         _userDataService = userDataService;
         _vlUsers = vlUsers;
+        _videoService = videoService;
         _videoReleaseService = videoReleaseService;
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
@@ -170,8 +173,15 @@ public class Common : BaseController
         if (importFolder == null)
             return new APIMessage(404, "ImportFolder missing");
 
-        var res = await _actionService.DeleteManagedFolder(importFolder.ID);
-        return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
+        try
+        {
+            await _videoService.RemoveManagedFolder(importFolder);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return InternalError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -195,7 +205,7 @@ public class Common : BaseController
     [HttpGet("folder/scan")]
     public async Task<ActionResult> ScanDropFolders()
     {
-        await _actionService.RunImport_DetectFiles(onlyInSourceFolders: true);
+        await _videoService.ScheduleScanForManagedFolders(onlyDropSources: true);
         return Ok();
     }
 

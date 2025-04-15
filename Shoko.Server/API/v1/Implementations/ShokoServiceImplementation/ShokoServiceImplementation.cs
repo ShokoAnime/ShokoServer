@@ -53,6 +53,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
     private readonly IUserDataService _userDataService;
+    private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
 
     public ShokoServiceImplementation(
@@ -69,6 +70,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         AnimeEpisodeService episodeService,
         IUserDataService userDataService,
         VideoLocalService videoLocalService,
+        IVideoService videoService,
         IVideoReleaseService videoReleaseService
     )
     {
@@ -85,6 +87,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _episodeService = episodeService;
         _userDataService = userDataService;
         _videoLocalService = videoLocalService;
+        _videoService = videoService;
         _videoReleaseService = videoReleaseService;
     }
 
@@ -533,7 +536,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("Folder/Scan")]
     public void ScanDropFolders()
     {
-        Utils.ServiceContainer.GetRequiredService<ActionService>().RunImport_DetectFiles(onlyInSourceFolders: true).GetAwaiter().GetResult();
+        _videoService.ScheduleScanForManagedFolders(onlyDropSources: true).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/Scan/{importFolderID}")]

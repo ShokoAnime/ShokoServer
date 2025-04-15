@@ -1,8 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -12,18 +12,19 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [DisallowConcurrentExecution]
 internal class ScanDropFoldersJob : BaseJob
 {
-    private readonly ActionService _actionService;
+    private readonly IVideoService _videoService;
+
     public override string TypeName => "Scan Drop Folders";
     public override string Title => "Scanning Drop Folders";
 
     public override async Task Process()
     {
-        await _actionService.RunImport_DetectFiles(onlyInSourceFolders: true);
+        await _videoService.ScheduleScanForManagedFolders(onlyDropSources: true);
     }
 
-    public ScanDropFoldersJob(ActionService actionService)
+    public ScanDropFoldersJob(IVideoService videoService)
     {
-        _actionService = actionService;
+        _videoService = videoService;
     }
 
     protected ScanDropFoldersJob() { }

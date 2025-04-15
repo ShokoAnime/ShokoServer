@@ -244,14 +244,16 @@ public static partial class Utils
         };
     }
 
+    private static HashSet<string> _videoExtensions = null;
+
     public static bool IsVideo(string fileName)
     {
-        var videoExtensions = SettingsProvider.GetSettings().Import.VideoExtensions
+        _videoExtensions ??= SettingsProvider.GetSettings().Import.VideoExtensions
             .Select(ext => ext.Trim().ToUpper())
             .WhereNotDefault()
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
 
-        return videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", string.Empty).Trim());
+        return _videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", string.Empty).Trim());
     }
 
     public static bool IsLinux

@@ -1,5 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using Quartz;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Services;
@@ -12,17 +15,18 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [DisallowConcurrentExecution]
 public class ImportJob : BaseJob
 {
+    private readonly IVideoService _videoService;
+
     private readonly ActionService _service;
     public override string TypeName => "Run Import";
     public override string Title => "Running Import";
 
     public override async Task Process()
     {
-        await _service.RunImport_DetectFiles(onlyNewFiles: true);
         await _service.RunImport_IntegrityCheck();
 
-        // drop folder
-        await _service.RunImport_DetectFiles(onlyInSourceFolders: true);
+        // managed folder
+        await _videoService.ScheduleScanForManagedFolders();
 
         // Trakt association checks
         _service.RunImport_ScanTrakt();
@@ -39,8 +43,9 @@ public class ImportJob : BaseJob
         await _service.ScheduleMissingAnidbAnimeForFiles();
     }
 
-    public ImportJob(ActionService service)
+    public ImportJob(IVideoService videoService, ActionService service)
     {
+        _videoService = videoService;
         _service = service;
     }
 
