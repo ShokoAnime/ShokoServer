@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
@@ -35,6 +36,7 @@ public class ActionController : BaseController
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbImageService _tmdbImageService;
+    private readonly IVideoService _videoService;
     private readonly ISchedulerFactory _schedulerFactory;
 
     public ActionController(
@@ -44,6 +46,7 @@ public class ActionController : BaseController
         TmdbLinkingService tmdbLinkingService,
         TmdbImageService tmdbImageService,
         ISchedulerFactory schedulerFactory,
+        IVideoService videoService,
         ISettingsProvider settingsProvider,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
@@ -55,6 +58,7 @@ public class ActionController : BaseController
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbImageService = tmdbImageService;
+        _videoService = videoService;
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
         _groupCreator = groupCreator;
@@ -82,7 +86,7 @@ public class ActionController : BaseController
     [HttpGet("ImportNewFiles")]
     public async Task<ActionResult> ImportNewFiles()
     {
-        await _actionService.RunImport_DetectFiles(onlyNewFiles: true);
+        await _videoService.ScheduleScanForManagedFolders(onlyNewFiles: true);
         return Ok();
     }
 

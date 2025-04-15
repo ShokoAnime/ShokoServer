@@ -7,6 +7,7 @@ using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
@@ -126,8 +127,7 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
             importLocation = importLocation.TrimEnd(Path.DirectorySeparatorChar);
             if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
             {
-                var filePath = fullPath.Replace(importLocation, string.Empty);
-                filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
+                var filePath = Utils.CleanPath(fullPath.Replace(importLocation, string.Empty), cleanStart: true);
                 return (folder, filePath);
             }
         }

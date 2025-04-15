@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -15,6 +17,8 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -27,12 +31,13 @@ namespace Shoko.Server.API.v3.Controllers;
 /// Responsible for handling managed folders.
 /// </summary>
 /// <param name="settingsProvider"></param>
-/// <param name="actionService"></param>
+/// <param name="schedulerFactory"></param>
+/// <param name="videoService"></param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class ManagedFolderController(ISettingsProvider settingsProvider, ActionService actionService) : BaseController(settingsProvider)
+public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoService videoService) : BaseController(settingsProvider)
 {
     /// <summary>
     /// List all managed folders
@@ -166,19 +171,10 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ActionS
     public async Task<ActionResult> DeleteManagedFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID, [FromQuery] bool removeRecords = true,
         [FromQuery] bool updateMyList = true)
     {
-        if (!removeRecords)
-        {
-            // These are annoying to clean up later, so do it now. We can easily recreate them.
-            RepoFactory.ShokoManagedFolder.Delete(folderID);
-            return Ok();
-        }
-
         if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
 
-        var errorMessage = await actionService.DeleteManagedFolder(folder.ID, updateMyList);
-        if (!string.IsNullOrEmpty(errorMessage))
-            return InternalError(errorMessage);
+        await videoService.RemoveManagedFolder(folder, !removeRecords, updateMyList);
 
         return Ok();
     }
@@ -187,14 +183,23 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ActionS
     /// Scan a Specific Managed Folder. This checks ALL files, not just new ones. Good for cleaning up files in strange states and making drop folders retry moves 
     /// </summary>
     /// <param name="folderID">Managed Folder ID</param>
+    /// <param name="onlyNewFiles">Only scan new files</param>
+    /// <param name="skipMylist">Skip updating the MyList for this folder</param>
+    /// <param name="priority">Prioritize this job in the queue.</param>
     /// <returns></returns>
     [HttpGet("{folderID}/Scan")]
-    public async Task<ActionResult> ScanManagedFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID)
+    public async Task<ActionResult> ScanManagedFolderByFolderID(
+        [FromRoute, Range(1, int.MaxValue)] int folderID,
+        [FromQuery] bool onlyNewFiles = false,
+        [FromQuery] bool skipMylist = false,
+        [FromQuery] bool priority = false
+    )
     {
         if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found");
 
-        await actionService.RunImport_ScanFolder(folderID);
+        var scheduler = await schedulerFactory.GetScheduler();
+        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.OnlyNewFiles, j.SkipMyList) = (folderID, onlyNewFiles, skipMylist), prioritize: priority);
         return Ok();
     }
 
