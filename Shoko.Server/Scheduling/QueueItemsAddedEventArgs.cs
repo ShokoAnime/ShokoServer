@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Shoko.Server.Scheduling;
 
-public class QueueItemAddedEventArgs : EventArgs
+public class QueueItemsAddedEventArgs : EventArgs
 {
     public int WaitingJobsCount { get; set; }
     public int BlockedJobsCount { get; set; }

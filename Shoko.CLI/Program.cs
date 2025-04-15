@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -47,7 +47,7 @@ public static class Program
     {
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
         var queueStateEventHandler = provider.GetRequiredService<QueueStateEventHandler>();
-        queueStateEventHandler.QueueItemAdded += QueueStateEventHandlerOnQueueItemAdded;
+        queueStateEventHandler.QueueItemsAdded += QueueStateEventHandlerOnQueueItemAdded;
         queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
@@ -56,7 +56,7 @@ public static class Program
         return map == null ? string.Intern("No Details") : string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
     }
 
-    private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemAddedEventArgs e)
+    private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemsAddedEventArgs e)
     {
         if (e.AddedItems is not { Count: > 0 }) return;
 

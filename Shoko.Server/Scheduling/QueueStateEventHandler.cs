@@ -4,18 +4,24 @@ using System.Linq;
 using Quartz;
 using Quartz.Spi;
 
+#nullable enable
 namespace Shoko.Server.Scheduling;
 
-public class QueueStateEventHandler
+public class QueueStateEventHandler(JobFactory jobFactory)
 {
-    private readonly JobFactory _jobFactory;
+    private readonly JobFactory _jobFactory = jobFactory;
+
     private bool _isPaused;
+
     public bool Running { get; private set; }
 
-    public event EventHandler QueuePaused;
-    public event EventHandler QueueStarted;
-    public event EventHandler<QueueItemAddedEventArgs> QueueItemAdded;
-    public event EventHandler<QueueChangedEventArgs> ExecutingJobsChanged;
+    public event EventHandler? QueuePaused;
+
+    public event EventHandler? QueueStarted;
+
+    public event EventHandler<QueueItemsAddedEventArgs>? QueueItemsAdded;
+
+    public event EventHandler<QueueChangedEventArgs>? ExecutingJobsChanged;
 
     public void InvokeQueuePaused()
     {
@@ -33,19 +39,20 @@ public class QueueStateEventHandler
         QueueStarted?.Invoke(null, EventArgs.Empty);
     }
 
-    public void OnJobAdded(IJobDetail jobDetail, QueueStateContext queueContext)
+    public void OnJobsAdded(IEnumerable<IJobDetail> jobDetail, QueueStateContext queueContext)
     {
-        var job = _jobFactory.CreateJob(jobDetail);
-
-        QueueItemAdded?.Invoke(null, new QueueItemAddedEventArgs
+        var jobs = jobDetail.Select(jobDetail => new { jobDetail, job = _jobFactory.CreateJob(jobDetail) }).ToList();
+        QueueItemsAdded?.Invoke(null, new()
         {
-            AddedItems = new List<QueueItem>
-            {
-                new()
+            AddedItems = jobs
+                .Select(obj => new QueueItem()
                 {
-                    Key = jobDetail.Key.ToString(), JobType = job?.TypeName ?? jobDetail.JobType.Type.Name, Title = job?.Title, Details = job?.Details
-                }
-            },
+                    Key = obj.jobDetail.Key.ToString(),
+                    JobType = obj.job?.TypeName ?? obj.jobDetail.JobType.Type.Name,
+                    Title = obj.job?.Title,
+                    Details = obj.job?.Details
+                })
+                .ToList(),
             WaitingJobsCount = queueContext.WaitingTriggersCount,
             BlockedJobsCount = queueContext.BlockedTriggersCount,
             TotalJobsCount = queueContext.TotalTriggersCount,
@@ -70,7 +77,6 @@ public class QueueStateEventHandler
                 StartTime = detail.trigger.StartTimeUtc.LocalDateTime
             };
         }).ToList();
-        
 
         ExecutingJobsChanged?.Invoke(null, new QueueChangedEventArgs
         {
@@ -90,13 +96,13 @@ public class QueueStateEventHandler
 
         ExecutingJobsChanged?.Invoke(null, new QueueChangedEventArgs
         {
-            RemovedItems = new List<QueueItem>
-            {
+            RemovedItems =
+            [
                 new()
                 {
                     Key = jobDetail.Key.ToString(), JobType = job?.TypeName ?? jobDetail.JobType.Type.Name, Title = job?.Title, Details = job?.Details
                 }
-            },
+            ],
             WaitingJobsCount = queueContext.WaitingTriggersCount,
             BlockedJobsCount = queueContext.BlockedTriggersCount,
             TotalJobsCount = queueContext.TotalTriggersCount,
@@ -104,10 +110,5 @@ public class QueueStateEventHandler
             ExecutingItems = queueContext.CurrentlyExecuting.ToList(),
             WaitingItems = queueContext.Waiting.ToList()
         });
-    }
-
-    public QueueStateEventHandler(JobFactory jobFactory)
-    {
-        _jobFactory = jobFactory;
     }
 }
