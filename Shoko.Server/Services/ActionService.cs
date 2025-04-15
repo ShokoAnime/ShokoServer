@@ -102,101 +102,6 @@ public class ActionService(
         }
     }
 
-    public Task RunImport_ScanFolder(int folderID, bool skipMylist = false)
-        => RunImport_DetectFiles(skipMylist: skipMylist, folderIDs: [folderID]);
-
-    public async Task RunImport_DetectFiles(bool onlyNewFiles = false, bool onlyInSourceFolders = false, bool skipMylist = false, IEnumerable<int> folderIDs = null)
-    {
-        IReadOnlyList<ShokoManagedFolder> managedFolders;
-        IEnumerable<VideoLocal_Place> locationsToCheck;
-        if (folderIDs is null)
-        {
-            managedFolders = RepoFactory.ShokoManagedFolder.GetAll();
-            locationsToCheck = RepoFactory.VideoLocalPlace.GetAll();
-        }
-        else
-        {
-            managedFolders = folderIDs
-                .Select(RepoFactory.ShokoManagedFolder.GetByID)
-                .WhereNotNull()
-                .ToList();
-            locationsToCheck = managedFolders.SelectMany(a => a.Places);
-        }
-        if (managedFolders.Count is 0)
-            return;
-
-        var existingFiles = new HashSet<string>();
-        foreach (var location in locationsToCheck)
-        {
-            try
-            {
-                if (location.Path is not { Length: > 0 } path)
-                {
-                    _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
-                    await _placeService.RemoveRecord(location);
-                    continue;
-                }
-
-                existingFiles.Add(path);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An exception occurred while processing VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
-            }
-        }
-
-        var filesFound = 0;
-        var videosFound = 0;
-        var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos()
-            .SelectMany(a => a.Places)
-            .Select(a => a.Path)
-            .Where(a => !string.IsNullOrEmpty(a))
-            .ToList();
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var folder in managedFolders)
-        {
-            if (onlyInSourceFolders && !folder.IsDropSource)
-                continue;
-
-            var files = folder.Files
-                .Where(fileName =>
-                {
-                    if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
-                    {
-                        _logger.LogTrace("Import exclusion, skipping --- {Name}", fileName);
-                        return false;
-                    }
-
-                    return !onlyNewFiles || !existingFiles.Contains(fileName);
-                })
-                .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
-                .ToList();
-            var total = files.Count;
-            foreach (var fileName in files)
-            {
-                if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
-                    _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
-
-                if (!Utils.IsVideo(fileName))
-                    continue;
-
-                videosFound++;
-                if (!existingFiles.Contains(fileName))
-                    ShokoEventHandler.Instance.OnFileDetected(folder, new FileInfo(fileName));
-
-                await scheduler.StartJob<DiscoverFileJob>(a =>
-                {
-                    a.FilePath = fileName;
-                    a.SkipMyList = skipMylist;
-                });
-            }
-        }
-
-        _logger.LogDebug("Found {Count} files", filesFound);
-        _logger.LogDebug("Found {Count} videos", videosFound);
-    }
-
     public async Task RunImport_GetImages()
     {
         var settings = _settingsProvider.GetSettings();
@@ -647,31 +552,6 @@ public class ActionService(
         await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
 
         _logger.LogInformation("Remove Missing Files: Finished");
-    }
-
-    public async Task<string> DeleteManagedFolder(int folderID, bool removeFromMyList = true)
-    {
-        try
-        {
-            var affectedSeries = new HashSet<SVR_AnimeSeries>();
-            var vids = RepoFactory.VideoLocalPlace.GetByManagedFolderID(folderID);
-            _logger.LogInformation("Deleting {VidsCount} video local records", vids.Count);
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            foreach (var vid in vids)
-                await _placeService.RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeFromMyList);
-
-            RepoFactory.ShokoManagedFolder.Delete(folderID);
-
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
     }
 
     public async Task UpdateAllStats()
