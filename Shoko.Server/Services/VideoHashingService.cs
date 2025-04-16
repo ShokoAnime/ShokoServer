@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -446,9 +447,7 @@ public class VideoHashingService(
         if (resolvedPath != originalPath)
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
 
-        Exception? e = null;
-        var fileSize = GetFileSize(originalPath, resolvedPath, ref e);
-        if (fileSize is 0)
+        if (!TryGetFileSize(originalPath, resolvedPath, out var fileSize, out var e))
             throw new UnauthorizedAccessException($"Could not access file to read file size or file size is 0: {resolvedPath}", e);
 
         // Verify that the _unknown_ file we're going to hash is, in fact, a video file.
@@ -498,8 +497,8 @@ public class VideoHashingService(
         videoLocation.VideoID = video.VideoLocalID;
         locationRepository.Save(videoLocation);
 
-        var duplicate = await ProcessDuplicates(video, videoLocation).ConfigureAwait(false);
-        if (!duplicate)
+        var wasDeleted = await DeduplicateAndCleanup(video, videoLocation, updateMyList: !skipMylist, locationAvailable: true).ConfigureAwait(false);
+        if (!wasDeleted)
         {
             SaveFileNameHash(videoLocation.FileName, video);
 
@@ -542,17 +541,13 @@ public class VideoHashingService(
 
     #region Get File Size
 
-    private long GetFileSize(string originalPath, string resolvedPath, ref Exception? e)
+    internal bool TryGetFileSize(string originalPath, string resolvedPath, out long size, [NotNullWhen(false)] out Exception? e)
     {
+        size = 0;
         var settings = settingsProvider.GetSettings();
         if (settings.Import.FileLockChecking)
         {
             var waitTime = settings.Import.FileLockWaitTimeMS;
-
-            waitTime = waitTime < 1000 ? 4000 : waitTime;
-            settings.Import.FileLockWaitTimeMS = waitTime;
-            settingsProvider.SaveSettings();
-
             var policy = Policy
                 .HandleResult<long>(result => result == 0)
                 .Or<IOException>()
@@ -576,7 +571,11 @@ public class VideoHashingService(
                     e = result.FinalException;
                 }
                 else
+                {
                     logger.LogError("Could not access file: {Filename}", resolvedPath);
+                    e = new InvalidOperationException($"Could not access file: {resolvedPath}");
+                }
+                return false;
             }
         }
 
@@ -584,18 +583,21 @@ public class VideoHashingService(
         {
             try
             {
-                return GetFileSize(resolvedPath, FileAccess.Read);
+                size = GetFileSize(resolvedPath, FileAccess.Read);
+                e = null;
+                return size > 0;
             }
             catch (Exception exception)
             {
                 logger.LogError(exception, "Could not access file: {Filename}", resolvedPath);
                 e = exception;
-                return 0;
+                return false;
             }
         }
 
         logger.LogError("Could not access file: {Filename}", resolvedPath);
-        return 0;
+        e = new InvalidOperationException($"Could not access file: {resolvedPath}");
+        return false;
     }
 
     private static long GetFileSize(string fileName, FileAccess accessType)
@@ -611,7 +613,7 @@ public class VideoHashingService(
         if (isSymbolicLink || !Utils.IsRunningOnLinuxOrMac())
         {
 #pragma warning disable CA2254 // Template should be a static expression
-            logger.LogError(ex, $"Failed to read read-only {(isSymbolicLink ? "symbolic link" : "file")}: {{Filename}}", path);
+            logger.LogError(ex, $"Failed to read read-only {(isSymbolicLink ? "symbolic link target" : "file")}: {{Filename}}", path);
 #pragma warning restore CA2254 // Template should be a static expression
             return false;
         }
@@ -697,26 +699,29 @@ public class VideoHashingService(
 
     #endregion
 
-    #region Process Duplicates
+    #region De-duplicate & Cleanup
 
-    private async Task<bool> ProcessDuplicates(VideoLocal video, VideoLocal_Place videoLocation)
+    internal async Task<bool> DeduplicateAndCleanup(VideoLocal video, VideoLocal_Place videoLocation, bool updateMyList, bool locationAvailable)
     {
-        if (video == null) return false;
-        // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
-        if (video.VideoLocalID == 0) return false;
+        if (video.VideoLocalID is 0) return false;
 
-        // remove missing files
-        var preps = video.Places.Where(a =>
+        var toRemove = video.Places
+            .Where(a => videoLocation.ID == a.ID ? !locationAvailable : !a.IsAvailable)
+            .ToList();
+        foreach (var vlp in toRemove)
+            await locationService.RemoveRecord(vlp, updateMyListStatus: updateMyList);
+
+        var places = video.Places;
+        if (videoLocation.ID is not 0 && places is { Count: 0 })
         {
-            if (string.Equals(a.Path, videoLocation.Path)) return false;
-            if (a.Path == null) return true;
-            return !File.Exists(a.Path);
-        }).ToList();
-        locationRepository.Delete(preps);
+            logger.LogWarning("Removed record for unavailable location: {Path}", videoLocation.Path);
+            return true;
+        }
 
-        var dupPlace = video.Places.FirstOrDefault(a => !string.Equals(a.Path, videoLocation.Path));
-        if (dupPlace == null) return false;
+        if (places.FirstOrDefault(a => videoLocation.ID != a.ID) is not { } dupPlace)
+            return false;
 
+        logger.LogWarning("---------------------------------------------");
         logger.LogWarning("Found Duplicate File");
         logger.LogWarning("---------------------------------------------");
         logger.LogWarning("New File: {FullServerPath}", videoLocation.Path);
@@ -724,8 +729,12 @@ public class VideoHashingService(
         logger.LogWarning("---------------------------------------------");
 
         var settings = settingsProvider.GetSettings();
-        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport)
-            await locationService.RemoveRecordAndDeletePhysicalFile(videoLocation);
+        if (!settings.Import.AutomaticallyDeleteDuplicatesOnImport)
+            return false;
+
+        logger.LogInformation("Auto De-Duplicating Is Enabled. Deleting Duplicate File: {FullServerPath}", dupPlace.Path);
+        logger.LogWarning("---------------------------------------------");
+        await locationService.RemoveRecordAndDeletePhysicalFile(videoLocation, updateMyList: updateMyList);
         return true;
     }
 

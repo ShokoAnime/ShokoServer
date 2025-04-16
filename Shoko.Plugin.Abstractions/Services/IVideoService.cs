@@ -91,9 +91,10 @@ public interface IVideoService
     /// <param name="absolutePath">
     ///   The absolute path.
     /// </param>
-    /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's
-    ///   MyList if a release is found and saved.
+    /// <param name="updateMylist">
+    ///   Optional. Set to <c>false</c> to not add or remove the release to the
+    ///   user's MyList if a release is found and saved for the video file or if
+    ///   the video file was deleted.
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="absolutePath"/> is <see langword="null"/>.
@@ -104,7 +105,7 @@ public interface IVideoService
     /// <exception cref="InvalidOperationException">
     ///   The path is outside of any managed folders.
     /// </exception>
-    Task NotifyVideoFileChangeDetected(string absolutePath, bool addToMylist = true);
+    Task NotifyVideoFileChangeDetected(string absolutePath, bool updateMylist = true);
 
     /// <summary>
     ///   Notify the service that a new video file has been detected at the
@@ -116,9 +117,10 @@ public interface IVideoService
     /// <param name="relativePath">
     ///   The relative path.
     /// </param>
-    /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's
-    ///   MyList if a release is found and saved.
+    /// <param name="updateMylist">
+    ///   Optional. Set to <c>false</c> to not add or remove the release to the
+    ///   user's MyList if a release is found and saved for the video file or if
+    ///   the video file was deleted.
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="managedFolder"/> is <see langword="null"/>.
@@ -129,7 +131,7 @@ public interface IVideoService
     /// <exception cref="ArgumentException">
     ///   <paramref name="relativePath"/> is empty.
     /// </exception>
-    Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string relativePath, bool addToMylist = true);
+    Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string relativePath, bool updateMylist = true);
 
     #endregion
     #region Video
