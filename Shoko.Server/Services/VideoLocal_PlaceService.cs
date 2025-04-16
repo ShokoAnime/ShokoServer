@@ -783,14 +783,14 @@ public class VideoLocal_PlaceService
         return false;
     }
 
-    public async Task RemoveRecordAndDeletePhysicalFile(VideoLocal_Place place, bool deleteFolder = true)
+    public async Task RemoveRecordAndDeletePhysicalFile(VideoLocal_Place place, bool deleteFolder = true, bool updateMyList = true)
     {
         _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
         if (!File.Exists(place.Path))
         {
             _logger.LogInformation("Unable to find file. Removing Record: {Place}", place.Path ?? place.RelativePath);
-            await RemoveRecord(place);
+            await RemoveRecord(place, updateMyList);
             return;
         }
 
@@ -812,10 +812,10 @@ public class VideoLocal_PlaceService
         if (deleteFolder)
             RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
 
-        await RemoveRecord(place);
+        await RemoveRecord(place, updateMyList);
     }
 
-    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate, bool updateMyList = true, bool deleteFolders = true)
+    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate, bool deleteFolders = true, bool updateMyList = true)
     {
         try
         {

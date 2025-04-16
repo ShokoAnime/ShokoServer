@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
+using FluentNHibernate.Conventions.AcceptanceCriteria;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -13,6 +16,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -41,7 +45,11 @@ public class AbstractVideoService : IVideoService
 
     private readonly ShokoManagedFolderRepository _managedFolderRepository;
 
-    private readonly IVideoHashingService _videoHashingService;
+    private readonly CrossRef_File_EpisodeRepository _crossRefRepository;
+
+    private readonly FileNameHashRepository _fileNameHashRepository;
+
+    private readonly VideoHashingService _videoHashingService;
 
     private readonly IVideoReleaseService _videoReleaseService;
 
@@ -81,6 +89,8 @@ public class AbstractVideoService : IVideoService
         VideoLocal_PlaceRepository videoLocalPlaceRepository,
         VideoLocal_HashDigestRepository videoLocalHashRepository,
         ShokoManagedFolderRepository managedFolderRepository,
+        CrossRef_File_EpisodeRepository crossRefRepository,
+        FileNameHashRepository fileNameHashRepository,
         IVideoHashingService videoHashingService,
         IVideoReleaseService videoReleaseService,
         VideoLocal_PlaceService vlpService,
@@ -95,7 +105,9 @@ public class AbstractVideoService : IVideoService
         _videoLocalPlaceRepository = videoLocalPlaceRepository;
         _videoLocalHashRepository = videoLocalHashRepository;
         _managedFolderRepository = managedFolderRepository;
-        _videoHashingService = videoHashingService;
+        _crossRefRepository = crossRefRepository;
+        _fileNameHashRepository = fileNameHashRepository;
+        _videoHashingService = (VideoHashingService)videoHashingService;
         _videoReleaseService = videoReleaseService;
         _vlpService = vlpService;
         _schedulerFactory = schedulerFactory;
@@ -183,141 +195,138 @@ public class AbstractVideoService : IVideoService
     }
 
     /// <inheritdoc/>
-    public async Task NotifyVideoFileChangeDetected(string absolutePath, bool addToMylist = true)
+    public async Task NotifyVideoFileChangeDetected(string absolutePath, bool updateMylist = true)
     {
         var (managedFolder, relativePath) = _managedFolderRepository.GetFromAbsolutePath(absolutePath);
         if (managedFolder is null || string.IsNullOrEmpty(relativePath))
             throw new InvalidOperationException($"The path is outside of any managed folders: {absolutePath}");
 
-        await NotifyVideoFileChangeDetected(managedFolder, relativePath, addToMylist);
+        await NotifyVideoFileChangeDetected(managedFolder, relativePath, updateMylist);
     }
 
     /// <inheritdoc/>
-    public async Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string relativePath, bool addToMylist = true)
+    public async Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string relativePath, bool updateMylist = true)
     {
-        if (!Utils.IsVideo(relativePath)) return;
+        // Don't trust the input to be cleaned beforehand.
         relativePath = Utils.CleanPath(relativePath, cleanStart: true);
+
+        if (!Utils.IsVideo(relativePath))
+        {
+            _logger.LogInformation("File does not have an acceptable video extension, skipping: {Path}", relativePath);
+            return;
+        }
+
+        if (!TryGetVideoAndLocation(managedFolder, relativePath, out var video, out var videoLocation))
+        {
+            // Logging occurs in TryGetVideoAndLocation.
+            return;
+        }
+
         var absolutePath = Path.Join(managedFolder.Path, relativePath);
-        var (video, vlp) = GetVideoLocal(managedFolder, relativePath);
-        if (video == null || vlp == null)
+        var locationAvailable = videoLocation.IsAvailable;
+        if (!locationAvailable && videoLocation.ID is 0)
         {
-            _logger.LogWarning("Could not get VideoLocal. exiting");
+            _logger.LogInformation("File is unavailable, skipping: {Path}", absolutePath);
             return;
         }
 
-        // Dispatch event for newly detected files.
-        var vlpAvailable = vlp.IsAvailable;
-        if ((video.VideoLocalID is 0 || vlp.ID is 0) && vlpAvailable)
+        var wasDeleted = await _videoHashingService.DeduplicateAndCleanup(video, videoLocation, updateMylist, locationAvailable);
+        if (wasDeleted)
         {
-            try
-            {
-                VideoFileDetected?.Invoke(null, new(relativePath, new(absolutePath), managedFolder));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Got an error in a VideoFileDetected event.");
-            }
-        }
-
-        var filename = vlp.FileName;
-        var enabledHashes = _videoHashingService.AllEnabledHashTypes;
-        var shouldSave = false;
-        var shouldHash = string.IsNullOrEmpty(video.Hash) || video.FileSize == 0 || (video.Hashes is { } hashes && (hashes.Count == 0 || enabledHashes.Any(a => !hashes.Any(b => b.Type == a))));
-        var hasXrefs = video.EpisodeCrossReferences is { Count: > 0 } xrefs;
-        if (vlpAvailable && !shouldHash && hasXrefs && !video.DateTimeImported.HasValue)
-        {
-            video.DateTimeImported = DateTime.Now;
-            shouldSave = true;
-        }
-
-        // this can't run on a new file, because shouldHash is true
-        if (vlpAvailable && !shouldHash && !shouldSave)
-        {
-            if (hasXrefs)
-            {
-                _logger.LogTrace("Found existing video file with hashes and release info: {File} (ED2K={Hash})", absolutePath, video.Hash);
-                return;
-            }
-
-            // Don't schedule the auto-match attempt if auto-matching is disabled.
-            if (!_videoReleaseService.AutoMatchEnabled)
-            {
-                _logger.LogTrace("Found existing video file with hashes but without release info and auto-match is disabled: {File} (ED2K={Hash})", absolutePath, video.Hash);
-                return;
-            }
-
-            _logger.LogTrace("Found existing video file with hashes but without release info: {File} (ED2K={Hash})", absolutePath, video.Hash);
-            await _videoReleaseService.ScheduleFindReleaseForVideo(video, addToMylist: addToMylist);
+            _logger.LogInformation("File was deleted during missing file cleanup and/or file auto de-duplication: {Path}", absolutePath);
             return;
         }
 
-        // process duplicate import
-        var duplicateRemoved = await ProcessDuplicates(video, vlp, vlpAvailable);
-        // it was removed. Don't try to hash or save
-        if (duplicateRemoved) return;
+        var videoIsKnown = !string.IsNullOrEmpty(video.Hash) && video.FileSize > 0;
+        var hasXrefs = videoIsKnown && video.EpisodeCrossReferences is { Count: > 0 };
+        var shouldSave = videoIsKnown && locationAvailable && videoLocation.ID is 0;
+        var shouldHash = !videoIsKnown || (video.Hashes is { } hashes && (hashes.Count == 0 || _videoHashingService.AllEnabledHashTypes.Any(a => !hashes.Any(b => b.Type == a))));
+        if (locationAvailable)
+        {
+            if (videoLocation.ID is 0)
+            {
+                try
+                {
+                    VideoFileDetected?.Invoke(null, new(relativePath, new(absolutePath), managedFolder));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Got an error in a VideoFileDetected event.");
+                }
+            }
+
+            if (hasXrefs && !video.DateTimeImported.HasValue)
+            {
+                video.DateTimeImported = DateTime.Now;
+                shouldSave = true;
+            }
+        }
 
         if (shouldSave)
         {
-            _logger.LogTrace("Saving VideoLocal: VideoLocalID: {VideoLocalID},  Filename: {FileName}, Hash: {Hash}", video.VideoLocalID, absolutePath, video.Hash);
+            _logger.LogTrace("Saving video record for path: {Path} (Hash={Hash},Size={Size})", absolutePath, video.Hash, video.FileSize);
             _videoLocalRepository.Save(video, true);
 
-            _logger.LogTrace("Saving VideoLocal_Place: VideoLocal_Place_ID: {PlaceID}, Path: {Path}", vlp.ID, absolutePath);
-            vlp.VideoID = video.VideoLocalID;
-            _videoLocalPlaceRepository.Save(vlp);
+            _logger.LogTrace("Saving video file record for path: {Path} (Hash={Hash},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            videoLocation.VideoID = video.VideoLocalID;
+            _videoLocalPlaceRepository.Save(videoLocation);
         }
 
         if (shouldHash)
         {
-            await _videoHashingService.ScheduleGetHashesForPath(absolutePath, skipMylist: !addToMylist);
+            _logger.LogTrace("Scheduling video hashing for: {Path}", absolutePath);
+            await _videoHashingService.ScheduleGetHashesForPath(absolutePath, skipMylist: !updateMylist);
             return;
         }
 
-        // Only schedule the auto-match attempt if auto-matching is enabled.
-        if (!hasXrefs)
+        if (hasXrefs)
         {
-            if (!_videoReleaseService.AutoMatchEnabled)
-            {
-                _logger.LogTrace("Hashes were found and xrefs are missing, but auto-match is disabled. Exiting: {File}, Hash: {Hash}", absolutePath, video.Hash);
-                return;
-            }
-
-            _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", absolutePath, video.Hash);
-            await _videoReleaseService.ScheduleFindReleaseForVideo(video, addToMylist: addToMylist);
+            _logger.LogTrace("Found existing video file with hashes and release info: {Path} (ED2K={Hash})", absolutePath, video.Hash);
+            return;
         }
+
+        if (!_videoReleaseService.AutoMatchEnabled)
+        {
+            _logger.LogTrace("Found existing video file with hashes but without release info and auto-match is disabled: {Path} (ED2K={Hash})", absolutePath, video.Hash);
+            return;
+        }
+
+        _logger.LogTrace("Found existing video file with hashes but without release info: {Path} (ED2K={Hash})", absolutePath, video.Hash);
+        await _videoReleaseService.ScheduleFindReleaseForVideo(video, addToMylist: updateMylist);
     }
 
-    private (VideoLocal?, VideoLocal_Place?) GetVideoLocal(IManagedFolder managedFolder, string relativePath)
+    private bool TryGetVideoAndLocation(IManagedFolder managedFolder, string relativePath, [NotNullWhen(true)] out VideoLocal? video, [NotNullWhen(true)] out VideoLocal_Place? videoLocation)
     {
         // check if we have already processed this file
-        VideoLocal? vlocal = null;
-        var vlp = _videoLocalPlaceRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID);
-        if (vlp != null)
+        video = null;
+        videoLocation = _videoLocalPlaceRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID);
+        if (videoLocation != null)
         {
-            vlocal = vlp.VideoLocal;
-            if (vlocal != null)
+            video = videoLocation.VideoLocal;
+            if (video != null)
             {
-                _logger.LogTrace("VideoLocal record found in database: {Filename}", relativePath);
+                _logger.LogTrace("Video record found in database: {Filename}", relativePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
-                if (vlp.Path == null)
+                if (videoLocation.Path == null)
                 {
-                    _logger.LogTrace("VideoLocal_Place path is non-existent, removing it");
-                    if (vlocal.Places.Count == 1)
+                    _logger.LogTrace("Video file path is non-existent, removing record.");
+                    if (video.Places.Count == 1)
                     {
-                        _videoLocalRepository.Delete(vlocal);
-                        vlocal = null;
+                        _videoLocalRepository.Delete(video);
+                        video = null;
                     }
 
-                    _videoLocalPlaceRepository.Delete(vlp);
-                    vlp = null;
+                    _videoLocalPlaceRepository.Delete(videoLocation);
+                    videoLocation = null;
                 }
             }
         }
 
-        if (vlocal == null)
+        if (video == null)
         {
-            _logger.LogTrace("No existing VideoLocal, creating temporary record");
-            vlocal = new VideoLocal
+            _logger.LogTrace("No existing video record, creating temporary record");
+            video = new VideoLocal
             {
                 DateTimeUpdated = DateTime.Now,
                 DateTimeCreated = DateTime.Now,
@@ -326,55 +335,95 @@ public class AbstractVideoService : IVideoService
             };
         }
 
-        if (vlp == null)
+        if (videoLocation == null)
         {
-            _logger.LogTrace("No existing VideoLocal_Place, creating a new record");
-            vlp = new VideoLocal_Place
+            // If this is a new record, check if it's a symlink of another known
+            // file or if it's a previously known file.
+            if (video is { VideoLocalID: 0 })
+            {
+                var originalPath = Path.Join(managedFolder.Path, relativePath);
+                var resolvedPath = File.ResolveLinkTarget(originalPath, true)?.FullName ?? originalPath;
+                if (resolvedPath != originalPath)
+                {
+                    _logger.LogTrace("File is a symbolic link. Original path: {OriginalFilePath}, Resolved path: {ResolvedFilePath}", originalPath, resolvedPath);
+                    if (
+                        _managedFolderRepository.GetFromAbsolutePath(resolvedPath) is ({ Path.Length: > 0 } resolvedFolder, { Length: > 0 } resolvedRelativePath) &&
+                        _videoLocalPlaceRepository.GetByRelativePathAndManagedFolderID(resolvedRelativePath, resolvedFolder.ID) is { } resolvedLocation &&
+                        resolvedLocation.VideoLocal is { } resolvedVideo
+                    )
+                    {
+                        _logger.LogTrace("Found video for symbolic link: {ResolvedPath} (Hash={Hash},Size={Size})", resolvedPath, resolvedVideo.Hash, resolvedVideo.FileSize);
+                        video = resolvedVideo;
+                    }
+                }
+
+                // Check again in case we resolved a symlink above.
+                if (video is { VideoLocalID: 0 })
+                {
+                    if (!_videoHashingService.TryGetFileSize(originalPath, resolvedPath, out var fileSize, out var e))
+                    {
+                        _logger.LogWarning(e, "Could not access file to read file size or file size is 0: {ResolvedPath}", originalPath);
+                        return false;
+                    }
+
+                    var fileName = Path.GetFileName(resolvedPath);
+                    if (TryGetVideoFromCrossReferenceTable(fileName, fileSize, out var otherVideo))
+                    {
+                        _logger.LogTrace("Found video for file name and size through CrossRef_File_Episode table: {ResolvedPath} (Hash={Hash},Size={Size})", resolvedPath, otherVideo.Hash, fileSize);
+                        video = otherVideo;
+                    }
+                    else if (TryGetVideoFromFileNameHashTable(fileName, fileSize, out otherVideo))
+                    {
+                        _logger.LogTrace("Found video for file name and size through FileNameHash table: {ResolvedPath} (Hash={Hash},Size={Size})", resolvedPath, otherVideo.Hash, fileSize);
+                        video = otherVideo;
+                    }
+                }
+            }
+
+            _logger.LogTrace("No existing video file record, creating a new record");
+            videoLocation = new VideoLocal_Place
             {
                 RelativePath = relativePath,
                 ManagedFolderID = managedFolder.ID,
             };
-            if (vlocal.VideoLocalID != 0) vlp.VideoID = vlocal.VideoLocalID;
+            if (video.VideoLocalID != 0) videoLocation.VideoID = video.VideoLocalID;
         }
 
-        return (vlocal, vlp);
+        return true;
     }
 
-    private async Task<bool> ProcessDuplicates(VideoLocal video, VideoLocal_Place vlp, bool vlpAvailable)
+    private bool TryGetVideoFromCrossReferenceTable(string filename, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
     {
-        // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
-        if (video.VideoLocalID == 0) return false;
-
-        // remove missing files
-        var preps = video.Places.Where(a =>
+        var xrefs = _crossRefRepository.GetByFileNameAndSize(filename, fileSize);
+        if (xrefs.Count == 0)
         {
-            if (vlp.ID == a.ID && vlpAvailable) return false;
-            return !a.IsAvailable;
-        }).ToList();
-        foreach (var vlp1 in preps)
-            await _vlpService.RemoveRecord(vlp1);
-
-        var dupPlace = video.Places.FirstOrDefault(a => vlp.ID != a.ID);
-        if (dupPlace == null)
-        {
-            _logger.LogWarning("Removed Remaining File");
-            _logger.LogWarning("---------------------------------------------");
-            _logger.LogWarning("File: {FullServerPath}", vlp.Path);
-            _logger.LogWarning("---------------------------------------------");
-            return true;
+            video = null;
+            return false;
         }
 
-        _logger.LogWarning("Found Duplicate File");
-        _logger.LogWarning("---------------------------------------------");
-        _logger.LogWarning("New File: {FullServerPath}", vlp.Path);
-        _logger.LogWarning("Existing File: {FullServerPath}", dupPlace.Path);
-        _logger.LogWarning("---------------------------------------------");
+        video = _videoLocalRepository.GetByEd2kAndSize(xrefs[0].Hash, fileSize);
+        return video is not null;
+    }
 
-        var settings = _settingsProvider.GetSettings();
-        if (!settings.Import.AutomaticallyDeleteDuplicatesOnImport) return false;
+    private bool TryGetVideoFromFileNameHashTable(string filename, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
+    {
+        // If we have more than one record it probably means there is some sort
+        // of corruption. Let's delete all local records.
+        var hashes = _fileNameHashRepository.GetByFileNameAndSize(filename, fileSize);
+        if (hashes.Count > 1)
+        {
+            _fileNameHashRepository.Delete(hashes);
+            hashes = _fileNameHashRepository.GetByFileNameAndSize(filename, fileSize);
+        }
 
-        await _vlpService.RemoveRecordAndDeletePhysicalFile(vlp);
-        return true;
+        if (hashes is not { Count: 1 })
+        {
+            video = null;
+            return false;
+        }
+
+        video = _videoLocalRepository.GetByEd2kAndSize(hashes[0].Hash, fileSize);
+        return video is not null;
     }
 
     #endregion Video File
@@ -470,6 +519,16 @@ public class AbstractVideoService : IVideoService
 
     private async Task ScanManagedFolder(ShokoManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false)
     {
+        var startedAt = DateTime.Now;
+        var files = folder.Files;
+        if (files.Count == 0)
+        {
+            _logger.LogInformation("Managed folder is temporarily or permanently unavailable. Aborting scan; {Path} (ManagedFolder={ManagedFolderID})", folder.Path, folder.ID);
+            return;
+        }
+
+        var filesAt = DateTime.Now - startedAt;
+        _logger.LogInformation("Managed folder scan started; {Path} (ManagedFolder={ManagedFolderID},Files={FilesCount},FilesScanTime={FilesAt})", folder.Path, folder.ID, files.Count, filesAt);
         var existingFiles = new HashSet<string>();
         foreach (var location in folder.Places)
         {
@@ -478,7 +537,14 @@ public class AbstractVideoService : IVideoService
                 if (location.Path is not { Length: > 0 } path)
                 {
                     _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
-                    await _vlpService.RemoveRecord(location);
+                    await _vlpService.RemoveRecord(location, updateMyListStatus: !skipMylist);
+                    continue;
+                }
+
+                if (!location.IsAvailable)
+                {
+                    _logger.LogInformation("Removing missing path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
+                    await _vlpService.RemoveRecord(location, updateMyListStatus: !skipMylist);
                     continue;
                 }
 
@@ -499,7 +565,7 @@ public class AbstractVideoService : IVideoService
             .ToList();
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
-        var files = folder.Files
+        files = files
             .Where(fileName =>
             {
                 if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
@@ -513,24 +579,37 @@ public class AbstractVideoService : IVideoService
             .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
             .ToList();
         var total = files.Count;
-        foreach (var fileName in files)
-        {
-            if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
-                _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
+        var parallelism = Math.Min(settings.Quartz.MaxThreadPoolSize > 0 ? settings.Quartz.MaxThreadPoolSize : Environment.ProcessorCount, Environment.ProcessorCount);
+        var actionBlock = new ActionBlock<int>(
+            async index =>
+            {
+                var fileName = files[index];
+                if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
+                    _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
 
-            if (!Utils.IsVideo(fileName))
-                continue;
+                if (!Utils.IsVideo(fileName))
+                    return;
 
-            videosFound++;
+                videosFound++;
 
-            await NotifyVideoFileChangeDetected(fileName, addToMylist: !skipMylist);
-        }
+                await NotifyVideoFileChangeDetected(fileName, updateMylist: !skipMylist);
+            },
+            new ExecutionDataflowBlockOptions
+            {
+                MaxDegreeOfParallelism = parallelism,
+            }
+        );
 
-        _logger.LogDebug("Found {Count} files in folder {FolderName}. (Folder={FolderID})", filesFound, folder.Name, folder.ID);
-        _logger.LogDebug("Found {Count} videos in folder {FolderName}. (Folder={FolderID})", videosFound, folder.Name, folder.ID);
+        _logger.LogDebug("Processing {Count} files in folder {FolderName} with {Parallelism} threads. (Folder={FolderID})", total, folder.Name, parallelism, folder.ID);
+        for (var index = 0; index < total; index++)
+            await actionBlock.SendAsync(index).ConfigureAwait(false);
+
+        actionBlock.Complete();
+
+        await actionBlock.Completion.ConfigureAwait(false);
+
+        _logger.LogDebug("Found {FileCount} files and {VideoCount} videos in folder {FolderName} in {TimeSpan}. (Folder={FolderID},FilesScanTime={FilesAt})", filesFound, videosFound, folder.Name, DateTime.Now - startedAt, folder.ID, filesAt);
     }
-
-
 
     public async Task ScheduleScanForManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool prioritize = true)
     {
