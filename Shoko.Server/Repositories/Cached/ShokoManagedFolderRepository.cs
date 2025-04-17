@@ -115,6 +115,8 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
         if (string.IsNullOrEmpty(fullPath))
             return default;
 
+        fullPath = Utils.StripLongPathPrefix(fullPath);
+
         var folders = GetAll();
         foreach (var folder in folders)
         {

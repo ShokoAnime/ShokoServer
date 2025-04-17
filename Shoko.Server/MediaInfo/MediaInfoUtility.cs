@@ -509,8 +509,7 @@ public static class MediaInfoUtility
 
     private static Process GetProcess(string processName, string filename)
     {
-        // use windows long file paths
-        if (!Utils.IsRunningOnLinuxOrMac() && filename.Length > 250 && !filename.StartsWith("\\\\?\\")) filename = "\\\\?\\" + filename;
+        filename = Utils.EnsureUsablePath(filename);
 
         var pProcess = new Process
         {
