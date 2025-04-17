@@ -293,6 +293,7 @@ public class VideoHashingService(
     public async Task<HashingResult> GetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
     {
         EnsureLoaded();
+        path = Utils.EnsureUsablePath(path);
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
@@ -363,6 +364,7 @@ public class VideoHashingService(
     public async Task ScheduleGetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, bool prioritize = false)
     {
         EnsureLoaded();
+        path = Utils.EnsureUsablePath(path);
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
@@ -389,7 +391,7 @@ public class VideoHashingService(
     public async Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
     {
         EnsureLoaded();
-        var path = file.Path;
+        var path = Utils.EnsureUsablePath(file.Path);
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
@@ -413,7 +415,7 @@ public class VideoHashingService(
     public async Task ScheduleGetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, bool prioritize = false)
     {
         EnsureLoaded();
-        var path = file.Path;
+        var path = Utils.EnsureUsablePath(file.Path);
         if (!File.Exists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
@@ -442,7 +444,7 @@ public class VideoHashingService(
 
     private async Task<HashingResult> GetHashesForVideo(VideoLocal video, VideoLocal_Place videoLocation, ShokoManagedFolder folder, bool useExistingHashes, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
     {
-        var originalPath = Path.Join(folder.Path, videoLocation.RelativePath);
+        var originalPath = Utils.EnsureUsablePath(Path.Join(folder.Path, videoLocation.RelativePath));
         var resolvedPath = File.ResolveLinkTarget(originalPath, true)?.FullName ?? originalPath;
         if (resolvedPath != originalPath)
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);

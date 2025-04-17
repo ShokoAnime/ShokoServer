@@ -319,6 +319,33 @@ public static partial class Utils
     [GeneratedRegex(@"\/{2,}")]
     private static partial Regex MultiSlashRegex();
 
+    public static string EnsureUsablePath(string path)
+    {
+        if (IsLinux)
+            return path;
+
+        // Use long paths if we're on Windows and the path is longer than 250
+        // characters.
+        if (path.Length > 250)
+            path = path.StartsWith(@"\\") && !path.StartsWith(@"\\?\")
+                ? @"\\?\UNC" + path[1..]
+                : @"\\?\" + path;
+        return path.Replace('/', '\\');
+    }
+
+    public static string StripLongPathPrefix(string path)
+    {
+        if (IsLinux)
+            return path;
+        if (!path.StartsWith(@"\\?\"))
+            return path;
+
+        if (path.StartsWith(@"\\?\UNC\"))
+            return "\\" + path[7..];
+
+        return path[4..];
+    }
+
     public static string CleanPath(string value, bool osDependent = false, bool cleanStart = false)
     {
         var isUNC = value.StartsWith(@"\\") && !IsLinux;

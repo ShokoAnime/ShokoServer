@@ -63,6 +63,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             try
             {
+                path = Utils.EnsureUsablePath(path);
                 var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName ?? path;
                 if (resolvedPath != path)
                     _logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
