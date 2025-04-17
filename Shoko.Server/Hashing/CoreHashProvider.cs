@@ -133,11 +133,6 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         try
         {
             var path = request.Path;
-            if (!Utils.IsLinux)
-                path = path.StartsWith(@"\\")
-                    ? path
-                    : @"\\?\" + path; //only prepend non-UNC paths (or paths that have this already)
-
             return await CalculateHashesRhash(path, request, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
