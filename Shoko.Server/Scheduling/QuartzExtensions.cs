@@ -20,11 +20,17 @@ public static class QuartzExtensions
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    private static ConcurrentBag<IJobDetail> _pendingJobs = [];
+    private static readonly ConcurrentQueue<(IJobDetail job, int priority)[]> _jobQueue = new();
+
+    private static ConcurrentBag<(IJobDetail job, int priority)> _pendingJobs = [];
 
     private static System.Timers.Timer? _jobTimer;
 
+    private static bool _isRunning = false;
+
     private static readonly object _flushLock = new();
+
+    private static readonly object _queueLock = new();
 
     /// <summary>
     /// Queue a job of type T with the data map setter and generated identity
@@ -36,25 +42,26 @@ public static class QuartzExtensions
     /// </param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static async Task StartJob<T>(this IScheduler scheduler, Action<T>? data = null, bool prioritize = false) where T : class, IJob
+    public static Task StartJob<T>(this IScheduler scheduler, Action<T>? data = null, bool prioritize = false) where T : class, IJob
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var job = data != null
             ? JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build()
             : JobBuilder<T>.Create().WithGeneratedIdentity().Build();
         if (settings.Quartz.BatchMaxInsertSize == 1 || settings.Quartz.BatchInsertTimeoutInMS == 0)
-            await scheduler.StartJobs([job], priority: prioritize ? 10 : 0);
+            return scheduler.StartJobs([(job, prioritize ? 10 : 0)]);
 
-        _pendingJobs.Add(job);
-        await PerhapsFlush(scheduler);
+        _pendingJobs.Add((job, prioritize ? 10 : 0));
+        PerhapsFlush();
+        return Task.CompletedTask;
     }
 
     private static void Flush(object? sender, System.Timers.ElapsedEventArgs e)
-        => PerhapsFlush(force: true).GetAwaiter().GetResult();
+        => PerhapsFlush(force: true);
 
-    private static async Task PerhapsFlush(IScheduler? scheduler = null, bool force = false)
+    private static void PerhapsFlush(bool force = false)
     {
-        IJobDetail[]? jobs = null;
+        (IJobDetail job, int priority)[]? jobs = null;
         var settings = Utils.SettingsProvider.GetSettings();
         if (!force && (_jobTimer?.Enabled ?? false) && _pendingJobs.Count < settings.Quartz.BatchMaxInsertSize) return;
         lock (_flushLock)
@@ -64,7 +71,7 @@ public static class QuartzExtensions
             {
                 var pendingJobs = _pendingJobs;
                 _pendingJobs = [];
-                jobs = pendingJobs.ToArray();
+                jobs = pendingJobs.ToArray().Reverse().ToArray();
                 pendingJobs.Clear();
             }
 
@@ -86,8 +93,40 @@ public static class QuartzExtensions
 
         if (jobs is not null && jobs.Length > 0)
         {
-            scheduler ??= await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().ConfigureAwait(false);
-            await scheduler.StartJobs(jobs);
+            _jobQueue.Enqueue(jobs);
+            if (!_isRunning)
+            {
+                lock (_queueLock)
+                {
+                    if (!_isRunning)
+                    {
+                        _isRunning = true;
+                        Task.Factory.StartNew(ProcessJobs, TaskCreationOptions.LongRunning);
+                    }
+                }
+            }
+        }
+    }
+
+    private static async Task ProcessJobs()
+    {
+        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduleBuilder = SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires();
+        while (_jobQueue.TryDequeue(out var jobs))
+        {
+            try
+            {
+                await StartJobs(scheduler, jobs, scheduleBuilder);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error processing jobs");
+            }
+        }
+
+        lock (_queueLock)
+        {
+            _isRunning = false;
         }
     }
 
@@ -97,22 +136,21 @@ public static class QuartzExtensions
     /// <param name="scheduler">The scheduler to schedule the job with</param>
     /// <param name="jobs">The jobs to schedule</param>
     /// <param name="scheduleBuilder"></param>
-    /// <param name="priority">It will go in order by start time, then choose the higher priority. <seealso cref="TriggerBuilder.WithPriority(int)"/></param>
     /// <returns></returns>
-    private static async Task StartJobs(this IScheduler scheduler, IJobDetail[] jobs, IScheduleBuilder? scheduleBuilder = null, int priority = 0)
+    private static async Task StartJobs(this IScheduler scheduler, (IJobDetail job, int priority)[] jobs, IScheduleBuilder? scheduleBuilder = null)
     {
         // if it's running, then ignore
         var currentJobs = await scheduler.GetCurrentlyExecutingJobs();
-        var jobKeys = jobs.Select(a => a.Key).ToHashSet();
+        var jobKeys = jobs.Select(tuple => tuple.job.Key).ToHashSet();
         if (currentJobs.Select(executing => executing.JobDetail.Key).Where(jobKeys.Contains).ToHashSet() is { Count: > 0 } runningJobs)
         {
             foreach (var job in runningJobs)
                 _logger.Trace("Skipped scheduling {JobName} because it is running.", job);
-            jobs = jobs.DistinctBy(job => job.Key).ExceptBy(runningJobs, job => job.Key).ToArray();
+            jobs = jobs.DistinctBy(tuple => tuple.job.Key).ExceptBy(runningJobs, job => job.job.Key).ToArray();
         }
         else
         {
-            jobs = jobs.DistinctBy(job => job.Key).ToArray();
+            jobs = jobs.DistinctBy(tuple => tuple.job.Key).ToArray();
         }
 
         if (jobs.Length == 0) return;
@@ -121,7 +159,7 @@ public static class QuartzExtensions
         var collection = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>();
         using (var _ = await SchedulerLock.ReaderLockAsync())
         {
-            foreach (var job in jobs)
+            foreach (var (job, priority) in jobs)
             {
                 if (await scheduler.CheckExists(job.Key))
                 {
