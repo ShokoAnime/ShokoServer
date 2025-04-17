@@ -99,9 +99,9 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 ? MatchRuleResult.Match(filePath)
                 : MatchRuleResult.Empty;
             if (folderNameMatch is { Success: true })
-                animeId = int.Parse(folderNameMatch.Value[6..^1].Trim());
+                animeId = int.Parse(folderNameMatch.Groups["animeId"].Value);
             if (filenameMatch.Success)
-                releaseInfo = (await GetReleaseInfoById(IdPrefix + filenameMatch.Value, cancellationToken))!;
+                releaseInfo = (await GetReleaseInfoById(IdPrefix + filenameMatch.Groups["episodeRange"].Value, cancellationToken))!;
             else if (config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
                 releaseInfo = await GetReleaseInfoByFileName(match, animeId, cancellationToken);
             if (releaseInfo is not { CrossReferences.Count: > 0 })
@@ -243,7 +243,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 }
             }
 
-            if (anime is null || !anime.Episodes.Any(x => x.Type == match.EpisodeType && x.EpisodeNumber <= match.EpisodeEnd && x.EpisodeNumber >= match.EpisodeStart))
+            if (anime is null)
                 return null;
         }
 
@@ -310,6 +310,36 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 .Where(t => t.z.Contains(match.EpisodeText))
                 .Select(x => x.x)
                 .ToList();
+        }
+        // HAMA-style specials offset handling.
+        else if (
+            match is { EpisodeStart: > 200, EpisodeEnd: > 200 } &&
+            anime.EpisodeCounts is { } episodeCounts && (
+                (match.EpisodeType is EpisodeType.Episode && episodeCounts.Episodes is > 0 and <= 190) ||
+                (match.EpisodeType is EpisodeType.Special && episodeCounts.Specials is > 0 and <= 190)
+            )
+        )
+        {
+            var (episodeType, offset) = true switch
+            {
+                // The 100-200 range is not supported.
+                _ when match.EpisodeStart is >= 201 and < 300 && episodeCounts.Trailers > 0 => (EpisodeType.Trailer, 200), // Trailers
+                _ when match.EpisodeStart is >= 301 and < 400 && episodeCounts.Credits > 0 => (EpisodeType.Credits, 300), // OPs/EDs/etc.
+                _ when match.EpisodeStart is >= 401 and < 500 && episodeCounts.Others > 0 => (EpisodeType.Other, 400), // Others
+                _ => (match.EpisodeType, 0),
+            };
+            var episodeStart = match.EpisodeStart - offset;
+            var episodeEnd = match.EpisodeEnd - offset;
+            if (episodeType is EpisodeType.Special && episodeEnd - episodeStart == 0 && !string.IsNullOrEmpty(match.EpisodeName))
+                episodes = SearchForSpecialByName(match.EpisodeName, episodeStart, allEpisodes);
+            else
+                episodes = allEpisodes
+                    .Where(x => x.Type == episodeType && x.EpisodeNumber <= episodeEnd && x.EpisodeNumber >= episodeStart)
+                    .ToList();
+        }
+        else if (match.EpisodeType is EpisodeType.Special && match.EpisodeEnd - match.EpisodeStart == 0 && !string.IsNullOrEmpty(match.EpisodeName))
+        {
+            episodes = SearchForSpecialByName(match.EpisodeName, match.EpisodeStart, allEpisodes);
         }
         else
         {
@@ -586,13 +616,28 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         return matches;
     }
 
+    private static List<IAnidbEpisode> SearchForSpecialByName(string episodeName, float episodeNumber, IReadOnlyList<IAnidbEpisode> allEpisodes)
+    {
+        episodeName = episodeName.Replace('`', '\'');
+
+        var specials = allEpisodes.Where(x => x.Type is EpisodeType.Special).ToList();
+        var match =
+            specials.FirstOrDefault(x =>
+                string.Equals(x.DefaultTitle.Replace('`', '\''), episodeName, StringComparison.OrdinalIgnoreCase) ||
+                x.Titles.Any(y => string.Equals(y.Title.Replace('`', '\''), episodeName, StringComparison.OrdinalIgnoreCase))
+            ) ??
+            specials.FirstOrDefault(x => x.EpisodeNumber == episodeNumber);
+        return match is not null ? [match] : [];
+    }
+
+
     [GeneratedRegex(@"^(?:(?<isFinalEpisode>Final Episode) |Episode (?<episodeRange1>\d+(?:\-\d+)?) |(?<isFull1>Full) |(?<isDVD>DVD) |(?<isSpecial1>Special|Bonus|Special Broadcast|TV)? |(?<isCreditless>creditless) |(?<isInternational>international) |(?<isOriginal>Original )?(?<language>japanese|english|american|us|german|french(?: uncensored)?|italian|spanish|arabic) |(?<isEdgeCase>BD-BOX II|Doukyuusei: Natsu no Owari ni|Ami-chan's First Love|Narration -) )?(?<type>ED|OP|Opening|Ending|Intro|Credits)(?<isExtra> EX)?(?: *(?<number>\d+))?(?<suffix> ?[a-z]|\.\d+)?(?:(?: \((?<episodeRange2>\d+(?:\-\d+)?)\)| Episode (?<episodeRange3>\d+(?:\-\d+)?))?| \((?:(?<isSpecial2>Specials?)|Episode (?<episodeRange4>S?\d+(?:\-\d+)?(?: ?& ?S?\d+(?:\-\d+)?)?)|(?<isFull2>LongVer.)|(?<details1>[^\)]+))\)| \[(?<details2>[^\]]+)\]| (?<isFull3>full)| - Version (?<version>\d+)| - .+| .+)?$", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex CreditTitleRegex();
 
-    [GeneratedRegex(@"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*\d+\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<animeId>\d+)\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<animeId>\d+)\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<animeId>\d+)\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex StrictFolderNameCheckRegex();
 
-    [GeneratedRegex(@"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex StrictFilenameCheckRegex();
 
     [GeneratedRegex(@"(?<=^|,)\s*(?:(?<animeId>\d+)[=\- \.])?(?<episodeId>\d+)(?:'(?<percentRangeStartOrWholeRange>\d+)(?:\-(?<percentRangeEnd>\d+))?)?\s*(?=$|,),?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
