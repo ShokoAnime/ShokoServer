@@ -116,6 +116,7 @@ public class ReleaseInfo
     public ReleaseInfo()
     {
         CreatedAt = DateTime.Now;
+        Revision = 1;
     }
 
     /// <summary>
