@@ -199,7 +199,7 @@ public record MatchRuleResult
 
     private static EpisodeType DetectEpisodeType(GroupCollection matchGroups)
     {
-        if (matchGroups["isSpecial"].Success || matchGroups["specialNumber"].Success)
+        if (matchGroups["isSpecial"].Success || matchGroups["specialNumber"].Success || (matchGroups["season"] is { Success: true, Value: "0" or "00" or "000" }))
         {
             return EpisodeType.Special;
         }
@@ -222,35 +222,13 @@ public record MatchRuleResult
         return EpisodeType.Episode;
     }
 
-    private static int ParseRomanNumerals(string romanNumeral)
-        => romanNumeral.ToUpperInvariant() switch
-        {
-            "I" => 1,
-            "II" => 2,
-            "III" => 3,
-            "IV" => 4,
-            "V" => 5,
-            "VI" => 6,
-            "VII" => 7,
-            "VIII" => 8,
-            "IX" => 9,
-            "X" => 10,
-            "XI" => 11,
-            "XII" => 12,
-            "XIII" => 13,
-            "XIV" => 14,
-            "XV" => 15,
-            "XVI" => 16,
-            "XVII" => 17,
-            "XVIII" => 18,
-            "IXX" => 19,
-            "XX" => 20,
-            _ => -1,
-        };
-
     private static MatchRuleResult? DefaultTransform(MatchRuleResult originalDetails, Match match)
     {
         var modifiedDetails = originalDetails with { };
+
+        // Season 0 means it's a special.
+        if (modifiedDetails is { SeasonNumber: 0, EpisodeType: EpisodeType.Episode })
+            modifiedDetails.EpisodeType = EpisodeType.Special;
 
         // Fix up show name by removing unwanted details and fixing spaces.
         if (modifiedDetails.ShowName is not null)
@@ -292,19 +270,8 @@ public record MatchRuleResult
                 modifiedDetails.SeasonNumber = int.Parse(matchResult.Groups[1].Value);
             }
 
-            matchResult = showName.Match(@"\s+\b([IVX]+)\s*$");
-            if (matchResult.Success)
-            {
-                var seasonNumber = ParseRomanNumerals(matchResult.Groups[1].Value);
-                if (seasonNumber is not -1)
-                {
-                    showName = showName[..^matchResult.Length];
-                    modifiedDetails.SeasonNumber = seasonNumber;
-                }
-            }
-
             // Fix up year for some shows.
-            matchResult = showName.Match(@" \d{4}$");
+            matchResult = showName.Match(@" (?:19|2[01])\d{2}$");
             if (matchResult.Success)
             {
                 modifiedDetails.Year = int.Parse(matchResult.Value.Trim());
@@ -321,7 +288,7 @@ public record MatchRuleResult
 
             // Append the 'season' number to the show name to help with the search if a
             // year was not found.
-            if (modifiedDetails.SeasonNumber != null && modifiedDetails.SeasonNumber != 1 && !string.IsNullOrEmpty(episode) && string.IsNullOrEmpty(year))
+            if (modifiedDetails.SeasonNumber is > 1 && !string.IsNullOrEmpty(episode) && string.IsNullOrEmpty(year))
                 showName += $" S{modifiedDetails.SeasonNumber}";
 
             modifiedDetails.ShowName = showName;
@@ -429,10 +396,6 @@ public record MatchRuleResult
             }
         }
 
-        // Season 0 means it's a special.
-        if (modifiedDetails is { SeasonNumber: 0, EpisodeType: EpisodeType.Episode })
-            modifiedDetails.EpisodeType = EpisodeType.Special;
-
         // Correct movie numbering.
         if (
             (match.Groups["isMovie"].Success || match.Groups["isMovie2"].Success) && modifiedDetails.EpisodeStart == 0
@@ -463,8 +426,8 @@ public record MatchRuleResult
     private static readonly Regex _reStitchRegex = new(@"^[\s_.]*-+[\s_.]*$|^[\s_.]*$", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex _themeSongCheckRegex = new(
-        @"(?<![a-z0-9])(?:(?<isCreditless>nc|creditless)[\s_.]*)?(?<type>ed|op)(?![a-z]{2,})(?:[\s_.]*(?<episode>\d+(?!\d*p)))?(?<suffix>(?<=(?:OP|ED)(?:[\s_.]*\d+)?)(?:\.\d+|\w)\b)?",
-        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+        @"(?<![a-z0-9])(?:(?<isCreditless>nc|[Cc]reditless|NC)[\s_.]*)?(?<type>ED|OP)(?![a-z]{2,})(?:[\s_.]*(?<episode>\d+(?!\d*p)))?(?<suffix>(?<=(?:OP|ED)(?:[\s_.]*\d+)?)(?:\.\d+|\w)\b)?",
+        RegexOptions.ECMAScript | RegexOptions.Compiled
     );
 
     private static readonly Regex _trailerCheckRegex = new(
@@ -515,30 +478,6 @@ public record MatchRuleResult
         },
         new()
         {
-            Name = "raws-1",
-            Regex = new(
-                @"^(?<showName>[^\n]+?) (?:(?:- ?)?(?:S(?<season>\d+)E|E?)(?<episode>\d+)(?:v(?<version>\d+))?(?: ?-)? )?(?:\w* )?(?<resolution>((?:[0-9]{3,4})x(?:[0-9]{3,4}))|(?:[0-9]{3,4})p)(?: [^ \n]+)*? ?(?<!DTS|Atmos|Dolby)-(?<releaseGroup>[^ \n]+)(?: \((?<source>[^)]+)\))?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-        },
-        new()
-        {
-            Name = "raws-2",
-            Regex = new(
-                @"^(?<showName>[^\n]+?)\.(?:-\.)?(?:S(?<season>\d+)E|E(?:p(?:isode)?\.?)?|(?<=(?<!\d)\.))(?<episode>(?<!\b[xh]\.?)\d+(?!\.(?:0|S\d+|E(?:p(?:isode)?\.?)?\d+)))(?:\.-)?(?:\.[^\.\n]+)*?-(?<releaseGroup>[^\.\n]+)(?:\.\((?<source>[^)]+)\))?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-        },
-        new()
-        {
-            Name = "raws-3",
-            Regex = new(
-                @"^(?<showName>[^\n]+?)(?:(?:- )?(?:S(?<season>\d+)E|E?)(?<episode>\d+)(?:v(?<version>\d+))?(?: -)? )?(?:[ \.](?:\[[^\]]+\]|{[^}]+})*)*-(?<releaseGroup>[A-Za-z0-9_]+)(?:\.\((?<source>[^)]+)\))?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-        },
-        new()
-        {
             Name = "trash-anime",
             Regex = new(
                 @"^(?<showName>.+?(?: \((?<year>\d{4})\))) - (?:(?<isSpecial>S00?)|S\d+)E\d+(?:-E?\d+)? - (?<episode>\d+(?:-\d+)?) - (?<episodeName>.+?(?=\[)).*?(?:-(?<releaseGroup>[^\[\] ]+))?\s*\.(?<extension>[a-zA-Z0-9_\-+]+)$",
@@ -549,7 +488,7 @@ public record MatchRuleResult
         {
             Name = "new-default",
             Regex = new(
-                @"^(?<pre>.*?(?<!(?:PV|CM|Preview|Trailer|Commercial|Menu)[\._ ]?(-[\._ ]?)?))(?:[\._ ]?-[\._ ]?)?(?<=\b|_)(?:(?:s(?<season>\d+))?(?:OVA[ \._]?|Vol(?:\.|ume)[\. _]?|(?:(?:creditless|NC)[\._ ]?)?(?<isThemeSong>OP|ED)[\._ ]?|(?<=\b|_)(?<isOther>o)|e(?:p(?:isode|s)?)?[\. _]?|(?=(?:\d+(?:(?!-?\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?:[\._ ]?END(?=\b|_))?[\._ ]?\.[a-z0-9]{1,10}$)|(?<=[\._ ]?-[\._ ]?)(?=(?:\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?:[\._ ]?END(?=\b|_))?[\._ ]?(?:[\._ ]?-[\._ ]?|[\[\({「]))|(?<=[\._ ]?-[\._ ]?)(?=(?:(?!(?:19|2[01])\d{2})\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?![\._ ]?-[\._ ]?))|(?=(?:\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?:[\._ ]?END(?=\b|_))?[\._ ]?[\[\({「])|(?<=s\d+) )(?<episode>\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?!\]|\)|-(?!\d+[pi])\d+|OVA| (?:nc)?(?:ed|op))|(?<!jump[\. _]festa[\. _])s(?:p(?:ecials?)?)?[ \.]?(?<specialNumber>\d+(?!\]|\)| \d+|[\. _]?-[\. _]?E(?:p(?:isode)?)?[ \.]?\d+))(?![\. _-]*(?:nc)?(?:ed|op)))(?=\b|_)(?:[\._ ]?END)?(?:[\._ ]?-[\._ ]?)?(?<post>.+)?\.(?<extension>[a-z0-9]{1,10})$",
+                @"^(?<pre>.*?(?<!(?:PV|CM|Preview|Trailer|Commercial|Menu|Jump Festa Special)[\._ ]?(-[\._ ]?)?))(?:[\._ ]?-[\._ ]?)?(?<=\b|_)(?:(?:s(?<season>\d+))?(?:OVA[\._ ]?|Vol(?:\.|ume)[\._ ]?|(?:(?:creditless|NC)[\._ ]?)?(?<isThemeSong>OP|ED|opening|ending)[\._ ]?(?!(?:10|2[01])\d{2})|(?<=\b|_)(?<isOther>o)|e(?:p(?:isode|s)?)?[\._ ]?|(?=(?:\d+(?:(?!-?\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?:v\d{1,2})?(?:[\._ ]?END(?=\b|_))?[\._ ]?\.[a-z0-9]{1,10}$)|(?<=[\._ ]?-[\._ ]?)(?=(?:\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP|opening|ending)[\._ ]?\d+)[a-z])?)(?:[\._ ]?END(?=\b|_))?[\._ ]?(?:[\._ ]?-[\._ ]?|[\[\({「]))|(?<=[\._ ]?-[\._ ]?)(?=(?:(?!(?:19|2[01])\d{2})\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP)[\. _]?\d+)[a-z])?)(?![\._ ]?-[\._ ]?))|(?=(?:(?!\d+[\. _]\(\d{4}\))\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP|opening|ending)[\. _]?\d+)[a-z])?)(?:v\d{1,2})?(?:[\._ ]?END(?=\b|_))?[\._ ]?[\[\({「])|(?<=s\d+) )(?<episode>\d+(?:(?!-\d+[pi])-\d+?|\.5|(?<=(?:ED|OP|opening|ending)[\._ ]?\d+)[a-z])?)(?!\]|\)|-(?!\d+[pi])\d+|[\._ ]?OVA| (?:nc)?(?:ed|op))|(?<!jump[\. _]festa[\. _])s(?:p(?:ecials?)?)?[ \.]?(?<specialNumber>\d+(?!\]|\)| \d+|[\. _]?-[\. _]?E(?:p(?:isode)?)?[ \.]?\d+))(?![\. _-]*(?:nc)?(?:ed|op)))(?:v(?<version>\d{1,2}))?(?=\b|_)(?:[\._ ]?END)?(?:[\._ ]?-[\._ ]?)?(?<post>.+)?\.(?<extension>[a-z0-9]{1,10})$",
                 RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
             ),
             Transform = static (originalDetails, match) =>
@@ -629,6 +568,30 @@ public record MatchRuleResult
                 }
                 return DefaultTransform(modifiedDetails, match);
             },
+        },
+        new()
+        {
+            Name = "raws-1",
+            Regex = new(
+                @"^(?<showName>[^\n]+?) (?:(?:- ?)?(?:S(?<season>\d+)E|E?)(?<episode>\d+)(?:v(?<version>\d+))?(?: ?-)? )?(?:\w* )?(?<resolution>((?:[0-9]{3,4})x(?:[0-9]{3,4}))|(?:[0-9]{3,4})p)(?: [^ \n]+)*? ?(?<!DTS|Atmos|Dolby)-(?<releaseGroup>[^ \n]+)(?: \((?<source>[^)]+)\))?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
+                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+            ),
+        },
+        new()
+        {
+            Name = "raws-2",
+            Regex = new(
+                @"^(?<showName>[^\n]+?)\.(?:-\.)?(?:S(?<season>\d+)E|E(?:p(?:isode)?\.?)?|(?<=(?<!\d)\.))(?<episode>(?<!\b[xh]\.?)\d+(?!\.(?:0|S\d+|E(?:p(?:isode)?\.?)?\d+)))(?:\.-)?(?:\.[^\.\n]+)*?-(?<releaseGroup>[^\.\n]+)(?:\.\((?<source>[^)]+)\))?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
+                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+            ),
+        },
+        new()
+        {
+            Name = "raws-3",
+            Regex = new(
+                @"^(?<showName>[^\n]+?)(?:(?:- )?(?:S(?<season>\d+)E|E?)(?<episode>\d+)(?:v(?<version>\d+))?(?: -)? )?(?:[ \.](?:\[[^\]]+\]|{[^}]+})*)*-(?<releaseGroup>[A-Za-z0-9_]+)(?:\.\((?<source>[^)]+)\))?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
+                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+            ),
         },
         new()
         {
