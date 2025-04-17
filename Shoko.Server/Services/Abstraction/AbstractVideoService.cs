@@ -275,7 +275,14 @@ public class AbstractVideoService : IVideoService
         if (shouldHash)
         {
             _logger.LogTrace("Scheduling video hashing for: {Path}", absolutePath);
-            await _videoHashingService.ScheduleGetHashesForPath(absolutePath, skipMylist: !updateMylist);
+            try
+            {
+                await _videoHashingService.ScheduleGetHashesForPath(absolutePath, skipMylist: !updateMylist);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException)
+            {
+                _logger.LogWarning(ex, "{Message}", ex.Message);
+            }
             return;
         }
 
