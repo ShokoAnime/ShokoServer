@@ -341,7 +341,7 @@ public class AbstractVideoService : IVideoService
             // file or if it's a previously known file.
             if (video is { VideoLocalID: 0 })
             {
-                var originalPath = Path.Join(managedFolder.Path, relativePath);
+                var originalPath = Utils.EnsureUsablePath(Path.Join(managedFolder.Path, relativePath));
                 var resolvedPath = File.ResolveLinkTarget(originalPath, true)?.FullName ?? originalPath;
                 if (resolvedPath != originalPath)
                 {
