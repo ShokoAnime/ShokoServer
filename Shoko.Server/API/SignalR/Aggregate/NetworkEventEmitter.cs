@@ -6,11 +6,11 @@ using Shoko.Server.API.SignalR.Models;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class NetworkEmitter : BaseEmitter, IDisposable
+public class NetworkEventEmitter : BaseEventEmitter, IDisposable
 {
     private IConnectivityService EventHandler { get; set; }
 
-    public NetworkEmitter(IHubContext<AggregateHub> hub, IConnectivityService events) : base(hub)
+    public NetworkEventEmitter(IHubContext<AggregateHub> hub, IConnectivityService events) : base(hub)
     {
         EventHandler = events;
         EventHandler.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
@@ -23,11 +23,11 @@ public class NetworkEmitter : BaseEmitter, IDisposable
 
     private async void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityChangedEventArgs eventArgs)
     {
-        await SendAsync("NetworkAvailabilityChanged", new NetworkAvailabilitySignalRModel(eventArgs));
+        await SendAsync("availabilityChanged", new NetworkAvailabilitySignalRModel(eventArgs));
     }
 
-    public override object GetInitialMessage()
+    protected override object[] GetInitialMessages()
     {
-        return new NetworkAvailabilitySignalRModel(EventHandler.NetworkAvailability, EventHandler.LastChangedAt);
+        return [new NetworkAvailabilitySignalRModel(EventHandler.NetworkAvailability, EventHandler.LastChangedAt)];
     }
 }

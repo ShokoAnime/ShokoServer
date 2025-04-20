@@ -7,11 +7,11 @@ using Shoko.Server.API.SignalR.Models;
 #nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class ConfigurationEmitter : BaseEmitter, IDisposable
+public class ConfigurationEventEmitter : BaseEventEmitter, IDisposable
 {
     private IConfigurationService EventHandler { get; set; }
 
-    public ConfigurationEmitter(IHubContext<AggregateHub> hub, IConfigurationService events) : base(hub)
+    public ConfigurationEventEmitter(IHubContext<AggregateHub> hub, IConfigurationService events) : base(hub)
     {
         EventHandler = events;
         EventHandler.Saved += OnSaved;
@@ -26,16 +26,16 @@ public class ConfigurationEmitter : BaseEmitter, IDisposable
 
     private async void OnSaved(object? sender, ConfigurationSavedEventArgs eventArgs)
     {
-        await SendAsync("Saved", new ConfigurationSavedSignalRModel(eventArgs));
+        await SendAsync("saved", new ConfigurationSavedSignalRModel(eventArgs));
     }
 
     private async void OnRequiresRestart(object? sender, ConfigurationRequiresRestartEventArgs eventArgs)
     {
-        await SendAsync("RequiresRestart", new ConfigurationRequiresRestartSignalRModel() { RequiresRestart = eventArgs.RequiresRestart });
+        await SendAsync("requiresRestart", new ConfigurationRequiresRestartSignalRModel() { RequiresRestart = eventArgs.RequiresRestart });
     }
 
-    public override object GetInitialMessage()
+    protected override object[] GetInitialMessages()
     {
-        return new ConfigurationRequiresRestartSignalRModel() { RequiresRestart = EventHandler.RestartPendingFor.Count > 0 };
+        return [new ConfigurationRequiresRestartSignalRModel() { RequiresRestart = EventHandler.RestartPendingFor.Count > 0 }];
     }
 }
