@@ -6,9 +6,21 @@ public class FileRelocatedEventSignalRModel : FileEventSignalRModel
 {
     public FileRelocatedEventSignalRModel(FileRelocatedEventArgs eventArgs) : base(eventArgs)
     {
+        Moved = eventArgs.Moved;
+        Renamed = eventArgs.Renamed;
         PreviousRelativePath = eventArgs.PreviousRelativePath;
         PreviousManagedFolderID = eventArgs.PreviousManagedFolder.ID;
     }
+
+    /// <summary>
+    /// Whether or not the file was moved.
+    /// </summary>
+    public bool Moved { get; }
+
+    /// <summary>
+    /// Whether or not the file was renamed.
+    /// </summary>
+    public bool Renamed { get; }
 
     /// <summary>
     /// The relative path of the old file from the managed folder base location.

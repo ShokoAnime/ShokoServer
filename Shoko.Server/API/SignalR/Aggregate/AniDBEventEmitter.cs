@@ -7,12 +7,12 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class AniDBEmitter : BaseEmitter, IDisposable
+public class AniDBEventEmitter : BaseEventEmitter, IDisposable
 {
     private IUDPConnectionHandler UDPHandler { get; set; }
     private IHttpConnectionHandler HttpHandler { get; set; }
 
-    public AniDBEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
+    public AniDBEventEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
     {
         HttpHandler = http;
         UDPHandler = udp;
@@ -28,20 +28,22 @@ public class AniDBEmitter : BaseEmitter, IDisposable
 
     private async void OnUDPStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("AniDBUDPStateUpdate", new AniDBStatusUpdateSignalRModel(e));
+        await SendAsync("udp.stateUpdate", new AniDBStatusUpdateSignalRModel(e));
     }
 
     private async void OnHttpStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("AniDBHttpStateUpdate", new AniDBStatusUpdateSignalRModel(e));
+        await SendAsync("http.stateUpdate", new AniDBStatusUpdateSignalRModel(e));
     }
 
-    public override object GetInitialMessage()
+    protected override object[] GetInitialMessages()
     {
-        return new List<AniDBStatusUpdateSignalRModel>
-        {
-            new(UDPHandler.State),
-            new(HttpHandler.State),
-        };
+        return [
+            new List<AniDBStatusUpdateSignalRModel>
+            {
+                new(UDPHandler.State),
+                new(HttpHandler.State),
+            },
+        ];
     }
 }
