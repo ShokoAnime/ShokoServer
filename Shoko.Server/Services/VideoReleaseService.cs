@@ -96,7 +96,7 @@ public class VideoReleaseService(
 
     public event EventHandler<VideoReleaseSavedEventArgs>? ReleaseSaved;
 
-    public event EventHandler<VideoReleaseRemovedEventArgs>? ReleaseDeleted;
+    public event EventHandler<VideoReleaseDeletedEventArgs>? ReleaseDeleted;
 
     public event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
 

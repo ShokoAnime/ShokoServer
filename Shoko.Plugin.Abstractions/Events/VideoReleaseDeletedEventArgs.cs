@@ -5,9 +5,9 @@ using Shoko.Plugin.Abstractions.Release;
 namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
-/// Dispatched when a video release is saved or deleted.
+/// Dispatched when a video release is deleted.
 /// </summary>
-public class VideoReleaseRemovedEventArgs : EventArgs
+public class VideoReleaseDeletedEventArgs : EventArgs
 {
     /// <summary>
     /// The video, if available when the event was dispatched. It may have been

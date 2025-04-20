@@ -28,7 +28,7 @@ public interface IVideoReleaseService
     /// <summary>
     ///   Event raised when a video release is deleted from the database.
     /// </summary>
-    event EventHandler<VideoReleaseRemovedEventArgs>? ReleaseDeleted;
+    event EventHandler<VideoReleaseDeletedEventArgs>? ReleaseDeleted;
 
     /// <summary>
     ///   Event raised when an automatic video release search is started.
