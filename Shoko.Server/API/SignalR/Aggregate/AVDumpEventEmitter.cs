@@ -7,9 +7,9 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class AVDumpEmitter : BaseEmitter, IDisposable
+public class AVDumpEventEmitter : BaseEventEmitter, IDisposable
 {
-    public AVDumpEmitter(IHubContext<AggregateHub> hub) : base(hub)
+    public AVDumpEventEmitter(IHubContext<AggregateHub> hub) : base(hub)
     {
         ShokoEventHandler.Instance.AVDumpEvent += OnAVDumpEvent;
     }
@@ -21,13 +21,15 @@ public class AVDumpEmitter : BaseEmitter, IDisposable
 
     private async void OnAVDumpEvent(object sender, AVDumpEventArgs eventArgs)
     {
-        await SendAsync("Event", new AVDumpEventSignalRModel(eventArgs));
+        await SendAsync("event", new AVDumpEventSignalRModel(eventArgs));
     }
 
-    public override object GetInitialMessage()
+    protected override object[] GetInitialMessages()
     {
-        return AVDumpHelper.GetActiveSessions()
-            .Select(session => new AVDumpEventSignalRModel(session))
-            .ToList();
+        return [
+            AVDumpHelper.GetActiveSessions()
+                .Select(session => new AVDumpEventSignalRModel(session))
+                .ToList()
+        ];
     }
 }

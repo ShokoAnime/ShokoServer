@@ -8,13 +8,13 @@ using Shoko.Server.Scheduling;
 #nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class QueueEmitter : BaseEmitter, IDisposable
+public class QueueEventEmitter : BaseEventEmitter, IDisposable
 {
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly QueueHandler _queueHandler;
     private QueueStateSignalRModel? _lastQueueState;
 
-    public QueueEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
+    public QueueEventEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
     {
         _queueStateEventHandler = queueStateEventHandler;
         _queueHandler = queueHandler;
@@ -53,23 +53,24 @@ public class QueueEmitter : BaseEmitter, IDisposable
         };
     }
 
-    public override object GetInitialMessage()
+    protected override object[] GetInitialMessages()
     {
-        return GetQueueState();
+        var state = GetQueueState();
+        return [state];
     }
 
     private async void OnQueueStarted(object? sender, EventArgs e)
     {
         var state = GetQueueState();
-
-        await SendAsync("QueueStateChanged", state);
+        _lastQueueState = state;
+        await SendAsync("state.changed", state);
     }
 
     private async void OnQueuePaused(object? sender, EventArgs e)
     {
         var state = GetQueueState();
-
-        await SendAsync("QueueStateChanged", state);
+        _lastQueueState = state;
+        await SendAsync("state.changed", state);
     }
 
     private async void OnQueueItemsAddedEvent(object? sender, QueueItemsAddedEventArgs e)
@@ -85,7 +86,7 @@ public class QueueEmitter : BaseEmitter, IDisposable
         };
         if (Equals(_lastQueueState, currentState)) return;
         _lastQueueState = currentState;
-        await SendAsync("QueueStateChanged", currentState);
+        await SendAsync("state.changed", currentState);
     }
 
     private async void OnExecutingJobsStateChangedEvent(object? sender, QueueChangedEventArgs e)
@@ -109,6 +110,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
         };
         if (Equals(_lastQueueState, currentState)) return;
         _lastQueueState = currentState;
-        await SendAsync("QueueStateChanged", currentState);
+        await SendAsync("state.changed", currentState);
     }
 }

@@ -37,12 +37,17 @@ public static class APIExtensions
     public static IServiceCollection AddAPI(this IServiceCollection services)
     {
         services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<AniDBEmitter>();
-        services.AddSingleton<ShokoEventEmitter>();
-        services.AddSingleton<AVDumpEmitter>();
-        services.AddSingleton<NetworkEmitter>();
-        services.AddSingleton<QueueEmitter>();
-        services.AddSingleton<ConfigurationEmitter>();
+        services.AddSingleton<IEventEmitter, AniDBEventEmitter>();
+        services.AddSingleton<IEventEmitter, AVDumpEventEmitter>();
+        services.AddSingleton<IEventEmitter, ConfigurationEventEmitter>();
+        services.AddSingleton<IEventEmitter, FileEventEmitter>();
+        services.AddSingleton<IEventEmitter, ManagedFolderEventEmitter>();
+        services.AddSingleton<IEventEmitter, MetadataEventEmitter>();
+        services.AddSingleton<IEventEmitter, NetworkEventEmitter>();
+        services.AddSingleton<IEventEmitter, QueueEventEmitter>();
+        services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
@@ -446,14 +451,16 @@ public static class APIExtensions
             });
         }
 
+        app.UseRouting();
+
         // Important for first run at least
         app.UseAuthentication();
+        app.UseAuthorization();
 
-        app.UseRouting();
         app.UseEndpoints(conf =>
         {
-            conf.MapHub<LoggingHub>("/signalr/logging");
-            conf.MapHub<AggregateHub>("/signalr/aggregate");
+            conf.MapHub<LoggingHub>("/signalr/logging").RequireAuthorization();
+            conf.MapHub<AggregateHub>("/signalr/aggregate").RequireAuthorization();
         });
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
