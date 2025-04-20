@@ -4,8 +4,7 @@ using Shoko.Plugin.Abstractions.DataModels;
 namespace Shoko.Plugin.Abstractions.Events;
 
 /// <summary>
-/// Dispatched when a managed folder is added,
-/// updated, or removed.
+/// Dispatched when a managed folder is added, updated, or removed.
 /// </summary>
 public class ManagedFolderChangedEventArgs : EventArgs
 {
