@@ -1,4 +1,4 @@
-
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
@@ -9,7 +9,7 @@ namespace Shoko.Plugin.Abstractions.Events;
 /// <summary>
 /// Dispatched when video user data was updated.
 /// </summary>
-public class VideoUserDataSavedEventArgs
+public class VideoUserDataSavedEventArgs : EventArgs
 {
     /// <summary>
     /// The reason why the user data was updated.
