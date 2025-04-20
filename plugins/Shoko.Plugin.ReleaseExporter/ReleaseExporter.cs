@@ -109,7 +109,7 @@ public class ReleaseExporter : IHostedService
         }
     }
 
-    private void OnVideoReleaseDeleted(object? sender, VideoReleaseRemovedEventArgs eventArgs)
+    private void OnVideoReleaseDeleted(object? sender, VideoReleaseDeletedEventArgs eventArgs)
     {
         if (!Configuration.DeletePhysicalReleaseFiles)
             return;
