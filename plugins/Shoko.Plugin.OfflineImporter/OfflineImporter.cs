@@ -331,6 +331,12 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                     .Where(x => x.Type == episodeType && x.EpisodeNumber <= episodeEnd && x.EpisodeNumber >= episodeStart)
                     .ToList();
         }
+        else if (match.EpisodeType is EpisodeType.Special && match.EpisodeEnd - match.EpisodeStart == 0 && !string.IsNullOrEmpty(match.EpisodeText))
+        {
+            episodes = SearchForSpecialByEpisodeText(match.EpisodeText, match.EpisodeStart, allEpisodes);
+            if (episodes.Count is 0 && match.EpisodeType is EpisodeType.Special && match.EpisodeEnd - match.EpisodeStart == 0 && !string.IsNullOrEmpty(match.EpisodeName))
+                episodes = SearchForSpecialByName(match.EpisodeName, match.EpisodeStart, allEpisodes);
+        }
         else if (match.EpisodeType is EpisodeType.Special && match.EpisodeEnd - match.EpisodeStart == 0 && !string.IsNullOrEmpty(match.EpisodeName))
         {
             episodes = SearchForSpecialByName(match.EpisodeName, match.EpisodeStart, allEpisodes);
@@ -621,6 +627,30 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             }
         }
         return matches;
+    }
+
+    private static List<IAnidbEpisode> SearchForSpecialByEpisodeText(string episodeText, float episodeNumber, IReadOnlyList<IAnidbEpisode> allEpisodes)
+    {
+        var exactName = $"Episode {episodeText}";
+        var exactNameShort = $"E{episodeText}";
+        var startsWith = $"Episode {episodeText} ";
+        var startsWithShort = $"E{episodeText} ";
+        var specials = allEpisodes.Where(x => x.Type is EpisodeType.Special).ToList();
+        var match =
+            specials.FirstOrDefault(x =>
+                string.Equals(x.DefaultTitle, exactName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.DefaultTitle, exactNameShort, StringComparison.OrdinalIgnoreCase) ||
+                x.DefaultTitle.StartsWith(startsWith, StringComparison.OrdinalIgnoreCase) ||
+                x.DefaultTitle.StartsWith(startsWithShort, StringComparison.OrdinalIgnoreCase) ||
+                x.Titles.Any(y =>
+                    string.Equals(y.Title, exactName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(y.Title, exactNameShort, StringComparison.OrdinalIgnoreCase) ||
+                    y.Title.StartsWith(startsWith, StringComparison.OrdinalIgnoreCase) ||
+                    y.Title.StartsWith(startsWithShort, StringComparison.OrdinalIgnoreCase)
+                )
+            ) ??
+            specials.FirstOrDefault(x => x.EpisodeNumber == episodeNumber);
+        return match is not null ? [match] : [];
     }
 
     private static List<IAnidbEpisode> SearchForSpecialByName(string episodeName, float episodeNumber, IReadOnlyList<IAnidbEpisode> allEpisodes)
