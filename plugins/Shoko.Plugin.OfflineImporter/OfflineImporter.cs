@@ -162,60 +162,48 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         ReleaseInfo? releaseInfo;
         if (animeId is > 0)
         {
-            logger.LogDebug("Found anime ID in folder name to use: {AnimeID}", animeId);
+            logger.LogDebug("Found anime ID in folder name to use: {AnimeID}.", animeId);
             if (anidbService.SearchByID(animeId.Value) is not { } searchResult)
             {
-                logger.LogDebug("No search result found for anime ID {AnimeID}", animeId);
+                logger.LogDebug("No search result found for anime ID {AnimeID}.", animeId);
                 return null;
             }
 
-            releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken, year: match.Year).ConfigureAwait(false);
+            releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken).ConfigureAwait(false);
             if (releaseInfo is not null)
             {
-                logger.LogDebug("Found anime id match for {ShowName} in search results", match.ShowName);
+                logger.LogDebug("Found anime id match for {ShowName} in search results.", match.SeriesName);
                 return releaseInfo;
             }
 
-            logger.LogDebug("No match found for anime ID {AnimeID}", animeId);
+            logger.LogDebug("No match found for anime ID {AnimeID}.", animeId);
             return null;
         }
 
-        logger.LogDebug("Found potential match {ShowName} for {FileName}", match.ShowName, match.FilePath);
-        if (anidbService.Search(match.ShowName!) is not { Count: > 0 } searchResults)
-            searchResults = anidbService.Search(match.ShowName!, fuzzy: true);
+        var searchResults = anidbService.Search(match.SeriesName!, fuzzy: true);
         if (searchResults.Count == 0)
         {
-            logger.LogDebug("No search results found for {ShowName}", match.ShowName);
+            logger.LogDebug("No search results found for {ShowName}.", match.SeriesName);
             return null;
         }
 
-        if (match.Year.HasValue)
+        var limit = configurationProvider.Load().MaxSearchResultsToProcess;
+        logger.LogDebug("Found {Count} search results for {ShowName}. (Year={Year},Type={AnimeType},Limit={Limit})", searchResults.Count, match.SeriesName, match.Year, match.SeriesType, limit);
+        foreach (var searchResult in searchResults.Take(limit))
         {
-            logger.LogDebug("Found {Count} search results for {ShowName} with year {Year}", searchResults.Count, match.ShowName, match.Year);
-            foreach (var searchResult in searchResults)
+            releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken, year: match.Year, animeType: match.SeriesType).ConfigureAwait(false);
+            if (releaseInfo is not null)
             {
-                releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResult, cancellationToken, year: match.Year).ConfigureAwait(false);
-                if (releaseInfo is not null)
-                {
-                    logger.LogDebug("Found year match for {ShowName} in search results", match.ShowName);
-                    return releaseInfo;
-                }
+                logger.LogDebug("Found match for {ShowName} in search results. (Anime={AnimeID})", match.SeriesName, searchResult.ID);
+                return releaseInfo;
             }
-
-            logger.LogDebug("No match found for {ShowName} in search results", match.ShowName);
-            return null;
         }
 
-        logger.LogDebug("Found {Count} search results for {ShowName0}, picking first one; {ShowName1}", searchResults.Count, match.ShowName, searchResults[0].DefaultTitle);
-        releaseInfo = await GetReleaseInfoForMatchAndAnime(match, searchResults[0], cancellationToken).ConfigureAwait(false);
-        if (releaseInfo is not null)
-            logger.LogDebug("Found match for {ShowName} in search results", match.ShowName);
-        else
-            logger.LogDebug("No match found for {ShowName} in search results", match.ShowName);
-        return releaseInfo;
+        logger.LogDebug("No match found for {ShowName} in search results.", match.SeriesName);
+        return null;
     }
 
-    private async Task<ReleaseInfo?> GetReleaseInfoForMatchAndAnime(MatchRuleResult match, IAnidbAnimeSearchResult searchResult, CancellationToken cancellationToken, int depth = 0, int? year = null)
+    private async Task<ReleaseInfo?> GetReleaseInfoForMatchAndAnime(MatchRuleResult match, IAnidbAnimeSearchResult searchResult, CancellationToken cancellationToken, int depth = 0, int? year = null, AnimeType? animeType = null)
     {
         var anime = searchResult.AnidbAnime;
         if (
@@ -268,7 +256,13 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             {
                 if (year.HasValue && (!anime.AirDate.HasValue || anime.AirDate.Value.Year != year.Value))
                 {
-                    logger.LogDebug("Year mismatch between {ShowName} and {AnimeName} (Anime={AnimeID},FoundYear={FoundYear},ExpectedYear={ExpectedYear})", match.ShowName, anime.DefaultTitle, anime.ID, anime.AirDate?.Year, year);
+                    logger.LogDebug("Year mismatch between {ShowName} and {AnimeName} (Anime={AnimeID},FoundYear={FoundYear},ExpectedYear={ExpectedYear})", match.SeriesName, anime.DefaultTitle, anime.ID, anime.AirDate?.Year, year);
+                    return null;
+                }
+
+                if (animeType is not null && anime.Type != animeType)
+                {
+                    logger.LogDebug("Type mismatch between {ShowName} and {AnimeName} (Anime={AnimeID},FoundType={FoundType},ExpectedType={ExpectedType})", match.SeriesName, anime.DefaultTitle, anime.ID, anime.Type, animeType);
                     return null;
                 }
 
@@ -352,12 +346,19 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             var highestEpisodeNumber = allEpisodes.Count > 0 ? allEpisodes.Max(x => x.EpisodeNumber) : 0;
             if (match.EpisodeStart > highestEpisodeNumber)
             {
-                logger.LogDebug("Found episode range is above last episode, trying to find sequel for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
+                logger.LogDebug(
+                    "Episode range ({EpisodeStart}-{EpisodeEnd}) is above last episode number ({LastEpisodeNumber}), trying to find sequel for {AnimeName}. (Anime={AnimeID})",
+                    match.EpisodeStart,
+                    match.EpisodeEnd,
+                    highestEpisodeNumber,
+                    anime.DefaultTitle,
+                    anime.ID
+                );
                 var sequels = anime.RelatedSeries.Where(x => x.RelationType == RelationType.Sequel)
                     .ToList();
                 if (sequels.Count == 0)
                 {
-                    logger.LogDebug("No sequels found for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
+                    logger.LogDebug("No sequels found for {AnimeName}. (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
                     return null;
                 }
 
@@ -366,7 +367,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                     var sequelSearch = anidbService.SearchByID(sequel.RelatedID);
                     if (sequelSearch is null)
                     {
-                        logger.LogDebug("Unknown sequel for {AnimeName} (Anime={AnimeID},SequelAnime={SequelAnimeID})", anime.DefaultTitle, anime.ID, sequel.RelatedID);
+                        logger.LogDebug("Unknown sequel for {AnimeName}. (Anime={AnimeID},SequelAnime={SequelAnimeID})", anime.DefaultTitle, anime.ID, sequel.RelatedID);
                         continue;
                     }
 
@@ -381,36 +382,42 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                         EpisodeType = match.EpisodeType,
                         ReleaseGroup = match.ReleaseGroup,
                         SeasonNumber = match.SeasonNumber,
-                        ShowName = match.ShowName,
+                        SeriesName = match.SeriesName,
                         Version = match.Version,
                         RuleName = match.RuleName,
                     };
-                    logger.LogDebug("Attempting sequel {SequelAnimeName} for {AnimeName} (Anime={AnimeID},SequelAnime={SequelAnimeID})", sequelSearch.DefaultTitle, anime.DefaultTitle, anime.ID, sequelSearch.ID);
-                    var sequelResult = await GetReleaseInfoForMatchAndAnime(sequelMatch, sequelSearch, cancellationToken, depth + 1, year).ConfigureAwait(false);
+                    logger.LogDebug("Attempting sequel {SequelAnimeName} for {AnimeName}. (Anime={AnimeID},SequelAnime={SequelAnimeID})", sequelSearch.DefaultTitle, anime.DefaultTitle, anime.ID, sequelSearch.ID);
+                    var sequelResult = await GetReleaseInfoForMatchAndAnime(sequelMatch, sequelSearch, cancellationToken, depth + 1, year, animeType).ConfigureAwait(false);
                     if (sequelResult is not null)
                     {
-                        logger.LogDebug("Found sequel {SequelAnimeName} for {AnimeName} (Anime={AnimeID},SequelAnime={SequelAnimeID})", sequelSearch.DefaultTitle, anime.DefaultTitle, anime.ID, sequelSearch.ID);
+                        logger.LogDebug("Found sequel {SequelAnimeName} for {AnimeName}. (Anime={AnimeID},SequelAnime={SequelAnimeID})", sequelSearch.DefaultTitle, anime.DefaultTitle, anime.ID, sequelSearch.ID);
                         return sequelResult;
                     }
                 }
 
-                logger.LogDebug("No matched sequels found for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
+                logger.LogDebug("No matched sequels found for {AnimeName}. (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
                 return null;
             }
 
-            logger.LogDebug("No episodes found for {AnimeName} (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
+            logger.LogDebug("No episodes found for {AnimeName}. (Anime={AnimeID})", anime.DefaultTitle, anime.ID);
             return null;
         }
 
         if (year.HasValue && (!anime.AirDate.HasValue || anime.AirDate.Value.Year != year.Value))
         {
-            logger.LogDebug("Year mismatch between {ShowName} and {AnimeName} (Anime={AnimeID},FoundYear={FoundYear},ExpectedYear={ExpectedYear})", match.ShowName, anime.DefaultTitle, anime.ID, anime.AirDate?.Year, year);
+            logger.LogDebug("Year mismatch between {ShowName} and {AnimeName}. (Anime={AnimeID},FoundYear={FoundYear},ExpectedYear={ExpectedYear})", match.SeriesName, anime.DefaultTitle, anime.ID, anime.AirDate?.Year, year);
+            return null;
+        }
+
+        if (animeType is not null && anime.Type != animeType)
+        {
+            logger.LogDebug("Type mismatch between {ShowName} and {AnimeName}. (Anime={AnimeID},FoundType={FoundType},ExpectedType={ExpectedType})", match.SeriesName, anime.DefaultTitle, anime.ID, anime.Type, animeType);
             return null;
         }
 
         foreach (var episode in episodes)
         {
-            logger.LogDebug("Found episode {EpisodeType} {EpisodeNumber} for {ShowName} (Anime={AnimeID})", episode.Type.ToString(), episode.EpisodeNumber, anime.DefaultTitle, anime.ID);
+            logger.LogDebug("Found episode {EpisodeType} {EpisodeNumber} for {ShowName}. (Anime={AnimeID})", episode.Type.ToString(), episode.EpisodeNumber, anime.DefaultTitle, anime.ID);
         }
         var releaseInfo = new ReleaseInfo()
         {
@@ -677,6 +684,14 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         [Display(Name = "Enable remote refresh")]
         [DefaultValue(false)]
         public bool AllowRemote { get; set; } = false;
+
+        /// <summary>
+        /// The maximum number of search results to process.
+        /// </summary>
+        [Display(Name = "Maximum search results to process")]
+        [DefaultValue(5)]
+        [Range(1, 100)]
+        public int MaxSearchResultsToProcess { get; set; } = 5;
 
         /// <summary>
         /// If enabled, the importer will skip the availability check and
