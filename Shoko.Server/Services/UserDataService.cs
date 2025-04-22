@@ -180,7 +180,7 @@ public class UserDataService(
         if (syncAnidb && watchedStatusChanged)
             await scheduler.StartJob<UpdateMyListFileStatusJob>(c =>
             {
-                c.Hash = video.Hashes.ED2K;
+                c.Hash = video.ED2K;
                 c.Watched = userDataUpdate.LastPlayedAt.HasValue;
                 c.UpdateSeriesStats = false;
                 c.WatchedDate = userDataUpdate.LastPlayedAt?.ToUniversalTime();

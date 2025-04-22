@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
@@ -15,6 +16,11 @@ public interface IVideo : IMetadata<int>
     /// The earliest known local file name of the video.
     /// </summary>
     string? EarliestKnownName { get; }
+
+    /// <summary>
+    /// The ED2K hash for the file.
+    /// </summary>
+    string ED2K { get; }
 
     /// <summary>
     /// The file size, in bytes.
@@ -34,9 +40,10 @@ public interface IVideo : IMetadata<int>
     IReleaseInfo? ReleaseInfo { get; }
 
     /// <summary>
-    /// The Relevant Hashes for a file. CRC should be the only thing used here, but clever uses of the API could use the others.
+    /// All stored hashes for the video, including the ED2K which is mandatory
+    /// and has a dedicated field/member above.
     /// </summary>
-    IHashes Hashes { get; }
+    IReadOnlyList<IHashDigest> Hashes { get; }
 
     /// <summary>
     /// The MediaInfo data for the file. This can be null, but it shouldn't be.

@@ -18,7 +18,7 @@ using MediaContainer = Shoko.Server.MediaInfo.MediaContainer;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class VideoLocal : IHashes, IVideo
+public class VideoLocal : IVideo
 {
     #region DB columns
 
@@ -93,6 +93,18 @@ public class VideoLocal : IHashes, IVideo
 
     public MediaContainer? MediaInfo { get; set; }
 
+    public string CRC32 =>
+        Hashes?.FirstOrDefault(h => h.Type is "CRC32")?.Value ?? string.Empty;
+
+    public string MD5 =>
+        Hashes?.FirstOrDefault(h => h.Type is "MD5")?.Value ?? string.Empty;
+
+    public string SHA1 =>
+        Hashes?.FirstOrDefault(h => h.Type is "SHA1")?.Value ?? string.Empty;
+
+    public IReadOnlyList<VideoLocal_HashDigest> Hashes
+        => RepoFactory.VideoLocalHashDigest.GetByVideoLocalID(VideoLocalID);
+
     public IReadOnlyList<VideoLocal_Place> Places =>
         VideoLocalID is 0 ? [] : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
@@ -144,15 +156,19 @@ public class VideoLocal : IHashes, IVideo
 
     #region IVideo Implementation
 
+    int IMetadata<int>.ID => VideoLocalID;
+
     string? IVideo.EarliestKnownName => RepoFactory.FileNameHash.GetByHash(Hash).MinBy(a => a.FileNameHashID)?.FileName;
 
     long IVideo.Size => FileSize;
+
+    string IVideo.ED2K => Hash;
 
     IReadOnlyList<IVideoFile> IVideo.Locations => Places;
 
     IReleaseInfo? IVideo.ReleaseInfo => ReleaseInfo;
 
-    IHashes IVideo.Hashes => this;
+    IReadOnlyList<IHashDigest> IVideo.Hashes => Hashes;
 
     IMediaInfo? IVideo.MediaInfo => MediaInfo;
 
@@ -183,8 +199,6 @@ public class VideoLocal : IHashes, IVideo
             .OrderBy(g => g.GroupName)
             .ToArray();
 
-    int IMetadata<int>.ID => VideoLocalID;
-
     DataSourceEnum IMetadata.Source => DataSourceEnum.Shoko;
 
     Stream? IVideo.GetStream()
@@ -201,33 +215,6 @@ public class VideoLocal : IHashes, IVideo
 
         return File.OpenRead(filePath);
     }
-
-    #endregion
-
-    #region IHashes Implementation
-
-
-    public string ED2K => Hash;
-
-    public string CRC32 =>
-        Hashes?.FirstOrDefault(h => h.Type is "CRC32")?.Value ?? string.Empty;
-
-    public string MD5 =>
-        Hashes?.FirstOrDefault(h => h.Type is "MD5")?.Value ?? string.Empty;
-
-    public string SHA1 =>
-        Hashes?.FirstOrDefault(h => h.Type is "SHA1")?.Value ?? string.Empty;
-
-    string IHashes.SHA256 =>
-        Hashes?.FirstOrDefault(h => h.Type is "SHA256")?.Value ?? string.Empty;
-
-    string IHashes.SHA512 =>
-        Hashes?.FirstOrDefault(h => h.Type is "SHA512")?.Value ?? string.Empty;
-
-    public IReadOnlyList<VideoLocal_HashDigest> Hashes
-        => RepoFactory.VideoLocalHashDigest.GetByVideoLocalID(VideoLocalID);
-
-    IReadOnlyList<IHashDigest> IHashes.Hashes => Hashes;
 
     #endregion
 }

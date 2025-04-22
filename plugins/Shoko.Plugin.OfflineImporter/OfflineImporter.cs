@@ -117,7 +117,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
             }
 
             releaseInfo.FileSize = video.Size;
-            releaseInfo.Hashes = video.Hashes.Hashes
+            releaseInfo.Hashes = video.Hashes
                 .Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata })
                 .ToList();
 

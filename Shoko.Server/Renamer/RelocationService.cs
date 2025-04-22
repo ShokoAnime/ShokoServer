@@ -57,7 +57,7 @@ public class RelocationService : IRelocationService
 
             foreach (var vid in videoList)
             {
-                if (vid.Hashes.ED2K == args.File.Video.Hashes.ED2K) continue;
+                if (vid.ED2K == args.File.Video.ED2K) continue;
 
                 var place = vid.Locations.FirstOrDefault(b =>
                     // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract

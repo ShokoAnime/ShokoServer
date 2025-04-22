@@ -73,7 +73,7 @@ public partial class AnidbReleaseProvider(
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
-        => GetReleaseInfoById($"{IdPrefix}{video.Hashes.ED2K}+{video.Size}", video);
+        => GetReleaseInfoById($"{IdPrefix}{video.ED2K}+{video.Size}", video);
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
@@ -195,7 +195,7 @@ public partial class AnidbReleaseProvider(
             Hashes = [
                     new() { Type = "ED2K", Value = hash },
                     ..settings.StoreHashes
-                        ? video?.Hashes.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? []
+                        ? video?.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? []
                         : [],
                 ],
             ReleasedAt = anidbFile.ReleasedAt,

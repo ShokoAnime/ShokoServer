@@ -316,10 +316,10 @@ public class VideoReleaseService(
     #region Get Current Data
 
     public IReleaseInfo? GetCurrentReleaseForVideo(IVideo video)
-        => releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
+        => releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size);
 
     public IReadOnlyList<IReleaseMatchAttempt> GetReleaseMatchAttemptsForVideo(IVideo video)
-        => releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size);
+        => releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.ED2K, video.Size);
 
 
     #endregion Get Current Data
@@ -331,7 +331,7 @@ public class VideoReleaseService(
         if (!AutoMatchEnabled)
             return;
 
-        if (!force && releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
+        if (!force && releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size) is { } existingRelease)
             return;
 
         var scheduler = await schedulerFactory.GetScheduler();
@@ -395,7 +395,7 @@ public class VideoReleaseService(
             {
                 ProviderName = selectedProvider?.Name,
                 ProviderID = selectedProvider?.ID,
-                ED2K = video.Hashes.ED2K,
+                ED2K = video.ED2K,
                 FileSize = video.Size,
                 AttemptStartedAt = startedAt,
                 // Reuse startedAt because it will be overwritten in SaveReleaseForVideo later.
@@ -526,7 +526,7 @@ public class VideoReleaseService(
         => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName), addToMylist);
 
     public async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool addToMylist = true)
-        => await SaveReleaseForVideo(video, release, new() { ProviderName = release.ProviderName, EmbeddedAttemptProviderNames = release.ProviderName, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.Hashes.ED2K, FileSize = video.Size }, addToMylist);
+        => await SaveReleaseForVideo(video, release, new() { ProviderName = release.ProviderName, EmbeddedAttemptProviderNames = release.ProviderName, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.ED2K, FileSize = video.Size }, addToMylist);
 
     private async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, StoredReleaseInfo_MatchAttempt matchAttempt, bool addToMylist = true)
     {
@@ -547,7 +547,7 @@ public class VideoReleaseService(
         }
 
         var releaseUriMatches = false;
-        if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
+        if (releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size) is { } existingRelease)
         {
             // If the new release info is **EXACTLY** the same as the existing one, then just return the existing one.
             if (existingRelease == releaseInfo)
@@ -593,7 +593,7 @@ public class VideoReleaseService(
         if (addToMylist && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
             await scheduler.StartJob<AddFileToMyListJob>(c =>
             {
-                c.Hash = video.Hashes.ED2K;
+                c.Hash = video.ED2K;
                 c.ReadStates = true;
             }).ConfigureAwait(false);
         // Rename and/or move the physical file(s) if needed.
@@ -689,7 +689,7 @@ public class VideoReleaseService(
             embeddedXrefs.Add(xref);
             legacyXrefs.Add(new()
             {
-                Hash = video.Hashes.ED2K,
+                Hash = video.ED2K,
                 AnimeID = animeID ?? 0,
                 EpisodeID = xref.AnidbEpisodeID,
                 Percentage = xref.PercentageEnd - xref.PercentageStart,
@@ -857,7 +857,7 @@ public class VideoReleaseService(
         var otherVideos = releaseInfo.CrossReferences
             .SelectMany(xref => videoRepository.GetByAniDBEpisodeID(xref.AnidbEpisodeID))
             .WhereNotNull()
-            .ExceptBy([video.Hashes.ED2K], v => v.Hash)
+            .ExceptBy([video.ED2K], v => v.Hash)
             .Cast<IVideo>()
             .ToList();
 
@@ -885,7 +885,7 @@ public class VideoReleaseService(
 
     public async Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true)
     {
-        if (releaseInfoRepository.GetByEd2kAndFileSize(video.Hashes.ED2K, video.Size) is { } existingRelease)
+        if (releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size) is { } existingRelease)
             await ClearReleaseForVideo(video, existingRelease, removeFromMylist);
     }
 
