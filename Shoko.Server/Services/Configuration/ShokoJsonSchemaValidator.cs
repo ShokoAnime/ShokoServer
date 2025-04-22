@@ -62,11 +62,11 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
     protected override ICollection<ValidationError> Validate(JToken? parentToken, JToken? token, JsonSchema schema, SchemaType schemaType, string? propertyName, string propertyPath)
     {
         var errors = new List<ValidationError>();
-        if ((schema.ExtensionData?.TryGetValue(ConfigurationService.UiDefinition, out var prop0) ?? false) && prop0 is Dictionary<string, object?> uiDefinition)
+        if ((schema.ExtensionData?.TryGetValue(ShokoJsonSchemaGenerator.UiDefinition, out var prop0) ?? false) && prop0 is Dictionary<string, object?> uiDefinition)
         {
             if (_loadValidation)
             {
-                if (uiDefinition.TryGetValue(ConfigurationService.ElementEnvironmentVariable, out var prop1) && prop1 is string envVarName && Environment.GetEnvironmentVariable(envVarName) is string envVar)
+                if (uiDefinition.TryGetValue(ShokoJsonSchemaGenerator.ElementEnvironmentVariable, out var prop1) && prop1 is string envVarName && Environment.GetEnvironmentVariable(envVarName) is string envVar)
                 {
                     if (_loadedEnvironmentVariables.ContainsKey(envVarName))
                     {
@@ -97,8 +97,8 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
             else
             {
                 if (
-                    uiDefinition.TryGetValue(ConfigurationService.ElementEnvironmentVariable, out var prop1) &&
-                    uiDefinition[ConfigurationService.ElementEnvironmentVariableOverridable] is false &&
+                    uiDefinition.TryGetValue(ShokoJsonSchemaGenerator.ElementEnvironmentVariable, out var prop1) &&
+                    uiDefinition[ShokoJsonSchemaGenerator.ElementEnvironmentVariableOverridable] is false &&
                     prop1 is string envVarName &&
                     _loadedEnvironmentVariables.TryGetValue(envVarName, out var tuple)
                 )
@@ -118,7 +118,7 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
                     }
                 }
 
-                if (_saveValidation && uiDefinition.TryGetValue(ConfigurationService.ElementRequiresRestart, out var prop2) && prop2 is true)
+                if (_saveValidation && uiDefinition.TryGetValue(ShokoJsonSchemaGenerator.ElementRequiresRestart, out var prop2) && prop2 is true)
                 {
                     if (_restartPending.TryGetValue(propertyPath, out var existingValue))
                     {
