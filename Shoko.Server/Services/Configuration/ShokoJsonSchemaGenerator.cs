@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -16,6 +17,7 @@ using NJsonSchema.NewtonsoftJson.Generation;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Attributes;
 using Shoko.Plugin.Abstractions.Config.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Plugin;
 
 #nullable enable
@@ -39,6 +41,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     private readonly Dictionary<string, (Dictionary<string, object?> ClassUIDefinition, Dictionary<string, Dictionary<string, object?>> PropertyUIDefinitions)> _schemaCache = [];
 
     private readonly Dictionary<JsonSchema, string> _schemaKeys = [];
+
+    private readonly Regex _newlineCollapseRegex = new(@"(\r\n|\r|\n)+", RegexOptions.Compiled);
 
     public JsonSchema GetSchemaForType(Type type)
     {
@@ -65,6 +69,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             // Post-process the schema; add the UI definitions at the correct locations.
             foreach (var subSchema in schemaDefinitions)
             {
+                subSchema.Description = string.IsNullOrEmpty(subSchema.Description) ? null : subSchema.Description.Replace(_newlineCollapseRegex, "\n");
                 if (!_schemaKeys.TryGetValue(subSchema, out var schemaKey))
                     continue;
 
@@ -84,6 +89,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 foreach (var tuple in subSchema.Properties)
                 {
                     var (propertyKey, schemaValue) = tuple;
+                    schemaValue.Description = string.IsNullOrEmpty(schemaValue.Description) ? null : schemaValue.Description.Replace(_newlineCollapseRegex, "\n");
                     if (schemaValue.Item is not null)
                         propertyKey += "+List";
                     if (schemaValue.AdditionalPropertiesSchema is not null)
@@ -119,6 +125,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             AlwaysAllowAdditionalObjectProperties = true,
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
+            XmlDocumentationFormatting = XmlDocsFormattingMode.Markdown,
         });
         return generator;
     }
@@ -134,6 +141,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             AlwaysAllowAdditionalObjectProperties = true,
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
+            XmlDocumentationFormatting = XmlDocsFormattingMode.Markdown,
         });
         return generator;
     }
