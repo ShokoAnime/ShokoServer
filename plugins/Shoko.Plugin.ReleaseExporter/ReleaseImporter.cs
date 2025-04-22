@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Release;
@@ -15,8 +16,9 @@ namespace Shoko.Plugin.ReleaseExporter;
 /// Responsible for importing releases from the file system near the video files.
 /// </summary>
 /// <param name="logger">Logger.</param>
+/// <param name="applicationPaths">Application paths.</param>
 /// <param name="configurationProvider">Configuration provider.</param>
-public class ReleaseImporter(ILogger<ReleaseImporter> logger, ConfigurationProvider<ReleaseExporterConfiguration> configurationProvider) : IReleaseInfoProvider<ReleaseExporterConfiguration>
+public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths applicationPaths, ConfigurationProvider<ReleaseExporterConfiguration> configurationProvider) : IReleaseInfoProvider<ReleaseExporterConfiguration>
 {
     /// <inheritdoc/>
     public const string Key = "Release Importer";
@@ -44,8 +46,7 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, ConfigurationProvi
         foreach (var location in video.Locations)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var path = location.Path;
-            var releasePath = Path.ChangeExtension(path, config.ReleaseExtension);
+            var releasePath = config.GetReleaseFilePath(applicationPaths, location.ManagedFolder, video, location.RelativePath);
             if (!File.Exists(releasePath))
                 continue;
 
