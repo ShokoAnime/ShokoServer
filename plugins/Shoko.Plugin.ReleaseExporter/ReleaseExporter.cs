@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Release;
@@ -19,31 +20,32 @@ public class ReleaseExporter : IHostedService
 {
     private readonly ILogger<ReleaseExporter> _logger;
 
+    private readonly IApplicationPaths _applicationPaths;
+
     private readonly IVideoReleaseService _videoReleaseService;
 
     private readonly IVideoService _videoService;
 
     private readonly ConfigurationProvider<ReleaseExporterConfiguration> _configProvider;
 
-    private ReleaseExporterConfiguration Configuration { get; set; }
+    private ReleaseExporterConfiguration Configuration => _configProvider.Load();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReleaseExporter"/> class.
     /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="applicationPaths">The application paths.</param>
     /// <param name="videoReleaseService">The video release service.</param>
     /// <param name="videoService">The video service.</param>
-    /// <param name="logger">The logger.</param>
     /// <param name="configProvider">The configuration provider.</param>
-    public ReleaseExporter(IVideoReleaseService videoReleaseService, IVideoService videoService, ILogger<ReleaseExporter> logger, ConfigurationProvider<ReleaseExporterConfiguration> configProvider)
+    public ReleaseExporter(ILogger<ReleaseExporter> logger, IApplicationPaths applicationPaths, IVideoReleaseService videoReleaseService, IVideoService videoService, ConfigurationProvider<ReleaseExporterConfiguration> configProvider)
     {
         _logger = logger;
+        _applicationPaths = applicationPaths;
         _videoReleaseService = videoReleaseService;
         _videoService = videoService;
         _configProvider = configProvider;
 
-        Configuration = configProvider.Load();
-
-        _configProvider.Saved += OnConfigurationSaved;
         _videoReleaseService.ReleaseSaved += OnVideoReleaseSaved;
         _videoReleaseService.ReleaseDeleted += OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted += OnVideoDeleted;
@@ -55,7 +57,6 @@ public class ReleaseExporter : IHostedService
     /// </summary>
     ~ReleaseExporter()
     {
-        _configProvider.Saved -= OnConfigurationSaved;
         _videoReleaseService.ReleaseSaved -= OnVideoReleaseSaved;
         _videoReleaseService.ReleaseDeleted -= OnVideoReleaseDeleted;
         _videoService.VideoFileDeleted -= OnVideoDeleted;
@@ -69,11 +70,6 @@ public class ReleaseExporter : IHostedService
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
-
-    private void OnConfigurationSaved(object? sender, ConfigurationSavedEventArgs<ReleaseExporterConfiguration> e)
-    {
-        Configuration = e.Configuration;
-    }
 
     private void OnVideoReleaseSaved(object? sender, VideoReleaseSavedEventArgs eventArgs)
     {
@@ -119,7 +115,7 @@ public class ReleaseExporter : IHostedService
 
         foreach (var location in locations)
         {
-            var releasePath = Path.ChangeExtension(location.Path, Configuration.ReleaseExtension);
+            var releasePath = Configuration.GetReleaseFilePath(_applicationPaths, location.ManagedFolder, eventArgs.Video, location.RelativePath);
             try
             {
                 if (!File.Exists(releasePath))
@@ -137,11 +133,14 @@ public class ReleaseExporter : IHostedService
 
     private void OnVideoRelocated(object? sender, FileRelocatedEventArgs eventArgs)
     {
-        var releasePath = Path.ChangeExtension(eventArgs.PreviousPath, Configuration.ReleaseExtension);
+        var releasePath = Configuration.GetReleaseFilePath(_applicationPaths, eventArgs.PreviousManagedFolder, eventArgs.Video, eventArgs.PreviousRelativePath);
+        var newReleasePath = Configuration.GetReleaseFilePath(_applicationPaths, eventArgs.File.ManagedFolder, eventArgs.Video, eventArgs.File.RelativePath);
+        if (string.IsNullOrEmpty(releasePath) || string.IsNullOrEmpty(newReleasePath))
+            return;
+
         if (!File.Exists(releasePath))
             return;
 
-        var newReleasePath = Path.ChangeExtension(eventArgs.File.Path, Configuration.ReleaseExtension);
         if (File.Exists(newReleasePath))
         {
             var releaseInfo = File.ReadAllText(releasePath);
