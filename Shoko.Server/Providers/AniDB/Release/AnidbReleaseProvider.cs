@@ -138,7 +138,7 @@ public partial class AnidbReleaseProvider(
             if (!string.IsNullOrEmpty(anidbFile.Filename) && regex.IsMatch(anidbFile.Filename))
                 creditless = true;
             // then check any locations for the video if the video is available
-            else if (video?.Locations is { Count: > 0 } locations && locations.Any(x => regex.IsMatch(x.FileName)))
+            else if (video?.Files is { Count: > 0 } locations && locations.Any(x => regex.IsMatch(x.FileName)))
                 creditless = true;
             // and as a last ditch effort check locally known file names for the hash
             else if (fileNameHashRepository.GetByHash(hash).Where(x => x.FileSize == size).Select(x => x.FileName).ToList() is { Count: > 0 } knownFileNames && knownFileNames.Any(regex.IsMatch))

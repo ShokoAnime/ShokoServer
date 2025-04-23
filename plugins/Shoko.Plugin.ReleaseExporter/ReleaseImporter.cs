@@ -43,7 +43,7 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths 
     {
         logger.LogTrace("Trying to find release for video. (Video={VideoID})", video.ID);
         var config = configurationProvider.Load();
-        foreach (var location in video.Locations)
+        foreach (var location in video.Files)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var releasePath = config.GetReleaseFilePath(applicationPaths, location.ManagedFolder, video, location.RelativePath);

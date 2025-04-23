@@ -164,7 +164,7 @@ public class VideoLocal : IVideo
 
     string IVideo.ED2K => Hash;
 
-    IReadOnlyList<IVideoFile> IVideo.Locations => Places;
+    IReadOnlyList<IVideoFile> IVideo.Files => Places;
 
     IReleaseInfo? IVideo.ReleaseInfo => ReleaseInfo;
 
