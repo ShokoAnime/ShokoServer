@@ -340,7 +340,12 @@ public interface IVideoService
     ///   Whether to skip adding the discovered files to the user's AniDB
     ///   MyList.
     /// </param>
-    Task ScanManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false);
+    /// <param name="cleanUpStructure">
+    ///   Whether to clean up the managed folder, removing any empty folders
+    ///   from the bottom up. If not provided then it will follow the global
+    ///   configuration.
+    /// </param>
+    Task ScanManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null);
 
     /// <summary>
     ///   Schedules a scan of a managed folder, scheduling pre-processing jobs
@@ -356,13 +361,18 @@ public interface IVideoService
     ///   Whether to skip mylist adding the discovered files to the user's AniDB
     ///   MyList.
     /// </param>
+    /// <param name="cleanUpStructure">
+    ///   Whether to clean up the managed folder, removing any empty folders
+    ///   from the bottom up. If not provided then it will follow the global
+    ///   configuration.
+    /// </param>
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScheduleScanForManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool prioritize = true);
+    Task ScheduleScanForManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true);
 
     /// <summary>
     ///   Scans all managed folders, scheduling pre-processing jobs for new or
@@ -379,10 +389,15 @@ public interface IVideoService
     ///   Whether to skip mylist adding the discovered files to the user's AniDB
     ///   MyList.
     /// </param>
+    /// <param name="cleanUpStructure">
+    ///   Whether to clean up the managed folder, removing any empty folders
+    ///   from the bottom up. If not provided then it will follow the global
+    ///   configuration.
+    /// </param>
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
-    Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool prioritize = true);
+    Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true);
 
     #endregion
 }

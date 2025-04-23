@@ -23,6 +23,8 @@ internal class ScanFolderJob : BaseJob
 
     public bool SkipMyList { get; set; }
 
+    public bool CleanUpStructure { get; set; }
+
     public override string TypeName => "Scan Managed Folder";
 
     public override string Title => "Scanning Managed Folder";
@@ -37,6 +39,7 @@ internal class ScanFolderJob : BaseJob
             details["Managed Folder ID"] = ManagedFolderID;
             if (OnlyNewFiles) details["Only New Files"] = true;
             if (!SkipMyList) details["Add to MyList"] = true;
+            if (CleanUpStructure) details["Clean Up"] = true;
             return details;
         }
     }
@@ -52,7 +55,7 @@ internal class ScanFolderJob : BaseJob
         if (managedFolder == null)
             return;
 
-        await _videoService.ScanManagedFolder(managedFolder, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList);
+        await _videoService.ScanManagedFolder(managedFolder, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList, cleanUpStructure: CleanUpStructure);
     }
 
     public ScanFolderJob(IVideoService videoService)

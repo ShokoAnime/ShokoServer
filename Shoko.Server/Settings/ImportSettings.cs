@@ -75,6 +75,14 @@ public class ImportSettings
     public bool ScanDropFoldersOnStart { get; set; } = false;
 
     /// <summary>
+    /// Determines if we should clean up the managed folder structure when doing
+    /// a scan of the folder by default if it's not overridden on a per job
+    /// basis.
+    /// </summary>
+    [Display(Name = "Clean Up Structure on Managed Folder Scan")]
+    public bool CleanUpStructure { get; set; } = false;
+
+    /// <summary>
     /// Max auto-scan attempts per file for unrecognized files.
     /// </summary>
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
