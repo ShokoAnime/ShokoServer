@@ -59,7 +59,7 @@ public class RelocationService : IRelocationService
             {
                 if (vid.ED2K == args.File.Video.ED2K) continue;
 
-                var place = vid.Locations.FirstOrDefault(b =>
+                var place = vid.Files.FirstOrDefault(b =>
                     // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
                     b.ManagedFolder is not null &&
                     !b.ManagedFolder.DropFolderType.HasFlag(DropFolderType.Source) &&

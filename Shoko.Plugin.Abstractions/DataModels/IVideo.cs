@@ -28,9 +28,9 @@ public interface IVideo : IMetadata<int>
     long Size { get; }
 
     /// <summary>
-    /// All video locations for the file.
+    /// All video files for the video.
     /// </summary>
-    IReadOnlyList<IVideoFile> Locations { get; }
+    IReadOnlyList<IVideoFile> Files { get; }
 
     /// <summary>
     /// The current release information for the video, if the video has an
