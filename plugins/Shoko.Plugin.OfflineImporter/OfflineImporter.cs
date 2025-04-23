@@ -74,7 +74,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
         var filenameRegex = StrictFilenameCheckRegex();
         var config = configurationProvider.Load();
         logger.LogDebug("Getting release info for {Video}", video.ID);
-        foreach (var location in video.Locations)
+        foreach (var location in video.Files)
         {
             var filePath = location.Path;
             if (string.IsNullOrEmpty(filePath))

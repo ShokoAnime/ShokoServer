@@ -76,7 +76,7 @@ public class ReleaseExporter : IHostedService
         if (!Configuration.IsExporterEnabled)
             return;
 
-        if (eventArgs.Video.Locations is not { Count: > 0 } locations)
+        if (eventArgs.Video.Files is not { Count: > 0 } locations)
             return;
 
         var releaseInfo = JsonConvert.SerializeObject(new ReleaseInfoWithProvider(eventArgs.ReleaseInfo));
@@ -110,7 +110,7 @@ public class ReleaseExporter : IHostedService
         if (!Configuration.DeletePhysicalReleaseFiles)
             return;
 
-        if (eventArgs.Video?.Locations is not { Count: > 0 } locations)
+        if (eventArgs.Video?.Files is not { Count: > 0 } locations)
             return;
 
         foreach (var location in locations)
