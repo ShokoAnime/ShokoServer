@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -27,8 +29,6 @@ public class ReleaseExporter : IHostedService
     private readonly IVideoService _videoService;
 
     private readonly ConfigurationProvider<ReleaseExporterConfiguration> _configProvider;
-
-    private ReleaseExporterConfiguration Configuration => _configProvider.Load();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReleaseExporter"/> class.
@@ -73,27 +73,31 @@ public class ReleaseExporter : IHostedService
 
     private void OnVideoReleaseSaved(object? sender, VideoReleaseSavedEventArgs eventArgs)
     {
-        if (!Configuration.IsExporterEnabled)
+        var config = _configProvider.Load();
+        if (!config.IsExporterEnabled)
             return;
 
         if (eventArgs.Video.Files is not { Count: > 0 } locations)
             return;
-
+        var releaseLocations = locations.SelectMany(l => config.GetReleaseFilePaths(_applicationPaths, l.ManagedFolder, eventArgs.Video, l.RelativePath)).ToHashSet();
         var releaseInfo = JsonConvert.SerializeObject(new ReleaseInfoWithProvider(eventArgs.ReleaseInfo));
-        foreach (var location in locations)
+        foreach (var releasePath in releaseLocations)
         {
-            var releasePath = Path.ChangeExtension(location.Path, Configuration.ReleaseExtension);
             try
             {
                 if (File.Exists(releasePath))
                 {
                     var textData = File.ReadAllText(releasePath);
-                    if (string.Equals(textData, releaseInfo, StringComparison.InvariantCulture))
+                    if (string.Equals(textData, releaseInfo, StringComparison.Ordinal))
                     {
                         _logger.LogInformation("Release info for {VideoID} already exists at {Path}", eventArgs.Video.ID, releasePath);
                         continue;
                     }
                 }
+
+                var releaseDirectory = Path.GetDirectoryName(releasePath);
+                if (!string.IsNullOrEmpty(releaseDirectory) && !Directory.Exists(releaseDirectory))
+                    Directory.CreateDirectory(releaseDirectory);
 
                 _logger.LogInformation("Saving release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
                 File.WriteAllText(releasePath, releaseInfo);
@@ -107,15 +111,23 @@ public class ReleaseExporter : IHostedService
 
     private void OnVideoReleaseDeleted(object? sender, VideoReleaseDeletedEventArgs eventArgs)
     {
-        if (!Configuration.DeletePhysicalReleaseFiles)
+        var config = _configProvider.Load();
+        if (!config.IsExporterEnabled)
+            return;
+
+        if (!config.DeletePhysicalReleaseFiles)
             return;
 
         if (eventArgs.Video?.Files is not { Count: > 0 } locations)
             return;
 
-        foreach (var location in locations)
+        var stops = new HashSet<string>([
+            _applicationPaths.ProgramDataPath,
+            .. _videoService.GetAllManagedFolders().Select(m => m.Path)
+        ]);
+        var releaseLocations = locations.SelectMany(l => config.GetReleaseFilePaths(_applicationPaths, l.ManagedFolder, eventArgs.Video, l.RelativePath)).ToHashSet();
+        foreach (var releasePath in releaseLocations)
         {
-            var releasePath = Configuration.GetReleaseFilePath(_applicationPaths, location.ManagedFolder, eventArgs.Video, location.RelativePath);
             try
             {
                 if (!File.Exists(releasePath))
@@ -123,6 +135,13 @@ public class ReleaseExporter : IHostedService
 
                 _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
                 File.Delete(releasePath);
+
+                var releaseDirectory = Path.GetDirectoryName(releasePath);
+                while (!string.IsNullOrEmpty(releaseDirectory) && !stops.Contains(releaseDirectory) && Directory.Exists(releaseDirectory) && !Directory.EnumerateFileSystemEntries(releaseDirectory).Any())
+                {
+                    Directory.Delete(releaseDirectory);
+                    releaseDirectory = Path.GetDirectoryName(releaseDirectory);
+                }
             }
             catch (Exception ex)
             {
@@ -133,37 +152,163 @@ public class ReleaseExporter : IHostedService
 
     private void OnVideoRelocated(object? sender, FileRelocatedEventArgs eventArgs)
     {
-        var releasePath = Configuration.GetReleaseFilePath(_applicationPaths, eventArgs.PreviousManagedFolder, eventArgs.Video, eventArgs.PreviousRelativePath);
-        var newReleasePath = Configuration.GetReleaseFilePath(_applicationPaths, eventArgs.File.ManagedFolder, eventArgs.Video, eventArgs.File.RelativePath);
-        if (string.IsNullOrEmpty(releasePath) || string.IsNullOrEmpty(newReleasePath))
+        var config = _configProvider.Load();
+        if (!config.IsRelocationEnabled)
             return;
 
-        if (!File.Exists(releasePath))
-            return;
+        var otherLocations = eventArgs.Video.Files
+            .ExceptBy([eventArgs.File.ID], l => l.ID)
+            .SelectMany(l => config.GetReleaseFilePaths(_applicationPaths, l.ManagedFolder, eventArgs.Video, l.RelativePath))
+            .ToHashSet();
+        var oldReleasePaths = otherLocations.Concat(config.GetReleaseFilePaths(_applicationPaths, eventArgs.PreviousManagedFolder, eventArgs.Video, eventArgs.PreviousRelativePath)).ToHashSet();
+        var newReleasePaths = otherLocations.Concat(config.GetReleaseFilePaths(_applicationPaths, eventArgs.File.ManagedFolder, eventArgs.Video, eventArgs.File.RelativePath)).ToHashSet();
+        var removedPaths = oldReleasePaths.Except(newReleasePaths).ToList();
+        var addedPaths = newReleasePaths.Except(oldReleasePaths).ToList();
+        var overlapPaths = oldReleasePaths.Intersect(newReleasePaths).ToList();
 
-        if (File.Exists(newReleasePath))
+        var releaseInfo = (string?)null;
+        if (eventArgs.Video.ReleaseInfo is { } r)
         {
-            var releaseInfo = File.ReadAllText(releasePath);
-            var textData = File.ReadAllText(newReleasePath);
-            if (string.Equals(releaseInfo, textData, StringComparison.InvariantCulture))
+            _logger.LogTrace("Found release info in database. (Video={VideoID})", eventArgs.Video.ID);
+            releaseInfo = JsonConvert.SerializeObject(new ReleaseInfoWithProvider(r));
+        }
+        else
+        {
+            var lastUpdated = (DateTime?)null;
+            foreach (var releasePath in overlapPaths.Concat(removedPaths))
             {
-                _logger.LogInformation("Deleting duplicate release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
-                File.Delete(releasePath);
-                return;
+                try
+                {
+                    if (!File.Exists(releasePath))
+                        continue;
+
+                    if (lastUpdated is null || (File.GetLastWriteTime(releasePath) > lastUpdated))
+                    {
+                        var newReleaseInfo = File.ReadAllText(releasePath);
+                        if (!string.IsNullOrEmpty(newReleaseInfo))
+                        {
+                            if (lastUpdated is null)
+                                _logger.LogTrace("Found release info at {Path}. (Video={VideoID})", releasePath, eventArgs.Video.ID);
+                            else
+                                _logger.LogTrace("Found newer release info at {Path}. (Video={VideoID})", releasePath, eventArgs.Video.ID);
+
+                            lastUpdated = File.GetLastWriteTime(releasePath);
+                            releaseInfo = newReleaseInfo;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Encountered an error reading release file: {ReleasePath} (Video={VideoID})", releasePath, eventArgs.Video.ID);
+                }
             }
         }
 
-        _logger.LogInformation("Relocating release info for {VideoID} from {Path} to {NewPath}", eventArgs.Video.ID, releasePath, newReleasePath);
-        File.Move(releasePath, newReleasePath);
+        var stops = new HashSet<string>([
+            _applicationPaths.ProgramDataPath,
+            .. _videoService.GetAllManagedFolders().Select(m => m.Path)
+        ]);
+        foreach (var releasePath in removedPaths)
+        {
+            try
+            {
+                if (!File.Exists(releasePath))
+                    continue;
+
+                _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
+                File.Delete(releasePath);
+
+                var releaseDirectory = Path.GetDirectoryName(releasePath);
+                while (!string.IsNullOrEmpty(releaseDirectory) && !stops.Contains(releaseDirectory) && Directory.Exists(releaseDirectory) && !Directory.EnumerateFileSystemEntries(releaseDirectory).Any())
+                {
+                    Directory.Delete(releaseDirectory);
+                    releaseDirectory = Path.GetDirectoryName(releaseDirectory);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Encountered an error deleting release file: {ReleasePath}", releasePath);
+            }
+        }
+
+        foreach (var releasePath in overlapPaths.Concat(addedPaths))
+        {
+            if (string.IsNullOrEmpty(releaseInfo))
+                continue;
+
+            try
+            {
+                if (File.Exists(releasePath))
+                {
+                    var textData = File.ReadAllText(releasePath);
+                    if (string.Equals(textData, releaseInfo, StringComparison.Ordinal))
+                    {
+                        _logger.LogInformation("Release info for {VideoID} already exists at {Path}", eventArgs.Video.ID, releasePath);
+                        continue;
+                    }
+                }
+
+                var releaseDirectory = Path.GetDirectoryName(releasePath);
+                if (!string.IsNullOrEmpty(releaseDirectory) && !Directory.Exists(releaseDirectory))
+                    Directory.CreateDirectory(releaseDirectory);
+
+                _logger.LogInformation("Saving release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
+                File.WriteAllText(releasePath, releaseInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Encountered an error saving release file: {ReleasePath}", releasePath);
+            }
+        }
     }
 
     private void OnVideoDeleted(object? sender, FileEventArgs eventArgs)
     {
-        var releasePath = Path.ChangeExtension(eventArgs.File.Path, Configuration.ReleaseExtension);
-        if (!File.Exists(releasePath))
+        var config = _configProvider.Load();
+        if (!config.IsRelocationEnabled)
             return;
 
-        _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
-        File.Delete(releasePath);
+        var pathsToKeep = eventArgs.Video.Files
+            .ExceptBy([eventArgs.File.ID], l => l.ID)
+            .SelectMany(l => config.GetReleaseFilePaths(_applicationPaths, l.ManagedFolder, eventArgs.Video, l.RelativePath))
+            .ToHashSet();
+        var pathsToRemove = config.GetReleaseFilePaths(_applicationPaths, eventArgs.File.ManagedFolder, eventArgs.Video, eventArgs.File.RelativePath)
+            .Except(pathsToKeep)
+            .ToList();
+
+        _logger.LogInformation(
+            "Found {Count} release files to remove for video file at {Path} (Video={VideoID},ManagedFolder={ManagedFolder},RelativePath={RelativePath})",
+            pathsToRemove.Count,
+            eventArgs.File.Path,
+            eventArgs.Video.ID,
+            eventArgs.File.ManagedFolder,
+            eventArgs.File.RelativePath
+        );
+        var stops = new HashSet<string>([
+            _applicationPaths.ProgramDataPath,
+            .. _videoService.GetAllManagedFolders().Select(m => m.Path)
+        ]);
+        foreach (var releasePath in pathsToRemove)
+        {
+            try
+            {
+                if (!File.Exists(releasePath))
+                    continue;
+
+                _logger.LogInformation("Deleting release info for {VideoID} at {Path}", eventArgs.Video.ID, releasePath);
+                File.Delete(releasePath);
+
+                var releaseDirectory = Path.GetDirectoryName(releasePath);
+                while (!string.IsNullOrEmpty(releaseDirectory) && !stops.Contains(releaseDirectory) && Directory.Exists(releaseDirectory) && !Directory.EnumerateFileSystemEntries(releaseDirectory).Any())
+                {
+                    Directory.Delete(releaseDirectory);
+                    releaseDirectory = Path.GetDirectoryName(releaseDirectory);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Encountered an error deleting release file: {ReleasePath}", releasePath);
+            }
+        }
     }
 }

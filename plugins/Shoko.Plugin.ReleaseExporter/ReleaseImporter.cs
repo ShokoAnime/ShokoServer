@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,10 +44,10 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths 
     {
         logger.LogTrace("Trying to find release for video. (Video={VideoID})", video.ID);
         var config = configurationProvider.Load();
-        foreach (var location in video.Files)
+        var releaseLocations = video.Files.SelectMany(l => config.GetReleaseFilePaths(applicationPaths, l.ManagedFolder, video, l.RelativePath)).ToHashSet();
+        foreach (var releasePath in releaseLocations)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var releasePath = config.GetReleaseFilePath(applicationPaths, location.ManagedFolder, video, location.RelativePath);
             if (!File.Exists(releasePath))
                 continue;
 

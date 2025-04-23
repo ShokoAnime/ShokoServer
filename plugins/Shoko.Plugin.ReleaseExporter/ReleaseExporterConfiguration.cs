@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
@@ -23,6 +24,14 @@ public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
     public bool IsExporterEnabled { get; set; } = false;
 
     /// <summary>
+    /// Enables the relocation of release file(s) when a video file is
+    /// relocated.
+    /// </summary>
+    [Display(Name = "Relocate Releases")]
+    [DefaultValue(true)]
+    public bool IsRelocationEnabled { get; set; } = true;
+
+    /// <summary>
     /// Deletes the physical release file when a release is deleted from the
     /// system.
     /// </summary>
@@ -40,7 +49,7 @@ public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
     public string ReleaseExtension { get; set; } = ".release.json";
 
     /// <summary>
-    /// The template to resolve the location of the release file for a video
+    /// The templates to resolve the locations of the release file for a video
     /// file.
     /// <br/>
     /// You can use the following template tags;
@@ -70,10 +79,10 @@ public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
     [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [TextArea]
-    [Display(Name = "Release Location Template")]
+    [Display(Name = "Release Location Templates")]
     [RegularExpression(@"\.\b[a-zA-Z\.]{1,}\b")]
-    [DefaultValue("%managed_root%%file_path%%release_extension%")]
-    public string ReleaseLocationTemplate { get; set; } = "%managed_root%%file_path%%release_extension%";
+    [DefaultValue(new string[] { "%managed_root%%file_path%%release_extension%" })]
+    public List<string> ReleaseLocationTemplates { get; set; } = ["%managed_root%%file_path%%release_extension%"];
 
     /// <summary>
     /// Get the release file path for a video file.
@@ -83,42 +92,45 @@ public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
     /// <param name="video">The video.</param>
     /// <param name="relativePath">The relative path.</param>
     /// <returns>The release file path, or null if the template is null or empty.</returns>
-    public string? GetReleaseFilePath(IApplicationPaths applicationPaths, IManagedFolder managedFolder, IVideo video, string relativePath)
+    public IEnumerable<string> GetReleaseFilePaths(IApplicationPaths applicationPaths, IManagedFolder managedFolder, IVideo video, string relativePath)
     {
-        var template = ReleaseLocationTemplate;
-        if (string.IsNullOrEmpty(template))
-            return null;
+        foreach (var tem in ReleaseLocationTemplates)
+        {
+            var template = tem;
+            if (string.IsNullOrEmpty(template))
+                continue;
 
-        if (template.Contains("%data_root%"))
-            template = template.Replace("%data_root%", applicationPaths.ProgramDataPath + Path.DirectorySeparatorChar);
+            if (template.Contains("%data_root%"))
+                template = template.Replace("%data_root%", applicationPaths.ProgramDataPath + Path.DirectorySeparatorChar);
 
-        if (template.Contains("%managed_folder_root%"))
-            template = template.Replace("%managed_folder_root%", managedFolder.Path);
+            if (template.Contains("%managed_folder_root%"))
+                template = template.Replace("%managed_folder_root%", managedFolder.Path);
 
-        if (template.Contains("%managed_folder_id%"))
-            template = template.Replace("%managed_folder_id%", managedFolder.ID.ToString());
+            if (template.Contains("%managed_folder_id%"))
+                template = template.Replace("%managed_folder_id%", managedFolder.ID.ToString());
 
-        if (template.Contains("%managed_folder_name%"))
-            template = template.Replace("%managed_folder_name%", managedFolder.Name.RemoveInvalidPathCharacters());
+            if (template.Contains("%managed_folder_name%"))
+                template = template.Replace("%managed_folder_name%", managedFolder.Name.RemoveInvalidPathCharacters());
 
-        if (template.Contains("%file_path%"))
-            template = template.Replace("%file_path%", relativePath[1..Path.GetExtension(relativePath).Length]);
+            if (template.Contains("%file_path%"))
+                template = template.Replace("%file_path%", relativePath[1..Path.GetExtension(relativePath).Length]);
 
-        if (template.Contains("%file_name%"))
-            template = template.Replace("%file_name%", Path.GetFileNameWithoutExtension(relativePath));
+            if (template.Contains("%file_name%"))
+                template = template.Replace("%file_name%", Path.GetFileNameWithoutExtension(relativePath));
 
-        if (template.Contains("%file_extension%"))
-            template = template.Replace("%file_extension%", Path.GetExtension(relativePath));
+            if (template.Contains("%file_extension%"))
+                template = template.Replace("%file_extension%", Path.GetExtension(relativePath));
 
-        if (template.Contains("%ed2k_hash%"))
-            template = template.Replace("%ed2k_hash%", video.ED2K);
+            if (template.Contains("%ed2k_hash%"))
+                template = template.Replace("%ed2k_hash%", video.ED2K);
 
-        if (template.Contains("%file_size%"))
-            template = template.Replace("%file_size%", video.Size.ToString());
+            if (template.Contains("%file_size%"))
+                template = template.Replace("%file_size%", video.Size.ToString());
 
-        if (template.Contains("%release_extension%"))
-            template = template.Replace("%release_extension%", ReleaseExtension);
+            if (template.Contains("%release_extension%"))
+                template = template.Replace("%release_extension%", ReleaseExtension);
 
-        return template.Replace('/', Path.DirectorySeparatorChar);
+            yield return template.Replace('/', Path.DirectorySeparatorChar);
+        }
     }
 }
