@@ -652,7 +652,7 @@ public class AnidbService : IAniDBService
             if (!videoSet.Add(video.ID))
                 continue;
 
-            if (video.Locations.FirstOrDefault(x => x.IsAvailable) is not { } location)
+            if (video.Files.FirstOrDefault(x => x.IsAvailable) is not { } location)
                 continue;
 
             videoDictionary.Add(video.ID, location.Path);
@@ -671,7 +671,7 @@ public class AnidbService : IAniDBService
             if (!videoSet.Add(video.ID))
                 continue;
 
-            if (video.Locations.FirstOrDefault(x => x.IsAvailable) is not { } location)
+            if (video.Files.FirstOrDefault(x => x.IsAvailable) is not { } location)
                 continue;
 
             videoDictionary.Add(video.ID, location.Path);

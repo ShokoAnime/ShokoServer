@@ -694,7 +694,7 @@ public class VideoReleaseService(
                 EpisodeID = xref.AnidbEpisodeID,
                 Percentage = xref.PercentageEnd - xref.PercentageStart,
                 EpisodeOrder = legacyOrder++,
-                FileName = (video.Locations.FirstOrDefault(loc => loc.IsAvailable) ?? video.Locations.FirstOrDefault())?.FileName,
+                FileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName,
                 FileSize = video.Size,
             });
         }
