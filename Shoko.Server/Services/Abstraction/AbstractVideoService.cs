@@ -521,11 +521,13 @@ public class AbstractVideoService : IVideoService
         await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task ScanManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false)
-        => await ScanManagedFolder((ShokoManagedFolder)folder, onlyNewFiles, skipMylist);
+    public async Task ScanManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
+        => await ScanManagedFolder((ShokoManagedFolder)folder, onlyNewFiles, skipMylist, cleanUpStructure);
 
-    private async Task ScanManagedFolder(ShokoManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false)
+    private async Task ScanManagedFolder(ShokoManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
     {
+        cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
+
         var startedAt = DateTime.Now;
         var files = folder.Files;
         if (files.Count == 0)
@@ -616,32 +618,44 @@ public class AbstractVideoService : IVideoService
         await actionBlock.Completion.ConfigureAwait(false);
 
         _logger.LogDebug("Found {FileCount} files and {VideoCount} videos in folder {FolderName} in {TimeSpan}. (Folder={FolderID},FilesScanTime={FilesAt})", filesFound, videosFound, folder.Name, DateTime.Now - startedAt, folder.ID, filesAt);
+
+        if (cleanUpStructure.Value)
+        {
+            var timeStarted = DateTime.Now;
+            _logger.LogInformation("Cleaning up managed folder; {Path} (ManagedFolder={ManagedFolderID})", folder.Path, folder.ID);
+            _vlpService.CleanupManagedFolder(folder);
+            _logger.LogInformation("Cleaned up managed folder in {TimeSpan}; {Path} (ManagedFolder={ManagedFolderID})", DateTime.Now - timeStarted, folder.Path, folder.ID);
+        }
     }
 
-    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)
     {
+        cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
+
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.OnlyNewFiles, j.SkipMyList) = (folder.ID, onlyNewFiles, skipMylist), prioritize);
+        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure) = (folder.ID, onlyNewFiles, skipMylist, cleanUpStructure.Value), prioritize);
     }
 
-    public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)
     {
+        cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
+
         var managedFolders = _managedFolderRepository.GetAll();
         var sources = managedFolders.Where(a => a.DropFolderType.HasFlag(DropFolderType.Source)).ToList();
         var rest = onlyDropSources ? [] : managedFolders.Except(sources).ToList();
         if (!onlyNewFiles.HasValue)
         {
             foreach (var source in sources)
-                await ScheduleScanForManagedFolder(source, prioritize: true);
+                await ScheduleScanForManagedFolder(source, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
             foreach (var folder in rest)
-                await ScheduleScanForManagedFolder(folder, onlyNewFiles: true, prioritize: true);
+                await ScheduleScanForManagedFolder(folder, onlyNewFiles: true, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
             return;
         }
 
         foreach (var source in sources)
-            await ScheduleScanForManagedFolder(source, prioritize: true);
+            await ScheduleScanForManagedFolder(source, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
         foreach (var folder in rest)
-            await ScheduleScanForManagedFolder(folder, onlyNewFiles: onlyNewFiles.Value, prioritize: true);
+            await ScheduleScanForManagedFolder(folder, onlyNewFiles: onlyNewFiles.Value, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
     }
 
     #endregion Managed Folder

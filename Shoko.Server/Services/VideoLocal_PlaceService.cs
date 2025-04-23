@@ -242,6 +242,7 @@ public class VideoLocal_PlaceService
 
         var sourceFile = new FileInfo(oldFullPath);
         var destVideoLocalPlace = _videoLocalPlace.GetByRelativePathAndManagedFolderID(newRelativePath, request.ManagedFolder.ID);
+        var relocatedFile = false;
         if (File.Exists(newFullPath))
         {
             // A file with the same name exists at the destination.
@@ -331,19 +332,7 @@ public class VideoLocal_PlaceService
                 place.ManagedFolderID = request.ManagedFolder.ID;
                 place.RelativePath = newRelativePath;
                 _videoLocalPlace.Save(place);
-
-                if (request.DeleteEmptyDirectories)
-                {
-                    // For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
-                    // IDK why, Shoko get totally frozen, but it seems a .NET issue.
-                    // https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
-                    /*
-                    var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
-                   .Select(dirInfo => dirInfo.FullName);
-                    RecursiveDeleteEmptyDirectories(directories, dropFolder.Path);
-                    */
-                    RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
-                }
+                relocatedFile = true;
             }
         }
         else
@@ -381,19 +370,7 @@ public class VideoLocal_PlaceService
             place.ManagedFolderID = request.ManagedFolder.ID;
             place.RelativePath = newRelativePath;
             _videoLocalPlace.Save(place);
-
-            if (request.DeleteEmptyDirectories)
-            {
-                // For some reason this totally hangs, if the Folder is a network folder, and multiple thread are doing it.
-                // IDK why, Shoko get totally frozen, but it seems a .NET issue.
-                // https://stackoverflow.com/questions/33036650/directory-enumeratedirectories-hang-on-some-network-folders
-                /*
-                var directories = dropFolder.BaseDirectory.EnumerateDirectories("*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true })
-                    .Select(dirInfo => dirInfo.FullName);
-                RecursiveDeleteEmptyDirectories(directories, dropFolder.Path);
-                */
-                RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
-            }
+            relocatedFile = true;
         }
 
         if (renamed)
@@ -422,6 +399,9 @@ public class VideoLocal_PlaceService
         {
             _logger.LogError(ex, "Got an error in a FileRelocated event.");
         }
+
+        if (relocatedFile && request.DeleteEmptyDirectories)
+            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
 
         return new()
         {
@@ -656,6 +636,12 @@ public class VideoLocal_PlaceService
         {
             _logger.LogError(ex, "An unexpected error occurred while trying to move an external subtitle file for {FilePath}\n{ErrorMessage}", oldFullServerPath, ex.Message);
         }
+    }
+
+    public void CleanupManagedFolder(IManagedFolder managedFolder)
+    {
+        var directories = Directory.EnumerateDirectories(managedFolder.Path, "*", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true });
+        RecursiveDeleteEmptyDirectories(directories, managedFolder.Path);
     }
 
     private void RecursiveDeleteEmptyDirectories(string? toBeChecked, string? directoryToClean)
