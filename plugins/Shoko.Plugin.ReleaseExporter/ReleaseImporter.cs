@@ -58,6 +58,8 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths 
                 if (releaseInfo is not null)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (!IsProvider(releaseInfo.ProviderName!))
+                        releaseInfo.ProviderName += "+" + Key;
                     return releaseInfo;
                 }
             }
@@ -69,4 +71,10 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths 
 
         return null;
     }
+
+    private static bool IsProvider(string providerName) =>
+        providerName is Key ||
+        providerName.StartsWith($"{Key}+") ||
+        providerName.EndsWith($"+{Key}") ||
+        providerName.Contains($"+{Key}+");
 }
