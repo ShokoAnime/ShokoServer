@@ -34,8 +34,15 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
             if (_percentageRangeCalculated.LastKnownPercentage == Percentage)
                 return _percentageRangeCalculated.Range;
 
+            var releaseInfo = (IReleaseInfo?)ReleaseInfo;
+            if (releaseInfo is not null && !IsAnidbProvider(releaseInfo.ProviderName) && releaseInfo.CrossReferences.FirstOrDefault(xref => xref.AnidbEpisodeID == EpisodeID) is { } xref)
+            {
+                _percentageRangeCalculated = (Percentage, (xref.PercentageStart, xref.PercentageEnd));
+                return (xref.PercentageStart, xref.PercentageEnd);
+            }
+
             var percentage = (0, 100);
-            var releaseGroup = ((IReleaseInfo?)ReleaseInfo)?.Group;
+            var releaseGroup = releaseInfo?.Group;
             var assumedFileCount = PercentageToFileCount(Percentage);
             if (assumedFileCount > 1)
             {
@@ -80,6 +87,12 @@ public class SVR_CrossRef_File_Episode : CrossRef_File_Episode, IVideoCrossRefer
             return percentage;
         }
     }
+
+    private static bool IsAnidbProvider(string providerName) =>
+        providerName is "AniDB" ||
+        providerName.StartsWith("AniDB+") ||
+        providerName.EndsWith("+AniDB") ||
+        providerName.Contains("+AniDB+");
 
     internal static int PercentageToFileCount(int percentage)
         => percentage switch
