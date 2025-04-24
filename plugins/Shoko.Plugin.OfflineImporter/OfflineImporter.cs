@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Attributes;
@@ -144,7 +145,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                     releaseInfo.Source = match.Source.Value;
                 releaseInfo.OriginalFilename = Path.GetFileName(match.FilePath);
                 releaseInfo.Revision = match.Version ?? 1;
-                releaseInfo.Metadata = JsonConvert.SerializeObject(match);
+                releaseInfo.Metadata = JsonConvert.SerializeObject(match, new JsonSerializerSettings() { Converters = [new StringEnumConverter()] });
                 releaseInfo.IsCreditless = match.Creditless;
                 releaseInfo.IsCensored = match.Censored;
                 // Assume the creation date has been properly set in the file-system.
