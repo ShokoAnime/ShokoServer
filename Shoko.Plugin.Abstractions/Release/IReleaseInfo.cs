@@ -21,8 +21,9 @@ public interface IReleaseInfo
     string ProviderName { get; }
 
     /// <summary>
-    /// An absolute URI for where to find the information, if available from the
-    /// provider. Can be a http://, https:// or file:// URI.
+    /// An absolute URI for where to find information about the release online,
+    /// if available from the provider. Can be a http://, https:// or file://
+    /// URI.
     /// </summary>
     string? ReleaseURI { get; }
 
