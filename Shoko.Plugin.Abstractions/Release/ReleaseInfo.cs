@@ -16,16 +16,21 @@ public class ReleaseInfo
     /// </summary>
     public string? ID { get; set; }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// The name of the provider which found the release.
+    /// </summary>
     public string? ProviderName { get; set; }
 
     /// <summary>
-    /// An URL for where to find the information online, if available from the provider.
+    /// An absolute URI for where to find information about the release online,
+    /// if available from the provider. Can be a http://, https:// or file://
+    /// URI.
     /// </summary>
     public string? ReleaseURI { get; set; }
 
     /// <summary>
-    /// Release revision number. Will be increased each time the <see cref="Group"/> releases a new version for the same release.
+    /// Release revision number. Might be increased each time the
+    /// <see cref="Group"/> releases a new version for the same release.
     /// The value is not guaranteed to be unique.
     /// </summary>
     public int Revision { get; set; }
@@ -41,7 +46,8 @@ public class ReleaseInfo
     public string? Comment { get; set; }
 
     /// <summary>
-    /// The original name of the file, if it's known by the release info provider.
+    /// The original name of the file, if it's known by the release info
+    /// provider.
     /// </summary>
     public string? OriginalFilename { get; set; }
 
