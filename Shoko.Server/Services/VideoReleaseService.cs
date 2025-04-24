@@ -620,9 +620,16 @@ public class VideoReleaseService(
         legacyXrefs = [];
 
         var legacyOrder = 0;
+        var checkedIDs = new HashSet<int>();
         var embeddedXrefs = new List<EmbeddedCrossReference>();
         foreach (var xref in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>())
         {
+            if (!checkedIDs.Add(xref.AnidbEpisodeID))
+            {
+                logger.LogError("Duplicate episode with id {EpisodeID}!", xref.AnidbEpisodeID);
+                continue;
+            }
+
             // The percentage range cannot be 0.
             if (xref.PercentageEnd == xref.PercentageStart)
                 continue;
