@@ -97,7 +97,7 @@ public partial class ConfigurationService : IConfigurationService
             // We first map the server settings to the empty guid because the id
             // namespace depends on the plugin info which is not available yet.
             ID = Guid.Empty,
-            Path = Path.Join(_applicationPaths.ProgramDataPath, serverSettingsDefinition.RelativePath),
+            Path = Path.Join(_applicationPaths.DataPath, serverSettingsDefinition.RelativePath),
             Name = serverSettingsSchema.Title!,
             Description = string.Empty,
             Definition = serverSettingsDefinition,
@@ -170,7 +170,7 @@ public partial class ConfigurationService : IConfigurationService
                 var relativePath = p0.RelativePath;
                 if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     relativePath += ".json";
-                path = Path.Join(_applicationPaths.ProgramDataPath, relativePath);
+                path = Path.Join(_applicationPaths.DataPath, relativePath);
             }
             else if (definition is IConfigurationDefinitionWithCustomSaveName { } p1)
             {
@@ -180,7 +180,7 @@ public partial class ConfigurationService : IConfigurationService
                     var fileName = p1.Name;
                     if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                         fileName += ".json";
-                    path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                    path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName);
                 }
             }
             else
@@ -189,7 +189,7 @@ public partial class ConfigurationService : IConfigurationService
                     .RemoveInvalidPathCharacters()
                     .Replace(' ', '-')
                     .ToLower();
-                path = Path.Join(_applicationPaths.PluginConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
+                path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
             }
 
             _configurationTypes[id] = new(this)

@@ -122,7 +122,7 @@ public class ReleaseExporter : IHostedService
             return;
 
         var stops = new HashSet<string>([
-            _applicationPaths.ProgramDataPath,
+            _applicationPaths.DataPath,
             .. _videoService.GetAllManagedFolders().Select(m => m.Path)
         ]);
         var releaseLocations = locations.SelectMany(l => config.GetReleaseFilePaths(_applicationPaths, l.ManagedFolder, eventArgs.Video, l.RelativePath)).ToHashSet();
@@ -205,7 +205,7 @@ public class ReleaseExporter : IHostedService
         }
 
         var stops = new HashSet<string>([
-            _applicationPaths.ProgramDataPath,
+            _applicationPaths.DataPath,
             .. _videoService.GetAllManagedFolders().Select(m => m.Path)
         ]);
         foreach (var releasePath in removedPaths)
@@ -285,7 +285,7 @@ public class ReleaseExporter : IHostedService
             eventArgs.File.RelativePath
         );
         var stops = new HashSet<string>([
-            _applicationPaths.ProgramDataPath,
+            _applicationPaths.DataPath,
             .. _videoService.GetAllManagedFolders().Select(m => m.Path)
         ]);
         foreach (var releasePath in pathsToRemove)

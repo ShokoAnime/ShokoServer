@@ -25,6 +25,8 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public int SettingsVersion { get; set; } = SettingsMigrations.Version;
 
     /// <inheritdoc />
+    [EnvironmentVariable("SHOKO_IMAGES_PATH", AllowOverride = true)]
+    [RequiresRestart]
     public string ImagesPath { get; set; }
 
     /// <inheritdoc />
