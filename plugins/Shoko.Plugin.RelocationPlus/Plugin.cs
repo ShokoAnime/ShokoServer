@@ -13,7 +13,4 @@ public class Plugin : IPlugin
 
     /// <inheritdoc/>
     public string Name { get; private set; } = "Relocation+";
-
-    /// <inheritdoc/>
-    public void Load() { }
 }
