@@ -157,7 +157,7 @@ public partial class ConfigurationService : IConfigurationService
             if (configurationType == typeof(ServerSettings))
                 continue;
 
-            var pluginInfo = _pluginManager.GetPluginInfo(Loader.GetTypes<IPlugin>(configurationType.Assembly).First(t => _pluginManager.GetPluginInfo(t) is not null))!;
+            var pluginInfo = Loader.GetTypes<IPlugin>(configurationType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? _pluginManager.GetPluginInfo(t))!;
             var id = GetID(configurationType, pluginInfo);
             var definition = configurationDefinitionDict.GetValueOrDefault(id);
             var contextualType = configurationType.ToContextualType();
@@ -816,8 +816,8 @@ public partial class ConfigurationService : IConfigurationService
     private Guid GetID(IConfigurationDefinition provider) => GetID(provider.ConfigurationType);
 
     private Guid GetID(Type type)
-        => _loaded && Loader.GetTypes<IPlugin>(type.Assembly).FirstOrDefault(t => _pluginManager.GetPluginInfo(t) is not null) is { } pluginType
-            ? GetID(type, _pluginManager.GetPluginInfo(pluginType)!)
+        => _loaded && Loader.GetTypes<IPlugin>(type.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? _pluginManager.GetPluginInfo(t)) is { } pluginInfo
+            ? GetID(type, pluginInfo)
             : Guid.Empty;
 
     private static Guid GetID(Type type, PluginInfo pluginInfo)
