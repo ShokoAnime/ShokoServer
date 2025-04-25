@@ -34,9 +34,6 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     """;
 
     /// <inheritdoc/>
-    public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
-
-    /// <inheritdoc/>
     public IReadOnlySet<string> AvailableHashTypes => new HashSet<string>() { "ED2K", "MD5", "CRC32", "SHA1", "SHA256", "SHA512" };
 
     static CoreHashProvider()

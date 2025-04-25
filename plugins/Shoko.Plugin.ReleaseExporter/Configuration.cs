@@ -14,7 +14,7 @@ namespace Shoko.Plugin.ReleaseExporter;
 /// Configure how the import/export functionality works.
 /// </summary>
 [Display(Name = "Release Importer/Exporter")]
-public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
+public class Configuration : IReleaseInfoProviderConfiguration
 {
     /// <summary>
     /// Enables the exporter functionality.

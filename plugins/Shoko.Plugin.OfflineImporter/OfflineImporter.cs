@@ -66,9 +66,6 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
     """;
 
     /// <inheritdoc/>
-    public Version Version => new(1, 0, 0);
-
-    /// <inheritdoc/>
     public async Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
     {
         var folderRegex = StrictFolderNameCheckRegex();

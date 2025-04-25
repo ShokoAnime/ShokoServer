@@ -23,7 +23,8 @@ public partial class PluginManager() : IPluginManager
                 return new PluginInfo()
                 {
                     ID = plugin.ID,
-                    Description = pluginType.GetDescription(),
+                    Name = plugin.Name,
+                    Description = plugin.Description?.CleanDescription() ?? string.Empty,
                     Version = pluginType.Assembly.GetName().Version ?? new(0, 0, 0),
                     Plugin = plugin,
                     PluginType = pluginType,

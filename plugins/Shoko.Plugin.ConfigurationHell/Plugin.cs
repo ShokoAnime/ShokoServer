@@ -10,8 +10,11 @@ namespace Shoko.Plugin.ConfigurationHell;
 public class Plugin : IPlugin
 {
     /// <inheritdoc/>
-    public Guid ID { get; private set; } = typeof(Plugin).FullName!.ToUuidV5();
+    public string Name { get; private init; } = "Configuration Hell";
 
     /// <inheritdoc/>
-    public string Name { get; private set; } = "Configuration Hell";
+    public string Description { get; private init; } = """
+        Plugin made with the sole purpose of testing the configuration system's
+        UI generation capabilities.
+    """;
 }

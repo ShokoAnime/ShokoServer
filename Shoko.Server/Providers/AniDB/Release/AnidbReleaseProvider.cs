@@ -69,9 +69,6 @@ public partial class AnidbReleaseProvider(
     """;
 
     /// <inheritdoc/>
-    public Version Version => Assembly.GetExecutingAssembly().GetName().Version!;
-
-    /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
         => GetReleaseInfoById($"{IdPrefix}{video.ED2K}+{video.Size}", video);
 

@@ -19,12 +19,12 @@ public interface IReleaseInfoProvider
     /// <summary>
     ///   Optional. Description of the release information provider.
     /// </summary>
-    string? Description => null;
+    string? Description { get => null; }
 
     /// <summary>
     ///   Version of the release information provider.
     /// </summary>
-    Version Version { get; }
+    Version Version { get => GetType().Assembly.GetName().Version ?? new Version(0, 0, 0, 0); }
 
     /// <summary>
     ///   Gets the release information for the specified video, if available

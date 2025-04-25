@@ -20,12 +20,12 @@ public interface IHashProvider
     /// <summary>
     ///   Optional. Description of the hash provider.
     /// </summary>
-    string? Description => null;
+    string? Description { get => null; }
 
     /// <summary>
     ///   Version of the hash provider.
     /// </summary>
-    Version Version { get; }
+    Version Version { get => GetType().Assembly.GetName().Version ?? new Version(0, 0, 0, 0); }
 
     /// <summary>
     ///   Gets all available hash types for the provider.
@@ -34,7 +34,7 @@ public interface IHashProvider
 
     /// <summary>
     ///   Gets all enabled hash types for a video file. The output is filtered
-    ///   to only include enabled hash types, so providing other hash types will
+    ///   to only include enabled hash types, so computing other hash types will
     ///   have no effect and is generally not recommended.
     /// </summary>
     /// <param name="request">
@@ -44,8 +44,10 @@ public interface IHashProvider
     ///   A cancellation token to cancel the operation.
     /// </param>
     /// <returns>
-    ///   A list of hashes for the video file. The list is filtered to only
-    ///   include enabled hash types inside the service.
+    ///   A collection of hashes for the video file. The collection will be
+    ///   filtered to only include enabled hash types inside the service, so
+    ///   to reduce wasted computation it's recommended to compute only enabled
+    ///   hash types in the request.
     /// </returns>
     Task<IReadOnlyCollection<HashDigest>> GetHashesForVideo(HashingRequest request, CancellationToken cancellationToken = default);
 }
