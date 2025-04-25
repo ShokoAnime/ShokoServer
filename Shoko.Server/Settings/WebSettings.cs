@@ -70,9 +70,10 @@ public class WebSettings
     }
 
     /// <summary>
-    /// A relative path from the <see cref="IApplicationPaths.ProgramDataPath"/>
+    /// A relative path from the <see cref="IApplicationPaths.DataPath"/>
     /// to where the Web UI is installed, or an absolute path if you have it
-    /// somewhere else.
+    /// somewhere else. Will be used to populate the
+    /// <see cref="IApplicationPaths.WebPath"/> field.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Full)]
     [Display(Name = "Web UI Path")]

@@ -101,7 +101,7 @@ public class ReleaseExporterConfiguration : IReleaseInfoProviderConfiguration
                 continue;
 
             if (template.Contains("%data_root%"))
-                template = template.Replace("%data_root%", applicationPaths.ProgramDataPath + Path.DirectorySeparatorChar);
+                template = template.Replace("%data_root%", applicationPaths.DataPath + Path.DirectorySeparatorChar);
 
             if (template.Contains("%managed_folder_root%"))
                 template = template.Replace("%managed_folder_root%", managedFolder.Path);

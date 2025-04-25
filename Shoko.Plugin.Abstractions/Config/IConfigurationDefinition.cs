@@ -26,7 +26,7 @@ public interface IConfigurationDefinitionWithCustomSaveName : IConfigurationDefi
 {
     /// <summary>
     /// Gets the name of the file to use in the plugin's configuration folder
-    /// inside <see cref="IApplicationPaths.PluginConfigurationsPath"/> for
+    /// inside <see cref="IApplicationPaths.ConfigurationsPath"/> for
     /// storing the configuration. Can be set to <c>null</c> or an empty string
     /// to make it an in-memory configuration, which will not persist it's data
     /// across restarts.
@@ -43,7 +43,7 @@ public interface IConfigurationDefinitionWithCustomSaveLocation : IConfiguration
 {
     /// <summary>
     /// Gets the relative path relative to
-    /// <see cref="IApplicationPaths.ProgramDataPath"/> for storing the
+    /// <see cref="IApplicationPaths.DataPath"/> for storing the
     /// configuration.
     /// </summary>
     /// <value>The relative path.</value>

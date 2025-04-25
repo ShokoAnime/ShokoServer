@@ -2,7 +2,7 @@
 namespace Shoko.Plugin.Abstractions;
 
 /// <summary>
-/// Interface IApplicationPaths.
+/// Exposes information about the application directories to plugins.
 /// </summary>
 public interface IApplicationPaths
 {
@@ -10,25 +10,25 @@ public interface IApplicationPaths
     /// Gets the path to the executable parent directory.
     /// </summary>
     /// <value>The program data path.</value>
-    string ExecutableDirectoryPath { get; }
+    string ApplicationPath { get; }
 
     /// <summary>
-    /// Gets the path to the web UI resources folder.
+    /// Gets the path to the Web UI resources directory.
     /// </summary>
-    /// <value>The web path.</value>
+    /// <value>The Web UI directory path.</value>
     string WebPath { get; }
 
     /// <summary>
-    /// Gets the folder path to the data directory.
+    /// Gets the path to the data directory.
     /// </summary>
-    /// <value>The data directory.</value>
-    string ProgramDataPath { get; }
+    /// <value>The data directory path.</value>
+    string DataPath { get; }
 
     /// <summary>
-    /// Gets the image directory path.
+    /// Gets the path to the image directory path.
     /// </summary>
     /// <value>The image directory path.</value>
-    string ImageDirectoryPath { get; }
+    string ImagesPath { get; }
 
     /// <summary>
     /// Gets the path to the plugin directory.
@@ -37,14 +37,14 @@ public interface IApplicationPaths
     string PluginsPath { get; }
 
     /// <summary>
-    /// Gets the path to the plugin configuration directory.
+    /// Gets the path to the configuration directory.
     /// </summary>
-    /// <value>The plugin configuration path.</value>
-    string PluginConfigurationsPath { get; }
+    /// <value>The configuration directory path.</value>
+    string ConfigurationsPath { get; }
 
     /// <summary>
     /// Gets the path to the log directory.
     /// </summary>
     /// <value>The log directory path.</value>
-    string LogDirectoryPath { get; }
+    string LogsPath { get; }
 }

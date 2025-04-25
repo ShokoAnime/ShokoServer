@@ -617,7 +617,7 @@ public class DatabaseFixes
         var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
 
         // Remove the "MovieDB" directory in the image directory, since it's no longer used,
-        var dir = new DirectoryInfo(Path.Join(ImageUtils.GetBaseImagesPath(), "MovieDB"));
+        var dir = new DirectoryInfo(Path.Join(ImageUtils.BaseImagesPath, "MovieDB"));
         if (dir.Exists)
             dir.Delete(true);
 
@@ -655,7 +655,7 @@ public class DatabaseFixes
 
     public static void CleanupAfterRemovingTvDB()
     {
-        var dir = new DirectoryInfo(Path.Join(ImageUtils.GetBaseImagesPath(), "TvDB"));
+        var dir = new DirectoryInfo(Path.Join(ImageUtils.BaseImagesPath, "TvDB"));
         if (dir.Exists)
             dir.Delete(true);
     }
@@ -800,7 +800,7 @@ public class DatabaseFixes
 
     public static void MoveTmdbImagesOnDisc()
     {
-        var imageDir = Path.Join(ImageUtils.GetBaseImagesPath(), "TMDB");
+        var imageDir = Path.Join(ImageUtils.BaseImagesPath, "TMDB");
         if (!Directory.Exists(imageDir))
             return;
 

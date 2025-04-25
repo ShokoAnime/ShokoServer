@@ -363,7 +363,7 @@ public static class APIExtensions
 
         // Create web ui directory and add the boot-strapper.
         var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
-        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ExecutableDirectoryPath, "webui"));
+        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ApplicationPath, "webui"));
         if (!webUIDir.Exists)
         {
             if (backupDir.Exists)
