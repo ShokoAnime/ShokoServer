@@ -20,7 +20,7 @@ public class PluginInfo
     /// <summary>
     /// The name of the plugin.
     /// </summary>
-    public string Name => Plugin.Name;
+    public required string Name { get; init; }
 
     /// <summary>
     /// The description of the plugin.

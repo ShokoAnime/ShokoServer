@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -19,7 +18,7 @@ namespace Shoko.Plugin.ReleaseExporter;
 /// <param name="logger">Logger.</param>
 /// <param name="applicationPaths">Application paths.</param>
 /// <param name="configurationProvider">Configuration provider.</param>
-public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths applicationPaths, ConfigurationProvider<ReleaseExporterConfiguration> configurationProvider) : IReleaseInfoProvider<ReleaseExporterConfiguration>
+public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths applicationPaths, ConfigurationProvider<Configuration> configurationProvider) : IReleaseInfoProvider<Configuration>
 {
     /// <inheritdoc/>
     public const string Key = "Release Importer";
@@ -31,9 +30,6 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths 
     public string Description { get; private set; } = """
         Responsible for importing releases from the file system near the video files.
     """;
-
-    /// <inheritdoc/>
-    public Version Version { get; private set; } = Assembly.GetExecutingAssembly().GetName().Version ?? new("0.0.0");
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
