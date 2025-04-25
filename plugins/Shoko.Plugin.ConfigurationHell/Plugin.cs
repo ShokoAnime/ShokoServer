@@ -14,7 +14,4 @@ public class Plugin : IPlugin
 
     /// <inheritdoc/>
     public string Name { get; private set; } = "Configuration Hell";
-
-    /// <inheritdoc/>
-    public void Load() { }
 }

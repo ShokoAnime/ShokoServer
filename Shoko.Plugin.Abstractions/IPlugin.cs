@@ -17,9 +17,4 @@ public interface IPlugin
     /// Friendly name of the plugin.
     /// </summary>
     string Name { get; }
-
-    /// <summary>
-    /// Load event.
-    /// </summary>
-    void Load();
 }

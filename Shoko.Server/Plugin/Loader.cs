@@ -187,14 +187,6 @@ public static class Loader
 
         var renameFileService = provider.GetRequiredService<RenameFileService>();
         renameFileService.LoadRenamers(_exportedTypes);
-
-        s_logger.Info("Loading {0} plugins.", _pluginTypes.Count);
-        foreach (var (pluginType, plugin) in Plugins)
-        {
-            var assemblyInfo = pluginType.Assembly.GetName();
-            plugin.Load();
-            s_logger.Info($"Loaded plugin \"{plugin.Name}\". ({assemblyInfo.Name}, v{assemblyInfo.Version})");
-        }
     }
 
     public static IMvcBuilder AddPluginControllers(this IMvcBuilder mvc)

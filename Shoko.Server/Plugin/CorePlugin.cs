@@ -16,7 +16,4 @@ public class CorePlugin : IPlugin
 
     /// <inheritdoc/>
     public string Name { get; private set; } = "Shoko Core";
-
-    /// <inheritdoc/>
-    public void Load() { }
 }

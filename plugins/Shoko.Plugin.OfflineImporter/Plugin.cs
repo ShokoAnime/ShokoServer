@@ -13,7 +13,4 @@ public class Plugin : IPlugin
 
     /// <inheritdoc/>
     public string Name { get; private set; } = "Offline Importer";
-
-    /// <inheritdoc/>
-    public void Load() { }
 }
