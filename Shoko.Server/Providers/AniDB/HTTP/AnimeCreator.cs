@@ -791,8 +791,8 @@ public class AnimeCreator
     {
         if (chars == null) return;
 
-        var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
-        var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
+        var charBasePath = ImageUtils.BaseAniDBCharacterImagesPath + Path.DirectorySeparatorChar;
+        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
         var settings = _settingsProvider.GetSettings();
 
         var existingCreators = new Dictionary<int, AniDB_Creator>();
@@ -1071,7 +1071,7 @@ public class AnimeCreator
         if (staffList == null) return;
 
         var settings = _settingsProvider.GetSettings();
-        var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
+        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
 
         var existingCreators = new Dictionary<int, AniDB_Creator>();
         var existingXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)
