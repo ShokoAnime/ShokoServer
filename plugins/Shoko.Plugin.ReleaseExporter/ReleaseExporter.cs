@@ -28,7 +28,7 @@ public class ReleaseExporter : IHostedService
 
     private readonly IVideoService _videoService;
 
-    private readonly ConfigurationProvider<ReleaseExporterConfiguration> _configProvider;
+    private readonly ConfigurationProvider<Configuration> _configProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReleaseExporter"/> class.
@@ -38,7 +38,7 @@ public class ReleaseExporter : IHostedService
     /// <param name="videoReleaseService">The video release service.</param>
     /// <param name="videoService">The video service.</param>
     /// <param name="configProvider">The configuration provider.</param>
-    public ReleaseExporter(ILogger<ReleaseExporter> logger, IApplicationPaths applicationPaths, IVideoReleaseService videoReleaseService, IVideoService videoService, ConfigurationProvider<ReleaseExporterConfiguration> configProvider)
+    public ReleaseExporter(ILogger<ReleaseExporter> logger, IApplicationPaths applicationPaths, IVideoReleaseService videoReleaseService, IVideoService videoService, ConfigurationProvider<Configuration> configProvider)
     {
         _logger = logger;
         _applicationPaths = applicationPaths;
