@@ -13,7 +13,4 @@ public class Plugin : IPlugin
 
     /// <inheritdoc/>
     public string Name { get; private set; } = "Release Importer/Exporter";
-
-    /// <inheritdoc/>
-    public void Load() { }
 }
