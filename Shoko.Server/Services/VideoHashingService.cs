@@ -101,15 +101,12 @@ public class VideoHashingService(
             logger.LogInformation("Initializing providers.");
             var config = configurationProvider.Load();
             var enabled = config.EnabledHashes;
-            _coreProviderID = GetID(typeof(CoreHashProvider), pluginManager.GetPluginInfo(typeof(CorePlugin))!);
+            _coreProviderID = GetID(typeof(CoreHashProvider), pluginManager.GetPluginInfo<CorePlugin>()!);
             _hashProviderInfos = providers
                 .Select((provider, priority) =>
                 {
                     var providerType = provider.GetType();
-                    var pluginInfo = pluginManager.GetPluginInfo(
-                        Loader.GetTypes<IPlugin>(providerType.Assembly)
-                            .First(t => pluginManager.GetPluginInfo(t) is not null)
-                    )!;
+                    var pluginInfo = Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t))!;
                     var id = GetID(providerType, pluginInfo);
                     var contextualType = providerType.ToContextualType();
                     var enabledHashes = enabled.Where(kp => kp.Value == id).Select(kp => kp.Key).Order().ToHashSet();
@@ -773,8 +770,8 @@ public class VideoHashingService(
     #region ID Helpers
 
     private Guid GetID(Type providerType)
-        => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).FirstOrDefault(t => pluginManager.GetPluginInfo(t) is not null) is { } pluginType
-            ? GetID(providerType, pluginManager.GetPluginInfo(pluginType)!)
+        => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t)) is { } pluginInfo
+            ? GetID(providerType, pluginInfo)
             : Guid.Empty;
 
     private static Guid GetID(Type type, PluginInfo pluginInfo)
