@@ -1,4 +1,3 @@
-using System;
 using Shoko.Plugin.Abstractions;
 
 namespace Shoko.Plugin.OfflineImporter;
@@ -9,8 +8,10 @@ namespace Shoko.Plugin.OfflineImporter;
 public class Plugin : IPlugin
 {
     /// <inheritdoc/>
-    public Guid ID { get; private set; } = typeof(Plugin).FullName!.ToUuidV5();
+    public string Name { get; private init; } = "Offline Importer";
 
     /// <inheritdoc/>
-    public string Name { get; private set; } = "Offline Importer";
+    public string Description { get; private init; } = """
+        Plugin responsible for importing releases based on file names.
+    """;
 }
