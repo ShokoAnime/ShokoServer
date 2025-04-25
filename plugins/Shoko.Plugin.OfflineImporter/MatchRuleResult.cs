@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
@@ -273,7 +272,7 @@ public record MatchRuleResult
                 .Replace(_miscRegex, string.Empty)
                 .Replace(_bracketCollapseRegex, string.Empty)
                 .Replace(_spaceCollapseRegex, " ")
-                .Trim();
+                .Replace(_bracketTrimRegex, string.Empty);
 
             // Fix movie name when no episode number is provided.
             var episode = (match.Groups["specialNumber"].Success ? match.Groups["specialNumber"] : match.Groups["episode"]).Value;
@@ -291,7 +290,7 @@ public record MatchRuleResult
                         .Replace(_miscRegex, string.Empty)
                         .Replace(_bracketCollapseRegex, string.Empty)
                         .Replace(_spaceCollapseRegex, " ")
-                        .Trim();
+                        .Replace(_bracketTrimRegex, string.Empty);
                     modifiedDetails.EpisodeName = null;
                 }
             }
@@ -344,7 +343,7 @@ public record MatchRuleResult
                 .Replace(_miscRegex, string.Empty)
                 .Replace(_bracketCollapseRegex, string.Empty)
                 .Replace(_spaceCollapseRegex, " ")
-                .Trim();
+                .Replace(_bracketTrimRegex, string.Empty);
 
             // Convert underscores and dots to spaces if we don't have any spaces in
             // the show name yet.
@@ -519,7 +518,7 @@ public record MatchRuleResult
                 modifiedDetails.ReleaseGroup = releaseGroupMatch.Groups["releaseGroup"].Value;
                 post = post[..^releaseGroupMatch.Length];
             }
-            post = post.Replace(_spaceCollapseRegex, " ").Trim();
+            post = post.Replace(_spaceCollapseRegex, " ").Replace(_bracketTrimRegex, string.Empty);
             if (post.Length > 2 && ((post[0] == '(' && post[^1] == ')') || (post[0] == '[' && post[^1] == ']') || (post[0] == '{' && post[^1] == '}') || (post[0] == '「' && post[^1] == '」')))
                 post = post[1..^1];
 
@@ -597,7 +596,7 @@ public record MatchRuleResult
                 modifiedDetails.ReleaseGroup = releaseGroupMatch1.Groups["releaseGroup"].Value;
                 fallback = fallback[..^releaseGroupMatch1.Length];
             }
-            fallback = fallback.Replace(_spaceCollapseRegex, " ").Trim();
+            fallback = fallback.Replace(_spaceCollapseRegex, " ").Replace(_bracketTrimRegex, string.Empty);
             if (fallback.Length > 2 && ((fallback[0] == '(' && fallback[^1] == ')') || (fallback[0] == '[' && fallback[^1] == ']') || (fallback[0] == '{' && fallback[^1] == '}') || (fallback[0] == '「' && fallback[^1] == '」')))
                 fallback = fallback[1..^1];
             if (!fallback.Contains(' '))
@@ -659,6 +658,11 @@ public record MatchRuleResult
 
     private static readonly Regex _spaceCollapseRegex = new(
         @"\s{2,}",
+        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static readonly Regex _bracketTrimRegex = new(
+        @"^[ \)\]\}]+|[ \(\[\{]+$",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
