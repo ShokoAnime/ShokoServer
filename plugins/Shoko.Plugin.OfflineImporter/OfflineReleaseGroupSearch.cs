@@ -47,7 +47,7 @@ public static class OfflineReleaseGroupSearch
             if (_groups is not null && _nextUpdate is not null && _nextUpdate.Value > DateTime.Now)
                 return;
 
-            var filePath = Path.Combine(applicationPaths.ProgramDataPath, "groups.json");
+            var filePath = Path.Combine(applicationPaths.DataPath, "groups.json");
             if (!File.Exists(filePath))
                 DownloadJson(applicationPaths);
 
@@ -91,7 +91,7 @@ public static class OfflineReleaseGroupSearch
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("User-Agent", "Shoko.Plugin.OfflineImporter/1.0");
         var json = httpClient.GetByteArrayAsync(GroupUrl).GetAwaiter().GetResult();
-        File.WriteAllBytes(Path.Combine(applicationPaths.ProgramDataPath, "groups.json"), json);
+        File.WriteAllBytes(Path.Combine(applicationPaths.DataPath, "groups.json"), json);
     }
 
     /// <summary>
