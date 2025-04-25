@@ -124,7 +124,7 @@ public record MatchRuleResult
         if (string.IsNullOrWhiteSpace(filePath))
             return Empty;
 
-        var fileName = Path.GetFileName(filePath);
+        var fileName = CleanFileName(filePath);
         if (string.IsNullOrWhiteSpace(fileName))
             return Empty;
 
@@ -208,6 +208,20 @@ public record MatchRuleResult
         return Empty;
     }
 
+    private static string? CleanFileName(string filePath)
+    {
+        var fileName = Path.GetFileName(filePath);
+        if (string.IsNullOrWhiteSpace(fileName))
+            return null;
+
+        while (_bracketIdRegex.Match(fileName) is { Success: true } match)
+        {
+            fileName = fileName[..match.Index] + fileName[(match.Index + match.Length)..];
+        }
+
+        return fileName;
+    }
+
     private static AnimeType? DetectAnimeType(GroupCollection matchGroups)
     {
         if (matchGroups["isMovie"].Success || matchGroups["isMovie2"].Success)
@@ -256,7 +270,6 @@ public record MatchRuleResult
         if (modifiedDetails.SeriesName is not null)
         {
             var showName = modifiedDetails.SeriesName
-                .Replace(_anidbEpisodeRangeRegex, string.Empty)
                 .Replace(_miscRegex, string.Empty)
                 .Replace(_bracketCollapseRegex, string.Empty)
                 .Replace(_spaceCollapseRegex, " ")
@@ -275,7 +288,6 @@ public record MatchRuleResult
                 if (_reStitchRegex.IsMatch(inBetween))
                 {
                     showName += inBetween + episodeName
-                        .Replace(_anidbEpisodeRangeRegex, string.Empty)
                         .Replace(_miscRegex, string.Empty)
                         .Replace(_bracketCollapseRegex, string.Empty)
                         .Replace(_spaceCollapseRegex, " ")
@@ -329,7 +341,6 @@ public record MatchRuleResult
         if (modifiedDetails.EpisodeName != null)
         {
             var episodeName = modifiedDetails.EpisodeName
-                .Replace(_anidbEpisodeRangeRegex, string.Empty)
                 .Replace(_miscRegex, string.Empty)
                 .Replace(_bracketCollapseRegex, string.Empty)
                 .Replace(_spaceCollapseRegex, " ")
@@ -502,7 +513,7 @@ public record MatchRuleResult
                     _ => ReleaseSource.Unknown,
                 };
             }
-            post = post.Replace(_anidbEpisodeRangeRegex, string.Empty).Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
+            post = post.Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
             if (_trailingReleaseGroupCheck.Match(post) is { Success: true } releaseGroupMatch)
             {
                 modifiedDetails.ReleaseGroup = releaseGroupMatch.Groups["releaseGroup"].Value;
@@ -580,7 +591,7 @@ public record MatchRuleResult
                     _ => ReleaseSource.Unknown,
                 };
             }
-            fallback = fallback.Replace(_anidbEpisodeRangeRegex, string.Empty).Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
+            fallback = fallback.Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
             if (_trailingReleaseGroupCheck.Match(fallback) is { Success: true } releaseGroupMatch1)
             {
                 modifiedDetails.ReleaseGroup = releaseGroupMatch1.Groups["releaseGroup"].Value;
@@ -603,6 +614,11 @@ public record MatchRuleResult
         }
         return DefaultTransform(modifiedDetails, match);
     }
+
+    private static readonly Regex _bracketIdRegex = new(
+        @"[\[\(\{](?<provider>(?<providerName>anidb|anilist|mal|kitsu|tmdb|moviedb|tvdb|imdb)(?<providerMode>[1-4])?(?<divider>[\-= ]))(?<value>(?:(?<=\k<provider>|,)\s*(?:[^\]\)\}\,\s]+)\s*(?=[\]\)\}]|,),?)+)[\]\)\}]",
+        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
 
     private static readonly Regex _leadingReleaseGroupCheck = new(
         @"^(?<releaseGroup>\[[^\]]+\]|\([^\)]+\)|\{[^\}]+\})",
@@ -648,11 +664,6 @@ public record MatchRuleResult
 
     private static readonly Regex _censoredRegex = new(
         @"\b((?<isDe>de|un)?cen(?:sored)?)\b",
-        RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-    );
-
-    private static readonly Regex _anidbEpisodeRangeRegex = new(
-        @"\[anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\]|,),?)+\]|\(anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\)|,),?)+\)|\{anidb[\-= ](?:(?<=anidb-|anidb=|anidb |,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\}|,),?)+\}",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
