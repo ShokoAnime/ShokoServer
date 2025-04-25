@@ -1,7 +1,7 @@
-
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Shoko.Plugin.Abstractions;
+
 /// <summary>
 /// This interface is only used for service registration and requires a
 /// parameterless constructor.
