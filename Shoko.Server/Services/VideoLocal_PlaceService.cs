@@ -908,7 +908,7 @@ public class VideoLocal_PlaceService
 
         using (var session = _databaseFactory.SessionFactory.OpenSession())
         {
-            if (v?.Places?.Count <= 1)
+            if (v?.Places?.Count < 1)
             {
                 if (updateMyListStatus)
                 {
