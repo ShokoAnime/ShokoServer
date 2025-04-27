@@ -1,30 +1,27 @@
 using System;
-using System.Linq;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Filters.Info;
 
-public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
+public class HasCustomTagByIDExpression : FilterExpression<bool>, IWithStringParameter
 {
-    public HasTagExpression(string parameter)
+    public HasCustomTagByIDExpression(string parameter)
     {
         Parameter = parameter;
     }
-    public HasTagExpression() { }
+    public HasCustomTagByIDExpression() { }
 
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This condition passes if any of the anime have the specified AniDB tag";
-    public override string[] HelpPossibleParameters => RepoFactory.AniDB_Tag.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')).ToArray();
+    public override string HelpDescription => "This condition passes if any of the anime have a specified custom tag by ID";
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AnidbTags.Contains(Parameter);
+        return filterable.CustomTagIDs.Contains(Parameter);
     }
 
-    protected bool Equals(HasTagExpression other)
+    protected bool Equals(HasCustomTagByIDExpression other)
     {
         return base.Equals(other) && Parameter == other.Parameter;
     }
@@ -46,7 +43,7 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
             return false;
         }
 
-        return Equals((HasTagExpression)obj);
+        return Equals((HasCustomTagByIDExpression)obj);
     }
 
     public override int GetHashCode()
@@ -54,12 +51,12 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
         return HashCode.Combine(base.GetHashCode(), Parameter);
     }
 
-    public static bool operator ==(HasTagExpression left, HasTagExpression right)
+    public static bool operator ==(HasCustomTagByIDExpression left, HasCustomTagByIDExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(HasTagExpression left, HasTagExpression right)
+    public static bool operator !=(HasCustomTagByIDExpression left, HasCustomTagByIDExpression right)
     {
         return !Equals(left, right);
     }

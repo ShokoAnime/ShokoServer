@@ -49,9 +49,19 @@ public interface IFilterable
     int VideoFiles { get; }
 
     /// <summary>
-    /// All of the tags
+    /// All of the AniDB tag IDs.
     /// </summary>
-    IReadOnlySet<string> Tags { get; }
+    IReadOnlySet<string> AnidbTagIDs { get; }
+
+    /// <summary>
+    /// All of the AniDB tags.
+    /// </summary>
+    IReadOnlySet<string> AnidbTags { get; }
+
+    /// <summary>
+    /// All of the custom tag IDs.
+    /// </summary>
+    IReadOnlySet<string> CustomTagIDs { get; }
 
     /// <summary>
     /// All of the custom tags

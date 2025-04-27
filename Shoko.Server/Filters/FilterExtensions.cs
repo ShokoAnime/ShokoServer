@@ -51,8 +51,12 @@ public static class FilterExtensions
                 series.MissingEpisodeCountGroups,
             VideoFilesDelegate = () =>
                 series.VideoLocals.Count,
-            TagsDelegate = () =>
-                series.AniDB_Anime?.Tags.Select(a => a.TagName).ToHashSet() ?? [],
+            AnidbTagIDsDelegate = () =>
+                series.AniDB_Anime?.Tags.Select(a => a.TagID.ToString()).ToHashSet() ?? [],
+            AnidbTagsDelegate = () =>
+                series.AniDB_Anime?.Tags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ?? [],
+            CustomTagIDsDelegate = () =>
+                series.AniDB_Anime?.CustomTags.Select(a => a.CustomTagID.ToString()).ToHashSet() ?? [],
             CustomTagsDelegate = () =>
                 series.AniDB_Anime?.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ?? [],
             YearsDelegate = () =>
@@ -214,10 +218,14 @@ public static class FilterExtensions
                 group.MissingEpisodeCountGroups,
             VideoFilesDelegate = () =>
                 series.SelectMany(s => s.VideoLocals).DistinctBy(a => a.VideoLocalID).Count(),
-            TagsDelegate = () =>
-                group.Tags.Select(a => a.TagName).ToHashSet(),
+            AnidbTagIDsDelegate = () =>
+                group.Tags.Select(a => a.TagID.ToString()).ToHashSet(),
+            AnidbTagsDelegate = () =>
+                group.Tags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase),
+            CustomTagIDsDelegate = () =>
+                group.CustomTags.Select(a => a.CustomTagID.ToString()).ToHashSet(),
             CustomTagsDelegate = () =>
-                group.CustomTags.Select(a => a.TagName).ToHashSet(),
+                group.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase),
             YearsDelegate = () =>
                 group.Years,
             SeasonsDelegate = () =>

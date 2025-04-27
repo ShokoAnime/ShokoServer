@@ -14,6 +14,7 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlySet<string>> _animeTypes;
     private readonly Lazy<IReadOnlySet<string>> _audioLanguages;
     private readonly Lazy<decimal> _averageAniDBRating;
+    private readonly Lazy<IReadOnlySet<string>> _customTagIDs;
     private readonly Lazy<IReadOnlySet<string>> _customTags;
     private readonly Lazy<int> _episodeCount;
     private readonly Lazy<bool> _hasTmdbAutoLinkingDisabled;
@@ -44,7 +45,8 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlySet<string>> _sharedVideoSources;
     private readonly Lazy<string> _sortingName;
     private readonly Lazy<IReadOnlySet<string>> _subtitleLanguages;
-    private readonly Lazy<IReadOnlySet<string>> _tags;
+    private readonly Lazy<IReadOnlySet<string>> _anidbTagIDs;
+    private readonly Lazy<IReadOnlySet<string>> _anidbTags;
     private readonly Lazy<int> _totalEpisodeCount;
     private readonly Lazy<IReadOnlySet<string>> _videoSources;
     private readonly Lazy<IReadOnlySet<int>> _years;
@@ -111,11 +113,25 @@ public class Filterable : IFilterable
         init => _videoFiles = new Lazy<int>(value);
     }
 
-    public IReadOnlySet<string> Tags => _tags.Value;
+    public IReadOnlySet<string> AnidbTagIDs => _anidbTagIDs.Value;
 
-    public required Func<IReadOnlySet<string>> TagsDelegate
+    public required Func<IReadOnlySet<string>> AnidbTagIDsDelegate
     {
-        init => _tags = new Lazy<IReadOnlySet<string>>(value);
+        init => _anidbTagIDs = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> AnidbTags => _anidbTags.Value;
+
+    public required Func<IReadOnlySet<string>> AnidbTagsDelegate
+    {
+        init => _anidbTags = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> CustomTagIDs => _customTagIDs.Value;
+
+    public required Func<IReadOnlySet<string>> CustomTagIDsDelegate
+    {
+        init => _customTagIDs = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> CustomTags => _customTags.Value;

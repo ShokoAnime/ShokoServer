@@ -17,7 +17,9 @@ public class TestFilterable : IFilterable
     public int MissingEpisodes { get; init; }
     public int MissingEpisodesCollecting { get; init; }
     public int VideoFiles { get; init; }
-    public IReadOnlySet<string> Tags { get; init; }
+    public IReadOnlySet<string> AnidbTagIDs { get; init; }
+    public IReadOnlySet<string> AnidbTags { get; init; }
+    public IReadOnlySet<string> CustomTagIDs { get; init; }
     public IReadOnlySet<string> CustomTags { get; init; }
     public IReadOnlySet<int> Years { get; init; }
     public IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; init; }
