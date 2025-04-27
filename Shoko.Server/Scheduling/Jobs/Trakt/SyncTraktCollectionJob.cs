@@ -30,7 +30,7 @@ public class SyncTraktCollectionJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}", nameof(SyncTraktCollectionJob));
         var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.VipStatus) return Task.CompletedTask;
 
         var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync);
         if (sched == null)

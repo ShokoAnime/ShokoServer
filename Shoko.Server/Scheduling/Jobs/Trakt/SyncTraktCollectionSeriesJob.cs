@@ -35,7 +35,7 @@ public class SyncTraktCollectionSeriesJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} -> Series: {Name}", nameof(SyncTraktCollectionSeriesJob), _seriesName);
         var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.VipStatus) return Task.CompletedTask;
 
         var series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
         if (series == null)
