@@ -30,7 +30,7 @@ public class PluginInfo
     /// <summary>
     /// Whether the plugin can be uninstalled.
     /// </summary>
-    public bool CanUninstall { get; init; }
+    public required bool CanUninstall { get; init; }
 
     /// <summary>
     /// The instance of the plugin.
