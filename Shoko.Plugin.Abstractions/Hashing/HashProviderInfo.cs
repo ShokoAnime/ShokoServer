@@ -19,12 +19,12 @@ public class HashProviderInfo
     /// <summary>
     /// The version of the hash provider.
     /// </summary>
-    public Version Version => Provider.Version;
+    public required Version Version { get; init; }
 
     /// <summary>
     /// The display name of the hash provider.
     /// </summary>
-    public string Name => Provider.Name;
+    public required string Name { get; init; }
 
     /// <summary>
     /// Describes what the hash provider is for.

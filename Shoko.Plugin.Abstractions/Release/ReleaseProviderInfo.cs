@@ -17,12 +17,12 @@ public class ReleaseProviderInfo
     /// <summary>
     /// The version of the release info provider.
     /// </summary>
-    public Version Version => Provider.Version;
+    public required Version Version { get; init; }
 
     /// <summary>
     /// The display name of the release info provider.
     /// </summary>
-    public string Name => Provider.Name;
+    public required string Name { get; init; }
 
     /// <summary>
     /// Describes what the release info provider is for.

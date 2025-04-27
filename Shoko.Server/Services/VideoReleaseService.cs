@@ -133,6 +133,8 @@ public class VideoReleaseService(
                     return new ReleaseProviderInfo()
                     {
                         ID = id,
+                        Version = provider.Version,
+                        Name = provider.Name,
                         Description = description,
                         Provider = provider,
                         ConfigurationInfo = configurationInfo,
@@ -147,6 +149,8 @@ public class VideoReleaseService(
                 .Select((info, priority) => new ReleaseProviderInfo()
                 {
                     ID = info.ID,
+                    Version = info.Version,
+                    Name = info.Name,
                     Description = info.Description,
                     Provider = info.Provider,
                     ConfigurationInfo = info.ConfigurationInfo,
@@ -175,6 +179,8 @@ public class VideoReleaseService(
             .Select(info => new ReleaseProviderInfo()
             {
                 ID = info.ID,
+                Version = info.Version,
+                Name = info.Name,
                 Description = info.Description,
                 Provider = info.Provider,
                 ConfigurationInfo = info.ConfigurationInfo,
@@ -192,6 +198,8 @@ public class VideoReleaseService(
             .Select(info => new ReleaseProviderInfo()
             {
                 ID = info.ID,
+                Version = info.Version,
+                Name = info.Name,
                 Description = info.Description,
                 Provider = info.Provider,
                 ConfigurationInfo = info.ConfigurationInfo,
@@ -226,6 +234,8 @@ public class VideoReleaseService(
             ? new()
             {
                 ID = providerInfo.ID,
+                Version = providerInfo.Version,
+                Name = providerInfo.Name,
                 Description = providerInfo.Description,
                 Provider = providerInfo.Provider,
                 ConfigurationInfo = providerInfo.ConfigurationInfo,
@@ -292,6 +302,8 @@ public class VideoReleaseService(
                     .Select(info => new ReleaseProviderInfo()
                     {
                         ID = info.ID,
+                        Version = info.Version,
+                        Name = info.Name,
                         Description = info.Description,
                         Provider = info.Provider,
                         ConfigurationInfo = info.ConfigurationInfo,
@@ -367,6 +379,8 @@ public class VideoReleaseService(
             .Select((provider, index) => new ReleaseProviderInfo()
             {
                 ID = provider.ID,
+                Version = provider.Version,
+                Name = provider.Name,
                 Description = provider.Description,
                 Provider = provider.Provider,
                 ConfigurationInfo = provider.ConfigurationInfo,
