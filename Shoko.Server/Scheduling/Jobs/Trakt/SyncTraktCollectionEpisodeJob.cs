@@ -49,7 +49,8 @@ public class SyncTraktCollectionEpisodeJob : BaseJob
         var settings = _settingsProvider.GetSettings();
 
         if (!settings.TraktTv.Enabled ||
-            string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+            string.IsNullOrEmpty(settings.TraktTv.AuthToken) ||
+            !settings.TraktTv.VipStatus)
         {
             return Task.CompletedTask;
         }
