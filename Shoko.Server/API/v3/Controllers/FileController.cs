@@ -19,6 +19,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -145,8 +146,9 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="body">The body containing the file ids to delete.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpDelete]
-    public async Task<ActionResult> DeleteFiles([FromBody] File.Input.BatchDeleteBody body = null)
+    public async Task<ActionResult> DeleteFiles([FromBody] File.Input.BatchDeleteFilesBody body = null)
     {
         if (body == null)
             return ValidationProblem("Missing Body.");
@@ -355,6 +357,44 @@ public class FileController : BaseController
         return file.Places
             .Select(location => new File.Location(location, includeAbsolutePaths))
             .ToList();
+    }
+
+    /// <summary>
+    /// Deletes file locations in batches, optionally also deleting the physical
+    /// file.
+    /// </summary>
+    /// <param name="body">
+    /// The body with the IDs to delete, optionally with other options.
+    /// </param>
+    /// <returns>Returns the file location information.</returns>
+    [Authorize("admin")]
+    [HttpDelete("Location")]
+    public async Task<ActionResult> BatchDeleteFileLocations([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Input.BatchDeleteFileLocationsBody body)
+    {
+        var locations = body.locationIDs
+            .Select(locationID => locationID <= 0 ? null : RepoFactory.VideoLocalPlace.GetByID(locationID))
+            .WhereNotNull()
+            .ToList();
+        var errors = new List<Exception>();
+        foreach (var location in locations)
+        {
+            try
+            {
+                if (body.removeFiles)
+                    await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(location, body.removeFolders);
+                else
+                    await _vlPlaceService.RemoveRecord(location);
+            }
+            catch (Exception ex)
+            {
+                errors.Add(ex);
+            }
+        }
+
+        if (errors.Count > 0)
+            throw new AggregateException(errors);
+
+        return Ok();
     }
 
     /// <summary>
