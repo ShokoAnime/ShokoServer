@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using FluentNHibernate.Conventions.AcceptanceCriteria;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;

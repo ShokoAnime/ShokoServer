@@ -1,4 +1,3 @@
-using System;
 using Shoko.Plugin.Abstractions;
 
 #nullable enable
