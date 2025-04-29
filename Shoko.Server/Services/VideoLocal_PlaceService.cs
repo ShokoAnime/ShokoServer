@@ -296,7 +296,7 @@ public class VideoLocal_PlaceService
 
             if (destinationExistingReleaseInfo.GroupID == releaseInfo.GroupID &&
                 destinationExistingReleaseInfo.GroupSource == releaseInfo.GroupSource &&
-                destinationExistingReleaseInfo.Revision < releaseInfo.Revision)
+                destinationExistingReleaseInfo.Version < releaseInfo.Version)
             {
                 // This is a V2 replacing a V1 with the same name.
                 // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
