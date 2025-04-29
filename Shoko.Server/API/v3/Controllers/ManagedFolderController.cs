@@ -19,7 +19,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using Directory = System.IO.Directory;

@@ -1,6 +1,5 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
