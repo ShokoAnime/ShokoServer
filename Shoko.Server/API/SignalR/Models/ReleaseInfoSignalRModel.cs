@@ -24,7 +24,7 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
     public string? ReleaseURI { get; init; }
 
     /// <inheritdoc />
-    public int Revision { get; init; }
+    public int Version { get; init; }
 
     /// <inheritdoc />
     public long? FileSize { get; init; }
@@ -82,7 +82,7 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
         ID = releaseInfo.ID;
         ProviderName = releaseInfo.ProviderName;
         ReleaseURI = releaseInfo.ReleaseURI;
-        Revision = releaseInfo.Revision;
+        Version = releaseInfo.Version;
         FileSize = releaseInfo.FileSize;
         Comment = releaseInfo.Comment;
         OriginalFilename = releaseInfo.OriginalFilename;

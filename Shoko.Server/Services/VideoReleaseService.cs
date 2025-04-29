@@ -575,8 +575,8 @@ public class VideoReleaseService(
         }
 
         // Make sure the revision is valid.
-        if (releaseInfo.Revision < 1)
-            releaseInfo.Revision = 1;
+        if (releaseInfo.Version < 1)
+            releaseInfo.Version = 1;
 
         releaseInfo.LastUpdatedAt = DateTime.Now;
         matchAttempt.AttemptEndedAt = release.LastUpdatedAt;

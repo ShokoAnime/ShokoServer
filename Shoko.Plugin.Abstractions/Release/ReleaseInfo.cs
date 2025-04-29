@@ -33,7 +33,7 @@ public class ReleaseInfo
     /// <see cref="Group"/> releases a new version for the same release.
     /// The value is not guaranteed to be unique.
     /// </summary>
-    public int Revision { get; set; }
+    public int Version { get; set; }
 
     /// <summary>
     /// File size in bytes, if available from the provider.
@@ -122,7 +122,7 @@ public class ReleaseInfo
     public ReleaseInfo()
     {
         CreatedAt = DateTime.Now;
-        Revision = 1;
+        Version = 1;
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public class ReleaseInfo
         ID = info.ID;
         ProviderName = info.ProviderName;
         ReleaseURI = info.ReleaseURI;
-        Revision = info.Revision;
+        Version = info.Version;
         FileSize = info.FileSize;
         Comment = info.Comment;
         OriginalFilename = info.OriginalFilename;
@@ -163,7 +163,7 @@ public class ReleaseInfo
         ID = info.ID;
         ProviderName = info.ProviderName;
         ReleaseURI = info.ReleaseURI;
-        Revision = info.Revision;
+        Version = info.Version;
         FileSize = info.FileSize;
         Comment = info.Comment;
         OriginalFilename = info.OriginalFilename;

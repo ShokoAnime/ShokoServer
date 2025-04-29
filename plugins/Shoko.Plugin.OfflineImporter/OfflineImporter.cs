@@ -141,7 +141,7 @@ public partial class OfflineImporter(ILogger<OfflineImporter> logger, IApplicati
                 if (match.Source is not null)
                     releaseInfo.Source = match.Source.Value;
                 releaseInfo.OriginalFilename = Path.GetFileName(match.FilePath);
-                releaseInfo.Revision = match.Version ?? 1;
+                releaseInfo.Version = match.Version ?? 1;
                 releaseInfo.Metadata = JsonConvert.SerializeObject(match, new JsonSerializerSettings() { Converters = [new StringEnumConverter()] });
                 releaseInfo.IsCreditless = match.Creditless;
                 releaseInfo.IsCensored = match.Censored;
