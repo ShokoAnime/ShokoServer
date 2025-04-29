@@ -12,7 +12,7 @@ public class ReleaseDeletedSignalRModel(VideoReleaseDeletedEventArgs args)
     /// <summary>
     /// The video ID, if it was available when the release was deleted.
     /// </summary>
-    public int? VideoID { get; } = args.Video?.ID;
+    public int? FileID { get; } = args.Video?.ID;
 
     /// <summary>
     /// The release info.
