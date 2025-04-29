@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.Events;
-using Shoko.Plugin.Abstractions.Release;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;
@@ -17,7 +16,7 @@ public class ReleaseSearchCompletedSignalRModel(VideoReleaseSearchCompletedEvent
     /// <summary>
     /// The video ID.
     /// </summary>
-    public int VideoID { get; } = args.Video.ID;
+    public int FileID { get; } = args.Video.ID;
 
     /// <summary>
     /// Indicates if the found releases should be saved.

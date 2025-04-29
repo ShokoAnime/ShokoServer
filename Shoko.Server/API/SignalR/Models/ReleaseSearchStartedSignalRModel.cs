@@ -13,7 +13,7 @@ public class ReleaseSearchStartedSignalRModel(VideoReleaseSearchStartedEventArgs
     /// <summary>
     /// The video ID.
     /// </summary>
-    public int VideoID { get; } = args.Video.ID;
+    public int FileID { get; } = args.Video.ID;
 
     /// <summary>
     /// Indicates if the found releases should be saved.
