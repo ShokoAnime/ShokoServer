@@ -1163,7 +1163,7 @@ public class DatabaseFixes
                 storedReleaseInfo.ID = $"{AnidbReleaseProvider.IdPrefix}{ed2k}+{fileSize}";
                 storedReleaseInfo.ProviderName = anidbProvider.Name;
                 storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile.FileID}";
-                storedReleaseInfo.Revision = anidbFile.FileVersion;
+                storedReleaseInfo.Version = anidbFile.FileVersion;
                 storedReleaseInfo.Comment = string.IsNullOrEmpty(anidbFile.File_Description) ? null : anidbFile.File_Description;
                 storedReleaseInfo.OriginalFilename = anidbFile.FileName;
                 storedReleaseInfo.IsCensored = anidbFile.IsCensored;

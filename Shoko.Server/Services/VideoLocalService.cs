@@ -204,7 +204,7 @@ public class VideoLocalService
             AniDB_File_Source = aniFile?.LegacySource ?? string.Empty,
             AniDB_FileID = aniFile is not null ? int.Parse(aniFile?.ReleaseURI[AnidbReleaseProvider.ReleasePrefix.Length..]) : 0,
             AniDB_GroupID = relGroup.GroupID,
-            AniDB_File_FileVersion = aniFile?.Revision ?? 1,
+            AniDB_File_FileVersion = aniFile?.Version ?? 1,
             AniDB_File_IsCensored = aniFile?.IsCensored ?? false ? 1 : 0,
             AniDB_File_IsChaptered = aniFile?.IsChaptered ?? false ? 1 : 0,
             AniDB_File_IsDeprecated = aniFile?.IsCorrupted ?? false ? 1 : 0,

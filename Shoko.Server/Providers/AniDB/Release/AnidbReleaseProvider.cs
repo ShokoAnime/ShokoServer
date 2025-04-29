@@ -147,7 +147,7 @@ public partial class AnidbReleaseProvider(
         {
             ID = IdPrefix + releaseId,
             ReleaseURI = $"{ReleasePrefix}{anidbFile.FileID}",
-            Revision = anidbFile.Version,
+            Version = anidbFile.Version,
             Comment = anidbFile.Description,
             OriginalFilename = anidbFile.Filename,
             IsCensored = anidbFile.Censored,

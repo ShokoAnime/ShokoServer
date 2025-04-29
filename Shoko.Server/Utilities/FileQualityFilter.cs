@@ -465,7 +465,7 @@ public static class FileQualityFilter
         if (!string.Equals(newSimpleCodec, oldSimpleCodec))
             return 0;
 
-        return oldFile.Revision.CompareTo(newFile.Revision);
+        return oldFile.Version.CompareTo(newFile.Version);
     }
 
     private static int CompareVideoCodecTo(IMediaInfo newMedia, IMediaInfo oldMedia)

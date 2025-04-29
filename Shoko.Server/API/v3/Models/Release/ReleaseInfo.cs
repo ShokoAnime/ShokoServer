@@ -38,7 +38,7 @@ public class ReleaseInfo : IReleaseInfo
     /// <see cref="Group"/> releases a new version for the same release.
     /// The value is not guaranteed to be unique.
     /// </summary>
-    public int Revision { get; init; }
+    public int Version { get; init; }
 
     /// <summary>
     /// File size in bytes, if available from the provider.
@@ -143,7 +143,7 @@ public class ReleaseInfo : IReleaseInfo
         ID = releaseInfo.ID;
         ProviderName = releaseInfo.ProviderName;
         ReleaseURI = releaseInfo.ReleaseURI;
-        Revision = releaseInfo.Revision;
+        Version = releaseInfo.Version;
         FileSize = releaseInfo.FileSize;
         Comment = releaseInfo.Comment;
         OriginalFilename = releaseInfo.OriginalFilename;
