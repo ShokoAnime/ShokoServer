@@ -32,7 +32,7 @@ public interface IReleaseInfo
     /// <see cref="Group"/> releases a new version for the same release.
     /// The value is not guaranteed to be unique.
     /// </summary>
-    int Revision { get; }
+    int Version { get; }
 
     /// <summary>
     /// File size in bytes, if available from the provider.

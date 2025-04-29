@@ -24,7 +24,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         ID = releaseInfo.ID;
         ProviderName = releaseInfo.ProviderName;
         ReleaseURI = releaseInfo.ReleaseURI;
-        Revision = releaseInfo.Revision;
+        Version = releaseInfo.Version;
         ProvidedFileSize = releaseInfo.FileSize;
         Comment = releaseInfo.Comment;
         OriginalFilename = releaseInfo.OriginalFilename;
@@ -73,7 +73,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public string? ReleaseURI { get; set; }
 
-    public int Revision { get; set; }
+    public int Version { get; set; }
 
     /// <summary>
     /// The file size for the found release provided by the release provider or user, if any.
@@ -242,7 +242,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
                 ID,
                 ProviderName,
                 ReleaseURI,
-                Revision,
+                Version,
                 Comment,
                 OriginalFilename,
                 ReleasedAt

@@ -239,7 +239,7 @@ public class WebUI
 
                     // File criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileVersion))
-                        groupByDetails.FileVersion = release?.Revision ?? 1;
+                        groupByDetails.FileVersion = release?.Version ?? 1;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
                         groupByDetails.FileSource = release?.Source ?? ReleaseSource.Unknown;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))

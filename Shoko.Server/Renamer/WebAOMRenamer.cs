@@ -389,28 +389,28 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             {
                 if (!notCondition)
                 {
-                    return aniFile.Revision == version;
+                    return aniFile.Version == version;
                 }
 
-                return aniFile.Revision != version;
+                return aniFile.Version != version;
             }
 
             if (greaterThan)
             {
-                return aniFile.Revision > version;
+                return aniFile.Version > version;
             }
 
             if (greaterThanEqual)
             {
-                return aniFile.Revision >= version;
+                return aniFile.Version >= version;
             }
 
             if (lessThan)
             {
-                return aniFile.Revision < version;
+                return aniFile.Version < version;
             }
 
-            return aniFile.Revision <= version;
+            return aniFile.Version <= version;
         }
         catch (Exception ex)
         {
@@ -1756,7 +1756,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().Contains(Constants.FileRenameTag.FileVersion))
         {
-            newFileName = newFileName.Replace(Constants.FileRenameTag.FileVersion, aniFile?.Revision.ToString() ?? "1");
+            newFileName = newFileName.Replace(Constants.FileRenameTag.FileVersion, aniFile?.Version.ToString() ?? "1");
         }
 
         #endregion
