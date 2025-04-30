@@ -53,6 +53,19 @@ public class AbstractUserDataService(
         ArgumentNullException.ThrowIfNull(video, nameof(video));
         ArgumentNullException.ThrowIfNull(userDataUpdate, nameof(userDataUpdate));
 
+        var watchedStatusChanged = false;
+        if (GetVideoUserData(user.ID, video.ID) is { } existingUserData)
+        {
+            if (userDataUpdate.LastPlayedAt.HasValue)
+                watchedStatusChanged = !existingUserData.LastPlayedAt.HasValue || !existingUserData.LastPlayedAt.Value.Equals(userDataUpdate.LastPlayedAt.Value);
+            else
+                watchedStatusChanged = existingUserData.LastPlayedAt.HasValue;
+        }
+        else
+        {
+            watchedStatusChanged = userDataUpdate.LastPlayedAt.HasValue;
+        }
+
         var settings = settingsProvider.GetSettings();
         var scheduler = await schedulerFactory.GetScheduler();
         var syncTrakt = ((SVR_JMMUser)user).IsTraktUser == 1 && settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken);
@@ -149,7 +162,7 @@ public class AbstractUserDataService(
             }
         }
 
-        if (syncAnidb)
+        if (syncAnidb && watchedStatusChanged)
             await scheduler.StartJob<UpdateMyListFileStatusJob>(c =>
             {
                 c.Hash = video.Hashes.ED2K;
