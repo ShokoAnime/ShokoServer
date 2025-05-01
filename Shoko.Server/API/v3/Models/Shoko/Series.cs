@@ -68,6 +68,11 @@ public class Series : BaseModel
     public List<DayOfWeek> AirsOn { get; set; }
 
     /// <summary>
+    /// The yearly seasons this series belongs to.
+    /// </summary>
+    public List<YearlySeason> Seasons { get; set; }
+
+    /// <summary>
     /// links to series pages on various sites
     /// </summary>
     public List<Resource> Links { get; set; }
@@ -142,6 +147,9 @@ public class Series : BaseModel
         Description = ser.PreferredOverview;
         Images = ser.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
         AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
+        Seasons = anime.Seasons
+            .Select(x => new YearlySeason(x.Year, x.Season))
+            .ToList();
         Sizes = sizes;
         Created = ser.DateTimeCreated.ToUniversalTime();
         Updated = ser.DateTimeUpdated.ToUniversalTime();
