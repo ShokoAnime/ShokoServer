@@ -592,7 +592,7 @@ public partial class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] locationIDs { get; set; }
+            public int[] locationIDs { get; set; } = [];
 
             /// <summary>
             /// Remove all physical file locations and not just the file record.
