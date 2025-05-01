@@ -78,13 +78,13 @@ public class TmdbSeason
     /// </summary>
     /// <value>Each weekday</value>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
-    public List<DayOfWeek>? AirsOn { get; set; }
+    public List<DayOfWeek>? DaysOfWeek { get; set; }
 
     /// <summary>
     /// The yearly seasons this season belongs to.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<YearlySeason>? Seasons { get; set; }
+    public List<YearlySeason>? YearlySeasons { get; set; }
 
     /// <summary>
     /// The season number for the main ordering or alternate ordering in use.
@@ -148,9 +148,9 @@ public class TmdbSeason
                 .Select(crew => new Role(crew))
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            Seasons = season.Seasons.ToV3Dto();
+            YearlySeasons = season.Seasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.DaysOfWeek))
-            AirsOn = season.TmdbEpisodes
+            DaysOfWeek = season.TmdbEpisodes
                 .Select(e => e.AiredAt?.DayOfWeek)
                 .WhereNotDefault()
                 .Distinct()
@@ -180,9 +180,9 @@ public class TmdbSeason
         if (include.HasFlag(IncludeDetails.Images))
             Images = new();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            Seasons = season.Seasons.ToV3Dto();
+            YearlySeasons = season.Seasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.DaysOfWeek))
-            AirsOn = season.TmdbAlternateOrderingEpisodes
+            DaysOfWeek = season.TmdbAlternateOrderingEpisodes
                 .Select(e => e.TmdbEpisode?.AiredAt?.DayOfWeek)
                 .WhereNotDefault()
                 .Distinct()

@@ -70,7 +70,7 @@ public class Series : BaseModel
     /// <summary>
     /// The yearly seasons this series belongs to.
     /// </summary>
-    public List<YearlySeason> Seasons { get; set; }
+    public List<YearlySeason> YearlySeasons { get; set; }
 
     /// <summary>
     /// links to series pages on various sites
@@ -147,7 +147,7 @@ public class Series : BaseModel
         Description = ser.PreferredOverview;
         Images = ser.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
         AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
-        Seasons = anime.Seasons
+        YearlySeasons = anime.Seasons
             .Select(x => new YearlySeason(x.Year, x.Season))
             .ToList();
         Sizes = sizes;

@@ -126,13 +126,13 @@ public class TmdbShow
     /// </summary>
     /// <value>Each weekday</value>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
-    public List<DayOfWeek>? AirsOn { get; set; }
+    public List<DayOfWeek>? DaysOfWeek { get; set; }
 
     /// <summary>
     /// The yearly seasons this show belongs to.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<YearlySeason>? Seasons { get; set; }
+    public List<YearlySeason>? YearlySeasons { get; set; }
 
     /// <summary>
     /// Count of episodes associated with the show.
@@ -240,9 +240,9 @@ public class TmdbShow
                 .Select(cast => new Role(cast))
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            Seasons = show.Seasons.ToV3Dto();
+            YearlySeasons = show.Seasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.DaysOfWeek))
-            AirsOn = show.TmdbEpisodes
+            DaysOfWeek = show.TmdbEpisodes
                 .Select(e => e.AiredAt?.DayOfWeek)
                 .WhereNotDefault()
                 .Distinct()

@@ -147,7 +147,7 @@ public class TmdbMovie
     /// The yearly seasons this movie belongs to.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<YearlySeason>? Seasons { get; set; }
+    public List<YearlySeason>? YearlySeasons { get; set; }
 
     /// <summary>
     /// Movie cross-references.
@@ -227,7 +227,7 @@ public class TmdbMovie
                 .Select(crew => new Role(crew))
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            Seasons = movie.Seasons.ToV3Dto();
+            YearlySeasons = movie.Seasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.CrossReferences))
             CrossReferences = movie.CrossReferences
                 .Select(xref => new CrossReference(xref))
