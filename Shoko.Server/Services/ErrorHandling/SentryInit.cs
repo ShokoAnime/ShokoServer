@@ -12,6 +12,7 @@ using Quartz;
 using Sentry;
 using Sentry.AspNetCore;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 
@@ -34,9 +35,9 @@ public static class SentryInit
 
         // Only initialize the SDK if we're not on a debug build.
         //
-        // If the release channel is not set or if it's set to "debug" then
+        // If the release channel is not set or if it's set to "stable" or "dev" then
         // it's considered to be a debug build.
-        if (!extraInfo.TryGetValue("channel", out var environment) || environment == "debug")
+        if (!extraInfo.TryGetValue("channel", out var environment) || !Enum.TryParse<ReleaseChannel>(environment, true, out var channel) || channel is not ReleaseChannel.Stable and not ReleaseChannel.Dev)
             return webHost;
 
         return webHost.UseSentry(Action);
