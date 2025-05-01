@@ -1,6 +1,7 @@
 using System;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.Abstractions.Events;
 
@@ -24,7 +25,8 @@ public class EpisodeInfoUpdatedEventArgs : EventArgs
 
     /// <summary>
     /// This is the full data. A diff was not performed for this.
-    /// This is provided for convenience, use <see cref="IShokoEventHandler.SeriesUpdated"/>
+    ///
+    /// This is provided for convenience.
     /// </summary>
     public ISeries SeriesInfo { get; }
 
