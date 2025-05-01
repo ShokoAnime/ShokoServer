@@ -20,6 +20,7 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
@@ -1194,7 +1195,7 @@ public class DatabaseFixes
                     new() { Type = "ED2K", Value = ed2k },
                     ..video?.Hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }) ?? [],
                 ];
-                storedReleaseInfo.ReleasedAt = anidbFile.File_ReleaseDate is null ? null : DateOnly.FromDateTime(anidbFile.File_ReleaseDate.Value);
+                storedReleaseInfo.ReleasedAt = anidbFile.File_ReleaseDate?.ToDateOnly();
                 storedReleaseInfo.AudioLanguages = audioLanguages;
                 storedReleaseInfo.SubtitleLanguages = subtitleLanguages;
 

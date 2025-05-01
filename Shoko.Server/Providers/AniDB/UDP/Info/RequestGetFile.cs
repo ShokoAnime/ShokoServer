@@ -112,7 +112,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                 var description = parts[11];
                 var filename = parts[13];
                 var airDate = int.TryParse(parts[12], out var rawReleaseDate) && rawReleaseDate > 0
-                    ? DateOnly.FromDateTime(DateTime.UnixEpoch.AddSeconds(rawReleaseDate))
+                    ? DateTime.UnixEpoch.AddSeconds(rawReleaseDate).ToDateOnly()
                     : (DateOnly?)null;
                 var groupName = parts[14];
                 var groupShortName = parts[15];
