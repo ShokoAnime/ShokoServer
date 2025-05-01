@@ -55,6 +55,9 @@ public static class EnumerableExtensions
     [return: NotNullIfNotNull(nameof(enumerable))]
     public static IEnumerable<T>? WhereNotDefault<T>(this IEnumerable<T?>? enumerable) => enumerable?.Where(a => a != null && !Equals(a, default(T))).Select(a => a!);
 
+    [return: NotNullIfNotNull(nameof(enumerable))]
+    public static IEnumerable<T>? WhereNotDefault<T>(this IEnumerable<T?>? enumerable) where T : struct => enumerable?.Where(a => a != null && !Equals(a, default(T))).Select(a => a!.Value);
+
     public static string ToRanges(this List<int> ints)
     {
         if (ints.Count < 1) return "";

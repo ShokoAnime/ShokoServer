@@ -69,7 +69,7 @@ public class AnidbEpisode
         ID = ep.EpisodeID;
         Type = ep.AbstractEpisodeType.ToV3Dto();
         EpisodeNumber = ep.EpisodeNumber;
-        AirDate = ep.GetAirDateAsDate() is { } airDate ? DateOnly.FromDateTime(airDate) : null;
+        AirDate = ep.GetAirDateAsDate()?.ToDateOnly();
         Description = ep.Description;
         Rating = new Rating { MaxValue = 10, Value = rating, Votes = votes, Source = "AniDB" };
         Title = mainTitle.Title;

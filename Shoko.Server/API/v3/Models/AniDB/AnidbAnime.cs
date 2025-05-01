@@ -8,6 +8,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -132,8 +133,8 @@ public class AnidbAnime
             };
             UserApproval = null;
             Relation = null;
-            AirDate = anime.AirDate is { } airDate ? DateOnly.FromDateTime(airDate) : null;
-            EndDate = anime.EndDate is { } endDate ? DateOnly.FromDateTime(endDate) : null;
+            AirDate = anime.AirDate?.ToDateOnly();
+            EndDate = anime.EndDate?.ToDateOnly();
         }
         else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is not null)
         {

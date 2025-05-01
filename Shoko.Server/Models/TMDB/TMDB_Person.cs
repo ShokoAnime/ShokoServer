@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
@@ -130,8 +131,8 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
             UpdateProperty(EnglishBiography, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : person.Biography, v => EnglishBiography = v),
             UpdateProperty(Aliases, person.AlsoKnownAs, v => Aliases = v, (a, b) => string.Equals(string.Join("|", a),string.Join("|", b))),
             UpdateProperty(IsRestricted, person.Adult, v => IsRestricted = v),
-            UpdateProperty(BirthDay, person.Birthday.HasValue ? DateOnly.FromDateTime(person.Birthday.Value) : null, v => BirthDay = v),
-            UpdateProperty(DeathDay, person.Deathday.HasValue ? DateOnly.FromDateTime(person.Deathday.Value) : null, v => DeathDay = v),
+            UpdateProperty(BirthDay, person.Birthday?.ToDateOnly(), v => BirthDay = v),
+            UpdateProperty(DeathDay, person.Deathday?.ToDateOnly(), v => DeathDay = v),
             UpdateProperty(PlaceOfBirth, string.IsNullOrEmpty(person.PlaceOfBirth) ? null : person.PlaceOfBirth, v => PlaceOfBirth = v),
         };
 

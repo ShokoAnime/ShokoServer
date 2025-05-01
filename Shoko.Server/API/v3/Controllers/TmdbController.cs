@@ -374,6 +374,20 @@ public partial class TmdbController : BaseController
             .ToDictionary(country => country.CountryCode, country => country.CountryName);
     }
 
+    [HttpGet("Movie/{movieID}/YearlySeasons")]
+    public ActionResult<IReadOnlyList<YearlySeason>> GetYearlySeasonsForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie is not null && _tmdbMetadataService.WaitForMovieUpdate(movieID))
+            movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie is null)
+            return NotFound(MovieNotFound);
+
+        return movie.Seasons.ToV3Dto();
+    }
+
     #endregion
 
     #region Same-Source Linked Entries
@@ -1294,6 +1308,39 @@ public partial class TmdbController : BaseController
             .ToDictionary(country => country.CountryCode, country => country.CountryName);
     }
 
+    [HttpGet("Show/{showID}/YearlySeasons")]
+    public ActionResult<IReadOnlyList<YearlySeason>> GetYearlySeasonsForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(showID))
+            show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        return show.Seasons.ToV3Dto();
+    }
+
+    [HttpGet("Show/{showID}/DaysOfWeek")]
+    public ActionResult<IReadOnlyList<string>> GetDaysOfWeekForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(showID))
+            show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show is null)
+            return NotFound(ShowNotFound);
+
+        return show.TmdbEpisodes
+            .Select(e => e.AiredAt?.DayOfWeek.ToString())
+            .WhereNotDefault()
+            .Distinct()
+            .Order()
+            .ToList();
+    }
+
     #endregion
 
     #region Same-Source Linked Entries
@@ -1945,6 +1992,68 @@ public partial class TmdbController : BaseController
 
         return season.Crew
             .Select(crew => new Role(crew))
+            .ToList();
+    }
+
+    [HttpGet("Season/{seasonID}/YearlySeasons")]
+    public ActionResult<IReadOnlyList<YearlySeason>> GetYearlySeasonsForTmdbSeasonBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason is not null && _tmdbMetadataService.WaitForShowUpdate(altOrderSeason.TmdbShowID))
+                altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason is null)
+                return NotFound(SeasonNotFound);
+
+            return altOrderSeason.Seasons.ToV3Dto();
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season is not null && _tmdbMetadataService.WaitForShowUpdate(season.TmdbShowID))
+            season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season is null)
+            return NotFound(SeasonNotFound);
+
+        return season.Seasons.ToV3Dto();
+    }
+
+    [HttpGet("Season/{seasonID}/DaysOfWeek")]
+    public ActionResult<IReadOnlyList<string>> GetDaysOfWeekForTmdbSeasonBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason is not null && _tmdbMetadataService.WaitForShowUpdate(altOrderSeason.TmdbShowID))
+                altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason is null)
+                return NotFound(SeasonNotFound);
+
+            return altOrderSeason.TmdbAlternateOrderingEpisodes
+                .Select(e => e.TmdbEpisode?.AiredAt?.DayOfWeek.ToString())
+                .WhereNotDefault()
+                .Distinct()
+                .Order()
+                .ToList();
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season is not null && _tmdbMetadataService.WaitForShowUpdate(season.TmdbShowID))
+            season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season is null)
+            return NotFound(SeasonNotFound);
+
+        return season.TmdbEpisodes
+            .Select(e => e.AiredAt?.DayOfWeek.ToString())
+            .WhereNotDefault()
+            .Distinct()
+            .Order()
             .ToList();
     }
 

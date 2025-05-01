@@ -108,31 +108,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     }
 
     public IEnumerable<(int Year, AnimeSeason Season)> Seasons
-    {
-        get
-        {
-            if (AirDate is null) yield break;
-
-            var beginYear = AirDate.Value.Year;
-            var endYear = EndDate?.Year ?? DateTime.Today.Year;
-            for (var year = beginYear; year <= endYear; year++)
-            {
-                if (beginYear < year && year < endYear)
-                {
-                    yield return (year, AnimeSeason.Winter);
-                    yield return (year, AnimeSeason.Spring);
-                    yield return (year, AnimeSeason.Summer);
-                    yield return (year, AnimeSeason.Fall);
-                    continue;
-                }
-
-                if (this.IsInSeason(AnimeSeason.Winter, year)) yield return (year, AnimeSeason.Winter);
-                if (this.IsInSeason(AnimeSeason.Spring, year)) yield return (year, AnimeSeason.Spring);
-                if (this.IsInSeason(AnimeSeason.Summer, year)) yield return (year, AnimeSeason.Summer);
-                if (this.IsInSeason(AnimeSeason.Fall, year)) yield return (year, AnimeSeason.Fall);
-            }
-        }
-    }
+        => AirDate.GetYearlySeasons(EndDate);
 
     public List<CustomTag> CustomTags
         => RepoFactory.CustomTag.GetByAnimeID(AnimeID);

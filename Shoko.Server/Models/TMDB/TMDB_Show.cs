@@ -14,6 +14,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
 
+using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
+
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
@@ -248,8 +250,8 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             UpdateProperty(AlternateOrderingCount, show.EpisodeGroups?.Results.Count ?? AlternateOrderingCount, v => AlternateOrderingCount = v),
             UpdateProperty(UserRating, show.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, show.VoteCount, v => UserVotes = v),
-            UpdateProperty(FirstAiredAt, show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null, v => FirstAiredAt = v),
-            UpdateProperty(LastAiredAt, !string.IsNullOrEmpty(show.Status) && show.Status.Equals("Ended", StringComparison.InvariantCultureIgnoreCase) && show.LastAirDate.HasValue ? DateOnly.FromDateTime(show.LastAirDate.Value) : null, v => LastAiredAt = v),
+            UpdateProperty(FirstAiredAt, show.FirstAirDate?.ToDateOnly(), v => FirstAiredAt = v),
+            UpdateProperty(LastAiredAt, !string.IsNullOrEmpty(show.Status) && show.Status.Equals("Ended", StringComparison.InvariantCultureIgnoreCase) && show.LastAirDate.HasValue ? show.LastAirDate?.ToDateOnly(): null, v => LastAiredAt = v),
         };
 
         return updates.Any(updated => updated);
@@ -469,6 +471,12 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             .ThenBy(crew => crew.Job)
             .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
+
+    /// <summary>
+    /// Get all yearly seasons the show was released in.
+    /// </summary>
+    public IEnumerable<(int Year, AnimeSeason Season)> Seasons
+        => FirstAiredAt.GetYearlySeasons(LastAiredAt);
 
     /// <summary>
     /// Get the preferred alternate ordering scheme associated with the show in

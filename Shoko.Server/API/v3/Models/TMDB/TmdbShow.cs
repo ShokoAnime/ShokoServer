@@ -7,6 +7,7 @@ using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -121,6 +122,19 @@ public class TmdbShow
     public IReadOnlyList<Role>? Crew { get; init; }
 
     /// <summary>
+    /// The inferred days of the week this show airs on.
+    /// </summary>
+    /// <value>Each weekday</value>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
+    public List<DayOfWeek>? AirsOn { get; set; }
+
+    /// <summary>
+    /// The yearly seasons this show belongs to.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<YearlySeason>? Seasons { get; set; }
+
+    /// <summary>
     /// Count of episodes associated with the show.
     /// </summary>
     public int EpisodeCount { get; init; }
@@ -224,6 +238,15 @@ public class TmdbShow
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = (alternateOrdering is null ? show.Crew : alternateOrdering.Crew)
                 .Select(cast => new Role(cast))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.YearlySeasons))
+            Seasons = show.Seasons.ToV3Dto();
+        if (include.HasFlag(IncludeDetails.DaysOfWeek))
+            AirsOn = show.TmdbEpisodes
+                .Select(e => e.AiredAt?.DayOfWeek)
+                .WhereNotDefault()
+                .Distinct()
+                .Order()
                 .ToList();
         if (alternateOrdering != null)
         {
@@ -379,17 +402,19 @@ public class TmdbShow
     public enum IncludeDetails
     {
         None = 0,
-        Titles = 1,
-        Overviews = 2,
-        Images = 4,
-        Ordering = 8,
-        CrossReferences = 16,
-        Cast = 32,
-        Crew = 64,
-        Studios = 128,
-        Networks = 256,
-        ContentRatings = 512,
-        Keywords = 1024,
-        ProductionCountries = 2048,
+        Titles = 1 << 0,
+        Overviews = 1 << 1,
+        Images = 1 << 2,
+        Ordering = 1 << 3,
+        CrossReferences = 1 << 4,
+        Cast = 1 << 5,
+        Crew = 1 << 6,
+        Studios = 1 << 7,
+        Networks = 1 << 8,
+        ContentRatings = 1 << 9,
+        Keywords = 1 << 10,
+        ProductionCountries = 1 << 11,
+        YearlySeasons = 1 << 12,
+        DaysOfWeek = 1 << 13,
     }
 }

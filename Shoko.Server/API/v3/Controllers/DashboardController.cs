@@ -428,8 +428,8 @@ public class DashboardController : BaseController
     public List<Dashboard.Episode> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7,
         [FromQuery] bool showAll = false, [FromQuery] bool includeRestricted = false)
         => GetCalendarEpisodes(
-            DateOnly.FromDateTime(DateTime.Today),
-            DateOnly.FromDateTime(DateTime.Today).AddDays(numberOfDays),
+            DateTime.Today.ToDateOnly(),
+            DateTime.Today.ToDateOnly().AddDays(numberOfDays),
             showAll ? IncludeOnlyFilter.True : IncludeOnlyFilter.False,
             includeRestricted ? IncludeOnlyFilter.True : IncludeOnlyFilter.False
         );

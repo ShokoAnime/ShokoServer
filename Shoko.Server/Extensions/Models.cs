@@ -56,53 +56,80 @@ namespace Shoko.Server.Extensions
             return false;
         }
 
-        public static bool IsInSeason(this AniDB_Anime anime, AnimeSeason season, int year)
+        public static DateOnly ToDateOnly(this DateTime date)
+            => DateOnly.FromDateTime(date);
+
+        public static IEnumerable<(int Year, AnimeSeason Season)> GetYearlySeasons(this DateTime? startDate, DateTime? endDate = null)
+            => GetYearlySeasons(startDate?.ToDateOnly(), endDate?.ToDateOnly());
+
+        public static IEnumerable<(int Year, AnimeSeason Season)> GetYearlySeasons(this DateOnly startDate, DateOnly endDate)
+            => GetYearlySeasons((DateOnly?)startDate, (DateOnly?)endDate);
+
+        public static IEnumerable<(int Year, AnimeSeason Season)> GetYearlySeasons(this DateOnly? startDate, DateOnly? endDate = null)
         {
-            if (anime.AirDate == null) return false;
-            // If it isn't a normal series, then it won't adhere to standard airing norms
-            if (anime.AnimeType != (int)AnimeType.TVSeries && anime.AnimeType != (int)AnimeType.Web) return false;
-            return IsInSeason(anime.AirDate.Value, anime.EndDate, season, year);
+            if (startDate == null) yield break;
+            var beginYear = startDate.Value.Year;
+            var endYear = endDate?.Year ?? DateTime.Today.Year;
+            for (var year = beginYear; year <= endYear; year++)
+            {
+                if (beginYear < year && year < endYear)
+                {
+                    yield return (year, AnimeSeason.Winter);
+                    yield return (year, AnimeSeason.Spring);
+                    yield return (year, AnimeSeason.Summer);
+                    yield return (year, AnimeSeason.Fall);
+                    continue;
+                }
+                if (IsInSeason(startDate.Value, endDate, AnimeSeason.Winter, year))
+                    yield return (year, AnimeSeason.Winter);
+                if (IsInSeason(startDate.Value, endDate, AnimeSeason.Spring, year))
+                    yield return (year, AnimeSeason.Spring);
+                if (IsInSeason(startDate.Value, endDate, AnimeSeason.Summer, year))
+                    yield return (year, AnimeSeason.Summer);
+                if (IsInSeason(startDate.Value, endDate, AnimeSeason.Fall, year))
+                    yield return (year, AnimeSeason.Fall);
+            }
         }
 
-        public static bool IsInSeason(DateTime startDate, DateTime? endDate, AnimeSeason season, int year)
+        // because series don't all start on the same day, we have a buffer from the start and end of the season
+        private const int BufferDays = 23; // 75% of 30 days.
+
+        private static bool IsInSeason(DateOnly startDate, DateOnly? endDate, AnimeSeason season, int year)
         {
-            DateTime seasonStartBegin;
-            DateTime seasonStartEnd;
-            // because series don't all start on the same day, we have a buffer from the start and end of the season
-            const double Buffer = 0.75D;
-            var days = (int)Math.Ceiling(Buffer * 30);
-            DateTime seasonStart;
+            DateOnly seasonStart;
+            DateOnly seasonStartBegin;
+            DateOnly seasonStartEnd;
             switch (season)
             {
                 case AnimeSeason.Winter:
-                    // January +- buffer
-                    seasonStart = new DateTime(year, 1, 1);
-                    seasonStartBegin = seasonStart.AddDays(-days);
-                    seasonStartEnd = seasonStart.AddDays(days);
+                    // January - buffer to April
+                    seasonStart = new(year, 1, 1);
+                    seasonStartBegin = seasonStart.AddDays(-BufferDays);
+                    seasonStartEnd = new(year, 4, 1);
                     break;
                 case AnimeSeason.Spring:
-                    // April +- buffer
-                    seasonStart = new DateTime(year, 4, 1);
-                    seasonStartBegin = seasonStart.AddDays(-days);
-                    seasonStartEnd = seasonStart.AddDays(days);
+                    // April - buffer to July
+                    seasonStart = new(year, 4, 1);
+                    seasonStartBegin = seasonStart.AddDays(-BufferDays);
+                    seasonStartEnd = new(year, 7, 1);
                     break;
                 case AnimeSeason.Summer:
-                    // July +- buffer
-                    seasonStart = new DateTime(year, 7, 1);
-                    seasonStartBegin = seasonStart.AddDays(-days);
-                    seasonStartEnd = seasonStart.AddDays(days);
+                    // July - buffer to October
+                    seasonStart = new(year, 7, 1);
+                    seasonStartBegin = seasonStart.AddDays(-BufferDays);
+                    seasonStartEnd = new(year, 10, 1);
                     break;
                 case AnimeSeason.Fall:
-                    // October +- buffer
-                    seasonStart = new DateTime(year, 10, 1);
-                    seasonStartBegin = seasonStart.AddDays(-days);
-                    seasonStartEnd = seasonStart.AddDays(days);
+                    // October - buffer to January (next year)
+                    seasonStart = new(year, 10, 1);
+                    seasonStartBegin = seasonStart.AddDays(-BufferDays);
+                    seasonStartEnd = new(year + 1, 1, 1);
                     break;
                 default:
                     return false;
             }
             // Don't even count seasons that haven't happened yet
-            if (seasonStartBegin > DateTime.Today) return false;
+            if (seasonStartBegin > DateTime.Today.ToDateOnly()) return false;
 
             // If it starts in a season, then it is definitely going to be in it
             if (startDate >= seasonStartBegin && startDate <= seasonStartEnd) return true;
@@ -112,7 +139,7 @@ namespace Shoko.Server.Extensions
                 // null EndDate means it's still airing now
                 if (endDate == null) return true;
                 // A season can run long, so don't count it unless it continues well into the season (buffer * 2)
-                if (endDate.Value > seasonStart.AddDays(days * 2)) return true;
+                if (endDate.Value > seasonStart.AddDays(BufferDays * 2)) return true;
             }
 
             return false;

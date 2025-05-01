@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
 
@@ -72,10 +73,10 @@ public class WebUIFactory
             Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
         };
         if (anime.AirDate is { } airDate && airDate != DateTime.MinValue)
-            result.AirDate = DateOnly.FromDateTime(airDate);
+            result.AirDate = airDate.ToDateOnly();
 
         if (anime.EndDate is { } endDate && endDate != DateTime.MinValue)
-            result.EndDate = DateOnly.FromDateTime(endDate);
+            result.EndDate = endDate.ToDateOnly();
 
         result.Tags = Series.GetTags(anime, filter, excludeDescriptions: true, orderByName)
             .Take(tagLimit)

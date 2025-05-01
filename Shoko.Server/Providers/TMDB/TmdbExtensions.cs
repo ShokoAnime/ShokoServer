@@ -69,15 +69,6 @@ public static class TmdbExtensions
             Overview = movie.Overview,
         };
 
-    public static DateOnly? GetAirDateAsDateOnly(this AniDB_Episode episode)
-    {
-        var dateTime = episode.GetAirDateAsDate();
-        if (!dateTime.HasValue)
-            return null;
-
-        return DateOnly.FromDateTime(dateTime.Value);
-    }
-
     public static DateTime ToDateTime(this DateOnly date)
         => date.ToDateTime(MidDay, DateTimeKind.Utc);
 

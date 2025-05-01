@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
@@ -827,8 +828,8 @@ public class TmdbLinkingService
             }
         }
 
-        var anidbDate = anidbEpisode.GetAirDateAsDateOnly();
-        if (anidbDate is not null && anidbDate > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+        var anidbDate = anidbEpisode.GetAirDateAsDate()?.ToDateOnly();
+        if (anidbDate is not null && anidbDate > DateTime.UtcNow.AddDays(1).ToDateOnly())
         {
             _logger.LogTrace("Skipping future episode {EpisodeID}", anidbEpisode.EpisodeID);
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.SarahJessicaParker, 0);

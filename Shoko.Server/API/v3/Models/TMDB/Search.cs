@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
+using Shoko.Server.Extensions;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -203,7 +204,7 @@ public static class Search
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
-            ReleasedAt = movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null;
+            ReleasedAt = movie.ReleaseDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
@@ -228,7 +229,7 @@ public static class Search
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
-            ReleasedAt = movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null;
+            ReleasedAt = movie.ReleaseDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
@@ -332,7 +333,7 @@ public static class Search
             OriginalTitle = show.OriginalName;
             OriginalLanguage = show.OriginalLanguage;
             Overview = show.Overview ?? string.Empty;
-            FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
+            FirstAiredAt = show.FirstAirDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(show.PosterPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
                 : null;
@@ -357,7 +358,7 @@ public static class Search
             OriginalTitle = show.OriginalName;
             OriginalLanguage = show.OriginalLanguage;
             Overview = show.Overview ?? string.Empty;
-            FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
+            FirstAiredAt = show.FirstAirDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(show.PosterPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
                 : null;

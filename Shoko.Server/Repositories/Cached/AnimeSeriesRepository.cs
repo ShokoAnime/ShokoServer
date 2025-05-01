@@ -441,30 +441,12 @@ GROUP BY
         return GetAllSeasons(anime!);
     }
 
-    public static SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons(IEnumerable<AniDB_Anime> anime)
+    public static SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons(IEnumerable<SVR_AniDB_Anime> anime)
     {
         var seasons = new SortedSet<(int Year, AnimeSeason Season)>();
         foreach (var current in anime)
-        {
-            var beginYear = current.AirDate!.Value.Year;
-            var endYear = current.EndDate?.Year ?? DateTime.Today.Year;
-            for (var year = beginYear; year <= endYear; year++)
-            {
-                if (beginYear < year && year < endYear)
-                {
-                    seasons.Add((year, AnimeSeason.Winter));
-                    seasons.Add((year, AnimeSeason.Spring));
-                    seasons.Add((year, AnimeSeason.Summer));
-                    seasons.Add((year, AnimeSeason.Fall));
-                    continue;
-                }
-
-                if (!seasons.Contains((year, AnimeSeason.Winter)) && current.IsInSeason(AnimeSeason.Winter, year)) seasons.Add((year, AnimeSeason.Winter));
-                if (!seasons.Contains((year, AnimeSeason.Spring)) && current.IsInSeason(AnimeSeason.Spring, year)) seasons.Add((year, AnimeSeason.Spring));
-                if (!seasons.Contains((year, AnimeSeason.Summer)) && current.IsInSeason(AnimeSeason.Summer, year)) seasons.Add((year, AnimeSeason.Summer));
-                if (!seasons.Contains((year, AnimeSeason.Fall)) && current.IsInSeason(AnimeSeason.Fall, year)) seasons.Add((year, AnimeSeason.Fall));
-            }
-        }
+            foreach (var tuple in current.Seasons)
+                seasons.Add(tuple);
 
         return seasons;
     }

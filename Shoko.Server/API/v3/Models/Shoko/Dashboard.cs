@@ -154,7 +154,7 @@ public static class Dashboard
             Title = episode.PreferredTitle.Title;
             Number = episode.EpisodeNumber;
             Type = episode.AbstractEpisodeType.ToV3Dto();
-            AirDate = episode.GetAirDateAsDate() is { } airDate ? DateOnly.FromDateTime(airDate) : null;
+            AirDate = episode.GetAirDateAsDate()?.ToDateOnly();
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
             ResumePosition = userRecord?.ResumePositionTimeSpan;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();

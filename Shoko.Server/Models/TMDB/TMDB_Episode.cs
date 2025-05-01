@@ -182,7 +182,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
             UpdateProperty(Runtime, episode.Runtime.HasValue ? TimeSpan.FromMinutes(episode.Runtime.Value) : null, v => Runtime = v),
             UpdateProperty(UserRating, episode.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, episode.VoteCount, v => UserVotes = v),
-            UpdateProperty(AiredAt, episode.AirDate.HasValue ? DateOnly.FromDateTime(episode.AirDate.Value) : null, v => AiredAt = v),
+            UpdateProperty(AiredAt, episode.AirDate?.ToDateOnly(), v => AiredAt = v),
         };
 
         return updates.Any(updated => updated);

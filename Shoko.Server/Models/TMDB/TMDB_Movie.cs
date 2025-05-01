@@ -14,6 +14,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.Movies;
 
+using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
+
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
@@ -257,7 +259,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
             UpdateProperty(Runtime, movie.Runtime.HasValue ? TimeSpan.FromMinutes(movie.Runtime.Value) : null, v => Runtime = v),
             UpdateProperty(UserRating, movie.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, movie.VoteCount, v => UserVotes = v),
-            UpdateProperty(ReleasedAt, releaseDate.HasValue ? DateOnly.FromDateTime(releaseDate.Value) : null, v => ReleasedAt = v),
+            UpdateProperty(ReleasedAt, releaseDate?.ToDateOnly(), v => ReleasedAt = v),
         };
 
         return updatedList.Any(updated => updated);
@@ -421,6 +423,12 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// <returns>All crew members that have worked on this movie.</returns>
     public IReadOnlyList<TMDB_Movie_Crew> Crew =>
         RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(TmdbMovieID);
+
+    /// <summary>
+    /// Get all yearly seasons the movie was released in.
+    /// </summary>
+    public IEnumerable<(int Year, AnimeSeason Season)> Seasons
+        => ReleasedAt.GetYearlySeasons(ReleasedAt);
 
     /// <summary>
     /// Get the TMDB movie collection linked to the movie from the local

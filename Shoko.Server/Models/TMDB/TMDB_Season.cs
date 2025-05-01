@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
+
+using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -270,6 +273,14 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
             .OrderBy(crew => crew.Job)
             .OrderBy(crew => crew.TmdbPersonID)
             .ToList();
+
+    /// <summary>
+    /// Get all yearly seasons the show was released in.
+    /// </summary>
+    public IEnumerable<(int Year, AnimeSeason Season)> Seasons
+        => TmdbEpisodes.Select(e => e?.AiredAt).WhereNotDefault().Distinct().ToList() is { Count: > 0 } airsAt
+                ? airsAt.Min().GetYearlySeasons(airsAt.Max())
+                : [];
 
     /// <summary>
     /// Get the TMDB show associated with the season, or null if the show have

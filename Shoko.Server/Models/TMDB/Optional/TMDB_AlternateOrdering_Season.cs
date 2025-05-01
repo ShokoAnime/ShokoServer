@@ -5,6 +5,8 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.TvShows;
 
+using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
+
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
@@ -156,6 +158,14 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
             .OrderBy(crew => crew.Job)
             .OrderBy(crew => crew.TmdbPersonID)
             .ToList();
+
+    /// <summary>
+    /// Get all yearly seasons the show was released in.
+    /// </summary>
+    public IEnumerable<(int Year, AnimeSeason Season)> Seasons
+        => TmdbAlternateOrderingEpisodes.Select(e => e.TmdbEpisode?.AiredAt).WhereNotDefault().Distinct().ToList() is { Count: > 0 } airsAt
+                ? airsAt.Min().GetYearlySeasons(airsAt.Max())
+                : [];
 
     public TMDB_Show? TmdbShow =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);

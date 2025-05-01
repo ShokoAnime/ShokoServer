@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
@@ -64,6 +65,11 @@ public static class APIv3_Extensions
             AbstractEpisodeType.Other => EpisodeType.Other,
             _ => EpisodeType.Unknown,
         };
+
+    public static List<YearlySeason> ToV3Dto(this IEnumerable<(int Year, AnimeSeason AnimeSeason)> seasons)
+        => seasons
+            .Select(season => new YearlySeason(season.Year, season.AnimeSeason))
+            .ToList();
 
     public static ComponentVersion ToDto(this WebUIUpdateService.ComponentVersion componentVersion)
         => new()

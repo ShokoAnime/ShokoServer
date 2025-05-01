@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
+
+using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -143,6 +144,12 @@ public class TmdbMovie
     public IReadOnlyList<Role>? Crew { get; init; }
 
     /// <summary>
+    /// The yearly seasons this movie belongs to.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<YearlySeason>? Seasons { get; set; }
+
+    /// <summary>
     /// Movie cross-references.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -219,6 +226,8 @@ public class TmdbMovie
             Crew = movie.Crew
                 .Select(crew => new Role(crew))
                 .ToList();
+        if (include.HasFlag(IncludeDetails.YearlySeasons))
+            Seasons = movie.Seasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.CrossReferences))
             CrossReferences = movie.CrossReferences
                 .Select(xref => new CrossReference(xref))
@@ -363,16 +372,17 @@ public class TmdbMovie
     public enum IncludeDetails
     {
         None = 0,
-        Titles = 1,
-        Overviews = 2,
-        Images = 4,
-        CrossReferences = 8,
-        Cast = 16,
-        Crew = 32,
-        Studios = 64,
-        ContentRatings = 128,
-        FileCrossReferences = 256,
-        Keywords = 512,
-        ProductionCountries = 1024,
+        Titles = 1 << 0,
+        Overviews = 1 << 1,
+        Images = 1 << 2,
+        CrossReferences = 1 << 3,
+        Cast = 1 << 4,
+        Crew = 1 << 5,
+        Studios = 1 << 6,
+        ContentRatings = 1 << 7,
+        FileCrossReferences = 1 << 8,
+        Keywords = 1 << 9,
+        ProductionCountries = 1 << 10,
+        YearlySeasons = 1 << 11,
     }
 }

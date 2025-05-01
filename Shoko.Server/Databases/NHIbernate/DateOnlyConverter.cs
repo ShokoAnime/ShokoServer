@@ -1,13 +1,14 @@
 using System;
+using System.Collections;
 using System.ComponentModel;
-using NHibernate.SqlTypes;
-using NHibernate.UserTypes;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using NHibernate;
 using NHibernate.Engine;
-using System.Globalization;
-using System.Collections;
+using NHibernate.SqlTypes;
+using NHibernate.UserTypes;
+using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Databases.NHibernate;
@@ -39,10 +40,10 @@ public class DateOnlyConverter : TypeConverter, IUserType
         => value switch
         {
             DateOnly i => i,
-            DateTime i => DateOnly.FromDateTime(i),
-            int i => DateOnly.FromDateTime(new(i)),
-            long i => DateOnly.FromDateTime(new(i)),
-            string i => DateOnly.FromDateTime(DateTime.Parse(i)),
+            DateTime i => i.ToDateOnly(),
+            int i => new DateTime(i).ToDateOnly(),
+            long i => new DateTime(i).ToDateOnly(),
+            string i => DateTime.Parse(i).ToDateOnly(),
             null => null,
             _ => throw new ArgumentException("DestinationType must be System.DateOnly.")
         };

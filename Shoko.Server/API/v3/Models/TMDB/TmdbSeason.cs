@@ -1,5 +1,3 @@
-
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,8 +6,10 @@ using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
 
 /// <summary>
@@ -74,6 +74,19 @@ public class TmdbSeason
     public IReadOnlyList<Role>? Crew { get; init; }
 
     /// <summary>
+    /// The inferred days of the week this season airs on.
+    /// </summary>
+    /// <value>Each weekday</value>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
+    public List<DayOfWeek>? AirsOn { get; set; }
+
+    /// <summary>
+    /// The yearly seasons this season belongs to.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<YearlySeason>? Seasons { get; set; }
+
+    /// <summary>
     /// The season number for the main ordering or alternate ordering in use.
     /// </summary>
     public int SeasonNumber { get; init; }
@@ -134,6 +147,15 @@ public class TmdbSeason
             Crew = season.Crew
                 .Select(crew => new Role(crew))
                 .ToList();
+        if (include.HasFlag(IncludeDetails.YearlySeasons))
+            Seasons = season.Seasons.ToV3Dto();
+        if (include.HasFlag(IncludeDetails.DaysOfWeek))
+            AirsOn = season.TmdbEpisodes
+                .Select(e => e.AiredAt?.DayOfWeek)
+                .WhereNotDefault()
+                .Distinct()
+                .Order()
+                .ToList();
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
         HiddenEpisodeCount = season.HiddenEpisodeCount;
@@ -157,6 +179,15 @@ public class TmdbSeason
             Overviews = Array.Empty<Overview>();
         if (include.HasFlag(IncludeDetails.Images))
             Images = new();
+        if (include.HasFlag(IncludeDetails.YearlySeasons))
+            Seasons = season.Seasons.ToV3Dto();
+        if (include.HasFlag(IncludeDetails.DaysOfWeek))
+            AirsOn = season.TmdbAlternateOrderingEpisodes
+                .Select(e => e.TmdbEpisode?.AiredAt?.DayOfWeek)
+                .WhereNotDefault()
+                .Distinct()
+                .Order()
+                .ToList();
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
         HiddenEpisodeCount = season.HiddenEpisodeCount;
@@ -170,10 +201,12 @@ public class TmdbSeason
     public enum IncludeDetails
     {
         None = 0,
-        Titles = 1,
-        Overviews = 2,
-        Images = 4,
-        Cast = 8,
-        Crew = 16,
+        Titles = 1 << 0,
+        Overviews = 1 << 1,
+        Images = 1 << 2,
+        Cast = 1 << 3,
+        Crew = 1 << 4,
+        YearlySeasons = 1 << 5,
+        DaysOfWeek = 1 << 6,
     }
 }
