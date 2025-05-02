@@ -13,7 +13,7 @@
         <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
         <PackageReleaseNotes>Renamer Rewrite</PackageReleaseNotes>
-        <Version>4.2.0-beta4</Version>
+        <Version>4.2.0</Version>
         <Configurations>Debug;Release;Benchmarks</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
