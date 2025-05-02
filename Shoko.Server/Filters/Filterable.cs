@@ -35,8 +35,8 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlySet<string>> _names;
     private readonly Lazy<IReadOnlySet<string>> _aniDbIds;
     private readonly Lazy<IReadOnlySet<string>> _resolutions;
-    private readonly Lazy<IReadOnlySet<string>> _importFolderIDs;
-    private readonly Lazy<IReadOnlySet<string>> _importFolderNames;
+    private readonly Lazy<IReadOnlySet<string>> _managedFolderIDs;
+    private readonly Lazy<IReadOnlySet<string>> _managedFolderNames;
     private readonly Lazy<IReadOnlySet<string>> _filePaths;
     private readonly Lazy<IReadOnlySet<(int year, AnimeSeason season)>> _seasons;
     private readonly Lazy<int> _seriesCount;
@@ -367,18 +367,18 @@ public class Filterable : IFilterable
         }
     }
 
-    public IReadOnlySet<string> ImportFolderIDs => _importFolderIDs.Value;
+    public IReadOnlySet<string> ManagedFolderIDs => _managedFolderIDs.Value;
 
-    public required Func<IReadOnlySet<string>> ImportFolderIDsDelegate
+    public required Func<IReadOnlySet<string>> ManagedFolderIDsDelegate
     {
-        init => _importFolderIDs = new Lazy<IReadOnlySet<string>>(value);
+        init => _managedFolderIDs = new Lazy<IReadOnlySet<string>>(value);
     }
 
-    public IReadOnlySet<string> ImportFolderNames => _importFolderNames.Value;
+    public IReadOnlySet<string> ManagedFolderNames => _managedFolderNames.Value;
 
-    public required Func<IReadOnlySet<string>> ImportFolderNamesDelegate
+    public required Func<IReadOnlySet<string>> ManagedFolderNamesDelegate
     {
-        init => _importFolderNames = new Lazy<IReadOnlySet<string>>(value);
+        init => _managedFolderNames = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> FilePaths => _filePaths.Value;

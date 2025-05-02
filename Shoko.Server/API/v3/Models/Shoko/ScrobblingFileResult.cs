@@ -8,24 +8,22 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class ScrobblingFileResult : PhysicalFileResult
 {
-    private SVR_VideoLocal VideoLocal { get; set; }
+    private VideoLocal VideoLocal { get; set; }
     private SVR_JMMUser User { get; set; }
-    public ScrobblingFileResult(SVR_VideoLocal videoLocal, SVR_JMMUser user, string fileName, string contentType) : base(fileName, contentType)
+    public ScrobblingFileResult(VideoLocal videoLocal, SVR_JMMUser user, string fileName, string contentType) : base(fileName, contentType)
     {
         VideoLocal = videoLocal;
         User = user;
         EnableRangeProcessing = true;
     }
 
-    public ScrobblingFileResult(SVR_VideoLocal videoLocal, SVR_JMMUser user, string fileName, MediaTypeHeaderValue contentType) : base(fileName, contentType)
+    public ScrobblingFileResult(VideoLocal videoLocal, SVR_JMMUser user, string fileName, MediaTypeHeaderValue contentType) : base(fileName, contentType)
     {
         VideoLocal = videoLocal;
         User = user;

@@ -25,6 +25,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -33,6 +34,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool includeReleaseInfo = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
@@ -42,13 +44,13 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
             .ToListResult(episode =>
             {
                 var duplicateFiles = episode.VideoLocals
-                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID).ToList()))
+                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID).ToList()))
                     .Where(tuple => tuple.locations.Count > 0)
                     .ToList();
                 var dto = new Episode(HttpContext, episode, includeDataFrom);
                 dto.Size = duplicateFiles.Count;
                 dto.Files = duplicateFiles
-                    .Select(tuple => new Models.Shoko.File(HttpContext, tuple.file, includeXRefs, includeDataFrom, includeMediaInfo, true))
+                    .Select(tuple => new File(HttpContext, tuple.file, includeXRefs, includeReleaseInfo, includeMediaInfo, true))
                     .ToList();
                 return dto;
             }, page, pageSize);
@@ -66,10 +68,10 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
-                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoLocalID, file.VideoLocal_Place_ID))
+                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
+                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
             )
-            .GroupBy(tuple => tuple.VideoLocalID, tuple => (tuple.VideoLocal_Place_ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
+            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
     }
@@ -106,6 +108,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -115,6 +118,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool includeReleaseInfo = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
@@ -131,13 +135,13 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
             .ToListResult(episode =>
             {
                 var duplicateFiles = episode.VideoLocals
-                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID).ToList()))
+                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID).ToList()))
                     .Where(tuple => tuple.locations.Count > 0)
                     .ToList();
                 var dto = new Episode(HttpContext, episode, includeDataFrom);
                 dto.Size = duplicateFiles.Count;
                 dto.Files = duplicateFiles
-                    .Select(tuple => new Models.Shoko.File(HttpContext, tuple.file, includeXRefs, includeDataFrom, includeMediaInfo, true))
+                    .Select(tuple => new File(HttpContext, tuple.file, includeXRefs, includeReleaseInfo, includeMediaInfo, true))
                     .ToList();
                 return dto;
             }, page, pageSize);
@@ -165,10 +169,10 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         return enumerable
             .SelectMany(episode =>
                 episode.VideoLocals
-                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.VideoLocal_Place_ID] : [], b => b.VideoLocal_Place_ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoLocalID, file.VideoLocal_Place_ID))
+                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
+                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
             )
-            .GroupBy(tuple => tuple.VideoLocalID, tuple => (tuple.VideoLocal_Place_ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
+            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
     }
