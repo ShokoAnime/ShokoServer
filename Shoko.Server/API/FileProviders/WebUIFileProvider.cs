@@ -30,7 +30,13 @@ public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
 
         var fileInfo = base.GetFileInfo(subpath);
         if (fileInfo is NotFoundFileInfo || !fileInfo.Exists || subpath is "/" or "/index.html")
+        {
+            // Asset remapping for the default built webui when mounted at the root.
+            if (_prefix is "" && subpath.StartsWith("/webui/") && base.GetFileInfo(subpath[6..]) is { Exists: true, Length: > 0 } webuiFile)
+                return webuiFile;
+
             return GetIndexFileInfo();
+        }
 
         return fileInfo;
     }
@@ -46,7 +52,7 @@ public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
                 return _indexFile;
 
             var indexFile = base.GetFileInfo("index.html");
-            if (indexFile is { PhysicalPath.Length: > 0, Length: > 0 })
+            if (indexFile is { Exists: true, PhysicalPath.Length: > 0, Length: > 0 })
             {
                 var bytes = Encoding.UTF8.GetBytes(File.ReadAllText(indexFile.PhysicalPath).Replace("WEBUI_PREFIX='/webui';", $"WEBUI_PREFIX='/{_prefix}';"));
                 indexFile = new MemoryFileInfo("index.html", bytes);
