@@ -67,7 +67,7 @@ public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
             var indexFile = base.GetFileInfo("index.html");
             if (indexFile is { Exists: true, PhysicalPath.Length: > 0, Length: > 0 })
             {
-                var bytes = Encoding.UTF8.GetBytes(File.ReadAllText(indexFile.PhysicalPath).Replace("WEBUI_PREFIX='/webui';", $"WEBUI_PREFIX='/{_prefix}';"));
+                var bytes = Encoding.UTF8.GetBytes(File.ReadAllText(indexFile.PhysicalPath).Replace("WEBUI_PREFIX='/webui';", $"WEBUI_PREFIX='{_prefix}';"));
                 indexFile = new MemoryFileInfo("index.html", bytes);
             }
 
