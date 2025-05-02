@@ -299,7 +299,7 @@ public class AnidbService : IAniDBService
             }
             catch (Exception e)
             {
-                _logger.LogDebug("Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
+                _logger.LogDebug(e, "Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
                 ex = e;
             }
         }
@@ -318,7 +318,7 @@ public class AnidbService : IAniDBService
                     };
                 }
 
-                if (!animeRecentlyUpdated || job.IgnoreTimeCheck)
+                if (animeRecentlyUpdated is not null || job.IgnoreTimeCheck)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var request = _requestFactory.Create<RequestGetAnime>(r => (r.AnimeID, r.Force) = (job.AnimeID, job.IgnoreHttpBans));
@@ -355,7 +355,7 @@ public class AnidbService : IAniDBService
             }
             catch (Exception e)
             {
-                _logger.LogDebug("Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
+                _logger.LogDebug(e, "Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
                 ex ??= e;
             }
         }
@@ -367,15 +367,21 @@ public class AnidbService : IAniDBService
             if (job.DeferToRemoteIfUnsuccessful)
             {
                 // Queue the command to get the data when we're no longer banned if there is no anime record.
-                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = job.AnimeID;
-                    c.DownloadRelations = job.DownloadRelations;
-                    c.RelDepth = job.RelDepth;
-                    c.UseCache = false;
-                    c.CreateSeriesEntry = job.CreateSeriesEntry;
-                    c.SkipTmdbUpdate = job.SkipTmdbUpdate;
-                }).ConfigureAwait(false);
+                await scheduler.StartJob<GetAniDBAnimeJob>(
+                    c =>
+                    {
+                        c.AnimeID = job.AnimeID;
+                        c.DownloadRelations = job.DownloadRelations;
+                        c.RelDepth = job.RelDepth;
+                        c.UseCache = false;
+                        c.CreateSeriesEntry = job.CreateSeriesEntry;
+                        c.SkipTmdbUpdate = job.SkipTmdbUpdate;
+                    },
+                    // Only prioritize if we don't have an anime record.
+                    prioritize: anime is null,
+                    // Don't fire immediately if we recently updated the record.
+                    startTime: animeRecentlyUpdated is not null ? DateTime.Now.AddHours(animeRecentlyUpdated.Value) : null
+                ).ConfigureAwait(false);
             }
             if (ex is null)
                 return null;
@@ -492,17 +498,17 @@ public class AnidbService : IAniDBService
         return anime;
     }
 
-    private bool AnimeRecentlyUpdated(SVR_AniDB_Anime? anime, AniDB_AnimeUpdate update)
+    private int? AnimeRecentlyUpdated(SVR_AniDB_Anime? anime, AniDB_AnimeUpdate update)
     {
         if (anime != null && update != null)
         {
             var ts = DateTime.Now - update.UpdatedAt;
             var settings = _settingsProvider.GetSettings();
             if (ts.TotalHours < settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
-                return true;
+                return settings.AniDb.MinimumHoursToRedownloadAnimeInfo - (int)Math.Floor(ts.TotalHours);
         }
 
-        return false;
+        return null;
     }
 
     private async Task<(bool success, string? xml)> TryGetXmlFromCache(int animeID)
