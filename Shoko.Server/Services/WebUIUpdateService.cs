@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -37,6 +38,8 @@ public partial class WebUIUpdateService
     });
 
     private readonly TimeSpan _cacheTTL = TimeSpan.FromHours(1);
+
+    public event EventHandler? UpdateInstalled;
 
     public readonly string ClientRepoName;
 
@@ -170,6 +173,8 @@ public partial class WebUIUpdateService
 
         // Update cached version info.
         UpdateCachedVersionInfo(version);
+
+        Task.Run(() => UpdateInstalled?.Invoke(this, EventArgs.Empty));
     }
 
     private void UpdateCachedVersionInfo(ComponentVersion version)

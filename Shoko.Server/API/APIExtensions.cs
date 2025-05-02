@@ -428,7 +428,7 @@ public static class APIExtensions
         {
             app.UseStaticFiles(new StaticFileOptions
             {
-                FileProvider = new WebUiFileProvider(webSettings.WebUIPublicPath, webUIDir.FullName),
+                FileProvider = new WebUiFileProvider(app.ApplicationServices.GetRequiredService<WebUIUpdateService>(), webSettings.WebUIPublicPath, webUIDir.FullName),
                 RequestPath = webSettings.WebUIPublicPath,
                 ServeUnknownFileTypes = true,
                 DefaultContentType = "text/html",

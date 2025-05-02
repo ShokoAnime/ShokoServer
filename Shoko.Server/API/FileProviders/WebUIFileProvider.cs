@@ -2,20 +2,33 @@ using System;
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.FileProviders;
+using Shoko.Server.Services;
 
 #nullable enable
 namespace Shoko.Server.API.FileProviders;
 
 public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
 {
+    private readonly WebUIUpdateService _webuiUpdateService;
+
     private readonly string _prefix;
 
     private IFileInfo? _indexFile;
 
-    public WebUiFileProvider(string prefix, string root) : base(root)
+    public WebUiFileProvider(WebUIUpdateService webuiUpdateService, string prefix, string root) : base(root)
     {
+        _webuiUpdateService = webuiUpdateService;
         _prefix = prefix;
+
+        _webuiUpdateService.UpdateInstalled += OnUpdateInstalled;
     }
+
+    ~WebUiFileProvider()
+    {
+        _webuiUpdateService.UpdateInstalled -= OnUpdateInstalled;
+    }
+
+    private void OnUpdateInstalled(object? sender, EventArgs e) => _indexFile = null;
 
     public new IDirectoryContents GetDirectoryContents(string subpath)
     {
