@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
@@ -21,6 +22,7 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Services;
 
 public class AbstractUserDataService(
+    ILogger<AbstractUserDataService> logger,
     ISettingsProvider settingsProvider,
     ISchedulerFactory schedulerFactory,
     AnimeGroupService groupService,
@@ -72,6 +74,9 @@ public class AbstractUserDataService(
         var syncAnidb = reason is not UserDataSaveReason.AnidbImport && ((SVR_JMMUser)user).IsAniDBUser == 1 && ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
         IReadOnlyList<IShokoUser> users = ((SVR_JMMUser)user).IsAniDBUser == 1 ? userRepository.GetAniDBUsers() : [user];
         var lastUpdatedAt = userDataUpdate.LastUpdatedAt ?? DateTime.Now;
+
+        logger.LogDebug("Got update for {VideoID} with reason {Reason}. (WatchedStatusChanged={WatchedStatusChanged},Users={Users})", video.ID, reason, watchedStatusChanged, users.Select(x => x.ID).ToArray());
+
         foreach (var u in users)
             SaveWatchedStatus(video, u.ID, userDataUpdate.LastPlayedAt, lastUpdatedAt, userDataUpdate.ResumePosition, userDataUpdate.PlaybackCount);
 
