@@ -38,7 +38,7 @@ public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
     public new IFileInfo GetFileInfo(string subpath)
     {
         // Anti-lockout for APIv2+ requests.
-        if (_prefix is "" && (subpath is "/plex" or "/plex.json" || subpath.StartsWith("/api")))
+        if (_prefix is "" && (subpath is "/plex" or "/plex.json" or "/api" or "/signalr" || subpath.StartsWith("/api/") || subpath.StartsWith("/signalr/")))
             return new NotFoundFileInfo(subpath);
 
         var fileInfo = base.GetFileInfo(subpath);
