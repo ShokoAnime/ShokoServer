@@ -20,9 +20,9 @@ public static class QuartzExtensions
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    private static readonly ConcurrentQueue<(IJobDetail job, int priority)[]> _jobQueue = new();
+    private static readonly ConcurrentQueue<(IJobDetail job, int priority, DateTimeOffset? startTime)[]> _jobQueue = new();
 
-    private static ConcurrentBag<(IJobDetail job, int priority)> _pendingJobs = [];
+    private static ConcurrentBag<(IJobDetail job, int priority, DateTimeOffset? startTime)> _pendingJobs = [];
 
     private static System.Timers.Timer? _jobTimer;
 
@@ -40,18 +40,21 @@ public static class QuartzExtensions
     /// <param name="prioritize">
     ///   If true, the job will be prioritized in the queue.
     /// </param>
+    /// <param name="startTime">
+    ///   When to start the job.
+    /// </param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static Task StartJob<T>(this IScheduler scheduler, Action<T>? data = null, bool prioritize = false) where T : class, IJob
+    public static Task StartJob<T>(this IScheduler scheduler, Action<T>? data = null, bool prioritize = false, DateTimeOffset? startTime = null) where T : class, IJob
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var job = data != null
             ? JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build()
             : JobBuilder<T>.Create().WithGeneratedIdentity().Build();
         if (settings.Quartz.BatchMaxInsertSize == 1 || settings.Quartz.BatchInsertTimeoutInMS == 0)
-            return scheduler.StartJobs([(job, prioritize ? 10 : 0)]);
+            return scheduler.StartJobs([(job, prioritize ? 10 : 0, startTime)]);
 
-        _pendingJobs.Add((job, prioritize ? 10 : 0));
+        _pendingJobs.Add((job, prioritize ? 10 : 0, startTime));
         PerhapsFlush();
         return Task.CompletedTask;
     }
@@ -61,7 +64,7 @@ public static class QuartzExtensions
 
     private static void PerhapsFlush(bool force = false)
     {
-        (IJobDetail job, int priority)[]? jobs = null;
+        (IJobDetail job, int priority, DateTimeOffset? startTime)[]? jobs = null;
         var settings = Utils.SettingsProvider.GetSettings();
         if (!force && (_jobTimer?.Enabled ?? false) && _pendingJobs.Count < settings.Quartz.BatchMaxInsertSize) return;
         lock (_flushLock)
@@ -137,7 +140,7 @@ public static class QuartzExtensions
     /// <param name="jobs">The jobs to schedule</param>
     /// <param name="scheduleBuilder"></param>
     /// <returns></returns>
-    private static async Task StartJobs(this IScheduler scheduler, (IJobDetail job, int priority)[] jobs, IScheduleBuilder? scheduleBuilder = null)
+    private static async Task StartJobs(this IScheduler scheduler, (IJobDetail job, int priority, DateTimeOffset? startTime)[] jobs, IScheduleBuilder? scheduleBuilder = null)
     {
         // if it's running, then ignore
         var currentJobs = await scheduler.GetCurrentlyExecutingJobs();
@@ -157,9 +160,10 @@ public static class QuartzExtensions
 
         scheduleBuilder ??= SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires();
         var collection = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>();
+        var time = DateTimeOffset.UtcNow;
         using (var _ = await SchedulerLock.ReaderLockAsync())
         {
-            foreach (var (job, priority) in jobs)
+            foreach (var (job, priority, startTime) in jobs)
             {
                 if (await scheduler.CheckExists(job.Key))
                 {
@@ -168,6 +172,7 @@ public static class QuartzExtensions
                 }
                 var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
                 if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
+                if (startTime.HasValue && startTime > time) triggerBuilder = triggerBuilder.StartAt(startTime.Value);
                 var trigger = triggerBuilder.WithSchedule(scheduleBuilder).Build();
                 collection[job] = [trigger];
                 _logger.Trace("Scheduling {JobName}", job.Key);
@@ -175,7 +180,7 @@ public static class QuartzExtensions
         }
 
         if (collection.Count == 0) return;
-        var time = DateTimeOffset.UtcNow;
+        time = DateTimeOffset.UtcNow;
         _logger.Trace("Scheduling {Count} jobs.", collection.Count);
         using var __ = await SchedulerLock.WriterLockAsync();
         await scheduler.ScheduleJobs(collection, false);
