@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -28,12 +27,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
+
 using File = System.IO.File;
-using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
-using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
-using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
-using AVDumpEmitter = Shoko.Server.API.SignalR.Aggregate.AVDumpEmitter;
-using NetworkEmitter = Shoko.Server.API.SignalR.Aggregate.NetworkEmitter;
 
 namespace Shoko.Server.API;
 
@@ -42,11 +37,17 @@ public static class APIExtensions
     public static IServiceCollection AddAPI(this IServiceCollection services)
     {
         services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<AniDBEmitter>();
-        services.AddSingleton<ShokoEventEmitter>();
-        services.AddSingleton<AVDumpEmitter>();
-        services.AddSingleton<NetworkEmitter>();
-        services.AddSingleton<QueueEmitter>();
+        services.AddSingleton<IEventEmitter, AniDBEventEmitter>();
+        services.AddSingleton<IEventEmitter, AVDumpEventEmitter>();
+        services.AddSingleton<IEventEmitter, ConfigurationEventEmitter>();
+        services.AddSingleton<IEventEmitter, FileEventEmitter>();
+        services.AddSingleton<IEventEmitter, ManagedFolderEventEmitter>();
+        services.AddSingleton<IEventEmitter, MetadataEventEmitter>();
+        services.AddSingleton<IEventEmitter, NetworkEventEmitter>();
+        services.AddSingleton<IEventEmitter, QueueEventEmitter>();
+        services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
@@ -353,7 +354,6 @@ public static class APIExtensions
             });
         }
 
-
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #else
@@ -363,7 +363,7 @@ public static class APIExtensions
 
         // Create web ui directory and add the boot-strapper.
         var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
-        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ExecutableDirectoryPath, "webui"));
+        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ApplicationPath, "webui"));
         if (!webUIDir.Exists)
         {
             if (backupDir.Exists)
@@ -451,14 +451,16 @@ public static class APIExtensions
             });
         }
 
+        app.UseRouting();
+
         // Important for first run at least
         app.UseAuthentication();
+        app.UseAuthorization();
 
-        app.UseRouting();
         app.UseEndpoints(conf =>
         {
-            conf.MapHub<LoggingHub>("/signalr/logging");
-            conf.MapHub<AggregateHub>("/signalr/aggregate");
+            conf.MapHub<LoggingHub>("/signalr/logging").RequireAuthorization();
+            conf.MapHub<AggregateHub>("/signalr/aggregate").RequireAuthorization();
         });
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

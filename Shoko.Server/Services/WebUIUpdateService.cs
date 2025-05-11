@@ -432,7 +432,7 @@ public partial class WebUIUpdateService
     public static WebUIVersionInfo? LoadIncludedWebUIVersionInfo(IApplicationPaths? applicationPaths = null)
     {
         applicationPaths ??= ApplicationPaths.Instance;
-        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.ExecutableDirectoryPath, "webui/version.json"));
+        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.ApplicationPath, "webui/version.json"));
         if (webUIFileInfo.Exists)
             return JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName));
         return null;
