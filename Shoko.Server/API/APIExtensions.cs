@@ -377,7 +377,13 @@ public static class APIExtensions
             WebUIUpdateService.LoadIncludedWebUIVersionInfo() is { } includedVersion &&
             (
                 WebUIUpdateService.LoadWebUIVersionInfo() is not { } currentVersion ||
-                includedVersion.VersionAsVersion > currentVersion.VersionAsVersion
+                (
+                    includedVersion.VersionAsVersion > currentVersion.VersionAsVersion &&
+                    (
+                        (includedVersion.Channel is not ReleaseChannel.Debug && currentVersion.Channel is not ReleaseChannel.Debug) ||
+                        (includedVersion.Channel is ReleaseChannel.Debug && currentVersion.Channel is ReleaseChannel.Debug)
+                    )
+                )
             )
         )
         {
