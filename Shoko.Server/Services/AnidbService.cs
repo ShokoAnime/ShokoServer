@@ -228,9 +228,9 @@ public class AnidbService : IAniDBService
             return;
 
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        if (!refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
+        if (!refreshMethod.HasFlag(AnidbRefreshMethod.Cache))
         {
-            await scheduler.StartJob<GetLocalAniDBAnimeJob>(
+            await scheduler.StartJob<GetRemoteAniDBAnimeJob>(
                 job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod),
                 prioritize: prioritize
             ).ConfigureAwait(false);
@@ -318,7 +318,7 @@ public class AnidbService : IAniDBService
                     };
                 }
 
-                if (animeRecentlyUpdated is not null || job.IgnoreTimeCheck)
+                if (animeRecentlyUpdated is null || job.IgnoreTimeCheck)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var request = _requestFactory.Create<RequestGetAnime>(r => (r.AnimeID, r.Force) = (job.AnimeID, job.IgnoreHttpBans));
@@ -366,19 +366,19 @@ public class AnidbService : IAniDBService
         {
             if (job.DeferToRemoteIfUnsuccessful)
             {
+                _logger.LogDebug("Deferring to remote update for anime with ID {AnimeID}", job.AnimeID);
                 // Queue the command to get the data when we're no longer banned if there is no anime record.
-                await scheduler.StartJob<GetAniDBAnimeJob>(
+                await scheduler.StartJob<GetRemoteAniDBAnimeJob>(
                     c =>
                     {
                         c.AnimeID = job.AnimeID;
                         c.DownloadRelations = job.DownloadRelations;
                         c.RelDepth = job.RelDepth;
-                        c.UseCache = false;
                         c.CreateSeriesEntry = job.CreateSeriesEntry;
                         c.SkipTmdbUpdate = job.SkipTmdbUpdate;
                     },
                     // Only prioritize if we don't have an anime record.
-                    prioritize: anime is null,
+                    prioritize: anime is null && animeRecentlyUpdated is null,
                     // Don't fire immediately if we recently updated the record.
                     startTime: animeRecentlyUpdated is not null ? DateTime.Now.AddHours(animeRecentlyUpdated.Value) : null
                 ).ConfigureAwait(false);
@@ -584,9 +584,11 @@ public class AnidbService : IAniDBService
                 if (ts.TotalHours < settings.AniDb.MinimumHoursToRedownloadAnimeInfo) continue;
             }
 
+            _logger.LogInformation("Queuing/processing anime relation: {AnimeID} -> {RelatedAnimeID}", relation.AnimeID, relation.RelatedAnimeID);
+
             // Append the command to the queue.
-            if (job.UseCache && !job.UseRemote)
-                await scheduler.StartJob<GetLocalAniDBAnimeJob>(c =>
+            if (!job.UseCache && job.UseRemote)
+                await scheduler.StartJob<GetRemoteAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = relation.RelatedAnimeID;
                     c.DownloadRelations = true;

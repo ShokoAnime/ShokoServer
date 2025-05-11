@@ -15,9 +15,10 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
+[AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetLocalAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
+public class GetRemoteAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 {
     private readonly ISettingsProvider _settingsProvider;
 
@@ -77,7 +78,7 @@ public class GetLocalAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     {
         get
         {
-            var refreshMethod = AnidbRefreshMethod.Cache;
+            var refreshMethod = AnidbRefreshMethod.Remote;
             if (PreferCacheOverRemote)
                 refreshMethod |= AnidbRefreshMethod.PreferCacheOverRemote;
             if (DeferToRemoteIfUnsuccessful)
@@ -126,35 +127,35 @@ public class GetLocalAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
     }
 
-    public override string TypeName => "Get AniDB Anime Data";
+    public override string TypeName => "Get AniDB Anime Data (Force Remote)";
 
-    public override string Title => "Getting AniDB Anime Data";
+    public override string Title => "Getting AniDB Anime Data (Force Remote)";
 
     public override Dictionary<string, object> Details => _animeName == null
         ? new()
         {
             { "AnimeID", AnimeID },
-            { "Cache Only", true },
+            { "Remote Only", true },
         }
         : new() {
             { "Anime", _animeName },
             { "AnimeID", AnimeID },
-            { "Cache Only", true }
+            { "Remote Only", true }
         };
 
     public override async Task<SVR_AniDB_Anime> Process()
     {
-        _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetLocalAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
+        _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetRemoteAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
         return await _aniDBService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
     }
 
 
-    public GetLocalAniDBAnimeJob(ISettingsProvider settingsProvider, IAniDBService anidbService, AniDBTitleHelper titleHelper)
+    public GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, IAniDBService anidbService, AniDBTitleHelper titleHelper)
     {
         _settingsProvider = settingsProvider;
         _aniDBService = (AnidbService)anidbService;
         _titleHelper = titleHelper;
     }
 
-    protected GetLocalAniDBAnimeJob() { }
+    protected GetRemoteAniDBAnimeJob() { }
 }

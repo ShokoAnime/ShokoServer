@@ -17,7 +17,6 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
-[AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
