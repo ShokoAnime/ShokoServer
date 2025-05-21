@@ -190,7 +190,7 @@ public class PlexHelper
             }
             catch (Exception ex)
             {
-                Logger.Trace($"Exception during Plex authentication: {ex}");
+                Logger.Trace(ex, "Exception during Plex authentication");
                 return false;
             }
         }
