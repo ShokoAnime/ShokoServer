@@ -31,6 +31,7 @@ namespace Shoko.Server.Plex;
 public class PlexHelper
 {
     private const string ClientIdentifier = "d14f0724-a4e8-498a-bb67-add795b38331";
+    private const string PlexAccountURI = "https://plex.tv/users/account.json";
 
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new();
@@ -170,7 +171,7 @@ public class PlexHelper
 
             try
             {
-                var (status, _) = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
+                var (status, _) = RequestAsync(PlexAccountURI, HttpMethod.Get,
                     AuthenticationHeaders).ConfigureAwait(false).GetAwaiter().GetResult();
 
                 if (status == HttpStatusCode.OK)
