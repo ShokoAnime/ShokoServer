@@ -48,7 +48,6 @@ public class PlexHelper
     private MediaDevice[] _plexMediaDevices;
 
     private MediaDevice _mediaDevice;
-    private bool? isAuthenticated;
 
     private PlexHelper(JMMUser user)
     {
@@ -176,7 +175,6 @@ public class PlexHelper
 
                 if (status == HttpStatusCode.OK)
                 {
-                    isAuthenticated = true;
                     _lastAuthenticated = DateTime.Now;
                     return true;
                 }
@@ -187,7 +185,6 @@ public class PlexHelper
                     InvalidateToken();
                 }
 
-                isAuthenticated = false;
                 return false;
             }
             catch (Exception ex)
@@ -482,7 +479,6 @@ public class PlexHelper
     public void InvalidateToken()
     {
         _user.PlexToken = string.Empty;
-        isAuthenticated = false;
         _lastAuthenticated = null;
         _key = null;
         SaveUser(_user);
