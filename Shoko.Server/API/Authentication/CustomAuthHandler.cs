@@ -24,6 +24,8 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         _users = users;
     }
 
+    private const string BearerPrefix = "Bearer ";
+
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!ServerState.Instance.ServerOnline)
@@ -41,17 +43,24 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
                 new AuthenticationTicket(initPrincipal, Options.Scheme)));
         }
 
-
         // Get Authorization header value and join with the query
-        var authkeys = Request.Headers["apikey"].Union(Request.Query["apikey"]).ToList();
+        var authKeys = Request.Headers["apikey"]
+            .Union(Request.Query["apikey"])
+            .ToList();
 
-        if (authkeys.Count == 0)
+        // SignalR auth handling.
+        if (authKeys.Count == 0 && Request.Path.ToString().StartsWith("/signalr/"))
+            authKeys = Request.Headers.Authorization.Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..])
+                .Union(Request.Query["access_token"])
+                .ToList();
+
+        if (authKeys.Count == 0)
         {
             return Task.FromResult(AuthenticateResult.Fail("Cannot read authorization header or query."));
         }
 
         //Find authenticated user.
-        var user = authkeys.Select(GetUserForKey).FirstOrDefault(s => s != null);
+        var user = authKeys.Select(GetUserForKey).FirstOrDefault(s => s != null);
 
         if (user == null)
         {
