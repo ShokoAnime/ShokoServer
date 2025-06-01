@@ -21,6 +21,8 @@ public class AVDumpFilesJob : BaseJob<AVDumpHelper.AVDumpSession>
 
     public override Task<AVDumpHelper.AVDumpSession> Process()
     {
-        return Task.FromResult(AVDumpHelper.DumpFiles(Videos));
+        var session = AVDumpHelper.DumpFiles(Videos, synchronous: true);
+
+        return Task.FromResult(session);
     }
 }
