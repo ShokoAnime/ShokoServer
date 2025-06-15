@@ -478,11 +478,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(43, 2,
             "ALTER TABLE VideoLocal ADD MediaVersion int NOT NULL DEFAULT(0), MediaString nvarchar(MAX) NULL"),
         new DatabaseCommand(44, 1,
-            "DECLARE @tableName VARCHAR(MAX) = 'AnimeGroup_User'\r\nDECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\nDECLARE @ConstraintName nvarchar(200)\r\nSELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\nIF @ConstraintName IS NOT NULL\r\nEXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)"),
+            "DECLARE @tableName VARCHAR(MAX) = 'AnimeGroup_User'\r\nDECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\nDECLARE @ConstraintName nvarchar(200)\r\nSELECT @ConstraintName = Name FROM sys.default_constraints WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\nIF @ConstraintName IS NOT NULL\r\nEXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)"),
         new DatabaseCommand(44, 2, "ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractVersion"),
         new DatabaseCommand(44, 3, "ALTER TABLE AnimeGroup_User DROP COLUMN KodiContractString"),
         new DatabaseCommand(44, 4,
-            "DECLARE @tableName VARCHAR(MAX) = 'AnimeSeries_User'\r\nDECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\nDECLARE @ConstraintName nvarchar(200)\r\nSELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\nIF @ConstraintName IS NOT NULL\r\nEXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)"),
+            "DECLARE @tableName VARCHAR(MAX) = 'AnimeSeries_User'\r\nDECLARE @columnName VARCHAR(MAX) = 'KodiContractVersion'\r\nDECLARE @ConstraintName nvarchar(200)\r\nSELECT @ConstraintName = Name FROM sys.default_constraints WHERE PARENT_OBJECT_ID = OBJECT_ID(@tableName) AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns WHERE NAME = @columnName AND object_id = OBJECT_ID(@tableName))\r\nIF @ConstraintName IS NOT NULL\r\nEXEC('ALTER TABLE ' + @tableName + ' DROP CONSTRAINT ' + @ConstraintName)"),
         new DatabaseCommand(44, 5, "ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractVersion"),
         new DatabaseCommand(44, 6, "ALTER TABLE AnimeSeries_User DROP COLUMN KodiContractString"),
         new DatabaseCommand(45, 1, "ALTER TABLE AnimeSeries ADD LatestEpisodeAirDate [datetime] NULL"),
@@ -1094,7 +1094,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
     {
         using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
-        var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
+        var query = $@"SELECT Name FROM sys.default_constraints
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
                           AND PARENT_COLUMN_ID = (
                             SELECT column_id FROM sys.columns
@@ -1116,7 +1116,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
     {
         using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
-        var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
+        var query = $@"SELECT Name FROM sys.default_constraints
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
                           AND PARENT_COLUMN_ID = (
                             SELECT column_id FROM sys.columns
