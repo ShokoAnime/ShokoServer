@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
           fetch-depth: 0 # This is set to download the full git history for the repo
@@ -80,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -128,7 +128,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -151,7 +151,7 @@ jobs:
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
         if: ${{ matrix.rid == 'linux-arm64' }}
@@ -200,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -256,7 +256,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.ref }}"
 
@@ -330,7 +330,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -352,23 +352,23 @@ jobs:
         run: |
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
-      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-qemu-action@v3
         name: Set up QEMU
         with:
           platforms: arm64
         if: ${{ matrix.arch == 'arm64' }}
 
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v3
         name: Set up Docker Buildx
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry (GHCR)
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
         with:
@@ -378,7 +378,7 @@ jobs:
       # Disabled provenance for now, until it works with docker manifest create.
       # The manifest list produced by the new feature is incompatible with the
       # expected format used in the docker manifest create command.
-      - uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v6
         name: Build and Push the Docker image (GHCR Only)
         if: ${{ env.DOCKER_REPO == '' || env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
         with:
@@ -396,7 +396,7 @@ jobs:
             tag=${{ needs.current_info.outputs.tag }}
           provenance: false
 
-      - uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v6
         name: Build and Push the Docker image (GHCR & Docker Hub)
         if: ${{ env.DOCKER_REPO != '' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
         with:
@@ -435,14 +435,14 @@ jobs:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
     steps:
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         if: ${{ env.DOCKER_REPO != '' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
         with:
@@ -474,7 +474,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -501,7 +501,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         if: ${{ env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT != '' }}
         with:
           ref: "${{ github.sha }}"
@@ -535,7 +535,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         if: ${{ env.FTP_SERVER != '' && env.FTP_USERNAME != '' && env.FTP_PASSWORD != '' }}
         with:
           ref: "${{ github.sha }}"
