@@ -1,4 +1,5 @@
-﻿
+﻿using System;
+
 namespace Shoko.Plugin.Abstractions;
 
 /// <summary>
@@ -7,19 +8,17 @@ namespace Shoko.Plugin.Abstractions;
 public interface IPlugin
 {
     /// <summary>
+    /// Unique ID of the plugin.
+    /// </summary>
+    Guid ID { get => GetType().FullName!.ToUuidV5(); }
+
+    /// <summary>
     /// Friendly name of the plugin.
     /// </summary>
     string Name { get; }
 
     /// <summary>
-    /// Load event.
+    /// Description of the plugin.
     /// </summary>
-    void Load();
-
-    /// <summary>
-    /// This will be called with the created settings object if you have an <see cref="IPluginSettings"/> in the Plugin.
-    /// You can cast to your desired type and set the settings within it.
-    /// </summary>
-    /// <param name="settings"></param>
-    void OnSettingsLoaded(IPluginSettings settings);
+    string? Description { get => null; }
 }

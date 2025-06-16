@@ -18,8 +18,8 @@ public class AniDB_Anime_CharacterRepository(DatabaseFactory databaseFactory) : 
 
     public override void PopulateIndexes()
     {
-        _animeIDs = new PocoIndex<int, AniDB_Anime_Character, int>(Cache, a => a.AnimeID);
-        _characterIDs = new PocoIndex<int, AniDB_Anime_Character, int>(Cache, a => a.CharacterID);
+        _animeIDs = Cache.CreateIndex(a => a.AnimeID);
+        _characterIDs = Cache.CreateIndex(a => a.CharacterID);
     }
 
     public IReadOnlyList<AniDB_Anime_Character> GetByAnimeID(int animeID)

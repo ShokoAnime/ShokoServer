@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Quartz;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
@@ -22,6 +23,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -52,6 +54,8 @@ public class Common : BaseController
     private readonly QueueHandler _queueHandler;
     private readonly IUserDataService _userDataService;
     private readonly VideoLocal_UserRepository _vlUsers;
+    private readonly IVideoService _videoService;
+    private readonly IVideoReleaseService _videoReleaseService;
 
     public Common(
         ISchedulerFactory schedulerFactory,
@@ -62,7 +66,9 @@ public class Common : BaseController
         AnimeSeriesService seriesService,
         AnimeGroupService groupService,
         IUserDataService userDataService,
-        VideoLocal_UserRepository vlUsers) : base(settingsProvider)
+        VideoLocal_UserRepository vlUsers,
+        IVideoService videoService,
+        IVideoReleaseService videoReleaseService) : base(settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
@@ -72,6 +78,8 @@ public class Common : BaseController
         _groupService = groupService;
         _userDataService = userDataService;
         _vlUsers = vlUsers;
+        _videoService = videoService;
+        _videoReleaseService = videoReleaseService;
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
@@ -81,9 +89,9 @@ public class Common : BaseController
     /// Handle /api/folder/list
     /// List all saved Import Folders
     /// </summary>
-    /// <returns><see cref="List{ImportFolder}"/></returns>
+    /// <returns><see cref="List{CL_ImportFolder}"/></returns>
     [HttpGet("folder/list")]
-    public ActionResult<IEnumerable<ImportFolder>> GetFolders()
+    public ActionResult<IEnumerable<CL_ImportFolder>> GetFolders()
     {
         return _service.GetImportFolders();
     }
@@ -105,7 +113,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpPost("folder/add")]
-    public ActionResult<ImportFolder> AddFolder(ImportFolder folder)
+    public ActionResult<CL_ImportFolder> AddFolder(CL_ImportFolder folder)
     {
         if (!ModelState.IsValid)
         {
@@ -114,8 +122,8 @@ public class Common : BaseController
 
         try
         {
-            var result = RepoFactory.ImportFolder.SaveImportFolder(folder);
-            return result;
+            var result = RepoFactory.ShokoManagedFolder.SaveFolder(folder);
+            return result.ToClient();
         }
         catch (Exception e)
         {
@@ -129,7 +137,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpPost("folder/edit")]
-    public ActionResult<ImportFolder> EditFolder(ImportFolder folder)
+    public ActionResult<CL_ImportFolder> EditFolder(CL_ImportFolder folder)
     {
         if (string.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
         {
@@ -139,19 +147,8 @@ public class Common : BaseController
 
         try
         {
-            if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-            {
-                return new APIMessage(StatusCodes.Status409Conflict,
-                    "The Folder Can't be both Destination and Source Simultaneously");
-            }
-
-            if (folder.ImportFolderID == 0)
-            {
-                return new APIMessage(StatusCodes.Status409Conflict, "The Import Folder must have an ID");
-            }
-
-            ImportFolder response = RepoFactory.ImportFolder.SaveImportFolder(folder);
-            return response;
+            var response = RepoFactory.ShokoManagedFolder.SaveFolder(folder);
+            return response.ToClient();
         }
         catch (Exception e)
         {
@@ -172,12 +169,19 @@ public class Common : BaseController
             return new APIMessage(400, "folderId missing");
         }
 
-        var importFolder = RepoFactory.ImportFolder.GetByID(folderId);
+        var importFolder = RepoFactory.ShokoManagedFolder.GetByID(folderId);
         if (importFolder == null)
             return new APIMessage(404, "ImportFolder missing");
 
-        var res = await _actionService.DeleteImportFolder(importFolder.ImportFolderID);
-        return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
+        try
+        {
+            await _videoService.RemoveManagedFolder(importFolder);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return InternalError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -201,7 +205,7 @@ public class Common : BaseController
     [HttpGet("folder/scan")]
     public async Task<ActionResult> ScanDropFolders()
     {
-        await _actionService.RunImport_DetectFiles(onlyInSourceFolders: true);
+        await _videoService.ScheduleScanForManagedFolders(onlyDropSources: true);
         return Ok();
     }
 
@@ -273,23 +277,12 @@ public class Common : BaseController
         {
             var vid = RepoFactory.VideoLocal.GetByID(id);
             if (vid == null)
-            {
                 return NotFound();
-            }
 
-            if (string.IsNullOrEmpty(vid.Hash))
-            {
-                return BadRequest("Could not Update a cloud file without hash, hash it locally first");
-            }
+            if (!_videoReleaseService.AutoMatchEnabled)
+                return Ok();
 
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJobNow<ProcessFileJob>(
-                c =>
-                {
-                    c.VideoLocalID = vid.VideoLocalID;
-                    c.ForceAniDB = true;
-                }
-            );
+            await _videoReleaseService.ScheduleFindReleaseForVideo(vid, force: true, prioritize: true);
             return Ok();
         }
         catch (Exception ex)
@@ -305,22 +298,16 @@ public class Common : BaseController
     [HttpGet("rescanunlinked")]
     public async Task<ActionResult> RescanUnlinked()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return Ok();
+
         try
         {
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
-            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
-            {
-                await scheduler.StartJobNow<ProcessFileJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
-                    }
-                );
-            }
+                await _videoReleaseService.ScheduleFindReleaseForVideo(vl, force: true, prioritize: true);
 
             return Ok();
         }
@@ -337,22 +324,16 @@ public class Common : BaseController
     [HttpGet("rescanmanuallinks")]
     public async Task<ActionResult> RescanManualLinks()
     {
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return Ok();
+
         try
         {
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
 
-            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
-            {
-                await scheduler.StartJobNow<ProcessFileJob>(
-                    c =>
-                    {
-                        c.VideoLocalID = vl.VideoLocalID;
-                        c.ForceAniDB = true;
-                    }
-                );
-            }
+                await _videoReleaseService.ScheduleFindReleaseForVideo(vl, force: true, prioritize: true);
 
             return Ok();
         }
@@ -382,19 +363,16 @@ public class Common : BaseController
         }
 
         var pl = vl.FirstResolvedPlace;
-        if (pl?.FullServerPath == null)
+        if (pl?.Path == null)
         {
             return NotFound("videolocal_place not found");
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<HashFileJob>(
-            c =>
-            {
-                c.FilePath = pl.FullServerPath;
-                c.ForceHash = true;
-            }
-        );
+        await scheduler.StartJob<HashFileJob>(
+            c => (c.FilePath, c.ForceHash) = (pl.Path, true),
+            prioritize: true
+        ).ConfigureAwait(false);
 
         return Ok();
     }
@@ -413,18 +391,15 @@ public class Common : BaseController
             foreach (var vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
             {
                 var pl = vl.FirstResolvedPlace;
-                if (pl?.FullServerPath == null)
+                if (pl?.Path == null)
                 {
                     continue;
                 }
 
-                await scheduler.StartJobNow<HashFileJob>(
-                    c =>
-                    {
-                        c.FilePath = pl.FullServerPath;
-                        c.ForceHash = true;
-                    }
-                );
+                await scheduler.StartJob<HashFileJob>(
+                    c => (c.FilePath, c.ForceHash) = (pl.Path, true),
+                    prioritize: true
+                ).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -449,18 +424,15 @@ public class Common : BaseController
             foreach (var vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
             {
                 var pl = vl.FirstResolvedPlace;
-                if (pl?.FullServerPath == null)
+                if (pl?.Path == null)
                 {
                     continue;
                 }
 
-                await scheduler.StartJobNow<HashFileJob>(
-                    c =>
-                    {
-                        c.FilePath = pl.FullServerPath;
-                        c.ForceHash = true;
-                    }
-                );
+                await scheduler.StartJob<HashFileJob>(
+                    c => (c.FilePath, c.ForceHash) = (pl.Path, true),
+                    prioritize: true
+                ).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -794,10 +766,10 @@ public class Common : BaseController
         JMMUser user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
-            .ToDictionary(a => a, a => a.AniDBFile);
+            .ToDictionary(a => a, a => a.ReleaseInfo);
         return allVideos.Keys.Select(vid => new { vid, anidb = allVideos[vid] })
-            .Where(tuple => tuple.anidb != null)
-            .Where(tuple => !tuple.anidb.IsDeprecated)
+            .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            .Where(tuple => !tuple.anidb.IsCorrupted)
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
@@ -813,8 +785,9 @@ public class Common : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             return BadRequest("Missing AVDump API key");
 
-        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
-            .ToDictionary(a => a, a => a.AniDBFile);
+        var allVideos = RepoFactory.VideoLocal.GetAll()
+            .Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
+            .ToDictionary(a => a, a => a.ReleaseInfo);
         var logger = LogManager.GetCurrentClassLogger();
 
         var list = allVideos.Keys
@@ -823,12 +796,12 @@ public class Common : BaseController
                 vid,
                 anidb = allVideos[vid],
             })
-            .Where(tuple => tuple.anidb != null)
-            .Where(tuple => !tuple.anidb.IsDeprecated)
+            .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+            .Where(tuple => !tuple.anidb.IsCorrupted)
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
             .Select(_tuple => new
             {
-                Path = _tuple.vid.FirstResolvedPlace?.FullServerPath,
+                Path = _tuple.vid.FirstResolvedPlace?.Path,
                 Video = _tuple.vid
             })
             .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
@@ -852,7 +825,7 @@ public class Common : BaseController
         JMMUser user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
-            .Where(a => !a.IsEmpty() && a.AniDBFile != null && a.AniDBFile.IsDeprecated).ToList();
+            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true }).ToList();
         return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
     }
 
@@ -1573,11 +1546,10 @@ public class Common : BaseController
         RepoFactory.AniDB_Vote.Save(thisVote);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<VoteAniDBEpisodeJob>(c =>
-        {
-            c.EpisodeID = episode.AniDB_EpisodeID;
-            c.VoteValue = Convert.ToDouble(thisVote);
-        });
+        await scheduler.StartJob<VoteAniDBEpisodeJob>(
+            c => (c.EpisodeID, c.VoteValue) = (episode.AniDB_EpisodeID, Convert.ToDouble(score)),
+            prioritize: true
+        ).ConfigureAwait(false);
 
         return Ok();
     }
@@ -2064,7 +2036,7 @@ public class Common : BaseController
         bool allpic, int pic, TagFilter.Filter tagfilter)
     {
         var allseries = new List<Serie>();
-        var vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+        var vlpall = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id)
             .Select(a => a.VideoLocal)
             .ToList();
 
@@ -2126,7 +2098,7 @@ public class Common : BaseController
         long filesize = 0;
         var size = 0;
         var output = new Dictionary<int, SeriesInfo>();
-        var vlps = RepoFactory.VideoLocalPlace.GetByImportFolder(id);
+        var vlps = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id);
         // each place counts in the filesize, so we use it
         foreach (var place in vlps)
         {
@@ -2137,7 +2109,7 @@ public class Common : BaseController
                 continue;
             }
 
-            if (string.IsNullOrEmpty(place.FilePath))
+            if (string.IsNullOrEmpty(place.RelativePath))
             {
                 continue;
             }
@@ -2146,7 +2118,7 @@ public class Common : BaseController
             var seriesList = vl.AnimeEpisodes.Select(a => a.AnimeSeries).DistinctBy(a => a.AnimeSeriesID)
                 .ToList();
 
-            var path = (Path.GetDirectoryName(place.FilePath) ?? string.Empty) + "/";
+            var path = (Path.GetDirectoryName(place.RelativePath) ?? string.Empty) + "/";
             foreach (var series in seriesList)
             {
                 if (output.TryGetValue(series.AnimeSeriesID, out var value))
@@ -2201,7 +2173,7 @@ public class Common : BaseController
     {
         var tempDict = new Dictionary<string, long>();
         var allseries = new List<object>();
-        var vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+        var vlpall = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id)
             .Select(a => a.VideoLocal)
             .ToList();
 
@@ -2587,14 +2559,10 @@ public class Common : BaseController
         RepoFactory.AniDB_Vote.Save(thisVote);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<VoteAniDBAnimeJob>(
-            c =>
-            {
-                c.AnimeID = ser.AniDB_ID;
-                c.VoteType = (AniDBVoteType)voteType;
-                c.VoteValue = score / 100D;
-            }
-        );
+        await scheduler.StartJob<VoteAniDBAnimeJob>(
+            c => (c.AnimeID, c.VoteType, c.VoteValue) = (ser.AniDB_ID, (AniDBVoteType)voteType, score / 100D),
+            prioritize: true
+        ).ConfigureAwait(false);
         return Ok();
     }
 
@@ -3209,7 +3177,7 @@ public class Common_v2_1 : BaseController
         }
 
         var items = RepoFactory.VideoLocalPlace.GetAll()
-            .Where(v => filename.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
+            .Where(v => filename.Equals(v.RelativePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                 StringComparison.InvariantCultureIgnoreCase))
             .Where(a => a.VideoLocal is not null)
             .Select(a => a.VideoLocal.AnimeEpisodes)
