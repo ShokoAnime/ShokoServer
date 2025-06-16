@@ -323,8 +323,8 @@ jobs:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       TMDB_API: ${{ secrets.TMDB_API }}
       AVD3_URL: ${{ secrets.AVD3_URL }}
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
-      DOCKER_TAG: ${{ secrets.DOCKER_TAG || 'daily' }}
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO || github.repository }}
+      DOCKER_TAG: ${{ vars.DOCKER_TAG || 'daily' }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -429,8 +429,8 @@ jobs:
       packages: write
 
     env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
-      DOCKER_TAG: ${{ secrets.DOCKER_TAG || 'daily' }}
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO || github.repository }}
+      DOCKER_TAG: ${{ vars.DOCKER_TAG || 'daily' }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -573,8 +573,8 @@ jobs:
       - sentry-upload
 
     env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
-      DOCKER_TAG: ${{ secrets.DOCKER_TAG || 'daily' }}
+      DOCKER_REPO: ${{ secrets.DOCKER_REPO || github.repository }}
+      DOCKER_TAG: ${{ vars.DOCKER_TAG || 'daily' }}
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
