@@ -302,6 +302,11 @@ jobs:
       - current_info
       - plugin-nuget
 
+    # Allow writing to the GHCR package and reading the git repository.
+    permissions:
+      contents: read
+      packages: write
+
     strategy:
       fail-fast: false
       matrix:
@@ -417,6 +422,11 @@ jobs:
 
     needs:
       - docker-build
+
+    # Allow writing to the GHCR package and reading the git repository.
+    permissions:
+      contents: read
+      packages: write
 
     env:
       DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
