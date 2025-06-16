@@ -97,7 +97,7 @@ jobs:
         if: ${{ env.NUGET_API_KEY != '' }}
         with:
           PROJECT_FILE_PATH: Shoko.Plugin.Abstractions/Shoko.Plugin.Abstractions.csproj
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          NUGET_KEY: ${{ env.NUGET_API_KEY }}
           TAG_FORMAT: Shoko.Plugin.Abstractions-v*
 
   cli:
@@ -323,7 +323,7 @@ jobs:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       TMDB_API: ${{ secrets.TMDB_API }}
       AVD3_URL: ${{ secrets.AVD3_URL }}
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO || github.repository }}
+      DOCKER_REPO: ${{ vars.DOCKER_REPO }}
       DOCKER_TAG: ${{ vars.DOCKER_TAG || 'daily' }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -380,7 +380,7 @@ jobs:
       # expected format used in the docker manifest create command.
       - uses: docker/build-push-action@v4
         name: Build and Push the Docker image (GHCR Only)
-        if: ${{ env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
+        if: ${{ env.DOCKER_REPO == '' || env.DOCKER_USERNAME == '' || env.DOCKER_PASSWORD == '' }}
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -398,7 +398,7 @@ jobs:
 
       - uses: docker/build-push-action@v4
         name: Build and Push the Docker image (GHCR & Docker Hub)
-        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
+        if: ${{ env.DOCKER_REPO != '' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -429,7 +429,7 @@ jobs:
       packages: write
 
     env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO || github.repository }}
+      DOCKER_REPO: ${{ vars.DOCKER_REPO }}
       DOCKER_TAG: ${{ vars.DOCKER_TAG || 'daily' }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -444,10 +444,10 @@ jobs:
 
       - uses: docker/login-action@v2
         name: Log into Docker Hub
-        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
+        if: ${{ env.DOCKER_REPO != '' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
 
       - name: Create & push manifest (GHCR)
         run: |
@@ -455,7 +455,7 @@ jobs:
           docker manifest push ghcr.io/${{ github.repository }}:${{ env.DOCKER_TAG }}
 
       - name: Create & push manifest (Docker Hub)
-        if: ${{ env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
+        if: ${{ env.DOCKER_REPO != '' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != '' }}
         run: |
           docker manifest create ${{ env.DOCKER_REPO }}:${{ env.DOCKER_TAG }} --amend ${{ env.DOCKER_REPO }}:${{ env.DOCKER_TAG }}-amd64 --amend ${{ env.DOCKER_REPO }}:${{ env.DOCKER_TAG }}-arm64
           docker manifest push ${{ env.DOCKER_REPO }}:${{ env.DOCKER_TAG }}
@@ -551,9 +551,9 @@ jobs:
         shell: pwsh
         if: ${{ env.FTP_SERVER != '' && env.FTP_USERNAME != '' && env.FTP_PASSWORD != '' }}
         env:
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ env.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ env.FTP_PASSWORD }}
+          FTP_SERVER: ${{ env.FTP_SERVER }}
         run : Compress-Archive .\\ShokoServer .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   discord-notify:
@@ -566,7 +566,6 @@ jobs:
       - sentry-upload
 
     env:
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO || github.repository }}
       DOCKER_TAG: ${{ vars.DOCKER_TAG || 'daily' }}
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -576,7 +575,7 @@ jobs:
     steps:
       - name: Generate Changelog from Sentry Release
         id: generate_changelog
-        if: ${{ env.DISCORD_WEBHOOK != '' && env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT != '' && env.DOCKER_REPO != '' && env.DOCKER_TAG != '' }}
+        if: ${{ env.DISCORD_WEBHOOK != '' && env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT != '' && env.DOCKER_TAG != '' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ env.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ env.SENTRY_ORG }}
@@ -593,18 +592,18 @@ jobs:
 
       - name: Notify Discord Users
         uses: tsickert/discord-webhook@v6.0.0
-        if: ${{ env.DISCORD_WEBHOOK != '' && env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT != '' && env.DOCKER_REPO != '' && env.DOCKER_TAG != '' }}
+        if: ${{ env.DISCORD_WEBHOOK != '' && env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' && env.SENTRY_PROJECT != '' && env.DOCKER_TAG != '' }}
         with:
           webhook-url: ${{ env.DISCORD_WEBHOOK }}
           embed-color: 5809492
           embed-timestamp: ${{ needs.current_info.outputs.date }}
           embed-author-name: Shoko Server | New Dev Build
-          embed-author-icon-url: https://raw.githubusercontent.com/${{ github.repository }}/master/.github/images/Shoko.png
+          embed-author-icon-url: https://raw.githubusercontent.com/ShokoAnime/ShokoServer/v5.0.0/.github/images/Shoko.png
           embed-author-url: https://github.com/${{ github.repository }}
           embed-description: |
             **Version**: `${{ needs.current_info.outputs.version }}` (`${{ needs.current_info.outputs.sha_short }}`)
 
-            Update by grabbing the latest dev from [the github action](https://github.com/${{ github.repository }}/actions/workflows/build-daily.yml) or through Docker using the `${{ env.DOCKER_REPO }}:${{ env.DOCKER_TAG}}` tag!
+            Update by grabbing the latest dev from [the github action](https://github.com/${{ github.repository }}/actions/workflows/build-daily.yml) or through Docker using the `ghcr.io/${{ github.repository }}:${{ env.DOCKER_TAG }}` tag!
 
             **Changes since last build**:
             ${{ steps.generate_changelog.outputs.CHANGELOG }}
