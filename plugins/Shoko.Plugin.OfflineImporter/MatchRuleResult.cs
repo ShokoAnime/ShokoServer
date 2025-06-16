@@ -515,7 +515,8 @@ public record MatchRuleResult
             post = post.Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
             if (_trailingReleaseGroupCheck.Match(post) is { Success: true } releaseGroupMatch)
             {
-                modifiedDetails.ReleaseGroup = releaseGroupMatch.Groups["releaseGroup"].Value;
+                if (string.IsNullOrEmpty(modifiedDetails.ReleaseGroup))
+                    modifiedDetails.ReleaseGroup = releaseGroupMatch.Groups["releaseGroup"].Value;
                 post = post[..^releaseGroupMatch.Length];
             }
             post = post.Replace(_spaceCollapseRegex, " ").Replace(_bracketTrimRegex, string.Empty);
