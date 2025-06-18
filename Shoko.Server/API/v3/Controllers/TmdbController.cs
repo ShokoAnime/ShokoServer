@@ -1009,7 +1009,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -1197,7 +1197,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -1237,7 +1237,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -1394,7 +1394,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -1456,7 +1456,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -2382,7 +2382,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -2448,7 +2448,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -2588,7 +2588,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
@@ -2628,7 +2628,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFoundByEpisodeID);
 
-        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase) && show.PreferredAlternateOrderingID is not null)
+        if (string.Equals(AlternateOrderingDisabled, alternateOrderingID, StringComparison.OrdinalIgnoreCase))
             alternateOrderingID = show.Id.ToString();
 
         if (string.IsNullOrEmpty(alternateOrderingID) && !string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
