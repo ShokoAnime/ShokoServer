@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,14 +33,15 @@ namespace Shoko.Server.API.v2.Modules;
 public class Init : BaseController
 {
     private readonly ILogger<Init> _logger;
-    private readonly IServerSettings _settings;
-    private readonly ShokoServer _shokoServer;
 
-    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider, ShokoServer shokoServer) : base(settingsProvider)
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
+
+    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
-        _shokoServer = shokoServer;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
     }
 
     /// <summary>
@@ -277,8 +276,6 @@ public class Init : BaseController
         handler.ForceLogout();
         handler.CloseConnections();
 
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
-
         handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,
             _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
@@ -327,7 +324,7 @@ public class Init : BaseController
     {
         var settings = new DatabaseSettings
         {
-            db_type = _settings.Database.Type,
+            db_type = _settings.Database.Type.ToString(),
             mysql_hostname = _settings.Database.Host,
             mysql_password = _settings.Database.Password,
             mysql_schemaname = _settings.Database.Schema,
@@ -351,10 +348,10 @@ public class Init : BaseController
     [HttpPost("database")]
     public ActionResult SetDatabaseSettings(DatabaseSettings settings)
     {
-        string dbtype = settings?.db_type;
-        if (dbtype == null)
+        var dbtype = Enum.TryParse<Constants.DatabaseType>(settings.db_type, out var dbtype0) ? dbtype0 : (Constants.DatabaseType?)null;
+        if (dbtype is null)
             return APIStatus.BadRequest("You must specify database type and use valid xml or json.");
-        if (dbtype == Constants.DatabaseType.MySQL)
+        if (dbtype is Constants.DatabaseType.MySQL)
         {
             var details = new List<(string, string)>();
             if (string.IsNullOrEmpty(settings.mysql_hostname))
@@ -367,7 +364,7 @@ public class Init : BaseController
                 details.Add(("mysql_password", "Must not be empty"));
             if (details.Count > 0)
                 return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-            _settings.Database.Type = dbtype;
+            _settings.Database.Type = dbtype.Value;
             _settings.Database.Host = settings.mysql_hostname;
             _settings.Database.Password = settings.mysql_password;
             _settings.Database.Schema = settings.mysql_schemaname;
@@ -375,7 +372,7 @@ public class Init : BaseController
             _settings.Database.OverrideConnectionString = settings.override_connection_string;
             return APIStatus.OK();
         }
-        if (dbtype == Constants.DatabaseType.SqlServer)
+        if (dbtype is Constants.DatabaseType.SQLServer)
         {
             var details = new List<(string, string)>();
             if (string.IsNullOrEmpty(settings.sqlserver_databaseserver))
@@ -388,7 +385,7 @@ public class Init : BaseController
                 details.Add(("sqlserver_password", "Must not be empty"));
             if (details.Count > 0)
                 return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-            _settings.Database.Type = dbtype;
+            _settings.Database.Type = dbtype.Value;
             _settings.Database.Host = settings.sqlserver_databaseserver;
             _settings.Database.Schema = settings.sqlserver_databasename;
             _settings.Database.Username = settings.sqlserver_username;
@@ -396,9 +393,9 @@ public class Init : BaseController
             _settings.Database.OverrideConnectionString = settings.override_connection_string;
             return APIStatus.OK();
         }
-        if (dbtype == Constants.DatabaseType.Sqlite)
+        if (dbtype is Constants.DatabaseType.SQLite)
         {
-            _settings.Database.Type = dbtype;
+            _settings.Database.Type = dbtype.Value;
             if (!string.IsNullOrEmpty(settings.sqlite_databasefile))
                 _settings.Database.SQLite_DatabaseFile = settings.sqlite_databasefile;
             _settings.Database.OverrideConnectionString = settings.override_connection_string;
@@ -418,10 +415,10 @@ public class Init : BaseController
         if (_settings.Database.Type == Constants.DatabaseType.MySQL && new MySQL().TestConnection())
             return APIStatus.OK();
 
-        if (_settings.Database.Type == Constants.DatabaseType.SqlServer  && new SQLServer().TestConnection())
+        if (_settings.Database.Type == Constants.DatabaseType.SQLServer  && new SQLServer().TestConnection())
             return APIStatus.OK();
 
-        if (_settings.Database.Type == Constants.DatabaseType.Sqlite)
+        if (_settings.Database.Type == Constants.DatabaseType.SQLite)
             return APIStatus.OK();
 
         return APIStatus.BadRequest("Failed to Connect");

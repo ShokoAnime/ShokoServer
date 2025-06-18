@@ -9,7 +9,7 @@ public class IntegrityCheck
 {
     public int ID { get; set; }
 
-    public List<int> ImportFolderIDs { get; set; }
+    public List<int> ManagedFolderIDs { get; set; }
 
     public int Status { get; set; }
 

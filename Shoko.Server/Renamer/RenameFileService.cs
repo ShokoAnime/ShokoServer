@@ -38,28 +38,27 @@ public class RenameFileService
         _logger = logger;
         _settingsProvider = settingsProvider;
         _renamers = renamers;
-        LoadRenamers(AppDomain.CurrentDomain.GetAssemblies());
     }
 
-    public RelocationResult GetNewPath(SVR_VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null, bool? allowRelocationInsideDestination = null)
+    public RelocationResult GetNewPath(VideoLocal_Place place, RenamerConfig? renamerConfig = null, bool? move = null, bool? rename = null, bool? allowRelocationInsideDestination = null)
     {
         var settings = _settingsProvider.GetSettings();
         var shouldMove = move ?? settings.Plugins.Renamer.MoveOnImport;
         var shouldRename = rename ?? settings.Plugins.Renamer.RenameOnImport;
         var shouldAllowRelocationInsideDestination = allowRelocationInsideDestination ?? settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport;
 
-        // Make sure the import folder is reachable.
-        var importFolder = (IImportFolder?)place.ImportFolder;
-        if (importFolder is null)
+        // Make sure the managed folder is reachable.
+        var managedFolder = (IManagedFolder?)place.ManagedFolder;
+        if (managedFolder is null)
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = $"Unable to find import folder for file with ID {place.VideoLocal}.",
+                ErrorMessage = $"Unable to find managed folder for file with ID {place.VideoLocal}.",
             };
 
         // Don't relocate files not in a drop source or drop destination.
-        if (importFolder.DropFolderType is DropFolderType.Excluded)
+        if (managedFolder.DropFolderType is DropFolderType.Excluded)
             return new()
             {
                 Success = false,
@@ -68,7 +67,7 @@ public class RenameFileService
             };
 
         // Or if it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.
-        if (importFolder.DropFolderType is DropFolderType.Destination && !shouldAllowRelocationInsideDestination)
+        if (managedFolder.DropFolderType is DropFolderType.Destination && !shouldAllowRelocationInsideDestination)
             return new()
             {
                 Success = false,
@@ -146,8 +145,8 @@ public class RenameFileService
             .Select(a => a.AnimeGroup)
             .WhereNotNull()
             .ToList();
-        var availableFolders = RepoFactory.ImportFolder.GetAll()
-            .Cast<IImportFolder>()
+        var availableFolders = RepoFactory.ShokoManagedFolder.GetAll()
+            .Cast<IManagedFolder>()
             .Where(a => a.DropFolderType != DropFolderType.Excluded)
             .ToList();
 
@@ -224,7 +223,7 @@ public class RenameFileService
     /// <param name="shouldMove">Indicates that we should have moved.</param>
     /// <param name="shouldRename">Indicates that we should have renamed.</param>
     /// <returns>An non-abstract relocation result.</returns>
-    private static RelocationResult UnAbstractResult(SVR_VideoLocal_Place place, AbstractRelocationResult result, bool shouldMove, bool shouldRename)
+    private static RelocationResult UnAbstractResult(VideoLocal_Place place, AbstractRelocationResult result, bool shouldMove, bool shouldRename)
     {
         if (result.Error is not null)
             return new()
@@ -235,19 +234,19 @@ public class RenameFileService
                 Exception = result.Error.Exception,
             };
 
-        var newImportFolder = shouldMove && !result.SkipMove ? result.DestinationImportFolder! : place.ImportFolder!;
+        var newFolder = shouldMove && !result.SkipMove ? result.DestinationFolder! : place.ManagedFolder!;
         var newFileName = shouldRename && !result.SkipRename ? result.FileName! : place.FileName;
-        var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path : Path.GetDirectoryName(place.FilePath);
+        var newRelativeDirectory = shouldMove && !result.SkipMove ? result.Path : Path.GetDirectoryName(place.RelativePath);
         var newRelativePath = !string.IsNullOrEmpty(newRelativeDirectory) && newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
-        var newFullPath = Path.Combine(newImportFolder.Path, newRelativePath);
+        var newFullPath = Path.Join(newFolder.Path, newRelativePath);
         return new()
         {
             Success = true,
-            ImportFolder = newImportFolder,
+            ManagedFolder = newFolder,
             RelativePath = newRelativePath,
             // TODO: Handle file-systems that are or aren't case sensitive.
             Renamed = !string.Equals(place.FileName, result.FileName, StringComparison.OrdinalIgnoreCase),
-            Moved = !string.Equals(Path.GetDirectoryName(place.FullServerPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase),
+            Moved = !string.Equals(Path.GetDirectoryName(place.Path), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase),
         };
     }
 
@@ -303,7 +302,7 @@ public class RenameFileService
             if (!string.IsNullOrEmpty(result.Path) && result.Path[0] == Path.DirectorySeparatorChar)
                 result.Path = result.Path[1..];
 
-            if (shouldMove && !result.SkipMove && (result.DestinationImportFolder is null || result.Path is null || result.Path.StartsWith("*Error:")))
+            if (shouldMove && !result.SkipMove && (result.DestinationFolder is null || result.Path is null || result.Path.StartsWith("*Error:")))
             {
                 var errorMessage = !string.IsNullOrWhiteSpace(result.Path) && result.Path.StartsWith("*Error:")
                     ? result.Path[7..].Trim()
@@ -323,20 +322,9 @@ public class RenameFileService
         }
     }
 
-    private void LoadRenamers(IList<Assembly> assemblies)
+    public void LoadRenamers(IList<Type> exportedTypes)
     {
-        var allTypes = assemblies
-            .SelectMany(a =>
-            {
-                try
-                {
-                    return a.GetTypes();
-                }
-                catch
-                {
-                    return Type.EmptyTypes;
-                }
-            })
+        var allTypes = exportedTypes
             .Where(a => a.IsClass && a is { IsAbstract: false, IsGenericType: false } && a.GetInterfaces().Any(b =>
                 (b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>)) || b == typeof(IRenamer)))
             .ToList();
