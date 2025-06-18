@@ -28,10 +28,9 @@ public class TmdbSeason
     public int ShowID { get; init; }
 
     /// <summary>
-    /// The alternate ordering this season is associated with. Will be null
-    /// for main series seasons.
+    /// The ID of the alternate ordering this season is associated with.
     /// </summary>
-    public string? AlternateOrderingID { get; init; }
+    public string AlternateOrderingID { get; init; }
 
     /// <summary>
     /// Preferred title based upon episode title preference.
@@ -102,11 +101,9 @@ public class TmdbSeason
     public int HiddenEpisodeCount { get; init; }
 
     /// <summary>
-    /// Indicates the alternate ordering season is locked. Will not be set if
-    /// <seealso cref="AlternateOrderingID"/> is not set.
+    /// Indicates the season is locked for edits in TMDB.
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public bool? IsLocked { get; init; }
+    public bool IsLocked { get; init; }
 
     /// <summary>
     /// When the local metadata was first created.
@@ -127,7 +124,7 @@ public class TmdbSeason
 
         ID = season.TmdbSeasonID.ToString();
         ShowID = season.TmdbShowID;
-        AlternateOrderingID = null;
+        AlternateOrderingID = season.TmdbShowID.ToString();
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = season.GetAllTitles()
@@ -159,7 +156,7 @@ public class TmdbSeason
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
         HiddenEpisodeCount = season.HiddenEpisodeCount;
-        IsLocked = null;
+        IsLocked = false;
         CreatedAt = season.CreatedAt.ToUniversalTime();
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
     }

@@ -1082,7 +1082,7 @@ public class TmdbMetadataService
                 updated = true;
             }
             if (downloadAlternateOrdering && !quickRefresh)
-                updated = await UpdateShowAlternateOrdering(show) || updated;
+                updated = await UpdateShowAlternateOrdering(tmdbShow, show) || updated;
             if (newlyAdded || updated)
             {
                 if (shouldFireEvents)
@@ -1334,7 +1334,7 @@ public class TmdbMetadataService
         );
     }
 
-    private async Task<bool> UpdateShowAlternateOrdering(TvShow show)
+    private async Task<bool> UpdateShowAlternateOrdering(TMDB_Show tmdbShow, TvShow show)
     {
         _logger.LogDebug(
             "Checking {count} episode group collections to create alternate orderings for show {ShowTitle} (Show={ShowId})",
@@ -1500,12 +1500,24 @@ public class TmdbMetadataService
         _tmdbAlternateOrderingEpisodes.Save(episodesToSave);
         _tmdbAlternateOrderingEpisodes.Delete(episodesToRemove);
 
+        var preferredOrderingUpdated = false;
+        if (tmdbShow.PreferredAlternateOrderingID is not null)
+        {
+            var allOrderings = show.EpisodeGroups.Results.Select(ordering => ordering.Id).ToHashSet();
+            if (!allOrderings.Contains(tmdbShow.PreferredAlternateOrderingID))
+            {
+                tmdbShow.PreferredAlternateOrderingID = null;
+                preferredOrderingUpdated = true;
+            }
+        }
+
         return orderingToSave.Count > 0 ||
             orderingToRemove.Count > 0 ||
             seasonsToSave.Count > 0 ||
             seasonsToRemove.Count > 0 ||
             episodesToSave.Count > 0 ||
-            episodesToRemove.Count > 0;
+            episodesToRemove.Count > 0 ||
+            preferredOrderingUpdated;
     }
 
     private (bool, IEnumerable<int>, IEnumerable<int>) UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits)

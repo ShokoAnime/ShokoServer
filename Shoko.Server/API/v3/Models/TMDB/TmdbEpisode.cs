@@ -38,6 +38,11 @@ public class TmdbEpisode
     public int ShowID { get; init; }
 
     /// <summary>
+    /// The ID of the alternate ordering currently in use for the episode.
+    /// /// /// </summary>
+    public string AlternateOrderingID { get; init; }
+
+    /// <summary>
     /// TVDB Episode ID, if available.
     /// </summary>
     public int? TvdbEpisodeID { get; init; }
@@ -153,10 +158,9 @@ public class TmdbEpisode
         var preferredTitle = episode.GetPreferredTitle();
 
         ID = episode.TmdbEpisodeID;
-        SeasonID = alternateOrderingEpisode != null
-         ? alternateOrderingEpisode.TmdbEpisodeGroupID
-         : episode.TmdbSeasonID.ToString();
+        SeasonID = alternateOrderingEpisode?.TmdbEpisodeGroupID ?? episode.TmdbSeasonID.ToString();
         ShowID = episode.TmdbShowID;
+        AlternateOrderingID = alternateOrderingEpisode?.TmdbEpisodeGroupCollectionID ?? show.TmdbShowID.ToString();
         TvdbEpisodeID = episode.TvdbEpisodeID;
 
         Title = preferredTitle!.Value;

@@ -26,6 +26,11 @@ public class TmdbShow
     public int ID { get; init; }
 
     /// <summary>
+    /// The ID of the alternate ordering currently in use for the show.
+    /// /// /// </summary>
+    public string AlternateOrderingID { get; init; }
+
+    /// <summary>
     /// TvDB Show ID, if available.
     /// </summary>
     public int? TvdbID { get; init; }
@@ -198,6 +203,7 @@ public class TmdbShow
         var preferredTitle = show.GetPreferredTitle();
 
         ID = show.TmdbShowID;
+        AlternateOrderingID = alternateOrdering?.TmdbEpisodeGroupCollectionID ?? show.TmdbShowID.ToString();
         TvdbID = show.TvdbShowID;
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))

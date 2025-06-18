@@ -9,6 +9,7 @@ public class TmdbSetPreferredOrderingBody
     /// <summary>
     /// The new preferred ordering to use.
     /// </summary>
+    [Required]
     [RegularExpression(TmdbController.AlternateOrderingIdRegex)]
-    public string? AlternateOrderingID { get; set; }
+    public string AlternateOrderingID { get; set; } = string.Empty;
 }
