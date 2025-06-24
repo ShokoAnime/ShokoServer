@@ -181,7 +181,7 @@ public class Image
                 var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, id);
                 if (metadata is not null && metadata.IsLocalAvailable)
                 {
-                    RelativeFilepath = metadata.LocalPath!.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+                    RelativeFilepath = metadata.LocalPath!.Replace(ImageUtils.BaseImagesPath, "").Replace("\\", "/");
                     if (RelativeFilepath[0] != '/')
                         RelativeFilepath = "/" + RelativeFilepath;
                     // This causes serious IO lag on some systems. Enable at own risk.

@@ -13,6 +13,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 
 #nullable enable
 namespace Shoko.Server.Utilities;
@@ -27,31 +28,29 @@ public class ImageUtils
     [return: NotNullIfNotNull(nameof(relativePath))]
     public static string? ResolvePath(string? relativePath)
         => !string.IsNullOrEmpty(relativePath)
-            ? Path.Join(Path.TrimEndingDirectorySeparator(GetBaseImagesPath()), relativePath)
+            ? Path.Join(Path.TrimEndingDirectorySeparator(BaseImagesPath), relativePath)
             : null;
 
-    public static string GetBaseImagesPath()
-        => Utils.SettingsProvider?.GetSettings()?.ImagesPath is { Length: > 0 } imagePath
-            ? Path.Combine(Utils.ApplicationPath, imagePath)
-            : Utils.DefaultImagePath;
+    public static string BaseImagesPath
+        => ApplicationPaths.Instance.ImagesPath;
 
-    public static string GetBaseAniDBImagesPath()
-        => Path.Join(GetBaseImagesPath(), "AniDB");
+    public static string BaseAniDBImagesPath
+        => Path.Join(BaseImagesPath, "AniDB");
 
-    public static string GetBaseAniDBCharacterImagesPath()
-        => Path.Join(GetBaseImagesPath(), "AniDB_Char");
+    public static string BaseAniDBCharacterImagesPath
+        => Path.Join(BaseImagesPath, "AniDB_Char");
 
-    public static string GetBaseAniDBCreatorImagesPath()
-        => Path.Join(GetBaseImagesPath(), "AniDB_Creator");
+    public static string BaseAniDBCreatorImagesPath
+        => Path.Join(BaseImagesPath, "AniDB_Creator");
 
     public static string GetAniDBCharacterImagePath(int characterID)
-        => Path.Join(GetBaseAniDBCharacterImagesPath(), characterID.ToString() is { Length: > 1 } sid ? sid[..2] : characterID.ToString());
+        => Path.Join(BaseAniDBCharacterImagesPath, characterID.ToString() is { Length: > 1 } sid ? sid[..2] : characterID.ToString());
 
     public static string GetAniDBCreatorImagePath(int creatorID)
-        => Path.Join(GetBaseAniDBCreatorImagesPath(), creatorID.ToString() is { Length: > 1 } sid ? sid[..2] : creatorID.ToString());
+        => Path.Join(BaseAniDBCreatorImagesPath, creatorID.ToString() is { Length: > 1 } sid ? sid[..2] : creatorID.ToString());
 
     public static string GetAniDBImagePath(int animeID)
-        => Path.Join(GetBaseAniDBImagesPath(), animeID.ToString() is { Length: > 1 } sid ? sid[..2] : animeID.ToString());
+        => Path.Join(BaseAniDBImagesPath, animeID.ToString() is { Length: > 1 } sid ? sid[..2] : animeID.ToString());
 
     public static IImageMetadata? GetImageMetadata(CL_ImageEntityType imageEntityType, int imageId)
         => GetImageMetadata(imageEntityType.ToServerSource(), imageEntityType.ToServerType(), imageId);

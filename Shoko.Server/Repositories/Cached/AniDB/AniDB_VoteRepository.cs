@@ -45,8 +45,8 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
 
     public override void PopulateIndexes()
     {
-        _entityIDs = new PocoIndex<int, AniDB_Vote, int>(Cache, a => a.EntityID);
-        _entityIDAndTypes = new PocoIndex<int, AniDB_Vote, (int, AniDBVoteType)>(Cache, a => (a.EntityID, (AniDBVoteType)a.VoteType));
+        _entityIDs = Cache.CreateIndex(a => a.EntityID);
+        _entityIDAndTypes = Cache.CreateIndex(a => (a.EntityID, (AniDBVoteType)a.VoteType));
     }
 
     public AniDB_Vote? GetByEntityAndType(int entityID, AniDBVoteType voteType)

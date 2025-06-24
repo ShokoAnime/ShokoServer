@@ -17,7 +17,7 @@ public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCached
 
     public override void PopulateIndexes()
     {
-        _animeIDs = new PocoIndex<int, SVR_AniDB_Anime, int>(Cache, a => a.AnimeID);
+        _animeIDs = Cache.CreateIndex(a => a.AnimeID);
     }
 
     public override void RegenerateDb()
