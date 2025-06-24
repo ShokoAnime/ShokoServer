@@ -630,94 +630,122 @@ public class VideoReleaseService(
     {
         legacyXrefs = [];
 
+        var edgeCases = 0;
         var legacyOrder = 0;
         var checkedIDs = new HashSet<int>();
         var embeddedXrefs = new List<EmbeddedCrossReference>();
-        foreach (var xref in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>())
+        foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.AnidbEpisodeID))
         {
-            if (!checkedIDs.Add(xref.AnidbEpisodeID))
+            var firstXref = xrefGroup.First();
+            if (firstXref.AnidbEpisodeID is <= 0)
             {
-                logger.LogError("Duplicate episode with id {EpisodeID}!", xref.AnidbEpisodeID);
+                logger.LogError("Negative or zero episode id: {EpisodeID}!", firstXref.AnidbEpisodeID);
                 continue;
             }
 
-            // The percentage range cannot be 0.
-            if (xref.PercentageEnd == xref.PercentageStart)
-                continue;
-
-            // Reverse the percentage range if it is backwards.
-            if (xref.PercentageEnd < xref.PercentageStart)
-                (xref.PercentageEnd, xref.PercentageStart) = (xref.PercentageStart, xref.PercentageEnd);
-
-            // The percentage range must be between 0 and 100.
-            if (xref.PercentageEnd > 100)
-                xref.PercentageEnd = 100;
-            if (xref.PercentageStart < 0)
-                xref.PercentageStart = 0;
-
-            if (xref.AnidbEpisodeID is <= 0)
-                continue;
-
-            if (_unknownEpisodeIDs.Contains(xref.AnidbEpisodeID))
+            if (_unknownEpisodeIDs.Contains(firstXref.AnidbEpisodeID))
             {
-                logger.LogError("Unknown episode with id {EpisodeID}!", xref.AnidbEpisodeID);
+                logger.LogError("Unknown episode id: {EpisodeID}!", firstXref.AnidbEpisodeID);
                 continue;
             }
 
-            // The provider doesn't know which anime the episode belongs to, so try to fix that.
-            var animeID = xref.AnidbAnimeID;
-            if (animeID is null or <= 0)
+            // If the provider doesn't know which anime the episode belongs to, then try to look it up.
+            var animeID = xrefGroup
+                .Select(xref => xref.AnidbAnimeID ?? 0)
+                .Where(animeID => animeID > 0)
+                .GroupBy(animeID => animeID)
+                .OrderByDescending(groupBy => groupBy.Count())
+                .FirstOrDefault()?
+                .Key;
+            if (animeID is null)
             {
-                animeID = null;
-                if (anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID) is { } episode)
+                if (anidbEpisodeRepository.GetByEpisodeID(firstXref.AnidbEpisodeID) is { } episode)
                 {
                     animeID = episode.AnimeID;
                 }
                 else if (udpConnection.IsBanned)
                 {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, but we're UDP banned, so deferring fetch to later!", xref.AnidbEpisodeID);
+                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, but we're UDP banned, so deferring fetch to later!", firstXref.AnidbEpisodeID);
                 }
                 else
                 {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", xref.AnidbEpisodeID);
+                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", firstXref.AnidbEpisodeID);
                     try
                     {
                         var episodeResponse = requestFactory
-                            .Create<RequestGetEpisode>(r => r.EpisodeID = xref.AnidbEpisodeID)
+                            .Create<RequestGetEpisode>(r => r.EpisodeID = firstXref.AnidbEpisodeID)
                             .Send();
                         animeID = episodeResponse.Response?.AnimeID;
                         if (episodeResponse.Code is Providers.AniDB.UDPReturnCode.NO_SUCH_EPISODE)
                         {
-                            logger.LogError("Unknown episode with id {EpisodeID}!", xref.AnidbEpisodeID);
-                            _unknownEpisodeIDs.Add(xref.AnidbEpisodeID);
+                            logger.LogError("Unknown episode with id {EpisodeID}!", firstXref.AnidbEpisodeID);
+                            _unknownEpisodeIDs.Add(firstXref.AnidbEpisodeID);
                             continue;
                         }
                     }
                     catch (Exception e)
                     {
-                        logger.LogError(e, "Could not get Episode Info for {EpisodeID}!", xref.AnidbEpisodeID);
+                        logger.LogError(e, "Could not get Episode Info for {EpisodeID}!", firstXref.AnidbEpisodeID);
                     }
                 }
-                if (animeID is not null)
-                    xref.AnidbAnimeID = animeID;
-                else
-                    xref.AnidbAnimeID = null;
             }
 
-            embeddedXrefs.Add(xref);
-            legacyXrefs.Add(new()
+            var xrefList = new List<EmbeddedCrossReference>();
+            foreach (var xref in xrefGroup)
             {
-                Hash = video.ED2K,
-                AnimeID = animeID ?? 0,
-                EpisodeID = xref.AnidbEpisodeID,
-                Percentage = xref.PercentageEnd - xref.PercentageStart,
-                EpisodeOrder = legacyOrder++,
-                FileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName,
-                FileSize = video.Size,
-            });
+                // The percentage range cannot be 0.
+                if (xref.PercentageEnd == xref.PercentageStart)
+                    continue;
+
+                // Reverse the percentage range if it is backwards.
+                if (xref.PercentageEnd < xref.PercentageStart)
+                    (xref.PercentageEnd, xref.PercentageStart) = (xref.PercentageStart, xref.PercentageEnd);
+
+                // The percentage range must be between 0 and 100.
+                if (xref.PercentageEnd > 100)
+                    xref.PercentageEnd = 100;
+                if (xref.PercentageStart < 0)
+                    xref.PercentageStart = 0;
+
+                xrefList.Add(xref);
+            }
+
+            // This clause is for the cases where a file is linked 100% to an episode, and have an
+            // additional relation that's not 100% to the same episode.
+            if (
+                xrefList.Count > 1 &&
+                xrefList.Any(xref => xref is { PercentageStart: 0, PercentageEnd: 100 }) &&
+                xrefList.Any(xref => xref is not { PercentageStart: 0, PercentageEnd: 100 })
+            )
+            {
+                while (xrefList.FindIndex(xref => xref is { PercentageStart: 0, PercentageEnd: 100 }) is { } index && index is not -1)
+                {
+                    xrefList.RemoveAt(index);
+                    edgeCases++;
+                }
+            }
+
+            foreach (var xref in xrefList.DistinctBy(xref => (xref.PercentageStart, xref.PercentageEnd)))
+            {
+                // If we got this far and the anime ID is set, then apply it now.
+                if (animeID is not null)
+                    xref.AnidbAnimeID = animeID;
+
+                embeddedXrefs.Add(xref);
+                legacyXrefs.Add(new()
+                {
+                    Hash = video.ED2K,
+                    AnimeID = animeID ?? 0,
+                    EpisodeID = xref.AnidbEpisodeID,
+                    Percentage = xref.PercentageEnd - xref.PercentageStart,
+                    EpisodeOrder = legacyOrder++,
+                    FileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName,
+                    FileSize = video.Size,
+                });
+            }
         }
 
-        if (embeddedXrefs.Count != releaseInfo.CrossReferences.Count)
+        if (embeddedXrefs.Count != releaseInfo.CrossReferences.Count - edgeCases)
             return false;
 
         releaseInfo.CrossReferences = embeddedXrefs;
