@@ -87,7 +87,16 @@ public class ThreadPooledJobStore : JobStoreTX
             if (type == null) continue;
             var value = kv.Value;
             var attribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
-            if (attribute is { MaxAllowedConcurrentJobs: > 0 } && attribute.MaxAllowedConcurrentJobs < kv.Value) value = attribute.MaxAllowedConcurrentJobs;
+            if (attribute is null)
+            {
+                _typeConcurrencyCache[type] = value;
+                continue;
+            }
+
+            // limit the upper bound according to the attribute
+            if (attribute.MaxAllowedConcurrentJobs > 0 && attribute.MaxAllowedConcurrentJobs < kv.Value) value = attribute.MaxAllowedConcurrentJobs;
+            // by not adding it to the cache, we don't limit it
+            if (kv.Value <= 0) continue;
             _typeConcurrencyCache[type] = value;
         }
     }
