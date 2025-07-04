@@ -163,14 +163,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
             // Lazy load TMDB titles if needed.
             IReadOnlyList<TMDB_Title>? tmdbTitles = null;
-            IReadOnlyList<TMDB_Title> GetTmdbTitles()
-                => tmdbTitles ??= (
-                    TmdbShows is { Count: > 0 } tmdbShows
-                        ? tmdbShows[0].GetAllTitles()
-                        : TmdbMovies is { Count: 1 } tmdbMovies
-                            ? tmdbMovies[0].GetAllTitles()
-                            : []
-                );
 
             // Loop through all languages and sources, first by language, then by source.
             foreach (var language in languageOrder)
@@ -184,7 +176,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                                 : GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main or TitleType.Official && x.Language == language.Language)?.Title ??
                                     (settings.Language.UseSynonyms ? GetAnidbTitles().FirstOrDefault(x => x.Language == language.Language)?.Title : null),
                         DataSourceType.TMDB =>
-                            GetTmdbTitles().GetByLanguage(language.Language)?.Value,
+                            (tmdbTitles ??= GetTmdbTitles()).GetByLanguage(language.Language)?.Value,
                         _ => null,
                     };
                     if (!string.IsNullOrEmpty(title))
@@ -194,6 +186,23 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             // The most "default" title we have, even if AniDB isn't a preferred source.
             return _preferredTitle = anime?.MainTitle ?? GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main)?.Title ?? $"<AniDB Anime {AniDB_ID}>";
         }
+    }
+
+    private IReadOnlyList<TMDB_Title> GetTmdbTitles()
+    {
+        // If we're linked to multiple TMDB shows or multiple TMDB movies, then
+        // don't bother attempting to programmatically find the perfect title.
+        if (TmdbShows is { Count: 1 } tmdbShows)
+        {
+            // TODO: Maybe add argumented season name support. Argumented in the sense that we add the season number or title to the show title per language.
+            return tmdbShows[0].GetAllTitles();
+        }
+        else if (TmdbMovies is { Count: 1 } tmdbMovies)
+        {
+            return tmdbMovies[0].GetAllTitles();
+        }
+
+        return [];
     }
 
     private List<AnimeTitle>? _animeTitles = null;
@@ -274,14 +283,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
             // Lazy load TMDB overviews if needed.
             IReadOnlyList<TMDB_Overview>? tmdbOverviews = null;
-            IReadOnlyList<TMDB_Overview> GetTmdbOverviews()
-                => tmdbOverviews ??= (
-                    TmdbShows is { Count: > 0 } tmdbShows
-                        ? tmdbShows[0].GetAllOverviews()
-                        : TmdbMovies is { Count: 1 } tmdbMovies
-                            ? tmdbMovies[0].GetAllOverviews()
-                            : []
-                );
 
             // Check each language and source in the most preferred order.
             foreach (var language in languageOrder)
@@ -294,7 +295,7 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                                 ? anidbOverview
                                 : null,
                         DataSourceType.TMDB =>
-                            GetTmdbOverviews().GetByLanguage(language.Language)?.Value,
+                            (tmdbOverviews ??= GetTmdbOverviews()).GetByLanguage(language.Language)?.Value,
                         _ => null,
                     };
                     if (!string.IsNullOrEmpty(overview))
@@ -305,6 +306,54 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             return _preferredOverview = string.Empty;
         }
 
+    }
+
+    private IReadOnlyList<TMDB_Overview> GetTmdbOverviews()
+    {
+        // Get the overviews from TMDB if we're linked to a single show or
+        // movie.
+        if (TmdbShows is { Count: 1 } tmdbShows)
+        {
+            if (TmdbSeasonCrossReferences is not { Count: > 0 } tmdbSeasonCrossReferences)
+                return [];
+
+            // If we're linked to season zero, and only season zero, then we're
+            // most likely linking an AniDB OVA to one or more specials of the
+            // TMDB show, so do some additional logic on that.
+            if (tmdbSeasonCrossReferences.Count is 1 && tmdbSeasonCrossReferences[0] is { SeasonNumber: 0 })
+            {
+                // If we're linking a single episode to a single episode, return
+                // the overviews from the linked episode.
+                var tmdbEpisodeCrossReferences = TmdbEpisodeCrossReferences
+                    .Where(reference => reference.TmdbEpisodeID is not 0)
+                    .ToList();
+                if (tmdbEpisodeCrossReferences.Count is 1)
+                    return tmdbEpisodeCrossReferences[0].TmdbEpisode?.GetAllOverviews() ?? [];
+
+                // If we're linked to multiple episodes, then it will be hard to
+                // construct an overview for each language without a lot of
+                // additional logic, so just don't bother for now and return an
+                // empty list.
+                return [];
+            }
+
+            // Find the first season that's not season zero. If we found season
+            // one, then return the overviews from the show, otherwise return
+            // the overviews from the first found season.
+            var tmdbSeasonCrossReference = tmdbSeasonCrossReferences
+                .OrderBy(e => e.SeasonNumber)
+                .First(tmdbSeason => tmdbSeason is not { SeasonNumber: 0 });
+            if (tmdbSeasonCrossReference is { SeasonNumber: 1 })
+                return tmdbShows[0].GetAllOverviews();
+
+            return tmdbSeasonCrossReference.TmdbSeason?.GetAllOverviews() ?? [];
+        }
+        else if (TmdbMovies is { Count: 1 } tmdbMovies)
+        {
+            return tmdbMovies[0].GetAllOverviews();
+        }
+
+        return [];
     }
 
     #endregion
