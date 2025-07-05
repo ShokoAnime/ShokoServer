@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Shoko.Models.Enums;
-using Shoko.Server.Utilities;
+using Shoko.Plugin.Abstractions.Config.Attributes;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -21,14 +21,11 @@ public class LanguageSettings
     /// <summary>
     /// Series / group title language preference order.
     /// </summary>
+    [RequiresRestart]
     public List<string> SeriesTitleLanguageOrder
     {
         get => _seriesTitleLanguageOrder;
-        set
-        {
-            _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredNamingLanguages = [];
-        }
+        set => _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
     private List<DataSourceType> _seriesTitleSourceOrder = [DataSourceType.AniDB, DataSourceType.TMDB];
@@ -36,6 +33,7 @@ public class LanguageSettings
     /// <summary>
     /// Series / group title source preference order.
     /// </summary>
+    [RequiresRestart]
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> SeriesTitleSourceOrder
     {
@@ -48,14 +46,11 @@ public class LanguageSettings
     /// <summary>
     /// Episode / season title language preference order.
     /// </summary>
+    [RequiresRestart]
     public List<string> EpisodeTitleLanguageOrder
     {
         get => _episodeLanguagePreference;
-        set
-        {
-            _episodeLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredEpisodeNamingLanguages = [];
-        }
+        set => _episodeLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
     private List<DataSourceType> _episodeTitleSourceOrder = [DataSourceType.TMDB, DataSourceType.AniDB];
@@ -63,6 +58,7 @@ public class LanguageSettings
     /// <summary>
     /// Episode / season title source preference order.
     /// </summary>
+    [RequiresRestart]
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> EpisodeTitleSourceOrder
     {
@@ -75,14 +71,11 @@ public class LanguageSettings
     /// <summary>
     /// Description language preference order.
     /// </summary>
+    [RequiresRestart]
     public List<string> DescriptionLanguageOrder
     {
         get => _descriptionLanguagePreference;
-        set
-        {
-            _descriptionLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredDescriptionNamingLanguages = [];
-        }
+        set => _descriptionLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
     private List<DataSourceType> _descriptionSourceOrder = [DataSourceType.TMDB, DataSourceType.AniDB];
@@ -90,6 +83,7 @@ public class LanguageSettings
     /// <summary>
     /// Description source preference order.
     /// </summary>
+    [RequiresRestart]
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DataSourceType> DescriptionSourceOrder
     {

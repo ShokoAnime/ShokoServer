@@ -117,12 +117,12 @@ namespace Shoko.Models
                 FileQualityFilterOperationType.IN);
 
         /// Require 10bit Video when applicable. This will not apply to codecs that don't support.
-        public bool Require10BitVideo = true;
+        public bool Require10BitVideo { get; set; } = true;
 
         /// The maximum number of files to keep per episode.
         /// I'll need to think of a way to handle episodes that are multipart, but listed as one episode.
         /// For now, just make sure to mark said files as variations, and it will not be deleted regardless.
-        public int MaxNumberOfFilesToKeep = 1;
+        public int MaxNumberOfFilesToKeep { get; set; } = 1;
 
         /// Preferred Sources, in order.
         [JsonIgnore] public List<string> _sources = new List<string> {"bd", "dvd", "tv", "www", "unknown"};

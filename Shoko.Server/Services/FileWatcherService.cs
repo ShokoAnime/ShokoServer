@@ -3,40 +3,47 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
 
+#nullable enable
 namespace Shoko.Server.Services;
 
 public class FileWatcherService
 {
-    private List<RecoveringFileSystemWatcher> _fileWatchers;
-    private readonly ILogger<FileWatcherService> _logger;
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly ISchedulerFactory _schedulerFactory;
-    private readonly ImportFolderRepository _importFolder;
+    private List<RecoveringFileSystemWatcher> _fileWatchers = [];
 
-    public FileWatcherService(ILogger<FileWatcherService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, ImportFolderRepository importFolder)
+    private readonly ILogger<FileWatcherService> _logger;
+
+    private readonly ISettingsProvider _settingsProvider;
+
+    private readonly ShokoManagedFolderRepository _managedFolders;
+
+    private IVideoService? _videoService;
+
+    public FileWatcherService(ILogger<FileWatcherService> logger, ISettingsProvider settingsProvider, ShokoManagedFolderRepository managedFolders)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
-        _schedulerFactory = schedulerFactory;
-        _importFolder = importFolder;
-        importFolder.ImportFolderSaved += ImportFolderSaved;
+        _managedFolders = managedFolders;
+        _managedFolders.ManagedFolderAdded += ManagedFoldersChanged;
+        _managedFolders.ManagedFolderUpdated += ManagedFoldersChanged;
+        _managedFolders.ManagedFolderRemoved += ManagedFoldersChanged;
     }
 
     ~FileWatcherService()
     {
-        _importFolder.ImportFolderSaved -= ImportFolderSaved;
+        _managedFolders.ManagedFolderAdded -= ManagedFoldersChanged;
+        _managedFolders.ManagedFolderUpdated -= ManagedFoldersChanged;
+        _managedFolders.ManagedFolderRemoved -= ManagedFoldersChanged;
     }
 
-    private void ImportFolderSaved(object sender, EventArgs e)
+    private void ManagedFoldersChanged(object? sender, EventArgs e)
     {
         StopWatchingFiles();
         StartWatchingFiles();
@@ -44,27 +51,28 @@ public class FileWatcherService
 
     public void StartWatchingFiles()
     {
-        _fileWatchers = new List<RecoveringFileSystemWatcher>();
+        _videoService ??= Utils.ServiceContainer.GetRequiredService<IVideoService>();
+        _fileWatchers = [];
         var settings = _settingsProvider.GetSettings();
 
-        foreach (var share in _importFolder.GetAll())
+        foreach (var share in _managedFolders.GetAll())
         {
             try
             {
-                if (!share.FolderIsWatched)
+                if (!share.IsWatched)
                 {
-                    _logger.LogInformation("ImportFolder found but not watching: {Name} || {Location}", share.ImportFolderName,
-                        share.ImportFolderLocation);
+                    _logger.LogInformation("Managed folder found but not watching: {Name} || {Location}", share.Name,
+                        share.Path);
                     continue;
                 }
 
-                _logger.LogInformation("Watching ImportFolder: {ImportFolderName} || {ImportFolderLocation}", share.ImportFolderName, share.ImportFolderLocation);
+                _logger.LogInformation("Watching managed folder: {Name} || {Path}", share.Name, share.Path);
 
-                if (!Directory.Exists(share.ImportFolderLocation)) continue;
+                if (!Directory.Exists(share.Path)) continue;
 
-                _logger.LogInformation("Parsed ImportFolderLocation: {ImportFolderLocation}", share.ImportFolderLocation);
+                _logger.LogInformation("Parsed Path: {Path}", share.Path);
 
-                var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation,
+                var fsw = new RecoveringFileSystemWatcher(share.Path,
                     filters: settings.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')),
                     pathExclusions: settings.Import.Exclude);
                 fsw.Options = new FileSystemWatcherLockOptions
@@ -72,7 +80,7 @@ public class FileWatcherService
                     Enabled = settings.Import.FileLockChecking,
                     Aggressive = settings.Import.AggressiveFileLockChecking,
                     WaitTimeMilliseconds = settings.Import.FileLockWaitTimeMS,
-                    FileAccessMode = share.IsDropSource == 1 ? FileAccess.ReadWrite : FileAccess.Read,
+                    FileAccessMode = share.IsDropSource ? FileAccess.ReadWrite : FileAccess.Read,
                     AggressiveWaitTimeSeconds = settings.Import.AggressiveFileLockWaitTimeSeconds
                 };
                 fsw.FileAdded += FileAdded;
@@ -86,39 +94,21 @@ public class FileWatcherService
         }
     }
 
-    private void FileAdded(object sender, string path)
+    private void FileAdded(object? sender, string path)
     {
-        if (!File.Exists(path)) return;
         if (!Utils.IsVideo(path)) return;
 
         _logger.LogInformation("Found file {Path}", path);
-        var tup = _importFolder.GetFromFullPath(path);
-        if (tup == default)
+        var tuple = _managedFolders.GetFromAbsolutePath(path);
+        if (tuple == default)
         {
-            _logger.LogWarning("File path could not be parsed into an import folder location: {Path}", path);
+            _logger.LogWarning("File path could not be parsed into an managed folder location: {Path}", path);
             return;
         }
 
         Task.Run(async () =>
         {
-            try
-            {
-                ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Unable to run File Detected Event for File: {File}", path);
-            }
-
-            try
-            {
-                var scheduler = await _schedulerFactory.GetScheduler();
-                await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = path).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Unable to Schedule DiscoverFileJob for new file: {File}", path);
-            }
+            await _videoService!.NotifyVideoFileChangeDetected(path);
         });
     }
 
