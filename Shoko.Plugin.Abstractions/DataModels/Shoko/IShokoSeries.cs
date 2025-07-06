@@ -25,6 +25,11 @@ public interface IShokoSeries : ISeries
     int TopLevelGroupID { get; }
 
     /// <summary>
+    /// The user tags for the series.
+    /// </summary>
+    IReadOnlyList<string> UserTags { get; }
+
+    /// <summary>
     /// A direct link to the anidb anime metadata.
     /// </summary>
     IAnidbAnime AnidbAnime { get; }

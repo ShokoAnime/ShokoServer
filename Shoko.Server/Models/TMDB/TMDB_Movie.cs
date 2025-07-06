@@ -540,7 +540,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #endregion
 
-    #region IMovie
+    #region IMovie Implementation
 
     bool IMovie.Restricted => IsRestricted;
 
@@ -585,6 +585,14 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()
         .ToList();
+
+    #endregion
+
+    #region ITmdbMovie Implementation
+
+    IReadOnlyList<string> ITmdbMovie.Keywords => Keywords;
+
+    IReadOnlyList<string> ITmdbMovie.Genres => Genres;
 
     #endregion
 }

@@ -503,7 +503,13 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries, IAnidbAnime
 
     #region IAnidbAnime Implementation
 
-    public IReadOnlyList<IAnidbEpisode> Episodes => AniDBEpisodes
+    IReadOnlyList<IAnidbTagForAnime> IAnidbAnime.Tags => AnimeTags
+        .Select(xref => (xref, tag: xref.Tag!))
+        .Where(tuple => tuple.tag is not null)
+        .Select(tuple => new AniDB_Anime_Tag_Abstract(tuple.tag, tuple.xref))
+        .ToList();
+
+    IReadOnlyList<IAnidbEpisode> IAnidbAnime.Episodes => AniDBEpisodes
         .OrderBy(a => a.EpisodeTypeEnum)
         .ThenBy(a => a.EpisodeNumber)
         .ToList();

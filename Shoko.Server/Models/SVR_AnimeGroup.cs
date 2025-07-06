@@ -8,6 +8,7 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
 #nullable enable

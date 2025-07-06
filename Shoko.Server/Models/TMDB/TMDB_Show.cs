@@ -664,7 +664,11 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow
 
     #region ITmdbShow Implementation
 
-    public IReadOnlyList<ITmdbEpisode> Episodes => Episodes;
+    IReadOnlyList<string> ITmdbShow.Keywords => Keywords;
+
+    IReadOnlyList<string> ITmdbShow.Genres => Genres;
+
+    IReadOnlyList<ITmdbEpisode> ITmdbShow.Episodes => TmdbEpisodes;
 
     #endregion
 }

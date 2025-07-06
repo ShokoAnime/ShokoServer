@@ -2,15 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Tag, int>(databaseFactory)
 {
     private PocoIndex<int, AniDB_Tag, int>? _tagIDs;
+
+    private PocoIndex<int, AniDB_Tag, int?>? _parentTagIDs;
 
     private PocoIndex<int, AniDB_Tag, string>? _names;
 
@@ -22,6 +24,7 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
     public override void PopulateIndexes()
     {
         _tagIDs = Cache.CreateIndex(a => a.TagID);
+        _parentTagIDs = Cache.CreateIndex(a => a.ParentTagID);
         _names = Cache.CreateIndex(a => a.TagName);
         _sourceNames = Cache.CreateIndex(a => a.TagNameSource);
     }
@@ -33,7 +36,7 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
             .ToList();
         foreach (var tag in tags)
         {
-            tag.TagDescription = tag.TagDescription?.Replace('`', '\'');
+            tag.TagDescription = (tag.TagDescription ?? string.Empty).Replace('`', '\'');
             tag.TagNameOverride = tag.TagNameOverride?.Replace('`', '\'');
             tag.TagNameSource = tag.TagNameSource.Replace('`', '\'');
             Save(tag);
@@ -42,6 +45,9 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
 
     public AniDB_Tag? GetByTagID(int tagID)
         => ReadLock(() => _tagIDs!.GetOne(tagID));
+
+    public IReadOnlyList<AniDB_Tag> GetByParentTagID(int parentTagID)
+        => ReadLock(() => _parentTagIDs!.GetMultiple(parentTagID) ?? []).OrderBy(a => a.TagID).ToList();
 
     public IReadOnlyList<AniDB_Tag> GetByName(string name)
         => ReadLock(() => _names!.GetMultiple(name));

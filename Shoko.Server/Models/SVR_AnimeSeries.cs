@@ -748,6 +748,8 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     int IShokoSeries.TopLevelGroupID => TopLevelAnimeGroup.AnimeGroupID;
 
+    IReadOnlyList<string> IShokoSeries.UserTags => RepoFactory.CustomTag.GetByAnimeID(AniDB_ID).Select(x => x.TagName).ToList();
+
     IShokoGroup IShokoSeries.ParentGroup => AnimeGroup;
 
     IShokoGroup IShokoSeries.TopLevelGroup => TopLevelAnimeGroup;

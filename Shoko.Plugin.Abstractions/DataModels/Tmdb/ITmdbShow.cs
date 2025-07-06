@@ -8,7 +8,17 @@ namespace Shoko.Plugin.Abstractions.DataModels.Tmdb;
 public interface ITmdbShow : ISeries
 {
     /// <summary>
-    /// All episodes for the the tmdb show.
+    /// The keywords for the TMDB show.
+    /// </summary>
+    IReadOnlyList<string> Keywords { get; }
+
+    /// <summary>
+    /// The genres for the TMDB show.
+    /// </summary>
+    IReadOnlyList<string> Genres { get; }
+
+    /// <summary>
+    /// All episodes for the the TMDB show.
     /// </summary>
     new IReadOnlyList<ITmdbEpisode> Episodes { get; }
 }

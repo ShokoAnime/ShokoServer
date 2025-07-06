@@ -8,7 +8,12 @@ namespace Shoko.Plugin.Abstractions.DataModels.Anidb;
 public interface IAnidbAnime : ISeries
 {
     /// <summary>
-    /// All episodes for the the anidb anime.
+    /// All tags for the AniDB anime.
+    /// </summary>
+    IReadOnlyList<IAnidbTagForAnime> Tags { get; }
+
+    /// <summary>
+    /// All episodes for the the AniDB anime.
     /// </summary>
     new IReadOnlyList<IAnidbEpisode> Episodes { get; }
 }

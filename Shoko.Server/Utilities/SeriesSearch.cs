@@ -5,10 +5,10 @@ using System.Linq;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Utilities;
