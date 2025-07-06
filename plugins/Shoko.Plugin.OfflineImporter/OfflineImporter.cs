@@ -53,7 +53,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
 
     private readonly ConfigurationProvider<Configuration> _configurationProvider;
 
-    private IReadOnlyList<ParsedFileResult.CompiledRule> _rules = [];
+    private IReadOnlyList<ParsedFileResult.CompiledRule> _rules;
 
     /// <inheritdoc/>
     public string Name => "Offline Importer";
