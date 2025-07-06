@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -10,7 +11,7 @@ namespace Shoko.Plugin.OfflineImporter;
 /// <summary>
 /// Contains information about a parsed file path.
 /// </summary>
-public record MatchRuleResult
+public record ParsedFileResult
 {
     /// <summary>
     /// Whether the file was matched.
@@ -106,7 +107,7 @@ public record MatchRuleResult
     /// <summary>
     /// An empty result.
     /// </summary>
-    public static MatchRuleResult Empty => new()
+    public static ParsedFileResult Empty => new()
     {
         Success = false,
         FilePath = string.Empty,
@@ -116,9 +117,10 @@ public record MatchRuleResult
     /// <summary>
     /// Attempts to match a file path to a rule.
     /// </summary>
-    /// <param name="filePath"></param>
+    /// <param name="filePath">The file name to match.</param>
+    /// <param name="rules">The rules to use.</param>
     /// <returns></returns>
-    public static MatchRuleResult Match(string? filePath)
+    public static ParsedFileResult Match(string? filePath, IReadOnlyList<CompiledRule> rules)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             return Empty;
@@ -127,9 +129,9 @@ public record MatchRuleResult
         if (string.IsNullOrWhiteSpace(fileName))
             return Empty;
 
-        foreach (var rule in _rules)
+        foreach (var rule in rules)
         {
-            var match = rule.Regex.Match(fileName);
+            var match = rule.Regex.Match(rule.UsePath ? filePath : fileName);
             if (match.Success)
             {
                 var episodeStart = 1f;
@@ -174,7 +176,7 @@ public record MatchRuleResult
                 var showName = match.Groups["showName"]?.Value?.Trim();
                 if (showName == "Episode")
                     showName = null;
-                var initialDetails = new MatchRuleResult
+                var initialDetails = new ParsedFileResult
                 {
                     Success = true,
                     FilePath = filePath,
@@ -257,7 +259,13 @@ public record MatchRuleResult
         return EpisodeType.Episode;
     }
 
-    private static MatchRuleResult? DefaultTransform(MatchRuleResult originalDetails, Match match)
+    /// <summary>
+    /// Default transform.
+    /// </summary>
+    /// <param name="originalDetails"></param>
+    /// <param name="match"></param>
+    /// <returns></returns>
+    public static ParsedFileResult? DefaultTransform(ParsedFileResult originalDetails, Match match)
     {
         var modifiedDetails = originalDetails with { };
 
@@ -446,7 +454,13 @@ public record MatchRuleResult
         return modifiedDetails;
     }
 
-    private static MatchRuleResult? DefaultPlusTransform(MatchRuleResult originalDetails, Match match)
+    /// <summary>
+    /// Pre/post transform.
+    /// </summary>
+    /// <param name="originalDetails"></param>
+    /// <param name="match"></param>
+    /// <returns></returns>
+    public static ParsedFileResult? PrePostTransform(ParsedFileResult originalDetails, Match match)
     {
         var modifiedDetails = originalDetails with { };
         if (match.Groups["pre"].Value is { Length: > 0 } pre)
@@ -543,7 +557,13 @@ public record MatchRuleResult
         return DefaultTransform(modifiedDetails, match);
     }
 
-    private static MatchRuleResult? FallbackTransform(MatchRuleResult originalDetails, Match match)
+    /// <summary>
+    /// Fallback transform.
+    /// </summary>
+    /// <param name="originalDetails"></param>
+    /// <param name="match"></param>
+    /// <returns></returns>
+    public static ParsedFileResult? FallbackTransform(ParsedFileResult originalDetails, Match match)
     {
         var modifiedDetails = originalDetails with { };
         if (match.Groups["fallback"].Value is { Length: > 0 } fallback)
@@ -615,6 +635,14 @@ public record MatchRuleResult
         return DefaultTransform(modifiedDetails, match);
     }
 
+    /// <summary>
+    /// Invalidates the match.
+    /// </summary>
+    /// <param name="originalDetails"></param>
+    /// <param name="match"></param>
+    /// <returns>Always null.</returns>
+    public static ParsedFileResult? DenyTransform(ParsedFileResult originalDetails, Match match) => null;
+
     private static readonly Regex _bracketIdRegex = new(
         @"[\[\(\{](?<provider>(?<providerName>anidb|anilist|mal|kitsu|tmdb|moviedb|tvdb|imdb)(?<providerMode>[1-4])?(?<divider>[\-= ]))(?<value>(?:(?<=\k<provider>|,)\s*(?:[^\]\)\}\,\s]+)\s*(?=[\]\)\}]|,),?)+)[\]\)\}]",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
@@ -672,76 +700,29 @@ public record MatchRuleResult
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
-    private static readonly MatchRule[] _rules = [
-        new()
-        {
-            Name = "anti-timestamp",
-            Regex = new(
-                @"^\d{4}[._:\- ]\d{2}[._:\- ]\d{2}[._:\- T]\d{2}[._:\- ]\d{2}[._:\- ]\d{2}(?:[._:\- ]\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})?\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-            // invalidate the match.
-            Transform = static (_, _) => null,
-        },
-        new()
-        {
-            Name = "trash-anime",
-            Regex = new(
-                @"^(?<showName>.+?(?: \((?<year>\d{4})\))) - (?:(?<isSpecial>S00?)|S\d+)E\d+(?:-E?\d+)? - (?<episode>\d+(?:-\d+)?) - (?<episodeName>.+?(?=\[)).*?(?:-(?<releaseGroup>[^\[\] ]+))?\s*\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-        },
-        new()
-        {
-            Name = "default",
-            Regex = new(
-                @"^(?<pre>.*?(?<!(?:PV|CM|Preview|Trailer|Commercial|Menu|Jump Festa Special)[\._ ]*(-[\._ ]*)?))[\._ ]*(?:-[\._ ]*)?(?<=\b|_)(?:(?:s(?<season>\d+(?!\d+)))?(?:(?:OVA|OAD)[\._ ]*|Vol(?:\.|ume)[\._ ]*|(?<=\b|_)(?<isOther>o)|e(?:p(?:isode|s)?)?[\._ ]*|(?=(?:\d+(?:(?!-?\d+[pi])-\d+?|\.5)?)(?:v\d{1,2})?(?:[\._ ]*END(?=\b|_))?[\._ ]*\.[a-z0-9]{1,10}$)|(?<=[\._ ]*-[\._ ]*)(?=(?:\d+(?:(?!-\d+[pi])-\d+?|\.5)?)(?:[\._ ]*END(?=\b|_))?[\._ ]*(?:[\._ ]*-[\._ ]*|[\[\({「]))|(?<=[\._ ]*-[\._ ]*)(?=(?:(?!(?:19|2[01])\d{2})\d+(?:(?!-\d+[pi])-\d+?|\.5)?)(?![\._ ]*-[\._ ]*))|(?=(?:(?!\d+[\. _]\(\d{4}\))\d+(?:(?!-\d+[pi])-\d+?|\.5)?)(?:v\d{1,2})?(?:[\._ ]*END(?=\b|_))?[\._ ]*[\[\({「])|(?<=s\d+) )(?<episode>\d+(?:(?!-\d+[pi])-\d+?|\.5)?)(?!(?:\.\d)?(?:\]|\))|-(?!\d+[pi])\d+|(?<!(?:e(?:pisode|ps?)?)?\k<episode>)[\._ ]*(?:OVA|OAD)| (?:nc)?(?:ed|op))|(?<!jump[\. _]festa[\. _])s(?:p(?:ecials?)?)?[ \.]?(?<specialNumber>\d+(?!(?:\.\d)?(?:\]|\))| \d+|[\. _]?-[\. _]?(?:E(?:p(?:isode)?)?[\. _]?)?\d+))(?![\. _-]*(?:nc)?(?:ed|op))|(?<=\b|_)(?<![a-z0-9])(?:s(?<season>\d+(?!\d+))(?:[\. _]*-)?[\. _]*)?(?:(?<isCreditless>nc|[Cc]reditless|NC)[\s_.]*)?(?<isThemeSong>ED|OP|Opening|Ending)(?![a-z]{2,})(?:[\._ ]*(?<episode>\d+(?!\d*p)))?(?<themeSuffix>(?<=(?:OP|ED)(?:[\._ ]*\d+)?)(?:\.\d+|[a-z]))?(?=\b|_))(?:v(?<version>\d{1,2}))?(?=\b|_)(?:[\._ ]*END)?[\._ ]*(?:-[\._ ]*)?(?<post>.+)?\.(?<extension>[a-z0-9]{1,10})$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-            Transform = DefaultPlusTransform,
-        },
-        new()
-        {
-            Name = "brackets-1",
-            Regex = new(
-                @"^\[(?<releaseGroup>[^\]\n]+)\](?:\[[^\]\n]+\]){0,2}\[(?<showName>[^\]\n]+)\]\[(?<year>\d{4})\]\[(?<episode>\d+)\](?:\[[^\]\n]+\]){0,3}\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-        },
-        new()
-        {
-            Name = "brackets-2",
-            Regex = new(
-                @"^\[(?<releaseGroup>[^\]\n]+)\](?:\[[^\]\n]+\]){0,2}\[(?<showName>[^\]\n]+)\]\[(?<episode>\d+)\](?:\[[^\]\n]+\]){0,3}\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-        },
-        new()
-        {
-            Name = "reversed-1",
-            Regex = new(
-                @"^\[?(?<episode>\d+)\s*-\s*(?<showName>[^[]+)\]\s*(?:\[[^\]]*\])*\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-        },
-        // TODO: Add more rules here.
-        new()
-        {
-            Name = "fallback",
-            Regex = new(
-                @"^(?<fallback>.+)\.(?<extension>[a-zA-Z0-9_\-+]+)$",
-                RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
-            ),
-            Transform = FallbackTransform,
-        },
-    ];
-
-    private class MatchRule
+    /// <summary>
+    /// A compiled rule with a ready-to-use regex and a transform function.
+    /// </summary>
+    public class CompiledRule
     {
+        /// <summary>
+        /// The name of the rule.
+        /// </summary>
         public required string Name { get; init; }
 
+        /// <summary>
+        /// Indicates that the regex should be applied to the file path instead of the file name.
+        /// </summary>
+        public bool UsePath { get; init; }
+
+        /// <summary>
+        /// The regex pattern to match.
+        /// </summary>
         public required Regex Regex { get; init; }
 
-        public Func<MatchRuleResult, Match, MatchRuleResult?> Transform { get; init; } = DefaultTransform;
+        /// <summary>
+        /// The transform function.
+        /// </summary>
+        public Func<ParsedFileResult, Match, ParsedFileResult?> Transform { get; init; } = DefaultTransform;
     }
 }
