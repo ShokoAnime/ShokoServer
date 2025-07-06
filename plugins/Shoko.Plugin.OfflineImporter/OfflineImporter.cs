@@ -91,10 +91,21 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         ConfigurationProvider<Configuration> configurationProvider
     )
     {
-        this._logger = logger;
-        this._applicationPaths = applicationPaths;
-        this._anidbService = anidbService;
-        this._configurationProvider = configurationProvider;
+        _logger = logger;
+        _applicationPaths = applicationPaths;
+        _anidbService = anidbService;
+        _configurationProvider = configurationProvider;
+        _rules = configurationProvider.Load().Rules.Select(x => x.ToMatchRule()).ToList();
+
+        _configurationProvider.Saved += OnConfigurationChanged;
+    }
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="OfflineImporter"/> class.
+    /// </summary>
+    ~OfflineImporter()
+    {
+        _configurationProvider.Saved -= OnConfigurationChanged;
     }
 
     private void OnConfigurationChanged(object? sender, ConfigurationSavedEventArgs<Configuration> e)
