@@ -222,6 +222,14 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
             var epOrder = fileEps.Max(a => a.EpisodeOrder);
             foreach (var episode in response.OtherEpisodes)
             {
+                // If a file is linked directly to an episode, but also has a percentage assigned to the episode
+                // in the extra episodes array, then tweak the percentage of the existing cross-reference.
+                if (fileEps.Find(e => e.EpisodeID == episode.EpisodeID) is { } existingXref)
+                {
+                    existingXref.Percentage = episode.Percentage;
+                    continue;
+                }
+
                 var epAnimeID = RepoFactory.AniDB_Episode.GetByEpisodeID(episode.EpisodeID)?.AnimeID;
                 if (epAnimeID == null)
                 {
