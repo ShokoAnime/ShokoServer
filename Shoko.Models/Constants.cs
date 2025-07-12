@@ -75,9 +75,9 @@ namespace Shoko.Models
             public static readonly string AnimeNameRomaji = "%ann";
             public static readonly string AnimeNameKanji = "%kan";
             public static readonly string AnimeNameEnglish = "%eng";
-            public static readonly string EpisodeNameRomaji = "%epn";
+            public static readonly string EpisodeNameRomaji = "%epr";
             //public static readonly string EpisodeNameKanji = "%epk";
-            public static readonly string EpisodeNameEnglish = "%epr";
+            public static readonly string EpisodeNameEnglish = "%epn";
             public static readonly string EpisodeNumber = "%enr";
             public static readonly string GroupShortName = "%grp";
             public static readonly string GroupLongName = "%grl";
