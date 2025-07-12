@@ -667,7 +667,12 @@ public class TagFilter<T> where T : class
         // evaluates like an xor because of how invert works
         var includeSource = flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert);
         var addOriginal = includeSource && !tags.Select(GetTagName).Any(tag => TagFilter.TagBlackListSource.Contains(tag));
-        if (addOriginal) tags.Add(GetTag("original work"));
+        if (addOriginal)
+        {
+            tags.Add(GetTag("original work"));
+            var includeHelpers = flags.HasFlag(TagFilter.Filter.AnidbInternal) == flags.HasFlag(TagFilter.Filter.Invert);
+            if (includeHelpers) tags.Add(GetTag("source material"));
+        }
     }
 
     private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, ConcurrentBag<T> toRemove)
