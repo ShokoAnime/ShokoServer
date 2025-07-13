@@ -3,11 +3,40 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Shoko.Server.Extensions;
 
 public static class StringExtensions
 {
+    public static string Replace(this string input, Regex regex, string replacement, int count, int startAt)
+        => regex.Replace(input, replacement, count, startAt);
+
+    public static string Replace(this string input, Regex regex, MatchEvaluator evaluator, int count, int startAt)
+        => regex.Replace(input, evaluator, count, startAt);
+
+    public static string Replace(this string input, Regex regex, MatchEvaluator evaluator, int count)
+        => regex.Replace(input, evaluator, count);
+
+    public static string Replace(this string input, Regex regex, MatchEvaluator evaluator)
+        => regex.Replace(input, evaluator);
+
+    public static string Replace(this string input, Regex regex, string replacement)
+        => regex.Replace(input, replacement);
+
+    public static string Replace(this string input, Regex regex, string replacement, int count)
+        => regex.Replace(input, replacement, count);
+
+    public static string[] Split(this string input, Regex regex, StringSplitOptions options = StringSplitOptions.None)
+    {
+        IEnumerable<string> list = regex.Split(input);
+        if (options.HasFlag(StringSplitOptions.TrimEntries))
+            list = list.Select(x => x.Trim());
+        if (options.HasFlag(StringSplitOptions.RemoveEmptyEntries))
+            list = list.Where(x => !string.IsNullOrEmpty(x));
+        return list is string[] result ? result : list.ToArray();
+    }
+
     public static void Deconstruct<T>(this IEnumerable<T> enumerable, out T first, out T second)
     {
         var list = enumerable is IReadOnlyList<T> readonlyList ? readonlyList : enumerable.ToList();

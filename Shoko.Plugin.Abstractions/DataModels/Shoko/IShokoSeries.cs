@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
+using Shoko.Plugin.Abstractions.DataModels.Tmdb;
 
 namespace Shoko.Plugin.Abstractions.DataModels.Shoko;
 
@@ -23,19 +25,24 @@ public interface IShokoSeries : ISeries
     int TopLevelGroupID { get; }
 
     /// <summary>
+    /// The user tags for the series.
+    /// </summary>
+    IReadOnlyList<string> UserTags { get; }
+
+    /// <summary>
     /// A direct link to the anidb anime metadata.
     /// </summary>
-    ISeries AnidbAnime { get; }
+    IAnidbAnime AnidbAnime { get; }
 
     /// <summary>
     /// A direct link to all tmdb shows linked to the shoko series.
     /// </summary>
-    IReadOnlyList<ISeries> TmdbShows { get; }
+    IReadOnlyList<ITmdbShow> TmdbShows { get; }
 
     /// <summary>
     /// A direct link to all tmdb movies linked to the shoko series.
     /// </summary>
-    IReadOnlyList<IMovie> TmdbMovies { get; }
+    IReadOnlyList<ITmdbMovie> TmdbMovies { get; }
 
     /// <summary>
     /// All series linked to this shoko series.

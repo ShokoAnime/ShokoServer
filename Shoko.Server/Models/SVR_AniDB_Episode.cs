@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
@@ -17,7 +18,7 @@ using EpisodeTypeEnum = Shoko.Models.Enums.EpisodeType;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
+public class SVR_AniDB_Episode : AniDB_Episode, IEpisode, IAnidbEpisode
 {
     public EpisodeType AbstractEpisodeType => (EpisodeType)EpisodeType;
 
@@ -247,6 +248,12 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
             .ToList();
 
     IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID) is { } episode ? [episode.AnimeEpisodeID] : [];
+
+    #endregion
+
+    #region IAnidbEpisode Implementation
+
+    public IAnidbAnime? Series => AniDB_Anime;
 
     #endregion
 }

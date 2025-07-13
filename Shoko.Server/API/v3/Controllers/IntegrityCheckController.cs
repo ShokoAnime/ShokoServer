@@ -24,7 +24,7 @@ public class IntegrityCheckController : BaseController
         var scan = check.ID is > 0 ? RepoFactory.Scan.GetByID(check.ID) : new()
         {
             Status = check.Status,
-            ImportFolders = check.ImportFolderIDs.Select(a => a.ToString()).Join(','),
+            ImportFolders = check.ManagedFolderIDs.Select(a => a.ToString()).Join(','),
             CreationTIme = DateTime.Now,
         };
         if (scan.ScanID == 0)
@@ -32,24 +32,24 @@ public class IntegrityCheckController : BaseController
 
         var files = scan.ImportFolders.Split(',')
             .Select(int.Parse)
-            .SelectMany(RepoFactory.VideoLocalPlace.GetByImportFolder)
+            .SelectMany(RepoFactory.VideoLocalPlace.GetByManagedFolderID)
             .Select(p => new { p, v = p.VideoLocal })
             .Select(t => new ScanFile
             {
                 Hash = t.v.Hash,
                 FileSize = t.v.FileSize,
-                FullName = t.p.FullServerPath,
+                FullName = t.p.Path,
                 ScanID = scan.ScanID,
                 Status = (int)ScanFileStatus.Waiting,
-                ImportFolderID = t.p.ImportFolderID,
-                VideoLocal_Place_ID = t.p.VideoLocal_Place_ID
+                ImportFolderID = t.p.ManagedFolderID,
+                VideoLocal_Place_ID = t.p.ID
             }).ToList();
         RepoFactory.ScanFile.Save(files);
 
         return new IntegrityCheck()
         {
             ID = scan.ScanID,
-            ImportFolderIDs = scan.ImportFolders.Split(',')
+            ManagedFolderIDs = scan.ImportFolders.Split(',')
                 .Select(int.Parse)
                 .ToList(),
             Status = scan.Status,

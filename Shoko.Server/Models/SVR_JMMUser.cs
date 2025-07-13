@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;

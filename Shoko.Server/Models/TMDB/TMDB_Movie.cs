@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.DataModels.Tmdb;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Extensions;
@@ -22,7 +23,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Movie Database Model.
 /// </summary>
-public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
+public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 {
     #region Properties
 
@@ -539,7 +540,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #endregion
 
-    #region IMovie
+    #region IMovie Implementation
 
     bool IMovie.Restricted => IsRestricted;
 
@@ -571,9 +572,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         .WhereNotNull()
         .ToList();
 
-    IReadOnlyList<IRelatedMetadata<ISeries>> IMovie.RelatedSeries => [];
+    IReadOnlyList<IRelatedMetadata<IMovie, ISeries>> IMovie.RelatedSeries => [];
 
-    IReadOnlyList<IRelatedMetadata<IMovie>> IMovie.RelatedMovies => [];
+    IReadOnlyList<IRelatedMetadata<IMovie, IMovie>> IMovie.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> IMovie.CrossReferences => CrossReferences
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
@@ -584,6 +585,14 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()
         .ToList();
+
+    #endregion
+
+    #region ITmdbMovie Implementation
+
+    IReadOnlyList<string> ITmdbMovie.Keywords => Keywords;
+
+    IReadOnlyList<string> ITmdbMovie.Genres => Genres;
 
     #endregion
 }

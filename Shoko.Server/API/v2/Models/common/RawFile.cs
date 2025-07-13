@@ -17,7 +17,7 @@ namespace Shoko.Server.API.v2.Models.common;
 [DataContract]
 public class RawFile : BaseDirectory
 {
-    private Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     public override string type => "file";
 
@@ -103,7 +103,7 @@ public class RawFile : BaseDirectory
 
         public RecentFile() { }
 
-        public RecentFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
+        public RecentFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
             vl, level, uid, e)
         {
         }
@@ -113,7 +113,7 @@ public class RawFile : BaseDirectory
     {
     }
 
-    public RawFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null)
+    public RawFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null)
     {
         if (vl == null)
         {
@@ -131,12 +131,11 @@ public class RawFile : BaseDirectory
         updated = vl.DateTimeUpdated;
         duration = vl.Duration;
 
-        var releaseGroup = vl.ReleaseGroup;
-        if (releaseGroup != null)
+        if (vl.ReleaseGroup is { Source: "AniDB " } releaseGroup)
         {
-            group_full = releaseGroup.GroupName;
-            group_short = releaseGroup.GroupNameShort;
-            group_id = releaseGroup.AniDB_ReleaseGroupID;
+            group_full = releaseGroup.Name;
+            group_short = releaseGroup.ShortName;
+            group_id = int.Parse(releaseGroup.ID);
         }
 
         size = vl.FileSize;
@@ -150,10 +149,10 @@ public class RawFile : BaseDirectory
         var place = vl.FirstValidPlace;
         if (place != null)
         {
-            filename = place.FilePath;
-            server_path = place.FullServerPath;
-            videolocal_place_id = place.VideoLocal_Place_ID;
-            import_folder_id = place.ImportFolderID;
+            filename = place.RelativePath;
+            server_path = place.Path;
+            videolocal_place_id = place.ID;
+            import_folder_id = place.ManagedFolderID;
         }
 
         url = APIV2Helper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
@@ -208,7 +207,7 @@ public class RawFile : BaseDirectory
         }
         catch (Exception ex)
         {
-            logger.Error(ex);
+            _logger.Error(ex);
         }
 
         media = new_media;

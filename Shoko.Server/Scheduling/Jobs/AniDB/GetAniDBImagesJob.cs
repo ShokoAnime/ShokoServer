@@ -66,12 +66,10 @@ public class GetAniDBImagesJob : BaseJob
         // cover
         var scheduler = await _schedulerFactory.GetScheduler();
         if (ForceDownload || !_anime.GetImageMetadata().IsLocalAvailable)
-            await scheduler.StartJobNow<DownloadAniDBImageJob>(a =>
-            {
-                a.ImageID = _anime.AnimeID;
-                a.ImageType = ImageEntityType.Poster;
-                a.ForceDownload = ForceDownload;
-            });
+            await scheduler.StartJob<DownloadAniDBImageJob>(
+                a => (a.ImageID, a.ImageType, a.ForceDownload) = (_anime.AnimeID, ImageEntityType.Poster, ForceDownload),
+                prioritize: true
+            );
 
         if (OnlyPosters) return;
         var requests = new List<Action<DownloadAniDBImageJob>>();
