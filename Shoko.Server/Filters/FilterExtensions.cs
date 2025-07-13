@@ -43,6 +43,12 @@ public static class FilterExtensions
             SortingNameDelegate = () =>
                 series.PreferredTitle.ToSortName(),
             SeriesCountDelegate = () => 1,
+            SeriesVoteCountDelegate = () =>
+                RepoFactory.AniDB_Vote.GetByAnimeID(series.AniDB_ID) is { VoteValue: >= 0 } ? 1 : 0,
+            SeriesTemporaryVoteCountDelegate = () =>
+                RepoFactory.AniDB_Vote.GetByAnimeID(series.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.AnimeTemp } ? 1 : 0,
+            SeriesPermanentVoteCountDelegate = () =>
+                RepoFactory.AniDB_Vote.GetByAnimeID(series.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.Anime } ? 1 : 0,
             AirDateDelegate = () =>
                 series.AniDB_Anime?.AirDate,
             MissingEpisodesDelegate = () =>
@@ -207,6 +213,12 @@ public static class FilterExtensions
                 group.GroupName.ToSortName(),
             SeriesCountDelegate = () =>
                 series.Count,
+            SeriesVoteCountDelegate = () =>
+                series.Count(ser => RepoFactory.AniDB_Vote.GetByAnimeID(ser.AniDB_ID) is { VoteValue: >= 0 }),
+            SeriesTemporaryVoteCountDelegate = () =>
+                series.Count(ser => RepoFactory.AniDB_Vote.GetByAnimeID(ser.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.AnimeTemp }),
+            SeriesPermanentVoteCountDelegate = () =>
+                series.Count(ser => RepoFactory.AniDB_Vote.GetByAnimeID(ser.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.Anime }),
             AirDateDelegate = () =>
                 series.Select(a => a.AirDate).DefaultIfEmpty(DateTime.MaxValue).Min(),
             LastAirDateDelegate = () =>

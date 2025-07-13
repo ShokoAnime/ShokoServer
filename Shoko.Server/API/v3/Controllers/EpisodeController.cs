@@ -90,6 +90,7 @@ public class EpisodeController : BaseController
     /// <param name="includeMissing">Include missing episodes in the list.</param>
     /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
+    /// <param name="includeVoted">Include voted episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
@@ -107,6 +108,7 @@ public class EpisodeController : BaseController
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeVoted = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
@@ -184,6 +186,17 @@ public class EpisodeController : BaseController
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
                     var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
                     if (shouldHideWatched == isWatched)
+                        return false;
+                }
+
+                // Filter by voted status, if specified
+                if (includeVoted != IncludeOnlyFilter.True)
+                {
+                    // If we should hide voted episodes and the episode is voted, then hide it.
+                    // Or if we should only show voted episodes and the the episode is not voted, then hide it.
+                    var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
+                    var isVoted = RepoFactory.AniDB_Vote.GetByEntityAndType(shoko.AniDB_EpisodeID, Shoko.Models.Enums.AniDBVoteType.Episode) is not { VoteValue: >= 0 };
+                    if (shouldHideVoted == isVoted)
                         return false;
                 }
 

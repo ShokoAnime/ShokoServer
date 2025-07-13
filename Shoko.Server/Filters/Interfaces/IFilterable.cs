@@ -34,6 +34,22 @@ public interface IFilterable
     int SeriesCount { get; }
 
     /// <summary>
+    /// The number of series in a group with any vote set, be it temporary or
+    /// permanent.
+    /// </summary>
+    int SeriesVoteCount { get; }
+
+    /// <summary>
+    /// The number of series in a group with a temporary vote set.
+    /// </summary>
+    int SeriesTemporaryVoteCount { get; }
+
+    /// <summary>
+    /// The number of series in a group with a permanent vote set.
+    /// </summary>
+    int SeriesPermanentVoteCount { get; }
+
+    /// <summary>
     /// Number of Missing Episodes
     /// </summary>
     int MissingEpisodes { get; }

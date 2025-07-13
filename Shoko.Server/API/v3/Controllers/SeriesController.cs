@@ -1897,6 +1897,7 @@ public class SeriesController : BaseController
     /// <param name="includeMissing">Include missing episodes in the list.</param>
     /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
+    /// <param name="includeVoted">Include voted episodes in the list.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="includeManuallyLinked">Include manually linked episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
@@ -1916,6 +1917,7 @@ public class SeriesController : BaseController
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeVoted = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeManuallyLinked = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null,
@@ -1935,7 +1937,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        return GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeWatched, includeManuallyLinked, type, search, fuzzy)
+        return GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeVoted, includeWatched, includeManuallyLinked, type, search, fuzzy)
             .ToListResult(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
     }
 
@@ -1947,6 +1949,7 @@ public class SeriesController : BaseController
     /// <param name="includeMissing">Include missing episodes in the list.</param>
     /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
+    /// <param name="includeVoted">Include voted episodes in the list.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
@@ -1959,6 +1962,7 @@ public class SeriesController : BaseController
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeVoted = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery] string? search = null,
@@ -1974,7 +1978,7 @@ public class SeriesController : BaseController
         var user = User;
         var now = DateTime.Now;
         // this has a parallel query to evaluate filters and data in parallel, but that makes awaiting the SetWatchedStatus calls more difficult, so we ToList() it
-        await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeWatched, IncludeOnlyFilter.True, type, search, fuzzy).ToList()
+        await Task.WhenAll(GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeVoted, includeWatched, IncludeOnlyFilter.True, type, search, fuzzy).ToList()
             .Select(episode => _userDataService.SetEpisodeWatchedStatus(user, episode, value, now, updateStatsNow: false)));
 
         _seriesService.UpdateStats(series, true, false);
@@ -1988,6 +1992,7 @@ public class SeriesController : BaseController
         IncludeOnlyFilter includeMissing,
         IncludeOnlyFilter includeUnaired,
         IncludeOnlyFilter includeHidden,
+        IncludeOnlyFilter includeVoted,
         IncludeOnlyFilter includeWatched,
         IncludeOnlyFilter includeManuallyLinked,
         HashSet<EpisodeType>? type,
@@ -2065,6 +2070,17 @@ public class SeriesController : BaseController
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
                     var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
                     if (shouldHideWatched == isWatched)
+                        return false;
+                }
+
+                // Filter by voted status, if specified
+                if (includeVoted != IncludeOnlyFilter.True)
+                {
+                    // If we should hide voted episodes and the episode is voted, then hide it.
+                    // Or if we should only show voted episodes and the the episode is not voted, then hide it.
+                    var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
+                    var isVoted = RepoFactory.AniDB_Vote.GetByEntityAndType(shoko.AniDB_EpisodeID, Shoko.Models.Enums.AniDBVoteType.Episode) is not { VoteValue: >= 0 };
+                    if (shouldHideVoted == isVoted)
                         return false;
                 }
 
