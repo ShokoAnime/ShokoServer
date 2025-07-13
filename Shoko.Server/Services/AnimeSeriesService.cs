@@ -57,7 +57,7 @@ public class AnimeSeriesService
         var dbVote = (RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.AnimeTemp) ??
                      RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.Anime)) ??
                      new AniDB_Vote { EntityID = series.AniDB_ID };
-        dbVote.VoteValue = (int)Math.Floor(vote * 100);
+        dbVote.VoteValue = vote < 0 ? -1 : (int)Math.Floor(vote * 100);
         dbVote.VoteType = (int)voteType;
 
         RepoFactory.AniDB_Vote.Save(dbVote);

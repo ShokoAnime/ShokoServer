@@ -28,13 +28,14 @@ public class Vote
     /// <returns></returns>
     public decimal GetRating(int maxValue = 10)
     {
+        if (Value < 0) return -1;
         return Math.Clamp(Math.Clamp(Value, 0, MaxValue) / MaxValue * maxValue, 0, maxValue);
     }
 
     /// <summary>
     /// The user-submitted rating relative to <see cref="Vote.MaxValue" />.
     /// </summary>
-    [Range(0, int.MaxValue, ErrorMessage = "Value must be greater than or equal to 0.")]
+    [Range(-1, int.MaxValue, ErrorMessage = "Value must be greater than or equal to 0. Or -1 to revoke a previously set rating.")]
     [Required]
     public decimal Value { get; set; }
 
