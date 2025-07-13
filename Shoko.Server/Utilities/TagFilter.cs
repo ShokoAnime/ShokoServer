@@ -671,7 +671,7 @@ public class TagFilter<T> where T : class
         {
             tags.Add(GetTag("original work"));
             var includeHelpers = flags.HasFlag(TagFilter.Filter.AnidbInternal) == flags.HasFlag(TagFilter.Filter.Invert);
-            if (includeHelpers) tags.Add(GetTag("source material"));
+            if (includeHelpers && !tags.Select(GetTagName).Contains("source material")) tags.Add(GetTag("source material"));
         }
     }
 
