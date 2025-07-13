@@ -196,7 +196,7 @@ public class EpisodeController : BaseController
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = RepoFactory.AniDB_Vote.GetByEntityAndType(shoko.AniDB_EpisodeID, Shoko.Models.Enums.AniDBVoteType.Episode) is not { VoteValue: >= 0 };
+                    var isVoted = RepoFactory.AniDB_Vote.GetByEntityAndType(shoko.AniDB_EpisodeID, Shoko.Models.Enums.AniDBVoteType.Episode) is { VoteValue: >= 0 };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }
