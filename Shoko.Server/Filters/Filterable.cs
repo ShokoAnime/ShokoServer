@@ -40,6 +40,9 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlySet<string>> _filePaths;
     private readonly Lazy<IReadOnlySet<(int year, AnimeSeason season)>> _seasons;
     private readonly Lazy<int> _seriesCount;
+    private readonly Lazy<int> _seriesVoteCount;
+    private readonly Lazy<int> _seriesTemporaryVoteCount;
+    private readonly Lazy<int> _seriesPermanentVoteCount;
     private readonly Lazy<IReadOnlySet<string>> _sharedAudioLanguages;
     private readonly Lazy<IReadOnlySet<string>> _sharedSubtitleLanguages;
     private readonly Lazy<IReadOnlySet<string>> _sharedVideoSources;
@@ -90,6 +93,27 @@ public class Filterable : IFilterable
     public required Func<int> SeriesCountDelegate
     {
         init => _seriesCount = new Lazy<int>(value);
+    }
+
+    public int SeriesVoteCount => _seriesVoteCount.Value;
+
+    public required Func<int> SeriesVoteCountDelegate
+    {
+        init => _seriesVoteCount = new Lazy<int>(value);
+    }
+
+    public int SeriesTemporaryVoteCount => _seriesTemporaryVoteCount.Value;
+
+    public required Func<int> SeriesTemporaryVoteCountDelegate
+    {
+        init => _seriesTemporaryVoteCount = new Lazy<int>(value);
+    }
+
+    public int SeriesPermanentVoteCount => _seriesPermanentVoteCount.Value;
+
+    public required Func<int> SeriesPermanentVoteCountDelegate
+    {
+        init => _seriesPermanentVoteCount = new Lazy<int>(value);
     }
 
     public int MissingEpisodes => _missingEpisodes.Value;

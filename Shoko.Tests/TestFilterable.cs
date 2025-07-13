@@ -14,6 +14,9 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> AniDBIDs { get; init; }
     public string SortingName { get; init; }
     public int SeriesCount { get; init; }
+    public int SeriesVoteCount { get; init; }
+    public int SeriesTemporaryVoteCount { get; init; }
+    public int SeriesPermanentVoteCount { get; init; }
     public int MissingEpisodes { get; init; }
     public int MissingEpisodesCollecting { get; init; }
     public int VideoFiles { get; init; }
