@@ -13,7 +13,7 @@ namespace Shoko.Plugin.Abstractions.Services;
 /// </summary>
 /// <remarks>
 ///   The service can operate in sequential mode or parallel model. Parallel
-///   mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
+///   mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
 ///   and makes it run all providers in parallel and pick the highest priority
 ///   valid result, as opposed to running each provider serially in the priority
 ///   order and picking the first valid result when running in sequential mode.
@@ -56,7 +56,7 @@ public interface IVideoReleaseService
     ///   Gets or sets a value indicating whether to use parallel mode.
     /// </summary>
     /// <remarks>
-    ///   Parallel mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
+    ///   Parallel mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
     ///   and makes it run all providers in parallel and pick the highest
     ///   priority valid result, as opposed to running each provider serially in
     ///   the priority order and picking the first valid result when running in
@@ -78,12 +78,12 @@ public interface IVideoReleaseService
 
     /// <summary>
     ///   List out all available providers, if they're enabled for use in
-    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
+    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
     ///   and their priority order when used in said method.
     /// </summary>
     /// <param name="onlyEnabled">
     ///   If true, only providers that are enabled for use in
-    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, CancellationToken)"/>
+    ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
     ///   will be returned.
     /// </param>
     /// <returns>
@@ -222,13 +222,17 @@ public interface IVideoReleaseService
     ///   Optional. Set to <c>false</c> to not add the release to the user's
     ///   MyList if a release is found and saved.
     /// </param>
+    /// <param name="isAutomatic">
+    ///   Optional. Set to <c>false</c> to indicate that this is a manual search
+    ///   initiated by a user.
+    /// </param>
     /// <param name="cancellationToken">
     ///   Optional. A cancellation token for cancelling the search.
     /// </param>
     /// <returns>
     ///   The found release, or <c>null</c> if none could be found.
     /// </returns>
-    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, CancellationToken cancellationToken = default);
+    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   If parallel mode is disabled, then it will run all provided
@@ -257,13 +261,17 @@ public interface IVideoReleaseService
     ///   Optional. Set to <c>false</c> to not add the release to the user's
     ///   MyList if a release is found and saved.
     /// </param>
+    /// <param name="isAutomatic">
+    ///   Optional. Set to <c>false</c> to indicate that this is a manual search
+    ///   initiated by a user.
+    /// </param>
     /// <param name="cancellationToken">
     ///   Optional. A cancellation token for cancelling the search.
     /// </param>
     /// <returns>
     ///   The found release, or <c>null</c> if none could be found.
     /// </returns>
-    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = false, bool addToMylist = true, CancellationToken cancellationToken = default);
+    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = false, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Saves the release info for the specified video in the database, and

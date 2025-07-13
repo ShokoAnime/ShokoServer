@@ -206,6 +206,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// Preview a release by file ID or ED2K hash at a specific release provider by ID.
     /// </summary>
     /// <param name="providerID">The ID of the release provider to preview the release for.</param>
+    /// <param name="isAutomatic">Whether the preview is for an automatic release.</param>
     /// <param name="fileID">The ID of the file to preview.</param>
     /// <param name="ed2k">The ED2K hash of the file to preview.</param>
     /// <param name="fileSize">The size of the file to preview.</param>
@@ -216,7 +217,13 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
     [HttpGet("Provider/{providerID}/Preview/By-File")]
-    public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByID([FromRoute] Guid providerID, [FromQuery, Range(1, int.MaxValue)] int? fileID = null, [FromQuery] string? ed2k = null, [FromQuery] long? fileSize = null)
+    public async Task<ActionResult<ReleaseInfo>> GetReleaseByIDForProviderByID(
+        [FromRoute] Guid providerID,
+        [FromQuery] bool isAutomatic = false,
+        [FromQuery, Range(1, int.MaxValue)] int? fileID = null,
+        [FromQuery] string? ed2k = null,
+        [FromQuery] long? fileSize = null
+    )
     {
         if (videoReleaseService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Release Provider '{providerID}' not found!");
@@ -251,7 +258,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
             return BadRequest("File ID or ED2K must be provided!");
         }
 
-        if (await providerInfo.Provider.GetReleaseInfoForVideo(video, HttpContext.RequestAborted) is not { } releaseInfo)
+        if (await providerInfo.Provider.GetReleaseInfoForVideo(new() { Video = video, IsAutomatic = isAutomatic }, HttpContext.RequestAborted) is not { } releaseInfo)
             return NoContent();
 
         return Ok(new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, providerInfo.Provider.Name)));
@@ -320,6 +327,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// Preview an automatic search for a <see cref="ReleaseInfo"/> for a file, disregarding any existing info, using the <paramref name="fileID"/>.
     /// </summary>
     /// <param name="fileID">File ID</param>
+    /// <param name="isAutomatic">Whether this is an automatic search or not.</param>
     /// <param name="providerIDs">Optional. List of provider IDs to search with.</param>
     /// <returns>The current automatic <see cref="ReleaseInfo"/> for the <paramref name="fileID"/>, or a 204 response if none is available.</returns>
     [Authorize("admin")]
@@ -329,6 +337,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     [HttpPost("File/{fileID}/AutoPreview")]
     public async Task<ActionResult<ReleaseInfo>> AutoPreviewReleaseInfoByFileID(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
+        [FromQuery] bool isAutomatic = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<Guid>? providerIDs = default
     )
     {
@@ -354,7 +363,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
             providers = videoReleaseService.GetAvailableProviders(onlyEnabled: true).ToList();
         }
 
-        if (await videoReleaseService.FindReleaseForVideo(video, providers, saveRelease: false, cancellationToken: HttpContext.RequestAborted) is not { } releaseInfo)
+        if (await videoReleaseService.FindReleaseForVideo(video, providers, saveRelease: false, isAutomatic: isAutomatic, cancellationToken: HttpContext.RequestAborted) is not { } releaseInfo)
             return NoContent();
 
         return Ok(new ReleaseInfo(releaseInfo));

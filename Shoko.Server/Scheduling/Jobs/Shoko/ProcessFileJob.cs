@@ -73,7 +73,7 @@ public class ProcessFileJob : BaseJob
         if (!ForceRecheck && _videoReleaseService.GetCurrentReleaseForVideo(_vlocal) is { } currentRelease)
             return;
 
-        await _videoReleaseService.FindReleaseForVideo(_vlocal, addToMylist: !SkipMyList);
+        await _videoReleaseService.FindReleaseForVideo(_vlocal, addToMylist: !SkipMyList, isAutomatic: true);
     }
 
 

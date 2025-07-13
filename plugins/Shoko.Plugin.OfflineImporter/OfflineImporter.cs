@@ -114,8 +114,9 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     }
 
     /// <inheritdoc/>
-    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
+    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoRequest request, CancellationToken cancellationToken)
     {
+        var (video, isAutomatic) = request;
         var folderRegex = StrictFolderNameCheckRegex();
         var filenameRegex = StrictFilenameCheckRegex();
         var config = _configurationProvider.Load();

@@ -68,8 +68,8 @@ public partial class AnidbReleaseProvider(
     """;
 
     /// <inheritdoc/>
-    public Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
-        => GetReleaseInfoById($"{IdPrefix}{video.ED2K}+{video.Size}", video);
+    public Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoRequest request, CancellationToken cancellationToken)
+        => GetReleaseInfoById($"{IdPrefix}{request.Video.ED2K}+{request.Video.Size}", request.Video);
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)

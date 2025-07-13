@@ -14,6 +14,11 @@ public class VideoReleaseSearchStartedEventArgs : EventArgs
     public required bool ShouldSave { get; init; }
 
     /// <summary>
+    /// Indicates if the search is automatic.
+    /// </summary>
+    public required bool IsAutomatic { get; init; }
+
+    /// <summary>
     /// The time the search started.
     /// </summary>
     public required DateTime StartedAt { get; init; }

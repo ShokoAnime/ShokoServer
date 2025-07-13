@@ -17,6 +17,11 @@ public class VideoReleaseSearchCompletedEventArgs : EventArgs
     public required bool IsSaved { get; init; }
 
     /// <summary>
+    /// Indicates if the search is/was automatic.
+    /// </summary>
+    public required bool IsAutomatic { get; init; }
+
+    /// <summary>
     /// Indicates if the search was successful.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ReleaseInfo))]

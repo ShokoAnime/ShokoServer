@@ -30,8 +30,8 @@ public interface IReleaseInfoProvider
     ///   Gets the release information for the specified video, if available
     ///   from the provider.
     /// </summary>
-    /// <param name="video">
-    ///   The video.
+    /// <param name="request">
+    ///   The release info request with the video to get release info for.
     /// </param>
     /// <param name="cancellationToken">
     ///   Optional. A cancellation token for cancelling the search.
@@ -39,7 +39,7 @@ public interface IReleaseInfoProvider
     /// <returns>
     ///   The release information, or <c>null</c> if not available.
     /// </returns>
-    Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken);
+    Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     ///   Gets the release information by a specified release id, if the

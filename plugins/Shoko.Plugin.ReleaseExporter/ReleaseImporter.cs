@@ -36,8 +36,9 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths 
         => Task.FromResult<ReleaseInfo?>(null);
 
     /// <inheritdoc/>
-    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(IVideo video, CancellationToken cancellationToken)
+    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoRequest request, CancellationToken cancellationToken)
     {
+        var (video, _) = request;
         logger.LogTrace("Trying to find release for video. (Video={VideoID})", video.ID);
         var config = configurationProvider.Load();
         var releaseLocations = video.Files.SelectMany(l => config.GetReleaseFilePaths(applicationPaths, l.ManagedFolder, video, l.RelativePath)).ToHashSet();
