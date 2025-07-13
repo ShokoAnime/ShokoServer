@@ -174,7 +174,7 @@ public class Episode : BaseModel
         Created = episode.DateTimeCreated.ToUniversalTime();
         Updated = episode.DateTimeUpdated.ToUniversalTime();
 
-        if (vote is not null)
+        if (vote is { VoteValue: >= 0 })
         {
             UserRating = new()
             {

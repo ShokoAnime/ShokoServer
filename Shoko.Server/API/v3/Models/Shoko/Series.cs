@@ -154,7 +154,7 @@ public class Series : BaseModel
         Created = ser.DateTimeCreated.ToUniversalTime();
         Updated = ser.DateTimeUpdated.ToUniversalTime();
         Size = sizes.Local.Credits + sizes.Local.Episodes + sizes.Local.Others + sizes.Local.Parodies + sizes.Local.Specials + sizes.Local.Trailers;
-        if (vote is not null)
+        if (vote is { VoteValue: >= 0 })
             UserRating = new()
             {
                 Value = (decimal)Math.Round(vote.VoteValue / 100D, 1),
