@@ -21,6 +21,11 @@ public class ReleaseSearchStartedSignalRModel(VideoReleaseSearchStartedEventArgs
     public bool ShouldSave { get; } = args.ShouldSave;
 
     /// <summary>
+    /// Indicates if the search is automatic.
+    /// </summary>
+    public bool IsAutomatic { get; } = args.IsAutomatic;
+
+    /// <summary>
     /// The time the search started.
     /// </summary>
     public DateTime StartedAt { get; } = args.StartedAt.ToUniversalTime();

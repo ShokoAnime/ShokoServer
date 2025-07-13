@@ -24,6 +24,11 @@ public class ReleaseSearchCompletedSignalRModel(VideoReleaseSearchCompletedEvent
     public bool IsSaved { get; } = args.IsSaved;
 
     /// <summary>
+    /// Indicates if the search is/was automatic.
+    /// </summary>
+    public bool IsAutomatic { get; } = args.IsAutomatic;
+
+    /// <summary>
     /// The IDs of the release providers that were attempted.
     /// </summary>
     public IReadOnlyList<Guid> AttemptedProviders { get; } = args.AttemptedProviders.Select(p => p.ID).ToList();
