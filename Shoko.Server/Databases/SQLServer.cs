@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 145;
+    public override int RequiredVersion { get; } = 146;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -895,6 +895,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new DatabaseCommand(145, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new DatabaseCommand(145, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
+        new DatabaseCommand(146, 01, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
+        new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
     };
 
     private static void AlterImdbMovieIDType()

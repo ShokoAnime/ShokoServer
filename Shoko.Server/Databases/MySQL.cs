@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 153;
+    public override int RequiredVersion { get; } = 154;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -943,6 +943,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(152, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(153, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(153, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
+        new(154, 01, "ALTER TABLE `TMDB_Show` MODIFY COLUMN `Keywords` TEXT NULL;"),
+        new(154, 02, "ALTER TABLE `TMDB_Movie` MODIFY COLUMN `Keywords` TEXT NULL;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
