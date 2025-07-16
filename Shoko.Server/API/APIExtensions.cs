@@ -148,7 +148,11 @@ public static class APIExtensions
                 options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
-        services.AddSignalR(o => { o.EnableDetailedErrors = true; })
+        services.AddSignalR(options => 
+            {
+                options.EnableDetailedErrors = true;
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // default timeout is 30 seconds
+            })
             .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new DefaultContractResolver());
 
         // allow CORS calls from other both local and non-local hosts
