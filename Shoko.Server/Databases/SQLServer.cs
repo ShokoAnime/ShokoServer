@@ -895,8 +895,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new DatabaseCommand(145, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new DatabaseCommand(145, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
-        new DatabaseCommand(146, 01, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
-        new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
+        new DatabaseCommand(146, 01, DropDefaultOnTMDBShowMovieKeywords),
+        new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
+        new DatabaseCommand(146, 03, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
     };
 
     private static void AlterImdbMovieIDType()
@@ -1134,6 +1135,13 @@ public class SQLServer : BaseDatabase<SqlConnection>
         DropDefaultConstraint("AniDB_Creator", "LastUpdatedAt");
         return Tuple.Create<bool, string>(true, null);
     }
+    
+    private static Tuple<bool, string> DropDefaultOnTMDBShowMovieKeywords(object connection)
+        {
+            DropDefaultConstraint("TMDB_Show", "Keywords");
+            DropDefaultConstraint("TMDB_Movie", "Keywords");
+            return Tuple.Create<bool, string>(true, null);
+        }
 
     protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
     {
