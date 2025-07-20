@@ -629,6 +629,84 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
+    private bool EvaluateTestC(string test, SVR_VideoLocal vid)
+    {
+        try
+        {
+            bool notCondition = false;
+            if (test.Substring(0, 1).Equals("!"))
+            {
+                notCondition = true;
+                test = test.Substring(1, test.Length - 1);
+            }
+
+            if (vid == null) return false;
+
+            // Video codecs
+            IMediaInfo? mediaInfo = vid.MediaInfo;
+            var hasSource = !string.IsNullOrEmpty(mediaInfo?.VideoStream?.Codec.Simplified);
+            if (
+                test.Trim()
+                    .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
+                !hasSource)
+            {
+                return !notCondition;
+            }
+
+            if (test.Trim().Equals(mediaInfo?.VideoStream?.Codec.Simplified, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return !notCondition;
+            }
+
+            return notCondition;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
+            return false;
+        }
+    }
+
+    private bool EvaluateTestJ(string test, SVR_VideoLocal vid)
+    {
+        try
+        {
+            bool notCondition = false;
+            if (test.Substring(0, 1).Equals("!"))
+            {
+                notCondition = true;
+                test = test.Substring(1, test.Length - 1);
+            }
+
+            if (vid == null) return false;
+
+            // Audio codecs
+            IMediaInfo? mediaInfo = vid.MediaInfo;
+            var hasSource = !string.IsNullOrEmpty(mediaInfo?.AudioStreams.FirstOrDefault()?.Codec.Simplified);
+            if (
+                test.Trim()
+                    .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
+                !hasSource)
+            {
+                return !notCondition;
+            }
+
+            var codec = mediaInfo?.AudioStreams.FirstOrDefault()?.Codec.Simplified;
+
+            if (test.Trim().Equals(codec, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return !notCondition;
+            }
+
+            return notCondition;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Encountered an exception while executing test: {Message}", ex.ToString());
+            return false;
+        }
+    }
+
     private bool EvaluateTestT(string test, SVR_AniDB_Anime anime)
     {
         try
@@ -1794,7 +1872,8 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().Contains(Constants.FileRenameTag.VideoCodec))
         {
-            newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, vid?.MediaInfo?.VideoStream?.CodecID);
+            IMediaInfo? mediaInfo = vid.MediaInfo;
+            newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, mediaInfo?.VideoStream?.Codec.Simplified);
         }
 
         #endregion
@@ -1803,7 +1882,8 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         if (action.Trim().Contains(Constants.FileRenameTag.AudioCodec))
         {
-            newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec, vid?.MediaInfo?.AudioStreams.FirstOrDefault()?.CodecID);
+            IMediaInfo? mediaInfo = vid.MediaInfo;
+            newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec, mediaInfo?.AudioStreams.FirstOrDefault()?.Codec.Simplified);
         }
 
         #endregion
@@ -2074,9 +2154,9 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
             case 'X':
                 return EvaluateTestX(testCondition, anime);
             case 'C':
-                return false;
+                    return EvaluateTestC(testCondition, vid);
             case 'J':
-                return false;
+                    return EvaluateTestJ(testCondition, vid);
             case 'I':
                 return EvaluateTestI(testCondition, vid, aniFile, episodes, anime);
             case 'W':
