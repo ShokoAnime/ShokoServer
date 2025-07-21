@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 146;
+    public override int RequiredVersion { get; } = 147;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -895,12 +895,15 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new DatabaseCommand(145, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new DatabaseCommand(145, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
-        new DatabaseCommand(146, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INT IDENTITY(1,1), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, ID NVARCHAR(128), ProviderName NVARCHAR(128) NOT NULL, ReleaseURI NVARCHAR(1024), Version INT NOT NULL, ProvidedFileSize BIGINT, Comment NVARCHAR(1024), OriginalFilename NVARCHAR(1024), IsCensored INT, IsChaptered INT, IsCreditless INT, IsCorrupted INT NOT NULL, Source INT NOT NULL, GroupID NVARCHAR(128), GroupSource NVARCHAR(128), GroupName NVARCHAR(128), GroupShortName NVARCHAR(128), Hashes TEXT NULL, AudioLanguages NVARCHAR(128), SubtitleLanguages NVARCHAR(128), CrossReferences NVARCHAR(10240) NOT NULL, Metadata TEXT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME2 NOT NULL, CreatedAt DATETIME2 NOT NULL);"),
-        new DatabaseCommand(146, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INT IDENTITY(1,1), AttemptProviderNames NVARCHAR(1024) NOT NULL, ProviderName NVARCHAR(128), ProviderID NVARCHAR(40), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, AttemptStartedAt DATETIME2 NOT NULL, AttemptEndedAt DATETIME2 NOT NULL);"),
-        new DatabaseCommand(146, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INT IDENTITY(1,1), VideoLocalID INT NOT NULL, Type NVARCHAR(32) NOT NULL, Value NVARCHAR(10240) NOT NULL, Metadata TEXT);"),
-        new DatabaseCommand(146, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
-        new DatabaseCommand(146, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
-        new DatabaseCommand(146, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
+        new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
+        new DatabaseCommand(146, 03, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
+        new DatabaseCommand(147, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INT IDENTITY(1,1), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, ID NVARCHAR(128), ProviderName NVARCHAR(128) NOT NULL, ReleaseURI NVARCHAR(1024), Version INT NOT NULL, ProvidedFileSize BIGINT, Comment NVARCHAR(1024), OriginalFilename NVARCHAR(1024), IsCensored INT, IsChaptered INT, IsCreditless INT, IsCorrupted INT NOT NULL, Source INT NOT NULL, GroupID NVARCHAR(128), GroupSource NVARCHAR(128), GroupName NVARCHAR(128), GroupShortName NVARCHAR(128), Hashes TEXT NULL, AudioLanguages NVARCHAR(128), SubtitleLanguages NVARCHAR(128), CrossReferences NVARCHAR(10240) NOT NULL, Metadata TEXT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME2 NOT NULL, CreatedAt DATETIME2 NOT NULL);"),
+        new DatabaseCommand(147, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INT IDENTITY(1,1), AttemptProviderNames NVARCHAR(1024) NOT NULL, ProviderName NVARCHAR(128), ProviderID NVARCHAR(40), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, AttemptStartedAt DATETIME2 NOT NULL, AttemptEndedAt DATETIME2 NOT NULL);"),
+        new DatabaseCommand(147, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INT IDENTITY(1,1), VideoLocalID INT NOT NULL, Type NVARCHAR(32) NOT NULL, Value NVARCHAR(10240) NOT NULL, Metadata TEXT);"),
+        new DatabaseCommand(147, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new DatabaseCommand(147, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
+        new DatabaseCommand(147, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
+        new DatabaseCommand(147, 01, DropDefaultOnTMDBShowMovieKeywords),
     };
 
     private static void AlterImdbMovieIDType()
@@ -1138,6 +1141,13 @@ public class SQLServer : BaseDatabase<SqlConnection>
         DropDefaultConstraint("AniDB_Creator", "LastUpdatedAt");
         return Tuple.Create<bool, string>(true, null);
     }
+    
+    private static Tuple<bool, string> DropDefaultOnTMDBShowMovieKeywords(object connection)
+        {
+            DropDefaultConstraint("TMDB_Show", "Keywords");
+            DropDefaultConstraint("TMDB_Movie", "Keywords");
+            return Tuple.Create<bool, string>(true, null);
+        }
 
     protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
     {

@@ -31,6 +31,7 @@ namespace Shoko.Server.Plex;
 public class PlexHelper
 {
     private const string ClientIdentifier = "d14f0724-a4e8-498a-bb67-add795b38331";
+    private const string PlexAccountURI = "https://plex.tv/users/account.json";
 
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new();
@@ -48,7 +49,6 @@ public class PlexHelper
     private MediaDevice[] _plexMediaDevices;
 
     private MediaDevice _mediaDevice;
-    private bool? isAuthenticated;
 
     private PlexHelper(JMMUser user)
     {
@@ -171,14 +171,26 @@ public class PlexHelper
 
             try
             {
-                isAuthenticated = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
-                        AuthenticationHeaders).ConfigureAwait(false)
-                    .GetAwaiter().GetResult().status == HttpStatusCode.OK;
-                _lastAuthenticated = (bool)isAuthenticated ? DateTime.Now : null;
-                return (bool)isAuthenticated;
+                var (status, _) = RequestAsync(PlexAccountURI, HttpMethod.Get,
+                    AuthenticationHeaders).ConfigureAwait(false).GetAwaiter().GetResult();
+
+                if (status == HttpStatusCode.OK)
+                {
+                    _lastAuthenticated = DateTime.Now;
+                    return true;
+                }
+
+                if (status == HttpStatusCode.UnprocessableEntity)
+                {
+                    Logger.Warn("UnprocessableEntity returned when authenticating Plex user. Invalidating token.");
+                    InvalidateToken();
+                }
+
+                return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.Trace(ex, "Exception during Plex authentication");
                 return false;
             }
         }
@@ -468,7 +480,6 @@ public class PlexHelper
     public void InvalidateToken()
     {
         _user.PlexToken = string.Empty;
-        isAuthenticated = false;
         _lastAuthenticated = null;
         _key = null;
         SaveUser(_user);
