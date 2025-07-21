@@ -160,6 +160,7 @@ public static class QuartzExtensions
 
         scheduleBuilder ??= SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires();
         var collection = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>();
+        var triggersToRemove = new List<TriggerKey>();
         var time = DateTimeOffset.UtcNow;
         using (var _ = await SchedulerLock.ReaderLockAsync())
         {
@@ -167,22 +168,45 @@ public static class QuartzExtensions
             {
                 if (await scheduler.CheckExists(job.Key))
                 {
-                    _logger.Trace("Skipped scheduling {JobName} because it already exists.", job.Key);
-                    continue;
+                    if (!startTime.HasValue || startTime <= time)
+                    {
+                        _logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
+                        continue;
+                    }
+
+                    var triggerKeys = (await scheduler.GetTriggersOfJob(job.Key)).Select(t => t.Key).ToList();
+                    _logger.Trace("Removing {Count} triggers for {JobName} because the time to run changed.", triggerKeys.Count, job.Key);
+                    triggersToRemove.AddRange(triggerKeys);
                 }
-                var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
-                if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
-                if (startTime.HasValue && startTime > time) triggerBuilder = triggerBuilder.StartAt(startTime.Value);
+
+                var triggerBuilder = TriggerBuilder.Create()
+                    .StartNow()
+                    .WithIdentity(job.Key.Name, job.Key.Group);
+                if (priority != 0)
+                    triggerBuilder = triggerBuilder.WithPriority(priority);
+
+                if (startTime.HasValue && startTime > time)
+                {
+                    _logger.Trace("Scheduling {JobName} to run at {StartTime}. (Priority: {Priority})", job.Key, startTime.Value, priority);
+                    triggerBuilder = triggerBuilder.StartAt(startTime.Value);
+                }
+                else
+                {
+                    _logger.Trace("Scheduling {JobName}. (Priority: {Priority})", job.Key, priority);
+                }
+
                 var trigger = triggerBuilder.WithSchedule(scheduleBuilder).Build();
                 collection[job] = [trigger];
-                _logger.Trace("Scheduling {JobName}", job.Key);
             }
         }
 
         if (collection.Count == 0) return;
         time = DateTimeOffset.UtcNow;
-        _logger.Trace("Scheduling {Count} jobs.", collection.Count);
+        _logger.Trace("Scheduling {Count} jobs and unscheduling {Count} triggers.", collection.Count, triggersToRemove.Count);
         using var __ = await SchedulerLock.WriterLockAsync();
+        if (triggersToRemove.Count > 0)
+            await scheduler.UnscheduleJobs(triggersToRemove);
+        _logger.Trace("Unscheduled {Count} triggers.", triggersToRemove.Count);
         await scheduler.ScheduleJobs(collection, false);
         _logger.Trace("Scheduled {Count} jobs in {Time}.", collection.Count, DateTimeOffset.UtcNow - time);
     }
