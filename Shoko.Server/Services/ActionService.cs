@@ -1164,7 +1164,7 @@ public class ActionService(
 
         foreach (var aniDBAnime in missingSeries)
         {
-            var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
+            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = aniDBAnime.AnimeID;
                 c.DownloadRelations = false;
@@ -1173,9 +1173,8 @@ public class ActionService(
                 c.CreateSeriesEntry = true;
                 c.SkipTmdbUpdate = false;
             });
-            await job.CreateAnimeSeriesAndGroup(aniDBAnime);
         }
 
-        _logger.LogInformation("Created {Count} Series that were missing.", missingSeries.Count);
+        _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }
 }
