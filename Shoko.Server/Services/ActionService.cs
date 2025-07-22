@@ -27,6 +27,7 @@ using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Tasks;
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
@@ -41,7 +42,8 @@ public class ActionService(
     AnimeSeriesService _seriesService,
     TraktTVHelper _traktHelper,
     DatabaseFactory _databaseFactory,
-    HttpXmlUtils _xmlUtils
+    HttpXmlUtils _xmlUtils,
+    JobFactory _jobFactory
 )
 {
     public async Task RunImport_IntegrityCheck()
@@ -1146,5 +1148,34 @@ public class ActionService(
         }
 
         _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
+    }
+
+    public async Task CreateMissingSeries()
+    {
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var missingSeries = RepoFactory.VideoLocal.GetAll().SelectMany(vid =>
+        {
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);
+            var aniDBAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
+            return aniDBAnime.Where(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) == null);
+        }).ToList();
+
+        _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);
+
+        foreach (var aniDBAnime in missingSeries)
+        {
+            var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
+            {
+                c.AnimeID = aniDBAnime.AnimeID;
+                c.DownloadRelations = false;
+                c.ForceRefresh = false;
+                c.CacheOnly = true;
+                c.CreateSeriesEntry = true;
+                c.SkipTmdbUpdate = false;
+            });
+            await job.CreateAnimeSeriesAndGroup(aniDBAnime);
+        }
+
+        _logger.LogInformation("Created {Count} Series that were missing.", missingSeries.Count);
     }
 }

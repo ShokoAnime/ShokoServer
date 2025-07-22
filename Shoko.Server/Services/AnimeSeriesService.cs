@@ -757,13 +757,20 @@ public class AnimeSeriesService
             var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
             foreach (var place in series.VideoLocals.SelectMany(a => a.Places).Where(a => a != null))
             {
-                if (deleteFiles) await service.RemoveRecordAndDeletePhysicalFile(place);
+                if (deleteFiles)
+                {
+                    RepoFactory.FileNameHash.Delete(RepoFactory.FileNameHash.GetByHash(place.VideoLocal!.Hash));
+                    await service.RemoveRecordAndDeletePhysicalFile(place);
+                }
                 else await service.RemoveRecord(place);
             }
 
             RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
         }
         RepoFactory.AnimeSeries.Delete(series);
+
+        var manualLinks = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID).Where(a => a.CrossRefSource == (int)CrossRefSource.User).ToArray();
+        RepoFactory.CrossRef_File_Episode.Delete(manualLinks);
 
         if (!updateGroups)
         {
@@ -801,6 +808,9 @@ public class AnimeSeriesService
 
         if (completelyRemove)
         {
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
+            RepoFactory.CrossRef_File_Episode.Delete(xrefs);
+
             // episodes, anime, characters, images, staff relations, tag relations, titles
             var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(series.AniDB_ID);
             RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
