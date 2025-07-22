@@ -26,7 +26,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
 {
     // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
-    private readonly IAniDBService _anidbService;
+    private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
     private readonly AniDBTitleHelper _titleHelper;
 
@@ -152,7 +152,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         return (response, countAnime, countSeries);
     }
 
-    public GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAniDBService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
+    public GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
         _anidbService = anidbService;

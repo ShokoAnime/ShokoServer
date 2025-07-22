@@ -38,7 +38,7 @@ public class ActionService(
     IRequestFactory _requestFactory,
     ISettingsProvider _settingsProvider,
     IVideoReleaseService _videoReleaseService,
-    IAniDBService _anidbService,
+    IAnidbService _anidbService,
     VideoLocalService _videoService,
     VideoLocal_PlaceService _placeService,
     TmdbMetadataService _tmdbService,

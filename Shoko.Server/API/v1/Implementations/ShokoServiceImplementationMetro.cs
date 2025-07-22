@@ -44,7 +44,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
     public HttpContext HttpContext { get; set; }
 
-    public ShokoServiceImplementationMetro(ISettingsProvider settingsProvider, ShokoServiceImplementation service, IUserDataService userDataService, AnimeEpisodeService epService, IAniDBService anidbService)
+    public ShokoServiceImplementationMetro(ISettingsProvider settingsProvider, ShokoServiceImplementation service, IUserDataService userDataService, AnimeEpisodeService epService, IAnidbService anidbService)
     {
         _settingsProvider = settingsProvider;
         _service = service;

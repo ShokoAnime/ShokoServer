@@ -37,15 +37,15 @@ public class AnimeSeriesService
     private readonly AniDB_AnimeService _animeService;
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IAniDBService _aniDBService;
+    private readonly IAnidbService _anidbService;
     private readonly IVideoReleaseService _videoReleaseService;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, IAniDBService aniDBService, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, IAnidbService anidbService, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _seriesUsers = seriesUsers;
         _schedulerFactory = schedulerFactory;
-        _aniDBService = aniDBService;
+        _anidbService = anidbService;
         _animeService = animeService;
         _groupService = groupService;
         _vlUsers = vlUsers;
@@ -95,7 +95,7 @@ public class AnimeSeriesService
         {
             try
             {
-                return await _aniDBService.RefreshByID(animeID, refreshMethod).ConfigureAwait(false) != null;
+                return await _anidbService.RefreshByID(animeID, refreshMethod).ConfigureAwait(false) != null;
             }
             catch
             {
@@ -103,7 +103,7 @@ public class AnimeSeriesService
             }
         }
 
-        await _aniDBService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
+        await _anidbService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
         return false;
     }
 

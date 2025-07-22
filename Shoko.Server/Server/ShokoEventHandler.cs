@@ -20,15 +20,13 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public event EventHandler<FileRelocatedEventArgs>? FileRelocated;
 
-    public event EventHandler<AniDBBannedEventArgs>? AniDBBanned;
-
     public event EventHandler<SeriesInfoUpdatedEventArgs>? SeriesUpdated;
 
     public event EventHandler<EpisodeInfoUpdatedEventArgs>? EpisodeUpdated;
 
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
 
-    public event EventHandler<AVDumpEventArgs>? AVDumpEvent;
+    public event EventHandler<AvdumpEventArgs>? AVDumpEvent;
 
     public event EventHandler? Starting;
 
@@ -80,11 +78,6 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         FileRelocated?.Invoke(null, new(newPath, newFolder, oldPath, oldFolder, vlp, vl, episodes, series, groups));
-    }
-
-    public void OnAniDBBanned(AniDBBanType type, DateTime time, DateTime resumeTime)
-    {
-        AniDBBanned?.Invoke(null, new(type, time, resumeTime));
     }
 
     public void OnSeriesUpdated(SVR_AniDB_Anime anime, UpdateReason reason, IEnumerable<KeyValuePair<SVR_AniDB_Episode, UpdateReason>>? episodes = null)

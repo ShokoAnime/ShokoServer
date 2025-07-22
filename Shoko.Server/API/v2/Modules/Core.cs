@@ -40,7 +40,7 @@ public class Core : BaseController
 
     private readonly ISchedulerFactory _schedulerFactory;
 
-    private readonly IAniDBService _anidbService;
+    private readonly IAnidbService _anidbService;
 
     private readonly ActionService _actionService;
 
@@ -48,7 +48,7 @@ public class Core : BaseController
 
     private IServerSettings _settings => _settingsProvider.GetSettings();
 
-    public Core(ShokoServiceImplementation service, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IAniDBService anidbService, ActionService actionService) : base(settingsProvider)
+    public Core(ShokoServiceImplementation service, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IAnidbService anidbService, ActionService actionService) : base(settingsProvider)
     {
         _service = service;
         _settingsProvider = settingsProvider;

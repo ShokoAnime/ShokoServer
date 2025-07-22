@@ -49,7 +49,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
 
     private readonly IApplicationPaths _applicationPaths;
 
-    private readonly IAniDBService _anidbService;
+    private readonly IAnidbService _anidbService;
 
     private readonly ConfigurationProvider<Configuration> _configurationProvider;
 
@@ -87,7 +87,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     public OfflineImporter(
         ILogger<OfflineImporter> logger,
         IApplicationPaths applicationPaths,
-        IAniDBService anidbService,
+        IAnidbService anidbService,
         ConfigurationProvider<Configuration> configurationProvider
     )
     {

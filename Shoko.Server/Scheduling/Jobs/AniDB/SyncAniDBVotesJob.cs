@@ -22,7 +22,7 @@ public class SyncAniDBVotesJob : BaseJob
 {
     // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
-    private readonly IAniDBService _anidbService;
+    private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
 
     public override string TypeName => "Sync AniDB Votes";
@@ -89,7 +89,7 @@ public class SyncAniDBVotesJob : BaseJob
         _logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
     }
 
-    public SyncAniDBVotesJob(IRequestFactory requestFactory, IAniDBService anidbService, ISettingsProvider settingsProvider)
+    public SyncAniDBVotesJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider)
     {
         _requestFactory = requestFactory;
         _anidbService = anidbService;

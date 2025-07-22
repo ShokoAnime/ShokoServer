@@ -4,7 +4,7 @@ using Shoko.Plugin.Abstractions.Services;
 namespace Shoko.Plugin.Abstractions.Enums;
 
 /// <summary>
-/// Determines how to refresh an AniDB anime in the <see cref="IAniDBService"/>.
+/// Determines how to refresh an AniDB anime in the <see cref="IAnidbService"/>.
 /// </summary>
 [Flags]
 public enum AnidbRefreshMethod

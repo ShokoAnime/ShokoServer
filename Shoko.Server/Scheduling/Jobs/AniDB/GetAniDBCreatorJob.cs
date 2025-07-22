@@ -32,7 +32,7 @@ public class GetAniDBCreatorJob : BaseJob
 
     private readonly ISchedulerFactory _schedulerFactory;
 
-    private readonly IAniDBService _anidbService;
+    private readonly IAnidbService _anidbService;
 
     private string? _creatorName;
 
@@ -146,7 +146,7 @@ public class GetAniDBCreatorJob : BaseJob
         RepoFactory.AniDB_Anime_Staff.Save(rolesToUpdate);
     }
 
-    public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAniDBService anidbService)
+    public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAnidbService anidbService)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;

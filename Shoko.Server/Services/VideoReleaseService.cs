@@ -64,7 +64,7 @@ public class VideoReleaseService(
     private IUserDataService? _userDataService = null;
 
     // Lazy init. to prevent circular dependency.
-    private IAniDBService? _anidbService = null;
+    private IAnidbService? _anidbService = null;
 
     private IServerSettings _settings => settingsProvider.GetSettings();
 
@@ -881,13 +881,13 @@ public class VideoReleaseService(
             if (missingEpisodes)
             {
                 logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAniDBService>();
+                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
                 await _anidbService.ScheduleRefreshByID(animeID, refreshMethod, prioritize: true);
             }
             else if (!animeRecentlyUpdated)
             {
                 logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAniDBService>();
+                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
                 await _anidbService.ScheduleRefreshByID(animeID, refreshMethod);
             }
             else

@@ -37,7 +37,7 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AnidbService : IAniDBService
+public class AnidbService : IAnidbService
 {
     private readonly ILogger<AnidbService> _logger;
 
@@ -116,33 +116,95 @@ public class AnidbService : IAniDBService
         _crossReferenceRepository = crossReferenceRepository;
         _bulkheadPolicy = Policy.BulkheadAsync<SVR_AniDB_Anime?>(1, int.MaxValue);
 
-        ShokoEventHandler.Instance.AniDBBanned += OnAniDBBanned;
+        var now = DateTime.UnixEpoch.ToUniversalTime();
+        LastHttpBanEventArgs = new()
+        {
+            Type = AnidbBanType.HTTP,
+            OccurredAt = now,
+            ExpiresAt = now,
+        };
+        LastUdpBanEventArgs = new()
+        {
+            Type = AnidbBanType.UDP,
+            OccurredAt = now,
+            ExpiresAt = now,
+        };
+
+        _udpConnectionHandler.BanExpired += OnAnidbBanExpired;
+        _udpConnectionHandler.BanOccurred += OnAnidbBanOccurred;
+        _httpConnectionHandler.BanExpired += OnAnidbBanExpired;
+        _httpConnectionHandler.BanOccurred += OnAnidbBanOccurred;
         ShokoEventHandler.Instance.AVDumpEvent += OnAVDumpEvent;
     }
 
     ~AnidbService()
     {
-        ShokoEventHandler.Instance.AniDBBanned -= OnAniDBBanned;
+        _udpConnectionHandler.BanExpired -= OnAnidbBanExpired;
+        _udpConnectionHandler.BanOccurred -= OnAnidbBanOccurred;
+        _httpConnectionHandler.BanExpired -= OnAnidbBanExpired;
+        _httpConnectionHandler.BanOccurred -= OnAnidbBanOccurred;
         ShokoEventHandler.Instance.AVDumpEvent -= OnAVDumpEvent;
     }
 
     #region Banned Status
 
     /// <inheritdoc/>
-    public event EventHandler<AniDBBannedEventArgs>? AniDBBanned;
+    public event EventHandler<AnidbBanOccurredEventArgs>? BanOccurred;
 
     /// <inheritdoc/>
-    public bool IsAniDBUdpReachable => _udpConnectionHandler.IsAlive && _udpConnectionHandler.IsNetworkAvailable;
+    public event EventHandler<AnidbBanOccurredEventArgs>? BanExpired;
 
     /// <inheritdoc/>
-    public bool IsAniDBUdpBanned => _udpConnectionHandler.IsBanned;
+    public bool IsAnidbHttpBanned => _httpConnectionHandler.IsBanned;
 
     /// <inheritdoc/>
-    public bool IsAniDBHttpBanned => _httpConnectionHandler.IsBanned;
+    public bool IsAnidbUdpBanned => _udpConnectionHandler.IsBanned;
 
-    public void OnAniDBBanned(object? sender, AniDBBannedEventArgs eventArgs)
+    /// <inheritdoc/>
+    public bool IsAnidbUdpReachable => _udpConnectionHandler.IsAlive && _udpConnectionHandler.IsNetworkAvailable;
+
+    /// <inheritdoc/>
+    public AnidbBanOccurredEventArgs LastHttpBanEventArgs { get; private set; }
+
+    /// <inheritdoc/>
+    public AnidbBanOccurredEventArgs LastUdpBanEventArgs { get; private set; }
+
+    public void OnAnidbBanOccurred(object? sender, AnidbBanOccurredEventArgs eventArgs)
     {
-        AniDBBanned?.Invoke(this, eventArgs);
+        switch (eventArgs.Type)
+        {
+            case AnidbBanType.UDP:
+                LastUdpBanEventArgs = eventArgs;
+                break;
+
+            case AnidbBanType.HTTP:
+                LastHttpBanEventArgs = eventArgs;
+                break;
+
+            default:
+                return;
+        }
+
+        BanOccurred?.Invoke(this, eventArgs);
+    }
+
+    public void OnAnidbBanExpired(object? sender, AnidbBanOccurredEventArgs eventArgs)
+    {
+        switch (eventArgs.Type)
+        {
+            case AnidbBanType.UDP:
+                LastUdpBanEventArgs = eventArgs;
+                break;
+
+            case AnidbBanType.HTTP:
+                LastHttpBanEventArgs = eventArgs;
+                break;
+
+            default:
+                return;
+        }
+
+        BanExpired?.Invoke(this, eventArgs);
     }
 
     #endregion
@@ -218,7 +280,7 @@ public class AnidbService : IAniDBService
         }
         catch (AniDBBannedException ex)
         {
-            throw new AnidbHttpBannedException(ex) { BanExpires = ex.BanExpires };
+            throw new AnidbHttpBannedException(ex) { ExpiresAt = ex.BanExpires?.ToUniversalTime() };
         }
     }
 
@@ -314,7 +376,7 @@ public class AnidbService : IAniDBService
                     throw new AniDBBannedException
                     {
                         BanType = UpdateType.HTTPBan,
-                        BanExpires = _httpConnectionHandler.BanTime?.AddHours(_httpConnectionHandler.BanTimerResetLength)
+                        BanExpires = _httpConnectionHandler.BanTime?.AddHours(_httpConnectionHandler.BanTimerResetLength),
                     };
                 }
 
@@ -620,16 +682,16 @@ public class AnidbService : IAniDBService
     #region AVDump
 
     /// <inheritdoc/>
-    public event EventHandler<AVDumpEventArgs>? AVDumpEvent;
+    public event EventHandler<AvdumpEventArgs>? AvdumpEvent;
 
     /// <inheritdoc/>
-    public bool IsAVDumpInstalled => AVDumpHelper.IsAVDumpInstalled;
+    public bool IsAvdumpInstalled => AVDumpHelper.IsAVDumpInstalled;
 
     /// <inheritdoc/>
-    public string? InstalledAVDumpVersion => AVDumpHelper.InstalledAVDumpVersion;
+    public string? InstalledAvdumpVersion => AVDumpHelper.InstalledAVDumpVersion;
 
     /// <inheritdoc/>
-    public string? AvailableAVDumpVersion => AVDumpHelper.AVDumpVersion;
+    public string? AvailableAvdumpVersion => AVDumpHelper.AVDumpVersion;
 
     /// <inheritdoc/>
     public bool UpdateAvdump(bool force = false)
@@ -645,9 +707,9 @@ public class AnidbService : IAniDBService
         return AVDumpHelper.UpdateAVDump();
     }
 
-    private void OnAVDumpEvent(object? sender, AVDumpEventArgs eventArgs)
+    private void OnAVDumpEvent(object? sender, AvdumpEventArgs eventArgs)
     {
-        AVDumpEvent?.Invoke(this, eventArgs);
+        AvdumpEvent?.Invoke(this, eventArgs);
     }
 
     /// <inheritdoc/>

@@ -1,7 +1,8 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Server.Providers.AniDB;
+using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Events;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
@@ -15,7 +16,7 @@ public class AnidbBannedStatus
     /// The type of update.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public UpdateType Type { get; set; }
+    public AnidbBanType Type { get; set; }
 
     /// <summary>
     /// Whether the AniDB account is banned.
@@ -33,15 +34,15 @@ public class AnidbBannedStatus
     public DateTime LastUpdatedAt { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AnidbBannedStatus"/> class.
+    /// Creates a new <see cref="AnidbBannedStatus"/> based on the specified
+    /// <see cref="AnidbBanOccurredEventArgs"/>.
     /// </summary>
-    /// <param name="statusUpdate">The <see cref="AniDBStateUpdate"/> to initialize from.</param>
-    public AnidbBannedStatus(AniDBStateUpdate statusUpdate)
+    /// <param name="eventArgs">The <see cref="AnidbBanOccurredEventArgs"/>.</param>
+    public AnidbBannedStatus(AnidbBanOccurredEventArgs eventArgs)
     {
-        Type = statusUpdate.UpdateType;
-        IsBanned = statusUpdate.Value;
-        LastUpdatedAt = statusUpdate.UpdateTime;
-        BanDuration = IsBanned ? TimeSpan.FromSeconds(statusUpdate.PauseTimeSecs) : null;
+        Type = eventArgs.Type;
+        IsBanned = eventArgs.IsBanned;
+        BanDuration = eventArgs.IsBanned ? eventArgs.ExpiresAt - eventArgs.OccurredAt : null;
+        LastUpdatedAt = eventArgs.OccurredAt;
     }
 }
-

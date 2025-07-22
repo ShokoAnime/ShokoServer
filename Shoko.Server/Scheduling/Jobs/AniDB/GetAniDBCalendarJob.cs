@@ -23,7 +23,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 public class GetAniDBCalendarJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
-    private readonly IAniDBService _anidbService;
+    private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
     public bool ForceRefresh { get; set; }
 
@@ -118,7 +118,7 @@ public class GetAniDBCalendarJob : BaseJob
     }
 
     public GetAniDBCalendarJob(IRequestFactory requestFactory,
-        IAniDBService anidbService, ISettingsProvider settingsProvider)
+        IAnidbService anidbService, ISettingsProvider settingsProvider)
     {
         _requestFactory = requestFactory;
         _anidbService = anidbService;

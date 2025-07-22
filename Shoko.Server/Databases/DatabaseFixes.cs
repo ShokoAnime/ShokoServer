@@ -149,7 +149,7 @@ public class DatabaseFixes
         var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
             .Select(a => a.AnimeID).Distinct().ToList();
 
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAniDBService>();
+        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
         foreach (var animeID in list)
         {
             if (i % 10 == 0)
@@ -396,7 +396,7 @@ public class DatabaseFixes
     {
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAniDBService>();
+        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
         var anidbAnimeDict = RepoFactory.AniDB_Anime.GetAll()
             .ToDictionary(an => an.AnimeID);
         var anidbEpisodeDict = RepoFactory.AniDB_Episode.GetAll()
@@ -706,7 +706,7 @@ public class DatabaseFixes
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
         var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAniDBService>();
+        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         var str = ServerState.Instance.ServerStartingStatus;
         ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {animeList.Count}";

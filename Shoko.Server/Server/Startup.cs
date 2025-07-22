@@ -107,7 +107,7 @@ public class Startup
             services.AddQuartz();
 
             services.AddAniDB();
-            services.AddSingleton<IAniDBService, AnidbService>();
+            services.AddSingleton<IAnidbService, AnidbService>();
             services.AddPlugins(settingsProvider);
             services.AddAPI();
         }

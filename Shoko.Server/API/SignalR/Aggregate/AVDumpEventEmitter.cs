@@ -19,7 +19,7 @@ public class AVDumpEventEmitter : BaseEventEmitter, IDisposable
         ShokoEventHandler.Instance.AVDumpEvent -= OnAVDumpEvent;
     }
 
-    private async void OnAVDumpEvent(object sender, AVDumpEventArgs eventArgs)
+    private async void OnAVDumpEvent(object sender, AvdumpEventArgs eventArgs)
     {
         await SendAsync("event", new AVDumpEventSignalRModel(eventArgs));
     }

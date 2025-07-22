@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Release;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
@@ -23,8 +23,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class AniDBController(
     ISettingsProvider settingsProvider,
-    IUDPConnectionHandler udpHandler,
-    IHttpConnectionHandler httpHandler,
+    IAnidbService anidbService,
     StoredReleaseInfoRepository storedReleaseInfos,
     AniDB_CreatorRepository anidbCreators
 ) : BaseController(settingsProvider)
@@ -41,8 +40,8 @@ public class AniDBController(
     {
         return new Dictionary<string, AnidbBannedStatus>
         {
-            { "UDP", new AnidbBannedStatus(udpHandler.State) },
-            { "HTTP", new AnidbBannedStatus(httpHandler.State) },
+            { "UDP", new AnidbBannedStatus(anidbService.LastUdpBanEventArgs) },
+            { "HTTP", new AnidbBannedStatus(anidbService.LastHttpBanEventArgs) },
         };
     }
 

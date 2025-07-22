@@ -62,7 +62,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
         ISchedulerFactory schedulerFactory,
-        IAniDBService anidbService,
+        IAnidbService anidbService,
         ISettingsProvider settingsProvider,
         ILogger<ShokoServiceImplementation> logger,
         ActionService actionService,

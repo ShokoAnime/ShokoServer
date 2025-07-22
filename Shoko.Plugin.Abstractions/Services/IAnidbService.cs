@@ -14,29 +14,46 @@ namespace Shoko.Plugin.Abstractions.Services;
 /// <summary>
 /// AniDB service.
 /// </summary>
-public interface IAniDBService
+public interface IAnidbService
 {
     #region Banned Status
 
     /// <summary>
     /// Dispatched when an AniDB HTTP or UDP ban occurs.
     /// </summary>
-    event EventHandler<AniDBBannedEventArgs> AniDBBanned;
+    event EventHandler<AnidbBanOccurredEventArgs> BanOccurred;
 
     /// <summary>
-    /// Indicates the AniDB UDP API currently reachable?
+    /// Dispatched when an AniDB HTTP or UDP ban expires.
     /// </summary>
-    bool IsAniDBUdpReachable { get; }
+    event EventHandler<AnidbBanOccurredEventArgs> BanExpired;
 
     /// <summary>
     /// Indicates we are currently banned from using the AniDB HTTP API.
     /// </summary>
-    bool IsAniDBHttpBanned { get; }
+    bool IsAnidbHttpBanned { get; }
 
     /// <summary>
     /// Indicates we are currently banned from using the AniDB UDP API.
     /// </summary>
-    bool IsAniDBUdpBanned { get; }
+    bool IsAnidbUdpBanned { get; }
+
+    /// <summary>
+    /// Indicates the AniDB UDP API currently reachable?
+    /// </summary>
+    bool IsAnidbUdpReachable { get; }
+
+    /// <summary>
+    /// The last event arguments indicating when the last or current AniDB HTTP
+    /// ban started, and/or if a ban is currently still in effect.
+    /// </summary>
+    AnidbBanOccurredEventArgs LastHttpBanEventArgs { get; }
+
+    /// <summary>
+    /// The last event arguments indicating when the last or current AniDB UDP
+    /// ban started, and/or if a ban is currently still in effect.
+    /// </summary>
+    AnidbBanOccurredEventArgs LastUdpBanEventArgs { get; }
 
     #endregion
 
@@ -124,23 +141,23 @@ public interface IAniDBService
     /// <summary>
     /// Dispatched when an AVDump event occurs.
     /// </summary>
-    event EventHandler<AVDumpEventArgs> AVDumpEvent;
+    event EventHandler<AvdumpEventArgs> AvdumpEvent;
 
     /// <summary>
     /// Indicates that some version of AVDump is installed.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(InstalledAVDumpVersion))]
-    bool IsAVDumpInstalled { get; }
+    [MemberNotNullWhen(true, nameof(InstalledAvdumpVersion))]
+    bool IsAvdumpInstalled { get; }
 
     /// <summary>
     /// The version of AVDump that is installed.
     /// </summary>
-    string? InstalledAVDumpVersion { get; }
+    string? InstalledAvdumpVersion { get; }
 
     /// <summary>
     /// The version of AVDump that is Shoko knows is available to be installed.
     /// </summary>
-    string? AvailableAVDumpVersion { get; }
+    string? AvailableAvdumpVersion { get; }
 
     /// <summary>
     /// Update the installed AVDump component.
@@ -156,7 +173,7 @@ public interface IAniDBService
     /// Start a new AVDump3 session for one or more <paramref name="videos"/>.
     /// </summary>
     /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AVDumpEvent"/> event.
+    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
     /// </remarks>
     /// <param name="videos">The videos to dump.</param>
     /// <returns>
@@ -169,7 +186,7 @@ public interface IAniDBService
     /// Schedule an AVDump3 session to be ran on in the queue for one or more <paramref name="videos"/>.
     /// </summary>
     /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AVDumpEvent"/> event.
+    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
     /// </remarks>
     /// <param name="videos">The videos to dump.</param>
     /// <returns>
@@ -182,7 +199,7 @@ public interface IAniDBService
     /// Start a new AVDump3 session for one or more <paramref name="videoFiles"/>.
     /// </summary>
     /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AVDumpEvent"/> event.
+    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
     /// </remarks>
     /// <param name="videoFiles">The video files to dump.</param>
     /// <returns>
@@ -195,7 +212,7 @@ public interface IAniDBService
     /// Schedule an AVDump3 session to be ran on in the queue for one or more <paramref name="videoFiles"/>.
     /// </summary>
     /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AVDumpEvent"/> event.
+    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
     /// </remarks>
     /// <param name="videoFiles">The video files to dump.</param>
     /// <returns>

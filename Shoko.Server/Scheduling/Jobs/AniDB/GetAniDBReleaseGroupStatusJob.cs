@@ -29,7 +29,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
     private readonly AniDBTitleHelper _titleHelper;
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IAniDBService _anidbService;
+    private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
     private SVR_AniDB_Anime _anime;
     private string _animeName;
@@ -153,7 +153,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         return grpStatuses is { Count: > 0 };
     }
 
-    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAniDBService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
+    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;

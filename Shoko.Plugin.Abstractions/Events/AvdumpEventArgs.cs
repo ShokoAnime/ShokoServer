@@ -6,7 +6,7 @@ namespace Shoko.Plugin.Abstractions.Events;
 /// <summary>
 /// AVDump event.
 /// </summary>
-public class AVDumpEventArgs : EventArgs
+public class AvdumpEventArgs : EventArgs
 {
     /// <summary>
     /// The AVDump session id, if applicable to the event type.
@@ -89,7 +89,7 @@ public class AVDumpEventArgs : EventArgs
     /// </summary>
     /// <param name="messageType">The type of event.</param>
     /// <param name="message">The message.</param>
-    public AVDumpEventArgs(AVDumpEventType messageType, string? message = null)
+    public AvdumpEventArgs(AVDumpEventType messageType, string? message = null)
     {
         Type = messageType;
         Message = message;
@@ -100,7 +100,7 @@ public class AVDumpEventArgs : EventArgs
     /// </summary>
     /// <param name="messageType">The type of event.</param>
     /// <param name="ex">The exception.</param>
-    public AVDumpEventArgs(AVDumpEventType messageType, Exception ex)
+    public AvdumpEventArgs(AVDumpEventType messageType, Exception ex)
     {
         Type = messageType;
         Exception = ex;

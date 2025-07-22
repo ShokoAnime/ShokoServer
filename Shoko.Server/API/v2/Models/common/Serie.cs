@@ -67,7 +67,7 @@ public class Serie : BaseDirectory, IComparable
         var aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
         if (aniDB_Anime is null)
         {
-            var anidbService = ctx.RequestServices.GetRequiredService<IAniDBService>();
+            var anidbService = ctx.RequestServices.GetRequiredService<IAnidbService>();
             anidbService.ScheduleRefreshByID(bookmark.AnimeID).GetAwaiter().GetResult();
             return new Serie { id = -1, name = "GetAnimeInfoHTTP", aid = bookmark.AnimeID };
         }

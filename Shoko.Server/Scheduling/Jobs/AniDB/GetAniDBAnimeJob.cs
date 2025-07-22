@@ -23,7 +23,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
 {
     private readonly ISettingsProvider _settingsProvider;
 
-    private readonly AnidbService _aniDBService;
+    private readonly AnidbService _anidbService;
 
     private readonly AniDBTitleHelper _titleHelper;
 
@@ -153,10 +153,10 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
         }
     };
 
-    public GetAniDBAnimeJob(ISettingsProvider settingsProvider, IAniDBService anidbService, AniDBTitleHelper titleHelper)
+    public GetAniDBAnimeJob(ISettingsProvider settingsProvider, IAnidbService anidbService, AniDBTitleHelper titleHelper)
     {
         _settingsProvider = settingsProvider;
-        _aniDBService = (AnidbService)anidbService;
+        _anidbService = (AnidbService)anidbService;
         _titleHelper = titleHelper;
     }
 
@@ -171,6 +171,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime?>
     public override async Task<SVR_AniDB_Anime?> Process()
     {
         _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
-        return await _aniDBService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
+        return await _anidbService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
     }
 }
