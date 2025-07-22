@@ -346,6 +346,10 @@ public static partial class Utils
         return path[4..];
     }
 
+    public static readonly StringComparison PlatformComparison = IsLinux
+        ? StringComparison.Ordinal
+        : StringComparison.OrdinalIgnoreCase;
+
     public static string CleanPath(string value, bool osDependent = false, bool cleanStart = false)
     {
         var isUNC = value.StartsWith(@"\\") && !IsLinux;

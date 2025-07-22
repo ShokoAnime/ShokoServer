@@ -209,6 +209,14 @@ public class AbstractVideoService : IVideoService
         // Don't trust the input to be cleaned beforehand.
         relativePath = Utils.CleanPath(relativePath, cleanStart: true);
 
+        // If some plugin decided to (ab)use this method to scan a path, then forward it to the scan method without cleaning.
+        var absolutePath = Path.Join(managedFolder.Path, relativePath);
+        if (Directory.Exists(absolutePath))
+        {
+            await ScanManagedFolder(managedFolder, relativePath: relativePath, onlyNewFiles: false, skipMylist: !updateMylist, cleanUpStructure: false);
+            return;
+        }
+
         if (!Utils.IsVideo(relativePath))
         {
             _logger.LogInformation("File does not have an acceptable video extension, skipping: {Path}", relativePath);
@@ -221,7 +229,6 @@ public class AbstractVideoService : IVideoService
             return;
         }
 
-        var absolutePath = Path.Join(managedFolder.Path, relativePath);
         var locationAvailable = videoLocation.IsAvailable;
         if (!locationAvailable && videoLocation.ID is 0)
         {
@@ -306,15 +313,15 @@ public class AbstractVideoService : IVideoService
         // check if we have already processed this file
         video = null;
         videoLocation = _videoLocalPlaceRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID);
-        if (videoLocation != null)
+        if (videoLocation is not null)
         {
             video = videoLocation.VideoLocal;
-            if (video != null)
+            if (video is not null)
             {
                 _logger.LogTrace("Video record found in database: {Filename}", relativePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
-                if (videoLocation.Path == null)
+                if (videoLocation.Path is not { Length: > 0 })
                 {
                     _logger.LogTrace("Video file path is non-existent, removing record.");
                     if (video.Places.Count == 1)
@@ -329,7 +336,7 @@ public class AbstractVideoService : IVideoService
             }
         }
 
-        if (video == null)
+        if (video is null)
         {
             _logger.LogTrace("No existing video record, creating temporary record");
             video = new VideoLocal
@@ -341,7 +348,7 @@ public class AbstractVideoService : IVideoService
             };
         }
 
-        if (videoLocation == null)
+        if (videoLocation is null)
         {
             // If this is a new record, check if it's a symlink of another known
             // file or if it's a previously known file.
@@ -520,10 +527,10 @@ public class AbstractVideoService : IVideoService
         await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task ScanManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
-        => await ScanManagedFolder((ShokoManagedFolder)folder, onlyNewFiles, skipMylist, cleanUpStructure);
+    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
+        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipMylist, cleanUpStructure);
 
-    private async Task ScanManagedFolder(ShokoManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
+    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
 
@@ -535,8 +542,20 @@ public class AbstractVideoService : IVideoService
             return;
         }
 
+        if (!string.IsNullOrEmpty(relativePath))
+        {
+            relativePath = Utils.CleanPath(relativePath, cleanStart: true);
+            files = files
+                .Where(filePath =>
+                {
+                    var relativeFilePath = Utils.CleanPath(filePath[folder.Path.Length..], cleanStart: true);
+                    return relativeFilePath.StartsWith(relativePath, Utils.PlatformComparison);
+                })
+                .ToList();
+        }
+
         var filesAt = DateTime.Now - startedAt;
-        _logger.LogInformation("Managed folder scan started; {Path} (ManagedFolder={ManagedFolderID},Files={FilesCount},FilesScanTime={FilesAt})", folder.Path, folder.ID, files.Count, filesAt);
+        _logger.LogInformation("Managed folder scan started; {Path} (ManagedFolder={ManagedFolderID}RelativePath={RelativePath},Files={FilesCount},FilesScanTime={FilesAt})", folder.Path, folder.ID, relativePath, files.Count, filesAt);
         var existingFiles = new HashSet<string>();
         foreach (var location in folder.Places)
         {
@@ -574,15 +593,15 @@ public class AbstractVideoService : IVideoService
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
         files = files
-            .Where(fileName =>
+            .Where(filePath =>
             {
-                if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
+                if (settings.Import.Exclude.Any(s => Regex.IsMatch(filePath, s)))
                 {
-                    _logger.LogTrace("Import exclusion, skipping --- {Name}", fileName);
+                    _logger.LogTrace("Import exclusion, skipping --- {Name}", filePath);
                     return false;
                 }
 
-                return !onlyNewFiles || !existingFiles.Contains(fileName);
+                return !onlyNewFiles || !existingFiles.Contains(filePath);
             })
             .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
             .ToList();
@@ -627,12 +646,12 @@ public class AbstractVideoService : IVideoService
         }
     }
 
-    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure) = (folder.ID, onlyNewFiles, skipMylist, cleanUpStructure.Value), prioritize);
+        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure) = (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value), prioritize);
     }
 
     public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)

@@ -19,6 +19,8 @@ internal class ScanFolderJob : BaseJob
     [JobKeyMember]
     public int ManagedFolderID { get; set; }
 
+    public string RelativePath { get; set; } = string.Empty;
+
     public bool OnlyNewFiles { get; set; }
 
     public bool SkipMyList { get; set; }
@@ -37,6 +39,7 @@ internal class ScanFolderJob : BaseJob
             if (!string.IsNullOrEmpty(_managedFolder))
                 details["Managed Folder"] = _managedFolder;
             details["Managed Folder ID"] = ManagedFolderID;
+            if (!string.IsNullOrEmpty(RelativePath)) details["Relative Path"] = RelativePath;
             if (OnlyNewFiles) details["Only New Files"] = true;
             if (!SkipMyList) details["Add to MyList"] = true;
             if (CleanUpStructure) details["Clean Up"] = true;
@@ -55,7 +58,7 @@ internal class ScanFolderJob : BaseJob
         if (managedFolder == null)
             return;
 
-        await _videoService.ScanManagedFolder(managedFolder, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList, cleanUpStructure: CleanUpStructure);
+        await _videoService.ScanManagedFolder(managedFolder, relativePath: RelativePath, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList, cleanUpStructure: CleanUpStructure);
     }
 
     public ScanFolderJob(IVideoService videoService)

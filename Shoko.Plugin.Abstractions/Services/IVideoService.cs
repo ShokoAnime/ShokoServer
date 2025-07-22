@@ -333,6 +333,9 @@ public interface IVideoService
     /// <param name="folder">
     ///   The managed folder to scan.
     /// </param>
+    /// <param name="relativePath">
+    ///   The relative path within the managed folder to scan.
+    /// </param>
     /// <param name="onlyNewFiles">
     ///   Whether to only scan for new files.
     /// </param>
@@ -345,7 +348,7 @@ public interface IVideoService
     ///   from the bottom up. If not provided then it will follow the global
     ///   configuration.
     /// </param>
-    Task ScanManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null);
+    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null);
 
     /// <summary>
     ///   Schedules a scan of a managed folder, scheduling pre-processing jobs
@@ -353,6 +356,9 @@ public interface IVideoService
     /// </summary>
     /// <param name="folder">
     ///   The managed folder to scan.
+    /// </param>
+    /// <param name="relativePath">
+    ///   The relative path within the managed folder to scan.
     /// </param>
     /// <param name="onlyNewFiles">
     ///   Whether to only scan for new files.
@@ -372,7 +378,7 @@ public interface IVideoService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScheduleScanForManagedFolder(IManagedFolder folder, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true);
+    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true);
 
     /// <summary>
     ///   Scans all managed folders, scheduling pre-processing jobs for new or
