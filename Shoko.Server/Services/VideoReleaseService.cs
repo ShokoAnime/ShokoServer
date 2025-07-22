@@ -942,20 +942,23 @@ public class VideoReleaseService(
             await ClearReleaseForVideo(video, existingRelease, removeFromMylist);
     }
 
-    public async Task ClearReleaseForAllVideos(bool removeFromMylist = true)
+    public async Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true)
     {
+        var providerNameSet = providerNames?.ToHashSet();
         var releases = releaseInfoRepository.GetAll()
             .Select(release => videoRepository.GetByEd2kAndSize(release.ED2K, release.FileSize) is { } video ? (video, release) : (video: null, release))
-            .Where(v => v.video is not null)
+            .Where(v => v.video is not null && (providerNameSet is null || providerNameSet.Contains(v.release.ProviderName)))
             .ToList();
         foreach (var (video, release) in releases)
             await ClearReleaseForVideo(video, release, removeFromMylist);
     }
 
-    public async Task PurgeUnusedReleases(bool removeFromMylist = true)
+    public async Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true)
     {
+        var providerNameSet = providerNames?.ToHashSet();
         var releases = releaseInfoRepository.GetAll()
             .Where(v => videoRepository.GetByEd2kAndSize(v.ED2K, v.FileSize) is null)
+            .Where(release => providerNameSet is null || providerNameSet.Contains(release.ProviderName))
             .ToList();
         foreach (var release in releases)
             await ClearReleaseForVideo(null, release, removeFromMylist);

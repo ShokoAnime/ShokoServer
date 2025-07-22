@@ -338,8 +338,13 @@ public interface IVideoReleaseService
     Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true);
 
     /// <summary>
-    ///   Clears the current release for all known videos.
+    ///   Purges all releases linked to a video from the database.
     /// </summary>
+    /// <param name="providerNames">
+    ///   Optional. An enumerable of provider names to remove releases from. If
+    ///   not set then all used releases will be removed regardless of the
+    ///   provider.
+    /// </param>
     /// <param name="removeFromMylist">
     ///   Optional. Set to <c>false</c> to not remove the release from the
     ///   user's MyList.
@@ -347,11 +352,16 @@ public interface IVideoReleaseService
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task ClearReleaseForAllVideos(bool removeFromMylist = true);
+    Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true);
 
     /// <summary>
-    ///   Purges all unused releases not linked to any videos from the database.
+    ///   Purges all releases not linked to any videos from the database.
     /// </summary>
+    /// <param name="providerNames">
+    ///   Optional. An enumerable of provider names to remove releases from. If
+    ///   not set then all unused releases will be removed regardless of the
+    ///   provider.
+    /// </param>
     /// <param name="removeFromMylist">
     ///   Optional. Set to <c>false</c> to not remove the release from the
     ///   user's MyList.
@@ -359,7 +369,7 @@ public interface IVideoReleaseService
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task PurgeUnusedReleases(bool removeFromMylist = true);
+    Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true);
 
     /// <summary>
     ///   Removes the specified release from the database.

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
@@ -20,6 +22,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -284,30 +287,42 @@ public class ActionController : BaseController
     /// <summary>
     /// Clears the current release for all known videos.
     /// </summary>
-    /// <param name="removeFromMyList">
+    /// <param name="removeFromMylist">
     ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <param name="providerNames">
+    ///   The names of the providers to clear. If null, all providers will be cleared.
     /// </param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("PurgeAllUsedReleases")]
-    public ActionResult PurgeAllUsedReleases(bool removeFromMyList = true)
+    public ActionResult PurgeAllUsedReleases(
+        [FromQuery] bool removeFromMylist = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
+    )
     {
-        Task.Run(() => _videoReleaseService.ClearReleaseForAllVideos(removeFromMyList));
+        Task.Run(() => _videoReleaseService.PurgeUsedReleases(providerNames, removeFromMylist));
         return Ok();
     }
 
     /// <summary>
     /// Purges all unused releases not linked to any videos from the database.
     /// </summary>
-    /// <param name="removeFromMyList">
+    /// <param name="removeFromMylist">
     ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <param name="providerNames">
+    ///   The names of the providers to clear. If null, all providers will be cleared.
     /// </param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("PurgeAllUnusedReleases")]
-    public ActionResult PurgeAllUnusedReleases(bool removeFromMyList = true)
+    public ActionResult PurgeAllUnusedReleases(
+        [FromQuery] bool removeFromMylist = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
+    )
     {
-        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(removeFromMyList));
+        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(providerNames, removeFromMylist));
         return Ok();
     }
 
