@@ -693,6 +693,10 @@ public class ActionService(
             transaction.Commit();
         });
 
+        var orphanedManualLinks = RepoFactory.CrossRef_File_Episode.GetAll().Where(a => a.VideoLocal == null && a.CrossRefSource == (int)CrossRefSource.User)
+            .ToArray();
+        RepoFactory.CrossRef_File_Episode.Delete(orphanedManualLinks);
+
         // update everything we modified
         await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
 
