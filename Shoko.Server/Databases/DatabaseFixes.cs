@@ -569,7 +569,7 @@ public class DatabaseFixes
         // Remove any existing links to the episodes that will be removed.
         _logger.Trace($"Checking {shokoEpisodesToRemove.Count} orphaned shoko episodes before deletion.");
         var databaseReleasesToRemove = new List<StoredReleaseInfo>();
-        var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
+        var xrefsToRemove = new List<CrossRef_File_Episode>();
         var videosToRefetch = new List<VideoLocal>();
         var tmdbXrefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         foreach (var shokoEpisode in shokoEpisodesToRemove)
@@ -1103,7 +1103,7 @@ public class DatabaseFixes
             .GroupBy(x => (x.Hash, x.FileSize, crossRefTypes[x.CrossRef_File_EpisodeID]))
             .ToList();
         var anidbFileUpdateLookup = anidbFileUpdates.ToLookup(x => x.ED2K);
-        var crossRefsToRemove = new List<SVR_CrossRef_File_Episode>();
+        var crossRefsToRemove = new List<CrossRef_File_Episode>();
         var storedReleaseInfos = new List<StoredReleaseInfo>();
         var storedReleaseInfoAttempts = new List<StoredReleaseInfo_MatchAttempt>();
         var count = 0;

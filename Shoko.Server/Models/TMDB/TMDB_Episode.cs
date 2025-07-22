@@ -392,7 +392,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     /// </summary>
     /// <returns>A read-only list of file cross-references associated with the
     /// episode.</returns>
-    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
+    public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences =>
         CrossReferences
             .DistinctBy(xref => xref.AnidbEpisodeID)
             .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))

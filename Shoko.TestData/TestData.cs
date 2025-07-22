@@ -1,7 +1,7 @@
 using System.Reflection;
 using Newtonsoft.Json;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
 
 namespace Shoko.TestData;
 

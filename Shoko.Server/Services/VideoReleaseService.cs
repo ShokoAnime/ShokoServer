@@ -16,6 +16,7 @@ using Shoko.Plugin.Abstractions.Release;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -633,12 +634,13 @@ public class VideoReleaseService(
 
     #region Save Release | Internals
 
-    private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<SVR_CrossRef_File_Episode> legacyXrefs)
+    private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<CrossRef_File_Episode> legacyXrefs)
     {
         legacyXrefs = [];
 
         var edgeCases = 0;
         var legacyOrder = 0;
+        var fileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName ?? string.Empty;
         var checkedIDs = new HashSet<int>();
         var embeddedXrefs = new List<EmbeddedCrossReference>();
         foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.AnidbEpisodeID))
@@ -746,7 +748,7 @@ public class VideoReleaseService(
                     EpisodeID = xref.AnidbEpisodeID,
                     Percentage = xref.PercentageEnd - xref.PercentageStart,
                     EpisodeOrder = legacyOrder++,
-                    FileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName,
+                    FileName = fileName,
                     FileSize = video.Size,
                 });
             }

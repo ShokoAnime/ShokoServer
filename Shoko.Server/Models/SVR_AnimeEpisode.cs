@@ -202,7 +202,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     public IReadOnlyList<VideoLocal> VideoLocals
         => RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
 
-    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences
+    public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences
         => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
     #endregion

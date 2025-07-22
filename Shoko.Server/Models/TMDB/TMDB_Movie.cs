@@ -453,7 +453,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// </summary>
     /// <returns>A read-only list of file cross-references associated with the
     /// movie.</returns>
-    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
+    public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences =>
         CrossReferences
             .DistinctBy(xref => xref.AnidbEpisodeID)
             .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))

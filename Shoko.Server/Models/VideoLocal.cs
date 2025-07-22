@@ -9,6 +9,7 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Plugin.Abstractions.Hashing;
 using Shoko.Plugin.Abstractions.Release;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
 
@@ -117,7 +118,7 @@ public class VideoLocal : IVideo
     public IReadOnlyList<SVR_AnimeEpisode> AnimeEpisodes
         => RepoFactory.AnimeEpisode.GetByHash(Hash);
 
-    public IReadOnlyList<SVR_CrossRef_File_Episode> EpisodeCrossReferences =>
+    public IReadOnlyList<CrossRef_File_Episode> EpisodeCrossReferences =>
         string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash);
 
     public VideoLocal_Place? FirstValidPlace

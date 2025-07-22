@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
@@ -82,7 +83,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         var response = request.Send();
         if (response.Response is null)
         {
-            var xrefsToDelete = new List<SVR_CrossRef_File_Episode>();
+            var xrefsToDelete = new List<CrossRef_File_Episode>();
             var scheduler = await _schedulerFactory.GetScheduler();
             var videosToUpdate = new List<VideoLocal>();
             foreach (var databaseReleaseGroup in databaseReleaseGroups)

@@ -10,6 +10,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
@@ -508,7 +509,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .ToList()
         );
 
-    private static bool IsImported(SVR_CrossRef_File_Episode xref)
+    private static bool IsImported(CrossRef_File_Episode xref)
     {
         if (xref.AnimeID == 0)
             return false;

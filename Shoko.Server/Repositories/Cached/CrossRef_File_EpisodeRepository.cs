@@ -3,26 +3,26 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class CrossRef_File_EpisodeRepository : BaseCachedRepository<SVR_CrossRef_File_Episode, int>
+public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_File_Episode, int>
 {
     private readonly ILogger<CrossRef_File_EpisodeRepository> _logger;
 
     private readonly JobFactory _jobFactory;
 
-    private PocoIndex<int, SVR_CrossRef_File_Episode, string>? _ed2k;
+    private PocoIndex<int, CrossRef_File_Episode, string>? _ed2k;
 
-    private PocoIndex<int, SVR_CrossRef_File_Episode, int>? _anidbAnimeIDs;
+    private PocoIndex<int, CrossRef_File_Episode, int>? _anidbAnimeIDs;
 
-    private PocoIndex<int, SVR_CrossRef_File_Episode, int>? _anidbEpisodeIDs;
+    private PocoIndex<int, CrossRef_File_Episode, int>? _anidbEpisodeIDs;
 
-    private PocoIndex<int, SVR_CrossRef_File_Episode, (string FileName, long FileSize)>? _fileNames;
+    private PocoIndex<int, CrossRef_File_Episode, (string FileName, long FileSize)>? _fileNames;
 
     public CrossRef_File_EpisodeRepository(ILogger<CrossRef_File_EpisodeRepository> logger, JobFactory jobFactory, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
@@ -43,7 +43,7 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<SVR_CrossRef
         };
     }
 
-    protected override int SelectKey(SVR_CrossRef_File_Episode entity)
+    protected override int SelectKey(CrossRef_File_Episode entity)
         => entity.CrossRef_File_EpisodeID;
 
     public override void PopulateIndexes()
@@ -54,15 +54,15 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<SVR_CrossRef
         _fileNames = Cache.CreateIndex(a => (a.FileName, a.FileSize));
     }
 
-    public IReadOnlyList<SVR_CrossRef_File_Episode> GetByEd2k(string ed2k)
+    public IReadOnlyList<CrossRef_File_Episode> GetByEd2k(string ed2k)
         => ReadLock(() => _ed2k!.GetMultiple(ed2k).OrderBy(a => a.EpisodeOrder).ToList());
 
-    public IReadOnlyList<SVR_CrossRef_File_Episode> GetByAnimeID(int animeID)
+    public IReadOnlyList<CrossRef_File_Episode> GetByAnimeID(int animeID)
         => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeID));
 
-    public IReadOnlyList<SVR_CrossRef_File_Episode> GetByFileNameAndSize(string fileName, long fileSize)
+    public IReadOnlyList<CrossRef_File_Episode> GetByFileNameAndSize(string fileName, long fileSize)
         => ReadLock(() => _fileNames!.GetMultiple((fileName, fileSize)));
 
-    public IReadOnlyList<SVR_CrossRef_File_Episode> GetByEpisodeID(int episodeID)
+    public IReadOnlyList<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
         => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeID));
 }
