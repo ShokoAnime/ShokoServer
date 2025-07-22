@@ -547,6 +547,8 @@ public class ActionService(
             transaction.Commit();
         });
 
+        // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
+
         // update everything we modified
         await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
 
@@ -949,5 +951,24 @@ public class ActionService(
         }
 
         _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
+    }
+
+    public async Task CreateMissingSeries()
+    {
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var missingSeries = RepoFactory.VideoLocal.GetAll().SelectMany(vid =>
+        {
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);
+            var aniDBAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
+            return aniDBAnime.Where(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) == null);
+        }).ToList();
+
+        _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);
+
+        var methods = AnidbRefreshMethod.Cache | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries;
+        foreach (var aniDBAnime in missingSeries)
+            await _anidbService.ScheduleRefresh(aniDBAnime, methods, prioritize: false);
+
+        _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }
 }

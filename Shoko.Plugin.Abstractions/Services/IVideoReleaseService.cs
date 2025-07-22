@@ -362,6 +362,21 @@ public interface IVideoReleaseService
     Task PurgeUnusedReleases(bool removeFromMylist = true);
 
     /// <summary>
+    ///   Removes the specified release from the database.
+    /// </summary>
+    /// <param name="release">
+    ///   The release to remove.
+    /// </param>
+    /// <param name="removeFromMylist">
+    ///   Optional. Set to <c>false</c> to not remove the release from the
+    ///   user's MyList.
+    /// </param>
+    /// <returns>
+    ///   A task that represents the asynchronous operation.
+    /// </returns>
+    Task RemoveRelease(IReleaseInfo release, bool removeFromMylist = true);
+
+    /// <summary>
     ///   Gets the release match attempts for the specified video.
     /// </summary>
     /// <param name="video">

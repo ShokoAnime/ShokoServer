@@ -961,6 +961,15 @@ public class VideoReleaseService(
             await ClearReleaseForVideo(null, release, removeFromMylist);
     }
 
+    public async Task RemoveRelease(IReleaseInfo releaseInfo, bool removeFromMylist = true)
+    {
+        if (releaseInfo is not StoredReleaseInfo storedReleaseInfo)
+            return;
+
+        var video = videoRepository.GetByEd2kAndSize(storedReleaseInfo.ED2K, storedReleaseInfo.FileSize);
+        await ClearReleaseForVideo(video, storedReleaseInfo, removeFromMylist);
+    }
+
     private async Task ClearReleaseForVideo(IVideo? video, StoredReleaseInfo releaseInfo, bool removeFromMylist = true)
     {
         // Mark the video as not imported if the video hasn't been deleted from the database,

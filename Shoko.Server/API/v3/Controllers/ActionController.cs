@@ -527,6 +527,20 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Add all series that have data and files, but no series. This helps if you've deleted a series, and it's stuck in limbo.
+    /// </summary>
+    /// <remarks>
+    /// This action requires an admin account because it affects the collection.
+    /// </remarks>
+    [Authorize("admin")]
+    [HttpGet("CreateMissingSeries")]
+    public async Task<ActionResult> CreateMissingSeries()
+    {
+        await _actionService.CreateMissingSeries();
+        return Ok();
+    }
+
+    /// <summary>
     /// Sync watch states with plex.
     /// </summary>
     /// <returns></returns>

@@ -749,7 +749,7 @@ public class AnimeSeriesService
         return results;
     }
 
-    public async Task DeleteSeries(SVR_AnimeSeries series, bool deleteFiles, bool updateGroups, bool completelyRemove = false)
+    public async Task DeleteSeries(SVR_AnimeSeries series, bool deleteFiles, bool updateGroups, bool completelyRemove = false, bool removeFromMylist = true)
     {
         foreach (var ep in series.AllAnimeEpisodes)
         {
@@ -840,6 +840,11 @@ public class AnimeSeriesService
 
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(series.AniDB_ID);
             RepoFactory.AniDB_AnimeUpdate.Delete(update);
+
+            // remove all releases linked to this series
+            var releases = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID);
+            foreach (var release in releases)
+                await _videoReleaseService.RemoveRelease(release, removeFromMylist);
         }
     }
 
