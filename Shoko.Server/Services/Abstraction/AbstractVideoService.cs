@@ -217,12 +217,6 @@ public class AbstractVideoService : IVideoService
             return;
         }
 
-        if (!Utils.IsVideo(relativePath))
-        {
-            _logger.LogInformation("File does not have an acceptable video extension, skipping: {Path}", relativePath);
-            return;
-        }
-
         if (!TryGetVideoAndLocation(managedFolder, relativePath, out var video, out var videoLocation))
         {
             // Logging occurs in TryGetVideoAndLocation.
@@ -350,6 +344,12 @@ public class AbstractVideoService : IVideoService
 
         if (videoLocation is null)
         {
+            if (!Utils.IsVideo(relativePath))
+            {
+                _logger.LogInformation("File does not have an acceptable video extension, skipping: {Path}", relativePath);
+                return false;
+            }
+
             // If this is a new record, check if it's a symlink of another known
             // file or if it's a previously known file.
             if (video is { VideoLocalID: 0 })
