@@ -503,6 +503,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries, IAnidbAnime
 
     #region IAnidbAnime Implementation
 
+    IReadOnlyList<int> IAnidbAnime.MalIDs => MalCrossReferences
+        .Select(xref => xref.MALID)
+        .Distinct()
+        .Where(x => x >= 0)
+        .ToList();
+
     IReadOnlyList<IAnidbTagForAnime> IAnidbAnime.Tags => AnimeTags
         .Select(xref => (xref, tag: xref.Tag!))
         .Where(tuple => tuple.tag is not null)
